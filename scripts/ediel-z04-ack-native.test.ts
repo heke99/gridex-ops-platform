@@ -17,9 +17,16 @@ function sql<T>(statement:string):T {
   return output?JSON.parse(output) as T:undefined as T
 }
 
-it('real inbound mixed Z04 persists routed CONTRL and only negative APERAK with retry-stable outbox, never business state',async()=>{
+for (const variant of ['missing-own-quantity','gas-unit-on-electric-register'] as const) it(`real inbound Z04 ${variant} persists only routed negative APERAK and retry-stable outbox, never business state`,async()=>{
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
-  const wire=raw(mixedZ04Parts(),'Z04').replace('+S+R+','+12345:14+54321:14+')
+  // The active legal actor identifier is unique across tenants in the native database.
+  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : '54322'
+  const parts=mixedZ04Parts()
+  if (variant === 'gas-unit-on-electric-register') {
+    const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+    parts.splice(second+1,0,['QTY',['31','20','MTQ']])
+  }
+  const wire=raw(parts,'Z04').replaceAll('54321',actorEdielId).replace('+S+R+',`+12345:14+${actorEdielId}:14+`)
   const receivedAt=new Date().toISOString()
   const sourceContext={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:ids.source,
     companyId:ids.company,environment:'test',messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:receivedAt,capturedAt:receivedAt}}
@@ -29,20 +36,20 @@ it('real inbound mixed Z04 persists routed CONTRL and only negative APERAK with 
     INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from)
       VALUES(${literal(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');
     INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from)
-      VALUES(${literal(ids.company)},'test',${literal(ids.actor)},'EdielId','54321',clock_timestamp()-interval '1 day');
+      VALUES(${literal(ids.company)},'test',${literal(ids.actor)},'EdielId',${literal(actorEdielId)},clock_timestamp()-interval '1 day');
     INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
       VALUES(${literal(ids.company)},'test',${literal(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day');
     INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
-      VALUES(${literal(ids.company)},'test','Synthetic native legal supplier','54321','54321');
+      VALUES(${literal(ids.company)},'test','Synthetic native legal supplier',${literal(actorEdielId)},${literal(actorEdielId)});
     INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active)
       VALUES(${literal(ids.route)},${literal(ids.company)},'Native ACK route','ediel_ack','bilateral_test',true);
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
-      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ACK profile','test','edifact','54321','12345','23-DDQ-PRODAT',true);
+      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ACK profile','test','edifact',${literal(actorEdielId)},'12345','23-DDQ-PRODAT',true);
     INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,
       message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
     SELECT ${literal(ids.source)},${literal(ids.company)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},
       '{"subtype":"L","prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":false}}'::jsonb,'{}'::jsonb,
-      ${literal(receivedAt)}::timestamptz,${literal(sourceContext)}::jsonb,'23-DDQ-PRODAT','12345','54321',pack.id,profile.profile_key,profile.id,
+      ${literal(receivedAt)}::timestamptz,${literal(sourceContext)}::jsonb,'23-DDQ-PRODAT','12345',${literal(actorEdielId)},pack.id,profile.profile_key,profile.id,
       pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
     FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
     WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)
@@ -64,6 +71,7 @@ it('real inbound mixed Z04 persists routed CONTRL and only negative APERAK with 
   expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual([['APERAK','negative'],['CONTRL','positive']])
   expect(first.messages.every(row=>row.company===ids.company&&row.route===ids.route&&row.profile===ids.profile)).toBe(true)
   const aperak=first.messages[0].wire
+  if (variant === 'gas-unit-on-electric-register') expect(aperak).toContain('ERC+42::260')
   expect(aperak).toContain('FTX+AAO++213::260')
   expect(aperak).toContain('RFF+Z07:735123456789012345')
   expect(aperak).not.toContain('RFF+Z07:735123456789012352')

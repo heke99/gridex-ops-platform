@@ -114,7 +114,7 @@ jobs:
       - name: Clean empty-database replay and verify generated types
         shell: bash
         env:
-          SUPABASE_INTERNAL_IMAGE_REGISTRY: public.ecr.aws
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1

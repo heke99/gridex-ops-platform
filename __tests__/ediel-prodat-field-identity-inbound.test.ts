@@ -72,6 +72,67 @@ it('keeps separate field 213 errors for two malformed physical Z04 objects',()=>
   ['213','735123456789012345'],['213','735123456789012352'],
  ])
 })
+it('rejects an invalid own field 209 agency through the final inbound APERAK without case effects',async()=>{
+ const parts=z04TwoObjects()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='3')
+ parts[second]=line('3','735123456789012352',undefined,'999')
+ state.realRegisterConsumer=true
+ state.message={...state.message,...source(raw(parts,'Z04'),'Z04')}
+ const decision=resolveCanonicalRuntimeDecision(state.message)
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
+ expect(decision.responsePlan.find(plan=>plan.family==='APERAK')).toMatchObject({outcome:'negative',applicationErrors:[{fieldCode:'209'}]})
+ await run()
+ expect(state.effects).toEqual([])
+ expect(state.drafts.map(d=>d.messageFamily)).toEqual(['CONTRL','APERAK'])
+ const wire=state.drafts.map(d=>d.rawPayload).join('')
+ expect(wire).toContain('FTX+AAO++209::260')
+ expect(wire).toContain('RFF+Z07:735123456789012352')
+ expect(wire).not.toContain('RFF+Z07:735123456789012345')
+ expect(wire).not.toContain('ERC+100::260')
+})
+it('does not accept QTY+136 as the required own QTY+31 field 213',async()=>{
+ const parts=z04TwoObjects()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts[second+1]=['QTY',['136','20','KWH']]
+ state.realRegisterConsumer=true
+ state.message={...state.message,...source(raw(parts,'Z04'),'Z04')}
+ const decision=resolveCanonicalRuntimeDecision(state.message)
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
+ expect(decision.responsePlan.find(plan=>plan.family==='APERAK')).toMatchObject({outcome:'negative',applicationErrors:[{fieldCode:'213'}]})
+ await run()
+ expect(state.effects).toEqual([])
+ const wire=state.drafts.map(d=>d.rawPayload).join('')
+ expect(wire).toContain('FTX+AAO++213::260')
+ expect(wire).toContain('RFF+Z07:735123456789012345')
+ expect(wire).not.toContain('RFF+Z07:735123456789012352')
+ expect(wire).not.toContain('ERC+100::260')
+})
+it('rejects an explicitly gas volume unit on the electricity PRODAT field 213',async()=>{
+ const parts=z04TwoObjects()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts[second+1]=['QTY',['31','20','MTQ']]
+ state.realRegisterConsumer=true
+ state.message={...state.message,...source(raw(parts,'Z04'),'Z04')}
+ const decision=resolveCanonicalRuntimeDecision(state.message)
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
+ expect(decision.responsePlan.find(plan=>plan.family==='APERAK')).toMatchObject({outcome:'negative',applicationErrors:[{fieldCode:'213'}]})
+ await run()
+ expect(state.effects).toEqual([])
+ const wire=state.drafts.map(d=>d.rawPayload).join('')
+ expect(wire).toContain('ERC+42::260')
+ expect(wire).toContain('FTX+AAO++213::260')
+ expect(wire).toContain('RFF+Z07:735123456789012345')
+ expect(wire).not.toContain('RFF+Z07:735123456789012352')
+ expect(wire).not.toContain('ERC+100::260')
+})
+it('keeps the electricity QTY+31 without an optional unit eligible for the existing positive path',()=>{
+ const parts=z04TwoObjects()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts[second+1]=['QTY',['31','20']]
+ const decision=resolveCanonicalRuntimeDecision(source(raw(parts,'Z04'),'Z04'))
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted'})
+ expect(decision.responsePlan.find(plan=>plan.family==='APERAK')).toMatchObject({outcome:'positive'})
+})
 for(const [name,invalid,field] of [
  ['global LIN',z10().map(item=>item[0]==='LIN'?['LIN','2',...item.slice(2)]:item),'314'],
  ['object register',(()=>{const rows=z10();const i=rows.findIndex(item=>item[0]==='LIN');rows[i]=['LIN','1','',['735123456789012345','','','9'],['1','1']];rows.push(['LIN','2','',['735123456789012345','','','9'],['1','1']]);return rows})(),'258'],
@@ -85,6 +146,7 @@ for(const [name,invalid,field] of [
  expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected'})
  expect(state.drafts.map(d=>d.messageFamily)).toEqual(['CONTRL','APERAK'])
  expect(state.drafts.map(d=>d.rawPayload).join('')).toContain(`FTX+AAO++${field}::260`)
+ expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('RFF+Z07:735123456789012345')
  expect(state.effects).toEqual([])
 })
 it('holds an own QTY31/213 omission before the case writer without an invented positive response',async()=>{

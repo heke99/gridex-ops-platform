@@ -57,6 +57,13 @@ describe('actual canonical register validation evidence', () => {
     ])
     expect(issues.some((issue) => issue.blocking && JSON.stringify(issue).includes(invalidId))).toBe(true)
   })
+  it('takes field 213 unit market from electric UNB, not a contradictory caller fact', () => {
+    const payload = raw([line('1','A'), ...reason, ['QTY',['31','20','MTQ']]])
+    const { evidence, issues } = assess(payload, {prodatDependentFacts:{market:'gas',meterReadingsSentInUtilts:false}})
+    expect(issues).toContainEqual(expect.objectContaining({code:'PRODAT_REGISTER_QUANTITY_UNIT_INVALID',blocking:true,
+      prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'213',failureEvidence:[expect.objectContaining({content:'MTQ'})]})}))
+    expect(evidence.objects[0].disposition).toBe('rejected')
+  })
 })
 
 it('actual runtime exposes the direct facet and leaves syntax-rejected runs without it', () => {
