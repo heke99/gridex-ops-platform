@@ -706,9 +706,9 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
   // Validate supplied LOC+172 in the applicable data/request profiles in
   // U pp.54,63,123. E66/E73 absence depends on the 172/175 object domain.
   if (!['E30', 'E66', 'S07', 'E72', 'E73'].includes(result.facts.messageCode ?? '')) return result
-  // UG-123-11/12 here is sourced from 25-A-4. The older 25-A-3 original
-  // is not present in the source pack, so this additional rule cannot be
-  // projected onto a prior-guide transaction based on the shared E5SE5A wire.
+  // UG-123-11/12 here is sourced from 25-A-4. A bounded English 25-A-3
+  // amendment covers E61/E62, but it has not qualified these identity rows;
+  // the shared E5SE5A wire does not project this rule onto the prior guide.
   const selectedGuide = policy?.guide ?? resolveAuthoritativeEdielGuide({
     family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
   })
