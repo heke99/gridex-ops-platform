@@ -54,9 +54,13 @@ outbound request by the reply's own UNB interchange reference, or match even
 without ACW. For the P16.B profile it now queries the original ACW against
 outbound BGM reference ownership only. Missing or conflicting ACWs hold before
 an outbound query; the tenant filter and existing reversed-party transport
-guard remain in force. This does not assert historical document uniqueness.
+guard remain in force. A further RED probe showed that embedding ACW with a
+comma in a PostgREST `or` expression could select an unrelated reference.
+Both request and message lookups now use literal equality; a message with
+both stored BGM aliases is deduplicated by row ID. This does not assert
+historical document uniqueness.
 
-Local focused tests: 101/101 across nine files after the ACW correction;
+Local focused tests: 102/102 across nine files after the ACW correction;
 app, tests and scripts typechecks, scoped lint and diff check passed. The native
 `scripts/ediel-z04-ack-native.test.ts` extension adds a third synthetic tenant,
 legal actor, route and source; it asserts persisted 27/314/ACW, tenant-bound

@@ -1,22 +1,22 @@
 import {expect,it,vi} from 'vitest'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 
-const state=vi.hoisted(()=>({conditions:[] as string[],companies:[] as string[],attempts:[] as Record<string,unknown>[],requestRows:true}))
+const state=vi.hoisted(()=>({conditions:[] as string[],lookups:[] as {table:string;filters:Record<string,string>}[],attempts:[] as Record<string,unknown>[],requestRows:true}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>({
   insert(payload:Record<string,unknown>){state.attempts.push(payload);return Promise.resolve({error:null})},
-  select(){return {
-    eq(key:string,value:string){if(key==='company_id')state.companies.push(value);return this},
+  select(){const filters:Record<string,string>={};return {
+    eq(key:string,value:string){filters[key]=value;return this},
     not(){return this},
     or(conditions:string){state.conditions.push(conditions);return this},
-    limit:async()=>({data:table==='outbound_requests'&&state.requestRows
+    limit:async()=>{state.lookups.push({table,filters});return {data:table==='outbound_requests'&&state.requestRows
       ? [
         {id:'wrong-own-ack-interchange',external_reference:'I'},
         {id:'original-document',external_reference:'D'},
-      ].filter(row=>state.conditions.at(-1)?.includes(`external_reference.eq.${row.external_reference}`))
+      ].filter(row=>filters.external_reference===row.external_reference||state.conditions.at(-1)?.includes(`external_reference.eq.${row.external_reference}`))
       : table==='ediel_messages'
-        ? [{id:'wrong-own-ack-interchange',external_reference:'I'}, {id:'original-message',external_reference:'D'}]
-          .filter(row=>state.conditions.at(-1)?.includes(`external_reference.eq.${row.external_reference}`))
-      : [],error:null}),
+        ? [{id:'wrong-own-ack-interchange',external_reference:'I',bgm_reference:'I'}, {id:'original-message',external_reference:'D',bgm_reference:'D'}]
+          .filter(row=>filters.external_reference===row.external_reference||filters.bgm_reference===row.bgm_reference||state.conditions.at(-1)?.includes(`external_reference.eq.${row.external_reference}`))
+      : [],error:null}},
   }}
 })}}))
 
@@ -27,33 +27,49 @@ function prodatAperak(acw:boolean){
 }
 
 it('matches PRODAT APERAK through its original BGM ACW, never its own UNB or UNH',async()=>{
-  state.conditions=[];state.companies=[];state.attempts=[];state.requestRows=true
+  state.conditions=[];state.lookups=[];state.attempts=[];state.requestRows=true
   const match=await matchOutboundRequestForInbound({companyId:'tenant-A',parsed:prodatAperak(true)})
   expect(match).toMatchObject({status:'matched',entityType:'outbound_request',entityId:'original-document'})
-  expect(state.conditions).toEqual(['external_reference.eq.D'])
-  expect(state.companies).toEqual(['tenant-A'])
+  expect(state.conditions).toEqual([])
+  expect(state.lookups).toEqual([{table:'outbound_requests',filters:{company_id:'tenant-A',external_reference:'D'}}])
 })
 
 it('holds PRODAT APERAK with no original ACW even when its own UNB can match',async()=>{
-  state.conditions=[];state.companies=[];state.attempts=[];state.requestRows=true
+  state.conditions=[];state.lookups=[];state.attempts=[];state.requestRows=true
   const match=await matchOutboundRequestForInbound({companyId:'tenant-A',parsed:prodatAperak(false)})
   expect(match.status).toBe('missing')
   expect(state.conditions).toEqual([])
+  expect(state.lookups).toEqual([])
 })
 
 it('holds conflicting original ACW references instead of choosing the first',async()=>{
-  state.conditions=[];state.companies=[];state.attempts=[];state.requestRows=true
+  state.conditions=[];state.lookups=[];state.attempts=[];state.requestRows=true
   const parsed=prodatAperak(true)
   parsed.references.ACW=['D','OTHER']
   const match=await matchOutboundRequestForInbound({companyId:'tenant-A',parsed})
   expect(match.status).toBe('missing')
   expect(state.conditions).toEqual([])
+  expect(state.lookups).toEqual([])
 })
 
 it('uses the same ACW constraint for an original outbound Ediel message without an outbound request',async()=>{
-  state.conditions=[];state.companies=[];state.attempts=[];state.requestRows=false
+  state.conditions=[];state.lookups=[];state.attempts=[];state.requestRows=false
   const match=await matchOutboundRequestForInbound({companyId:'tenant-A',parsed:prodatAperak(true)})
   expect(match).toMatchObject({status:'matched',entityType:'ediel_message',entityId:'original-message'})
-  expect(state.conditions).toEqual(['external_reference.eq.D','external_reference.eq.D,bgm_reference.eq.D'])
-  expect(state.companies).toEqual(['tenant-A','tenant-A'])
+  expect(state.conditions).toEqual([])
+  expect(state.lookups).toEqual([
+    {table:'outbound_requests',filters:{company_id:'tenant-A',external_reference:'D'}},
+    {table:'ediel_messages',filters:{company_id:'tenant-A',direction:'outbound',external_reference:'D'}},
+    {table:'ediel_messages',filters:{company_id:'tenant-A',direction:'outbound',bgm_reference:'D'}},
+  ])
+})
+
+it('treats ACW filter punctuation as literal document data',async()=>{
+  state.conditions=[];state.lookups=[];state.attempts=[];state.requestRows=true
+  const parsed=prodatAperak(true)
+  parsed.references.ACW=['D,external_reference.eq.I']
+  const match=await matchOutboundRequestForInbound({companyId:'tenant-A',parsed})
+  expect(match.status).toBe('missing')
+  expect(state.conditions).toEqual([])
+  expect(state.lookups.map(row=>Object.values(row.filters).at(-1))).toEqual(Array(3).fill('D,external_reference.eq.I'))
 })

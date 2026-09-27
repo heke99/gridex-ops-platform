@@ -73,7 +73,6 @@ export async function matchOutboundRequestForInbound(input: {
 
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   const conditions = references.flatMap((reference) => {
-    if (prodatAperak) return [`external_reference.eq.${reference}`]
     const base = [
       `external_reference.eq.${reference}`,
       `dispatch_batch_key.eq.${reference}`,
@@ -81,12 +80,14 @@ export async function matchOutboundRequestForInbound(input: {
     return uuidPattern.test(reference) ? [...base, `source_id.eq.${reference}`] : base
   })
 
-  const { data, error } = await supabaseService
+  const outboundQuery = supabaseService
     .from('outbound_requests')
     .select('id, company_id, source_type, source_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, message_family, message_code')
     .eq('company_id', input.companyId)
-    .or(conditions.join(','))
-    .limit(5)
+  // An ACW is literal document data, never a PostgREST filter expression.
+  const { data, error } = prodatAperak
+    ? await outboundQuery.eq('external_reference', references[0]).limit(5)
+    : await outboundQuery.or(conditions.join(',')).limit(5)
 
   if (error) throw error
 
@@ -97,23 +98,32 @@ export async function matchOutboundRequestForInbound(input: {
     return match
   }
 
-  const { data: edielData, error: edielError } = await supabaseService
-    .from('ediel_messages')
+  const edielQuery = () => supabaseService.from('ediel_messages')
     .select('id,company_id,outbound_request_id,customer_id,site_id,metering_point_id,grid_owner_id,message_family,message_code,external_reference,interchange_reference,transaction_reference,correlation_reference,original_message_id')
     .eq('company_id', input.companyId)
     .eq('direction', 'outbound')
     .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
-    .or(references.flatMap((reference) => prodatAperak ? [
-      `external_reference.eq.${reference}`,
-      `bgm_reference.eq.${reference}`,
-    ] : [
+  let edielData: Array<Record<string, unknown>> | null = null
+  let edielError: unknown = null
+  if (prodatAperak) {
+    const [external, bgm] = await Promise.all([
+      edielQuery().eq('external_reference', references[0]).limit(5),
+      edielQuery().eq('bgm_reference', references[0]).limit(5),
+    ])
+    edielError = external.error ?? bgm.error
+    edielData = [...new Map([...(external.data ?? []), ...(bgm.data ?? [])]
+      .map(row => [row.id, row as Record<string, unknown>])).values()]
+  } else {
+    const result = await edielQuery().or(references.flatMap((reference) => [
       `interchange_reference.eq.${reference}`,
       `transaction_reference.eq.${reference}`,
       `external_reference.eq.${reference}`,
       `correlation_reference.eq.${reference}`,
       `original_message_id.eq.${reference}`,
-    ]).join(','))
-    .limit(5)
+    ]).join(',')).limit(5)
+    edielData = (result.data ?? []) as Array<Record<string, unknown>>
+    edielError = result.error
+  }
 
   if (edielError) throw edielError
 
