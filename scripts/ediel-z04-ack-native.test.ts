@@ -17,14 +17,18 @@ function sql<T>(statement:string):T {
   return output?JSON.parse(output) as T:undefined as T
 }
 
-for (const variant of ['missing-own-quantity','gas-unit-on-electric-register'] as const) it(`real inbound Z04 ${variant} persists only routed negative APERAK and retry-stable outbox, never business state`,async()=>{
+for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence'] as const) it(`real inbound Z04 ${variant} persists only routed negative APERAK and retry-stable outbox, never business state`,async()=>{
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
   // The active legal actor identifier is unique across tenants in the native database.
-  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : '54322'
+  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : variant === 'gas-unit-on-electric-register' ? '54322' : '54323'
   const parts=mixedZ04Parts()
   if (variant === 'gas-unit-on-electric-register') {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
     parts.splice(second+1,0,['QTY',['31','20','MTQ']])
+  }
+  if (variant === 'whole-message-lin-sequence') {
+    const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+    parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
   }
   const wire=raw(parts,'Z04').replaceAll('54321',actorEdielId).replace('+S+R+',`+12345:14+${actorEdielId}:14+`)
   const receivedAt=new Date().toISOString()
@@ -72,7 +76,15 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register'] a
   expect(first.messages.every(row=>row.company===ids.company&&row.route===ids.route&&row.profile===ids.profile)).toBe(true)
   const aperak=first.messages[0].wire
   if (variant === 'gas-unit-on-electric-register') expect(aperak).toContain('ERC+42::260')
-  expect(aperak).toContain('FTX+AAO++213::260')
+  if (variant === 'whole-message-lin-sequence') {
+    expect(aperak).toContain('BGM+++27')
+    expect(aperak).toContain('FTX+AAO++314::260')
+    expect(aperak).toContain('RFF+ACW:D')
+    expect(aperak).not.toContain('BGM+++34')
+  } else {
+    expect(aperak).toContain('BGM+++34')
+    expect(aperak).toContain('FTX+AAO++213::260')
+  }
   expect(aperak).toContain('RFF+Z07:735123456789012345')
   expect(aperak).not.toContain('RFF+Z07:735123456789012352')
   expect(first.outbox).toHaveLength(2)

@@ -1,5 +1,23 @@
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
+## Uppföljning efter #413: draft #414
+
+PR #413 mergades som `2e4eeb65af719bcb370d619727d300618a97cb1e` efter
+grön ren replay, native 368/368 och schema-/typparitet. Nedanstående ursprungliga
+inventering är dess daterade bas, inte nuvarande PR-status. Ny branch från denna
+`main`: `codex/ediel-v2-f3-aperak-whole-message-20260927`, draft #414. Första
+kodhead `22d284dd` rättar källstyrkt P-17 LIN/314 så slutlig P-APERAK bär
+`BGM+++27`, originalets ACW och inget otillåtet fallutfall. Bearbetat meddelande
+med lokalt fältfel behåller `34`. RED före rättning, riktade 25/25 och app-/test-
+typkontroll är verifierade. Native-provet för beständig ACK/outbox/retry finns i
+nästa delsteg men väntar på exakt-head CI. Se
+[`f3-prodat-aperak-message-rejection-20260927.md`](f3-prodat-aperak-message-rejection-20260927.md).
+
+JSON-registrets åtta berörda rader (`P-17`, `ACK-02`, `ACK-10`, `SC-034`,
+`SC-042`, `AT-P-17`, `AT-ACK-02`, `AT-ACK-10`) har nya kod-/testvägar och
+preciserade luckor. De förblir `partial_code`; totalsiffror och frysta formella
+bevisstatusar är oförändrade tills en full radkvalifikation kan styrkas.
+
 Avstämning 2026-09-27 på `main` `07a93a5eed775b6fd3c02545c9fb7662956503fa` plus draft-PR #413, branch `codex/ediel-v2-f3-prodat-field-composition-20260927`, head `fc823c12658a6fad8cd3e9d1aabd33d4df96d542`. Den fullständiga radvisa klassningen och dess kod- och testvägar finns i [JSON-registret](masterplan-v2-traceability-20260927.json). Det frysta kravregistret ändras inte av denna kodgranskning.
 
 ## Mått och gränser
