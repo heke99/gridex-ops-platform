@@ -1,7 +1,7 @@
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 import {expect,it} from 'vitest'
-import {raw} from '../__tests__/fixtures/prodat-register'
+import {qty,raw} from '../__tests__/fixtures/prodat-register'
 import {mixedZ04Parts} from '../__tests__/helpers/mixedZ04Fixture'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
@@ -17,10 +17,10 @@ function sql<T>(statement:string):T {
   return output?JSON.parse(output) as T:undefined as T
 }
 
-for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence'] as const) it(`real inbound Z04 ${variant} persists only routed negative APERAK and retry-stable outbox, never business state`,async()=>{
+for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence','missing-header-date'] as const) it(`real inbound Z04 ${variant} persists only routed negative APERAK and retry-stable outbox, never business state`,async()=>{
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
   // The active legal actor identifier is unique across tenants in the native database.
-  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : variant === 'gas-unit-on-electric-register' ? '54322' : '54323'
+  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : variant === 'gas-unit-on-electric-register' ? '54322' : variant === 'whole-message-lin-sequence' ? '54323' : '54324'
   const parts=mixedZ04Parts()
   if (variant === 'gas-unit-on-electric-register') {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
@@ -30,7 +30,13 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
     parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
   }
-  const wire=raw(parts,'Z04').replaceAll('54321',actorEdielId).replace('+S+R+',`+12345:14+${actorEdielId}:14+`)
+  if (variant === 'missing-header-date') {
+    const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+    parts.splice(second+1,0,qty('20'))
+  }
+  let wire=raw(parts,'Z04').replaceAll('54321',actorEdielId).replace('+S+R+',`+12345:14+${actorEdielId}:14+`)
+  if (variant === 'missing-header-date') wire=wire.replace('DTM+137:202609171200:203\'','')
+    .replace(/UNT\+(\d+)\+M/,(_,count:string)=>`UNT+${Number(count)-1}+M`)
   const receivedAt=new Date().toISOString()
   const sourceContext={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:ids.source,
     companyId:ids.company,environment:'test',messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:receivedAt,capturedAt:receivedAt}}
@@ -81,11 +87,18 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     expect(aperak).toContain('FTX+AAO++314::260')
     expect(aperak).toContain('RFF+ACW:D')
     expect(aperak).not.toContain('BGM+++34')
+  } else if (variant === 'missing-header-date') {
+    expect(aperak).toContain('BGM+++27')
+    expect(aperak).toContain('ERC+41::260')
+    expect(aperak).toContain('FTX+AAO++205::260')
+    expect(aperak).toContain('RFF+ACW:D')
+    expect(aperak).not.toContain('BGM+++34')
+    expect(aperak).not.toContain('RFF+Z07:')
   } else {
     expect(aperak).toContain('BGM+++34')
     expect(aperak).toContain('FTX+AAO++213::260')
   }
-  expect(aperak).toContain('RFF+Z07:735123456789012345')
+  if (variant !== 'missing-header-date') expect(aperak).toContain('RFF+Z07:735123456789012345')
   expect(aperak).not.toContain('RFF+Z07:735123456789012352')
   expect(first.outbox).toHaveLength(2)
   expect(first.outbox.every(row=>row.company===ids.company&&row.source===ids.source&&row.profile===ids.profile&&row.status==='queued'&&row.hash?.length===64)).toBe(true)
