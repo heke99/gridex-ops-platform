@@ -61,10 +61,10 @@ export function validateProdatRegisterPolicy(input: {
   const market = requireIndependentInventory
     ? prodatRegisterReadingMarket(prodatRegisterTokens(input.rawSegments, una), una, input.applicationReference) : facts.market
   const wireMarket = prodatRegisterReadingMarket(prodatRegisterTokens(input.rawSegments, una), una, input.applicationReference)
-  const add = (field: string, line: number, code: string, description: string, diagnostic?: ProdatDiagnostic) => {
+  const add = (field: string, line: number, code: string, description: string, diagnostic?: ProdatDiagnostic, source = 'P26.A §2.2 / bilaga2 s.114–116') => {
     const rule = input.rules.find(rule => rule.fieldNumber === field)
     if (rule) issues.push({prodatDiagnostic:diagnostic ?? prodatFieldDiagnostic(field,'invalid',input,[], 'PRODAT26A:P47/114–116',line),scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:field === '258' ? 'LIN/C829/1082' : rule.segmentPath,
-      description:`LIN ${line + 1}, fält ${field}: ${description} (P26.A §2.2 / bilaga2 s.114–116).`})
+      description:`LIN ${line + 1}, fält ${field}: ${description} (${source}).`})
   }
   if (requireIndependentInventory) {
     const firstLine = message.findIndex(token => token.tag === 'LIN')
@@ -137,8 +137,8 @@ export function validateProdatRegisterPolicy(input: {
         const quantity = group.segments.find(token => token.tag === 'QTY' && segmentComposite(token, 1, una)[0] === '31')
         if (quantity && segmentComposite(quantity, 1, una)[2] === 'MTQ') {
           const evidence = prodatComponentEvidence(quantity.raw, 'SG12/QTY+31/C186/6411', segmentComposite(quantity, 1, una), [2])
-          add(field,group.lineIndex,'PRODAT_REGISTER_QUANTITY_UNIT_INVALID','Elmarknadens årsenergi får inte ha gasenheten MTQ (P26.A s.54)',
-            prodatFieldDiagnostic(field,'invalid',input,[],'PRODAT26A:P54',group.lineIndex,'register',evidence))
+          add(field,group.lineIndex,'PRODAT_REGISTER_QUANTITY_UNIT_INVALID','Elmarknadens årsenergi får inte ha gasenheten MTQ',
+            prodatFieldDiagnostic(field,'invalid',input,[],'PRODAT26A:P54',group.lineIndex,'register',evidence),'P26.A §2.6 s.54')
         }
       }
       // p116: register tariff codes differ, even when quantities/constants do not.
