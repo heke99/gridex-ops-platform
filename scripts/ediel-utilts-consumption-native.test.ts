@@ -213,6 +213,29 @@ it('native E66 persists SG5 field 512 as the DTM+735 UTC instant and preserves i
   expect(sql(`SELECT jsonb_build_object('registration',registration_date='2026-06-30T23:20:00Z'::timestamptz,'latestAbsent',latest_update_date IS NULL,'rawRegistration',raw_transaction->>'registrationDate',
     'source',source_ediel_message_id,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toEqual(stored)
 })
+it('native E66 cannot borrow SG11 DTM+597 for missing SG5 field 512 or consume its values on retry', async () => {
+  const f = await seed()
+  const segments = f.original.raw_payload!.split('\n').filter(segment => segment !== "DTM+597:202607010020:203'")
+  const unh = segments.findIndex(segment => segment.startsWith('UNH+'))
+  const unt = segments.findIndex(segment => segment.startsWith('UNT+'))
+  segments[unt] = `UNT+${unt - unh + 1}+1'`
+  const source = await f.insertSource(segments.join('\n'))
+  const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(first.ingestedMeterValueIds).toEqual([])
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(JSON.stringify(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('512')
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,
+    'series',persisted_series_id)) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
+    .toEqual([{ company: f.ids.company, disposition: 'guide_rejected', plan: 'negative_aperak', series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  const before = snapshot(source.id)
+  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(snapshot(source.id)).toEqual(before)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
 it('native accepted S01 persists only SG5 field 532 and no individual consumption effect on retry', async () => {
   const f = await seed()
   const segments = f.original.raw_payload!
