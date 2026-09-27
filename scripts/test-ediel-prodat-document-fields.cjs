@@ -56,7 +56,8 @@ const alphabet={component:':',element:'+',decimal:'.',release:'?',reserved:' ',t
 function encode(s,a=alphabet){return [...s].map(c=>[a.component,a.element,a.release,a.terminator].includes(c)?a.release+c:c).join('')}
 // Independent serializer: structural arrays are never built by the application renderer.
 function wire(header,body=[['LIN','1','',['OBJECT','','','9']]],a=alphabet){
- const rows=[['UNH','UNH-DISTINCT',['PRODAT','D','97A','UN','E2SE6A']],...header,...body]
+ const rows=[['UNH','UNH-DISTINCT',['PRODAT','D','97A','UN','E2SE6A']],...header,
+  ['DTM',['137','202609171200','203']],['DTM',['ZZZ','1','805']],...body]
  rows.push(['UNT',String(rows.length+1),'UNH-DISTINCT'])
  return `UNA${a.component}${a.element}${a.decimal}${a.release}${a.reserved}${a.terminator}`+
  [['UNB',['UNOC','3'],['12345','14'],['54321','14'],['260917','1200'],'INTERCHANGE','','23-DDQ-PRODAT'],...rows,['UNZ','1','INTERCHANGE']]

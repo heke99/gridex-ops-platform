@@ -93,7 +93,7 @@ describe('masterplan UTILTS ERR acknowledgement profile', () => {
     // A P-family row must contain a P-family wire, not the UTILTS ERR wire
     // from the shared fixture. Keep the original document and actor identities.
     const prodatSource = { ...source, message_family: 'PRODAT', message_code: 'Z01',
-      raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+ORIGINAL+9+AB'UNT+3+M'UNZ+1+I'",
+      raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+ORIGINAL+9+AB'DTM+137:202609101200:203'DTM+ZZZ:1:805'UNT+5+M'UNZ+1+I'",
     } as EdielMessageRow
     const result = buildAckDraftForSource({ sourceMessage: prodatSource, ackFamily: 'APERAK' })
     expect(result.rawPayload).toContain('APERAK:D:96A:UN:E2SE6A')

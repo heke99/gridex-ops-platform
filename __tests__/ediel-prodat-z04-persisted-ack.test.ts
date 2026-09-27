@@ -167,6 +167,8 @@ it('persists one whole-message rejection for missing required header 205, correl
  expect(draft.rawPayload).toContain('FTX+AAO++205::260')
  expect(draft.rawPayload).toContain('RFF+ACW:D')
  expect(draft.rawPayload).not.toContain('RFF+Z07:')
+ expect(buildAperakDraft({sourceMessage:{...sourceMessage,message_code:'Z01'},outcome:'negative',applicationErrors:plan.applicationErrors}).rawPayload)
+  .toContain('BGM+++27')
  expect(classifyCanonicalInboundAck(parseEdifactPayload(draft.rawPayload!))).toMatchObject({profile:'PRODAT_16_B',outcome:'negative'})
  const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:sourceMessage.id}
  await processInboundEdielMessage(input)
@@ -189,4 +191,26 @@ it('does not accept a supplied 205 error or positive ACK as authority for a whol
  expect(()=>buildAperakDraft({sourceMessage:defective,outcome:'positive'})).toThrow('aperak_prodat_header_205_response_unqualified')
  expect(()=>buildAperakDraft({sourceMessage:defective,outcome:'negative',applicationErrors:[{ercCode:'41',fieldCode:'205',text:'invented'}]})).toThrow('aperak_prodat_header_205_response_unqualified')
  expect(()=>buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors})).toThrow('aperak_prodat_header_205_response_unqualified')
+})
+
+it('rejects a malformed supplied header date as ERC42/205 for the whole P message before business writes',async()=>{
+ const parts=mixedZ04Parts()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts.splice(second+1,0,qty('20'))
+ state.source={...state.source!,raw_payload:raw(parts,'Z04').replace('DTM+137:202609171200:203','DTM+137:202613171200:203')} as EdielMessageRow
+ const decision=resolveCanonicalRuntimeDecision(state.source)
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
+ const plan=decision.responsePlan.find(item=>item.family==='APERAK')!
+ expect(plan.applicationErrors).toEqual([expect.objectContaining({ercCode:'42',fieldCode:'205',prodatOccurrence:expect.objectContaining({scope:'header'})})])
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'positive'})).toThrow('aperak_prodat_header_205_response_unqualified')
+ const other={...state.source!,raw_payload:state.source.raw_payload!.replace('202613171200','202614171200')} as EdielMessageRow
+ const otherError=resolveCanonicalRuntimeDecision(other).responsePlan.find(item=>item.family==='APERAK')!.applicationErrors!
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:otherError}))
+  .toThrow('aperak_prodat_header_205_response_unqualified')
+ const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id}
+ await processInboundEdielMessage(input)
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
+ expect(String(state.messages[1].raw_payload)).toContain('BGM+++27')
+ expect(String(state.messages[1].raw_payload)).toContain('FTX+AAO++205::260')
+ expect(state.effects).toEqual([])
 })
