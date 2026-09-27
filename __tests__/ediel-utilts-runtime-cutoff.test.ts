@@ -81,6 +81,41 @@ describe('UTILTS runtime effective-date cutoff', () => {
     }, { referenceDate: '2026-10-01' })
     expect(national.validation.issues.some(issue => issue.aperakFieldCode === '533')).toBe(false)
   })
+  it.each([
+    ['E72', '23-MDR-E30-S', 'LOC+172', '209'],
+    ['E73', '23-DDQ-E66-S', 'LOC+175', '533'],
+    ['S06', '23-DDK-S01-S', 'LOC+175', '533'],
+  ] as const)('reports malformed supplied %s request identity per IDE', (code, applicationReference, location, fieldCode) => {
+    const source = observationHandoffMessage('2026-10-01', `tenant-${code}-request-identity`)
+    const raw_payload = source.raw_payload!
+      .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
+      .replace('23-DDQ-E66-S', applicationReference)
+      .replace('LOC+172+735999260731000007::9', `${location}+735999260731000008::9`)
+    const message = { ...source, message_code: code, application_reference: applicationReference, raw_payload }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode, ercCode: '42', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.transactionDispositions[0]).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+  })
+  it.each([
+    ['E72', '23-MDR-E30-S', 'LOC+172', '209'],
+    ['E73', '23-DDQ-E66-S', 'LOC+175', '533'],
+    ['S06', '23-DDK-S01-S', 'LOC+175', '533'],
+  ] as const)('keeps %s supplied identity check in October and accepts national agency 89', (code, applicationReference, location, fieldCode) => {
+    const source = observationHandoffMessage('2026-10-01', `tenant-${code}-request-boundary`)
+    const raw = source.raw_payload!
+      .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
+      .replace('23-DDQ-E66-S', applicationReference)
+      .replace('LOC+172+735999260731000007::9', `${location}+735999260731000008::9`)
+    const message = { ...source, message_code: code, application_reference: applicationReference, raw_payload: raw }
+    const prior = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(prior.validation.issues.some(issue => issue.aperakFieldCode === fieldCode && issue.code.endsWith('GS1_CHECK_DIGIT_INVALID'))).toBe(false)
+    const national = runUtiltsRuntimeForMessage({ ...message,
+      raw_payload: raw.replace(`${location}+735999260731000008::9`, `${location}+NATIONALOBJECT::89`),
+    }, { referenceDate: '2026-10-01' })
+    expect(national.validation.issues.some(issue => issue.aperakFieldCode === fieldCode)).toBe(false)
+  })
   it.each(['E30', 'S07'] as const)('requires %s LOC+172 on its own IDE without borrowing a sibling', code => {
     const source = observationHandoffMessage('2026-10-01', `tenant-${code}-missing209`)
     const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')

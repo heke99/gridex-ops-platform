@@ -20,3 +20,9 @@ The masterplan §1 distinguishes tenant, legal actor and technical transport; a 
 | Positive LOC+175 | Partial owner | No | No | No | No | No |
 
 The frozen 121 rule cards and 231 acceptance contracts have not been reconciled row by row. No overall completion percentage follows from this audit. The first named launch candidate remains E66 25-A-4 DDQ controlled inbound receipt/quarantine, with the separate activation gates recorded in #410.
+
+## First independent F3 implementation on this draft
+
+U pp.62–63 and annex C p.123 specify field209 for E72 and conditionally E73, and field533 conditionally for E73/S06. Under the selected October 25-A-4 guide, a **supplied** SG5/LOC+172 for E72/E73 or LOC+175 for E73/S06 must carry a valid agency-9 GSRN or an agency-89 national identifier. This slice does not infer when conditional E73/S06 fields must occur, a product mapping, rights to send/receive these request roles, a positive 175 sink, or historical 203/IDE uniqueness.
+
+On unmodified runtime, three valid-profile request fixtures with a supplied bad agency-9 check digit produced no corresponding 209/533 application issue (RED 3/3). The shared per-IDE guides now include those codes only for the selected 25-A-4; pre-October does not inherit the new GS1 check. Agency 89 remains outside GS1 arithmetic. Actual non-billing inbound processor tests assert tenant-bound `gridex_persist_utilts_consumption_v1` disposition `guide_rejected`, negative APERAK and zero meter, billing or completion calls. Local full affected runtime/processor suites: 75/75; test/script TypeScript, scoped ESLint and diff check passed. Three native fixtures for E72/E73/S06 final stored APERAK, zero series/business effects and byte-stable retry are committed with the code, but **have not yet run** in clean migration replay. App typecheck, whole-diff review and exact-head PR gates remain open.
