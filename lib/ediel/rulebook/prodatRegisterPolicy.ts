@@ -7,7 +7,9 @@ import { canonicalProdatSubtypeAlias } from '@/lib/ediel/rulebook/prodatSubtypeR
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { resolveProdatRegisterRequirement, type ProdatDependentConditionFacts, type ProdatDependentConditionStatus } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { prodatRegisterFieldState, prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { prodatComponentEvidence } from '@/lib/ediel/prodat/prodatFailureEvidence'
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
@@ -58,6 +60,7 @@ export function validateProdatRegisterPolicy(input: {
     && ['Z04','Z06','Z10'].includes(input.code.toUpperCase())
   const market = requireIndependentInventory
     ? prodatRegisterReadingMarket(prodatRegisterTokens(input.rawSegments, una), una, input.applicationReference) : facts.market
+  const wireMarket = prodatRegisterReadingMarket(prodatRegisterTokens(input.rawSegments, una), una, input.applicationReference)
   const add = (field: string, line: number, code: string, description: string, diagnostic?: ProdatDiagnostic) => {
     const rule = input.rules.find(rule => rule.fieldNumber === field)
     if (rule) issues.push({prodatDiagnostic:diagnostic ?? prodatFieldDiagnostic(field,'invalid',input,[], 'PRODAT26A:P47/114–116',line),scope:'prodat_register',severity:'error',blocking:true,code,title:'PRODAT registervillkor',fieldPath:field === '258' ? 'LIN/C829/1082' : rule.segmentPath,
@@ -130,6 +133,14 @@ export function validateProdatRegisterPolicy(input: {
       if (status === 'undetermined') add(field,group.lineIndex,'PRODAT_DEPENDENT_CONDITION_UNDETERMINED','Villkoret kan inte avgöras från objektets källstyrda fakta', prodatLocalDiagnostic('local_unknown','PRODAT26A:register-readings','Receiver-local readings condition unknown'))
       else if (status === 'required' && (!state.value || state.malformed)) add(field,group.lineIndex,rule.errorCodeIfMissing ?? 'PRODAT_DEPENDENT_FIELD_MISSING','Eget giltigt registervärde krävs; inget annat register kan fylla det', prodatFieldDiagnostic(field,state.malformed ? 'invalid' : 'missing',input,[],'PRODAT26A:P47/114–116',group.lineIndex))
       else if (status === 'forbidden' && state.present) add(field,group.lineIndex,rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT','Fältet får inte anges i denna registerkontext')
+      if (field === '213' && state.present && !state.malformed && wireMarket === 'electricity') {
+        const quantity = group.segments.find(token => token.tag === 'QTY' && segmentComposite(token, 1, una)[0] === '31')
+        if (quantity && segmentComposite(quantity, 1, una)[2] === 'MTQ') {
+          const evidence = prodatComponentEvidence(quantity.raw, 'SG12/QTY+31/C186/6411', segmentComposite(quantity, 1, una), [2])
+          add(field,group.lineIndex,'PRODAT_REGISTER_QUANTITY_UNIT_INVALID','Elmarknadens årsenergi får inte ha gasenheten MTQ (P26.A s.54)',
+            prodatFieldDiagnostic(field,'invalid',input,[],'PRODAT26A:P54',group.lineIndex,'register',evidence))
+        }
+      }
       // p116: register tariff codes differ, even when quantities/constants do not.
       if (field === '259' && state.value && !state.malformed && group.registerCount > 1 && first) {
         const seen = tariffs.get(first.lineIndex) ?? new Set<string>()
