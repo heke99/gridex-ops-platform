@@ -17,9 +17,14 @@ function sql<T>(statement:string):T {
   return output?JSON.parse(output) as T:undefined as T
 }
 
-it('real inbound mixed Z04 persists routed CONTRL and only negative APERAK with retry-stable outbox, never business state',async()=>{
+for (const variant of ['missing-own-quantity','gas-unit-on-electric-register'] as const) it(`real inbound Z04 ${variant} persists only routed negative APERAK and retry-stable outbox, never business state`,async()=>{
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
-  const wire=raw(mixedZ04Parts(),'Z04').replace('+S+R+','+12345:14+54321:14+')
+  const parts=mixedZ04Parts()
+  if (variant === 'gas-unit-on-electric-register') {
+    const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+    parts.splice(second+1,0,['QTY',['31','20','MTQ']])
+  }
+  const wire=raw(parts,'Z04').replace('+S+R+','+12345:14+54321:14+')
   const receivedAt=new Date().toISOString()
   const sourceContext={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:ids.source,
     companyId:ids.company,environment:'test',messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:receivedAt,capturedAt:receivedAt}}
