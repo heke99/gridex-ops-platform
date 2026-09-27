@@ -196,3 +196,5 @@ UG-122-24 NAD MS/MR SVK five-digit 3039 shape merged via #402 after exact-head f
 
 ## Historical — #401 bounded merge
 UG-123-2/3 NAD MS/MR agency 260/9/305 and conditional SVK guide checks merged via #401 after native 345/345 and all four ordinary CI workflows. Verified main `9ae42858` and same-SHA Vercel READY. This is a bounded code/ACK/persistence result, not a whole F3 or market activation. Next UG-122-24 five-digit SVK shape is active separately.
+## 2026-09-27 — PR #416 local field313 evidence (PR/native pending)
+Reproduced missing and invalid BGM/4343 on complete Z04 through the actual inbound consumer: ERC41/42 but BGM34 and forbidden business adapter calls. Added source-bound 313 whole-message qualification with Z01 optional and NA valid safeguards. Local 19/19 consumer tests, 47/47 related tests, 64/64 source script and three TS projects passed. Native DB cases added but not yet executed in CI; this is no formal acceptance or market activation.

@@ -1,5 +1,19 @@
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
+## Uppföljning i draft #416: källbundet fält 313
+
+På exakt `9d76377a` var Ediel, browser, Full E2E och OPS gröna för fält 206;
+OPS hade ren replay, native 373/373 och schema-/typparitet. Det källstyrda
+grannfallet fält 313 (BGM/4343) reproducerades därefter RED: saknat eller
+ogiltigt värde i komplett Z04 gav ERC41/42 men BGM34 och nådde affärsvägen.
+Den lokala korrigeringen ger BGM27 och stoppar före affärseffekter med
+tenantbunden kvittens och stabil retry i det riktade konsumentprovet.
+Native-test för beständig ACK/outbox har lagts till men PR-CI är ännu inte
+kört för den nya headen. Se
+[`f3-prodat-header-313-whole-message-20260928.md`](f3-prodat-header-313-whole-message-20260928.md).
+ACK-02/ACK-10 och kontrakten är fortfarande delvis uppfyllda; detta ändrar
+inte de frysta 121/231-registrens formella status eller någon fasgräns.
+
 ## Uppföljning efter #415: fält 206-kandidat
 
 #415:s sluthead `eee4a3fe` klarade fyra tillämpliga CI-flöden; OPS native

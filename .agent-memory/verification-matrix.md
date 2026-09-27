@@ -498,3 +498,10 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | PR407 `c9b92fb0` | Ediel `36275554089`, browser `36275554104`, full E2E `36275554084`, OPS `36275554097` | Four SUCCESS; native351/351 including interrupted ACK and real sink retry, clean migration/generated parity, quality/build; scope guard on request/customer/point/site/owner. |
 | main `6732925b` | Remote ref, Vercel `dpl_BHqNeYHmQUq7QEs8oJpV1U67uaVv` | Same-SHA production READY; no Ediel market activation. |
 | local pair candidate | RED orphan LOC232/233 returned E19, GREEN 55/55 focused processor/runtime/order; app/test/script types, lint/diff | Native SQL/ACK/retry and all ordinary exact-head CI pending. No conditional Exchange/product certificate. |
+## 2026-09-27 — PR #416 field313 local matrix
+| Scope | Result | Limit |
+| --- | --- | --- |
+| Targeted complete Z04 negative path | RED 2/2: BGM34; real consumer reached actor/facility/link/case/business. GREEN 19/19 in `ediel-prodat-z04-persisted-ack.test.ts`. | Mocked DB; native stored ACK/outbox pending. |
+| Adjacent PRODAT/ACK tests | Five files 47/47 and `test-ediel-unb-ack-request.cjs` 64/64. | No market send. |
+| Static checks | app/tests/scripts TypeScript PASS; scoped eslint zero errors (one pre-existing unused-variable warning); spec integrity 29/29; `git diff --check` PASS. | Exact new-head CI pending. |
+| Native cases | Two new missing/invalid BGM4343 variants in `ediel-z04-ack-native.test.ts`. | No local `psql`/Supabase CLI; OPS clean replay must execute. |

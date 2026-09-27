@@ -465,3 +465,7 @@ Publish bounded field204 guide/consumer batch stacked on PR381 corrected head; r
 Qualify actual guide rejection through local native clean replay on exact PR head; inspect all ordinary CI, review, merge and verify main/Vercel. Then select next independent source-led rule. No staging/TGT/AGT/counterparty/live sends; field203/LOC+175/E035 gates remain. Older entries below are historical.
 ## Latest — after #401
 Publish and qualify bounded UG-122-24 SVK five-digit NAD party ID; require native persisted ACK/disposition, all ordinary CI, review, merge and same-SHA Vercel outcome. Then trace a separate source-led rule. GS1 9/305, field203 owner, positive LOC175 and E035 history/retention remain separately open; no market sends. Older entries below historical.
+## Current — PR #416 header/whole-message package
+1. Publish the locally verified field313 source qualification, tests and traceability on the existing draft PR. Preserve exact remote head with fast-forward only.
+2. Inspect all applicable workflows on the new head, especially native 313 cases, clean replay and schema/type parity; correct only the first proven failure.
+3. Review the complete 206+313 diff and open threads; merge once if all exact-head gates are green. Verify remote main and deployment; start the next package from main. No staging/TGT/AGT/counterparty/live traffic; #310 untouched.

@@ -1,0 +1,16 @@
+# F3 PRODAT header 313: source-bound whole-message rejection
+
+## Skill routing and scope
+Applied `spec-to-code-compliance` (one frozen field), `systematic-debugging`, `test-driven-development`, `differential-review`, `code-review` and `verification-before-completion` to the real PRODAT inbound and ACK path. Database/native verification is delegated to the existing OPS CI gate because this worktree has no local PostgreSQL/Supabase runtime. No independent agents or parallel writers. Repository-wide audit, UI/performance work, new schema, hook installation and skill creation are outside this bounded criterion.
+
+## Source and finding
+P26.A r3 §2.2 p16 marks BGM/4343 field 313 as required for Z02–Z18 and optional for Z01. P §3.2 p86 says PRODAT's sender requests APERAK (except optional Z01); §3.3 p90 defines BGM/1225 27 for whole-message rejection and 34 for a processed message; pp91,103 define ERC41/42, field reference and a header-level ERC. The frozen extract is `permission-ack-source-20260920/original-relevant-pages.txt`. `NA` alone remains a permitted BGM/4343 value per the frozen field matrix; this change does not infer a new mandate or dispatch route.
+
+On the exact PR #416 base `9d76377a`, a complete Z04 whose only defect was absent BGM/4343 or `ZZ` produced the correct typed ERC41/42/313 but a final `BGM+++34`. The actual `processInboundEdielMessage` then called actor, facility, case, link and business adapters despite the rejected header. This is a verified source/code divergence, not a missing assertion in a synthetic renderer alone. Both RED cases were observed with the targeted Vitest test before changing implementation.
+
+## Bounded correction and evidence
+`prodatHeaderFieldRejection` reads the physical first PRODAT BGM. Requiredness and the AB/NA values come from P26.A; its typed diagnostic must match the source rule, original UNH reference, header occurrence, ERC and (for invalid content) physical component evidence. The renderer and real consumer use that same decision. Missing/invalid 313 now yields a whole-message `BGM+++27` with `ERC+41/42`, `FTX+AAO++313::260` and original `RFF+ACW`, and stops before all case/switch/supply writers. A missing optional Z01 value and a supplied `NA` do not trigger this header rejection. An invented, foreign or positive response cannot qualify it. No qualified route means no ACK/outbox publication.
+
+Local unit/consumer test: `__tests__/ediel-prodat-z04-persisted-ack.test.ts` 19/19 after RED 2/2. It checks tenant-bound ACK and outbox, forbidden mocked effects, absence of object references and unchanged retry. `scripts/ediel-z04-ack-native.test.ts` adds two variants with a real isolated tenant, legal actor, route, stored `ediel_messages`/`ediel_outbox`, no case/switch/supply row and byte-for-byte persisted retry. Native result, clean replay, generated type/schema parity and exact-head PR CI are **pending** until the published head runs in OPS. No live Ediel traffic, staging, TGT/AGT, counterparty or market send.
+
+This is only one additional part of ACK-02/ACK-10 and F3; 203/IDE505 historical issuer ownership, positive LOC+175, E035 history/retention, full G06 grammar and formal activation remain open. The 121 cards and 231 contracts are not reclassified by this local result.
