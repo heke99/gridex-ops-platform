@@ -21,6 +21,7 @@ function payload(id: string, code = 'Z03', options: { rawId?: boolean; function?
     'UNH+UNH-OTHER+PRODAT:D:97A:UN:E2SE6A',
     `BGM+${escape(code)}+${options.rawId ? id : escape(id)}+${options.function ?? '9'}+${options.ack ?? 'AB'}`,
     'DTM+137:202609171200:203',
+    'DTM+ZZZ:1:805',
     'NAD+FR+12345:160:SVK', 'NAD+DO+54321:160:SVK',
     'LIN+1++735999999999999999:::9', ...(options.body ?? []),
   ]

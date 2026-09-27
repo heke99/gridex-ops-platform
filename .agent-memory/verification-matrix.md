@@ -1,3 +1,9 @@
+## 2026-09-27 — PR #416 first CI finding
+Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
+
+## 2026-09-27 — #415 accepted, header206 candidate
+#415 `eee4a3fe`: four workflows SUCCESS; OPS `36351069983` native371/371 incl five Z04 persisted ACK cases, clean replay, schema fingerprint `08ad0f03`, type hash `36e98937` identical; main/Vercel READY `bd3e131e`. Header206 local RED BGM34 on missing/invalid offset despite ERC41/42; GREEN final 27/ACW/consumer no effects, six files269/269, three TS projects and scoped lint. Native two new cases and exact-head CI pending. Formal status unchanged.
+
 ## 2026-09-27 — PR #415 native jsonb correction
 `849a7c9f`: Ediel/browser/full E2E and OPS verify/quality SUCCESS; OPS run `36350350372` clean replay native370/371 FAIL at invalid205 (`ediel-z04-ack-native.test.ts:82`), before schema/type gate. Reordered jsonb key evidence RED locally; fieldwise equality GREEN while altered content remains blocked. Focused21/21, app/tests/scripts TypeScript, scoped lint/diff PASS; fresh native and parity pending.
 
@@ -492,3 +498,16 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | PR407 `c9b92fb0` | Ediel `36275554089`, browser `36275554104`, full E2E `36275554084`, OPS `36275554097` | Four SUCCESS; native351/351 including interrupted ACK and real sink retry, clean migration/generated parity, quality/build; scope guard on request/customer/point/site/owner. |
 | main `6732925b` | Remote ref, Vercel `dpl_BHqNeYHmQUq7QEs8oJpV1U67uaVv` | Same-SHA production READY; no Ediel market activation. |
 | local pair candidate | RED orphan LOC232/233 returned E19, GREEN 55/55 focused processor/runtime/order; app/test/script types, lint/diff | Native SQL/ACK/retry and all ordinary exact-head CI pending. No conditional Exchange/product certificate. |
+## 2026-09-27 — PR #416 field313 local matrix
+| Scope | Result | Limit |
+| --- | --- | --- |
+| Targeted complete Z04 negative path | RED 2/2: BGM34; real consumer reached actor/facility/link/case/business. GREEN 19/19 in `ediel-prodat-z04-persisted-ack.test.ts`. | Mocked DB; native stored ACK/outbox pending. |
+| Adjacent PRODAT/ACK tests | Five files 47/47 and `test-ediel-unb-ack-request.cjs` 64/64. | No market send. |
+| Static checks | app/tests/scripts TypeScript PASS; scoped eslint zero errors (one pre-existing unused-variable warning); spec integrity 29/29; `git diff --check` PASS. | Exact new-head CI pending. |
+| Native cases | Two new missing/invalid BGM4343 variants in `ediel-z04-ack-native.test.ts`. | No local `psql`/Supabase CLI; OPS clean replay must execute. |
+## 2026-09-27 — PR #416 field313 review correction
+| Scope | Result | Limit |
+| --- | --- | --- |
+| Lowercase `BGM/4343=ab` | RED complete Z04 application accepted; GREEN ERC42/313, BGM27, no mocked business. | Native new-head result pending. |
+| Related tests and static | Five files 48/48, consumer20/20, app/tests/scripts TypeScript and scoped lint/diff PASS. | Prior-head CI not transferable. |
+| Independent read-only review | One important mismatch identified and corrected; no other concrete blocker in full diff. | Must recheck final SHA and CI. |

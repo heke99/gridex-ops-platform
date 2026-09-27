@@ -1,3 +1,6 @@
+## Current — header206 verification and wider gates
+206 missing/invalid local ACK/consumer is a code candidate; actual native stored ACK/outbox/retry, clean replay, schema/type parity and PR review remain pending. 203/505 historical issuer uniqueness, positive LOC175 registry/mandate/sink, E035 history/retention, G06 grammar and E66/DDQ live activation gate remain open. PR310 paused.
+
 ## Current — #415 native 205 gate
 On `849a7c9f`, native 370/371 failed invalid header205 ACK after jsonb reordered failureEvidence. Corrected locally with RED/GREEN, but exact-head native/replay/parity are still required before a merge. Historical 203/505, positive LOC175, E035 history/retention, broad ACK/grammar and activation remain separate. PR310 paused.
 
@@ -605,3 +608,7 @@ NAD 207/208 3055/1131 and SVK five-digit 3039 bounded checks are merged, not mar
 NAD207/208 candidate is not yet CI/native-qualified or merged. Field203 immutable tenant/legal-actor document identity, positive LOC+175 durable actor/object owner, E035 historic coverage/`complete:false` and retention/deletion remain open; `invalid_document_observation_time` still intermittent. All market activation gated; #310 paused. Older entries below are historical.
 ## Latest — after #401
 UG-123-2/3 NAD agency/qualifier accepted bounded, not market activated. SVK five-digit identity shape candidate pending native/CI; GS1 9/305 check digit lacks verified exact original algorithm/profile in this scope. Field203 durable tenant/legal-actor document owner, positive LOC175 owner, E035 historic `complete:false` and retention/deletion remain unresolved; intermittent `invalid_document_observation_time` remains. #310 paused. Older entries below historical.
+## 2026-09-27 — PR #416 field313 native gate pending
+The local environment has no `psql` or Supabase CLI; newly added native stored ACK/outbox/tenant/no-business/retry cases must run in OPS clean replay on the published head. `9d76377a` is green only for the preceding 206 criterion. Historical 203/IDE505 issuer scope, positive LOC+175 owner/mandate/sink, E035 history/retention, full grammar and formal per-capability market gates remain open. #310 paused.
+## 2026-09-27 — PR #416 final-head native pending after review fix
+`63244be9` is superseded for merge by the locally verified lowercase-313 correction. Three added native variants require new-head OPS clean replay and schema/type parity; no local DB CLI. Formal 121/231 acceptance and all market gates remain open. PR #310 paused.

@@ -1,3 +1,6 @@
+## 2026-09-27 — bounded #415 delivery
+PRODAT required header205 missing/invalid/duplicate whole-message ACK BGM27, original ACW, persisted tenant ACK/outbox and retry; jsonb evidence order fixed. Exact-head `eee4a3fe` four workflows/native371/371/schema/types; merged main/Vercel READY `bd3e131e`. This is not full F3 or market activation.
+
 ## 2026-09-27 — #414 accepted; #415 bounded local verification
 #414 exact head `32866bc4` four workflows green, OPS native369/369, clean replay and schema/type parity; main `62ca24a1`, same-SHA Vercel READY. #415 published first two code/native commits through `1badf5c2`; local RED/GREEN missing/invalid 205 with actual ACK/no effects/retry, focused90/90 and protocol20/20, Node document script pass. #415 native final and formal acceptance are not completed.
 
@@ -193,3 +196,7 @@ UG-122-24 NAD MS/MR SVK five-digit 3039 shape merged via #402 after exact-head f
 
 ## Historical — #401 bounded merge
 UG-123-2/3 NAD MS/MR agency 260/9/305 and conditional SVK guide checks merged via #401 after native 345/345 and all four ordinary CI workflows. Verified main `9ae42858` and same-SHA Vercel READY. This is a bounded code/ACK/persistence result, not a whole F3 or market activation. Next UG-122-24 five-digit SVK shape is active separately.
+## 2026-09-27 — PR #416 local field313 evidence (PR/native pending)
+Reproduced missing and invalid BGM/4343 on complete Z04 through the actual inbound consumer: ERC41/42 but BGM34 and forbidden business adapter calls. Added source-bound 313 whole-message qualification with Z01 optional and NA valid safeguards. Local 19/19 consumer tests, 47/47 related tests, 64/64 source script and three TS projects passed. Native DB cases added but not yet executed in CI; this is no formal acceptance or market activation.
+## 2026-09-27 — Local independent-review correction (CI pending)
+One read-only reviewer found field313 lowercase validator/ACK split in published `63244be9`. Actual consumer RED application accepted, scoped literal AB/NA comparison GREEN 20/20 direct and 48/48 five related tests; native third variant added but not run yet. No formal acceptance claim.

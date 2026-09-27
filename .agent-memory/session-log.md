@@ -1,3 +1,9 @@
+## 2026-09-27 — PR #416 first CI finding
+Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
+
+## 2026-09-27 — #415 merge, #416 candidate
+Merged #415 once after exact-head native371/371 and four workflows; remote main and Vercel READY `bd3e131e`. New branch from main reproduces 206 header offset whole-message error; source-qualified shared renderer/consumer correction passes local six files269/269 and types/lint. Two native cases await publication; market traffic held, PR310 untouched.
+
 ## 2026-09-27 — PR #415 continued
 Fetched same remote/local `849a7c9f`. Exact-head OPS native370/371 exposed invalid205 ACK failure after jsonb key reorder; source-owned ERC42 was present but APERAK blocked. Reproduced RED, structural evidence equality GREEN (21/21), type/lint/diff PASS. Preparing push and exact-head CI; no market sends or #310 changes.
 
@@ -357,3 +363,7 @@ Checked remote main/worktree and sole active author; source annex C and code pat
 2026-09-26: Remote main 787678fc after PR404. Field203 temporal uniqueness lacks durable legal-actor owner, so held. Scoped NAD 9/305 GLN validation RED/GREEN and 300/300 relevant tests, three TS projects, lint passed on local branch. Native fixture and audit prepared; PR/CI/merge/deployment pending. PR310 untouched.
 ## 2026-09-27 — grid-area pair after #407
 PR407 final `c9b92fb0` four ordinary CI SUCCESS/native351/351; squash main `6732925b`, Vercel same-SHA READY. No market activation. Reproduced orphan 232/233 as wrong functional ERR, implemented per-IDE missing partner ERC41 and added actual inbound plus native SQL retry cases. Local focused 55/55, three TypeScript projects, lint/diff pass. Publish and qualify next PR; #310 paused.
+## 2026-09-27 — Continue draft PR #416
+Fetched unchanged remote main `bd3e131e` and PR `9d76377a`, read frozen P/APERAK source, plan and actual renderer/consumer. Found field313 whole-message failure with RED on real inbound, implemented source/evidence qualification and business stop, GREEN targeted/adjacent/type/source checks, added native DB tests and audit. Direct `git push --dry-run` had no CLI credentials; publish through authorized GitHub connector, then inspect new-head CI. No staging/market traffic or PR310 action.
+## 2026-09-27 — Review correction on #416
+Independent reviewer traced lowercase BGM/4343 across canonical field matrix and source-bound ACK guard; found accepted/invalid split. Added real inbound RED (accepted), field313-only literal allowed-value fix and third native variant, local GREEN 48/48. Final corrected head must be published and requalified; no rerun of unchanged head or market action.
