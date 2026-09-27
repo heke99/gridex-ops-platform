@@ -94,7 +94,8 @@ function source(family = 'PRODAT', testFlag = 1, alphabet = alphabets[0]) {
   const app = family === 'PRODAT' ? '23-DDQ-PRODAT' : '23-DDQ-E66-S'
   const rows = family === 'PRODAT' ? [
     ['UNH', 'SOURCE-M', ['PRODAT','D','97A','UN','E2SE6A']], ['BGM',code,'SOURCE-DOC','9','AB'],
-    ['DTM',['137','202609201200','203']], ['NAD','FR',['12345','160','SVK']], ['NAD','DO',['54321','160','SVK']],
+    ['DTM',['137','202609201200','203']], ['DTM',['ZZZ','1','805']],
+    ['NAD','FR',['12345','160','SVK']], ['NAD','DO',['54321','160','SVK']],
     ['LIN','1','',['735999888000000017','','','9']], ['RFF',['LI','SOURCE-LI']],
   ] : [
     ['UNH','SOURCE-M',['UTILTS','D','02B','UN','E5SE5A']], ['BGM',code,'SOURCE-DOC','9','AB'],
