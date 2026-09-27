@@ -1,3 +1,6 @@
+## 2026-09-27 — PR #416 first CI finding
+Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
+
 ## Current — F3 header206 one coherent PR
 Source P26.A r3 §2.2 p16 and P-APERAK 16.B pp90,95,98–103. Local RED missing/invalid DTM+ZZZ produced ERC41/42 but BGM34; shared source qualification yields 27, original ACW and actual inbound zero mocked effects. Native cases for persisted ACK, tenant route/outbox, no business and retry are added. Publish one draft PR from main `bd3e131e`, run exact-head CI/native/replay/schema/type parity, review diff, merge once if fully green, verify Vercel. 203/505 history, LOC175 owner, E035 retention, grammar and activation remain open; #310 untouched.
 

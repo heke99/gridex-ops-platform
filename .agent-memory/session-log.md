@@ -1,3 +1,6 @@
+## 2026-09-27 — PR #416 first CI finding
+Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
+
 ## 2026-09-27 — #415 merge, #416 candidate
 Merged #415 once after exact-head native371/371 and four workflows; remote main and Vercel READY `bd3e131e`. New branch from main reproduces 206 header offset whole-message error; source-qualified shared renderer/consumer correction passes local six files269/269 and types/lint. Two native cases await publication; market traffic held, PR310 untouched.
 

@@ -1,3 +1,6 @@
+## 2026-09-27 — PR #416 first CI finding
+Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
+
 ## 2026-09-27 — #415 accepted, header206 candidate
 #415 `eee4a3fe`: four workflows SUCCESS; OPS `36351069983` native371/371 incl five Z04 persisted ACK cases, clean replay, schema fingerprint `08ad0f03`, type hash `36e98937` identical; main/Vercel READY `bd3e131e`. Header206 local RED BGM34 on missing/invalid offset despite ERC41/42; GREEN final 27/ACW/consumer no effects, six files269/269, three TS projects and scoped lint. Native two new cases and exact-head CI pending. Formal status unchanged.
 

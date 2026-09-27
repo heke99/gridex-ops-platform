@@ -1,10 +1,10 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-27T21:33:00Z",
+  "updated_at": "2026-09-27T21:40:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-f3-prodat-header-206-20260927",
-  "active_pr": null,
+  "active_pr": 416,
   "base_head_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
   "runtime_accepted_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
   "last_merged_pr": 415,
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish one draft PR for header206 candidate from main bd3e131e; inspect exact-head native/replay/schema/type and all workflows, fix first actual failure, review and merge once if qualified. Market activation separate; PR310 untouched.",
+  "next_action": "Publish PR416 fixture-only source-corrected DTM+ZZZ control, inspect new exact-head Ediel/native/replay/schema/type and other workflows; fix first actual failures, review one merge if green. Market activation separate; PR310 untouched.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -880,6 +880,10 @@
   "pr416_candidate": {
     "base": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
     "local": "RED missing/invalid offset BGM34; GREEN BGM27 with source-owned 206, final consumer no effects; six files269/269, three TS projects, lint; native two cases pending",
-    "market_traffic": "held"
+    "market_traffic": "held",
+    "draft_pr": 416,
+    "published_review_head": "9da23117818df74c842c6c0c77db3aedae6ac93c",
+    "first_ci_failure": "Ediel 36352375005: eight document-consumer synthetic complete P wires missing mandatory header206",
+    "local_fixture_correction": "DTM+ZZZ:1:805, computed UNT; affected34/34, test TS/lint PASS, unpublished"
   }
 }
