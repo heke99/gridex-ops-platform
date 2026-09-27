@@ -200,6 +200,27 @@ export function renderAperakEdiel(params: {
     problem.fieldNumber === '314' && problem.reason === 'global_sequence_must_increment_from_one') ?? []
   const sourceUnh = sourceWire?.segments.find(token => token.tag === 'UNH')
   const messageReference = sourceUnh && sourceWire ? segmentComposite(sourceUnh, 1, sourceWire.una)[0] || null : null
+  // P26.A §2.2 field 205 is required in the header. A missing header date
+  // makes the entire message unprocessable (P-APERAK BGM 27); a date inside
+  // a LIN cannot supply it. Match the original header and its typed finding.
+  const messageSegments = sourceWire ? prodatRegisterMessageSegments(sourceWire.segments, sourceWire.una) : []
+  const firstLine = messageSegments.findIndex(token => token.tag === 'LIN')
+  const header = messageSegments.slice(0, firstLine < 0 ? undefined : firstLine)
+  const missingHeader205 = Boolean(sourceWire && hasProdatWire && !header.some(token => token.tag === 'DTM' &&
+    segmentComposite(token, 1, sourceWire.una)[0] === '137'))
+  const header205Errors = params.applicationErrors?.filter(error => error.fieldCode === '205' &&
+    error.prodatOccurrence?.scope === 'header') ?? []
+  const qualifiedHeader205 = (error: AperakEngineApplicationError) => error.ercCode === '41' &&
+    error.prodatFieldDiagnostic?.kind === 'field' && error.prodatFieldDiagnostic.errorKind === 'missing' &&
+    error.prodatFieldDiagnostic.sourceRule === `PRODAT26A:§2.2:${params.source.messageCode}:205` &&
+    Boolean(messageReference) &&
+    error.prodatOccurrence?.messageReference === messageReference &&
+    error.prodatOccurrence?.lineIndex === null && isQualifiedProdatApplicationError(error)
+  if ((missingHeader205 || header205Errors.length) &&
+    (params.outcome !== 'negative' || !missingHeader205 || !header205Errors.length ||
+      !header205Errors.every(qualifiedHeader205))) {
+    throw new Error('aperak_prodat_header_205_response_unqualified')
+  }
   if (sequenceProblems.length && (params.outcome !== 'negative' || !sequenceProblems.every(problem =>
     params.applicationErrors?.some(error => {
       const group = sequenceOwner?.groups.find(row => row.lineIndex === problem.lineIndex)
@@ -213,7 +234,7 @@ export function renderAperakEdiel(params: {
         occurrence.messageReference === messageReference)
     })
   ))) throw new Error('aperak_prodat_sequence_response_unqualified')
-  const bgmFunction = sequenceProblems.length ? '27' : '34'
+  const bgmFunction = sequenceProblems.length || missingHeader205 ? '27' : '34'
   const wireDocument = sourceWire ? prodatDocumentValue('203', sourceWire.segments, sourceWire.una) : null
   if (hasProdatWire && (!wireDocument || wireDocument.length > 35)) {
     // Missing/invalid original identity is a local correlation blocker, not a

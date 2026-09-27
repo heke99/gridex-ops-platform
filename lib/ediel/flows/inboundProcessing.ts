@@ -865,10 +865,21 @@ export async function processInboundEdielMessage(params: {
   }
 
   // The case writer deliberately rejects malformed LIN/register structures.
-  // Preserve the already qualified negative application response before that
-  // writer, and never let a rejected object enter switch or billing state.
+  // A source-owned missing required header date rejects the whole message as
+  // well. Preserve its negative response before any case or business writer.
+  const missingProdatHeader205 = runtimeMessage.message_family === "PRODAT" &&
+    canonicalRuntime.decision.applicationDecision === "rejected" &&
+    canonicalRuntime.decision.responsePlan.some(item => item.family === "APERAK" &&
+      item.outcome === "negative" && item.applicationErrors?.some(error =>
+        error.fieldCode === "205" && error.ercCode === "41" &&
+        error.prodatOccurrence?.scope === "header" &&
+        error.prodatFieldDiagnostic?.kind === "field" &&
+        error.prodatFieldDiagnostic.errorKind === "missing" &&
+        error.prodatFieldDiagnostic.sourceRule === `PRODAT26A:§2.2:${runtimeMessage.message_code}:205` &&
+        isQualifiedProdatApplicationError(error)));
   if (runtimeMessage.message_family === "PRODAT" &&
-      canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected")) {
+      (missingProdatHeader205 ||
+        canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected"))) {
     try {
       const negative = canonicalRuntime.decision.responsePlan.some(item =>
         item.family === "APERAK" && item.outcome === "negative" && Boolean(item.applicationErrors?.length));
