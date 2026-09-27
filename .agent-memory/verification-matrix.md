@@ -505,3 +505,9 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | Adjacent PRODAT/ACK tests | Five files 47/47 and `test-ediel-unb-ack-request.cjs` 64/64. | No market send. |
 | Static checks | app/tests/scripts TypeScript PASS; scoped eslint zero errors (one pre-existing unused-variable warning); spec integrity 29/29; `git diff --check` PASS. | Exact new-head CI pending. |
 | Native cases | Two new missing/invalid BGM4343 variants in `ediel-z04-ack-native.test.ts`. | No local `psql`/Supabase CLI; OPS clean replay must execute. |
+## 2026-09-27 — PR #416 field313 review correction
+| Scope | Result | Limit |
+| --- | --- | --- |
+| Lowercase `BGM/4343=ab` | RED complete Z04 application accepted; GREEN ERC42/313, BGM27, no mocked business. | Native new-head result pending. |
+| Related tests and static | Five files 48/48, consumer20/20, app/tests/scripts TypeScript and scoped lint/diff PASS. | Prior-head CI not transferable. |
+| Independent read-only review | One important mismatch identified and corrected; no other concrete blocker in full diff. | Must recheck final SHA and CI. |

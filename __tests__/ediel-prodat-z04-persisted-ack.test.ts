@@ -150,7 +150,7 @@ it('does not borrow a qualified 314 finding from another physical object',()=>{
   .toThrow('aperak_prodat_sequence_response_unqualified')
 })
 
-it.each([['missing','', '41'],['invalid','ZZ','42']] as const)(
+it.each([['missing','', '41'],['invalid','ZZ','42'],['lowercase','ab','42']] as const)(
  'rejects %s required header 313 as a whole message with a routed, retry-stable ACK and no business effects',async(_defect,value,erc)=>{
  const parts=mixedZ04Parts()
  const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')

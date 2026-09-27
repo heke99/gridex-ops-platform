@@ -469,3 +469,7 @@ Publish and qualify bounded UG-122-24 SVK five-digit NAD party ID; require nativ
 1. Publish the locally verified field313 source qualification, tests and traceability on the existing draft PR. Preserve exact remote head with fast-forward only.
 2. Inspect all applicable workflows on the new head, especially native 313 cases, clean replay and schema/type parity; correct only the first proven failure.
 3. Review the complete 206+313 diff and open threads; merge once if all exact-head gates are green. Verify remote main and deployment; start the next package from main. No staging/TGT/AGT/counterparty/live traffic; #310 untouched.
+## Current — PR #416 review correction
+1. Publish literal field313 validation after RED/GREEN and the added native lowercase variant to the same draft PR.
+2. Require all applicable CI, clean replay, native stored ACK/no-business/retry and schema/type parity on the corrected exact head; fix first true failure only.
+3. Review final diff and comments, merge the 206+313 package once if gates pass, verify main/deployment and begin next package. No market test/send and no PR310 work.

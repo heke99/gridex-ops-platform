@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-27T22:40:00Z",
+  "updated_at": "2026-09-27T22:50:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-f3-prodat-header-206-20260927",
@@ -10,7 +10,7 @@
   "last_merged_pr": 415,
   "last_accepted_pr": 415,
   "root_main_acceptance_comment": null,
-  "active_item": "PR416 P26.A F3 header206 + 313 whole-message ACK; 313 local RED/GREEN, new-head native/CI pending",
+  "active_item": "PR416 F3 header206 + 313; independent-review lowercase 313 split reproduced/fixed locally, corrected head CI pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-313-whole-message-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish source-bound header313 correction to existing draft PR416 from exact 9d76377a; check native stored ACK/retry plus clean replay/schema/type and other exact-head CI, fix first genuine failure, review full package and merge once only if green. Market activation separate; PR310 untouched.",
+  "next_action": "Publish literal field313 AB/NA validation and third native variant to draft PR416 from exact 63244be9; require corrected-head CI/native/replay/schema/type, repeat final review, then one merge if green. Market activation separate; PR310 untouched.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [

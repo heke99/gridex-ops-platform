@@ -193,7 +193,9 @@ function fieldValuesForRule(rule: RulebookFieldRule, input: FieldMatrixEvaluatio
   const document = normalize(rule.family) === 'PRODAT' ? prodatDocumentField(rule.fieldNumber ?? rule.fieldKey) : null
   if (document) {
     const value = prodatDocumentValue(document.fieldNumber, rawSegments, input.una)
-    return value ? [normalize(value)] : []
+    // P26.A BGM/4343 is the literal AB/NA code. Do not turn a lowercase
+    // source value into an accepted code while the ACK guard rejects it.
+    return value ? [document.fieldNumber === '313' ? value : normalize(value)] : []
   }
   const reference = normalize(rule.family) === 'PRODAT' ? prodatReferenceField(rule.fieldNumber ?? rule.fieldKey) : null
   if (reference) return prodatReferenceValues(reference.fieldNumber, rawSegments, input.una).map(normalize)

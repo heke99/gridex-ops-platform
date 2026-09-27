@@ -13,6 +13,12 @@ kört för den nya headen. Se
 [`f3-prodat-header-313-whole-message-20260928.md`](f3-prodat-header-313-whole-message-20260928.md).
 ACK-02/ACK-10 och kontrakten är fortfarande delvis uppfyllda; detta ändrar
 inte de frysta 121/231-registrens formella status eller någon fasgräns.
+Oberoende diffgranskning av `63244be9` hittade dessutom att `ab` i BGM/4343
+gick igenom fältmatrisens versalisering men nekades av ACK-kvalificeringen.
+Det verkliga konsumentprovet reproducerade RED (applikation accepterad); en
+avgränsad korrektion låter fält 313 jämföra den insända koden exakt med AB/NA.
+Lokal GREEN 48/48 i fem filer och ett tredje native-fall tillagt; ny PR-heads
+CI/native återstår.
 
 ## Uppföljning efter #415: fält 206-kandidat
 
