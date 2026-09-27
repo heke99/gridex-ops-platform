@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { buildAperakDraft } from '@/lib/ediel/ack'
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
   it('reports supplied E66 LOC+172 identity defects as field 209 before function', () => {
-    const control = observationHandoffMessage('2026-09-30', 'tenant-point209')
-    expect(runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' }).ackPlan.utiltsErrCodes).toContain('E19')
+    const control = observationHandoffMessage('2026-10-01', 'tenant-point209')
     for (const [replacement, ercCode] of [
       ['LOC+172+::9', '41'],
       ['LOC+172+735999260731000008::9', '42'],
@@ -16,12 +16,91 @@ describe('UTILTS runtime effective-date cutoff', () => {
       ['LOC+172+735999260731000007::260', '42'],
     ] as const) {
       const raw_payload = control.raw_payload!.replace('LOC+172+735999260731000007::9', replacement)
-      const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-09-30' })
+      const runtime = runUtiltsRuntimeForMessage({ ...control, raw_payload }, { referenceDate: '2026-10-01' })
       expect(runtime.ackPlan.aperakApplicationErrors, replacement).toEqual(expect.arrayContaining([
         expect.objectContaining({ fieldCode: '209', ercCode, referenceNumber: 'GRIDEX2607E66001' }),
       ]))
       expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
     }
+  })
+  it('does not apply October field 209 GS1 evidence to the source-unverified 25-A-3 profile', () => {
+    const prior = observationHandoffMessage('2026-09-30', 'tenant-prior-point209')
+    const raw_payload = prior.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
+    const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound',
+      referenceDate: '2026-09-30', applicationReference: prior.application_reference, mode: 'parse' })
+    expect(policy.guide.guideRevision).toBe('25-A-3')
+    for (const options of [{ referenceDate: '2026-09-30' }, { canonicalPolicy: policy }]) {
+      const runtime = runUtiltsRuntimeForMessage({ ...prior, raw_payload }, options)
+      expect(runtime.validation.issues).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT_INVALID' }),
+      ]))
+    }
+  })
+  it.each(['E30', 'S07'] as const)('validates a supplied %s LOC+172 at field 209 in the October guide', code => {
+    const source = observationHandoffMessage('2026-10-01', `tenant-${code}-point209`)
+    const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+      .replace('23-DDQ-E66-S', code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S')
+    const message = { ...source, message_code: code,
+      application_reference: code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S', raw_payload: raw }
+    expect(runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' }).validation.issues
+      .some(issue => issue.aperakFieldCode === '209')).toBe(false)
+    const invalid = { ...message, raw_payload: raw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9') }
+    const runtime = runUtiltsRuntimeForMessage(invalid, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '209', ercCode: '42', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+    expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+  })
+  it('reports a supplied invalid S01 regulating-object identity at field 533 in the October guide', () => {
+    const source = observationHandoffMessage('2026-10-01', 'tenant-s01-object533')
+    const raw_payload = source.raw_payload!
+      .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+      .replace('23-DDQ-E66-S', '23-DDK-S01-S')
+      .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
+    const message = { ...source, message_code: 'S01', application_reference: '23-DDK-S01-S', raw_payload }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '533', ercCode: '42', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.transactionDispositions[0]).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+  })
+  it('keeps S01 field 533 scoped to the selected October guide and permits a supplied national object ID', () => {
+    const source = observationHandoffMessage('2026-10-01', 'tenant-s01-object533-boundary')
+    const raw = source.raw_payload!
+      .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+      .replace('23-DDQ-E66-S', '23-DDK-S01-S')
+      .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
+    const message = { ...source, message_code: 'S01', application_reference: '23-DDK-S01-S', raw_payload: raw }
+    const prior = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+    expect(prior.validation.issues).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'UTILTS_REGULATING_OBJECT_GS1_CHECK_DIGIT_INVALID' }),
+    ]))
+    const national = runUtiltsRuntimeForMessage({ ...message,
+      raw_payload: raw.replace('LOC+175+735999260731000008::9', 'LOC+175+NATIONALOBJECT::89'),
+    }, { referenceDate: '2026-10-01' })
+    expect(national.validation.issues.some(issue => issue.aperakFieldCode === '533')).toBe(false)
+  })
+  it.each(['E30', 'S07'] as const)('requires %s LOC+172 on its own IDE without borrowing a sibling', code => {
+    const source = observationHandoffMessage('2026-10-01', `tenant-${code}-missing209`)
+    const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+      .replace('23-DDQ-E66-S', code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S')
+    const lines = raw.split('\n'), start = lines.findIndex(line => line.startsWith('IDE+24+')),
+      end = lines.findIndex(line => line.startsWith('UNT+'))
+    const first = lines.slice(start, end).filter(line => !line.startsWith('LOC+172'))
+    const second = lines.slice(start, end).map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+    const joined = [...lines.slice(0, start), ...first, ...second, ...lines.slice(end)]
+    joined[joined.findIndex(line => line.startsWith('UNT+'))] = `UNT+${joined.length - 2}+1'`
+    const message = { ...source, message_code: code,
+      application_reference: code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S', raw_payload: joined.join('\n') }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '209', ercCode: '41', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.ackPlan.aperakApplicationErrors.filter(issue => issue.referenceNumber === 'GRIDEX2607E66001')
+      .map(issue => issue.fieldCode)).toEqual(['209'])
+    expect(runtime.transactionDispositions[0]).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+    expect(runtime.transactionDispositions[1].disposition).not.toBe('guide_rejected')
   })
   it('checks supplied per-IDE grid-area composite at 260a/b/c before E66 function', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-grid-area-guide')

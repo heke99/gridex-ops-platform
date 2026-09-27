@@ -1,6 +1,7 @@
 import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
+import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -659,8 +660,14 @@ function invalidGs1Gsrn(value: string): boolean {
     || [...value].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 3 : 1), 0) % 10 !== 0
 }
 
-function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
-  if (result.facts.messageCode !== 'E66') return result
+function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+  const messageCode = result.facts.messageCode
+  if (messageCode !== 'E66' && messageCode !== 'S01') return result
+  // S01's conditional LOC+175 is sourced from the October 25-A-4 profile.
+  // Retain the existing E66 behavior until its earlier-profile source is reviewed.
+  if (messageCode === 'S01' && (policy?.guide ?? resolveAuthoritativeEdielGuide({
+    family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
+  })).guideRevision !== '25-A-4') return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
   let reference: string | null = null
@@ -695,15 +702,27 @@ function applyE66RegulatingObjectGuide(message: EdielMessageRow, result: UtiltsR
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
 }
 
-function applyE66MeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
-  if (result.facts.messageCode !== 'E66') return result
+function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+  // Field 209 is required for E30/S07 and conditional for E66 in U pp.54,123.
+  // Validate supplied LOC+172 for these codes; the separate absence rule for
+  // E66 requires the 172/175 object-domain decision.
+  if (!['E30', 'E66', 'S07'].includes(result.facts.messageCode ?? '')) return result
+  // UG-123-11/12 here is sourced from 25-A-4. The older 25-A-3 original
+  // is not present in the source pack, so this additional rule cannot be
+  // projected onto a prior-guide transaction based on the shared E5SE5A wire.
+  const selectedGuide = policy?.guide ?? resolveAuthoritativeEdielGuide({
+    family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
+  })
+  if (selectedGuide.guideRevision !== '25-A-4') return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    let supplied = false
     for (const segment of observed.segments) {
       if (segment.tag === 'SEQ') break
       if (segment.tag !== 'LOC' || segmentComposite(segment, 1, wire.una)[0] !== '172') continue
+      supplied = true
       const parts = segmentComposite(segment, 2, wire.una)
       const value = parts[0]?.trim() ?? ''
       const agency = parts[2]?.trim() ?? ''
@@ -721,6 +740,14 @@ function applyE66MeteringPointGuide(message: EdielMessageRow, result: UtiltsRunt
         description: 'LOC+172/C517 kräver anläggningsid med byråkod 9 eller 89 och giltig GS1-kontrollsiffra när 9 används.',
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: '209',
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+      })
+    }
+    if (!supplied && (result.facts.messageCode === 'E30' || result.facts.messageCode === 'S07')) {
+      issues.push({
+        severity: 'error', kind: 'application', code: 'UTILTS_METERING_POINT_ID_MISSING',
+        title: 'Anläggningsidentitet saknas', description: 'SG5/LOC+172 krävs för denna transaktion.',
+        aperakErcCode: '41', aperakFieldCode: '209', aperakText: 'MANDATORY FIELD MISSING',
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }
@@ -839,7 +866,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyE66MeteringPointGuide(message, applyE66RegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective)))))
+  const guided = applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
