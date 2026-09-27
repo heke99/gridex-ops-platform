@@ -473,38 +473,16 @@ export async function processInboundUtiltsMessage(params: {
         const results = transactionPersistenceResults.filter(item => ensureJson(item).transactionId === expectedIds[index])
         if (results.length !== 1) return false
         const result = results[0]
-        if (result.persistenceStatus === 'failed') {
-          return (disposition.disposition === 'accepted' || disposition.disposition === 'processability_rejected') &&
-            result.disposition === 'processability_rejected' && result.responseType === 'utilts_err'
-        }
         return result.disposition === disposition.disposition && result.responseType === disposition.responseType &&
           result.persistenceStatus === (disposition.disposition === 'accepted' ? 'persisted' : 'not_applicable')
       })
     if (!validResults) throw new Error('utilts_transaction_persistence_invalid_result')
-    transactionDispositions = transactionDispositions.map((disposition, index) => {
-      const transactionId = resolveUtiltsTransactionId(disposition.transactionId, index)
-      const persisted = transactionPersistenceResults.find((item) => item.transactionId === transactionId)
-      if (!persisted || persisted.persistenceStatus !== 'failed') {
-        return transactionId === disposition.transactionId
-          ? disposition
-          : { ...disposition, transactionId }
-      }
-      return {
-        ...disposition,
-        transactionId,
-        disposition: 'processability_rejected' as const,
-        responseType: 'utilts_err' as const,
-        issueCodes: [...new Set([...disposition.issueCodes, ...(persisted.issueCodes ?? ['UTILTS_PERSISTENCE_FAILED'])])],
-      }
-    })
+    transactionDispositions = transactionDispositions.map((disposition, index) => ({
+      ...disposition, transactionId: resolveUtiltsTransactionId(disposition.transactionId, index),
+    }))
   }
   if (transactionPersistenceResults.length === 0 && (transactionDispositions.length > 0 || runtime.validation.ok)) {
     throw new Error('utilts_transaction_persistence_invalid_result')
-  }
-  const allTransactionsFailedPersistence = transactionPersistenceResults.length > 0 &&
-    transactionPersistenceResults.every(item => item.persistenceStatus === 'failed')
-  if (allTransactionsFailedPersistence) {
-    runtime.validation = { ...runtime.validation, ok: false, classification: 'functional_rejected' }
   }
   normalizedPayload.utiltsTransactionDispositions = transactionDispositions
   normalizedPayload.utiltsTransactionPersistenceResults = transactionPersistenceResults
@@ -524,7 +502,6 @@ export async function processInboundUtiltsMessage(params: {
     .flatMap((item, index) => item.disposition === 'guide_rejected' ? [resolveUtiltsTransactionId(item.transactionId, index)] : []))
   const consumeAcceptedGuideSiblings = !structuralDecisionRequired &&
     runtime.validation.classification === 'application_rejected' &&
-    !allTransactionsFailedPersistence &&
     ackPlan.contrlOutcome !== 'negative' && !ackPlan.shouldSendUtiltsErr &&
     rejectedGuideIds.size > 0 && transactionDispositions.some(item => item.disposition === 'accepted') &&
     transactionDispositions.every(item => item.disposition === 'accepted' || item.disposition === 'guide_rejected') &&
@@ -552,7 +529,7 @@ export async function processInboundUtiltsMessage(params: {
     },
   })
 
-  if (allTransactionsFailedPersistence || (!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
+  if ((!runtime.validation.ok && !forcedPositiveTgtAckPlan) || shouldRejectByAckPlan) {
     if (consumeAcceptedGuideSiblings && canonicalLinks.matchedDataRequest) {
       const request = canonicalLinks.matchedDataRequest
       for (const outcome of transactionPersistenceResults.filter(item => item.disposition === 'accepted')) {
@@ -609,7 +586,7 @@ export async function processInboundUtiltsMessage(params: {
       actorUserId,
       edielMessageId: message.id,
       status: runtime.validation.classification === 'syntax_rejected' ? 'failed' : 'validated',
-      failureReason: allTransactionsFailedPersistence ? 'utilts_transaction_persistence_failed' : ackPlan.reason,
+      failureReason: ackPlan.reason,
       parsedPayload: {
         ...(message.parsed_payload ?? {}),
         normalizedMeteringPayload: normalizedPayload,

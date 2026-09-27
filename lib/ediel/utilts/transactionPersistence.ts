@@ -87,11 +87,11 @@ export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceIn
     const row = found[0]
     const binding = row.sourceBinding
     if (!binding || binding.sourceMessageId !== input.sourceMessageId || binding.rawHash !== rawHash || !Number.isFinite(Date.parse(binding.boundAt))) consumptionConflict('source_binding')
-    const failed = row.persistenceStatus === 'failed'
-    if (failed) {
-      if (!['accepted', 'processability_rejected'].includes(item.disposition) || row.disposition !== 'processability_rejected' || row.responseType !== 'utilts_err' || row.consumptionContract) consumptionConflict('failed_outcome')
-      continue
-    }
+    // A storage failure has no national ERR meaning. In particular, do not
+    // consume a successful sibling or draft an ACK from a partially failed RPC.
+    // The database rolls the entire reservation back; this also holds legacy
+    // RPC implementations that still return a synthetic failed row.
+    if (row.persistenceStatus === 'failed') consumptionConflict('persistence_failed')
     if (row.disposition !== item.disposition || row.responseType !== item.responseType || row.persistenceStatus !== (item.disposition === 'accepted' ? 'persisted' : 'not_applicable')) consumptionConflict('outcome')
     if (row.persistenceStatus !== 'persisted') {
       if (row.consumptionContract) consumptionConflict('nonaccepted_contract')

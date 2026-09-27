@@ -187,6 +187,18 @@ it('equal cross-source content reuses immutable series, a new correction preserv
   expect(sql(`SELECT is_current FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toBe(false)
   expect((await persistUtiltsTransactionResults(input))[0].seriesId).toBe(first[0].seriesId)
 })
+it('internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry', async () => {
+  const f = await seed(), input = await f.prepare()
+  const before = snapshot(f.original.id)
+  const broken = structuredClone(input)
+  broken.transactions[0].periodStart = 'invalid-internal-timestamp'
+  await expect(persistUtiltsTransactionResults(broken)).rejects.toThrow('utilts_transaction_persistence_failed')
+  expect(snapshot(f.original.id)).toEqual(before)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(f.original.id)}`)).toBe(0)
+  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  const retried = await persistUtiltsTransactionResults(input)
+  expect(retried).toMatchObject([{ disposition: 'accepted', persistenceStatus: 'persisted', idempotentReplay: false }])
+})
 it('cross-environment equal legacy identity cannot reuse test consumption authority', async () => {
   const f = await seed(), first = await persistUtiltsTransactionResults(await f.prepare())
   const production = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'PROD'+f.original.interchange_reference!), 'E66', 'production')
