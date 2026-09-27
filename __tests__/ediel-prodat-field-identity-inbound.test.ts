@@ -86,6 +86,8 @@ it('rejects an invalid own field 209 agency through the final inbound APERAK wit
  expect(state.drafts.map(d=>d.messageFamily)).toEqual(['CONTRL','APERAK'])
  const wire=state.drafts.map(d=>d.rawPayload).join('')
  expect(wire).toContain('FTX+AAO++209::260')
+ expect(wire).toContain('RFF+Z07:735123456789012352')
+ expect(wire).not.toContain('RFF+Z07:735123456789012345')
  expect(wire).not.toContain('ERC+100::260')
 })
 it('does not accept QTY+136 as the required own QTY+31 field 213',async()=>{
@@ -101,6 +103,8 @@ it('does not accept QTY+136 as the required own QTY+31 field 213',async()=>{
  expect(state.effects).toEqual([])
  const wire=state.drafts.map(d=>d.rawPayload).join('')
  expect(wire).toContain('FTX+AAO++213::260')
+ expect(wire).toContain('RFF+Z07:735123456789012345')
+ expect(wire).not.toContain('RFF+Z07:735123456789012352')
  expect(wire).not.toContain('ERC+100::260')
 })
 it('rejects an explicitly gas volume unit on the electricity PRODAT field 213',async()=>{
@@ -116,6 +120,8 @@ it('rejects an explicitly gas volume unit on the electricity PRODAT field 213',a
  expect(state.effects).toEqual([])
  const wire=state.drafts.map(d=>d.rawPayload).join('')
  expect(wire).toContain('FTX+AAO++213::260')
+ expect(wire).toContain('RFF+Z07:735123456789012345')
+ expect(wire).not.toContain('RFF+Z07:735123456789012352')
  expect(wire).not.toContain('ERC+100::260')
 })
 it('keeps the electricity QTY+31 without an optional unit eligible for the existing positive path',()=>{
@@ -139,6 +145,7 @@ for(const [name,invalid,field] of [
  expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected'})
  expect(state.drafts.map(d=>d.messageFamily)).toEqual(['CONTRL','APERAK'])
  expect(state.drafts.map(d=>d.rawPayload).join('')).toContain(`FTX+AAO++${field}::260`)
+ expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('RFF+Z07:735123456789012345')
  expect(state.effects).toEqual([])
 })
 it('holds an own QTY31/213 omission before the case writer without an invented positive response',async()=>{

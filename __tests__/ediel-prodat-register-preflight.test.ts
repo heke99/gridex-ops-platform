@@ -39,6 +39,14 @@ const scoped=(body:ReturnType<typeof line>[],facts:ProdatDependentConditionFacts
 }
 
 describe('register evidence is carried from server rendering to the actual row send gates',()=>{
+ it('holds a rendered electricity register with explicit gas unit before outbound send',()=>{
+  const changed:ProdatEngineProductionContext={...context,registers:[{annualConsumption:'10'},{annualConsumption:'20',annualConsumptionUnit:'MTQ'}]}
+  const result=buildProfiledProdatSegments({context:changed,variant:'L',mode:'test',generatedAt:new Date('2026-09-17T12:00:00Z')})
+  expect(result.issues).toContainEqual(expect.objectContaining({code:'PRODAT_REGISTER_QUANTITY_UNIT_INVALID'}))
+  const m=message("UNH+M+PRODAT:D:97A:UN:E2SE6A'"+result.segments.join("'")+"'UNT+1+M'",{prodatEngine:result.diagnostics})
+  expect(preflightEdielMessageRow(m,'send').issues).toContainEqual(expect.objectContaining({code:'PRODAT_REGISTER_QUANTITY_UNIT_INVALID',severity:'error'}))
+  expect(()=>assertEdielSendLock(m)).toThrow(/register|Register|REGISTER/)
+ })
  it('profile diagnostics preserve an independent copy of per-object facts',()=>{
   const diagnostics=rendered().diagnostics as unknown as {registerEvidence:{facts:ProdatDependentConditionFacts}}
   expect(diagnostics.registerEvidence?.facts.registerObjects).toEqual(context.dependentConditionFacts?.registerObjects)
