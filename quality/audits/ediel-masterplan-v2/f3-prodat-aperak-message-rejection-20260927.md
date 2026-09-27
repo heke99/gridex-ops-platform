@@ -56,11 +56,18 @@ outbound BGM reference ownership only. Missing or conflicting ACWs hold before
 an outbound query; the tenant filter and existing reversed-party transport
 guard remain in force. A further RED probe showed that embedding ACW with a
 comma in a PostgREST `or` expression could select an unrelated reference.
-Both request and message lookups now use literal equality; a message with
-both stored BGM aliases is deduplicated by row ID. This does not assert
+The message BGM aliases now use literal equality; a message with both stored
+aliases is deduplicated by row ID. This does not assert
 historical document uniqueness.
 
-Local focused tests: 102/102 across nine files after the ACW correction;
+A further RED case found that a request's external reference alone could
+match even with no outbound Ediel message carrying the ACW. The P16.B matcher
+now starts at the tenant-bound outbound Ediel BGM row and follows its linked
+request if present. A request with a coincidentally equal external reference
+and no matching sent BGM cannot receive an ACK state change. The transport
+mirror guard remains the subsequent party/environment check.
+
+Local focused tests: 104/104 across nine files after the ACW correction;
 app, tests and scripts typechecks, scoped lint and diff check passed. The native
 `scripts/ediel-z04-ack-native.test.ts` extension adds a third synthetic tenant,
 legal actor, route and source; it asserts persisted 27/314/ACW, tenant-bound

@@ -80,24 +80,25 @@ export async function matchOutboundRequestForInbound(input: {
     return uuidPattern.test(reference) ? [...base, `source_id.eq.${reference}`] : base
   })
 
-  const outboundQuery = supabaseService
-    .from('outbound_requests')
-    .select('id, company_id, source_type, source_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, message_family, message_code')
-    .eq('company_id', input.companyId)
-  // An ACW is literal document data, never a PostgREST filter expression.
-  const { data, error } = prodatAperak
-    ? await outboundQuery.eq('external_reference', references[0]).limit(5)
-    : await outboundQuery.or(conditions.join(',')).limit(5)
-
-  if (error) throw error
-
-  const outboundRows = (data ?? []) as Array<Record<string, unknown>>
-  if (outboundRows.length > 0) {
-    const match = singleOrAmbiguous('outbound_request', outboundRows, [`Referenser testade mot outbound_requests: ${references.join(', ')}`])
-    await insertAttempt({ ...input, matchType: 'outbound_request', match })
-    return match
+  if (!prodatAperak) {
+    const { data, error } = await supabaseService
+      .from('outbound_requests')
+      .select('id, company_id, source_type, source_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, status, external_reference, dispatch_batch_key, message_family, message_code')
+      .eq('company_id', input.companyId)
+      .or(conditions.join(','))
+      .limit(5)
+    if (error) throw error
+    const outboundRows = (data ?? []) as Array<Record<string, unknown>>
+    if (outboundRows.length > 0) {
+      const match = singleOrAmbiguous('outbound_request', outboundRows, [`Referenser testade mot outbound_requests: ${references.join(', ')}`])
+      await insertAttempt({ ...input, matchType: 'outbound_request', match })
+      return match
+    }
   }
 
+  // P-APERAK must identify the outbound Ediel BGM before its linked request
+  // may be updated. A request's own external reference cannot stand in for it.
+  // ACW remains literal document data, never a PostgREST filter expression.
   const edielQuery = () => supabaseService.from('ediel_messages')
     .select('id,company_id,outbound_request_id,customer_id,site_id,metering_point_id,grid_owner_id,message_family,message_code,external_reference,interchange_reference,transaction_reference,correlation_reference,original_message_id')
     .eq('company_id', input.companyId)
