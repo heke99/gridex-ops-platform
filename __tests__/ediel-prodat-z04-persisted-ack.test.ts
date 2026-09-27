@@ -242,6 +242,33 @@ it('rejects a duplicate header date as one whole message before business writes'
  expect(state.effects).toEqual([])
 })
 
+it.each(['missing','invalid'] as const)('rejects %s required header offset 206 as one whole P message before business writes',async defect=>{
+ const parts=mixedZ04Parts()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts.splice(second+1,0,qty('20'))
+ let wire=raw(parts,'Z04')
+ if(defect==='missing') wire=wire.replace('DTM+ZZZ:1:805\'','').replace(/UNT\+(\d+)\+M/,(_,count:string)=>`UNT+${Number(count)-1}+M`)
+ else wire=wire.replace('DTM+ZZZ:1:805','DTM+ZZZ:2:805')
+ state.source={...state.source!,raw_payload:wire} as EdielMessageRow
+ const decision=resolveCanonicalRuntimeDecision(state.source)
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
+ const plan=decision.responsePlan.find(item=>item.family==='APERAK')!
+ expect(plan.applicationErrors).toEqual([expect.objectContaining({ercCode:defect==='missing'?'41':'42',fieldCode:'206',prodatOccurrence:expect.objectContaining({scope:'header'})})])
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'positive'})).toThrow('aperak_prodat_header_206_response_unqualified')
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:[{ercCode:defect==='missing'?'41':'42',fieldCode:'206',text:'invented'}]}))
+  .toThrow('aperak_prodat_header_206_response_unqualified')
+ const draft=buildAperakDraft({sourceMessage:state.source,outcome:'negative',applicationErrors:plan.applicationErrors})
+ expect(draft.rawPayload).toContain('BGM+++27')
+ expect(draft.rawPayload).toContain('FTX+AAO++206::260')
+ expect(draft.rawPayload).toContain('RFF+ACW:D')
+ expect(draft.rawPayload).not.toContain('RFF+Z07:')
+ await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id})
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
+ expect(String(state.messages[1].raw_payload)).toContain('BGM+++27')
+ expect(state.outbox).toHaveLength(2)
+ expect(state.effects).toEqual([])
+})
+
 it('holds a header rejection without a qualified tenant ACK route and never enters business processing',async()=>{
  const wire=raw(mixedZ04Parts(),'Z04').replace('DTM+137:202609171200:203\'','').replace(/UNT\+(\d+)\+M/,(_,count:string)=>`UNT+${Number(count)-1}+M`)
  state.source={...state.source!,raw_payload:wire} as EdielMessageRow

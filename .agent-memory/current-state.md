@@ -1,3 +1,6 @@
+## Current — 2026-09-27 F3 header206 candidate after #415
+#415 exact head `eee4a3fe` four workflows and native371/371/schema/types passed, merged main `bd3e131e`, Vercel READY same SHA. Branch `codex/ediel-v2-f3-prodat-header-206-20260927` locally reproduces missing/invalid required offset206 BGM34 despite ERC41/42; shared source qualification now yields BGM27 and stops before business. Local six files269/269, three TS projects, scoped lint pass. Native two SQL/ACK/retry cases added but unpublished/unverified. Market held; #310 untouched.
+
 ## Current — 2026-09-27 F3 header 205 / PR #415
 Remote main `62ca24a1` from accepted #414 has four green exact-head workflows, OPS native 369/369, clean replay/type/schema parity and same-SHA Vercel READY. One draft #415 on `codex/ediel-v2-f3-prodat-header-aperak-20260927` now addresses P26.A required header DTM137/205. Initial published head `1badf5c2`; local follow-up covers invalid 205 and fixture correction. Market traffic remains held, #310 untouched. This entry supersedes the older “Latest” candidates below.
 

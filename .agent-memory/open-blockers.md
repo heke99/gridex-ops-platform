@@ -1,3 +1,6 @@
+## Current — header206 verification and wider gates
+206 missing/invalid local ACK/consumer is a code candidate; actual native stored ACK/outbox/retry, clean replay, schema/type parity and PR review remain pending. 203/505 historical issuer uniqueness, positive LOC175 registry/mandate/sink, E035 history/retention, G06 grammar and E66/DDQ live activation gate remain open. PR310 paused.
+
 ## Current — #415 native 205 gate
 On `849a7c9f`, native 370/371 failed invalid header205 ACK after jsonb reordered failureEvidence. Corrected locally with RED/GREEN, but exact-head native/replay/parity are still required before a merge. Historical 203/505, positive LOC175, E035 history/retention, broad ACK/grammar and activation remain separate. PR310 paused.
 

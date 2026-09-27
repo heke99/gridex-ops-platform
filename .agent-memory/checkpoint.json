@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-27T21:13:20Z",
+  "updated_at": "2026-09-27T21:33:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-f3-prodat-header-aperak-20260927",
-  "active_pr": 415,
-  "base_head_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
-  "runtime_accepted_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
-  "last_merged_pr": 414,
-  "last_accepted_pr": 414,
+  "branch": "codex/ediel-v2-f3-prodat-header-206-20260927",
+  "active_pr": null,
+  "base_head_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
+  "runtime_accepted_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
+  "last_merged_pr": 415,
+  "last_accepted_pr": 415,
   "root_main_acceptance_comment": null,
-  "active_item": "P26.A F3 header205 JSONB evidence comparison corrected locally; exact-head native/CI pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-205-whole-message-20260927.md",
+  "active_item": "P26.A F3 header206 missing/invalid whole-message ACK candidate; native and PR CI pending",
+  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-206-whole-message-20260927.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Commit and push structural evidence fix to PR415; inspect fresh exact-head native clean replay/schema/type parity and all workflows; merge once only if green, then verify main/Vercel. Market activation separate; PR310 untouched.",
+  "next_action": "Publish one draft PR for header206 candidate from main bd3e131e; inspect exact-head native/replay/schema/type and all workflows, fix first actual failure, review and merge once if qualified. Market activation separate; PR310 untouched.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -876,5 +876,10 @@
     "ops_run": 36350350372,
     "native_result": "370/371; invalid 205 rejected after jsonb object key reorder",
     "local_correction": "fieldwise raw/locator/content comparison RED/GREEN, focused21/21, app/tests/scripts TS/lint/diff PASS; unpublished"
+  },
+  "pr416_candidate": {
+    "base": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
+    "local": "RED missing/invalid offset BGM34; GREEN BGM27 with source-owned 206, final consumer no effects; six files269/269, three TS projects, lint; native two cases pending",
+    "market_traffic": "held"
   }
 }

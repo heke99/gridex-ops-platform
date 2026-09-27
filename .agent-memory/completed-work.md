@@ -1,3 +1,6 @@
+## 2026-09-27 — bounded #415 delivery
+PRODAT required header205 missing/invalid/duplicate whole-message ACK BGM27, original ACW, persisted tenant ACK/outbox and retry; jsonb evidence order fixed. Exact-head `eee4a3fe` four workflows/native371/371/schema/types; merged main/Vercel READY `bd3e131e`. This is not full F3 or market activation.
+
 ## 2026-09-27 — #414 accepted; #415 bounded local verification
 #414 exact head `32866bc4` four workflows green, OPS native369/369, clean replay and schema/type parity; main `62ca24a1`, same-SHA Vercel READY. #415 published first two code/native commits through `1badf5c2`; local RED/GREEN missing/invalid 205 with actual ACK/no effects/retry, focused90/90 and protocol20/20, Node document script pass. #415 native final and formal acceptance are not completed.
 

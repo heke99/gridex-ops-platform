@@ -1,3 +1,6 @@
+## Current — F3 header206 one coherent PR
+Source P26.A r3 §2.2 p16 and P-APERAK 16.B pp90,95,98–103. Local RED missing/invalid DTM+ZZZ produced ERC41/42 but BGM34; shared source qualification yields 27, original ACW and actual inbound zero mocked effects. Native cases for persisted ACK, tenant route/outbox, no business and retry are added. Publish one draft PR from main `bd3e131e`, run exact-head CI/native/replay/schema/type parity, review diff, merge once if fully green, verify Vercel. 203/505 history, LOC175 owner, E035 retention, grammar and activation remain open; #310 untouched.
+
 ## Current — PR #415 native failure correction
 On exact head `849a7c9f`, Ediel/browser/full E2E and OPS verify/quality passed; clean replay failed native 370/371 at invalid header205. PostgreSQL jsonb property ordering broke the renderer's byte-order comparison of typed failure evidence, so ERC42/205 existed but APERAK was held. Reproduced RED with reordered keys; compare raw/locator/content structurally and reject altered content. Focused21/21, app/tests/scripts TS, lint/diff pass. Publish correction and require new exact-head native/replay/type/schema parity, full diff review, then one merge if green. Market traffic held; PR310 untouched.
 

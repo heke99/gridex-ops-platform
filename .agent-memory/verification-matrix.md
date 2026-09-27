@@ -1,3 +1,6 @@
+## 2026-09-27 — #415 accepted, header206 candidate
+#415 `eee4a3fe`: four workflows SUCCESS; OPS `36351069983` native371/371 incl five Z04 persisted ACK cases, clean replay, schema fingerprint `08ad0f03`, type hash `36e98937` identical; main/Vercel READY `bd3e131e`. Header206 local RED BGM34 on missing/invalid offset despite ERC41/42; GREEN final 27/ACW/consumer no effects, six files269/269, three TS projects and scoped lint. Native two new cases and exact-head CI pending. Formal status unchanged.
+
 ## 2026-09-27 — PR #415 native jsonb correction
 `849a7c9f`: Ediel/browser/full E2E and OPS verify/quality SUCCESS; OPS run `36350350372` clean replay native370/371 FAIL at invalid205 (`ediel-z04-ack-native.test.ts:82`), before schema/type gate. Reordered jsonb key evidence RED locally; fieldwise equality GREEN while altered content remains blocked. Focused21/21, app/tests/scripts TypeScript, scoped lint/diff PASS; fresh native and parity pending.
 

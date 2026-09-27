@@ -1,6 +1,18 @@
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
-## Uppföljning efter #414: draft #415
+## Uppföljning efter #415: fält 206-kandidat
+
+#415:s sluthead `eee4a3fe` klarade fyra tillämpliga CI-flöden; OPS native
+371/371, ren replay och samma schema-/typhash. Mergen `bd3e131e` är remote
+`main` och Vercel-produktion är READY på exakt denna SHA. Det avgränsade
+205-huvudfelet har nu lagrad negativ ACK/outbox, noll affärseffekt och stabil
+retry i native. Fält 206 (`DTM+ZZZ:1:805`) är nästa källstyrda huvudkriterium:
+missing/invalid offset reproducerade BGM34 trots ERC41/42 och har nu lokal
+RED/GREEN genom slutlig ACK och konsument. Native och exakt PR-CI för 206
+återstår. De berörda rad-ID:n är fortfarande `partial_code`; formell status
+är oförändrad. Se [`f3-prodat-header-206-whole-message-20260927.md`](f3-prodat-header-206-whole-message-20260927.md).
+
+## Historisk kandidat efter #414: draft #415
 
 #413 mergades som `2e4eeb65` med ren replay/native 368/368. #414:s exakta
 sluthead `32866bc4` klarade fyra tillämpliga CI-flöden, OPS native 369/369,
@@ -18,11 +30,11 @@ samma käll- och konsumentkontroll till 27/ERC41 respektive 27/ERC42 med origina
 ACW, ett negativt lagrat svar, noll affärseffekter och stabil retry. Den publicerade
 native-kandidaten `1badf5c2` exponerade äldre syntetiska positiva P-fixturer utan
 205 i Ediel/full E2E; de är lokalt rättade med riktigt huvud och egen UNT-räknare.
-Native, ren replay och alla tillämpliga jobb krävs på **ny exakt sluthead**.
+Detta var kandidatläget före #415:s slutkvitto ovan.
 Se [`f3-prodat-header-205-whole-message-20260927.md`](f3-prodat-header-205-whole-message-20260927.md).
 
 JSON-registrets åtta berörda P-17/ACK-rader har nu #414:s faktiska kvitto;
-ACK-02/ACK-10 och tillhörande kontrakt har #415:s ännu okvalificerade 205-väg.
+ACK-02/ACK-10 och tillhörande kontrakt hade här #415:s ännu okvalificerade 205-väg.
 Alla åtta förblir `partial_code`. Den frysta formella bevisstatusen och den
 daterade #413-klassningen nedan ändras inte av en partiell korrigering.
 

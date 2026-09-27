@@ -1,3 +1,6 @@
+## 2026-09-27 — #415 merge, #416 candidate
+Merged #415 once after exact-head native371/371 and four workflows; remote main and Vercel READY `bd3e131e`. New branch from main reproduces 206 header offset whole-message error; source-qualified shared renderer/consumer correction passes local six files269/269 and types/lint. Two native cases await publication; market traffic held, PR310 untouched.
+
 ## 2026-09-27 — PR #415 continued
 Fetched same remote/local `849a7c9f`. Exact-head OPS native370/371 exposed invalid205 ACK failure after jsonb key reorder; source-owned ERC42 was present but APERAK blocked. Reproduced RED, structural evidence equality GREEN (21/21), type/lint/diff PASS. Preparing push and exact-head CI; no market sends or #310 changes.
 

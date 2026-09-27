@@ -4,7 +4,7 @@ import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/p
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import {prodatRegisterGroups, prodatRegisterMessageSegments} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {validProdatWireDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
-import {prodatHeader205Rejection} from '@/lib/ediel/prodat/prodatHeader205Rejection'
+import {prodatHeaderDateRejection} from '@/lib/ediel/prodat/prodatHeaderDateRejection'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 // lib/ediel/aperakEngine.ts
@@ -204,10 +204,15 @@ export function renderAperakEdiel(params: {
   // P26.A §2.2 and §3.3: a source-owned missing or invalid 205 in the actual
   // header rejects the entire message. The inbound consumer uses this same
   // qualification before entering any case or business writer.
-  const header205=hasProdatWire ? prodatHeader205Rejection({sourceWire,errors:params.applicationErrors}) : null
+  const header205=hasProdatWire ? prodatHeaderDateRejection({field:'205',sourceWire,errors:params.applicationErrors}) : null
+  const header206=hasProdatWire ? prodatHeaderDateRejection({field:'206',sourceWire,errors:params.applicationErrors}) : null
   if (header205 && (header205.defect || header205.hasHeaderError) &&
     (params.outcome !== 'negative' || !header205.qualified)) {
     throw new Error('aperak_prodat_header_205_response_unqualified')
+  }
+  if (header206 && (header206.defect || header206.hasHeaderError) &&
+    (params.outcome !== 'negative' || !header206.qualified)) {
+    throw new Error('aperak_prodat_header_206_response_unqualified')
   }
   if (sequenceProblems.length && (params.outcome !== 'negative' || !sequenceProblems.every(problem =>
     params.applicationErrors?.some(error => {
@@ -222,7 +227,7 @@ export function renderAperakEdiel(params: {
         occurrence.messageReference === messageReference)
     })
   ))) throw new Error('aperak_prodat_sequence_response_unqualified')
-  const bgmFunction = sequenceProblems.length || header205?.qualified ? '27' : '34'
+  const bgmFunction = sequenceProblems.length || header205?.qualified || header206?.qualified ? '27' : '34'
   const wireDocument = sourceWire ? prodatDocumentValue('203', sourceWire.segments, sourceWire.una) : null
   if (hasProdatWire && (!wireDocument || wireDocument.length > 35)) {
     // Missing/invalid original identity is a local correlation blocker, not a

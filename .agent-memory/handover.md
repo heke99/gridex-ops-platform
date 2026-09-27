@@ -1,3 +1,6 @@
+## Current — 2026-09-27 #416 candidate
+#415 final head `eee4a3fe` native371/371 and all CI green; main/Vercel READY `bd3e131e`. Clean branch `codex/ediel-v2-f3-prodat-header-206-20260927` has local 206 RED/GREEN and two native fixtures, focused269/269 and app/tests/scripts TS/lint. First action: commit/publish draft PR, inspect exact-head native and CI, then single merge only if green. No market activation or #310 work.
+
 ## Current — 2026-09-27 PR #415 native correction
 Remote head `849a7c9f`; local changes repair PostgreSQL jsonb key-order false rejection. OPS `36350350372` native370/371 failed invalid205, Ediel/browser/E2E and OPS verify/quality passed. Local focused21/21 plus three TypeScript projects, scoped lint/diff pass. Commit/push same draft PR, inspect fresh exact-head native/replay/parity and review before merge. No staging or market activation; #310 paused.
 

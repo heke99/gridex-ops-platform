@@ -1,3 +1,8 @@
+## Current — F3 header206
+1. Publish source-qualified 206 renderer/consumer and native missing/invalid cases in one draft PR.
+2. Resolve first exact-head CI failure; require clean replay, native, schema/types, Ediel/browser/full E2E and quality.
+3. Review diff, merge once if green, verify main/Vercel, then choose next source-backed F3 criterion. Keep external market activation separate.
+
 ## Current — PR #415 exact-head native correction
 1. Commit/push structural failure-evidence comparison after RED/GREEN and type/lint.
 2. Review full diff and new exact-head Ediel/browser/full E2E/OPS, especially native/replay/schema/type parity; diagnose first actual failure.
