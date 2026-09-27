@@ -742,7 +742,7 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }
-    if (!supplied && (result.facts.messageCode === 'E30' || result.facts.messageCode === 'S07')) {
+    if (!supplied && ['E30', 'S07', 'E72'].includes(result.facts.messageCode ?? '')) {
       issues.push({
         severity: 'error', kind: 'application', code: 'UTILTS_METERING_POINT_ID_MISSING',
         title: 'Anläggningsidentitet saknas', description: 'SG5/LOC+172 krävs för denna transaktion.',

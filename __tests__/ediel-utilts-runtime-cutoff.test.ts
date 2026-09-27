@@ -116,6 +116,25 @@ describe('UTILTS runtime effective-date cutoff', () => {
     }, { referenceDate: '2026-10-01' })
     expect(national.validation.issues.some(issue => issue.aperakFieldCode === fieldCode)).toBe(false)
   })
+  it('requires E72 LOC+172 on its own October IDE and does not borrow a sibling point', () => {
+    const source = observationHandoffMessage('2026-10-01', 'tenant-e72-missing209')
+    const raw = source.raw_payload!
+      .replace('BGM+E66::260', 'BGM+E72::260')
+      .replace('23-DDQ-E66-S', '23-MDR-E30-S')
+    const lines = raw.split('\n'), start = lines.findIndex(line => line.startsWith('IDE+24+')),
+      end = lines.findIndex(line => line.startsWith('UNT+'))
+    const first = lines.slice(start, end).filter(line => !line.startsWith('LOC+172'))
+    const second = lines.slice(start, end).map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+    const joined = [...lines.slice(0, start), ...first, ...second, ...lines.slice(end)]
+    joined[joined.findIndex(line => line.startsWith('UNT+'))] = `UNT+${joined.length - 2}+1'`
+    const message = { ...source, message_code: 'E72', application_reference: '23-MDR-E30-S', raw_payload: joined.join('\n') }
+    const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '209', ercCode: '41', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.transactionDispositions[0]).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+    expect(runtime.ackPlan.aperakApplicationErrors.some(error => error.fieldCode === '209' && error.referenceNumber === 'GRIDEX2607E66002')).toBe(false)
+  })
   it.each(['E30', 'S07'] as const)('requires %s LOC+172 on its own IDE without borrowing a sibling', code => {
     const source = observationHandoffMessage('2026-10-01', `tenant-${code}-missing209`)
     const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')

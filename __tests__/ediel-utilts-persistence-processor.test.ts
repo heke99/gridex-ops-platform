@@ -361,17 +361,18 @@ it('routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK witho
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it.each([
-  ['E72', '23-MDR-E30-S', 'LOC+172', '209'],
-  ['E73', '23-DDQ-E66-S', 'LOC+175', '533'],
-  ['S06', '23-DDK-S01-S', 'LOC+175', '533'],
-] as const)('persists supplied invalid %s request identity as tenant-bound negative APERAK', async (code, applicationReference, location, fieldCode) => {
+  ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],
+  ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],
+  ['E73', '23-DDQ-E66-S', 'LOC+175', '533', 'invalid'],
+  ['S06', '23-DDK-S01-S', 'LOC+175', '533', 'invalid'],
+] as const)('persists %s request identity defect as tenant-bound negative APERAK', async (code, applicationReference, location, fieldCode, defect) => {
   const message = incoming(true, false, '2026-10-01')
   message.message_code = code; message.application_reference = applicationReference
   message.customer_id = null; message.site_id = null; message.metering_point_id = null
   message.raw_payload = message.raw_payload!
     .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
     .replace('23-DDQ-E66-S', applicationReference)
-    .replace('LOC+172+735999260731000007::9', `${location}+735999260731000008::9`)
+    .replace('LOC+172+735999260731000007::9', defect === 'missing' ? '' : `${location}+735999260731000008::9`)
   io.get.mockResolvedValue(message)
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')

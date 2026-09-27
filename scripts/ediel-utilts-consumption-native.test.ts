@@ -690,15 +690,16 @@ it('native S01 stores supplied LOC+175 field533 rejection with no aggregate or i
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 it.each([
-  ['E72', '23-MDR-E30-S', 'LOC+172', '209'],
-  ['E73', '23-DDQ-E66-S', 'LOC+175', '533'],
-  ['S06', '23-DDK-S01-S', 'LOC+175', '533'],
-] as const)('native %s supplied identity rejection retains final ACK and zero effects on retry', async (code, application, location, fieldCode) => {
+  ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],
+  ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],
+  ['E73', '23-DDQ-E66-S', 'LOC+175', '533', 'invalid'],
+  ['S06', '23-DDK-S01-S', 'LOC+175', '533', 'invalid'],
+] as const)('native %s identity rejection retains final ACK and zero effects on retry', async (code, application, location, fieldCode, defect) => {
   const f = await seed()
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
     .replace('23-DDQ-E66-T', application)
-    .replace('LOC+172+735999260731000007::9', `${location}+735999260731000008::9`)
+    .replace('LOC+172+735999260731000007::9', defect === 'missing' ? '' : `${location}+735999260731000008::9`)
   const source = await f.insertSource(raw, code)
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
