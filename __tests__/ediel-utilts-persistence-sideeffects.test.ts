@@ -77,13 +77,21 @@ describe('real UTILTS quantity sinks require durable transaction acceptance', ()
       const p = payload()
       p.transactions = [transaction('T1', 123), transaction('T2', 7)]
       p.utiltsTransactionDispositions = [decision('T1', excluded), decision('T2')]
-      p.utiltsTransactionPersistenceResults = [persisted('T1', excluded, excluded === 'internal_review' ? 'not_applicable' : 'failed'), persisted('T2')]
+      p.utiltsTransactionPersistenceResults = [persisted('T1', excluded, 'not_applicable'), persisted('T2')]
       await consume(p)
       expect(io.meter).toHaveBeenCalledTimes(1)
       expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 7, sourceTransactionReference: 'T2' }))
       expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 7 }))
     })
   }
+  it('does not consume an accepted sibling when another IDE has an internal storage failure', async () => {
+    const p = payload()
+    p.transactions = [transaction('T1', 123), transaction('T2', 7)]
+    p.utiltsTransactionDispositions = [decision('T1'), decision('T2')]
+    p.utiltsTransactionPersistenceResults = [persisted('T1', 'processability_rejected', 'failed'), persisted('T2')]
+    expect(await consume(p)).toEqual({ meters: [], bill: null })
+    expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  })
   for (const fallback of [{ quantity: 999 }, { values: [{ quantity: 999, transactionReference: 'T1' }] }]) {
     it(`does not treat unowned fallback as persisted transaction quantities: ${JSON.stringify(fallback)}`, async () => {
       const p = { ...payload(), transactions: [{ transactionId: 'T1', quantities: [] }], ...fallback }

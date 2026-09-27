@@ -34,6 +34,6 @@ export function boundLegacySinkFixture(payload: Record<string, unknown>): Utilts
   })
   const input: UtiltsBoundPersistenceInput = { companyId: 'tenant-a', environment: 'test', sourceMessageId: 'message-a', messageCode: 'E66', rawPayload: 'synthetic-original', contracts,
     transactions: ids.map(id => ({ ...decisions.find(d => d.transactionId === id)!, transactionId: id, seriesKind: 'actual', meteringPointId: 'point-a', externalMeteringPointId: 'external-a', gridAreaId: null,
-      periodStart: null, periodEnd: null, registrationDate: null, resolution: null, unit: 'KWH', reasonForTransaction: null, quantities: [] })) }
+      periodStart: null, periodEnd: null, registrationDate: null, latestUpdateDate: null, resolution: null, unit: 'KWH', reasonForTransaction: null, quantities: [] })) }
   try { return validateUtiltsPersistenceResults(input, bindingRpcRows(input, outcomes)) } catch { return [] }
 }

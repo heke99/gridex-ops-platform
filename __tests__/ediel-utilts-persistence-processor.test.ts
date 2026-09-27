@@ -237,24 +237,13 @@ it('saves no E66 business effect and emits only field 313 negative APERAK for a 
   const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
   expect(JSON.stringify(negative.draft)).toContain('313')
 })
-for (const mixed of [false, true]) it(`processor excludes failed persistence and retains ERR${mixed ? ' with accepted sibling' : ''}`, async () => {
+for (const mixed of [false, true]) it(`processor holds internal persistence failure${mixed ? ' with accepted sibling' : ''} before ACK or sinks`, async () => {
   const message = incoming(false, mixed); io.get.mockResolvedValue(message)
   results = mixed ? [failed, accepted('GRIDEX2607E66002')] : [failed]
-  const result = await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('utilts_consumption_binding_conflict:persistence_failed')
   expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1', expect.objectContaining({ p_company_id: 'tenant-a', p_source_message_id: message.id }))
-  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('UTILTS_ERR')
-  if (mixed) {
-    expect(io.meter).toHaveBeenCalledTimes(1)
-    expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 7, companyId: 'tenant-a', sourceTransactionReference: 'GRIDEX2607E66002' }))
-    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 7, customerId: 'customer-a' }))
-    expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
-  } else {
-    expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
-    expect(result).toMatchObject({ ingestedMeterValueIds: [], billingUnderlayId: null })
-    expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
-    expect(io.update).toHaveBeenLastCalledWith(expect.objectContaining({ failureReason: 'utilts_transaction_persistence_failed', validationReport: expect.objectContaining({ utiltsRuntime: expect.objectContaining({ validation: expect.objectContaining({ ok: false, classification: 'functional_rejected' }) }) }) }))
-    expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
-  }
+  expect(io.ack).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
+  expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 for (const invalid of ['missing', 'duplicate', 'unrelated', 'contradictory']) it(`real processor rejects ${invalid} persistence evidence before ACK or completion`, async () => {
   const message = incoming(); io.get.mockResolvedValue(message)
@@ -503,12 +492,10 @@ for (const invalid of ['missing tenant', 'duplicate physical identities']) it(`p
   expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 
-it('failed persistence dominates the certified forced-positive ACK plan', async () => {
+it('internal persistence failure holds even the certified forced-positive ACK plan', async () => {
   const message = incoming(); io.get.mockResolvedValue(message); results = [failed]
-  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id, testCaseCode: 'U3.1.1' })
-  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('UTILTS_ERR')
-  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id, testCaseCode: 'U3.1.1' })).rejects.toThrow('utilts_consumption_binding_conflict:persistence_failed')
+  expect(io.ack).not.toHaveBeenCalled()
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
   expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
-  expect(io.update).toHaveBeenLastCalledWith(expect.objectContaining({ failureReason: 'utilts_transaction_persistence_failed' }))
 })

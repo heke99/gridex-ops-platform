@@ -6,6 +6,7 @@ import type {
 } from '@/lib/ediel/utiltsEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import { createHash } from 'node:crypto'
+import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
 import { consumptionConflict, consumptionEqual, validateUtiltsConsumptionContract, type UtiltsConsumptionContractV1 } from './consumptionContract'
 
 export { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
@@ -29,6 +30,7 @@ export type UtiltsTransactionPersistenceItem = {
   periodStart: string | null
   periodEnd: string | null
   registrationDate: string | null
+  latestUpdateDate: string | null
   resolution: string | null
   unit: string | null
   reasonForTransaction: string | null
@@ -87,11 +89,11 @@ export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceIn
     const row = found[0]
     const binding = row.sourceBinding
     if (!binding || binding.sourceMessageId !== input.sourceMessageId || binding.rawHash !== rawHash || !Number.isFinite(Date.parse(binding.boundAt))) consumptionConflict('source_binding')
-    const failed = row.persistenceStatus === 'failed'
-    if (failed) {
-      if (!['accepted', 'processability_rejected'].includes(item.disposition) || row.disposition !== 'processability_rejected' || row.responseType !== 'utilts_err' || row.consumptionContract) consumptionConflict('failed_outcome')
-      continue
-    }
+    // A storage failure has no national ERR meaning. In particular, do not
+    // consume a successful sibling or draft an ACK from a partially failed RPC.
+    // The database rolls the entire reservation back; this also holds legacy
+    // RPC implementations that still return a synthetic failed row.
+    if (row.persistenceStatus === 'failed') consumptionConflict('persistence_failed')
     if (row.disposition !== item.disposition || row.responseType !== item.responseType || row.persistenceStatus !== (item.disposition === 'accepted' ? 'persisted' : 'not_applicable')) consumptionConflict('outcome')
     if (row.persistenceStatus !== 'persisted') {
       if (row.consumptionContract) consumptionConflict('nonaccepted_contract')
@@ -134,8 +136,13 @@ export function buildUtiltsTransactionPersistencePayload(input: {
   transactions: readonly UtiltsRuntimeTransaction[]
   dispositions: readonly UtiltsTransactionDisposition[]
   matches: readonly UtiltsPersistenceMatch[]
+  rawSegments?: readonly string[]
 }): UtiltsTransactionPersistenceItem[] {
   const seriesKind = utiltsSeriesKind(input.messageCode)
+  const timezone = parseEdifactTimezoneOffsetFromSegments(input.rawSegments)
+  // The source fields are local wall-clock times. Without the wire's DTM+735,
+  // do not invent a UTC instant for durable series evidence.
+  const instant = (value: string | null | undefined) => timezone ? localEdifactDateTimeToUtc(value, timezone) : null
 
   return input.dispositions.map((disposition, dispositionIndex) => {
     const transactionId = resolveUtiltsTransactionId(disposition.transactionId, dispositionIndex)
@@ -161,7 +168,8 @@ export function buildUtiltsTransactionPersistencePayload(input: {
       gridAreaId: match?.externalGridAreaId ?? transaction?.gridAreaId ?? null,
       periodStart: transaction?.deliveryPeriodStart ?? null,
       periodEnd: transaction?.deliveryPeriodEnd ?? null,
-      registrationDate: transaction?.registrationTime ?? null,
+      registrationDate: instant(transaction?.registrationTime),
+      latestUpdateDate: instant(transaction?.latestUpdateTime),
       resolution: transaction?.resolution ?? null,
       unit: transaction?.unit ?? null,
       reasonForTransaction: transaction?.transactionReason ?? null,

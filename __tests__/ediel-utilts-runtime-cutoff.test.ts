@@ -4,9 +4,21 @@ import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { buildAperakDraft } from '@/lib/ediel/ack'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 describe('UTILTS runtime effective-date cutoff', () => {
+  it('does not borrow SG11 meter-reading DTM+597 when SG5 field 512 is absent', () => {
+    const source = energyHandoffMessage('2026-10-01', 'tenant-missing-512')
+    const raw_payload = source.raw_payload!.replace("DTM+597:202607010020:203'\n", '')
+    const runtime = runUtiltsRuntimeForMessage({ ...source, raw_payload }, { referenceDate: '2026-10-01' })
+    expect(runtime.facts.transactions[0].registrationTime).toBeNull()
+    expect(runtime.facts.registrationTime).toBeNull()
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ fieldCode: '512', ercCode: '41', referenceNumber: 'GRIDEX2607E66001' }),
+    ]))
+    expect(runtime.transactionDispositions[0]).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+  })
+
   it('reports supplied E66 LOC+172 identity defects as field 209 before function', () => {
     const control = observationHandoffMessage('2026-10-01', 'tenant-point209')
     for (const [replacement, ercCode] of [

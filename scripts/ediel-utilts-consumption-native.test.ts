@@ -77,7 +77,7 @@ async function seed() {
     const contracts = await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches, dataRequest: allowConsumption ? dataRequest : null,
       fallback: { customerId: ids.customer, siteId: ids.site, meteringPointId: ids.point, gridOwnerId: ids.grid }, allowConsumption })
     return { companyId: ids.company, environment: source.environment, sourceMessageId: source.id, messageCode: source.message_code!, rawPayload: source.raw_payload!, contracts,
-      transactions: buildUtiltsTransactionPersistencePayload({ messageCode: source.message_code, transactions: runtime.facts.transactions, dispositions: runtime.transactionDispositions, matches }) }
+      transactions: buildUtiltsTransactionPersistencePayload({ messageCode: source.message_code, transactions: runtime.facts.transactions, rawSegments: runtime.facts.rawSegments, dispositions: runtime.transactionDispositions, matches }) }
   }
   return { ids, original, insertSource, prepare, dataRequest }
 }
@@ -186,6 +186,90 @@ it('equal cross-source content reuses immutable series, a new correction preserv
   expect((await persistUtiltsTransactionResults(await f.prepare(correction)))[0].seriesId).not.toBe(first[0].seriesId)
   expect(sql(`SELECT is_current FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toBe(false)
   expect((await persistUtiltsTransactionResults(input))[0].seriesId).toBe(first[0].seriesId)
+})
+it('internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry', async () => {
+  const f = await seed(), input = await f.prepare()
+  const before = snapshot(f.original.id)
+  const broken = structuredClone(input)
+  broken.transactions[0].periodStart = 'invalid-internal-timestamp'
+  await expect(persistUtiltsTransactionResults(broken)).rejects.toThrow('utilts_transaction_persistence_failed')
+  expect(snapshot(f.original.id)).toEqual(before)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(f.original.id)}`)).toBe(0)
+  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  const retried = await persistUtiltsTransactionResults(input)
+  expect(retried).toMatchObject([{ disposition: 'accepted', persistenceStatus: 'persisted', idempotentReplay: false }])
+})
+it('native E66 persists SG5 field 512 as the DTM+735 UTC instant and preserves it on exact retry', async () => {
+  const f = await seed(), input = await f.prepare()
+  expect(input.transactions[0].registrationDate).toBe('2026-06-30T23:20:00.000Z')
+  expect(input.transactions[0].latestUpdateDate).toBeNull()
+  const first = await persistUtiltsTransactionResults(input)
+  expect(first).toMatchObject([{ disposition: 'accepted', persistenceStatus: 'persisted' }])
+  const stored = sql(`SELECT jsonb_build_object('registration',registration_date='2026-06-30T23:20:00Z'::timestamptz,'latestAbsent',latest_update_date IS NULL,'rawRegistration',raw_transaction->>'registrationDate',
+    'source',source_ediel_message_id,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)
+  expect(stored).toEqual({ registration: true, latestAbsent: true,
+    rawRegistration: '2026-06-30T23:20:00.000Z', source: f.original.id, tenant: f.ids.company })
+  expect((await persistUtiltsTransactionResults(input))[0]).toMatchObject({ seriesId: first[0].seriesId, idempotentReplay: true })
+  expect(sql(`SELECT jsonb_build_object('registration',registration_date='2026-06-30T23:20:00Z'::timestamptz,'latestAbsent',latest_update_date IS NULL,'rawRegistration',raw_transaction->>'registrationDate',
+    'source',source_ediel_message_id,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toEqual(stored)
+})
+it('native E66 cannot borrow SG11 DTM+597 for missing SG5 field 512 or consume its values on retry', async () => {
+  const f = await seed()
+  const segments = f.original.raw_payload!.split('\n').filter(segment => segment !== "DTM+597:202607010020:203'")
+  const unh = segments.findIndex(segment => segment.startsWith('UNH+'))
+  const unt = segments.findIndex(segment => segment.startsWith('UNT+'))
+  segments[unt] = `UNT+${unt - unh + 1}+1'`
+  const source = await f.insertSource(segments.join('\n'))
+  const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(first.ingestedMeterValueIds).toEqual([])
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(JSON.stringify(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('512')
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,
+    'series',persisted_series_id)) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
+    .toEqual([{ company: f.ids.company, disposition: 'guide_rejected', plan: 'negative_aperak', series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  const before = snapshot(source.id)
+  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(snapshot(source.id)).toEqual(before)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+it('native accepted S01 persists only SG5 field 532 and no individual consumption effect on retry', async () => {
+  const f = await seed()
+  const segments = f.original.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+    .replace('DTM+597:202607010020:203', 'DTM+368:202607010020:203')
+    .split('\n').filter(segment => !segment.startsWith('DTM+597:'))
+  const unh = segments.findIndex(segment => segment.startsWith('UNH+'))
+  const unt = segments.findIndex(segment => segment.startsWith('UNT+'))
+  segments[unt] = `UNT+${unt - unh + 1}+1'`
+  const source = await f.insertSource(segments.join('\n'), 'S01')
+  sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
+  const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
+  expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
+  expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak' }])
+  const input: UtiltsBoundPersistenceInput = { companyId: f.ids.company, environment: source.environment, sourceMessageId: source.id,
+    messageCode: 'S01', rawPayload: source.raw_payload!,
+    contracts: await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches: [], dataRequest: null,
+      fallback: { customerId: null, siteId: null, meteringPointId: null, gridOwnerId: null }, allowConsumption: false }),
+    transactions: buildUtiltsTransactionPersistencePayload({ messageCode: 'S01', transactions: runtime.facts.transactions,
+      rawSegments: runtime.facts.rawSegments, dispositions: runtime.transactionDispositions, matches: [] }) }
+  expect(input.transactions).toMatchObject([{ registrationDate: null, latestUpdateDate: '2026-06-30T23:20:00.000Z' }])
+  const first = await persistUtiltsTransactionResults(input)
+  expect(first).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' }])
+  const stored = sql(`SELECT jsonb_build_object('registrationAbsent',registration_date IS NULL,'latest',latest_update_date='2026-06-30T23:20:00Z'::timestamptz,
+    'rawLatest',raw_transaction->>'latestUpdateDate','kind',series_kind,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)
+  expect(stored).toEqual({ registrationAbsent: true, latest: true,
+    rawLatest: '2026-06-30T23:20:00.000Z', kind: 'aggregate', tenant: f.ids.company })
+  await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: source, boundOutcomes: first })
+  await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: source, boundOutcomes: first, existingBillingUnderlayId: null })
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  expect((await persistUtiltsTransactionResults(input))[0]).toMatchObject({ seriesId: first[0].seriesId, idempotentReplay: true })
+  expect(sql(`SELECT jsonb_build_object('registrationAbsent',registration_date IS NULL,'latest',latest_update_date='2026-06-30T23:20:00Z'::timestamptz,
+    'rawLatest',raw_transaction->>'latestUpdateDate','kind',series_kind,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toEqual(stored)
 })
 it('cross-environment equal legacy identity cannot reuse test consumption authority', async () => {
   const f = await seed(), first = await persistUtiltsTransactionResults(await f.prepare())

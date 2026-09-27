@@ -68,6 +68,7 @@ export type UtiltsRuntimeTransaction = {
   deliveryPeriodStart: string | null
   deliveryPeriodEnd: string | null
   registrationTime: string | null
+  latestUpdateTime?: string | null
   resolution: string | null
   resolutionFormat: string | null
   transactionReason: string | null
@@ -598,6 +599,16 @@ function groupSegmentValue(group: UtiltsTransactionGroup, prefix: string): strin
   return group.segments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
 }
 
+function transactionDtmValue(group: UtiltsTransactionGroup, prefix: 'DTM+597' | 'DTM+368'): string | null {
+  // SG5 dates precede the first SG8/SEQ observation. SG11 can repeat DTM+597
+  // for a meter reading and must not fill a missing SG5 field 512.
+  for (const segment of group.segments) {
+    if (segment.toUpperCase().startsWith('SEQ+')) break
+    if (segment.toUpperCase().startsWith(prefix)) return segment
+  }
+  return null
+}
+
 function parseUnitFromSegments(segments: readonly string[]): string | null {
   const mea = segmentValue(segments, 'MEA+AAZ')
   const parts = mea?.split('+') ?? []
@@ -645,7 +656,8 @@ function parseUtiltsTransactionGroup(group: UtiltsTransactionGroup, sourceOrder:
     deliveryPeriodFormat: period.format,
     deliveryPeriodStart: period.start,
     deliveryPeriodEnd: period.end,
-    registrationTime: parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597')),
+    registrationTime: parseRegistrationDateTime(transactionDtmValue(group, 'DTM+597')),
+    latestUpdateTime: parseRegistrationDateTime(transactionDtmValue(group, 'DTM+368')),
     resolution: resolution.value,
     resolutionFormat: resolution.format,
     transactionReason: parseStsReason(group.segments),
@@ -873,7 +885,7 @@ function groupMeterReadingDateTimes(group: UtiltsTransactionGroup): string[] {
 }
 
 function groupRegistrationIsBeforeLatestMeterReadingDate(group: UtiltsTransactionGroup): boolean {
-  const registrationTime = parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597'))
+  const registrationTime = parseRegistrationDateTime(transactionDtmValue(group, 'DTM+597'))
   if (!registrationTime || !groupHasMeterReadingQuantity(group)) return false
 
   const registration = new Date(registrationTime).getTime()
@@ -1273,7 +1285,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
       const groupQuantities = parseQuantitiesFromGroup(group)
       const hasMissingValueStatus = groupHasStatusCode(group, '46')
       const expectedCount = mayCheckFunction(transactionReference) ? expectedQuantityCountForGroup(group) : null
-      const registrationTime = parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597'))
+      const registrationTime = parseRegistrationDateTime(transactionDtmValue(group, 'DTM+597'))
       const resolution = parseDtmComposite(groupSegmentValue(group, 'DTM+354'))
 
       if (mayCheckFunction(transactionReference) && groupQuantities.length === 0 && !hasMissingValueStatus) {
@@ -1542,7 +1554,6 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
   const loc172 = segmentValue(segments, 'LOC+172')
   const loc239 = segmentValue(segments, 'LOC+239')
   const dtm324 = segmentValue(segments, 'DTM+324')
-  const dtm597 = segmentValue(segments, 'DTM+597')
   const dtm354 = segmentValue(segments, 'DTM+354')
   const period = parsePeriod719(dtm324)
   const references = parseReferences(segments)
@@ -1571,7 +1582,7 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
     deliveryPeriodRaw: period.raw,
     deliveryPeriodStart: period.start,
     deliveryPeriodEnd: period.end,
-    registrationTime: parseRegistrationDateTime(dtm597),
+    registrationTime: transactions[0]?.registrationTime ?? null,
     resolution: parseDtmComposite(dtm354).value,
     transactionReason: parseStsReason(segments),
     unit: parseUnit(segments),
