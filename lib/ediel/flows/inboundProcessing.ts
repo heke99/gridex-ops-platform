@@ -875,7 +875,7 @@ export async function processInboundEdielMessage(params: {
       ? prodatHeader205Rejection({sourceWire:tokenizeEdifact(runtimeMessage.raw_payload),
           errors:header205Plan?.applicationErrors}) : null;
   if (runtimeMessage.message_family === "PRODAT" &&
-      (header205?.qualified ||
+      (header205?.defect ||
         canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected"))) {
     try {
       const negative = canonicalRuntime.decision.responsePlan.some(item =>

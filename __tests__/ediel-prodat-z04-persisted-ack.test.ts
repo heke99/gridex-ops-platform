@@ -214,3 +214,33 @@ it('rejects a malformed supplied header date as ERC42/205 for the whole P messag
  expect(String(state.messages[1].raw_payload)).toContain('FTX+AAO++205::260')
  expect(state.effects).toEqual([])
 })
+
+it('rejects a duplicate header date as one whole message before business writes',async()=>{
+ const parts=mixedZ04Parts()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts.splice(second+1,0,qty('20'))
+ const wire=raw(parts,'Z04').replace('DTM+137:202609171200:203\'',"DTM+137:202609171200:203'DTM+137:202609181200:203'")
+  .replace(/UNT\+(\d+)\+M/,(_,count:string)=>`UNT+${Number(count)+1}+M`)
+ state.source={...state.source!,raw_payload:wire} as EdielMessageRow
+ const decision=resolveCanonicalRuntimeDecision(state.source)
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
+ await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id})
+ expect(state.messages.map(row=>row.message_family)).toEqual(['CONTRL','APERAK'])
+ expect(String(state.messages[1].raw_payload)).toContain('BGM+++27')
+ expect(String(state.messages[1].raw_payload)).toContain('FTX+AAO++205::260')
+ expect(state.effects).toEqual([])
+})
+
+it('holds a header rejection without a qualified tenant ACK route and never enters business processing',async()=>{
+ const wire=raw(mixedZ04Parts(),'Z04').replace('DTM+137:202609171200:203\'','').replace(/UNT\+(\d+)\+M/,(_,count:string)=>`UNT+${Number(count)-1}+M`)
+ state.source={...state.source!,raw_payload:wire} as EdielMessageRow
+ state.routeAvailable=false
+ await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id})
+ expect(state.messages).toEqual([])
+ expect(state.outbox).toEqual([])
+ expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload)).toEqual([
+  expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
+  expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'}),
+ ])
+ expect(state.effects).toEqual([])
+})
