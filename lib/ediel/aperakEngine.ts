@@ -201,7 +201,7 @@ export function renderAperakEdiel(params: {
     problem.fieldNumber === '314' && problem.reason === 'global_sequence_must_increment_from_one') ?? []
   const sourceUnh = sourceWire?.segments.find(token => token.tag === 'UNH')
   const messageReference = sourceUnh && sourceWire ? segmentComposite(sourceUnh, 1, sourceWire.una)[0] || null : null
-  // P26.A §2.2 and §3.3: a source-owned missing or invalid 205 in the actual
+  // P26.A §2.2 and §3.3: source-owned missing or invalid 205/206 in the actual
   // header rejects the entire message. The inbound consumer uses this same
   // qualification before entering any case or business writer.
   const header205=hasProdatWire ? prodatHeaderDateRejection({field:'205',sourceWire,errors:params.applicationErrors}) : null

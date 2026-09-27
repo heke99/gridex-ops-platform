@@ -869,14 +869,14 @@ export async function processInboundEdielMessage(params: {
   // The case writer deliberately rejects malformed LIN/register structures.
   // A source-owned missing or invalid header date also rejects the whole
   // message. Use the renderer's exact qualification before any business write.
-  const header205Plan = canonicalRuntime.decision.responsePlan.find(item=>item.family==="APERAK" && item.outcome==="negative");
+  const headerDatePlan = canonicalRuntime.decision.responsePlan.find(item=>item.family==="APERAK" && item.outcome==="negative");
   const headerDateWire = runtimeMessage.message_family === "PRODAT" && runtimeMessage.raw_payload &&
     canonicalRuntime.decision.applicationDecision === "rejected"
       ? tokenizeEdifact(runtimeMessage.raw_payload) : null;
   const header205 = headerDateWire ? prodatHeaderDateRejection({field:'205',sourceWire:headerDateWire,
-    errors:header205Plan?.applicationErrors}) : null;
+    errors:headerDatePlan?.applicationErrors}) : null;
   const header206 = headerDateWire ? prodatHeaderDateRejection({field:'206',sourceWire:headerDateWire,
-    errors:header205Plan?.applicationErrors}) : null;
+    errors:headerDatePlan?.applicationErrors}) : null;
   if (runtimeMessage.message_family === "PRODAT" &&
       (header205?.defect || header206?.defect ||
         canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected"))) {
