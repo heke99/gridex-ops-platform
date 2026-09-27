@@ -42,6 +42,9 @@ vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:
 
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {buildAperakDraft} from '@/lib/ediel/ack'
+import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
+import {classifyCanonicalInboundAck} from '@/lib/ediel/ack/inboundAckOutcome'
 
 beforeEach(()=>{state.messages=[];state.outbox=[];state.events=[];state.effects=[];state.routeAvailable=true;state.source={...source(raw(mixedZ04Parts(),'Z04'),'Z04'),company_id:'00000000-0000-4000-8000-000000000002',status:'received',
  canonical_rule_pack_id:'00000000-0000-4000-8000-000000000033',rule_profile_key:'PRODAT:Z04:L:26.A:r3',rule_profile_version_id:'00000000-0000-4000-8000-000000000032',rule_profile_version:'26.A:r3',rule_pack_checksum:'synthetic-source-hash',rule_pack_snapshot:{profileKey:'PRODAT:Z04:L:26.A:r3',profileVersionId:'00000000-0000-4000-8000-000000000032',version:'26.A:r3',checksum:'synthetic-source-hash'},parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow})
@@ -70,6 +73,31 @@ it('reuses both persisted ACKs and their unique outbox locks on the same origina
  expect(state.effects).toEqual([])
 })
 
+it('persists whole-message P-17 rejection as BGM27, with original correlation and no case effect',async()=>{
+ const parts=mixedZ04Parts()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
+ state.source={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
+ const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id}
+ const decision=resolveCanonicalRuntimeDecision(state.source)
+ expect(decision.responsePlan.find(item=>item.family==='APERAK')).toMatchObject({outcome:'negative',applicationErrors:expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:'314'})])})
+ await processInboundEdielMessage(input)
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
+ const wire=String(state.messages[1].raw_payload)
+ expect(wire).toContain('BGM+++27')
+ expect(wire).toContain('RFF+ACW:D')
+ expect(wire).toContain('FTX+AAO++314::260')
+ expect(wire).not.toContain('BGM+++34')
+ expect(classifyCanonicalInboundAck(parseEdifactPayload(wire))).toMatchObject({profile:'PRODAT_16_B',outcome:'negative'})
+ expect(state.messages.every(row=>row.company_id===state.source!.company_id&&row.related_message_id===state.source!.id)).toBe(true)
+ expect(state.outbox).toHaveLength(2)
+ expect(state.effects).toEqual([])
+ const before={messages:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}
+ await processInboundEdielMessage(input)
+ expect({messages:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}).toEqual(before)
+ expect(state.effects).toEqual([])
+})
+
 it('holds both ACKs when the tenant has no qualified outbound route',async()=>{
  state.routeAvailable=false
  await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source!.id})
@@ -80,4 +108,42 @@ it('holds both ACKs when the tenant has no qualified outbound route',async()=>{
   expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'}),
  ])
  expect(state.effects).toEqual([])
+})
+
+it.each(['first LIN 2','duplicate LIN 1'] as const)('rejects %s as one whole message, retaining the 314 error',defect=>{
+ const parts=mixedZ04Parts()
+ const index=defect==='first LIN 2' ? parts.findIndex(part=>part[0]==='LIN') : parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts[index]=[...parts[index].slice(0,1),defect==='first LIN 2'?'2':'1',...parts[index].slice(2)]
+ const sourceMessage={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
+ const plan=resolveCanonicalRuntimeDecision(sourceMessage).responsePlan.find(item=>item.family==='APERAK')!
+ const draft=buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors})
+ expect(draft.rawPayload).toContain('BGM+++27')
+ expect(draft.rawPayload).toContain('FTX+AAO++314::260')
+})
+
+it('holds a sequence rejection without a source-qualified 314 finding, including a positive shortcut',()=>{
+ const parts=mixedZ04Parts()
+ const index=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts[index]=[...parts[index].slice(0,1),'4',...parts[index].slice(2)]
+ const sourceMessage={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
+ expect(()=>buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'314',text:'invented'}]}))
+  .toThrow('aperak_prodat_sequence_response_unqualified')
+ expect(()=>buildAperakDraft({sourceMessage,outcome:'positive'})).toThrow('aperak_prodat_sequence_response_unqualified')
+})
+
+it('does not borrow a qualified 314 finding from another physical object',()=>{
+ const own=mixedZ04Parts(),other=mixedZ04Parts()
+ for(const parts of [own,other]) {
+  const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+  parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
+ }
+ const second=other.findIndex(part=>part[0]==='LIN'&&part[1]==='4')
+ other[second]=[...other[second].slice(0,3),['735123456789012352','','','9'],...other[second].slice(4)]
+ const sourceMessage={...state.source!,raw_payload:raw(own,'Z04')} as EdielMessageRow
+ const otherMessage={...state.source!,raw_payload:raw(other,'Z04')} as EdielMessageRow
+ const otherError=resolveCanonicalRuntimeDecision(otherMessage).responsePlan.find(item=>item.family==='APERAK')!
+  .applicationErrors!.find(error=>error.fieldCode==='314')!
+ expect(otherError.referenceNumber).toBe('735123456789012352')
+ expect(()=>buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:[otherError]}))
+  .toThrow('aperak_prodat_sequence_response_unqualified')
 })

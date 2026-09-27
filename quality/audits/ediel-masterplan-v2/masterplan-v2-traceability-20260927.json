@@ -956,14 +956,24 @@
       "code_paths": [
         "lib/ediel/prodat/prodatRegisterGroups.ts",
         "lib/ediel/rulebook/prodatRegisterPolicy.ts",
-        "lib/ediel/prodat/prodatAperak.ts"
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-prodat-registers.test.ts",
-        "__tests__/ediel-prodat-register-ack-boundary.test.ts"
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "314 enforces contiguous global LIN numbering and field metadata avoids recasting it as 209.",
-      "remaining_gap": "Observed ACK boundary holds uncertain register evidence for review; no proven whole-message rejection with P-APERAK BGM27 and exact relevant error for this sequence fault."
+      "assessment": "Physical LIN defects plus source-qualified 314 now select whole-message BGM27 through actual inbound ACK/outbox; first/gap/duplicate LIN and zero mocked business effects tested. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Native stored 27/retry pending; other P-17 message shapes and independent formal acceptance remain open. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "ESCO-01",
@@ -1181,14 +1191,22 @@
       "code_verdict": "partial_code",
       "code_paths": [
         "lib/ediel/aperakEngine.ts",
-        "lib/ediel/ack.ts"
+        "lib/ediel/ack.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
-        "__tests__/ediel-aperak-source-profile-regression.test.ts"
+        "__tests__/ediel-aperak-source-profile-regression.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "PRODAT D96A profile, ACW original BGM, ERC and optional Z07/LI paths exist; wire renderer isolates UTILTS 312/313.",
-      "remaining_gap": "Renderer hardcodes BGM+++34 for negative and positive, while ACK-02 requires BGM/1225=27 for whole-message rejection; no full qualified 40/41/42/100 and scope contract proof."
+      "assessment": "P D96A profile, original BGM ACW and source-qualified P-17 whole-message BGM27 now have real inbound tests; processed local negative retains 34. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Native result pending; full ERC40/41/42/100, optional reference scope and every qualified whole-message cause remain open. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "ACK-03",
@@ -2090,14 +2108,21 @@
       "code_paths": [
         "lib/ediel/aperakEngine.ts",
         "lib/ediel/ack.ts",
-        "lib/ediel/ack/inboundAckOutcome.ts"
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
-        "__tests__/ediel-aperak-source-profile-regression.test.ts"
+        "__tests__/ediel-aperak-source-profile-regression.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "PRODAT renderer emits BGM+++34 (empty 1001/1004, function 1225), RFF+ACW original BGM; inbound classification reads function/ERC.",
-      "remaining_gap": "ACK-10 requires 27/34 but actual outbound renderer hardcodes 34 for both outcomes, so whole-message negative 27 lacks code/direct behavior test. AT-ACK-10 is unexecuted."
+      "assessment": "P renderer now uses BGM/1225=27 for qualified LIN whole-message rejection, otherwise 34; BGM/1001/1004 stay empty and ACW references original BGM. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Native persisted 27/34 and complete AT-ACK-10 scope/formal acceptance pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "U-15",
@@ -2797,14 +2822,24 @@
       "code_verdict": "partial_code",
       "code_paths": [
         "lib/ediel/prodat/prodatRegisterGroups.ts",
-        "lib/ediel/prodat/render/registers.ts"
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-prodat-registers.test.ts",
-        "__tests__/ediel-prodat-register-ack-boundary.test.ts"
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "First LIN 2, gap and duplicates are rejected by validation, regardless of valid envelope counts.",
-      "remaining_gap": "No evidenced P-APERAK whole-message rejection with BGM/1225=27; ACK mapping explicitly requires review for register errors."
+      "assessment": "First/gap/duplicate LIN validator and P-17 response 27 have source-running tests including actual inbound ACK, ACW, outbox and zero mocked effects. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Native persisted 27/retry and formal contract execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "SC-035",
@@ -2950,15 +2985,23 @@
       "code_paths": [
         "lib/ediel/ack/buildAperak.ts",
         "lib/ediel/ack/inboundAckOutcome.ts",
-        "lib/ediel/rulebook/versionSelector.ts"
+        "lib/ediel/rulebook/versionSelector.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
         "__tests__/ediel-aperak-source-profile-regression.test.ts",
-        "__tests__/ediel-masterplan-protocol-regression.test.ts"
+        "__tests__/ediel-masterplan-protocol-regression.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "PRODAT and UTILTS APERAK source-family selection and differing BGM semantics have unit coverage.",
-      "remaining_gap": "No complete P/U wire fixtures proving every BGM position, DOC/original and transaction references, group structure and both positive/negative outcomes; PRODAT 27 case remains unproven."
+      "assessment": "P D96A BGM27/34, original ACW and U D04A profile have bounded tests; actual P-17 inbound path is covered. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Full P/U DOC and transaction reference/group structure matrix, native P-17 and formal contract execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "SC-043",
@@ -4569,14 +4612,24 @@
       "code_paths": [
         "lib/ediel/prodat/prodatRegisterGroups.ts",
         "lib/ediel/rulebook/prodatRegisterPolicy.ts",
-        "lib/ediel/prodat/prodatAperak.ts"
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-prodat-registers.test.ts",
-        "__tests__/ediel-prodat-register-ack-boundary.test.ts"
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "Mapped to relevant code and tests, independently assessed against the planned given/when/expected/prohibited clauses. Register execution_status is \"Inte körd mot systemet\". 314 enforces contiguous global LIN numbering and field metadata avoids recasting it as 209.",
-      "remaining_gap": "AT-P-17 has no run proving BGM27 whole-message response and both positive and gap sequences."
+      "assessment": "First/gap/duplicate LIN and real inbound P-17 BGM27/314 with no mocked case effect have bounded tests; frozen execution status remains unchanged. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Native persistence/retry and complete formal AT execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "AT-ESCO-01",
@@ -4820,14 +4873,22 @@
       "code_verdict": "partial_code",
       "code_paths": [
         "lib/ediel/aperakEngine.ts",
-        "lib/ediel/ack.ts"
+        "lib/ediel/ack.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
-        "__tests__/ediel-aperak-source-profile-regression.test.ts"
+        "__tests__/ediel-aperak-source-profile-regression.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "Renderer supplies D96A PRODAT ACW to original document, ERC/FTX and optional Z07/LI, keeping UTILTS 312/313 separate. Register execution_status: Inte körd mot systemet.",
-      "remaining_gap": "Negative whole-message given/when fails expected BGM27: renderAperakEdiel always emits BGM+++34. No direct AT test of 27 versus 34, error reference scope, and forbidden UTILTS transaction ACW."
+      "assessment": "P-17 source-qualified 27 versus processed object-local 34, own 314, original ACW and no mocked case effect have bounded tests. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Full 40/41/42/100 and reference scope, native persisted result and formal AT execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "AT-ACK-03",
@@ -5829,14 +5890,21 @@
       "code_paths": [
         "lib/ediel/aperakEngine.ts",
         "lib/ediel/ack.ts",
-        "lib/ediel/ack/inboundAckOutcome.ts"
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
-        "__tests__/ediel-aperak-source-profile-regression.test.ts"
+        "__tests__/ediel-aperak-source-profile-regression.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "BGM+++34 and original BGM ACW are directly represented, leaving 1001/1004 empty and technical UNH/envelope identity separate. Register execution_status: Inte körd mot systemet.",
-      "remaining_gap": "AT expected 27/34 cannot pass: negative PRODAT renderer hardcodes 34. Existing canonical-ack test primarily classifies received 34/ERC and is not a direct outgoing negative BGM27/positive34 contract test."
+      "assessment": "Direct 27/34 outbound behavior and original BGM ACW are tested for bounded P-17 versus local-negative cases; 1001/1004 remain empty. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
+      "remaining_gap": "Native persisted 27/34 and complete formal AT execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
     },
     {
       "id": "AT-U-15",
@@ -6950,5 +7018,14 @@
       "assessment": "Implementerade delkedjor för PRODAT-kod, subtype, fält och/eller disposition; kontraktets hela expected och prohibited kan inte styrkas.",
       "remaining_gap": "Tillståndsvalidering och delar av Z15-state finns; korrelerad rättighetsprojektion, historik/E66, kvittenser och återkallelse över tenantgränser saknar sammanhållet kontraktsbevis."
     }
-  ]
+  ],
+  "followup": {
+    "draft_pr": 414,
+    "base_main": "2e4eeb65af719bcb370d619727d300618a97cb1e",
+    "first_code_head": "22d284dda6b3b3e471aa8f2f840ab4161205c491",
+    "native_extension": "pending exact-head CI on final consumer/correlation code",
+    "formal_status": "unchanged",
+    "scope": "P-17 LIN/314 whole-message BGM27; processed object-local negative BGM34; receiving classifier and tenant-bound status for 27",
+    "acw_matching": "RED reply-UNB collision, missing ACW, interpreted filter punctuation and request without matching outbound BGM; P16.B literal original ACW match to outbound message then linked request, pending final-head CI"
+  }
 }

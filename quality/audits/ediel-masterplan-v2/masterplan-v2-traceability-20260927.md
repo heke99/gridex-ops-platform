@@ -1,5 +1,30 @@
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
+## Uppföljning efter #413: draft #414
+
+PR #413 mergades som `2e4eeb65af719bcb370d619727d300618a97cb1e` efter
+grön ren replay, native 368/368 och schema-/typparitet. Nedanstående ursprungliga
+inventering är dess daterade bas, inte nuvarande PR-status. Ny branch från denna
+`main`: `codex/ediel-v2-f3-aperak-whole-message-20260927`, draft #414. Första
+kodhead `22d284dd` rättar källstyrkt P-17 LIN/314 så slutlig P-APERAK bär
+`BGM+++27`, originalets ACW och inget otillåtet fallutfall. Bearbetat meddelande
+med lokalt fältfel behåller `34`. Inkommande PRODAT BGM27 klassas nu som negativt
+och uppdaterar enbart tenantbunden korrelerad status; 27/ERC100 hålls ogiltigt.
+Matcharen använder för denna profil enbart originalets ACW/BGM-referens med
+bokstavlig DB-likhet, inte svarets egna UNB/UNH-id eller ett tolkat filter;
+den utgående Ediel-raden krävs före eventuell länkad request. Saknad eller
+motstridig ACW hålls. RED före rättning för renderer, objektkorrelation,
+inkommande klassificering, ACW-kollision, filtertecken och request utan utgående
+BGM; riktade 104/104 och app-/test-/script-typkontroll är verifierade. Föregående
+publicerade head `d8937505` klarade native 369/369, ren replay och schema-/typparitet
+i OPS `36345730307`; korrigerad sluthead väntar på egen CI. Se
+[`f3-prodat-aperak-message-rejection-20260927.md`](f3-prodat-aperak-message-rejection-20260927.md).
+
+JSON-registrets åtta berörda rader (`P-17`, `ACK-02`, `ACK-10`, `SC-034`,
+`SC-042`, `AT-P-17`, `AT-ACK-02`, `AT-ACK-10`) har nya kod-/testvägar och
+preciserade luckor. De förblir `partial_code`; totalsiffror och frysta formella
+bevisstatusar är oförändrade tills en full radkvalifikation kan styrkas.
+
 Avstämning 2026-09-27 på `main` `07a93a5eed775b6fd3c02545c9fb7662956503fa` plus draft-PR #413, branch `codex/ediel-v2-f3-prodat-field-composition-20260927`, head `fc823c12658a6fad8cd3e9d1aabd33d4df96d542`. Den fullständiga radvisa klassningen och dess kod- och testvägar finns i [JSON-registret](masterplan-v2-traceability-20260927.json). Det frysta kravregistret ändras inte av denna kodgranskning.
 
 ## Mått och gränser
@@ -43,10 +68,10 @@ Det som redan fungerar inom sina begränsningar omfattar 110/110 PRODAT D-villko
 | F6 mätdata/AI/BI | Transaktionslagring och E035-delar finns; pre-ledger-historik, retention/radering, auktoriserade E66-projektioner, aggregat och fakturasyfte är öppna. |
 | F7 release | Mergade avgränsade paket har tidigare exakta CI-bevis, men #413:s rena replay/native/schema- och typparitet stoppades före DB-start av `public.ecr.aws`-kvot. G03 formella prov, live-bindning och kapabilitetsvis aktivering saknas. |
 
-## Nästa beslut och åtgärd
+## Aktuell beslutspunkt
 
-PR #413 är fortfarande draft och **får inte mergas** på nuvarande head: ordinarie Ediel/browser/E2E och OPS verify/quality är gröna, men ren OPS replay och native nådde aldrig databasen när Supabase-images gav `toomanyrequests: Data limit exceeded` på `public.ecr.aws`. Ett diagnostiserat samma-head-jobbomförsök gav samma fel. Undersök en källstyrd bildkälla/cache för just workflow-steget; ändra bara en granskad CI-konfiguration om den verkligen kringgår kvoten. På ny exakt head: kör samtliga obligatoriska gates inklusive ren migrationsreplay, native och genererad schema-/typparitet, granska hela diffen och merga det sammanhängande paketet en gång. Utan sådan verifiering består blockeraren och #413 ligger kvar som draft.
+PR #413 är mergad på `main` som `2e4eeb65af719bcb370d619727d300618a97cb1e` och dess produktion var READY på samma SHA. Den tidigare CI-kvoten nedan är historisk. PR #414 är draft och får bara mergas efter granskning av hela diffen och alla tillämpliga jobb gröna på exakt sluthead, inklusive native, ren replay och genererad schema-/typparitet. Föregående head `d8937505` har sådant kvitto, men det kvalificerar inte den senare konsumentkorrigeringen.
 
-Därefter från faktiskt ny `main`: bevisa separat juridisk utgivare och historisk täckning/retention för 203 och IDE505 innan atomär unikhetsreservation konstrueras; etablera verkligt objektregister, mandat och sink innan positiv LOC+175. Fortsätt parallellt genomförbar källstyrd F3/E035-grammatik och per-kapabilitetskrav utan att gissa dubblettregler. Första namngivna marknadskandidat är kontrollerad inkommande E66 DDQ-mottagning/karantän enligt 25-A-4 från 2026-10-01, utan positiv mät-/fakturakonsumtion. Den kräver separat live aktör/tenant/rutt/certifikat/transportbindning, tillämplig G03 TGT/AGT och motparts-/stagingbevis och ett uttryckligt aktiveringsbeslut. Ingen sådan trafik eller sådana prov kördes här. #310 förblir pausad.
+Efter en enda merge: kontrollera ny `main` och Vercel; ta nästa sammanhängande F3-krav på ny branch. Historisk täckning och juridisk utgivare för fält 203 och IDE505, samt positiv LOC+175:s objektregister, mandat och egen sink, saknas ännu. E035:s historik/retention och G06:s grammatik är separata öppna krav. Första namngivna marknadskandidat är kontrollerad inkommande E66/DDQ-mottagning och karantän enligt 25-A-4, utan positiv mät-/fakturakonsumtion. Den kräver separat live schema, tenant/aktör, mandat, objekt, rutt, certifikat/transport, formella prov och ett uttryckligt aktiveringsbeslut. Ingen sådan trafik eller sådana prov kördes här. #310 förblir pausad.
 
 Detta är en inventering på angiven trädversion. Efter kodändringar måste berörda rader och testbevis uppdateras; full kod hos ett kort innebär aldrig att hela fasen eller marknadsrollen är godkänd.
