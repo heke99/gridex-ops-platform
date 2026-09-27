@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-26T22:30:00Z",
+  "updated_at": "2026-09-27T21:13:20Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-utilts-grid-pair-20260927",
-  "active_pr": null,
-  "base_head_sha": "6732925b9f97e0bbddb0e5251127da292384c93c",
-  "runtime_accepted_sha": "6732925b9f97e0bbddb0e5251127da292384c93c",
-  "last_merged_pr": 407,
-  "last_accepted_pr": 407,
+  "branch": "codex/ediel-v2-f3-prodat-header-aperak-20260927",
+  "active_pr": 415,
+  "base_head_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
+  "runtime_accepted_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
+  "last_merged_pr": 414,
+  "last_accepted_pr": 414,
   "root_main_acceptance_comment": null,
-  "active_item": "U p.55/63 LOC232/233 pair within one IDE; native and CI pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-grid-area-pair-20260927.md",
+  "active_item": "P26.A F3 header205 JSONB evidence comparison corrected locally; exact-head native/CI pending",
+  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-205-whole-message-20260927.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,9 +30,9 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish paired-area candidate on one PR; inspect exact-head ordinary CI/native persisted ACK and zero effects; review/merge/main/deployment only if green. Product-specific 260a exclusion, field203 duplicate owner and E035 history remain open; PR310 paused.",
+  "next_action": "Commit and push structural evidence fix to PR415; inspect fresh exact-head native clean replay/schema/type parity and all workflows; merge once only if green, then verify main/Vercel. Market activation separate; PR310 untouched.",
   "latest_verified_delivery": {
-    "main_sha": "6732925b9f97e0bbddb0e5251127da292384c93c",
+    "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
       387,
       388,
@@ -59,7 +59,7 @@
     "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
     "pr390_ops_run": 36245827122,
     "pr390_native_tests": "343/343",
-    "vercel_deployment": "dpl_BHqNeYHmQUq7QEs8oJpV1U67uaVv READY for main 6732925b",
+    "vercel_deployment": "dpl_HeaoXWUthsimtVLj8Kt5hPuk8buo READY for main 62ca24a1",
     "boundary": "web deployed; Ediel market capabilities not activated",
     "pr392_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
     "pr392_ops_run": 36247794182,
@@ -72,7 +72,10 @@
     "pr399_ops_run": 36261652141,
     "pr399_native_tests": "344/344",
     "pr399_schema_fingerprint": "27b18060dd20cfc525fcd832876980b1ff3d6a4602ddbb27fba33c7d35d5fece",
-    "e035_observation_time": "UNRESOLVED_INTERMITTENT"
+    "e035_observation_time": "UNRESOLVED_INTERMITTENT",
+    "pr414_head": "32866bc4c3619e8b0d88203968d5615d570fee92",
+    "pr414_ops_run": 36348073847,
+    "pr414_native_tests": "369/369"
   },
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
@@ -860,5 +863,18 @@
     "local_tests": "311/311 in 25 files; app/test types, lint/diff PASS; valid5 focused PASS",
     "ordinary_ci": "PENDING_NEW_HEAD",
     "report": "quality/audits/ediel-masterplan-v2/f3-utilts-header204-20260925.md"
+  },
+  "pr415_checkpoint": {
+    "published_head": "e469234217488234cb80185456a3eff91a438714",
+    "draft": true,
+    "initial_native_z04": "4/4 PASS; OPS job failed E035 Storage after-witness unconfirmed",
+    "initial_ediel_e2e": "failed incomplete positive P fixtures on 1badf5c2; corrected code/fixtures published e4692342, exact-head CI pending",
+    "local_verification": "missing/invalid 205 RED/GREEN, 90/90 focused, protocol20/20, Node document script, TS/lint/diff",
+    "formal_acceptance": "unchanged",
+    "market_traffic": "held",
+    "failed_head": "849a7c9f9b97464fec7d5ab6b648b9f2fc746078",
+    "ops_run": 36350350372,
+    "native_result": "370/371; invalid 205 rejected after jsonb object key reorder",
+    "local_correction": "fieldwise raw/locator/content comparison RED/GREEN, focused21/21, app/tests/scripts TS/lint/diff PASS; unpublished"
   }
 }

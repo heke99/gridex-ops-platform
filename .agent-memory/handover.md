@@ -1,3 +1,9 @@
+## Current — 2026-09-27 PR #415 native correction
+Remote head `849a7c9f`; local changes repair PostgreSQL jsonb key-order false rejection. OPS `36350350372` native370/371 failed invalid205, Ediel/browser/E2E and OPS verify/quality passed. Local focused21/21 plus three TypeScript projects, scoped lint/diff pass. Commit/push same draft PR, inspect fresh exact-head native/replay/parity and review before merge. No staging or market activation; #310 paused.
+
+## Current — 2026-09-27 PR #415 handover
+Main `62ca24a1`, #414 accepted exact head `32866bc4`; draft #415 branch `codex/ediel-v2-f3-prodat-header-aperak-20260927`, published code `e4692342`. Audit/352-row reconciliation awaits publication; `git status` is authoritative for unpushed files. Targeted 99/99 in eight files and Node document script 145/145 pass. Initial CI Ediel/full E2E failed incomplete synthetic P headers; OPS native four Z04 passed but E035 Storage after-witness revalidation returned unconfirmed. Publish audit, obtain exact-head native/CI and review before one merge. No staging/market send, #310 paused.
+
 ## Latest — 2026-09-26 grid-area candidate after #406
 Remote main `08e06301f85c37be65c30bd6aa358d26e6b80173` from #406, four exact-head workflows incl OPS native349/349 and authentic schema/type parity SUCCESS; Vercel `dpl_5RBwnvx8P5JzbAjeDSFQaWrNkssV` READY at same SHA. Branch `codex/ediel-v2-utilts-grid-area-20260926` has bounded supplied LOC239/232/233 composite guide correction and native single/mixed IDE cases; local 306/306 and types/lint PASS, no PR yet. Publish, inspect exact-head native and all ordinary CI, review and merge only if green, verify main/deployment. Conditional grid-area occurrence, field203/IDE historical uniqueness, positive LOC175 and E035 remain open. PR310 untouched, no staging/market traffic.
 

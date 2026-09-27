@@ -3,6 +3,8 @@ import type {SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger';
 // lib/ediel/flows/inboundProcessing.ts
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
+import {prodatHeader205Rejection} from "@/lib/ediel/prodat/prodatHeader205Rejection";
+import {tokenizeEdifact} from "@/lib/ediel/core/edifactTokenizer";
 
 import {
   createEdielMessageEvent,
@@ -865,10 +867,16 @@ export async function processInboundEdielMessage(params: {
   }
 
   // The case writer deliberately rejects malformed LIN/register structures.
-  // Preserve the already qualified negative application response before that
-  // writer, and never let a rejected object enter switch or billing state.
+  // A source-owned missing or invalid header date also rejects the whole
+  // message. Use the renderer's exact qualification before any business write.
+  const header205Plan = canonicalRuntime.decision.responsePlan.find(item=>item.family==="APERAK" && item.outcome==="negative");
+  const header205 = runtimeMessage.message_family === "PRODAT" && runtimeMessage.raw_payload &&
+    canonicalRuntime.decision.applicationDecision === "rejected"
+      ? prodatHeader205Rejection({sourceWire:tokenizeEdifact(runtimeMessage.raw_payload),
+          errors:header205Plan?.applicationErrors}) : null;
   if (runtimeMessage.message_family === "PRODAT" &&
-      canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected")) {
+      (header205?.defect ||
+        canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected"))) {
     try {
       const negative = canonicalRuntime.decision.responsePlan.some(item =>
         item.family === "APERAK" && item.outcome === "negative" && Boolean(item.applicationErrors?.length));

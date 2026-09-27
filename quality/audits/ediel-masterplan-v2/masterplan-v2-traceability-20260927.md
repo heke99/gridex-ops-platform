@@ -1,29 +1,30 @@
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
-## Uppföljning efter #413: draft #414
+## Uppföljning efter #414: draft #415
 
-PR #413 mergades som `2e4eeb65af719bcb370d619727d300618a97cb1e` efter
-grön ren replay, native 368/368 och schema-/typparitet. Nedanstående ursprungliga
-inventering är dess daterade bas, inte nuvarande PR-status. Ny branch från denna
-`main`: `codex/ediel-v2-f3-aperak-whole-message-20260927`, draft #414. Första
-kodhead `22d284dd` rättar källstyrkt P-17 LIN/314 så slutlig P-APERAK bär
-`BGM+++27`, originalets ACW och inget otillåtet fallutfall. Bearbetat meddelande
-med lokalt fältfel behåller `34`. Inkommande PRODAT BGM27 klassas nu som negativt
-och uppdaterar enbart tenantbunden korrelerad status; 27/ERC100 hålls ogiltigt.
-Matcharen använder för denna profil enbart originalets ACW/BGM-referens med
-bokstavlig DB-likhet, inte svarets egna UNB/UNH-id eller ett tolkat filter;
-den utgående Ediel-raden krävs före eventuell länkad request. Saknad eller
-motstridig ACW hålls. RED före rättning för renderer, objektkorrelation,
-inkommande klassificering, ACW-kollision, filtertecken och request utan utgående
-BGM; riktade 104/104 och app-/test-/script-typkontroll är verifierade. Föregående
-publicerade head `d8937505` klarade native 369/369, ren replay och schema-/typparitet
-i OPS `36345730307`; korrigerad sluthead väntar på egen CI. Se
-[`f3-prodat-aperak-message-rejection-20260927.md`](f3-prodat-aperak-message-rejection-20260927.md).
+#413 mergades som `2e4eeb65` med ren replay/native 368/368. #414:s exakta
+sluthead `32866bc4` klarade fyra tillämpliga CI-flöden, OPS native 369/369,
+ren replay samt schema-/typparitet. Den mergades som remote `main` `62ca24a1`;
+Vercel-produktion var READY på samma SHA. Dess källstyrda P-17 LIN/314 ger
+`BGM+++27`, originalets ACW och ingen otillåten affärseffekt. Inkommande 27
+klassas negativt och ACW-matchning kräver en tenantbunden utgående BGM-rad.
+Se [`f3-prodat-aperak-message-rejection-20260927.md`](f3-prodat-aperak-message-rejection-20260927.md).
 
-JSON-registrets åtta berörda rader (`P-17`, `ACK-02`, `ACK-10`, `SC-034`,
-`SC-042`, `AT-P-17`, `AT-ACK-02`, `AT-ACK-10`) har nya kod-/testvägar och
-preciserade luckor. De förblir `partial_code`; totalsiffror och frysta formella
-bevisstatusar är oförändrade tills en full radkvalifikation kan styrkas.
+Draft #415 på ny `main` avgränsar nationellt obligatoriskt PRODAT-huvudfält
+205. Syntaxgiltigt saknat DTM+137 reproducerade BGM34 och sedan otillåtna
+ärende-/affärseffekter; ett ogiltigt levererat datum reproducerade utebliven
+slutlig APERAK och fortsatt affärsväg. Lokal korrigering kvalificerar båda via
+samma käll- och konsumentkontroll till 27/ERC41 respektive 27/ERC42 med original
+ACW, ett negativt lagrat svar, noll affärseffekter och stabil retry. Den publicerade
+native-kandidaten `1badf5c2` exponerade äldre syntetiska positiva P-fixturer utan
+205 i Ediel/full E2E; de är lokalt rättade med riktigt huvud och egen UNT-räknare.
+Native, ren replay och alla tillämpliga jobb krävs på **ny exakt sluthead**.
+Se [`f3-prodat-header-205-whole-message-20260927.md`](f3-prodat-header-205-whole-message-20260927.md).
+
+JSON-registrets åtta berörda P-17/ACK-rader har nu #414:s faktiska kvitto;
+ACK-02/ACK-10 och tillhörande kontrakt har #415:s ännu okvalificerade 205-väg.
+Alla åtta förblir `partial_code`. Den frysta formella bevisstatusen och den
+daterade #413-klassningen nedan ändras inte av en partiell korrigering.
 
 Avstämning 2026-09-27 på `main` `07a93a5eed775b6fd3c02545c9fb7662956503fa` plus draft-PR #413, branch `codex/ediel-v2-f3-prodat-field-composition-20260927`, head `fc823c12658a6fad8cd3e9d1aabd33d4df96d542`. Den fullständiga radvisa klassningen och dess kod- och testvägar finns i [JSON-registret](masterplan-v2-traceability-20260927.json). Det frysta kravregistret ändras inte av denna kodgranskning.
 
@@ -70,7 +71,7 @@ Det som redan fungerar inom sina begränsningar omfattar 110/110 PRODAT D-villko
 
 ## Aktuell beslutspunkt
 
-PR #413 är mergad på `main` som `2e4eeb65af719bcb370d619727d300618a97cb1e` och dess produktion var READY på samma SHA. Den tidigare CI-kvoten nedan är historisk. PR #414 är draft och får bara mergas efter granskning av hela diffen och alla tillämpliga jobb gröna på exakt sluthead, inklusive native, ren replay och genererad schema-/typparitet. Föregående head `d8937505` har sådant kvitto, men det kvalificerar inte den senare konsumentkorrigeringen.
+PR #414 är mergad på `main` som `62ca24a16298f14a32fe39b78ab93fdf6f05cbe3` och dess Vercel-produktion var READY på samma SHA. PR #415 är draft och får bara mergas efter granskning av hela diffen och alla tillämpliga jobb gröna på exakt sluthead, inklusive native, ren replay och genererad schema-/typparitet. Första #415-head `1badf5c2` har konstaterade fixturfel; dess resultat kvalificerar inte den lokala senare korrigeringen.
 
 Efter en enda merge: kontrollera ny `main` och Vercel; ta nästa sammanhängande F3-krav på ny branch. Historisk täckning och juridisk utgivare för fält 203 och IDE505, samt positiv LOC+175:s objektregister, mandat och egen sink, saknas ännu. E035:s historik/retention och G06:s grammatik är separata öppna krav. Första namngivna marknadskandidat är kontrollerad inkommande E66/DDQ-mottagning och karantän enligt 25-A-4, utan positiv mät-/fakturakonsumtion. Den kräver separat live schema, tenant/aktör, mandat, objekt, rutt, certifikat/transport, formella prov och ett uttryckligt aktiveringsbeslut. Ingen sådan trafik eller sådana prov kördes här. #310 förblir pausad.
 

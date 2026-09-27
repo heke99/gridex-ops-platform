@@ -972,8 +972,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "Physical LIN defects plus source-qualified 314 now select whole-message BGM27 through actual inbound ACK/outbox; first/gap/duplicate LIN and zero mocked business effects tested. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Native stored 27/retry pending; other P-17 message shapes and independent formal acceptance remain open. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "Physical LIN defects plus source-qualified 314 now select whole-message BGM27 through actual inbound ACK/outbox; first/gap/duplicate LIN and zero mocked business effects tested. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1.",
+      "remaining_gap": "other P-17 message shapes and independent formal acceptance remain open. Complete formal source-scope acceptance remains pending."
     },
     {
       "id": "ESCO-01",
@@ -1195,7 +1195,8 @@
         "lib/ediel/flows/inboundProcessing.ts",
         "lib/ediel/ack/inboundAckOutcome.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
-        "lib/inbound-mail/inboundMatcher.ts"
+        "lib/inbound-mail/inboundMatcher.ts",
+        "lib/ediel/prodat/prodatHeader205Rejection.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
@@ -1205,8 +1206,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "P D96A profile, original BGM ACW and source-qualified P-17 whole-message BGM27 now have real inbound tests; processed local negative retains 34. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Native result pending; full ERC40/41/42/100, optional reference scope and every qualified whole-message cause remain open. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "P D96A profile, original BGM ACW and source-qualified P-17 whole-message BGM27 now have real inbound tests; processed local negative retains 34. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1. #415 local RED/GREEN: source-owned missing/invalid P header 205 yields 27/41 or 27/42, original ACW, final no-case/no-business ACK and retry. Native extension is published but has no terminal exact-head result yet.",
+      "remaining_gap": "full ERC40/41/42/100, optional reference scope and every qualified whole-message cause remain open. Complete formal source-scope acceptance remains pending. #415 header-205 final native/replay and exact-head CI pending; other header causes and full P grammar remain open."
     },
     {
       "id": "ACK-03",
@@ -2111,7 +2112,8 @@
         "lib/ediel/ack/inboundAckOutcome.ts",
         "lib/ediel/flows/inboundProcessing.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
-        "lib/inbound-mail/inboundMatcher.ts"
+        "lib/inbound-mail/inboundMatcher.ts",
+        "lib/ediel/prodat/prodatHeader205Rejection.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
@@ -2121,8 +2123,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "P renderer now uses BGM/1225=27 for qualified LIN whole-message rejection, otherwise 34; BGM/1001/1004 stay empty and ACW references original BGM. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Native persisted 27/34 and complete AT-ACK-10 scope/formal acceptance pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "P renderer now uses BGM/1225=27 for qualified LIN whole-message rejection, otherwise 34; BGM/1001/1004 stay empty and ACW references original BGM. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1. #415 local RED/GREEN: source-owned missing/invalid P header 205 yields 27/41 or 27/42, original ACW, final no-case/no-business ACK and retry. Native extension is published but has no terminal exact-head result yet.",
+      "remaining_gap": "complete AT-ACK-10 scope/formal acceptance pending. Complete formal source-scope acceptance remains pending. #415 header-205 final native/replay and exact-head CI pending; other header causes and full P grammar remain open."
     },
     {
       "id": "U-15",
@@ -2838,8 +2840,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "First/gap/duplicate LIN validator and P-17 response 27 have source-running tests including actual inbound ACK, ACW, outbox and zero mocked effects. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Native persisted 27/retry and formal contract execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "First/gap/duplicate LIN validator and P-17 response 27 have source-running tests including actual inbound ACK, ACW, outbox and zero mocked effects. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1.",
+      "remaining_gap": "formal contract execution pending. Complete formal source-scope acceptance remains pending."
     },
     {
       "id": "SC-035",
@@ -2989,7 +2991,8 @@
         "lib/ediel/aperakEngine.ts",
         "lib/ediel/flows/inboundProcessing.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
-        "lib/inbound-mail/inboundMatcher.ts"
+        "lib/inbound-mail/inboundMatcher.ts",
+        "lib/ediel/prodat/prodatHeader205Rejection.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
@@ -3000,8 +3003,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "P D96A BGM27/34, original ACW and U D04A profile have bounded tests; actual P-17 inbound path is covered. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Full P/U DOC and transaction reference/group structure matrix, native P-17 and formal contract execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "P D96A BGM27/34, original ACW and U D04A profile have bounded tests; actual P-17 inbound path is covered. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1. #415 local RED/GREEN: source-owned missing/invalid P header 205 yields 27/41 or 27/42, original ACW, final no-case/no-business ACK and retry. Native extension is published but has no terminal exact-head result yet.",
+      "remaining_gap": "Full P/U DOC and transaction reference/group structure matrix, formal contract execution pending. Complete formal source-scope acceptance remains pending. #415 header-205 final native/replay and exact-head CI pending; other header causes and full P grammar remain open."
     },
     {
       "id": "SC-043",
@@ -4628,8 +4631,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "First/gap/duplicate LIN and real inbound P-17 BGM27/314 with no mocked case effect have bounded tests; frozen execution status remains unchanged. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Native persistence/retry and complete formal AT execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "First/gap/duplicate LIN and real inbound P-17 BGM27/314 with no mocked case effect have bounded tests; frozen execution status remains unchanged. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1.",
+      "remaining_gap": "complete formal AT execution pending. Complete formal source-scope acceptance remains pending."
     },
     {
       "id": "AT-ESCO-01",
@@ -4877,7 +4880,8 @@
         "lib/ediel/flows/inboundProcessing.ts",
         "lib/ediel/ack/inboundAckOutcome.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
-        "lib/inbound-mail/inboundMatcher.ts"
+        "lib/inbound-mail/inboundMatcher.ts",
+        "lib/ediel/prodat/prodatHeader205Rejection.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
@@ -4887,8 +4891,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "P-17 source-qualified 27 versus processed object-local 34, own 314, original ACW and no mocked case effect have bounded tests. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Full 40/41/42/100 and reference scope, native persisted result and formal AT execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "P-17 source-qualified 27 versus processed object-local 34, own 314, original ACW and no mocked case effect have bounded tests. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1. #415 local RED/GREEN: source-owned missing/invalid P header 205 yields 27/41 or 27/42, original ACW, final no-case/no-business ACK and retry. Native extension is published but has no terminal exact-head result yet.",
+      "remaining_gap": "Full 40/41/42/100 and reference scope, formal AT execution pending. Complete formal source-scope acceptance remains pending. #415 header-205 final native/replay and exact-head CI pending; other header causes and full P grammar remain open."
     },
     {
       "id": "AT-ACK-03",
@@ -5893,7 +5897,8 @@
         "lib/ediel/ack/inboundAckOutcome.ts",
         "lib/ediel/flows/inboundProcessing.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
-        "lib/inbound-mail/inboundMatcher.ts"
+        "lib/inbound-mail/inboundMatcher.ts",
+        "lib/ediel/prodat/prodatHeader205Rejection.ts"
       ],
       "test_paths": [
         "__tests__/ediel-canonical-ack.test.ts",
@@ -5903,8 +5908,8 @@
         "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts"
       ],
-      "assessment": "Direct 27/34 outbound behavior and original BGM ACW are tested for bounded P-17 versus local-negative cases; 1001/1004 remain empty. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK.",
-      "remaining_gap": "Native persisted 27/34 and complete formal AT execution pending. Exact final-head CI/native and complete formal source-scope acceptance are pending."
+      "assessment": "Direct 27/34 outbound behavior and original BGM ACW are tested for bounded P-17 versus local-negative cases; 1001/1004 remain empty. Receiving P BGM27/non-100 is now negative; 27/ERC100 is invalid, and the tenant/id-bound inbound updater records a profile-correct rejection. P16.B incoming matching uses only original ACW/BGM, holding missing or conflicting ACW and excluding reply UNB/UNH collisions; historical uniqueness remains unproved. Literal equality is used for ACW, including filter punctuation; request and message BGM aliases do not grant an unrelated reply identity. A tenant-bound outbound Ediel BGM row is required before following any linked request; a standalone request reference cannot claim the ACK. #414 exact head 32866bc4 passed all applicable CI, OPS native 369/369, clean replay and schema/type parity; its bounded P-17/ACW evidence is merged main 62ca24a1. #415 local RED/GREEN: source-owned missing/invalid P header 205 yields 27/41 or 27/42, original ACW, final no-case/no-business ACK and retry. Native extension is published but has no terminal exact-head result yet.",
+      "remaining_gap": "complete formal AT execution pending. Complete formal source-scope acceptance remains pending. #415 header-205 final native/replay and exact-head CI pending; other header causes and full P grammar remain open."
     },
     {
       "id": "AT-U-15",
@@ -7020,12 +7025,17 @@
     }
   ],
   "followup": {
-    "draft_pr": 414,
-    "base_main": "2e4eeb65af719bcb370d619727d300618a97cb1e",
-    "first_code_head": "22d284dda6b3b3e471aa8f2f840ab4161205c491",
-    "native_extension": "pending exact-head CI on final consumer/correlation code",
+    "accepted_pr_414": 414,
+    "accepted_head": "32866bc4c3619e8b0d88203968d5615d570fee92",
+    "accepted_main": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
+    "accepted_ci": "all four workflows green; OPS native 369/369, clean replay, schema/type parity",
+    "draft_pr": 415,
+    "base_main": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
+    "published_native_candidate": "1badf5c209dd12b68bdd11a182e8c667563a9679",
+    "local_correction": "missing and invalid header 205 and synthetic positive fixture repairs published; exact-head native/CI pending",
     "formal_status": "unchanged",
-    "scope": "P-17 LIN/314 whole-message BGM27; processed object-local negative BGM34; receiving classifier and tenant-bound status for 27",
-    "acw_matching": "RED reply-UNB collision, missing ACW, interpreted filter punctuation and request without matching outbound BGM; P16.B literal original ACW match to outbound message then linked request, pending final-head CI"
+    "market_traffic": "held",
+    "audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-205-whole-message-20260927.md",
+    "published_code_correction": "e469234217488234cb80185456a3eff91a438714"
   }
 }
