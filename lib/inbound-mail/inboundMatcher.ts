@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
+import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 
 export type InboundEntityMatch = {
   status: 'matched' | 'missing' | 'ambiguous' | 'not_checked'
@@ -51,7 +52,13 @@ export async function matchOutboundRequestForInbound(input: {
   inboundEmailMessageId?: string | null
   parseResultId?: string | null
 }): Promise<InboundEntityMatch> {
-  const references = [
+  // P26.A §§3.3–3.5: P-APERAK ACW is the original BGM/1004. The reply's
+  // own UNB/UNH values are independent identities and must never select the
+  // outbound business row. Multiple distinct ACWs are not an exact match.
+  const prodatAperak = input.parsed.messageFamily === 'APERAK' &&
+    classifyCanonicalInboundAck(input.parsed).profile === 'PRODAT_16_B'
+  const acw = Array.from(new Set((input.parsed.references.ACW ?? []).map(value => value.trim()).filter(Boolean)))
+  const references = prodatAperak ? acw.length === 1 ? acw : [] : [
     input.parsed.interchangeReference,
     firstReference(input.parsed, ['UCI', 'UCM', 'ACW', 'TN', 'LI', 'Z09', 'Z07', 'DOC_PRODAT', 'DOC_UTILTS', 'DOC_APERAK', 'DOC']),
     input.parsed.bgmReference,
@@ -66,6 +73,7 @@ export async function matchOutboundRequestForInbound(input: {
 
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   const conditions = references.flatMap((reference) => {
+    if (prodatAperak) return [`external_reference.eq.${reference}`]
     const base = [
       `external_reference.eq.${reference}`,
       `dispatch_batch_key.eq.${reference}`,
@@ -95,7 +103,10 @@ export async function matchOutboundRequestForInbound(input: {
     .eq('company_id', input.companyId)
     .eq('direction', 'outbound')
     .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
-    .or(references.flatMap((reference) => [
+    .or(references.flatMap((reference) => prodatAperak ? [
+      `external_reference.eq.${reference}`,
+      `bgm_reference.eq.${reference}`,
+    ] : [
       `interchange_reference.eq.${reference}`,
       `transaction_reference.eq.${reference}`,
       `external_reference.eq.${reference}`,

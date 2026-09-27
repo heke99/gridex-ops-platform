@@ -49,8 +49,14 @@ tenant-scoped rejected ACK, marks only the correlated outbound row rejected,
 and records a PRODAT BGM27 reason and review task rather than UTILTS BGM313.
 An unmatched ACK still cannot update an outbound row. The direct consumer
 test uses a source-shaped P-APERAK and checks the tenant/id filters.
+An adjacent RED collision showed the inbound matcher could select another
+outbound request by the reply's own UNB interchange reference, or match even
+without ACW. For the P16.B profile it now queries the original ACW against
+outbound BGM reference ownership only. Missing or conflicting ACWs hold before
+an outbound query; the tenant filter and existing reversed-party transport
+guard remain in force. This does not assert historical document uniqueness.
 
-Local focused tests: 37/37 across five files after the consumer correction;
+Local focused tests: 101/101 across nine files after the ACW correction;
 app, tests and scripts typechecks, scoped lint and diff check passed. The native
 `scripts/ediel-z04-ack-native.test.ts` extension adds a third synthetic tenant,
 legal actor, route and source; it asserts persisted 27/314/ACW, tenant-bound

@@ -10,8 +10,10 @@ kodhead `22d284dd` rättar källstyrkt P-17 LIN/314 så slutlig P-APERAK bär
 `BGM+++27`, originalets ACW och inget otillåtet fallutfall. Bearbetat meddelande
 med lokalt fältfel behåller `34`. Inkommande PRODAT BGM27 klassas nu som negativt
 och uppdaterar enbart tenantbunden korrelerad status; 27/ERC100 hålls ogiltigt.
-RED före rättning för renderer, objektkorrelation och inkommande klassificering;
-riktade 37/37 och app-/test-/script-typkontroll är verifierade. Föregående
+Matcharen använder för denna profil enbart originalets ACW/BGM-referens, inte
+svarets egna UNB/UNH-id; saknad eller motstridig ACW hålls. RED före rättning
+för renderer, objektkorrelation, inkommande klassificering och ACW-kollision;
+riktade 101/101 och app-/test-/script-typkontroll är verifierade. Föregående
 publicerade head `d8937505` klarade native 369/369, ren replay och schema-/typparitet
 i OPS `36345730307`; korrigerad sluthead väntar på egen CI. Se
 [`f3-prodat-aperak-message-rejection-20260927.md`](f3-prodat-aperak-message-rejection-20260927.md).
