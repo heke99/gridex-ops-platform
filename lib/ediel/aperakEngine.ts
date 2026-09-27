@@ -4,7 +4,7 @@ import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/p
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import {prodatRegisterGroups, prodatRegisterMessageSegments} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {validProdatWireDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 // lib/ediel/aperakEngine.ts
 
@@ -193,14 +193,25 @@ export function renderAperakEdiel(params: {
   // discontinuous. A negative response for a processed object's other field
   // remains BGM 34. Require both the original physical LIN defect and its
   // source-qualified error; a caller-supplied field number alone grants nothing.
-  const sequenceProblems = sourceWire ? prodatRegisterGroups(
+  const sequenceOwner = sourceWire ? prodatRegisterGroups(
     prodatRegisterMessageSegments(sourceWire.segments, sourceWire.una), sourceWire.una, params.source.messageCode
-  ).problems.filter(problem => problem.fieldNumber === '314' && problem.reason === 'global_sequence_must_increment_from_one') : []
+  ) : null
+  const sequenceProblems = sequenceOwner?.problems.filter(problem =>
+    problem.fieldNumber === '314' && problem.reason === 'global_sequence_must_increment_from_one') ?? []
+  const sourceUnh = sourceWire?.segments.find(token => token.tag === 'UNH')
+  const messageReference = sourceUnh && sourceWire ? segmentComposite(sourceUnh, 1, sourceWire.una)[0] || null : null
   if (sequenceProblems.length && (params.outcome !== 'negative' || !sequenceProblems.every(problem =>
-    params.applicationErrors?.some(error => error.fieldCode === '314' &&
-      validProdatWireDiagnostic(error.prodatFieldDiagnostic) && error.prodatFieldDiagnostic.kind === 'field' &&
-      error.prodatFieldDiagnostic.fieldNumber === '314' && isQualifiedProdatApplicationError(error) &&
-      error.prodatOccurrence?.lineIndex === problem.lineIndex)
+    params.applicationErrors?.some(error => {
+      const group = sequenceOwner?.groups.find(row => row.lineIndex === problem.lineIndex)
+      const occurrence = error.prodatOccurrence
+      return Boolean(group && error.fieldCode === '314' &&
+        validProdatWireDiagnostic(error.prodatFieldDiagnostic) && error.prodatFieldDiagnostic.kind === 'field' &&
+        error.prodatFieldDiagnostic.fieldNumber === '314' && isQualifiedProdatApplicationError(error) &&
+        occurrence?.scope === 'register' && occurrence.lineIndex === group.lineIndex &&
+        occurrence.lineNumber === group.lineNumber && occurrence.registerPosition === group.registerPosition &&
+        occurrence.objectId === group.itemId && occurrence.identityAgency === group.identityAgency &&
+        occurrence.messageReference === messageReference)
+    })
   ))) throw new Error('aperak_prodat_sequence_response_unqualified')
   const bgmFunction = sequenceProblems.length ? '27' : '34'
   const wireDocument = sourceWire ? prodatDocumentValue('203', sourceWire.segments, sourceWire.una) : null

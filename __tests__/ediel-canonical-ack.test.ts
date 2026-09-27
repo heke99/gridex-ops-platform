@@ -62,6 +62,17 @@ describe('canonical ACK matrix', () => {
     })).toMatchObject({ profile: 'PRODAT_16_B', outcome: 'invalid', reason: 'prodat_aperak_bgm_function_invalid:missing' })
   })
 
+  it('classifies a P-APERAK whole-message BGM27 as negative and holds contradictory ERC100', () => {
+    const source = {
+      release: '96A' as const, association: 'E2SE6A' as const,
+      applicationReference: '23-DDQ-PRODAT', messageCode: null, messageFunctionCode: '27',
+    }
+    expect(aperak({ ...source, errorCodes: ['42'] }))
+      .toMatchObject({ profile: 'PRODAT_16_B', outcome: 'negative', code: '42' })
+    expect(aperak({ ...source, errorCodes: ['100'] }))
+      .toMatchObject({ profile: 'PRODAT_16_B', outcome: 'invalid', reason: 'prodat_aperak_whole_message_result_conflict' })
+  })
+
   it('keeps UTILTS APERAK 312/313 semantics isolated to D04A/E5SE5A', () => {
     expect(aperak({
       release: '04A', association: 'E5SE5A', applicationReference: '23-DDQ-E66-T',

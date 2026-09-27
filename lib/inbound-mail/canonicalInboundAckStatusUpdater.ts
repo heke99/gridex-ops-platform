@@ -42,7 +42,9 @@ function ackColumns(parsed: ParsedEdifactEnvelope): Record<string, unknown> {
     ack_outcome: negative ? 'negative' : 'positive',
     failed_at: negative ? nowIso() : null,
     acknowledged_at: negative ? null : nowIso(),
-    failure_reason: negative ? 'Negativ APERAK (BGM 313) mottagen via canonical inbound engine.' : null,
+    failure_reason: negative ? classification.profile === 'PRODAT_16_B'
+      ? `Negativ PRODAT-APERAK (BGM ${parsed.messageFunctionCode}) mottagen via canonical inbound engine.`
+      : 'Negativ UTILTS-APERAK (BGM 313) mottagen via canonical inbound engine.' : null,
   }
 }
 
@@ -298,7 +300,9 @@ export async function applyCanonicalInboundAckStatusUpdate(input: {
       title: `Negativ ${ackLabel(input.parsed)} mottagen`,
       description: classification.family === 'CONTRL'
         ? 'UCI/0083=4. Stoppa flödet och korrigera syntax/tekniskt fel innan omsändning.'
-        : 'BGM 313. Korrigera applikationsfelet innan eventuell omsändning.',
+        : classification.profile === 'PRODAT_16_B'
+          ? `BGM ${input.parsed.messageFunctionCode}. Korrigera PRODAT-felet innan eventuell omsändning.`
+          : 'BGM 313. Korrigera applikationsfelet innan eventuell omsändning.',
       priority: 'urgent',
       taskType: classification.family === 'CONTRL' ? 'ediel_negative_contrl' : 'ediel_negative_aperak',
       metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId: input.parseResultId ?? null, canonicalAck: classification },

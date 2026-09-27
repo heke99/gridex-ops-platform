@@ -17,6 +17,10 @@ consumer checkpoint, not formal Ediel acceptance or market activation.
   The renderer requires both, for every faulty LIN, before selecting 27. A
   submitted string `314`, a cached reference, or an arbitrary caller outcome
   cannot grant a whole-message rejection.
+  A second RED review case supplied a qualified 314 from a different physical
+  object with the same LIN index; the renderer accepted it before the follow-up
+  correction. The guard now also compares own LIN number, register position,
+  object, agency and original UNH reference. That foreign error is held.
 
 The actual consumer is `processInboundEdielMessage` → canonical response plan
 → `createAutomaticPositiveAcks` → `buildAperakDraft` →
@@ -37,13 +41,24 @@ CONTRL, two queued ACKs, no case/business effect and identical ACK IDs/outbox
 locks on retry. First LIN 2 and duplicate LIN 1 are covered too. An unqualified
 314 or positive shortcut on the defective source throws and creates no ACK.
 
-Local focused tests: 25/25 across three files; app and tests typechecks,
-scoped lint and diff check passed on the first code commit. The native
+The receiving side had a separate divergence: `classifyCanonicalInboundAck`
+previously rejected every P-APERAK BGM27 as invalid. A RED test proved it.
+The same outgoing P-APERAK is now parsed back as a negative D96A ACK; 27
+with ERC100 remains invalid. The real inbound status updater persists a
+tenant-scoped rejected ACK, marks only the correlated outbound row rejected,
+and records a PRODAT BGM27 reason and review task rather than UTILTS BGM313.
+An unmatched ACK still cannot update an outbound row. The direct consumer
+test uses a source-shaped P-APERAK and checks the tenant/id filters.
+
+Local focused tests: 37/37 across five files after the consumer correction;
+app, tests and scripts typechecks, scoped lint and diff check passed. The native
 `scripts/ediel-z04-ack-native.test.ts` extension adds a third synthetic tenant,
 legal actor, route and source; it asserts persisted 27/314/ACW, tenant-bound
 ACK/outbox, zero case/switch/supply writes and byte-identical retry. Script
-typecheck and scoped lint pass locally; native PostgreSQL and clean replay
-are CI-owned and **pending** on the extension. No staging, TGT/AGT, live
+typecheck and scoped lint pass locally. The preceding published head
+`d8937505` passed OPS native 369/369, clean replay, schema snapshot and
+generated type parity in run `36345730307`; exact-head CI for the subsequent
+renderer and inbound-consumer correction is still pending. No staging, TGT/AGT, live
 database or market send was run.
 
 ## Open qualification

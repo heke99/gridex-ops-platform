@@ -51,10 +51,10 @@ function resolveAperakProfile(parsed: Pick<
  *
  * APERAK is family-specific:
  * - UTILTS APERAK (D04A/E5SE5A): BGM/1001 = 312 positive, 313 negative.
- * - PRODAT APERAK 16.B (D96A/E2SE6A): BGM/1225 = 34 for both positive and
- *   negative APERAK. ERC determines the application result: 100 means accepted;
- *   any non-100 ERC is a rejection/error. This deliberately prevents the
- *   UTILTS 312/313 convention from leaking into PRODAT.
+ * - PRODAT APERAK 16.B (D96A/E2SE6A): BGM/1225 = 27 rejects the whole
+ *   message; 34 means the message was processed. ERC100 is acceptance, while
+ *   non-100 ERC signals an error for a processed message. A whole-message
+ *   rejection cannot contain ERC100. UTILTS 312/313 never applies here.
  *
  * CONTRL:
  * - UCI/0083 = 1 => accepted interchange.
@@ -102,7 +102,7 @@ export function classifyCanonicalInboundAck(
     }
 
     const functionCode = normalize(parsed.messageFunctionCode) || null
-    if (functionCode !== '34') {
+    if (functionCode !== '27' && functionCode !== '34') {
       return {
         family: 'APERAK',
         profile,
@@ -121,6 +121,13 @@ export function classifyCanonicalInboundAck(
         code: null,
         reason: 'prodat_aperak_erc_missing',
       }
+    }
+
+    if (functionCode === '27') {
+      if (ercCodes.includes('100')) {
+        return { family: 'APERAK', profile, outcome: 'invalid', code: ercCodes.join(','), reason: 'prodat_aperak_whole_message_result_conflict' }
+      }
+      return { family: 'APERAK', profile, outcome: 'negative', code: ercCodes.join(','), reason: null }
     }
 
     const rejected = ercCodes.some((code) => code !== '100')
