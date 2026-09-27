@@ -6,6 +6,7 @@ import type {
 } from '@/lib/ediel/utiltsEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import { createHash } from 'node:crypto'
+import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
 import { consumptionConflict, consumptionEqual, validateUtiltsConsumptionContract, type UtiltsConsumptionContractV1 } from './consumptionContract'
 
 export { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
@@ -29,6 +30,7 @@ export type UtiltsTransactionPersistenceItem = {
   periodStart: string | null
   periodEnd: string | null
   registrationDate: string | null
+  latestUpdateDate: string | null
   resolution: string | null
   unit: string | null
   reasonForTransaction: string | null
@@ -134,8 +136,13 @@ export function buildUtiltsTransactionPersistencePayload(input: {
   transactions: readonly UtiltsRuntimeTransaction[]
   dispositions: readonly UtiltsTransactionDisposition[]
   matches: readonly UtiltsPersistenceMatch[]
+  rawSegments?: readonly string[]
 }): UtiltsTransactionPersistenceItem[] {
   const seriesKind = utiltsSeriesKind(input.messageCode)
+  const timezone = parseEdifactTimezoneOffsetFromSegments(input.rawSegments)
+  // The source fields are local wall-clock times. Without the wire's DTM+735,
+  // do not invent a UTC instant for durable series evidence.
+  const instant = (value: string | null | undefined) => timezone ? localEdifactDateTimeToUtc(value, timezone) : null
 
   return input.dispositions.map((disposition, dispositionIndex) => {
     const transactionId = resolveUtiltsTransactionId(disposition.transactionId, dispositionIndex)
@@ -161,7 +168,8 @@ export function buildUtiltsTransactionPersistencePayload(input: {
       gridAreaId: match?.externalGridAreaId ?? transaction?.gridAreaId ?? null,
       periodStart: transaction?.deliveryPeriodStart ?? null,
       periodEnd: transaction?.deliveryPeriodEnd ?? null,
-      registrationDate: transaction?.registrationTime ?? null,
+      registrationDate: instant(transaction?.registrationTime),
+      latestUpdateDate: instant(transaction?.latestUpdateTime),
       resolution: transaction?.resolution ?? null,
       unit: transaction?.unit ?? null,
       reasonForTransaction: transaction?.transactionReason ?? null,

@@ -459,6 +459,7 @@ export async function processInboundUtiltsMessage(params: {
       transactions: buildUtiltsTransactionPersistencePayload({
         messageCode,
         transactions: runtime.facts.transactions,
+        rawSegments: runtime.facts.rawSegments,
         dispositions: transactionDispositions,
         matches: transactionMatches,
       }),

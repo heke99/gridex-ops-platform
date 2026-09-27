@@ -68,6 +68,7 @@ export type UtiltsRuntimeTransaction = {
   deliveryPeriodStart: string | null
   deliveryPeriodEnd: string | null
   registrationTime: string | null
+  latestUpdateTime?: string | null
   resolution: string | null
   resolutionFormat: string | null
   transactionReason: string | null
@@ -646,6 +647,7 @@ function parseUtiltsTransactionGroup(group: UtiltsTransactionGroup, sourceOrder:
     deliveryPeriodStart: period.start,
     deliveryPeriodEnd: period.end,
     registrationTime: parseRegistrationDateTime(groupSegmentValue(group, 'DTM+597')),
+    latestUpdateTime: parseRegistrationDateTime(groupSegmentValue(group, 'DTM+368')),
     resolution: resolution.value,
     resolutionFormat: resolution.format,
     transactionReason: parseStsReason(group.segments),

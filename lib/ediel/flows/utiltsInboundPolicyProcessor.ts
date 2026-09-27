@@ -61,6 +61,7 @@ async function persistNonBillingTransactions(params: {
     transactions: buildUtiltsTransactionPersistencePayload({
       messageCode: params.messageCode,
       transactions: params.runtime.facts.transactions,
+      rawSegments: params.runtime.facts.rawSegments,
       dispositions: params.runtime.transactionDispositions,
       // Non-billing outcomes deliberately persist only protocol/business
       // identity. They never acquire tenant customer/metering-point links here.
