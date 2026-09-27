@@ -202,6 +202,17 @@ it('rejects a malformed supplied header date as ERC42/205 for the whole P messag
  expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
  const plan=decision.responsePlan.find(item=>item.family==='APERAK')!
  expect(plan.applicationErrors).toEqual([expect.objectContaining({ercCode:'42',fieldCode:'205',prodatOccurrence:expect.objectContaining({scope:'header'})})])
+ // PostgreSQL jsonb persists object keys in a different order. A source-owned
+ // finding must survive that round trip without accepting altered evidence.
+ const error=plan.applicationErrors![0]
+ if(error.prodatFieldDiagnostic?.kind!=='field' || !error.prodatFieldDiagnostic.failureEvidence) throw Error('expected source-owned field evidence')
+ const persistedError={...error,prodatFieldDiagnostic:{...error.prodatFieldDiagnostic,
+  failureEvidence:error.prodatFieldDiagnostic.failureEvidence.map(item=>({content:item.content,locator:item.locator,raw:item.raw}))}}
+ expect(buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:[persistedError]}).rawPayload).toContain('BGM+++27')
+ const alteredError={...persistedError,prodatFieldDiagnostic:{...persistedError.prodatFieldDiagnostic,
+  failureEvidence:persistedError.prodatFieldDiagnostic.failureEvidence.map(item=>({...item,content:'202614171200'}))}}
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:[alteredError]}))
+  .toThrow('aperak_prodat_header_205_response_unqualified')
  expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'positive'})).toThrow('aperak_prodat_header_205_response_unqualified')
  const other={...state.source!,raw_payload:state.source.raw_payload!.replace('202613171200','202614171200')} as EdielMessageRow
  const otherError=resolveCanonicalRuntimeDecision(other).responsePlan.find(item=>item.family==='APERAK')!.applicationErrors!

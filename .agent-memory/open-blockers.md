@@ -1,3 +1,6 @@
+## Current — #415 native 205 gate
+On `849a7c9f`, native 370/371 failed invalid header205 ACK after jsonb reordered failureEvidence. Corrected locally with RED/GREEN, but exact-head native/replay/parity are still required before a merge. Historical 203/505, positive LOC175, E035 history/retention, broad ACK/grammar and activation remain separate. PR310 paused.
+
 ## Current — 2026-09-27 after #414
 #415 F3 header 205 is code-candidate only until exact-head native, clean replay, all applicable jobs and full diff review pass. Initial `1badf5c2` OPS native Z04 4/4 passed but clean replay job failed on unrelated intermittent E035 Storage after-witness `unconfirmed`; diagnose recurrence before a justified retry. Broader ACK-02/ACK-10, P headers and G06 grammar remain partial. Field203 historical issuer uniqueness, IDE505 separate historical/physical scope, positive LOC175 object registry/mandate/sink, E035 pre-ledger history and retention/deletion remain held. Formal 0/231, whole phases 0/8; no E66/DDQ market activation without separate live actor/schema/route/transport/formal evidence and decision. #310 paused.
 

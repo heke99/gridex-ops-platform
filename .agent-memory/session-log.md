@@ -1,3 +1,6 @@
+## 2026-09-27 — PR #415 continued
+Fetched same remote/local `849a7c9f`. Exact-head OPS native370/371 exposed invalid205 ACK failure after jsonb key reorder; source-owned ERC42 was present but APERAK blocked. Reproduced RED, structural evidence equality GREEN (21/21), type/lint/diff PASS. Preparing push and exact-head CI; no market sends or #310 changes.
+
 ## 2026-09-27 — F3 continuation #414 to #415
 Verified #414 final exact-head CI/native/parity, merged once to `62ca24a1`, observed Vercel READY same SHA. From current remote main opened draft #415. RED missing header205 gave BGM34, then actual inbound business effects; RED invalid 205 generated ERC42 but no final ACK and business continued. Shared source-owned qualification now holds forged/foreign errors and stops before business with BGM27, ACW and stable retry. Published initial head `1badf5c2`: native four Z04 pass, CI fixture failures and separate E035 intermittent native error diagnosed. Local subsequent fixture correction and invalid-date extension await exact-head CI. #310 untouched; no market activation.
 

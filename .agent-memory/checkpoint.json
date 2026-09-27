@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-27T20:57:39Z",
+  "updated_at": "2026-09-27T21:13:20Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-f3-prodat-header-aperak-20260927",
@@ -10,7 +10,7 @@
   "last_merged_pr": 414,
   "last_accepted_pr": 414,
   "root_main_acceptance_comment": null,
-  "active_item": "P26.A F3 header205 missing/invalid whole-message ACK: draft PR415 published correction, exact-head CI/native pending",
+  "active_item": "P26.A F3 header205 JSONB evidence comparison corrected locally; exact-head native/CI pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-205-whole-message-20260927.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Inspect exact-head PR415 CI/native, first failure, full diff and traceability; correct actual failures then single merge if all green, verify remote main/Vercel. Market activation separate; PR310 untouched.",
+  "next_action": "Commit and push structural evidence fix to PR415; inspect fresh exact-head native clean replay/schema/type parity and all workflows; merge once only if green, then verify main/Vercel. Market activation separate; PR310 untouched.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -871,6 +871,10 @@
     "initial_ediel_e2e": "failed incomplete positive P fixtures on 1badf5c2; corrected code/fixtures published e4692342, exact-head CI pending",
     "local_verification": "missing/invalid 205 RED/GREEN, 90/90 focused, protocol20/20, Node document script, TS/lint/diff",
     "formal_acceptance": "unchanged",
-    "market_traffic": "held"
+    "market_traffic": "held",
+    "failed_head": "849a7c9f9b97464fec7d5ab6b648b9f2fc746078",
+    "ops_run": 36350350372,
+    "native_result": "370/371; invalid 205 rejected after jsonb object key reorder",
+    "local_correction": "fieldwise raw/locator/content comparison RED/GREEN, focused21/21, app/tests/scripts TS/lint/diff PASS; unpublished"
   }
 }

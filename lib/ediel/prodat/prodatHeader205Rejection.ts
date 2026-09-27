@@ -2,7 +2,13 @@ import {tokenizeEdifact, segmentComposite} from '@/lib/ediel/core/edifactTokeniz
 import {prodatDateState} from './prodatDateFields'
 import {prodatDocumentValue} from './prodatDocumentFields'
 import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
+import type {ProdatFailureEvidence} from './prodatFailureEvidence'
 import type {AperakEngineApplicationError} from '@/lib/ediel/aperakEngine'
+
+function sameFailureEvidence(a:ProdatFailureEvidence|undefined,b:ProdatFailureEvidence|undefined):boolean {
+  return Boolean(a && b && a.length === b.length && a.every((item,index)=>
+    item.raw === b[index]?.raw && item.locator === b[index]?.locator && item.content === b[index]?.content))
+}
 
 /** The actual first PRODAT header owns field 205; no object DTM or caller text
  * can turn a processed-message response into a whole-message rejection. */
@@ -30,7 +36,7 @@ export function prodatHeader205Rejection(params:{
     error.prodatFieldDiagnostic?.kind==='field' && error.prodatFieldDiagnostic.errorKind===defect &&
     error.prodatFieldDiagnostic.sourceRule===`PRODAT26A:§2.2:${messageCode}:205` &&
     error.prodatOccurrence?.messageReference===messageReference && error.prodatOccurrence.lineIndex===null &&
-    (defect==='missing' || JSON.stringify(error.prodatFieldDiagnostic.failureEvidence)===JSON.stringify(date?.failureEvidence)) &&
+    (defect==='missing' || sameFailureEvidence(error.prodatFieldDiagnostic.failureEvidence,date?.failureEvidence)) &&
     isQualifiedProdatApplicationError(error)))
   return {defect,qualified,hasHeaderError:headerErrors.length>0}
 }

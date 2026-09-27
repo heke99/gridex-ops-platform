@@ -1,3 +1,6 @@
+## 2026-09-27 — PR #415 native jsonb correction
+`849a7c9f`: Ediel/browser/full E2E and OPS verify/quality SUCCESS; OPS run `36350350372` clean replay native370/371 FAIL at invalid205 (`ediel-z04-ack-native.test.ts:82`), before schema/type gate. Reordered jsonb key evidence RED locally; fieldwise equality GREEN while altered content remains blocked. Focused21/21, app/tests/scripts TypeScript, scoped lint/diff PASS; fresh native and parity pending.
+
 ## 2026-09-27 — F3 header 205 qualification checkpoint
 #414 final `32866bc4`: four CI SUCCESS, OPS native369/369, clean migration replay, generated types/schema parity; merged main `62ca24a1`, Vercel READY. #415 `1badf5c2`: native Z04 4/4 PASS incl missing header, Ediel/full E2E failed old positive fixtures missing required DTM137, OPS clean replay job failed independent E035 Storage after-witness unconfirmed. Local later missing+invalid header tests 90/90 seven files, protocol20/20, Node source script PASS, app/tests/scripts TS and lint/diff; published correction `e4692342` requires new exact-head CI. Formal status unchanged.
 
