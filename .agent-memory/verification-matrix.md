@@ -1,3 +1,6 @@
+## 2026-09-27 — F3 header 205 qualification checkpoint
+#414 final `32866bc4`: four CI SUCCESS, OPS native369/369, clean migration replay, generated types/schema parity; merged main `62ca24a1`, Vercel READY. #415 `1badf5c2`: native Z04 4/4 PASS incl missing header, Ediel/full E2E failed old positive fixtures missing required DTM137, OPS clean replay job failed independent E035 Storage after-witness unconfirmed. Local later missing+invalid header tests 90/90 seven files, protocol20/20, Node source script PASS, app/tests/scripts TS and lint/diff; published correction `e4692342` requires new exact-head CI. Formal status unchanged.
+
 ## 2026-09-26 — PR406 accepted and next grid-area candidate
 | Head | Evidence | Result / boundary |
 | --- | --- | --- |

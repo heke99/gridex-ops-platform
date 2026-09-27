@@ -1,3 +1,6 @@
+## Current — 2026-09-27 after #414
+#415 F3 header 205 is code-candidate only until exact-head native, clean replay, all applicable jobs and full diff review pass. Initial `1badf5c2` OPS native Z04 4/4 passed but clean replay job failed on unrelated intermittent E035 Storage after-witness `unconfirmed`; diagnose recurrence before a justified retry. Broader ACK-02/ACK-10, P headers and G06 grammar remain partial. Field203 historical issuer uniqueness, IDE505 separate historical/physical scope, positive LOC175 object registry/mandate/sink, E035 pre-ledger history and retention/deletion remain held. Formal 0/231, whole phases 0/8; no E66/DDQ market activation without separate live actor/schema/route/transport/formal evidence and decision. #310 paused.
+
 ## Latest — 2026-09-26
 UG-122-7 field203 temporal uniqueness/ERC42: no proved legal-actor/tenant scope, immutable historical reservation, concurrent owner or retry semantics. Keep unaccepted; do not substitute UNB dedup or mutable BGM lookup. Positive LOC175 lacks separate regulating-object sink; E035 pre-epoch complete:false and retention/deletion remain open. NAD 9/305 candidate still needs native/CI/merge/deployment. Ediel market gates remain closed; PR310 paused. Older notes below are historical.
 

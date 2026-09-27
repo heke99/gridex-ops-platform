@@ -1,3 +1,6 @@
+## 2026-09-27 — #414 accepted; #415 bounded local verification
+#414 exact head `32866bc4` four workflows green, OPS native369/369, clean replay and schema/type parity; main `62ca24a1`, same-SHA Vercel READY. #415 published first two code/native commits through `1badf5c2`; local RED/GREEN missing/invalid 205 with actual ACK/no effects/retry, focused90/90 and protocol20/20, Node document script pass. #415 native final and formal acceptance are not completed.
+
 ## 2026-09-26 — mixed Z04 retained register assessment
 PR #394 added exact append-only assessment checks for canonical facts bytes/hash, company, environment and original source hash; four exact-head workflows incl native clean replay passed, merged main `103b7938318206c6d04f0ac48b13ce050ec7b3d8`, same-SHA Vercel READY. Existing real inbound Z04 negative ACK draft 11/11 was rerun. This does not close persisted ACK or whole F3C-02/04.
 

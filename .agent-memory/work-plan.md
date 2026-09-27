@@ -1,3 +1,6 @@
+## Current — active bounded criterion
+Finish #415 P26.A field205 whole-message ACK in one coherent draft PR: inspect invalid-date and fixture correction on exact-head CI, run exact final-head CI/native clean replay/schema/type parity, review full diff, merge once if green and verify main/Vercel. Then take next independent source-backed F3 criterion from new main. No staging/TGT/AGT/counterparty/live sends; keep historical 203/505, positive LOC175, E035 history/retention and full G06 gated.
+
 ## Latest — active bounded criterion
 1. Field203 owner trace completed with blocker recorded in NAD GS1 audit; preserve safe gate.
 2. Publish NAD 9/305 GLN candidate on one PR, inspect native SQL stored ACK/no effects and four ordinary workflows on exact head; correct only genuine first failure.

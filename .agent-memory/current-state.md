@@ -1,3 +1,6 @@
+## Current — 2026-09-27 F3 header 205 / PR #415
+Remote main `62ca24a1` from accepted #414 has four green exact-head workflows, OPS native 369/369, clean replay/type/schema parity and same-SHA Vercel READY. One draft #415 on `codex/ediel-v2-f3-prodat-header-aperak-20260927` now addresses P26.A required header DTM137/205. Initial published head `1badf5c2`; local follow-up covers invalid 205 and fixture correction. Market traffic remains held, #310 untouched. This entry supersedes the older “Latest” candidates below.
+
 ## Latest — NAD 9/305 GS1 candidate after #404
 Remote main `787678fcdc0887b21fa6be8fbec42e7a3d17c1b4`. One local branch `codex/ediel-v2-utilts-nad-gs1-20260926` has bounded UG-122-24 NAD MS/MR 9/305 GLN validation. RED/GREEN, 300/300 relevant tests, three TS projects, scoped lint and diff check pass. Native CI/PR/merge/deployment pending. Field203 duplicate, positive LOC175, E035 history/retention and market activation remain open; #310 paused. Older notes below are historical.
 

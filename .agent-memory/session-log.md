@@ -1,3 +1,6 @@
+## 2026-09-27 — F3 continuation #414 to #415
+Verified #414 final exact-head CI/native/parity, merged once to `62ca24a1`, observed Vercel READY same SHA. From current remote main opened draft #415. RED missing header205 gave BGM34, then actual inbound business effects; RED invalid 205 generated ERC42 but no final ACK and business continued. Shared source-owned qualification now holds forged/foreign errors and stops before business with BGM27, ACW and stable retry. Published initial head `1badf5c2`: native four Z04 pass, CI fixture failures and separate E035 intermittent native error diagnosed. Local subsequent fixture correction and invalid-date extension await exact-head CI. #310 untouched; no market activation.
+
 ## 2026-09-26 — after #406
 PR #406 final head `a8d58acd` four ordinary workflows SUCCESS, OPS native349/349 including accepted/negative per IDE, source binding, ACK retry immutability/conflict; authentic schema and unchanged generated types parity. Merged main `08e06301`; Vercel production READY exact SHA. Began next independent UG-123-18/19/20/21 supplied grid-area composite; local RED/GREEN and mixed actual consumer, native fixture pending. Conditional occurrence, field203/IDE temporal uniqueness, positive LOC175, E035 history/retention remain open. #310 paused; no staging/TGT/AGT, counterparty or market send.
 
