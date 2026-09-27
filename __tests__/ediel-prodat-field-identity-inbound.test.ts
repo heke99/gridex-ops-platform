@@ -119,6 +119,7 @@ it('rejects an explicitly gas volume unit on the electricity PRODAT field 213',a
  await run()
  expect(state.effects).toEqual([])
  const wire=state.drafts.map(d=>d.rawPayload).join('')
+ expect(wire).toContain('ERC+42::260')
  expect(wire).toContain('FTX+AAO++213::260')
  expect(wire).toContain('RFF+Z07:735123456789012345')
  expect(wire).not.toContain('RFF+Z07:735123456789012352')
