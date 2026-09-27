@@ -662,10 +662,10 @@ function invalidGs1Gsrn(value: string): boolean {
 
 function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   const messageCode = result.facts.messageCode
-  if (messageCode !== 'E66' && messageCode !== 'S01') return result
-  // S01's conditional LOC+175 is sourced from the October 25-A-4 profile.
+  if (!['E66', 'S01', 'E73', 'S06'].includes(messageCode ?? '')) return result
+  // S01/E73/S06 conditional LOC+175 is sourced from October 25-A-4.
   // Retain the existing E66 behavior until its earlier-profile source is reviewed.
-  if (messageCode === 'S01' && (policy?.guide ?? resolveAuthoritativeEdielGuide({
+  if (messageCode !== 'E66' && (policy?.guide ?? resolveAuthoritativeEdielGuide({
     family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
   })).guideRevision !== '25-A-4') return result
   const wire = tokenizeEdifact(message.raw_payload)
@@ -703,13 +703,12 @@ function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, resu
 }
 
 function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
-  // Field 209 is required for E30/S07 and conditional for E66 in U pp.54,123.
-  // Validate supplied LOC+172 for these codes; the separate absence rule for
-  // E66 requires the 172/175 object-domain decision.
-  if (!['E30', 'E66', 'S07'].includes(result.facts.messageCode ?? '')) return result
-  // UG-123-11/12 here is sourced from 25-A-4. The older 25-A-3 original
-  // is not present in the source pack, so this additional rule cannot be
-  // projected onto a prior-guide transaction based on the shared E5SE5A wire.
+  // Validate supplied LOC+172 in the applicable data/request profiles in
+  // U pp.54,63,123. E66/E73 absence depends on the 172/175 object domain.
+  if (!['E30', 'E66', 'S07', 'E72', 'E73'].includes(result.facts.messageCode ?? '')) return result
+  // UG-123-11/12 here is sourced from 25-A-4. A bounded English 25-A-3
+  // amendment covers E61/E62, but it has not qualified these identity rows;
+  // the shared E5SE5A wire does not project this rule onto the prior guide.
   const selectedGuide = policy?.guide ?? resolveAuthoritativeEdielGuide({
     family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
   })
@@ -743,7 +742,7 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }
-    if (!supplied && (result.facts.messageCode === 'E30' || result.facts.messageCode === 'S07')) {
+    if (!supplied && ['E30', 'S07', 'E72'].includes(result.facts.messageCode ?? '')) {
       issues.push({
         severity: 'error', kind: 'application', code: 'UTILTS_METERING_POINT_ID_MISSING',
         title: 'Anläggningsidentitet saknas', description: 'SG5/LOC+172 krävs för denna transaktion.',
