@@ -2,6 +2,8 @@ import {isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagno
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
+import {prodatRegisterGroups, prodatRegisterMessageSegments} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {validProdatWireDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 // lib/ediel/aperakEngine.ts
@@ -185,9 +187,22 @@ export function renderAperakEdiel(params: {
   const isUtiltsSource = usesUtiltsAperakProfile(params.source.messageFamily)
   const sourceWireCode = params.source.messageCode === 'UTILTS_ERR' ? 'ERR' : params.source.messageCode
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
-  const bgmFunction = '34'
   const sourceWire = params.source.messageFamily === 'PRODAT' ? tokenizeEdifact(params.source.rawPayload) : null
   const hasProdatWire = params.source.messageFamily === 'PRODAT' && Boolean(params.source.rawPayload?.trim())
+  // P26.A annex 4 p.119 (P-17) rejects the entire PRODAT when LIN/314 is
+  // discontinuous. A negative response for a processed object's other field
+  // remains BGM 34. Require both the original physical LIN defect and its
+  // source-qualified error; a caller-supplied field number alone grants nothing.
+  const sequenceProblems = sourceWire ? prodatRegisterGroups(
+    prodatRegisterMessageSegments(sourceWire.segments, sourceWire.una), sourceWire.una, params.source.messageCode
+  ).problems.filter(problem => problem.fieldNumber === '314' && problem.reason === 'global_sequence_must_increment_from_one') : []
+  if (sequenceProblems.length && (params.outcome !== 'negative' || !sequenceProblems.every(problem =>
+    params.applicationErrors?.some(error => error.fieldCode === '314' &&
+      validProdatWireDiagnostic(error.prodatFieldDiagnostic) && error.prodatFieldDiagnostic.kind === 'field' &&
+      error.prodatFieldDiagnostic.fieldNumber === '314' && isQualifiedProdatApplicationError(error) &&
+      error.prodatOccurrence?.lineIndex === problem.lineIndex)
+  ))) throw new Error('aperak_prodat_sequence_response_unqualified')
+  const bgmFunction = sequenceProblems.length ? '27' : '34'
   const wireDocument = sourceWire ? prodatDocumentValue('203', sourceWire.segments, sourceWire.una) : null
   if (hasProdatWire && (!wireDocument || wireDocument.length > 35)) {
     // Missing/invalid original identity is a local correlation blocker, not a
