@@ -71806,7 +71806,7 @@ ALTER TABLE ONLY public.customer_case_publications
 --
 
 ALTER TABLE ONLY public.customer_case_publications
-    ADD CONSTRAINT customer_case_publications_revision_key UNIQUE (customer_case_id, revision);
+    ADD CONSTRAINT customer_case_publications_revision_key UNIQUE (company_id, customer_case_id, revision);
 
 --
 -- Name: customer_cases customer_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -76065,7 +76065,7 @@ CREATE INDEX customer_case_events_customer_idx ON public.customer_case_events US
 -- Name: customer_case_publications_current_key; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX customer_case_publications_current_key ON public.customer_case_publications USING btree (customer_case_id) WHERE (revoked_at IS NULL);
+CREATE UNIQUE INDEX customer_case_publications_current_key ON public.customer_case_publications USING btree (company_id, customer_case_id) WHERE (revoked_at IS NULL);
 
 --
 -- Name: customer_case_publications_portal_idx; Type: INDEX; Schema: public; Owner: -
