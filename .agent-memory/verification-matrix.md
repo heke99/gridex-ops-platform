@@ -4,7 +4,8 @@
 | --- | --- | --- |
 | #421 `5c6a1ed4b3231ead2df803f28af98d6520f5c092` | Ediel 36417868664, browser 36417868641, Full E2E 36417868640, OPS 36417868658 | All SUCCESS on that exact head, native 382/382, clean replay and generated type/schema parity. E035 old Storage root not identified. |
 | Prior U25-A-3 `fad5cf4f...` and current U25-A-4 `0524c18f...` | Original p73/127 vs p72/122 BGM203, p79/128 vs p77/123 IDE505, NAD sender/UNB representative | Selected clauses agree on separate sender-wide temporal uniqueness/ERC42, source comparison only. Prior Swedish edition, trusted actor/tenant map and authentic history/retention not proven. |
-| Local next candidate, unpublished | `npm run typecheck:scripts`, scoped ESLint, masterplan integrity, `git diff --check` | PASS; inventory 121/231 only. Actual duplicate physical IDE native case has **not** run locally (no Docker/psql) or on a new PR head. No product behavior change or market activation. |
+| #421 `67243e4f` | Ediel `36422224621`, browser `36422224619`, Full E2E `36422224629`, OPS `36422224712` | All SUCCESS on the exact SHA; native 383/383 incl two physical IDEs and two-attempt safe hold, clean migration replay, generated types SHA256 `36e98937...` and schema `08ad0f03...`. No root explanation for old E035 Storage failure. |
+| Local source-citation correction, unpublished | Field 207 original page locator p52/p51, `git diff --check`; scripts TS/lint and 121/231 integrity were run on prior published candidate | Source accuracy/evidence update awaits publication and new exact-head checks. No local Docker/psql, no product behavior or market activation. |
 
 Older Current sections below are historical and SUPERSEDED.
 

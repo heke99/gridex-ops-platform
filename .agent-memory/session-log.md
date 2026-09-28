@@ -1,6 +1,6 @@
 ## 2026-09-28 — #421 original-source and physical IDE work
 
-Confirmed #421 open/draft at published `5c6a1ed4b3231ead2df803f28af98d6520f5c092`, four green workflows including native 382/382. Compared exact prior/current U originals and legal sender notes, recorded bounded 203/505 source amendment, updated activation audit, and added native real-wire duplicate IDE negative/retry control. Local script TS, ESLint, frozen 121/231 integrity, diff check passed; new native CI pending. No prod code, broad ERC42, LOC175 consumer, real traffic, staging or #310 action. First next step publish this coherent addition to #421 and inspect exact-head native result.
+Confirmed #421 open/draft at published `67243e4fc8f7986f46883d1ca4b50e265047e9a3`, four green workflows incl native 383/383, clean replay and type/schema parity. Original prior/current U 203/505 and legal sender clauses were source compared; native real-wire duplicate IDE negative/retry passed with no receipt/ACK/effects. Full diff review found field 207 page locator p58/p54 was wrong; corrected to p52/p51 from originals locally, with exact-head evidence recorded. Publish source accuracy/evidence correction to same PR and require its final exact-head checks. No prod code, broad ERC42, LOC175 consumer, real traffic, staging or #310 action.
 
 Older Current sections below are historical and SUPERSEDED.
 

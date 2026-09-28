@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish prior/current U203/505/207 source comparison and actual duplicate physical IDE native case to draft #421; inspect its exact-head native result before any product change. Then obtain trusted legal sender/history/retention and LOC175 owner/mandate or continue independent sourced package work.",
+  "next_action": "Publish the corrected prior/current U207 table page locator and #421 exact-head native 383/383 evidence to the same draft; require final exact-head CI, then obtain trusted legal sender/history/retention and LOC175 owner/mandate without guessing behavior.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -39,10 +39,11 @@
     "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
     "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
     "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
-    "last_verified_exact_head": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
-    "last_verified_workflows": [36417868664, 36417868641, 36417868640, 36417868658],
+    "last_verified_exact_head": "67243e4fc8f7986f46883d1ca4b50e265047e9a3",
+    "last_verified_workflows": [36422224621, 36422224619, 36422224629, 36422224712],
     "native_before_this_step": "382/382",
-    "next_head_checks": "pending publication; do not infer CI success from the earlier head"
+    "native_on_last_verified_head": "383/383 including two physical duplicate IDEs; clean replay, schema and types verified",
+    "next_head_checks": "page-citation/source-evidence correction pending publication; require all applicable checks on that next exact head"
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
