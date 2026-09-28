@@ -1,3 +1,12 @@
+## Current — 2026-09-28 #421 mixed S01 first native result
+
+| Head | Check | Result and limit |
+| --- | --- | --- |
+| `8f3f7a1547343363f36a0d445de6462cf72c72b9` | Ediel `36489899307`, browser `36489899340`, Full E2E `36489899501`, tenant `36489899220`, OPS `36489899332` | Four ordinary workflows plus OPS verify/quality SUCCESS; clean replay native 396/398 FAIL in two mixed S01 tests at zero-source-receipt assertion after held ACK rows. Parity not reached. |
+| Local correction | One immutable source receipt, zero contracts/series/market ACK/effects and unchanged retry | Native 398/398/replay/generated parity pending new exact head; product SQL/TS unchanged. |
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 late second LOC+172 candidate
 
 | Head | Check | Result and limit |

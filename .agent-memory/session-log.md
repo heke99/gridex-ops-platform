@@ -1,3 +1,9 @@
+## 2026-09-28 — #421 native 396/398 mixed S01 diagnosis
+
+Published `8f3f7a15`, all four ordinary workflows and OPS verify/quality green. OPS clean replay native failed two new mixed S01 tests at source receipt count: expected 0, actual 1, after both durable ACK rows were held/no final response/series. Private RPC inserts one immutable raw-hash/membership source binding for held batches; earlier mixed negative controls already expect it. Corrected test asserts one receipt and unchanged full receipt on retry, retaining zero contract/series/market ACK/effects. No product code/SQL change, no blind retry or flake label. Native remainder and generated parity await a new exact head. External issuer/history/retention/positive object/E035 gates remain; no traffic, merge or #310 change.
+
+Older entries below are historical.
+
 ## 2026-09-28 — #421 physical late second LOC+172 correction
 
 Verified remote `2c4d65e` and five prior workflow receipts with native 394/394. U25-A-4 SG5/209 and physical IDE boundary exposed a real post-SEQ duplicate point authorization flaw in identity, E035 historical source scope and actual E66/S01 positive consumption. Tests first failed on old code; TypeScript qualification and private SQL point selector now hold the ambiguous IDE, preserve clean siblings and avoid fabricated ERC. Added forged service retry and both mixed S01 order native cases. Local 82/82, three TS projects, migration/type/full static checks, lint, frozen 121/231 pass; native exact-head replay pending. Owner/issuer/history/retention gates remain open, draft unmerged, traffic blocked and #310 untouched. Next publish fast-forward and inspect first CI failure.

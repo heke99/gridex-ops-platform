@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T21:57:50Z",
+  "updated_at": "2026-09-28T22:11:58Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 late second LOC+172 physical IDE point/history/S01-E66 refusal; external owner gates still blocked",
+  "active_item": "F3 #421 late second LOC+172 mixed S01 native source-receipt assertion correction; external owner gates still blocked",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish test-first late second-LOC+172 correction after checking remote 2c4d65e; require four new native cases, 398/398, clean replay, types/schema and five exact-head workflows. Review full diff and PR threads, update same draft checkpoint. Historical 203/505, positive 175 and E035 history await external records; no traffic or #310.",
+  "next_action": "Publish test-only source-receipt assertion correction after checking remote 8f3f7a15; require 398/398, clean replay, types/schema and five exact-head workflows. Review full diff and PR threads, update same draft checkpoint. Historical 203/505, positive 175 and E035 history await external records; no traffic or #310.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "97342339f7cd7ee765247fe890d0f4dd2d2596e6",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -961,8 +961,8 @@
     "frozen_totals": "121 cards and 231 contracts; no new percentage",
     "market_activated": false
   },
-  "active_pr_head_before_pending_commit": "2c4d65e095349761511943c42840c451bacaaeda",
-  "active_candidate_evidence": "Physical second LOC+172 after SEQ helper/E035/E66/S01 RED then GREEN; actual mixed S01 both orders held; four new native cases pending. Local 82/82, three TS projects, migrations/types, lint, 121/231 integrity and diff PASS. Prior exact head 2c4d65e native 394/394 and five workflows green. Historical 203/505, positive175, E035 remain blocked; traffic held.",
+  "active_pr_head_before_pending_commit": "8f3f7a1547343363f36a0d445de6462cf72c72b9",
+  "active_candidate_evidence": "8f3f7a15 four ordinary workflows and OPS verify/quality SUCCESS; clean replay native 396/398 FAILED two mixed S01 tests on false zero-source-receipt assertion after both held ACK rows. Private RPC requires one immutable original/membership receipt even when all IDEs held. Test-only correction asserts one and unchanged receipt/retry; zero contracts/series/market ACK/effects still require new native. Generated parity not reached. Historical 203/505, positive175, E035 blocked; traffic held.",
   "active_pr_latest_ci": {
     "head": "2c4d65e095349761511943c42840c451bacaaeda",
     "ediel": 36480846526,
@@ -979,7 +979,8 @@
     "base_verified_head": "2c4d65e095349761511943c42840c451bacaaeda",
     "migration": "20260928215000_utilts_late_172_physical_ide_fence.sql",
     "local": "RED helper/E035/E66/S01 then GREEN 82/82; app/tests/scripts TS, full static migrations/types, lint, 121/231 integrity, diff check PASS",
-    "native": "Four new cases pending exact-head clean replay; PostgreSQL/Docker unavailable locally",
+    "native": "First 8f3f7a15 native 396/398: two mixed S01 assertions expected zero source receipt but actual one immutable source seal; test corrected, exact-head clean replay pending. PostgreSQL/Docker unavailable locally",
+    "first_new_head_failure": "OPS 36489899332 clean replay native 396/398 at scripts/ediel-utilts-consumption-native.test.ts:328; both orders held with no final ACK/series, then zero-source-receipt assertion failed; generated parity not reached",
     "scope": "physical IDE point/history/positive-sink refusal only; no historical ERC42, positive LOC+175, full E035 or market activation"
   }
 }

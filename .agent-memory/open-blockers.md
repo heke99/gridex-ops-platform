@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 corrected mixed S01 native gate
+
+First exact candidate `8f3f7a15` native 396/398 stopped in two new mixed S01 tests on a false zero-source-receipt expectation. After test-only correction, zero contract/series/market ACK/effects and unchanged receipt/retry still await native clean replay and generated parity on a new head; do not claim PR verification. Historical 203/505 trusted legal sender/agent, authentic continuous/deleted original corpus and lawful retention, positive LOC+175 object registry/mandate/separate sink/ACK owner, and E035 pre-epoch/deletion/retention remain external blockers. Older Storage failures unexplained; no merge, traffic or #310 edit.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 late second LOC+172 native gate
 
 New candidate has local RED/GREEN and static gates, but its private database refusal and four new native cases require exact-head clean replay; no local PostgreSQL/Docker. Historical 203/505 require a trusted physical NAD+MS issuer-to-tenant and UNB representative record with intervals, authentic pre-ledger/deleted originals and attested continuous period, plus a legal raw/minimal-identity retention/erasure decision. Positive LOC+175 requires versioned object registry, actor/mandate, distinct durable sink and final ACK/retry owner. E035 pre-epoch/deleted transition coverage and lawful retention remain absent; old Storage failures have unknown cause. Draft unmerged, traffic blocked, #310 untouched.

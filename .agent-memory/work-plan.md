@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 first native failure correction
+
+1. Correct only the two mixed S01 native assertions: `gridex_utilts_binding.receipts` seals the original/membership even for two held IDEs; assert one immutable receipt and unchanged retry, with zero contract/series/market ACK/effects. First `8f3f7a15` OPS clean replay 396/398; other five workflow jobs and OPS verify/quality green. No product SQL change.
+2. Run local scripts TypeScript, scoped lint, diff and inventory, publish fast-forward to draft, read first actual new-head failure or verify native 398/398, clean replay/types/schema and five workflows. Review full PR diff/threads and update checkpoint.
+3. Keep draft and traffic blocked pending external issuer/history/retention, positive object and E035 records. #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 late second LOC+172 candidate
 
 1. Publish the test-first TypeScript and private forward migration with four native cases and updated capability/source checkpoint. Remote HEAD must still equal local base `2c4d65e`; never force push. Local 82/82, three TypeScript projects, migration/type, lint and 121/231 inventory gates pass.

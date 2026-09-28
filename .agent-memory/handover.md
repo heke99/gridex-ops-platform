@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 mixed S01 native assertion correction
+
+Published `8f3f7a15`: Ediel `36489899307`, browser `36489899340`, Full E2E `36489899501`, tenant `36489899220`, OPS verify/quality `36489899332` passed; clean replay native 396/398 failed two mixed S01 tests at line 328. Actual both rows were `internal_review`/`none`, no final ACK or series. The one `gridex_utilts_binding.receipts` row is an immutable source/original/membership seal, written for a held batch and expected by earlier mixed controls. Test correction expects one and unchanged full receipt on retry, retaining zero contracts/series/market ACK/effects. Product code/SQL unchanged; generated parity not reached. Publish correction with exact-head CI. Historical sender/corpus/retention, positive object and E035 gates remain blocked, traffic held, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 late second LOC+172 candidate
 
 Draft #421 remote `2c4d65e` equals local HEAD before this unpublished step; five workflows and OPS native 394/394/replay/types/schema passed. A physical LOC+172 after SEQ leaves the first header point wrongly eligible for E035 history and E66/S01 positive consumption. Actual helper, inbound and consumer tests were RED before correction, now GREEN 82/82. Forward private function migration `20260928215000` and four native cases cover direct forged retry, real E66/S01 and both mixed S01 orders; no local PostgreSQL/Docker. App/tests/scripts types, migrations/types, lint and 121/231 inventory pass. Publish fast-forward, read first CI failure, then update PR checkpoint. Missing attested sender, continuous original/deletion period, lawful retention, object owner/mandate/sink and E035 historical coverage remain external blockers. No merge, traffic or #310 edit.

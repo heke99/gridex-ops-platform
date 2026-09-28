@@ -325,7 +325,11 @@ it.each(['object-first', 'point-first'] as const)(
     { disposition: 'internal_review', plan: 'none', final: null, series: null },
     { disposition: 'internal_review', plan: 'none', final: null, series: null },
   ])
-  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  // The source receipt seals the original and physical IDE membership even
+  // when both transaction dispositions are held without market effects.
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
+  const receipt = () => sql(`SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(source.id)}`)
+  const beforeReceipt = receipt()
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
   expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
@@ -333,6 +337,7 @@ it.each(['object-first', 'point-first'] as const)(
   const before = snapshot(source.id)
   expect((await run()).internalReviewRequired).toBe(true)
   expect(snapshot(source.id)).toEqual(before)
+  expect(receipt()).toEqual(beforeReceipt)
 })
 it('native S01 valid LOC+175 cannot reserve a point series or positive ACK through a forged service RPC', async () => {
   const f = await seed()

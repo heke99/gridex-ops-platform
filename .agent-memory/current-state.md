@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 late-172 first native 396/398
+
+Published `8f3f7a15` passed Ediel, browser, Full E2E, tenant and OPS verify/quality. OPS clean replay failed native 396/398 on two mixed S01 tests: both IDEs were held/no final ACK/no series, but test incorrectly expected zero immutable source receipts. The existing private owner seals a source receipt even for a held batch; other mixed controls expect one. Corrected test requires one source receipt and unchanged content on retry, zero contract/series/market ACK/effects. No product code/SQL change. New-head native/replay/type/schema pending, no unchanged-head rerun. External 203/505, positive LOC+175 and E035 evidence blockers remain; draft unmerged, traffic held, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 late second LOC+172 candidate
 
 Last verified remote #421 `2c4d65e095349761511943c42840c451bacaaeda`: all five workflows green; OPS native 394/394, replay/types/schema parity. Local RED reproduced false point/E035 history/positive E66 and S01 handling when a second LOC+172 occurs after SEQ in the same physical IDE. A forward private selector plus TypeScript per-IDE refusal and actual consumer/native retry tests are locally green: 82/82 focused, three TypeScript projects, migration/type checks and scoped lint. Native four new cases, clean replay and five workflows await a new exact head. Main `53bf989b`; draft unmerged, no traffic, #310 untouched. Trusted sender/agent mapping, continuous authentic/deleted UTILTS corpus, legal retention, positive object owner/mandate/sink and complete E035 history remain unproved.

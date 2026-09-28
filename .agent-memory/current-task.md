@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 native mixed held-source receipt assertion
+
+One active item: publish the test-only correction after `8f3f7a15` OPS native 396/398 first failure. Both mixed S01 dispositions were held with no final response/series; one immutable source binding receipt is required by the private RPC before disposition. Corrected assertion expects one receipt and verifies its unchanged retry; zero contracts/series/market ACK/business effects remain required. No product code/SQL changed. Run scripts TypeScript, scoped lint, diff and inventory locally; then fast-forward publish, require 398/398 and clean replay/types/schema and five workflows on the new exact head. No merge, traffic or #310 edit.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 late second LOC+172 physical IDE fence
 
 One active item: publish the test-first private and application refusal for a second LOC+172 after SEQ in the same IDE. The prior exact `2c4d65e` is native 394/394 and five-workflow green. Local 82/82 focused tests, app/tests/scripts TypeScript, migration/type checks, 121/231 integrity, scoped lint and diff check pass. Native E66, S01 and two mixed S01 orders await exact-head CI. Next: commit/push one fast-forward code/evidence checkpoint, inspect first CI failure or verify native 398/398 plus clean replay/types/schema and all five workflows; review entire PR diff and threads. Do not merge before external issuer/history/retention, positive object and E035 gates; keep traffic blocked and #310 untouched.
