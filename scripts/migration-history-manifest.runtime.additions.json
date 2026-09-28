@@ -34,6 +34,6 @@
     "20260922205926_ediel_reviewed_structural_source.sql": "e6dfc01baba1cc5c848818c5503253e7ac42917d5d29d58cb4f69988e1ab3fb7",
     "20260923231731_ediel_correction_concern_capture.sql": "3d8e2e154c4cf95355a6d81724400af6dd687bd80c26a5f1509ae3f0a91794b1",
     "20260924001447_ediel_correction_capture_canonical_permission.sql": "1da1232dd18209471ca41d9143c450effc84cdc6bb61560ee104d5d8e0fee071",
-    "20260928101000_portal_revocation_write_guard.sql": "6ffc36d7eaa0d57d4c398ed353d9610578dd3b77cb37f89b69064248ac2aefa9"
+    "20260928101000_portal_revocation_write_guard.sql": "2442c51a7021567d3d163789d7107459734688c4ea4201e65d4972306dadb38a"
   }
 }

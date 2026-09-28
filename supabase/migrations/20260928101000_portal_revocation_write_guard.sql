@@ -18,7 +18,7 @@ begin
     -- The canonical tenant resume is the only runtime operation that restores
     -- identities paused by the tenant lifecycle. Preserve every binding and
     -- all evidence other than the lifecycle markers it removes.
-    if current_setting('gridex.portal_lifecycle_resume', true) = 'on'
+    if current_setting('application_name', true) = 'gridex_portal_lifecycle_resume_v1'
        and old.metadata->>'lifecycle_paused_by_tenant' = 'true'
        and old.metadata->>'lifecycle_previous_status' = 'active'
        and new.status = 'active'
@@ -57,7 +57,7 @@ create trigger customer_portal_account_revocation_guard
 -- The function still performs its existing actor, readiness and state checks.
 alter function public.canonical_transition_tenant_lifecycle(
   uuid,text,bigint,text,uuid,text
-) set gridex.portal_lifecycle_resume = 'on';
+) set application_name = 'gridex_portal_lifecycle_resume_v1';
 
 -- The existing atomic website trigger checks is_active but an older account
 -- can have status=disabled while that flag is still true. This runs after the

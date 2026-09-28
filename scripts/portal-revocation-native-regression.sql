@@ -86,7 +86,7 @@ begin
   if not exists (
     select 1 from pg_proc
     where oid = 'public.canonical_transition_tenant_lifecycle(uuid,text,bigint,text,uuid,text)'::regprocedure
-      and proconfig @> array['gridex.portal_lifecycle_resume=on']
+      and proconfig @> array['application_name=gridex_portal_lifecycle_resume_v1']
   ) then
     raise exception 'canonical tenant resume is missing its scoped marker';
   end if;
@@ -95,7 +95,7 @@ $check$;
 
 -- The exact transition made by canonical tenant resume is still possible.
 -- Its scoped marker alone cannot change the binding or preserve pause flags.
-select set_config('gridex.portal_lifecycle_resume', 'on', true);
+select set_config('application_name', 'gridex_portal_lifecycle_resume_v1', true);
 do $check$
 declare v_message text;
 begin
@@ -116,7 +116,7 @@ set status = 'active',
                         - 'lifecycle_previous_status' - 'lifecycle_status',
     updated_at = now()
 where external_customer_id = 'PORTAL-EXT-1';
-select set_config('gridex.portal_lifecycle_resume', 'off', true);
+select set_config('application_name', 'portal-revocation-native-regression', true);
 
 -- A disabled account with a stale true flag is a real historical state. The
 -- original website trigger checked only the flag; its second guard rejects it.
