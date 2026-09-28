@@ -163,3 +163,4 @@ end
 $check$;
 
 rollback;
+\echo PORTAL_REVOCATION_NATIVE_PASS
