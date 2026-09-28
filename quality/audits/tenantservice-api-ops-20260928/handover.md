@@ -1,5 +1,15 @@
 # Tenantservice/API/OPS — överlämning, checkpoint 2026-09-28
 
+## Ny P2a browser/API-kandidat (ännu inte native/browser-godkänd)
+
+Remote `bf22cbf823dfa12bde373f791f3b31bfa4401b2f` hade OPS run `36455804288` success: verify `109041713026`, quality `109041712977` och clean replay `109041712659`, inklusive den redan committade tvåsessionsfixturen. Tenant `36455804103`, public browser `36455804080`, Ediel `36455804095` och full E2E `36455804117` var success; crawler `36455804099` skipped. Detta är bevis för **föregående head**, inte det nya browser/API-provet. Ingen manuell omkörning av run 36455804288 gjordes.
+
+Den tidigare agentens uppgivna cirka 13 lokalt ändrade filer hittades inte. En äldre checkout på samma gren var ren vid `28b0a236`; en ny isolerad checkout hämtades via fast-forward till `bf22cbf`. Inga gamla lokala filer eller opushade commits har därför påståtts verifierade eller publicerade.
+
+Ny kandidat i `scripts/customer-contact-browser-native.*` och `e2e/browser/customer-contact-local.spec.mjs` skapar syntetiska tenants, kunder, GoTrue-användare och en testklient. Verkligt OPS-formulär och delegerad HTTP-API anropar det gemensamma kontaktkommandot. Negativa läsar-, främmande tenant-, kundbevis-, versions- och återspelningsfall samt native efterläsning av revision, relation, audit, kommandoresultat och outbox ingår. Den avgränsade UI-korrigeringen döljer kontakt- och adressformulär för läsbehöriga. Lokalt: 15/15 riktade Vitest, app-/test-/script-typkontroll och scoped lint utan fel (10 befintliga varningar i `page.part-4.tsx`). **Isolerad native/browser/API replay för nya fixturen är väntande; P2 och T/U-krav förblir PARTIAL.** Ingen produktion, merge eller Edieltrafik.
+
+Skill routing för detta paket: projektets `test-driven-development`, `verification-before-completion`, `supabase-postgres-best-practices` och Supabase-instruktioner för fixtures, SQL-säkerhet och bevis; Nexts installerade Forms-guide för Server Action-formuläret. `scan-secrets` inventerades inför diffgranskning; `ggshield` saknas i miljön, så ingen automatisk skanning påstås. Övriga breda audit-, prestanda-, skill- och delegationsflöden är inte aktiverade för detta avgränsade P2a-paket. Fortsätt efter exakt kandidat-SHA med nästa P2-beroende i `implementation-order.md`, utan att ändra den delade Ediel-checkpointen i `.agent-memory/`.
+
 > **Fortsättning efter överlämningen:** Den nya agentinstruktionen finns ordagrant i [continuation-instruction-20260928.md](continuation-instruction-20260928.md). Detta dokuments ursprungliga head/tidslinje beskriver överlämningsögonblicket; aktuell PR-head och följande tillägg går före den äldre punkten.
 
 **Status: ofullständigt arbete, inte verifierad leverans.** PR [#418](https://github.com/heke99/gridex-ops-platform/pull/418) förblir draft. Ingen merge, produktionsmigration, riktig kundkommunikation eller Edieltrafik ingår.

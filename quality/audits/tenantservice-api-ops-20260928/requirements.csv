@@ -1,7 +1,7 @@
 id,requirement,phase,status,evidence,remaining_verification
-T01,"Tenant A kan inte läsa eller ändra kund, faktura, ärende eller bilaga i B.",P1,PARTIAL,"__tests__/ops-contact-tenant-boundary.test.ts (kontakt/adress med manipulerat kund-id nekas före service-role-skrivning)","Övriga kund-/faktura-/ärende-/bilagevägar, native DB och browser återstår."
+T01,"Tenant A kan inte läsa eller ändra kund, faktura, ärende eller bilaga i B.",P1,PARTIAL,"Mockad kontaktgräns och native kontaktkommando på bf22cbf OPS 36455804288; browser-förfalskning är kandidat utan CI-resultat","Browser/API-kandidaten och övriga kund-/faktura-/ärende-/bilagevägar återstår."
 T02,Kund A kan inte komma åt annan kund inom samma tenant.,P1,PARTIAL,"__tests__/customer-delegation-assertion.test.ts + __tests__/customer-delegation-boundary.test.ts (syntetiska nycklar och mockad kontolänk)","Ingen verklig issuer/bindning, native DB, externt API eller browserverifiering; ingen full acceptans."
-T03,Admin i A och läsare i B förblir läsare i B.,P1,PARTIAL,"__tests__/ops-contact-tenant-boundary.test.ts (vald A-skrivkontext får inte användas för B-kontakt)","Mockad kontaktväg; faktiskt rollbyte, övriga OPS-/API-vägar och native/browser återstår."
+T03,Admin i A och läsare i B förblir läsare i B.,P1,PARTIAL,"__tests__/ops-contact-tenant-boundary.test.ts; syntetisk browser-fixture för läsare och främmande tenant är kandidat utan CI-resultat","Faktiskt rollbyte och övriga OPS-/API-vägar återstår."
 T04,Resolver och normal synk ändrar inte begränsad portalroll.,P1,PARTIAL,"__tests__/customer-portal-resolver-read-only.test.ts (mockad servergräns, 6/6)","Separat portal sync, aktiva DB-grants/RLS och native replay återstår; ingen full acceptans."
 T05,Spärrat portalkonto återaktiveras inte av uppslag eller retry.,P1,PARTIAL,"Tidigare resolver-/sync-tester; native portal-revocation på dfb22211 OPS 36436708427; ny delegation-boundary med mockad spärrad länk","Verklig issuer, aktiv drift-ACL och kontoåterhämtning återstår; ingen full acceptans."
 T06,Rätt API-scope med fel slutkund nekas.,P1,PARTIAL,"__tests__/customer-delegation-assertion.test.ts + __tests__/customer-delegation-boundary.test.ts (fel kund och aktiv länk)","Riktig issuer, två kunder/tenant i isolerad DB och externa API-rutter återstår."
@@ -9,15 +9,15 @@ T07,"Förfalskad aktör, tenant eller verifierad-flagga ger ingen rättighet.",P
 T08,Tenantbyte i annan flik kan inte orsaka sparning till fel tenant.,P1,PARTIAL,"__tests__/ops-contact-tenant-boundary.test.ts (vald tenant avviker från kundens tenant och skrivning nekas)","Verklig flik-/browsersekvens, samtidighet och övriga skrivvägar återstår."
 T09,Direkt databas-/RPC-anrop med låg rättighet kan inte kringgå skydd.,P1,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T10,Återkallad session eller relation hanteras även med kvarvarande JWT.,P1,PARTIAL,"__tests__/customer-delegation-assertion.test.ts (plattformsmappning återkallad) + __tests__/customer-delegation-boundary.test.ts (kontolänk spärrad)","Native återkallelse, issuer-session, samtidighet och faktisk API-runtime återstår."
-T11,Kontaktändring via API och OPS ger samma tillåtna resultat.,P2/P3,PARTIAL,P2a shared SQL native OPS/API parity on 6c01bf4d OPS 36454002484 replay 109035569541; route tests and shared wrapper,"Browser/API HTTP, real issuer, secondary contact and remaining legacy writers outstanding."
-T12,Ändring av endast telefon rensar inte andra fält.,P2/P3,PARTIAL,Phone-only native atomic fixture P2_CONTACT_NATIVE_PASS on 6c01bf4d; tenant sync phone rejection in __tests__/customer-sync-contact-boundary.test.ts locally,"Exact-head gate after schema snapshot repair, browser and all contact writers outstanding."
+T11,Kontaktändring via API och OPS ger samma tillåtna resultat.,P2/P3,PARTIAL,"P2a native parity and exact-head bf22cbf OPS 36455804288 clean replay success; browser/HTTP/native fixture är ny overifierad kandidat","Kandidatens replay; riktig issuer; sekundärkontakt och äldre skrivvägar återstår."
+T12,Ändring av endast telefon rensar inte andra fält.,P2/P3,PARTIAL,"P2a native på bf22cbf OPS 36455804288; 15/15 riktade lokala tester; browser/API-telefonfall är kandidat utan replay","Browser/API-kandidat och samtliga andra kontaktskrivare återstår."
 T13,Inloggningsändring använder rätt identitetsleverantör och verifiering.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T14,Faktureringsstandard ändras utan att avtalsundantag skrivs över.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T15,Readiness och export använder samma mottagare och revision.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T16,Profiländring skriver inte om utfärdad faktura.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T17,Omleverans har separat verifierat leveransbeslut.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T18,Samtidig profiländring och fakturalåsning blandar inte revisioner.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T19,Samtidiga profilskrivningar ger inte tyst dataförlust.,P2/P3,PARTIAL,Locked contact revision and stale native replay on 6c01bf4d; two-session native test candidate scripts/customer-contact-concurrency-native.test.ts,Two-session CI result and remaining profile writers outstanding.
+T19,Samtidiga profilskrivningar ger inte tyst dataförlust.,P2/P3,PARTIAL,"Tvåsessions-fixtur scripts/customer-contact-concurrency-native.test.ts ingick i bf22cbf OPS 36455804288 clean replay success","Andra profilskrivare och andra samtidighetsfall återstår."
 T20,Ogiltigt fält i atomiskt kommando ger ingen partiell ändring.,P2/P3,PARTIAL,Invalid contact email rejected in native P2_CONTACT_NATIVE_PASS on 6c01bf4d,Wider field contracts and remaining legacy writes outstanding.
 T21,Fel före avslutad lokaltransaktion lämnar inte kund och kontakt osynkade.,P2/P3,PARTIAL,Late audit uniqueness fault rolled back customer/contact/revision/result in native fixture on 6c01bf4d,Full exact-head gate after schema snapshot repair and remaining writers outstanding.
 T22,Krasch efter commit före HTTP-svar återhämtas utan dubblett.,P2/P3,PARTIAL,Committed API completion reference and canonical same-key replay in native fixture on 6c01bf4d,Actual HTTP-after-commit fault injection and other idempotency paths outstanding.
@@ -42,7 +42,7 @@ T40,Belastning från en tenant ger inte obegränsad påverkan på andra.,P4/P7,N
 T41,Återkallad API-nyckel stoppar nya otillåtna anrop.,P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T42,"XSS, CSRF och otillåtna fält ger ingen obehörig effekt.",P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T43,Anonymt intag läcker inte kundexistens eller historik.,P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T44,"Kundkort, lista och fakturavy visar korrekt revision efter sparning.",P5/P8,PARTIAL,OPS primary-contact card and profile show persisted contact_revision candidate,Browser save/refresh/list/invoice revision proof outstanding.
+T44,"Kundkort, lista och fakturavy visar korrekt revision efter sparning.",P5/P8,PARTIAL,"Kundkortets revisionsfält i kod; browser save/refresh och native efterprov är kandidat utan CI-resultat","Lista och fakturavy samt kandidatens replay återstår."
 T45,"Mobil, tangentbord, zoom, validering och konflikt är användbara.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T46,Obehörig teknisk deep link nekas på servern.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T47,Utgånget supportmandat stoppar fortsatt skyddad åtkomst.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
@@ -71,6 +71,6 @@ U14,Samma uppgift återanvänder samma komponent och affärslogik.,P5/P7,NOT_VER
 U15,Verkliga UI-dubletter är borttagna eller samordnade.,P5/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 U16,"Inga placeholders, döda länkar eller tomma handlers finns i levererad yta.",P5/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 U17,"Uppladdning, nedladdning och export verifierar rätt fil och behörighet.",P5/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-U18,"Laddning, tomt läge, fel, read-only och blockering visas tydligt.",P5/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
+U18,"Laddning, tomt läge, fel, read-only och blockering visas tydligt.",P5/P7,PARTIAL,"Kontakt- och adressformulär döljs nu för läsare; browserbehörighetsprov är kandidat utan CI-resultat","Andra tillstånd och ytor samt kandidatens replay återstår."
 U19,Plattformens tekniska funktioner är korrekt separerade från tenantläge.,P5/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 U20,Hela berörda UI-flödet är browserverifierat med resultat och skärmbilder.,P5/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."

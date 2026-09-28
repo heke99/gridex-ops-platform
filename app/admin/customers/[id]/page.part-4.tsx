@@ -903,6 +903,7 @@ export async function CustomerAdminDetailPage({
               addresses={addresses}
               sites={sites}
               contactRevision={customer.contact_revision}
+              canEdit={isPlatformAdmin || access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)}
             />
           </section>
         </SectionAnchor>
@@ -1161,6 +1162,7 @@ export async function CustomerAdminDetailPage({
             addresses={addresses}
             sites={sites}
             contactRevision={customer.contact_revision}
+            canEdit={isPlatformAdmin || access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)}
           />
         </SectionAnchor>
       ) : null}

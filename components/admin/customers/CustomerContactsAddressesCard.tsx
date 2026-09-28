@@ -586,6 +586,7 @@ export default function CustomerContactsAddressesCard({
  addresses,
  sites,
  contactRevision,
+ canEdit,
 }: {
  customerId: string
  customerType: CustomerType
@@ -593,6 +594,7 @@ export default function CustomerContactsAddressesCard({
  addresses: CustomerAddressRow[]
  sites: CustomerSiteRow[]
  contactRevision: number
+ canEdit: boolean
 }) {
  const contactAddresses = addresses.filter((address) => address.type !== 'facility')
  return (
@@ -645,7 +647,7 @@ export default function CustomerContactsAddressesCard({
  <div>Skapad: {formatDateTime(contact.created_at)}</div>
  </div>
 
- <details className="mt-4">
+ {canEdit ? <details className="mt-4">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Redigera kontakt
  </summary>
@@ -657,19 +659,19 @@ export default function CustomerContactsAddressesCard({
  contact={contact}
  />
  </div>
- </details>
+ </details> : null}
  </article>
  ))
  )}
 
- <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+ {canEdit ? <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Lägg till ny kontakt
  </summary>
  <div className="mt-4">
  <ContactForm customerId={customerId} customerType={customerType} contactRevision={contactRevision} />
  </div>
- </details>
+ </details> : null}
  </div>
  </div>
 
@@ -736,7 +738,7 @@ export default function CustomerContactsAddressesCard({
  <div>Inflyttad: {formatDateTime(address.moved_in_at)}</div>
  </div>
 
- <details className="mt-4">
+ {canEdit ? <details className="mt-4">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Redigera adress
  </summary>
@@ -747,19 +749,19 @@ export default function CustomerContactsAddressesCard({
  address={address}
  />
  </div>
- </details>
+ </details> : null}
  </article>
  ))
  )}
 
- <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+ {canEdit ? <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Lägg till ny adress
  </summary>
  <div className="mt-4">
  <AddressForm customerId={customerId} customerType={customerType} />
  </div>
- </details>
+ </details> : null}
  </div>
  </div>
  </section>
