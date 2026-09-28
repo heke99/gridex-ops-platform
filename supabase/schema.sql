@@ -38318,6 +38318,100 @@ end $_$;
 COMMENT ON FUNCTION public.gridex_publish_contract_version(p_company_id uuid, p_draft_contract_id uuid, p_offer_code text, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid) IS 'Canonical atomic contract publication command. Pricing, legal, contract version and publication either commit together or roll back together.';
 
 --
+-- Name: customer_case_publications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_case_publications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    customer_case_id uuid NOT NULL,
+    revision bigint NOT NULL,
+    public_title text NOT NULL,
+    public_body text NOT NULL,
+    public_status text NOT NULL,
+    author_user_id uuid NOT NULL,
+    channel text NOT NULL,
+    published_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    revoked_at timestamp with time zone,
+    revoked_by uuid,
+    CONSTRAINT customer_case_publications_channel_check CHECK ((channel = ANY (ARRAY['ops'::text, 'phone'::text]))),
+    CONSTRAINT customer_case_publications_public_body_check CHECK (((length(btrim(public_body)) >= 1) AND (length(btrim(public_body)) <= 8000))),
+    CONSTRAINT customer_case_publications_public_status_check CHECK ((public_status = ANY (ARRAY['open'::text, 'waiting_for_customer'::text, 'resolved'::text, 'closed'::text]))),
+    CONSTRAINT customer_case_publications_public_title_check CHECK (((length(btrim(public_title)) >= 1) AND (length(btrim(public_title)) <= 180))),
+    CONSTRAINT customer_case_publications_revision_check CHECK ((revision > 0)),
+    CONSTRAINT customer_case_publications_revoked_actor_check CHECK (((revoked_at IS NULL) = (revoked_by IS NULL)))
+);
+
+--
+-- Name: gridex_publish_customer_case_v1(uuid, uuid, uuid, text, text, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text DEFAULT 'ops'::text) RETURNS public.customer_case_publications
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare
+  v_case public.customer_cases%rowtype;
+  v_result public.customer_case_publications%rowtype;
+  v_revision bigint;
+  v_current_revision bigint;
+begin
+  select * into v_case from public.customer_cases
+    where id=p_case_id and company_id=p_company_id for update;
+  if not found then
+    raise exception using errcode='P0002', message='case_not_found_in_tenant';
+  end if;
+  if not exists (
+    select 1 from public.user_profiles up
+    join public.company_memberships cm on cm.user_id=up.id and cm.company_id=v_case.company_id
+    join public.companies c on c.id=cm.company_id
+    where up.id=p_actor_user_id and up.user_status='active'
+      and cm.status='active' and coalesce(cm.is_active,true)
+      and c.status in ('active','onboarding') and coalesce(c.is_active,true)
+  ) or not coalesce(public.gridex_actor_has_company_permission(
+      p_actor_user_id,v_case.company_id,'cases.write'),false) then
+    raise exception using errcode='42501', message='case_publication_actor_not_authorized';
+  end if;
+  if p_title is null or length(btrim(p_title)) not between 1 and 180
+     or p_body is null or length(btrim(p_body)) not between 1 and 8000
+     or p_status is null or p_status not in ('open','waiting_for_customer','resolved','closed')
+     or p_channel is null or p_channel not in ('ops','phone') then
+    raise exception using errcode='22023', message='invalid_case_publication';
+  end if;
+
+  select coalesce(max(revision),0) into v_current_revision
+    from public.customer_case_publications
+    where customer_case_id=p_case_id and revoked_at is null;
+  if p_expected_revision is distinct from v_current_revision then
+    raise exception using errcode='40001', message='case_publication_revision_conflict';
+  end if;
+
+  select coalesce(max(revision),0)+1 into v_revision
+    from public.customer_case_publications where customer_case_id=p_case_id;
+  update public.customer_case_publications
+    set revoked_at=clock_timestamp(), revoked_by=p_actor_user_id
+    where customer_case_id=p_case_id and revoked_at is null;
+  insert into public.customer_case_publications (
+    company_id,customer_id,customer_case_id,revision,public_title,public_body,
+    public_status,author_user_id,channel
+  ) values (
+    v_case.company_id,v_case.customer_id,v_case.id,v_revision,btrim(p_title),btrim(p_body),
+    p_status,p_actor_user_id,p_channel
+  ) returning * into v_result;
+  insert into public.customer_case_events (
+    company_id,customer_id,customer_case_id,event_type,event_status,message,payload,created_by
+  ) values (
+    v_case.company_id,v_case.customer_id,v_case.id,'customer_publication','info',
+    'Kundsynlig ärendeversion publicerad.',
+    jsonb_build_object('publication_id',v_result.id,'revision',v_revision,'channel',p_channel),
+    p_actor_user_id
+  );
+  return v_result;
+end
+$$;
+
+--
 -- Name: gridex_publish_internal_contract_version(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -42587,6 +42681,56 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) IS 'Dedicated legal review operation. Normal company saves rebuild the profile but never approve it.';
+
+--
+-- Name: gridex_revoke_customer_case_publication_v1(uuid, uuid, uuid, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare
+  v_case public.customer_cases%rowtype;
+  v_publication_id uuid;
+  v_current_revision bigint;
+begin
+  select * into v_case from public.customer_cases
+    where id=p_case_id and company_id=p_company_id for update;
+  if not found then
+    raise exception using errcode='P0002', message='case_not_found_in_tenant';
+  end if;
+  if not exists (
+    select 1 from public.user_profiles up
+    join public.company_memberships cm on cm.user_id=up.id and cm.company_id=v_case.company_id
+    join public.companies c on c.id=cm.company_id
+    where up.id=p_actor_user_id and up.user_status='active'
+      and cm.status='active' and coalesce(cm.is_active,true)
+      and c.status in ('active','onboarding') and coalesce(c.is_active,true)
+  ) or not coalesce(public.gridex_actor_has_company_permission(
+      p_actor_user_id,v_case.company_id,'cases.write'),false) then
+    raise exception using errcode='42501', message='case_publication_actor_not_authorized';
+  end if;
+  select revision into v_current_revision from public.customer_case_publications
+    where customer_case_id=p_case_id and revoked_at is null;
+  if p_expected_revision is distinct from v_current_revision then
+    raise exception using errcode='40001', message='case_publication_revision_conflict';
+  end if;
+  update public.customer_case_publications
+    set revoked_at=clock_timestamp(), revoked_by=p_actor_user_id
+    where customer_case_id=p_case_id and revoked_at is null
+    returning id into v_publication_id;
+  if v_publication_id is null then return false; end if;
+  insert into public.customer_case_events (
+    company_id,customer_id,customer_case_id,event_type,event_status,message,payload,created_by
+  ) values (
+    v_case.company_id,v_case.customer_id,v_case.id,'customer_publication_revoked','info',
+    'Kundsynlig ärendeversion drogs tillbaka.',
+    jsonb_build_object('publication_id',v_publication_id),p_actor_user_id
+  );
+  return true;
+end
+$$;
 
 --
 -- Name: gridex_revoke_portfolio_settlement_permission(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -71635,6 +71779,20 @@ ALTER TABLE ONLY public.customer_case_events
     ADD CONSTRAINT customer_case_events_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_case_publications customer_case_publications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_case_publications customer_case_publications_revision_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_revision_key UNIQUE (customer_case_id, revision);
+
+--
 -- Name: customer_cases customer_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -75886,6 +76044,18 @@ CREATE INDEX customer_case_events_company_idx ON public.customer_case_events USI
 --
 
 CREATE INDEX customer_case_events_customer_idx ON public.customer_case_events USING btree (customer_id);
+
+--
+-- Name: customer_case_publications_current_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_case_publications_current_key ON public.customer_case_publications USING btree (customer_case_id) WHERE (revoked_at IS NULL);
+
+--
+-- Name: customer_case_publications_portal_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_publications_portal_idx ON public.customer_case_publications USING btree (company_id, customer_id, published_at DESC, id DESC) WHERE (revoked_at IS NULL);
 
 --
 -- Name: customer_cases_company_business_process_idx; Type: INDEX; Schema: public; Owner: -
@@ -85755,6 +85925,12 @@ CREATE TRIGGER customer_application_workflow_committed_canonical_v1 AFTER INSERT
 CREATE TRIGGER customer_authorization_documents_bind_poa_tg AFTER INSERT OR UPDATE OF power_of_attorney_id, site_id, status ON public.customer_authorization_documents FOR EACH ROW EXECUTE FUNCTION public.gridex_bind_poa_authorization_document();
 
 --
+-- Name: customer_case_publications customer_case_publication_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_case_publication_immutable BEFORE UPDATE ON public.customer_case_publications FOR EACH ROW EXECUTE FUNCTION private.gridex_guard_case_publication_revision_v1();
+
+--
 -- Name: customer_contract_acceptances customer_contract_acceptances_immutable; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -88765,6 +88941,34 @@ ALTER TABLE ONLY public.customer_case_events
 
 ALTER TABLE ONLY public.customer_case_events
     ADD CONSTRAINT customer_case_events_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_publications customer_case_publications_author_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_author_user_id_fkey FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+
+--
+-- Name: customer_case_publications customer_case_publications_case_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_publications customer_case_publications_customer_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_customer_owner_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_publications customer_case_publications_revoked_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_revoked_by_fkey FOREIGN KEY (revoked_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
 
 --
 -- Name: customer_cases customer_cases_assigned_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -95846,6 +96050,12 @@ CREATE POLICY customer_blockers_service_role_all ON public.customer_blockers USI
 --
 
 ALTER TABLE public.customer_case_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: customer_case_publications; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_case_publications ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_cases; Type: ROW SECURITY; Schema: public; Owner: -
@@ -116222,6 +116432,19 @@ REVOKE ALL ON FUNCTION public.gridex_publish_contract_version(p_company_id uuid,
 GRANT ALL ON FUNCTION public.gridex_publish_contract_version(p_company_id uuid, p_draft_contract_id uuid, p_offer_code text, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: TABLE customer_case_publications; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_case_publications TO service_role;
+
+--
+-- Name: FUNCTION gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_publish_internal_contract_version(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116703,6 +116926,13 @@ GRANT ALL ON FUNCTION public.gridex_retry_website_contract_signature(p_company_i
 
 REVOKE ALL ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint) TO service_role;
 
 --
 -- Name: FUNCTION gridex_revoke_portfolio_settlement_permission(p_actor_user_id uuid, p_grant_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -

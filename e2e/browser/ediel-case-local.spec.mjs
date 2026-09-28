@@ -104,8 +104,16 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
   await reader.close()
 })
 
-test('tenant writer explicitly publishes and withdraws a customer-facing support snapshot', async ({ page }) => {
+test('tenant writer publishes and withdraws; customer portal sees only authored text', async ({ browser }) => {
+  const page = await browser.newPage()
+  const customer = await browser.newPage()
   await login(page, fixture.writerEmail)
+  await login(customer, fixture.portalEmail)
+  await customer.goto('/portal/arenden')
+  await expect(customer.getByRole('heading', { name: 'Mina ärenden' })).toBeVisible()
+  await expect(customer.locator('main')).toContainText('Inga ärenden har publicerats')
+  await expect(customer.locator('main')).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
+
   await page.goto('/admin/customer-cases')
   const support = await adminContent(page)
   const caseArticle = support.locator('article').filter({
@@ -118,6 +126,19 @@ test('tenant writer explicitly publishes and withdraws a customer-facing support
   await caseArticle.getByRole('button', { name: 'Publicera till kunden' }).click()
   await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
   await expect(caseArticle).toContainText('A message authored for the customer.')
+  await customer.reload()
+  await expect(customer.getByRole('heading', { name: 'Customer visible browser subject' })).toBeVisible()
+  await expect(customer.locator('main')).toContainText('A message authored for the customer.')
+  await expect(customer.locator('main')).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
+  await expect(customer.locator('main')).not.toContainText(fixture.recent.title)
+  await customer.goto('/portal/status')
+  await expect(customer.locator('main')).toContainText('Customer visible browser subject')
+  await expect(customer.locator('main')).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
   await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
   await expect(caseArticle).toContainText('Inte publicerat till kunden.')
+  await customer.goto('/portal/arenden')
+  await expect(customer.locator('main')).toContainText('Inga ärenden har publicerats')
+  await expect(customer.locator('main')).not.toContainText('Customer visible browser subject')
+  await customer.close()
+  await page.close()
 })

@@ -14,5 +14,8 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = status.SERVICE_ROLE_KEY
 
 export default defineConfig({
   resolve: { alias: [{ find: '@', replacement: resolve(__dirname, '..') }] },
-  test: { environment: 'node', include: ['scripts/ediel-case-view-native.test.ts'], testTimeout: 60_000, hookTimeout: 60_000, fileParallelism: false },
+  // Real GoTrue users, database RPCs, tenant denials, and the browser fixture
+  // are created in one test against a disposable replay. Keep a bounded limit
+  // above the combined native setup time on GitHub's shared runner.
+  test: { environment: 'node', include: ['scripts/ediel-case-view-native.test.ts'], testTimeout: 180_000, hookTimeout: 60_000, fileParallelism: false },
 })

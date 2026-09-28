@@ -115,12 +115,13 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   if (!manifestPath.startsWith(resolve(process.env.RUNNER_TEMP) + sep)) throw new Error('fixture_must_stay_in_runner_temp')
   if (process.env.GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER === '1') {
     const fixture = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-      companyA: string; companyB: string; recent: { id: string; sourceMessageId: string }; old: { id: string }; foreign: { id: string }; writerId: string; supportId: string
+      companyA: string; companyB: string; customerA: string; recent: { id: string; sourceMessageId: string }; old: { id: string }; foreign: { id: string }; writerId: string; supportId: string; portalUserId: string
     }
     expect(sql<{ status: string; updated_by: string }>(`SELECT jsonb_build_object('status',status,'updated_by',updated_by) FROM public.customer_cases WHERE id=${quote(fixture.recent.id)} AND company_id=${quote(fixture.companyA)}`)).toEqual({ status: 'resolved', updated_by: fixture.writerId })
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(fixture.recent.id)} AND company_id=${quote(fixture.companyA)} AND event_type='status_changed' AND message='Ediel-ärendestatus uppdaterad till resolved.'`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(fixture.supportId)} AND company_id=${quote(fixture.companyA)} AND revoked_at IS NOT NULL AND revision=1 AND public_title='Customer visible browser subject' AND public_body='A message authored for the customer.'`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(fixture.supportId)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(2)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_portal_accounts WHERE user_id=${quote(fixture.portalUserId)} AND customer_id=${quote(fixture.customerA)} AND company_id=${quote(fixture.companyA)} AND status='active' AND is_active`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.audit_logs WHERE entity_id=${quote(fixture.recent.id)} AND company_id=${quote(fixture.companyA)} AND action='customer_case_status_changed' AND actor_user_id=${quote(fixture.writerId)}`)).toBe(1)
     expect(sql<string>(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${quote(fixture.old.id)} AND company_id=${quote(fixture.companyA)}`)).toBe('open')
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_ack_chains WHERE company_id IN (${quote(fixture.companyA)},${quote(fixture.companyB)})`)).toBe(0)
@@ -152,6 +153,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   // A staff case remains private until an actor explicitly authors a public
   // snapshot. Exercise the real RPC, ACL, revisions and portal projection.
   const portalContext = { companyId: companyA, customerIds: [customerA] } as CustomerPortalContext
+  console.log('[case-publication-native] initial portal read')
   expect(await listPortalCases(portalContext)).toEqual([])
   const publishArgs = {
     p_company_id: companyA, p_case_id: recent.id, p_actor_user_id: writer.user,
@@ -167,14 +169,17 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     const attempt = await supabaseService.rpc('gridex_publish_customer_case_v1', badArgs)
     expect(attempt.error).not.toBeNull()
   }
+  console.log('[case-publication-native] denied RPCs completed')
   expect(await listPortalCases(portalContext)).toEqual([])
   const lowPrivilege = await readOnly.client.rpc('gridex_publish_customer_case_v1', publishArgs)
   expect(lowPrivilege.error).not.toBeNull()
   const directRead = await readOnly.client.from('customer_case_publications').select('*')
   expect(directRead.error).not.toBeNull()
+  console.log('[case-publication-native] direct grants checked')
   expect(sql<boolean>("SELECT to_jsonb(has_table_privilege('authenticated','public.customer_case_publications','SELECT') OR has_table_privilege('anon','public.customer_case_publications','INSERT'))")).toBe(false)
 
   const first = await supabaseService.rpc('gridex_publish_customer_case_v1', publishArgs)
+  console.log('[case-publication-native] first publish returned')
   expect(first.error).toBeNull()
   expect(first.data).toMatchObject({ company_id: companyA, customer_id: customerA, revision: 1, author_user_id: writer.user })
   const publicRows = await listPortalCases(portalContext)
@@ -188,6 +193,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const second = await supabaseService.rpc('gridex_publish_customer_case_v1', {
     ...publishArgs, p_expected_revision: 1, p_title: 'Revised public subject', p_body: 'Revised public response', p_status: 'resolved',
   })
+  console.log('[case-publication-native] second publish returned')
   expect(second.error).toBeNull()
   expect(second.data).toMatchObject({ revision: 2, public_status: 'resolved' })
   expect((await listPortalCases(portalContext)).map((row) => row.public_title)).toEqual(['Revised public subject'])
@@ -195,6 +201,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const revoke = await supabaseService.rpc('gridex_revoke_customer_case_publication_v1', {
     p_company_id: companyA, p_case_id: recent.id, p_actor_user_id: writer.user, p_expected_revision: 2,
   })
+  console.log('[case-publication-native] revoke returned')
   expect(revoke).toMatchObject({ data: true, error: null })
   expect(await listPortalCases(portalContext)).toEqual([])
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(recent.id)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(3)
@@ -206,6 +213,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
       IF SQLERRM <> 'case_publication_immutable' THEN RAISE; END IF;
     END;
   END $$;`)
+  console.log('[case-publication-native] immutable revision verified')
   const list = await listCustomerCases({ companyId: companyA, source: 'ediel_inbound_state_machine', limit: 200 })
   expect(list).toHaveLength(2)
   expect(list.map((row) => row.id)).toEqual(expect.arrayContaining([old.id, recent.id]))
@@ -235,6 +243,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     { contrl_status: null, aperak_status: null, ack_outcome: null },
   ])
   const supportId = supportList[0].id
+  sql(`UPDATE public.customer_cases SET created_at=now(),next_action='PRIVATE_TRIAGE_DO_NOT_DISCLOSE' WHERE id=${quote(supportId)} AND company_id=${quote(companyA)}`)
   await expect(updateCustomerCaseStatus({ caseId: supportId, companyId: companyA, status: 'resolved', expectedSource: 'ediel_inbound_state_machine', actorUserId: writer.user })).rejects.toBeDefined()
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(supportId)}`)).toBe(0)
   // The production RPC must reject tenant/source/actor/permission mistakes
@@ -344,5 +353,15 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   await updateCustomerCaseStatus({ caseId: foreign.id, companyId: companyB, status: 'resolved', expectedSource: 'ediel_inbound_state_machine', actorUserId: actorB.user })
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(foreign.id)} AND event_type='status_changed'`)).toBe(1)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.audit_logs WHERE entity_id=${quote(foreign.id)} AND action='customer_case_status_changed'`)).toBe(1)
-  writeFileSync(manifestPath, JSON.stringify({ companyA, companyB, customerA, customerB, recent, old, foreign, supportId, writerId: writer.user, writerEmail: writer.email, readOnlyEmail: readOnly.email, noCaseReadEmail: noCaseRead.email }), { mode: 0o600 })
+  const portalEmail = `e035-case-customer-${tag}@example.invalid`
+  const portalAuth = await supabaseService.auth.admin.createUser({
+    email: portalEmail,
+    password: process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD!,
+    email_confirm: true,
+  })
+  if (portalAuth.error || !portalAuth.data.user) throw portalAuth.error ?? new Error('portal_fixture_user_missing')
+  const portalUserId = portalAuth.data.user.id
+  sql(`INSERT INTO public.customer_portal_accounts(company_id,customer_id,user_id,portal_user_id,email,user_email,status,is_active,activated_at,role)
+       VALUES(${quote(companyA)},${quote(customerA)},${quote(portalUserId)},${quote(portalUserId)},${quote(portalEmail)},${quote(portalEmail)},'active',true,now(),'owner')`)
+  writeFileSync(manifestPath, JSON.stringify({ companyA, companyB, customerA, customerB, recent, old, foreign, supportId, portalUserId, portalEmail, writerId: writer.user, writerEmail: writer.email, readOnlyEmail: readOnly.email, noCaseReadEmail: noCaseRead.email }), { mode: 0o600 })
 })
