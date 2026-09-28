@@ -398,6 +398,39 @@ it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling e
   expect(io.event.mock.calls.filter(([call]) => call.eventType === 'aperak_sent').map(([call]) => call.payload.relatedTransactionReference)).toEqual([pointId])
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
+it.each(['object-first', 'point-first'] as const)('keeps a valid S01 %s object held when its point sibling has a guide error', async order => {
+  const message = incoming(false, true, '2026-10-01')
+  message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
+  message.customer_id = null; message.site_id = null; message.metering_point_id = null
+  const raw = message.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+  const pointLocation = 'LOC+172+735999260731000007::9'
+  const objectAt = order === 'object-first' ? raw.indexOf(pointLocation) : raw.lastIndexOf(pointLocation)
+  const withObject = raw.slice(0, objectAt) + raw.slice(objectAt).replace(pointLocation, 'LOC+175+735999260731000007::9')
+  const badGridArea = 'LOC+239+TES:SVK:260'
+  const badAt = order === 'object-first' ? withObject.lastIndexOf(badGridArea) : withObject.indexOf(badGridArea)
+  message.raw_payload = withObject.slice(0, badAt) + withObject.slice(badAt).replace(badGridArea, 'LOC+239+ABCD:SVK:260')
+  expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition))
+    .toEqual(order === 'object-first' ? ['accepted', 'guide_rejected'] : ['guide_rejected', 'accepted'])
+  io.get.mockResolvedValue(message); results = undefined
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const processed = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  expect(processed.internalReviewRequired).toBe(true)
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
+  const expected = [
+    { disposition: 'internal_review', responseType: 'none', meteringPointId: null, externalMeteringPointId: null, quantities: [] },
+    { disposition: 'guide_rejected', responseType: 'negative_aperak' },
+  ]
+  expect(persisted).toMatchObject(order === 'object-first' ? expected : expected.reverse())
+  const acknowledgements = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')
+  expect(acknowledgements).toHaveLength(1)
+  const rejectedId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  expect(acknowledgements[0][0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'negative',
+    draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: rejectedId } } })
+  expect(JSON.stringify(acknowledgements[0][0].draft)).toContain('260a')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it.each([
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],

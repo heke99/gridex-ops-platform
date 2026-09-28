@@ -915,6 +915,56 @@ it.each(['object-first', 'point-first'] as const)(
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 it.each(['object-first', 'point-first'] as const)(
+  'native mixed S01 %s keeps an unowned object held beside a negative guide sibling on retry', async order => {
+  const f = await seed()
+  const lines = f.original.raw_payload!.split('\n')
+  const start = lines.findIndex(line => line.startsWith('IDE+24+'))
+  const end = lines.findIndex(line => line.startsWith('UNT+'))
+  const point = lines.slice(start, end)
+  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const object = (order === 'object-first' ? point : second).map(line =>
+    line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
+  const rejected = (order === 'object-first' ? second : point).map(line =>
+    line.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260'))
+  lines.splice(start, end - start, ...(order === 'object-first' ? [...object, ...rejected] : [...rejected, ...object]))
+  const unt = lines.findIndex(line => line.startsWith('UNT+'))
+  const unh = lines.findIndex(line => line.startsWith('UNH+'))
+  lines[unt] = `UNT+${unt - unh + 1}+1'`
+  const raw = lines.join('\n').replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+  const source = await f.insertSource(raw, 'S01')
+  sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
+  expect(runUtiltsRuntimeForMessage(source).transactionDispositions.map(item => item.disposition))
+    .toEqual(order === 'object-first' ? ['accepted', 'guide_rejected'] : ['guide_rejected', 'accepted'])
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect((await run()).internalReviewRequired).toBe(true)
+  const rows = sql<Array<{ id: string; disposition: string; plan: string; final: string | null; series: string | null }>>(`
+   SELECT jsonb_agg(jsonb_build_object('id',source_transaction_id,'disposition',disposition,
+    'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id) ORDER BY source_transaction_id)
+   FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`)
+  const heldId = order === 'object-first' ? 'GRIDEX2607E66001' : 'GRIDEX2607E66002'
+  const rejectedId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  expect(rows.find(row => row.id === heldId)).toMatchObject({ disposition: 'internal_review', plan: 'none', final: null, series: null })
+  expect(rows.find(row => row.id === rejectedId)).toMatchObject({ disposition: 'guide_rejected', plan: 'negative_aperak', final: 'negative_aperak', series: null })
+  expect(rows).toHaveLength(2)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  const acks = effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')
+  expect(acks).toHaveLength(1)
+  expect(acks[0][0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'negative',
+    draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: rejectedId } } })
+  expect(JSON.stringify(acks[0][0].draft)).toContain('260a')
+  expect(effects.outbound).not.toHaveBeenCalled()
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  const before = snapshot(source.id)
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(snapshot(source.id)).toEqual(before)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+it.each(['object-first', 'point-first'] as const)(
   'native mixed S01 %s rolls back the held reservation when its point sibling cannot persist, then retries', async order => {
   const f = await seed()
   const lines = f.original.raw_payload!.split('\n')
