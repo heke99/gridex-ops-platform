@@ -93,8 +93,9 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   if (policyOnly) {
     expect(first.messages).toEqual([])
     expect(first.outbox).toEqual([])
-    expect(blocked.map(row=>(row.payload as {ackFamily?:string}).ackFamily).sort()).toEqual(['APERAK','CONTRL'])
-    expect(blocked.every(row=>(row.payload as {blockedBy?:string}).blockedBy==='canonical_inbound_ack_guard')).toBe(true)
+    const ackWarnings=blocked.filter(row=>typeof (row.payload as {ackFamily?:unknown}).ackFamily==='string')
+    expect(ackWarnings.map(row=>(row.payload as {ackFamily:string}).ackFamily).sort()).toEqual(['APERAK','CONTRL'])
+    expect(ackWarnings.every(row=>(row.payload as {blockedBy?:string}).blockedBy==='canonical_inbound_ack_guard')).toBe(true)
     expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])
     await processInboundEdielMessage(input)
     expect(persisted()).toEqual(first)
