@@ -361,6 +361,34 @@ it('native S01 valid LOC+175 cannot reserve a point series or positive ACK throu
   expect(effects.ack).not.toHaveBeenCalled(); expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(await f.prepare()))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
 })
+it('native S01 empty contract cannot turn an agency-89 point into positive aggregate authority', async () => {
+  const f = await seed()
+  const raw = f.original.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+  const clean = await f.insertSource(raw, 'S01')
+  const input = await f.prepare(clean, false, false)
+  expect(input.transactions[0]).toMatchObject({ disposition: 'accepted', responseType: 'positive_aperak', externalMeteringPointId: '735999260731000007' })
+  expect(input.contracts[0].observations).toEqual([])
+  const unsupported = await f.insertSource(clean.raw_payload!.replace('735999260731000007::9', '735999260731000007::89'), 'S01')
+  const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(unsupported.raw_payload)})`
+  expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
+  const forged = { ...input, sourceMessageId: unsupported.id, rawPayload: unsupported.raw_payload! }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    expect(snapshot(unsupported.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(unsupported.id)}`)).toBe(0)
+  }
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
+  expect((await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: unsupported.id })).internalReviewRequired).toBe(true)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id))
+    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(unsupported.id)}`))
+    .toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(unsupported.id)}`)).toBe(0)
+  expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect((await persistUtiltsTransactionResults(input))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
+})
 it('internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry', async () => {
   const f = await seed(), input = await f.prepare()
   const before = snapshot(f.original.id)

@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T23:11:00Z",
+  "updated_at": "2026-09-28T23:28:39Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 mixed S01 native 398/400 first test-injection failure; APERAK-only correction locally verified",
+  "active_item": "F3 #421 test-first native S01 empty-observation point authority probe; no production change",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,30 +30,30 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Fast-forward publish corrected APERAK-only injection from e561d50b; inspect first exact-head native result, require clean replay/types/schema and five workflows. Review full PR diff/threads; keep draft, market hold and #310. External issuer/history/retention/object owner remain absent.",
+  "next_action": "Fast-forward publish native S01 agency-89 empty-contract test from fbcf1eeb; inspect first actual native failure before any forward SQL correction. Preserve draft and market hold.",
   "pr421_source_checkpoint": {
-    "published_head_before_this_step": "97342339f7cd7ee765247fe890d0f4dd2d2596e6",
+    "published_head_before_this_step": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
     "draft_pr": 421,
     "prior_original_sha256": "fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798",
     "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
     "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
     "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
-    "last_verified_exact_head": "d24ccc85ca953ce2c9f312f83d53703731942389",
+    "last_verified_exact_head": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
     "last_verified_workflows": [
-      36493570632,
-      36493570633,
-      36493570596,
-      36493570588,
-      36493570763
+      36496673731,
+      36496673648,
+      36496673481,
+      36496673611,
+      36496673620
     ],
-    "native_before_this_step": "398/398",
-    "native_on_last_verified_head": "398/398; clean replay, generated type/schema parity and five workflows green",
-    "next_head_checks": "Five workflows, OPS native clean replay/type/schema parity, full diff/reviews; no SQL schema change.",
-    "local_candidate": "APERAK-only ACK interruption and scoped retry call assertion, scripts TypeScript/scoped lint/diff pass; native 400/400 and generated parity pending a new exact head. No product code change.",
-    "last_published_head": "e561d50bbaf5fb1ac1e83f768ac6c75a09be2e57",
+    "native_before_this_step": "400/400",
+    "native_on_last_verified_head": "400/400; clean replay, generated type/schema parity and five workflows green",
+    "next_head_checks": "Read first native failure, then forward SQL correction only if confirmed; exact-head negative/positive native, replay, five workflows, type/schema parity and full diff/reviews.",
+    "local_candidate": "Native direct S01 agency-89 empty-contract refusal test with actual consumer hold and clean agency-9 positive control; scripts TypeScript/lint/spec/diff pass, native RED pending CI; no product change.",
+    "last_published_head": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
     "first_new_head_failure": "e561d50b OPS 36495674403 native 398/400: both new tests expected APERAK call at line 1080 but unconditional mockRejectedValueOnce hit technical CONTRL first. Persisted held and accepted/unfinalized rows, receipt/contract/series counts passed. Test-only correction targets first APERAK; generated parity not reached.",
-    "candidate": "APERAK-only ACK interruption and scoped retry call assertion, scripts TypeScript/scoped lint/diff pass; native 400/400 and generated parity pending a new exact head. No product code change."
+    "candidate": "Native direct S01 agency-89 empty-contract refusal test with actual consumer hold and clean agency-9 positive control; scripts TypeScript/lint/spec/diff pass, native RED pending CI; no product change."
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
