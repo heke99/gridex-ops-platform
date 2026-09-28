@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
@@ -130,14 +130,30 @@ it('uses real local Auth and verifies the browser/API contact result with native
   if (portal.error || !portal.data.user) throw portal.error ?? new Error('fixture_portal_user_missing')
   const subject = portal.data.user.id
   const apiClientId = randomUUID()
+  const receiptId = randomUUID()
   const apiKey = generateIntegrationApiToken()
+  const receiptHash = createHash('sha256').update(`synthetic-contact-receipt:${receiptId}`).digest('hex')
   sql(`
     INSERT INTO public.customer_portal_accounts(company_id,customer_id,user_id,portal_user_id,status,is_active,role,email)
       VALUES(${quote(companyA)},${quote(customerA)},${quote(subject)},${quote(subject)},'active',true,'owner',${quote(`p2-contact-portal-${customerA.slice(0, 8)}@example.invalid`)});
-    INSERT INTO public.integration_api_clients(id,company_id,name,key_prefix,secret_hash,status,scopes)
-      VALUES(${quote(apiClientId)},${quote(companyA)},'Synthetic contact HTTP client',${quote(apiKey.keyPrefix)},${quote(apiKey.secretHash)},'active',ARRAY['customer_contact.write','customer_profile.read']);
+    INSERT INTO public.company_capabilities(company_id,capability_code,enabled,readiness_status)
+      VALUES(${quote(companyA)},'api_sales',true,'ready')
+      ON CONFLICT(company_id,capability_code) DO UPDATE SET enabled=true,readiness_status='ready';
+    INSERT INTO public.integration_api_clients(id,company_id,name,key_prefix,secret_hash,status,scopes,launch_ready,launch_blockers,metadata)
+      VALUES(${quote(apiClientId)},${quote(companyA)},'Synthetic contact HTTP client',${quote(apiKey.keyPrefix)},${quote(apiKey.secretHash)},'active',ARRAY['customer_contact.write','customer_profile.read'],true,'[]'::jsonb,
+        jsonb_build_object('provisioning_receipt_id',${quote(receiptId)}));
+    INSERT INTO public.tenant_website_installation_receipts(id,company_id,api_client_id,environment,idempotency_key,state,scopes,receipt_sha256,completed_at)
+      VALUES(${quote(receiptId)},${quote(companyA)},${quote(apiClientId)},'development',${quote(`synthetic-contact-${receiptId}`)},'completed',
+        ARRAY['customer_contact.write','customer_profile.read'],${quote(receiptHash)},now());
     SELECT to_jsonb(count(*)) FROM public.integration_api_clients WHERE id=${quote(apiClientId)};
   `)
+  const apiReadiness = sql<{ auth_outcome: string; error_code: string | null }>(`
+    SELECT jsonb_build_object('auth_outcome',auth_outcome,'error_code',error_code)
+    FROM public.authenticate_integration_request_v1(
+      ${quote(apiKey.keyPrefix)},${quote(apiKey.secretHash)},'/api/v1/customer/profile-update',
+      ARRAY[]::text[],ARRAY['customer_contact.write']::text[],null,null,1,60);
+  `)
+  expect(apiReadiness).toEqual({ auth_outcome: 'allowed', error_code: null })
   const issuer = 'https://identity.example.test/disposable-contact'
   const audience = 'gridex-customer-portal'
   const { publicKey, privateKey } = await generateKeyPair('RS256', { extractable: true })
