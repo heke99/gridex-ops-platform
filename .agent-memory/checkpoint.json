@@ -4,13 +4,13 @@
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
-  "active_pr": null,
+  "active_pr": 421,
   "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 identity/E035 native observation and source qualification; first publish draft from accepted #420 main",
+  "active_item": "F3 identity/E035 source-owner package on draft #421; compare original U clauses and prove physical duplicate hold",
   "current_audit": "quality/audits/ediel-masterplan-v2/identity-e035-next-package-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,20 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Push local test-only E035 boundary diagnostic and identity/activation audit to one early draft; inspect exact-head native outcome, then qualify issuer/history and positive LOC175 owner without guessed behavior.",
+  "next_action": "Publish prior/current U203/505/207 source comparison and actual duplicate physical IDE native case to draft #421; inspect its exact-head native result before any product change. Then obtain trusted legal sender/history/retention and LOC175 owner/mandate or continue independent sourced package work.",
+  "pr421_source_checkpoint": {
+    "published_head_before_this_step": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
+    "branch": "codex/ediel-v2-identity-e035-owner-20260928",
+    "draft_pr": 421,
+    "prior_original_sha256": "fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798",
+    "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
+    "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
+    "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
+    "last_verified_exact_head": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
+    "last_verified_workflows": [36417868664, 36417868641, 36417868640, 36417868658],
+    "native_before_this_step": "382/382",
+    "next_head_checks": "pending publication; do not infer CI success from the earlier head"
+  },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
     "merged_prs": [

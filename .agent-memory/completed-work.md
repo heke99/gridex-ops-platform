@@ -1,3 +1,9 @@
+## Verified source comparison — 2026-09-28 #421 working package
+
+Published prior English U25-A-3 and current Swedish U25-A-4 originals were read and compared for UTILTS 203, NAD+MS legal sender and physical IDE505. Exact hashes, pages, effective windows and bounded conclusion are in `docs/ediel/masterplan-v2/amendment-prior-utilts-identity-2026-09-28.md`. This closes only the selected source-clause comparison; the amendment/native negative candidate has not yet passed new-head CI or merged. Historical reservation, positive LOC175 and E035 retention/Storage cause remain open.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Verified bounded delivery — 2026-09-28 #420
 
 #420 head `3251d8c85c1eaa1b97132120fdebbb47756a1974` passed Ediel/browser/Full E2E/OPS, native 382/382, clean replay and generated type/schema parity. Merged once into remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`; Vercel deployment `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu` READY at exact merge SHA. Bounded physical-202 hold and internal draft accepted, no genuine outbound 41/42/202 ACK or market activation. E035 intermittent failure root remains open. Previous #415/#416/#417/#419 receipts remain below as historical evidence.

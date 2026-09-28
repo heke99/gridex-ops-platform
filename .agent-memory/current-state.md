@@ -1,3 +1,9 @@
+## Current — 2026-09-28 draft #421 source-bound identity checkpoint
+
+#421 draft at last published head `5c6a1ed4b3231ead2df803f28af98d6520f5c092` passed Ediel `36417868664`, browser `36417868641`, Full E2E `36417868640` and OPS `36417868658` (native 382/382, clean replay/type/schema parity). Remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` is the one #420 merge; Vercel READY is a code deploy only. A selected original-source comparison of prior U25-A-3 and current U25-A-4 now establishes distinct sender-wide temporal 203 and 505/ERC42 clauses, with NAD+MS legal actor, but no authentic prior corpus or trusted local tenant mapping. A two-physical-IDE native negative test and amendment are local pending publication and exact-head native CI. E035 old Storage failure root unknown; positive LOC+175 lacks object/mandate/sink. Draft stays unmerged, real Ediel traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 after accepted #420
 
 Remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` merged #420 once. Vercel `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu` is READY on the same SHA. Ediel 36414870954, browser 36414870963, Full E2E 36414871149, OPS 36414871075 (native 382/382, clean replay, type/schema parity): SUCCESS on #420 head 3251d8c85c1eaa1b97132120fdebbb47756a1974. New branch `codex/ediel-v2-identity-e035-owner-20260928` starts from main. E035 native attempt/observation/witness diagnostic change and identity/activation evidence are local pending publication and PR-native proof. No market activation; #310 untouched.

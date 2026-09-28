@@ -368,6 +368,32 @@ it.each(['missing-field', 'extra-field', 'wrong-type', 'missing-member', 'duplic
   expect(snapshot(input.sourceMessageId)).toEqual({ acks: null, series: null, contracts: null })
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(input.sourceMessageId)}`)).toBe(0)
 })
+it('two physical IDE+24 occurrences with the same 505 stop before receipt, ACK and business effects on every attempt', async () => {
+  const f = await seed()
+  const lines = f.original.raw_payload!.split('\n')
+  const start = lines.findIndex(line => line.startsWith('IDE+24+'))
+  const end = lines.findIndex(line => line.startsWith('UNT+'))
+  lines.splice(end, 0, ...lines.slice(start, end).map(line => line.replace('QTY+136:500', 'QTY+136:7')))
+  lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
+  const source = await f.insertSource(lines.join('\n'))
+  expect(source.raw_payload!.match(/IDE\+24\+GRIDEX2607E66001'/g)).toHaveLength(2)
+  const supported = await f.prepare()
+  const forged = await supabaseService.rpc('gridex_persist_utilts_consumption_v1', {
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!,
+    p_transactions: Array.from({ length: 2 }, () => ({ ...supported.transactions[0], consumptionContract: supported.contracts[0] })),
+  })
+  expect(forged.error?.message).toContain('utilts_physical_membership_conflict')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id }))
+      .rejects.toThrow()
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+    expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+    expect(effects.ack).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
+    expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+    expect(effects.complete).not.toHaveBeenCalled()
+  }
+})
 async function realSinks() {
   const meter = await vi.importActual<typeof import('@/lib/metering/normalizeMeteringValues')>('@/lib/metering/normalizeMeteringValues')
   const billing = await vi.importActual<typeof import('@/lib/cis/db-data')>('@/lib/cis/db-data')

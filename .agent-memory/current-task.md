@@ -1,3 +1,9 @@
+## Current — 2026-09-28 draft #421 source and physical IDE proof
+
+Remote main remains `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`; draft #421 branch `codex/ediel-v2-identity-e035-owner-20260928` was last published at `5c6a1ed4b3231ead2df803f28af98d6520f5c092`. Ediel, browser, Full E2E and OPS succeeded there, native 382/382 and clean replay/schema/types. The selected prior English 25-A-3 and current Swedish 25-A-4 originals agree on UTILTS 203 and separately IDE505 temporal sender-wide uniqueness/ERC42, and on NAD+MS as legal Ediel sender. New amendment and actual duplicate physical IDE negative native case are local pending publication/new exact-head CI. They do not establish trusted tenant mapping, pre-ledger/deleted originals, lawful retention, cross-original reservation or positive LOC+175 owner. First action: publish to this same draft, inspect native result and fix only evidenced first failure; then continue the shared owner/history/retention decision. The earlier E035 Storage root remains unknown. No staging, market traffic or #310 edits.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 F3 identity/E035 owner package
 
 One active work item: source-qualify historical 203, separate IDE505, positive LOC+175 and E035 history/retention, while instrumenting the previously unlocated E035 Storage boundary in its native test. Base main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Local scripts TypeScript, scoped ESLint and diff check passed for the test-only trace; native CI pending. First action: publish a coherent draft with the diagnostic and bounded source/activation evidence, inspect the first exact-head native result, then continue only source-supported work. No guessed ERC42/object sink, staging, live sends or #310 changes.

@@ -1,3 +1,9 @@
+## 2026-09-28 — #421 original-source and physical IDE work
+
+Confirmed #421 open/draft at published `5c6a1ed4b3231ead2df803f28af98d6520f5c092`, four green workflows including native 382/382. Compared exact prior/current U originals and legal sender notes, recorded bounded 203/505 source amendment, updated activation audit, and added native real-wire duplicate IDE negative/retry control. Local script TS, ESLint, frozen 121/231 integrity, diff check passed; new native CI pending. No prod code, broad ERC42, LOC175 consumer, real traffic, staging or #310 action. First next step publish this coherent addition to #421 and inspect exact-head native result.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## 2026-09-28 — #420 merge and next package
 
 Verified run IDs and exact head `3251d8c85c1eaa1b97132120fdebbb47756a1974`: Ediel/browser/Full E2E/OPS success, OPS native 382/382 with prior E035 case passing, clean replay and type/schema parity. Reviewed full diff and zero review threads; updated #420 description without changing its head, made one merge to `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`, verified remote main and Vercel READY same SHA. No market activation or #310 change. Branched from new main; added test-only sanitized RPC-stage trace for the unresolved E035 Storage case and bounded identity/activation evidence. Local scripts TS, lint, diff pass; native/new PR pending.

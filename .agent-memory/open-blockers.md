@@ -1,3 +1,9 @@
+## Current — 2026-09-28 draft #421 original-source comparison
+
+Selected clauses are no longer missing: prior English U25-A-3 p73/127 and p79/128, current Swedish U25-A-4 p72/122 and p77/123 establish separate sender-wide UTILTS 203 and IDE505 temporal uniqueness/ERC42. Both identify NAD+MS/207 as the legal Ediel sender; UNB may name its representative. The corresponding prior Swedish edition and full G01 comparison remain open. First implementation blocker is trusted physical-sender-to-tenant/legal-actor attribution plus authentic pre-ledger/deleted original corpus and lawful retention before atomic cross-original reservations and national ERC42. Existing SQL checks physical IDE duplicate *within one source*; new native negative case is pending CI and cannot substitute for history. Positive LOC175 lacks versioned object registry, legal actor/mandate and a distinct sink/retry. E035 historical completeness/retention and old Storage delete-before-witness root remain unresolved despite #421 native diagnostics/pass. Draft stays open, traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 after #420
 
 Genuine PRODAT missing/Z99 outbound 41/42/202 has no durable diagnostic profile, legal actor/mandate, route or retry owner. Historical 203 and IDE505 require separate issuer scopes and authentic pre-ledger/deletion coverage before atomic duplicate reservation. Positive LOC+175 lacks legal actor/mandate, versioned object registry and distinct sink. E035 retention/deletion and pre-ledger coverage are unknown; prior Storage `delete/before_witness` failure stage/root is unproved despite #420 native pass. Full UNSM grammar and G01–G07 external gates remain open. No staging, market traffic or #310 action.

@@ -1,3 +1,9 @@
+## Current — 2026-09-28 draft #421 physical IDE/source step
+
+From verified main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`, draft #421 last published `5c6a1ed4b3231ead2df803f28af98d6520f5c092` with four green workflows incl native 382/382 and exact clean replay/types/schema. Current local source amendment compares the two hashed U originals, p73/127 vs p72/122 for 203, p79/128 vs p77/123 for IDE505, and legal NAD+MS vs UNB representative. Added native actual two-physical-IDE duplicate and two-attempt no-receipt/ACK/effects case, not yet published/native-run. Local scripts TypeScript, scoped lint, masterplan 121/231 integrity and diff check passed; no local Docker/psql. Next: publish one coherent step on same PR, inspect first exact-head native failure or success, then continue trusted legal sender/history/deletion/retention and LOC175 owner qualification. Earlier E035 `delete/before_witness` cause remains unknown. No #310, staging, TGT/AGT, counterparty or market sends; keep branch draft.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 accepted #420 and next draft preparation
 
 #420 head `3251d8c85c1eaa1b97132120fdebbb47756a1974` passed four exact-head workflows, OPS native 382/382 and replay/types/schema; merged remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` with same-SHA Vercel READY `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu`. The physical field202 safe hold is delivered, not outbound 41/42 APERAK or market activation. E035 `delete/before_witness` passed on this run but its earlier `unconfirmed` root remains unknown. Next branch `codex/ediel-v2-identity-e035-owner-20260928` is local at this checkpoint with test-only RPC-boundary diagnostics and source/activation audit; local scripts TS/lint/diff pass, native PR pending. Next: push/open one draft, inspect actual native, then qualify 203/505 legal issuer/history and LOC175 object/mandate. #310 untouched.

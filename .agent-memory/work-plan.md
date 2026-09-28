@@ -1,3 +1,11 @@
+## Current — 2026-09-28 draft #421 original-source and physical IDE step
+
+1. Publish the selected prior/current 203/505/NAD+MS source amendment, activation audit and real two-physical-IDE native negative case on existing draft #421. Validate four workflows on the new exact head, especially native result, clean migrations and type/schema parity; diagnose first actual error before edits or retry.
+2. Review trusted physical legal sender-to-tenant/representative ownership and authentic pre-ledger/deleted-original coverage with retention, then design separate atomic 203 and 505 reservations only if their history/namespace is proven. Keep historical ERC42 held until cross-original, isolation, retry and actual consumer/ACK are evidenced.
+3. Continue positive LOC175 registry/legal actor/mandate and E035 history/deletion independently within the same coherent package; no guessed sink, traffic, staging, TGT/AGT, counterpart or #310 change. Update the PR checkpoint with exact head/tests/blocker and leave draft until package decision.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 F3 identity/E035 package
 
 1. Publish test-only E035 RPC-stage observation and source/activation audit on one draft from main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`; no prod behavior change.
