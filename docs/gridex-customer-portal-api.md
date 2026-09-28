@@ -21,9 +21,9 @@ delegated requests can succeed.
 ## Contact update contract
 
 Keep the machine key on the tenant backend. A separately issued RS256 customer
-assertion must bind `iss`, `aud`, `sub`, `iat`, `exp`, `company_id`,
-`api_client_id`, `customer_id` and `action` to the authenticated client,
-currently active portal account, and exact `POST /api/v1/customer/profile-update`
+assertion must bind `iss`, `aud`, `sub`, `iat`, `exp` and the signed
+organization, API client, customer and action claims to the authenticated
+client, currently active portal account, and exact `POST /api/v1/customer/profile-update`
 path. It expires within five minutes. A customer number, email or API key alone
 does not prove the customer's identity. Assertions are not one-time tokens and
 do not authorize login, billing-recipient or legal identity changes.
