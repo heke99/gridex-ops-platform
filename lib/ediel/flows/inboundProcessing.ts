@@ -873,6 +873,8 @@ export async function processInboundEdielMessage(params: {
   const headerWire = runtimeMessage.message_family === "PRODAT" && runtimeMessage.raw_payload &&
     canonicalRuntime.decision.applicationDecision === "rejected"
       ? tokenizeEdifact(runtimeMessage.raw_payload) : null;
+  const header204 = headerWire ? prodatHeaderFieldRejection({field:'204',sourceWire:headerWire,
+    errors:headerPlan?.applicationErrors}) : null;
   const header313 = headerWire ? prodatHeaderFieldRejection({field:'313',sourceWire:headerWire,
     errors:headerPlan?.applicationErrors}) : null;
   const header205 = headerWire ? prodatHeaderFieldRejection({field:'205',sourceWire:headerWire,
@@ -880,7 +882,7 @@ export async function processInboundEdielMessage(params: {
   const header206 = headerWire ? prodatHeaderFieldRejection({field:'206',sourceWire:headerWire,
     errors:headerPlan?.applicationErrors}) : null;
   if (runtimeMessage.message_family === "PRODAT" &&
-      (header313?.defect || header205?.defect || header206?.defect ||
+      (header204?.defect || header313?.defect || header205?.defect || header206?.defect ||
         canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected"))) {
     try {
       const negative = canonicalRuntime.decision.responsePlan.some(item =>

@@ -51,6 +51,60 @@ import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRej
 beforeEach(()=>{state.messages=[];state.outbox=[];state.events=[];state.effects=[];state.routeAvailable=true;state.source={...source(raw(mixedZ04Parts(),'Z04'),'Z04'),company_id:'00000000-0000-4000-8000-000000000002',status:'received',
  canonical_rule_pack_id:'00000000-0000-4000-8000-000000000033',rule_profile_key:'PRODAT:Z04:L:26.A:r3',rule_profile_version_id:'00000000-0000-4000-8000-000000000032',rule_profile_version:'26.A:r3',rule_pack_checksum:'synthetic-source-hash',rule_pack_snapshot:{profileKey:'PRODAT:Z04:L:26.A:r3',profileVersionId:'00000000-0000-4000-8000-000000000032',version:'26.A:r3',checksum:'synthetic-source-hash'},parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow})
 
+it('rejects invalid optional header 204 as one routed whole-message ACK with stable retry and no business effect',async()=>{
+ const parts=mixedZ04Parts()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts.splice(second+1,0,qty('20'))
+ state.source={...state.source!,raw_payload:raw(parts,'Z04').replace('BGM+Z04+D+9+AB','BGM+Z04+D+7+AB')} as EdielMessageRow
+ const decision=resolveCanonicalRuntimeDecision(state.source)
+ expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
+ const plan=decision.responsePlan.find(row=>row.family==='APERAK')!
+ expect(plan).toMatchObject({outcome:'negative',applicationErrors:expect.arrayContaining([expect.objectContaining({fieldCode:'204',ercCode:'42',prodatOccurrence:expect.objectContaining({scope:'header'})})])})
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'positive'})).toThrow('aperak_prodat_header_204_response_unqualified')
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'204',text:'invented'}]}))
+  .toThrow('aperak_prodat_header_204_response_unqualified')
+ const other={...state.source,raw_payload:state.source.raw_payload!.replace('UNH+M+','UNH+OTHER+').replace('+M\'UNZ','+OTHER\'UNZ')} as EdielMessageRow
+ const foreign=resolveCanonicalRuntimeDecision(other).responsePlan.find(row=>row.family==='APERAK')!.applicationErrors!
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:foreign})).toThrow('aperak_prodat_header_204_response_unqualified')
+ const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id}
+ await processInboundEdielMessage(input)
+ expect(state.effects).toEqual([])
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
+ expect(state.messages.every(row=>row.company_id===state.source!.company_id&&row.related_message_id===state.source!.id&&row.communication_route_id==='00000000-0000-4000-8000-000000000030')).toBe(true)
+ const aperak=String(state.messages[1].raw_payload)
+ expect(aperak).toContain('BGM+++27')
+ expect(aperak).toContain('ERC+42::260')
+ expect(aperak).toContain('FTX+AAO++204::260')
+ expect(aperak).toContain('RFF+ACW:D')
+ expect(aperak).not.toContain('RFF+Z07:')
+ expect(state.outbox).toHaveLength(2)
+ expect(state.outbox.every(row=>row.company_id===state.source!.company_id)).toBe(true)
+ const before={ids:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}
+ await processInboundEdielMessage(input)
+ expect({ids:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}).toEqual(before)
+ expect(state.effects).toEqual([])
+})
+
+it('keeps optional missing 204 and documented 9/5 outside header rejection, and holds no-route invalid 204',async()=>{
+ const parts=mixedZ04Parts()
+ const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts.splice(second+1,0,qty('20'))
+ const wire=raw(parts,'Z04')
+ for(const value of ['', '9','5']){
+  const candidate=wire.replace('BGM+Z04+D+9+AB',`BGM+Z04+D+${value}+AB`)
+  expect(prodatHeaderFieldRejection({field:'204',sourceWire:tokenizeEdifact(candidate),errors:[]})).toMatchObject({defect:null,qualified:false})
+  const message={...state.source!,raw_payload:candidate} as EdielMessageRow
+  expect(resolveCanonicalRuntimeDecision(message).applicationDecision).toBe('accepted')
+  expect(buildAperakDraft({sourceMessage:message,outcome:'positive'}).rawPayload).toContain('BGM+++34')
+ }
+ state.source={...state.source!,raw_payload:wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+7+AB')} as EdielMessageRow
+ state.routeAvailable=false
+ await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id})
+ expect(state.messages).toEqual([])
+ expect(state.outbox).toEqual([])
+ expect(state.effects).toEqual([])
+})
+
 it('stores one routed CONTRL and one first-object negative APERAK without a sibling success or business effect',async()=>{
  expect(resolveCanonicalRuntimeDecision(state.source!)).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
  await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source!.id})
