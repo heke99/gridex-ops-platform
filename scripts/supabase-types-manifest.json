@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260928234022_utilts_s01_empty_contract_point_identity.sql",
-  "latest_migration_schema_effect": "Forward migration replaces only the existing service-only public.gridex_persist_utilts_consumption_v1 body. Accepted S01 aggregates require a supported physical point even with no observations, before receipt, ACK or series writes; accepted E30/E66/S07 and observed contracts retain their prior checks. The signature, ownership and service-role-only grants are unchanged. Generated public Database types retain their previous SHA256 because the public function signature and schema shape are unchanged. Exact-head OPS native replay, type generation and canonical schema comparison must confirm this before acceptance."
+  "latest_migration": "20260928235411_utilts_s01_object_owner_precedence.sql",
+  "latest_migration_schema_effect": "A second forward replacement of the existing service-only public.gridex_persist_utilts_consumption_v1 body preserves the earlier distinct LOC+175 ownerless refusal while requiring physical point identity for non-object accepted S01 aggregates with no observations. The signature, ownership and service-role-only grants are unchanged. Generated public Database types retain their previous SHA256 because the public function signature and schema shape are unchanged. Exact-head OPS native replay, type generation and canonical schema comparison must confirm this before acceptance."
 }

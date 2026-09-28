@@ -379,6 +379,9 @@ it('native S01 empty contract cannot turn an agency-89 point into positive aggre
     expect(snapshot(unsupported.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(unsupported.id)}`)).toBe(0)
   }
+  // S01 is an aggregate outcome: the actual nonbilling processor must not
+  // receive the individual customer/site/request links used by E66 fixtures.
+  sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(unsupported.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
   expect((await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: unsupported.id })).internalReviewRequired).toBe(true)
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id))
