@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-26T17:57:14Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
+  "generated_at": "2026-09-28T12:52:00Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-run36424300271-artifact10971342588",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260928113000_customer_case_publication_boundary.sql",
-  "latest_migration_schema_effect": "Forward migration adds an explicitly published customer-case snapshot table and two revision-checked RPCs. Regenerate public Database types from an isolated clean replay and commit its schema snapshot before merge."
+  "sha256": "0cea3c8ba6736b6971e83284074cc8b9169ca7896152e27635c9c73049c8cf68",
+  "latest_migration": "20260928130000_customer_case_publication_conflict_and_history.sql",
+  "latest_migration_schema_effect": "Forward replaces expected revision-conflict SQLSTATE with PT409, retains publication history for republish, and adds a tenant-scoped service-role publication-head RPC. Types and schema are from isolated run 36424300271 artifact 10971342588; final-head replay remains required."
 }

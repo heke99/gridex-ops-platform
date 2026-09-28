@@ -123,6 +123,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(fixture.supportId)} AND company_id=${quote(fixture.companyA)} AND revoked_at IS NOT NULL AND revision=1 AND public_title='Customer visible browser subject' AND public_body='A message authored for the customer.'`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(fixture.supportId)} AND company_id=${quote(fixture.companyA)} AND revoked_at IS NOT NULL AND revision=2 AND public_title='New public subject after withdrawal'`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(fixture.supportId)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(4)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(fixture.supportId)} AND author_user_id=${quote(fixture.writerId)}`)).toBe(2)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_portal_accounts WHERE user_id=${quote(fixture.portalUserId)} AND customer_id=${quote(fixture.customerA)} AND company_id=${quote(fixture.companyA)} AND status='active' AND is_active`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.audit_logs WHERE entity_id=${quote(fixture.recent.id)} AND company_id=${quote(fixture.companyA)} AND action='customer_case_status_changed' AND actor_user_id=${quote(fixture.writerId)}`)).toBe(1)
     expect(sql<string>(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${quote(fixture.old.id)} AND company_id=${quote(fixture.companyA)}`)).toBe('open')
@@ -146,6 +147,8 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const readOnly = await createActor(`${tag}-reader`, companyA, ['communication.read', 'cases.read'])
   const noCaseRead = await createActor(`${tag}-nocase`, companyA, ['communication.read'])
   const actorB = await createActor(`${tag}-b`, companyB, ['cases.read', 'cases.write'])
+  const inactiveActor = await createActor(`${tag}-inactive`, companyA, ['cases.read', 'cases.write'])
+  sql(`UPDATE public.company_memberships SET status='removed',is_active=false WHERE company_id=${quote(companyA)} AND user_id=${quote(inactiveActor.user)}`)
   const old = await writeCase(companyA, customerA, writer.user)
   sql(`UPDATE public.customer_cases SET created_at=now()-interval '3 days' WHERE id=${quote(old.id)};
     INSERT INTO public.customer_cases(company_id,customer_id,case_type,status,title,source,metadata,created_at)
@@ -168,6 +171,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     { ...publishArgs, p_company_id: companyB },
     { ...publishArgs, p_actor_user_id: actorB.user },
     { ...publishArgs, p_actor_user_id: readOnly.user },
+    { ...publishArgs, p_actor_user_id: inactiveActor.user },
     { ...publishArgs, p_case_id: foreign.id },
   ]) {
     const attempt = await supabaseService.rpc('gridex_publish_customer_case_v1', badArgs)
@@ -175,6 +179,8 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   }
   console.log('[case-publication-native] denied RPCs completed')
   expect(await listPortalCases(portalContext)).toEqual([])
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(recent.id)}`)).toBe(0)
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(recent.id)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(0)
   const lowPrivilege = await readOnly.client.rpc('gridex_publish_customer_case_v1', publishArgs)
   expect(lowPrivilege.error).not.toBeNull()
   const directRead = await readOnly.client.from('customer_case_publications').select('*')
@@ -195,6 +201,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const staleStartedAt = Date.now()
   const stale = await supabaseService.rpc('gridex_publish_customer_case_v1', publishArgs)
   expect(stale.error).toMatchObject({ code: 'PT409', message: 'case_publication_revision_conflict' })
+  expect(stale.status).toBe(409)
   expect(Date.now() - staleStartedAt).toBeLessThan(10_000)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(recent.id)}`)).toBe(1)
   const second = await supabaseService.rpc('gridex_publish_customer_case_v1', {
@@ -214,7 +221,8 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   expect((await listCasePublicationHeads(companyA, [recent.id])).get(recent.id)).toBe(2)
   expect((await readOnly.client.rpc('gridex_case_publication_heads_v1', {
     p_company_id: companyA, p_case_ids: [recent.id],
-  })).error?.code).toBe('42501')
+  })).error).not.toBeNull()
+  expect(sql<boolean>("SELECT to_jsonb(has_function_privilege('authenticated','public.gridex_case_publication_heads_v1(uuid,uuid[])','EXECUTE'))")).toBe(false)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(recent.id)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(3)
   const staleAfterRevoke = await supabaseService.rpc('gridex_publish_customer_case_v1', {
     ...publishArgs, p_expected_revision: 0,

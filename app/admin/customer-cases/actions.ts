@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { createTenantSupportCase } from '@/lib/customer-cases/support'
@@ -38,6 +39,15 @@ function revision(formData: FormData): number {
     throw new Error('Ogiltig publiceringsrevision. Ladda om sidan.')
   }
   return parsed
+}
+
+function redirectOnPublicationConflict(error: unknown, formData: FormData): never {
+  if ((error as { code?: string } | null)?.code === 'PT409') {
+    const rawPage = value(formData, 'current_page')
+    const page = /^[1-9]\d{0,4}$/.test(rawPage) && Number(rawPage) <= 10_000 ? Number(rawPage) : 1
+    redirect(`/admin/customer-cases?page=${page}&notice=revision_conflict`)
+  }
+  throw error
 }
 
 export async function createCustomerCaseFromFormAction(formData: FormData): Promise<void> {
@@ -90,11 +100,15 @@ export async function publishCustomerCaseAction(formData: FormData): Promise<voi
       !['open', 'waiting_for_customer', 'resolved', 'closed'].includes(status)) {
     throw new Error('Ange en giltig kundsynlig rubrik, text och status.')
   }
-  await publishCustomerCase({
-    companyId, caseId, actorUserId: admin.userId, title, body,
-    status: status as 'open' | 'waiting_for_customer' | 'resolved' | 'closed',
-    expectedRevision: revision(formData),
-  })
+  try {
+    await publishCustomerCase({
+      companyId, caseId, actorUserId: admin.userId, title, body,
+      status: status as 'open' | 'waiting_for_customer' | 'resolved' | 'closed',
+      expectedRevision: revision(formData),
+    })
+  } catch (error) {
+    redirectOnPublicationConflict(error, formData)
+  }
   revalidate()
 }
 
@@ -103,9 +117,13 @@ export async function revokeCustomerCasePublicationAction(formData: FormData): P
   const companyId = await companyIdFor(admin.userId, admin.companyId)
   const caseId = value(formData, 'case_id')
   if (!caseId || revision(formData) < 1) throw new Error('Ogiltig publiceringsrevision.')
-  await revokeCustomerCasePublication({
-    companyId, caseId, actorUserId: admin.userId,
-    expectedRevision: revision(formData),
-  })
+  try {
+    await revokeCustomerCasePublication({
+      companyId, caseId, actorUserId: admin.userId,
+      expectedRevision: revision(formData),
+    })
+  } catch (error) {
+    redirectOnPublicationConflict(error, formData)
+  }
   revalidate()
 }

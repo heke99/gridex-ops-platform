@@ -15879,6 +15879,22 @@ begin
 end $$;
 
 --
+-- Name: gridex_case_publication_heads_v1(uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]) RETURNS TABLE(customer_case_id uuid, revision bigint)
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  select cp.customer_case_id, max(cp.revision) as revision
+    from public.customer_case_publications cp
+    join public.customer_cases cc on cc.id=cp.customer_case_id
+      and cc.company_id=cp.company_id and cc.customer_id=cp.customer_id
+    where cc.company_id=p_company_id and cp.customer_case_id=any(p_case_ids)
+    group by cp.customer_case_id
+$$;
+
+--
 -- Name: billing_automation_jobs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -38382,9 +38398,9 @@ begin
 
   select coalesce(max(revision),0) into v_current_revision
     from public.customer_case_publications
-    where customer_case_id=p_case_id and revoked_at is null;
+    where customer_case_id=p_case_id;
   if p_expected_revision is distinct from v_current_revision then
-    raise exception using errcode='40001', message='case_publication_revision_conflict';
+    raise exception using errcode='PT409', message='case_publication_revision_conflict';
   end if;
 
   select coalesce(max(revision),0)+1 into v_revision
@@ -42713,8 +42729,8 @@ begin
   end if;
   select revision into v_current_revision from public.customer_case_publications
     where customer_case_id=p_case_id and revoked_at is null;
-  if p_expected_revision is distinct from v_current_revision then
-    raise exception using errcode='40001', message='case_publication_revision_conflict';
+  if v_current_revision is null or p_expected_revision is distinct from v_current_revision then
+    raise exception using errcode='PT409', message='case_publication_revision_conflict';
   end if;
   update public.customer_case_publications
     set revoked_at=clock_timestamp(), revoked_by=p_actor_user_id
@@ -114377,6 +114393,13 @@ GRANT ALL ON FUNCTION public.gridex_capture_portfolio_monthly_price_history() TO
 
 REVOKE ALL ON FUNCTION public.gridex_capture_signed_contract_evidence() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_capture_signed_contract_evidence() TO service_role;
+
+--
+-- Name: FUNCTION gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]) TO service_role;
 
 --
 -- Name: TABLE billing_automation_jobs; Type: ACL; Schema: public; Owner: -

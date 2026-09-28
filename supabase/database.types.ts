@@ -16349,6 +16349,90 @@ export type Database = {
           },
         ]
       }
+      customer_case_publications: {
+        Row: {
+          author_user_id: string
+          channel: string
+          company_id: string
+          customer_case_id: string
+          customer_id: string
+          id: string
+          public_body: string
+          public_status: string
+          public_title: string
+          published_at: string
+          revision: number
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          author_user_id: string
+          channel: string
+          company_id: string
+          customer_case_id: string
+          customer_id: string
+          id?: string
+          public_body: string
+          public_status: string
+          public_title: string
+          published_at?: string
+          revision: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          author_user_id?: string
+          channel?: string
+          company_id?: string
+          customer_case_id?: string
+          customer_id?: string
+          id?: string
+          public_body?: string
+          public_status?: string
+          public_title?: string
+          published_at?: string
+          revision?: number
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_case_publications_case_owner_fk"
+            columns: ["customer_case_id", "company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_cases"
+            referencedColumns: ["id", "company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_case_publications_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_publications_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_publications_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_case_publications_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+        ]
+      }
       customer_cases: {
         Row: {
           agreement_channel: string | null
@@ -88463,6 +88547,13 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_case_publication_heads_v1: {
+        Args: { p_case_ids: string[]; p_company_id: string }
+        Returns: {
+          customer_case_id: string
+          revision: number
+        }[]
+      }
       gridex_claim_billing_automation_jobs: {
         Args: { p_limit?: number; p_worker_id: string }
         Returns: {
@@ -90261,6 +90352,39 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_publish_customer_case_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_body: string
+          p_case_id: string
+          p_channel?: string
+          p_company_id: string
+          p_expected_revision: number
+          p_status: string
+          p_title: string
+        }
+        Returns: {
+          author_user_id: string
+          channel: string
+          company_id: string
+          customer_case_id: string
+          customer_id: string
+          id: string
+          public_body: string
+          public_status: string
+          public_title: string
+          published_at: string
+          revision: number
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_case_publications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       gridex_publish_internal_contract_version: {
         Args: {
           p_actor_user_id: string
@@ -90679,6 +90803,15 @@ export type Database = {
       gridex_review_company_legal_profile: {
         Args: { p_actor_user_id: string; p_company_id: string }
         Returns: Json
+      }
+      gridex_revoke_customer_case_publication_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_case_id: string
+          p_company_id: string
+          p_expected_revision: number
+        }
+        Returns: boolean
       }
       gridex_revoke_portfolio_settlement_permission: {
         Args: { p_actor_user_id: string; p_grant_id: string; p_reason: string }

@@ -7,6 +7,7 @@ import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { listTenantSupportCases, listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
 import { listCasePublicationHeads, listCurrentCasePublications } from '@/lib/customer-cases/publication'
 import { createCustomerCaseFromFormAction, publishCustomerCaseAction, revokeCustomerCasePublicationAction, updateCustomerCaseStatusAction } from './actions'
+import SubmitActionButton from './SubmitActionButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,9 +19,10 @@ function formatDate(value: string | null | undefined) {
 }
 
 export default async function CustomerCasesPage({ searchParams }: {
-  searchParams?: Promise<{ page?: string | string[] }>
+  searchParams?: Promise<{ page?: string | string[]; notice?: string | string[] }>
 }) {
-  const rawPage = (await searchParams)?.page
+  const params = await searchParams
+  const rawPage = params?.page
   const requestedPage = typeof rawPage === 'string' && /^[1-9]\d*$/.test(rawPage) ? Number(rawPage) : 1
   const page = Number.isSafeInteger(requestedPage) && requestedPage <= 10_000 ? requestedPage : 1
   const context = await requireAdminPageAccess(['cases.read'])
@@ -50,6 +52,7 @@ export default async function CustomerCasesPage({ searchParams }: {
     <div className="min-h-screen bg-slate-50">
       <AdminHeader title="Support" subtitle="Tenant-isolerade supportärenden från API, kundportal och intern handläggning." userEmail={context.email} />
       <main className="space-y-6 p-6 lg:p-8">
+        {params?.notice === 'revision_conflict' ? <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900">Publiceringen har ändrats. Läs den aktuella versionen och försök igen.</p> : null}
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Öppna på sidan</p><p className="mt-2 text-3xl font-semibold">{open.length}</p></div>
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Hög/akut på sidan</p><p className="mt-2 text-3xl font-semibold">{urgent.length}</p></div>
@@ -71,7 +74,7 @@ export default async function CustomerCasesPage({ searchParams }: {
               <input name="category" placeholder="Kategori, t.ex. faktura eller avtal" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
               <input name="idempotency_key" placeholder="Extern referens (valfri)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
               <textarea name="description" rows={4} placeholder="Beskriv ärendet" className="rounded-xl border border-slate-300 px-3 py-2 text-sm lg:col-span-2" />
-              <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white lg:col-span-2">Skapa supportärende</button>
+              <SubmitActionButton className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 lg:col-span-2">Skapa supportärende</SubmitActionButton>
             </form>
           </section>
         ) : null}
@@ -107,7 +110,7 @@ export default async function CustomerCasesPage({ searchParams }: {
                         <option value="closed">Avslutat</option>
                       </select>
                     </label>
-                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Spara status</button>
+                    <SubmitActionButton className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">Spara status</SubmitActionButton>
                   </form>
                 ) : null}
                 <div className="mt-5 border-t border-slate-200 pt-4">
@@ -123,19 +126,21 @@ export default async function CustomerCasesPage({ searchParams }: {
                     <div className="mt-3 grid gap-3">
                       <form action={publishCustomerCaseAction} className="grid gap-2">
                         <input type="hidden" name="case_id" value={row.id} />
+                        <input type="hidden" name="current_page" value={page} />
                         <input type="hidden" name="expected_revision" value={heads.get(row.id) ?? 0} />
                         <input name="public_title" required maxLength={180} placeholder="Kundsynlig rubrik (skriv uttryckligen)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
                         <textarea name="public_body" required maxLength={8000} rows={3} placeholder="Meddelande till kunden (intern text kopieras inte automatiskt)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
                         <select name="public_status" defaultValue="open" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
                           <option value="open">Öppet</option><option value="waiting_for_customer">Väntar på kunden</option><option value="resolved">Löst</option><option value="closed">Avslutat</option>
                         </select>
-                        <button className="rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800">{publication ? 'Publicera ny kundsynlig version' : 'Publicera till kunden'}</button>
+                        <SubmitActionButton className="rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-50">{publication ? 'Publicera ny kundsynlig version' : 'Publicera till kunden'}</SubmitActionButton>
                       </form>
                       {publication ? (
                         <form action={revokeCustomerCasePublicationAction}>
                           <input type="hidden" name="case_id" value={row.id} />
+                          <input type="hidden" name="current_page" value={page} />
                           <input type="hidden" name="expected_revision" value={publication.revision} />
-                          <button className="rounded-xl border border-red-300 px-3 py-2 text-sm font-semibold text-red-800">Dra tillbaka publiceringen</button>
+                          <SubmitActionButton className="rounded-xl border border-red-300 px-3 py-2 text-sm font-semibold text-red-800 disabled:opacity-50">Dra tillbaka publiceringen</SubmitActionButton>
                         </form>
                       ) : null}
                     </div>

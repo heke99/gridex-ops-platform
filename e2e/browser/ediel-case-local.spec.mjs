@@ -54,21 +54,6 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await expect(support.getByRole('heading', { name: 'Supportkö' })).toBeVisible()
   await expect(support).toContainText('Synthetic support')
   await expect(support).not.toContainText(fixture.recent.title)
-  const supportIds = new Set()
-  for (let pageNumber = 1; pageNumber <= 3; pageNumber++) {
-    const ids = await support.locator('article[data-case-id]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-case-id')))
-    for (const id of ids) {
-      expect(supportIds.has(id)).toBe(false)
-      supportIds.add(id)
-    }
-    if (pageNumber < 3) {
-      await support.getByRole('link', { name: 'Nästa sida' }).click()
-      await expect(page).toHaveURL(new RegExp(`page=${pageNumber + 1}`))
-    }
-  }
-  expect(supportIds.size).toBe(202)
-  await expect(support.getByRole('link', { name: 'Nästa sida' })).toHaveCount(0)
-  await expect(support.getByRole('link', { name: 'Föregående sida' })).toBeVisible()
   const foreignResponse = await page.goto(detail(fixture.foreign.id))
   // Next emits 200 after streaming starts, or 404 before it starts. Both must
   // render the actual not-found boundary, never a successful case/login/error.
@@ -87,6 +72,28 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await expect(page.locator('body')).not.toContainText(fixture.foreign.next_action)
   await expect(page.locator('body')).not.toContainText(fixture.customerB)
   await expect(page.locator('body')).not.toContainText(fixture.foreign.sourceMessageId)
+})
+
+test('support page reaches 201 older cases after 220 newer unrelated rows without gaps or duplicates', async ({ page }) => {
+  await login(page, fixture.writerEmail)
+  await page.goto('/admin/customer-cases')
+  const support = await adminContent(page)
+  const supportIds = new Set()
+  for (let pageNumber = 1; pageNumber <= 3; pageNumber++) {
+    const ids = await support.locator('article[data-case-id]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-case-id')))
+    for (const id of ids) {
+      expect(supportIds.has(id)).toBe(false)
+      supportIds.add(id)
+    }
+    await expect(support).not.toContainText('Unrelated ordinary')
+    if (pageNumber < 3) {
+      await support.getByRole('link', { name: 'Nästa sida' }).click()
+      await expect(page).toHaveURL(new RegExp(`page=${pageNumber + 1}`))
+    }
+  }
+  expect(supportIds.size).toBe(201)
+  await expect(support.getByRole('link', { name: 'Nästa sida' })).toHaveCount(0)
+  await expect(support.getByRole('link', { name: 'Föregående sida' })).toBeVisible()
 })
 
 test('tenant writer changes only case status; read-only and no-case-read actors cannot triage', async ({ browser }) => {
@@ -128,7 +135,6 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await expect(reader.getByRole('heading', { name: 'Supportkö' })).toBeVisible()
   await expect(reader.getByRole('button', { name: 'Publicera till kunden' })).toHaveCount(0)
   await expect(reader.getByRole('button', { name: 'Spara status' })).toHaveCount(0)
-  await reader.close()
   await login(page, fixture.writerEmail)
   await login(customer, fixture.portalEmail)
   await customer.goto('/portal/arenden')
@@ -138,16 +144,38 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
 
   await page.goto('/admin/customer-cases')
   const support = await adminContent(page)
-  const caseArticle = support.locator('article').filter({
-    has: support.locator(`input[name="case_id"][value="${fixture.supportId}"]`),
-  })
+  const caseArticle = support.locator(`article[data-case-id="${fixture.supportId}"]`)
   await expect(caseArticle).toHaveCount(1)
   await expect(caseArticle).toContainText('Inte publicerat till kunden.')
+  const actionName = await caseArticle.locator('form:has(input[name="public_title"])')
+    .evaluate((form) => Array.from(new FormData(form).keys()).find((key) => key.startsWith('$ACTION_ID_')) ?? null)
+  expect(actionName).toMatch(/^\$ACTION_ID_/)
+  const denied = await reader.evaluate(async ({ actionName, caseId }) => {
+    const form = new FormData()
+    form.append(actionName, '')
+    form.append('case_id', caseId)
+    form.append('expected_revision', '0')
+    form.append('public_title', 'Forged reader publication')
+    form.append('public_body', 'This must never reach the customer.')
+    form.append('public_status', 'open')
+    const response = await fetch('/admin/customer-cases', { method: 'POST', body: form, credentials: 'same-origin' })
+    return response.status
+  }, { actionName, caseId: fixture.supportId })
+  expect(denied).toBeGreaterThanOrEqual(400)
+  await customer.reload()
+  await expect(customer.locator('main')).toContainText('Inga ärenden har publicerats')
+  await reader.close()
   await caseArticle.locator('input[name="public_title"]').fill('Customer visible browser subject')
   await caseArticle.locator('textarea[name="public_body"]').fill('A message authored for the customer.')
-  await caseArticle.getByRole('button', { name: 'Publicera till kunden' }).click()
+  await caseArticle.getByRole('button', { name: 'Publicera till kunden' }).dblclick()
   await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
   await expect(caseArticle).toContainText('A message authored for the customer.')
+  await caseArticle.locator('input[name="expected_revision"]').evaluate((input) => { input.value = '0' })
+  await caseArticle.locator('input[name="public_title"]').fill('Stale attempt')
+  await caseArticle.locator('textarea[name="public_body"]').fill('Must not replace the first publication.')
+  await caseArticle.getByRole('button', { name: 'Publicera ny kundsynlig version' }).click()
+  await expect(page.getByRole('alert')).toContainText('Publiceringen har ändrats')
+  await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
   await customer.reload()
   await expect(customer.getByRole('heading', { name: 'Customer visible browser subject' })).toBeVisible()
   await expect(customer.locator('main')).toContainText('A message authored for the customer.')
