@@ -200,6 +200,7 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await customer.reload()
   await expect(customer.getByRole('heading', { name: 'New public subject after withdrawal' })).toBeVisible()
   await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
+  await expect(caseArticle).toContainText('Inte publicerat till kunden.')
   await customer.reload()
   await expect(customer.locator('main')).not.toContainText('New public subject after withdrawal')
   await customer.close()

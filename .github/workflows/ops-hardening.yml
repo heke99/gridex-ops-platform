@@ -148,29 +148,30 @@ jobs:
           export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
           [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
           npx vitest run --config scripts/customer-contact-concurrency-native.config.ts
+          # Exercise the contact browser/API path before the independent case
+          # publication browser fixture, so its own replay result is observable.
           unset GRIDEX_E2E_BROWSER_BASE_URL
-          export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
-          export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
-          export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
-          npx vitest run --config scripts/ediel-case-view-native.config.ts
-          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
-          npx playwright install --with-deps chromium
-          npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
-          GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts
-          rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
-          unset GRIDEX_EDIEL_CASE_TEST_PASSWORD
-          # A new synthetic GoTrue/tenant fixture follows the real OPS form and
-          # delegated HTTP route, then reads the committed result natively.
           export GRIDEX_CONTACT_LOCAL_E2E=1
           export GRIDEX_CONTACT_FIXTURE_PATH="$RUNNER_TEMP/customer-contact-browser-fixture.json"
           export GRIDEX_CONTACT_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
           npx vitest run --config scripts/customer-contact-browser-native.config.ts
           [[ -s "$GRIDEX_CONTACT_FIXTURE_PATH" ]] || exit 1
           export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_CONTACT_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright install --with-deps chromium
           npx playwright test e2e/browser/customer-contact-local.spec.mjs --config=playwright.config.mjs --project=chromium
           GRIDEX_CONTACT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           rm -f "$GRIDEX_CONTACT_FIXTURE_PATH"
           unset GRIDEX_CONTACT_TEST_PASSWORD GRIDEX_CONTACT_LOCAL_E2E GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          unset GRIDEX_E2E_BROWSER_BASE_URL
+          export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
+          export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
+          export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          npx vitest run --config scripts/ediel-case-view-native.config.ts
+          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts
+          rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
+          unset GRIDEX_EDIEL_CASE_TEST_PASSWORD
           unset SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
           rm -f "$RUNNER_TEMP/e035-native-status.json"
           GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
