@@ -1,13 +1,16 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const fixture = vi.hoisted(() => ({
   mutations: [] as Array<{ table: string; kind: string; payload: Record<string, unknown>; filters: Array<[string, unknown]> }>,
   authorizedTenant: 'tenant-a',
+  selectedTenant: 'tenant-a',
   customerTenant: 'tenant-b',
   customerStatus: 'active',
 }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
-vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: vi.fn() }))
+vi.mock('@/lib/admin/guards', () => ({
+  requireAdminActionAccess: async () => ({ userId: 'actor-a', companyId: fixture.selectedTenant, isPlatformAdmin: false }),
+}))
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerClient: async () => ({ auth: { getUser: async () => ({ data: { user: { id: 'actor-a' } } }) } }),
 }))
@@ -45,6 +48,13 @@ function form(fields: Record<string, string>) {
 }
 
 describe('OPS customer-card contact and address authorization', () => {
+  beforeEach(() => {
+    fixture.mutations = []
+    fixture.authorizedTenant = 'tenant-a'
+    fixture.selectedTenant = 'tenant-a'
+    fixture.customerTenant = 'tenant-b'
+    fixture.customerStatus = 'active'
+  })
   it('denies a forged cross-tenant primary contact before any service-role write', async () => {
     fixture.mutations = []
     fixture.customerTenant = 'tenant-b'
@@ -57,6 +67,16 @@ describe('OPS customer-card contact and address authorization', () => {
     fixture.customerTenant = 'tenant-b'
     await expect(saveCustomerAddressAction(form({ customer_id: 'customer-b', street_1: 'Example' }))).rejects.toThrow('Forbidden')
     expect(fixture.mutations).toEqual([])
+  })
+
+  it('does not reuse a write permission from selected tenant A for a member of tenant B', async () => {
+    fixture.mutations = []
+    fixture.customerTenant = 'tenant-b'
+    fixture.authorizedTenant = 'tenant-b'
+    fixture.selectedTenant = 'tenant-a'
+    await expect(saveCustomerContactAction(form({ customer_id: 'customer-b', name: 'Example', is_primary: 'on' }))).rejects.toThrow('Forbidden')
+    expect(fixture.mutations).toEqual([])
+    fixture.authorizedTenant = 'tenant-a'
   })
 
   it('does not clear the existing primary contact when an unrelated contact ID is supplied', async () => {

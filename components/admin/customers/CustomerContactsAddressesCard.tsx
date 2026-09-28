@@ -63,6 +63,10 @@ async function authorizedCustomerCompany(actorUserId: string, customerId: string
 
  if (error) throw error
  if (!data?.company_id) throw new Error('Forbidden')
+ const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+ if (guard.userId !== actorUserId || (!guard.isPlatformAdmin && guard.companyId !== data.company_id)) {
+ throw new Error('Forbidden')
+ }
  const companyId = await assertUserCanOperateCompany(actorUserId, data.company_id)
  if (data.status === 'archived') throw new Error('Archived customer')
  return companyId
