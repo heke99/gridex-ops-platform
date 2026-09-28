@@ -3,7 +3,7 @@ T01,"Tenant A kan inte läsa eller ändra kund, faktura, ärende eller bilaga i 
 T02,Kund A kan inte komma åt annan kund inom samma tenant.,P1,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T03,Admin i A och läsare i B förblir läsare i B.,P1,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T04,Resolver och normal synk ändrar inte begränsad portalroll.,P1,PARTIAL,"__tests__/customer-portal-resolver-read-only.test.ts (mockad servergräns, 6/6)","Separat portal sync, aktiva DB-grants/RLS och native replay återstår; ingen full acceptans."
-T05,Spärrat portalkonto återaktiveras inte av uppslag eller retry.,P1,PARTIAL,"__tests__/customer-portal-resolver-read-only.test.ts (mockad servergräns, 6/6)","Separat portal sync, aktiva DB-grants/RLS och native replay återstår; ingen full acceptans."
+T05,Spärrat portalkonto återaktiveras inte av uppslag eller retry.,P1,PARTIAL,__tests__/customer-portal-resolver-read-only.test.ts (6/6) + __tests__/customer-portal-context-status.test.ts (2/2); mockad servergräns,"Portal sync, aktiva DB-grants/RLS, provider/issuer och native replay återstår; ingen full acceptans."
 T06,Rätt API-scope med fel slutkund nekas.,P1,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T07,"Förfalskad aktör, tenant eller verifierad-flagga ger ingen rättighet.",P1,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T08,Tenantbyte i annan flik kan inte orsaka sparning till fel tenant.,P1,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."

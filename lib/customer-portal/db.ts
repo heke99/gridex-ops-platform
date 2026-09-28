@@ -24,6 +24,7 @@ type PortalAccountLookupRow = {
   customer_id: string
   company_id: string | null
   is_active: boolean
+  status: string | null
   activated_at: string | null
 }
 
@@ -127,14 +128,16 @@ export const getCustomerPortalContext = cache(async function getCustomerPortalCo
 
   const { data: accountRows, error: accountError } = await supabaseService
     .from('customer_portal_accounts')
-    .select('customer_id,company_id,is_active,activated_at')
+    .select('customer_id,company_id,is_active,status,activated_at')
     .eq('user_id', user.id)
     .eq('is_active', true)
+    .eq('status', 'active')
     .order('activated_at', { ascending: false, nullsFirst: false })
 
   if (accountError) throw accountError
 
-  const accounts = ((accountRows ?? []) as PortalAccountLookupRow[]).filter((row) => Boolean(row.customer_id))
+  const accounts = ((accountRows ?? []) as PortalAccountLookupRow[])
+    .filter((row) => Boolean(row.customer_id) && row.is_active === true && row.status === 'active')
   const linkedCustomerIds = Array.from(new Set(accounts.map((row) => row.customer_id)))
 
   if (linkedCustomerIds.length === 0) {
