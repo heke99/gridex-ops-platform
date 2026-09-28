@@ -134,6 +134,19 @@ it('still inspects an independent clean point sibling when another IDE mixes obj
   expect(report.sources.map(item => item.sourceMessageId)).toEqual(['source-2'])
   expect(queryCalls).toContainEqual(['in', 'metering_point_id', ['meter-2']])
 })
+it('does not link an agency 89 source through an unqualified point-text match in the inbound processor', async () => {
+  incoming.raw_payload = incoming.raw_payload!.replace(`LOC+172+${point}::9'`, `LOC+172+${point}::89'`)
+  rows = [source('Z04', '202607010000', [
+    line('1', point, undefined, '89'), ['DTM', ['92', '202607010000', '203']],
+    ['RFF', ['MG', 'SOURCE-METER']], ...characteristic('Z16', '201', 3),
+  ])]
+  // The legacy matcher supplies the same tenant point and identical text.
+  // It does not identify the distributor that assigned this local namespace.
+  const report = await run()
+  expect(report).toMatchObject({ status: 'not_requested', authorityStatus: 'not_established', sources: [] })
+  expect(io.from).not.toHaveBeenCalled()
+  expect(JSON.stringify(report)).not.toContain('source-1')
+})
 it.each(['Z06', 'Z10'])('uses %s change validity, never later contract start or receipt date', async code => {
   rows = [source(code, '', [line('1', point, undefined, '9'), ['DTM', ['157', '202606080835', '203']], ['DTM', ['92', '202607010000', '203']],
     ['RFF', ['MG', 'NEW']], ['RFF', ['Z02', 'OLD']], ...characteristic('Z16', '202', 3)])]
