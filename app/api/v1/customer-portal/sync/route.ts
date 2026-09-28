@@ -10,6 +10,7 @@ import {
   requireIdempotencyKey,
 } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
@@ -60,6 +61,13 @@ type PortalIdentityDbStatus = 'active' | 'pending_review' | 'rejected' | 'disabl
 type PortalIdentityApiStatus = 'linked' | 'pending_review' | 'rejected'
 type PortalIdentityMatchStrength = 'strong' | 'weak' | 'manual'
 
+type PortalScopedQuery<T> = {
+  eq: (field: string, value: string) => PortalScopedQuery<T>
+  or: (filter: string) => PortalScopedQuery<T>
+  limit: (count: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+  maybeSingle: () => PromiseLike<{ data: T | null; error: unknown }>
+}
+
 function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
@@ -88,17 +96,14 @@ function revokedPortalIdentity(error: unknown): boolean {
 }
 
 async function assertPortalSubjectNotRevoked(companyId: string, externalCustomerId: string, authUserId: string, requireActiveIdentity = false) {
+  const portal = tenantDb(companyId)
   const [identity, account] = await Promise.all([
-    supabaseService.from('customer_portal_identities')
-      .select('status')
-      .eq('company_id', companyId)
+    (portal.from('customer_portal_identities').select('status') as PortalScopedQuery<{ status: string }>)
       .eq('provider', 'gridex_website')
       .eq('external_customer_id', externalCustomerId)
       .eq('auth_user_id', authUserId)
       .maybeSingle(),
-    supabaseService.from('customer_portal_accounts')
-      .select('status,is_active')
-      .eq('company_id', companyId)
+    (portal.from('customer_portal_accounts').select('status,is_active') as PortalScopedQuery<{ status: string; is_active: boolean }>)
       .or(`portal_user_id.eq.${authUserId},user_id.eq.${authUserId}`)
       .limit(50),
   ])
