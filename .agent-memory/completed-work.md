@@ -1,3 +1,9 @@
+## Bounded verified work and local candidate — 2026-09-28 #421
+
+Draft #421 last verified `d24ccc85` passed five workflows and OPS native 398/398, clean replay and type/schema parity. This bounded step adds two native mixed S01 ACK-interruption cases: held LOC+175 plus allowed LOC+172, durable receipt/series/contract before ACK failure, only the point ACK on retry, unchanged held row and no meter/billing/completion. Scripts/test TypeScript, scoped lint, diff and frozen 121/231 integrity pass locally; PostgreSQL/Docker are unavailable locally and exact-head native is pending. No product rule changes. Historical 203/505 issuer mapping, continuous authentic/deleted originals and lawful retention, positive LOC+175 registry/mandate/sink/ACK owner, and complete E035 history/deletion remain external blockers. Earlier Storage failures have unknown cause; #421 draft, #310 untouched, market traffic blocked.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Verified bounded late-175 fence and local late-172 correction — 2026-09-28 #421
 
 Exact `2c4d65e` passed five workflows and OPS native 394/394, clean replay and public types/schema parity. This verifies only the late-175 refusal. For the next physical LOC+172 defect, helper/E035/E66/S01 actual RED precedes the correction; 82/82 focused ordinary tests, three TypeScript projects, migrations/types, scoped lint and diff check pass locally. Native and exact-head CI are pending; no historical 203/505, positive 175, full E035 history or traffic claim.

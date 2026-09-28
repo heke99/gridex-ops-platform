@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 ACK-boundary handover
+
+Draft #421 last verified `d24ccc85` passed five workflows and OPS native 398/398, clean replay and type/schema parity. This bounded step adds two native mixed S01 ACK-interruption cases: held LOC+175 plus allowed LOC+172, durable receipt/series/contract before ACK failure, only the point ACK on retry, unchanged held row and no meter/billing/completion. Scripts/test TypeScript, scoped lint, diff and frozen 121/231 integrity pass locally; PostgreSQL/Docker are unavailable locally and exact-head native is pending. No product rule changes. Historical 203/505 issuer mapping, continuous authentic/deleted originals and lawful retention, positive LOC+175 registry/mandate/sink/ACK owner, and complete E035 history/deletion remain external blockers. Earlier Storage failures have unknown cause; #421 draft, #310 untouched, market traffic blocked.
+
+Remote/local parent before publication `d24ccc85ca953ce2c9f312f83d53703731942389`, main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Next exact-head native expects 400 cases if all pass; do not assume success.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 mixed S01 native assertion correction
 
 Published `8f3f7a15`: Ediel `36489899307`, browser `36489899340`, Full E2E `36489899501`, tenant `36489899220`, OPS verify/quality `36489899332` passed; clean replay native 396/398 failed two mixed S01 tests at line 328. Actual both rows were `internal_review`/`none`, no final ACK or series. The one `gridex_utilts_binding.receipts` row is an immutable source/original/membership seal, written for a held batch and expected by earlier mixed controls. Test correction expects one and unchanged full receipt on retry, retaining zero contracts/series/market ACK/effects. Product code/SQL unchanged; generated parity not reached. Publish correction with exact-head CI. Historical sender/corpus/retention, positive object and E035 gates remain blocked, traffic held, #310 untouched.

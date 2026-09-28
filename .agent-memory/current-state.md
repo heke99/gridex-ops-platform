@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 ACK-boundary proof
+
+Draft #421 last verified `d24ccc85` passed five workflows and OPS native 398/398, clean replay and type/schema parity. This bounded step adds two native mixed S01 ACK-interruption cases: held LOC+175 plus allowed LOC+172, durable receipt/series/contract before ACK failure, only the point ACK on retry, unchanged held row and no meter/billing/completion. Scripts/test TypeScript, scoped lint, diff and frozen 121/231 integrity pass locally; PostgreSQL/Docker are unavailable locally and exact-head native is pending. No product rule changes. Historical 203/505 issuer mapping, continuous authentic/deleted originals and lawful retention, positive LOC+175 registry/mandate/sink/ACK owner, and complete E035 history/deletion remain external blockers. Earlier Storage failures have unknown cause; #421 draft, #310 untouched, market traffic blocked.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 late-172 first native 396/398
 
 Published `8f3f7a15` passed Ediel, browser, Full E2E, tenant and OPS verify/quality. OPS clean replay failed native 396/398 on two mixed S01 tests: both IDEs were held/no final ACK/no series, but test incorrectly expected zero immutable source receipts. The existing private owner seals a source receipt even for a held batch; other mixed controls expect one. Corrected test requires one source receipt and unchanged content on retry, zero contract/series/market ACK/effects. No product code/SQL change. New-head native/replay/type/schema pending, no unchanged-head rerun. External 203/505, positive LOC+175 and E035 evidence blockers remain; draft unmerged, traffic held, #310 untouched.

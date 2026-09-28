@@ -1043,6 +1043,61 @@ it.each(['object-first', 'point-first'] as const)(
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 it.each(['object-first', 'point-first'] as const)(
+  'native mixed S01 %s resumes only the point ACK after an interruption, preserving the held object', async order => {
+  const f = await seed()
+  const lines = f.original.raw_payload!.split('\n')
+  const start = lines.findIndex(line => line.startsWith('IDE+24+'))
+  const end = lines.findIndex(line => line.startsWith('UNT+'))
+  const point = lines.slice(start, end)
+  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const object = (order === 'object-first' ? point : second).map(line =>
+    line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
+  const sibling = order === 'object-first' ? second : point
+  lines.splice(start, end - start, ...(order === 'object-first' ? [...object, ...sibling] : [...sibling, ...object]))
+  const unt = lines.findIndex(line => line.startsWith('UNT+'))
+  const unh = lines.findIndex(line => line.startsWith('UNH+'))
+  lines[unt] = `UNT+${unt - unh + 1}+1'`
+  const raw = lines.join('\n').replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+  const source = await f.insertSource(raw, 'S01')
+  sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  const heldId = order === 'object-first' ? 'GRIDEX2607E66001' : 'GRIDEX2607E66002'
+  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  const outcomes = () => sql<Array<{ id: string; disposition: string; plan: string; final: string | null; series: string | null }>>(`
+   SELECT jsonb_agg(jsonb_build_object('id',source_transaction_id,'disposition',disposition,
+    'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id) ORDER BY source_transaction_id)
+   FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`)
+
+  effects.ack.mockRejectedValueOnce(new Error('after_mixed_s01_reservation_before_ack'))
+  await expect(run()).rejects.toThrow('after_mixed_s01_reservation_before_ack')
+  expect(outcomes().find(row => row.id === heldId)).toMatchObject({ disposition: 'internal_review', plan: 'none', final: null, series: null })
+  expect(outcomes().find(row => row.id === pointId)).toMatchObject({ disposition: 'accepted', plan: 'positive_aperak', final: null, series: expect.any(String) })
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(1)
+  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(1)
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  const heldBefore = sql(`SELECT to_jsonb(a) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source.id)} AND source_transaction_id=${lit(heldId)}`)
+
+  effects.ack.mockClear()
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(outcomes().find(row => row.id === heldId)).toMatchObject({ disposition: 'internal_review', plan: 'none', final: null, series: null })
+  expect(outcomes().find(row => row.id === pointId)).toMatchObject({ disposition: 'accepted', plan: 'positive_aperak', final: 'positive_aperak', series: expect.any(String) })
+  expect(sql(`SELECT to_jsonb(a) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source.id)} AND source_transaction_id=${lit(heldId)}`)).toEqual(heldBefore)
+  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(1)
+  expect(effects.ack.mock.calls[0][0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'positive',
+    draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: pointId } } })
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  const completed = snapshot(source.id)
+  effects.ack.mockClear()
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(snapshot(source.id)).toEqual(completed)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+it.each(['object-first', 'point-first'] as const)(
   'native mixed S01 %s keeps an unowned object held beside a negative guide sibling on retry', async order => {
   const f = await seed()
   const lines = f.original.raw_payload!.split('\n')

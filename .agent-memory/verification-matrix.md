@@ -1,3 +1,13 @@
+## Current — 2026-09-28 #421 exact-head evidence
+
+| Boundary | Evidence | Limit |
+| --- | --- | --- |
+| Agency-89 E035 diagnostic and prior mixed S01/late-LOC fences | #421 `d24ccc85`, five workflows, OPS native 398/398, clean replay, types/schema parity | Bounded hold, draft/unmerged, no historical issuer or positive object capability |
+| Mixed S01 ACK interruption after point reservation, both IDE orders | Scripts/test TypeScript, scoped ESLint, diff, 121/231 integrity pass locally | Native exact-head pending; no local psql/Docker; no product behavior change |
+| Historical 203/505, positive LOC+175, full E035 | Source clauses and owner-gap audit | No qualified legal issuer/history/retention or object owner/mandate/sink; no market activation |
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 mixed S01 first native result
 
 | Head | Check | Result and limit |

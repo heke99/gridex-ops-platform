@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 ACK-interruption proof
+
+1. Publish the two-order native test and current activation/source checkpoint only from remote parent `d24ccc85`, with no force push.
+2. Inspect first exact-head native/replay/types/schema and all five workflows. Diagnose a real failing assertion before changing product behavior; review full diff and threads and record the result on the PR.
+3. Keep draft and traffic blocked. Require the external issuer/history/retention, positive object owner and E035 evidence before broader implementation or merge; #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 first native failure correction
 
 1. Correct only the two mixed S01 native assertions: `gridex_utilts_binding.receipts` seals the original/membership even for two held IDEs; assert one immutable receipt and unchanged retry, with zero contract/series/market ACK/effects. First `8f3f7a15` OPS clean replay 396/398; other five workflow jobs and OPS verify/quality green. No product SQL change.

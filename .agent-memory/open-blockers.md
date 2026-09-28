@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 external and native gates
+
+Draft #421 last verified `d24ccc85` passed five workflows and OPS native 398/398, clean replay and type/schema parity. This bounded step adds two native mixed S01 ACK-interruption cases: held LOC+175 plus allowed LOC+172, durable receipt/series/contract before ACK failure, only the point ACK on retry, unchanged held row and no meter/billing/completion. Scripts/test TypeScript, scoped lint, diff and frozen 121/231 integrity pass locally; PostgreSQL/Docker are unavailable locally and exact-head native is pending. No product rule changes. Historical 203/505 issuer mapping, continuous authentic/deleted originals and lawful retention, positive LOC+175 registry/mandate/sink/ACK owner, and complete E035 history/deletion remain external blockers. Earlier Storage failures have unknown cause; #421 draft, #310 untouched, market traffic blocked.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 corrected mixed S01 native gate
 
 First exact candidate `8f3f7a15` native 396/398 stopped in two new mixed S01 tests on a false zero-source-receipt expectation. After test-only correction, zero contract/series/market ACK/effects and unchanged receipt/retry still await native clean replay and generated parity on a new head; do not claim PR verification. Historical 203/505 trusted legal sender/agent, authentic continuous/deleted original corpus and lawful retention, positive LOC+175 object registry/mandate/separate sink/ACK owner, and E035 pre-epoch/deletion/retention remain external blockers. Older Storage failures unexplained; no merge, traffic or #310 edit.

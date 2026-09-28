@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 mixed S01 ACK interruption candidate
+
+Draft #421 last verified `d24ccc85` passed five workflows and OPS native 398/398, clean replay and type/schema parity. This bounded step adds two native mixed S01 ACK-interruption cases: held LOC+175 plus allowed LOC+172, durable receipt/series/contract before ACK failure, only the point ACK on retry, unchanged held row and no meter/billing/completion. Scripts/test TypeScript, scoped lint, diff and frozen 121/231 integrity pass locally; PostgreSQL/Docker are unavailable locally and exact-head native is pending. No product rule changes. Historical 203/505 issuer mapping, continuous authentic/deleted originals and lawful retention, positive LOC+175 registry/mandate/sink/ACK owner, and complete E035 history/deletion remain external blockers. Earlier Storage failures have unknown cause; #421 draft, #310 untouched, market traffic blocked.
+
+Next: publish by fast-forward only if remote remains `d24ccc85`, inspect first real CI/native outcome on the new exact head, update PR checkpoint and review threads/full diff. If the native proof fails, diagnose that first failure before product change.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 native mixed held-source receipt assertion
 
 One active item: publish the test-only correction after `8f3f7a15` OPS native 396/398 first failure. Both mixed S01 dispositions were held with no final response/series; one immutable source binding receipt is required by the private RPC before disposition. Corrected assertion expects one receipt and verifies its unchanged retry; zero contracts/series/market ACK/business effects remain required. No product code/SQL changed. Run scripts TypeScript, scoped lint, diff and inventory locally; then fast-forward publish, require 398/398 and clean replay/types/schema and five workflows on the new exact head. No merge, traffic or #310 edit.

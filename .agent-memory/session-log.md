@@ -1,3 +1,11 @@
+## 2026-09-28 — #421 native ACK-interruption candidate
+
+Draft #421 last verified `d24ccc85` passed five workflows and OPS native 398/398, clean replay and type/schema parity. This bounded step adds two native mixed S01 ACK-interruption cases: held LOC+175 plus allowed LOC+172, durable receipt/series/contract before ACK failure, only the point ACK on retry, unchanged held row and no meter/billing/completion. Scripts/test TypeScript, scoped lint, diff and frozen 121/231 integrity pass locally; PostgreSQL/Docker are unavailable locally and exact-head native is pending. No product rule changes. Historical 203/505 issuer mapping, continuous authentic/deleted originals and lawful retention, positive LOC+175 registry/mandate/sink/ACK owner, and complete E035 history/deletion remain external blockers. Earlier Storage failures have unknown cause; #421 draft, #310 untouched, market traffic blocked.
+
+Next: fast-forward the verified candidate, inspect first actual native/CI failure or record exact-head pass, then update the same PR and review its full diff and threads.
+
+Older entries below are historical.
+
 ## 2026-09-28 — #421 native 396/398 mixed S01 diagnosis
 
 Published `8f3f7a15`, all four ordinary workflows and OPS verify/quality green. OPS clean replay native failed two new mixed S01 tests at source receipt count: expected 0, actual 1, after both durable ACK rows were held/no final response/series. Private RPC inserts one immutable raw-hash/membership source binding for held batches; earlier mixed negative controls already expect it. Corrected test asserts one receipt and unchanged full receipt on retry, retaining zero contract/series/market ACK/effects. No product code/SQL change, no blind retry or flake label. Native remainder and generated parity await a new exact head. External issuer/history/retention/positive object/E035 gates remain; no traffic, merge or #310 change.
