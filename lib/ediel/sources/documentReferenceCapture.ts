@@ -33,7 +33,20 @@ export async function captureDocumentReference(input:DocumentReferenceInput):Pro
   const observation=attempt.eligible===true
    ?await downloadAndVerifyCustomerContractDocumentBounded(doc as CustomerContractDocumentRow)
    :{status:'unavailable',reason:'unresolved_link',startedAt:null,completedAt:null,byteCount:0}
-  const outcome=await rpc('gridex_observe_document_reference_v1',{p_attempt_id:attemptId,p_actor_user_id:input.actorUserId,p_company_id:input.companyId,p_environment:input.environment,p_observation:observation})
+  // JavaScript Date serializes milliseconds; the committed attempt timestamp
+  // retains PostgreSQL microseconds. A read started in that same millisecond
+  // can otherwise appear up to 999 microseconds before the attempt. Bound the
+  // representation loss to one millisecond; never rescue an actually early read.
+  const recordedAt=parseSourceReceiptInstant(attempt.recordedAt)!
+  const startedAt=observation.startedAt?parseSourceReceiptInstant(observation.startedAt):null
+  const completedAt=observation.completedAt?parseSourceReceiptInstant(observation.completedAt):null
+  const precisionLoss=startedAt!==null&&completedAt!==null&&startedAt<recordedAt
+   &&recordedAt-startedAt<BigInt(1000)&&completedAt>=startedAt
+  const boundedObservation=precisionLoss?{
+   ...observation,startedAt:attempt.recordedAt,
+   completedAt:completedAt<recordedAt?attempt.recordedAt:observation.completedAt,
+  }:observation
+  const outcome=await rpc('gridex_observe_document_reference_v1',{p_attempt_id:attemptId,p_actor_user_id:input.actorUserId,p_company_id:input.companyId,p_environment:input.environment,p_observation:boundedObservation})
   if(outcome.attemptId!==attemptId||!isEvidenceUuid(outcome.outcomeId)||!hash(outcome.factsHash)
    ||(observation.status==='unavailable'&&outcome.status==='verified_at_observation')
    ||!['verified_at_observation','unavailable'].includes(String(outcome.status)))throw Error('invalid_outcome')
