@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 late second LOC+172 candidate
+
+Last verified remote #421 `2c4d65e095349761511943c42840c451bacaaeda`: all five workflows green; OPS native 394/394, replay/types/schema parity. Local RED reproduced false point/E035 history/positive E66 and S01 handling when a second LOC+172 occurs after SEQ in the same physical IDE. A forward private selector plus TypeScript per-IDE refusal and actual consumer/native retry tests are locally green: 82/82 focused, three TypeScript projects, migration/type checks and scoped lint. Native four new cases, clean replay and five workflows await a new exact head. Main `53bf989b`; draft unmerged, no traffic, #310 untouched. Trusted sender/agent mapping, continuous authentic/deleted UTILTS corpus, legal retention, positive object owner/mandate/sink and complete E035 history remain unproved.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 held retry correction candidate
 
 Remote draft #421 `b99e5f36137f9a88666f122830f82013d47a4b6c`: Ediel `36438855172`, browser `36438855374`, Full E2E `36438855244`, tenant `36438855583` SUCCESS. OPS `36438855705` verify/quality SUCCESS, clean replay FAILED at native 386/387. First failure is actual S01/175 held retry mutating ACK reservation `updated_at`; direct forged positive/tenant and clean point cases passed. New forward private-function correction avoids rewriting the identical unfinalized hold under the source lock. Local migration/type checks, scripts TypeScript and spec inventory pass; native 387/387, replay and parity require new exact-head CI. No historical 203/505, positive 175, E035 retention or market activation closure. Main `53bf989b`; draft unmerged, traffic blocked, #310 untouched.

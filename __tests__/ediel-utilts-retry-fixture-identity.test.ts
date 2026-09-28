@@ -17,3 +17,10 @@ it('does not treat an IDE with LOC+175 after its first SEQ as an ordinary point 
     .replace("UNT+19+1'", "UNT+20+1'")
   expect(supportedUtiltsConsumptionIdentity(raw, 0)).toBeNull()
 })
+
+it('does not select a point from an IDE with another LOC+172 after SEQ', () => {
+  const raw = energyHandoffMessage().raw_payload!
+    .replace("SEQ++1'", "SEQ++1'\nLOC+172+735999260731000014::9'")
+    .replace("UNT+19+1'", "UNT+20+1'")
+  expect(supportedUtiltsConsumptionIdentity(raw, 0)).toBeNull()
+})

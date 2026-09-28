@@ -1,3 +1,9 @@
+## 2026-09-28 — #421 physical late second LOC+172 correction
+
+Verified remote `2c4d65e` and five prior workflow receipts with native 394/394. U25-A-4 SG5/209 and physical IDE boundary exposed a real post-SEQ duplicate point authorization flaw in identity, E035 historical source scope and actual E66/S01 positive consumption. Tests first failed on old code; TypeScript qualification and private SQL point selector now hold the ambiguous IDE, preserve clean siblings and avoid fabricated ERC. Added forged service retry and both mixed S01 order native cases. Local 82/82, three TS projects, migration/type/full static checks, lint, frozen 121/231 pass; native exact-head replay pending. Owner/issuer/history/retention gates remain open, draft unmerged, traffic blocked and #310 untouched. Next publish fast-forward and inspect first CI failure.
+
+Older entries below are historical.
+
 ## 2026-09-28 — #421 held retry native failure and forward correction
 
 Published `b99e5f` four workflows succeeded, OPS `36438855705` native 386/387 failed only the real S01/175 held retry: ACK reservation timestamp changed. The direct forged accepted physical object fence, tenant and clean point cases passed. Created private forward `20260928181500` with exact existing unfinalized hold/no-response/no-series/issue-code no-op under lock, preserving changed-assessment upgrade. Local migration/types, scripts TS, spec inventory, diff pass; publish and exact-head native/replay/parity pending. No blind rerun or market traffic; #310 untouched.

@@ -1,3 +1,9 @@
+## Verified bounded late-175 fence and local late-172 correction — 2026-09-28 #421
+
+Exact `2c4d65e` passed five workflows and OPS native 394/394, clean replay and public types/schema parity. This verifies only the late-175 refusal. For the next physical LOC+172 defect, helper/E035/E66/S01 actual RED precedes the correction; 82/82 focused ordinary tests, three TypeScript projects, migrations/types, scoped lint and diff check pass locally. Native and exact-head CI are pending; no historical 203/505, positive 175, full E035 history or traffic claim.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## PR-verified bounded mixed-object fence — 2026-09-28 #421
 
 Exact head `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` passed four mandatory workflows plus tenant integrity; OPS native 385/385 included physical LOC+175 before/after LOC+172, no receipt/ACK/series/effects on two attempts and clean LOC+172 positive. Replay, generated types `36e98937...` and schema `08ad0f03...` matched. This verifies only the private point-sink hold, not the sender-wide 203/505 or positive LOC175 capabilities. Audit review correction pending final head.

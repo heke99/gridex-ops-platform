@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 late second LOC+172 physical IDE fence
+
+One active item: publish the test-first private and application refusal for a second LOC+172 after SEQ in the same IDE. The prior exact `2c4d65e` is native 394/394 and five-workflow green. Local 82/82 focused tests, app/tests/scripts TypeScript, migration/type checks, 121/231 integrity, scoped lint and diff check pass. Native E66, S01 and two mixed S01 orders await exact-head CI. Next: commit/push one fast-forward code/evidence checkpoint, inspect first CI failure or verify native 398/398 plus clean replay/types/schema and all five workflows; review entire PR diff and threads. Do not merge before external issuer/history/retention, positive object and E035 gates; keep traffic blocked and #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 identical held reservation retry
 
 One active item: publish `20260928181500` forward private SQL fix to the same draft. Published `b99e5f` failed OPS native 386/387 because identical `internal_review`/`none` retry re-upserted ACK `updated_at`; four other workflows passed. The existing real-consumer native test supplies the negative assertion; changed assessments retain the earlier upgrade path. Local migration/types, scripts TypeScript and spec inventory pass. Next inspect full diff, fast-forward publish, require five exact-head workflows, native 387/387, clean replay and generated parity, and update PR evidence. Keep package draft until issuer/history/retention and positive object ownership are proven. No traffic or #310 action.

@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #421 late second LOC+172 native gate
+
+New candidate has local RED/GREEN and static gates, but its private database refusal and four new native cases require exact-head clean replay; no local PostgreSQL/Docker. Historical 203/505 require a trusted physical NAD+MS issuer-to-tenant and UNB representative record with intervals, authentic pre-ledger/deleted originals and attested continuous period, plus a legal raw/minimal-identity retention/erasure decision. Positive LOC+175 requires versioned object registry, actor/mandate, distinct durable sink and final ACK/retry owner. E035 pre-epoch/deleted transition coverage and lawful retention remain absent; old Storage failures have unknown cause. Draft unmerged, traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 held retry correction awaits native
 
 `b99e5f` OPS native 386/387 found identical held S01/175 ACK reservation timestamp mutation; clean replay and generated parity did not complete. Private forward `20260928181500` is local pending publication and exact-head native proof. Historical 203/505 still need trusted physical NAD+MS legal sender-to-tenant/representative attribution, authentic pre-ledger and deleted originals, and lawful retention. Positive LOC+175 needs versioned object registry, legal actor/mandate, distinct sink and retry/final ACK owner. E035 historical/deletion coverage and retention are unproved; old Storage delete/before_witness root remains unknown. Draft unmerged, market traffic blocked, #310 untouched.

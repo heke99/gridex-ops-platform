@@ -34,22 +34,32 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
     const unowned=runtime.transactionDispositions.flatMap((disposition,index)=>
       disposition.disposition==='accepted'&&runtime.facts.transactions[index]?.regulatingObjectPresent
         ?[disposition.transactionId]:[])
-    if(!unowned.length)return result
-    const held=new Set(unowned)
+    const unsupportedPoint=runtime.transactionDispositions.flatMap((disposition,index)=>{
+      if(disposition.disposition!=='accepted'||runtime.facts.transactions[index]?.regulatingObjectPresent)return []
+      const identity=supportedUtiltsConsumptionIdentity(message.raw_payload??'',index)
+      return !identity||identity.transactionId!==disposition.transactionId?[disposition.transactionId]:[]
+    })
+    if(!unowned.length&&!unsupportedPoint.length)return result
+    const held=new Set([...unowned,...unsupportedPoint]),unownedIds=new Set(unowned)
     const dispositions=runtime.transactionDispositions.map(disposition=>disposition.disposition==='accepted'&&held.has(disposition.transactionId)
-      ?{...disposition,disposition:'internal_review' as const,responseType:'none' as const,issueCodes:[...disposition.issueCodes,'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE']}:disposition)
-    result.evidence={...result.evidence,owner:'regulating-object-ownership-v1',status:'evaluated',comparisons:unowned.map(transactionId=>({
-      transactionId,status:'unavailable',reason:'regulating_object_owner_unavailable',codes:[],selected:[],
+      ?{...disposition,disposition:'internal_review' as const,responseType:'none' as const,
+        issueCodes:[...disposition.issueCodes,unownedIds.has(disposition.transactionId)?'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE':'UTILTS_STRUCTURE_UNAVAILABLE']}:disposition)
+    result.evidence={...result.evidence,owner:unsupportedPoint.length?'received-structure-comparison-v1':'regulating-object-ownership-v1',status:'evaluated',comparisons:[...held].map(transactionId=>({
+      transactionId,status:'unavailable',reason:unownedIds.has(transactionId)?'regulating_object_owner_unavailable':'utilts_consumption_identity_unsupported',codes:[],selected:[],
     }))}
     result.hasInternalReview=true
     result.runtime={...runtime,transactionDispositions:dispositions,
       validation:{...runtime.validation,ok:false,classification:runtime.validation.classification==='accepted'?'internal_review':runtime.validation.classification,
-        issues:[...runtime.validation.issues,...unowned.map(transactionId=>({severity:'warning' as const,kind:'functional' as const,
-          code:'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE',title:'Reglerobjektets ägare saknas',
-          description:'Juridisk aktör, mandat och beständig reglerobjektsägare är inte verifierade. Ingen nationell felkod har skapats.',
+        issues:[...runtime.validation.issues,...[...held].map(transactionId=>({severity:'warning' as const,kind:'functional' as const,
+          code:unownedIds.has(transactionId)?'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE':'UTILTS_STRUCTURE_UNAVAILABLE',
+          title:unownedIds.has(transactionId)?'Reglerobjektets ägare saknas':'Fysisk punktidentitet kan inte fastställas',
+          description:unownedIds.has(transactionId)
+            ?'Juridisk aktör, mandat och beständig reglerobjektsägare är inte verifierade. Ingen nationell felkod har skapats.'
+            :'En entydig anläggning kan inte fastställas i den fysiska transaktionen. Ingen nationell felkod har skapats.',
           referenceNumber:transactionId,lineItemReference:transactionId}))]},
       ackPlan:{...runtime.ackPlan,...(dispositions.every(disposition=>disposition.disposition==='internal_review')?{shouldSendAperak:false,aperakOutcome:null}:{}),
-        reason:'Reglerobjektets juridiska ägare och mandat är inte verifierade.'}}
+        reason:unsupportedPoint.length&&unowned.length?'Reglerobjektets ägare och fysisk punktidentitet kan inte fastställas för alla transaktioner.'
+          :unsupportedPoint.length?'Fysisk punktidentitet kan inte fastställas för en eller flera transaktioner.':'Reglerobjektets juridiska ägare och mandat är inte verifierade.'}}
     return result
   }
   if(!['E30','E66','S07'].includes(message.message_code??''))return result

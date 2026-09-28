@@ -125,6 +125,16 @@ it('the actual inbound processor cannot link point history when LOC+175 occurs a
   expect(io.from).not.toHaveBeenCalled()
   expect(io.ingest).not.toHaveBeenCalled()
 })
+it('the actual inbound processor cannot link point history when another LOC+172 occurs after SEQ', async () => {
+  incoming.raw_payload = incoming.raw_payload!
+    .replace("SEQ++1'", `SEQ++1'\nLOC+172+${secondPoint}::9'`)
+    .replace("UNT+35+1'", "UNT+36+1'")
+  await execute()
+  expect(report().status).toBe('not_requested')
+  expect(io.scoped).not.toHaveBeenCalled()
+  expect(io.from).not.toHaveBeenCalled()
+  expect(io.ingest).not.toHaveBeenCalled()
+})
 it('rejects uppercase encoding of an otherwise correct source seal', async () => {
   sourceRows[0].immutable_payload_hash = sourceRows[0].immutable_payload_hash.toUpperCase()
   await execute(); expect(report().sources).toEqual([])

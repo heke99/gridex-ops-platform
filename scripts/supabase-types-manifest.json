@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260928201500_utilts_late_175_physical_ide_fence.sql",
-  "latest_migration_schema_effect": "Forward migration replaces only two existing private gridex_utilts_binding selector bodies. A LOC+175 anywhere before the next physical IDE/UNT prevents point selection and is recognized by the ownerless-object refusal even when misplaced after SEQ. Public signatures, ownership and grants remain unchanged; the canonical snapshot covers public and gridex_received_sources, not the private binding schema. Generated public Database types retain their previous SHA256. Exact-head OPS native replay, type generation and canonical schema comparison must confirm this before acceptance."
+  "latest_migration": "20260928215000_utilts_late_172_physical_ide_fence.sql",
+  "latest_migration_schema_effect": "Forward migration replaces only the existing private gridex_utilts_binding.supported_point_v1 body. A second LOC+172 anywhere in the same physical IDE, including after SEQ, prevents point selection; the prior LOC+175 refusal remains. Public signatures, ownership and grants remain unchanged; the canonical snapshot covers public and gridex_received_sources, not the private binding schema. Generated public Database types retain their previous SHA256. Exact-head OPS native replay, type generation and canonical schema comparison must confirm this before acceptance."
 }

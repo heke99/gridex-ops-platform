@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 late second LOC+172 candidate
+
+1. Publish the test-first TypeScript and private forward migration with four native cases and updated capability/source checkpoint. Remote HEAD must still equal local base `2c4d65e`; never force push. Local 82/82, three TypeScript projects, migration/type, lint and 121/231 inventory gates pass.
+2. Inspect first actual failure on exact new head. Require native 398/398, clean replay, generated types/schema and all five workflows; review whole diff/review threads and record PR exact SHA and outcomes. No blind reruns.
+3. Keep #421 draft and market traffic blocked pending legal sender/agent record, continuous original/deletion coverage, lawful retention, positive object owner/mandate/sink/ACK and E035 prior history. #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 held retry correction
 
 1. Review and publish private forward `20260928181500` plus checksum/types manifest and exact failure checkpoint; no published migration rewrite. Local migration/type, scripts TS and 121/231 inventory checks pass.

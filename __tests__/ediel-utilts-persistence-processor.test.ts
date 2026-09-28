@@ -385,6 +385,68 @@ it('holds E66 point consumption when a LOC+175 appears after SEQ in the same phy
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
+it('holds E66 point consumption when a second LOC+172 appears after SEQ in the same physical IDE', async () => {
+  const message = incoming(false, false, '2026-10-01')
+  message.raw_payload = message.raw_payload!
+    .replace("SEQ++1'", "SEQ++1'\nLOC+172+735999260731000014::9'")
+    .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
+  io.get.mockResolvedValue(message); results = undefined
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
+  expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
+  expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+it('holds an S01 point IDE with a second LOC+172 after SEQ before a market ACK', async () => {
+  const message = incoming(false, false, '2026-10-01')
+  message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
+  message.customer_id = null; message.site_id = null; message.metering_point_id = null
+  message.raw_payload = message.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+    .replace("SEQ++1'", "SEQ++1'\nLOC+172+735999260731000014::9'")
+    .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
+  io.get.mockResolvedValue(message); results = undefined
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
+  expect(result.internalReviewRequired).toBe(true)
+  expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
+  expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+it.each(['object-first', 'point-first'] as const)('holds both S01 %s object and late second-LOC+172 point IDEs without a market ACK', async order => {
+  const message = incoming(false, true, '2026-10-01')
+  message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
+  message.customer_id = null; message.site_id = null; message.metering_point_id = null
+  const lines = message.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S').split('\n')
+  const ide = lines.flatMap((line, index) => line.startsWith('IDE+24+') ? [index] : [])
+  const objectIndex = order === 'object-first' ? 0 : 1
+  const pointIndex = 1 - objectIndex
+  const objectLoc = lines.findIndex((line, index) => index > ide[objectIndex] && index < (ide[objectIndex + 1] ?? lines.length)
+    && line.startsWith('LOC+172+'))
+  lines[objectLoc] = lines[objectLoc].replace('LOC+172+', 'LOC+175+')
+  const pointSeq = lines.findIndex((line, index) => index > ide[pointIndex] && line.startsWith('SEQ+'))
+  lines.splice(pointSeq + 1, 0, "LOC+172+735999260731000014::9'")
+  const unt = lines.findIndex(line => line.startsWith('UNT+'))
+  const unh = lines.findIndex(line => line.startsWith('UNH+'))
+  lines[unt] = `UNT+${unt - unh + 1}+1'`
+  message.raw_payload = lines.join('\n')
+  expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition)).toEqual(['accepted', 'accepted'])
+  io.get.mockResolvedValue(message); results = undefined
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  expect(result.internalReviewRequired).toBe(true)
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
+  expect(persisted).toMatchObject([
+    { disposition: 'internal_review', responseType: 'none', quantities: [] },
+    { disposition: 'internal_review', responseType: 'none', quantities: [] },
+  ])
+  expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling eligible with a valid %s regulating-object IDE', async order => {
   const message = incoming(false, true, '2026-10-01')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'

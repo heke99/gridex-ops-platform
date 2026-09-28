@@ -1,3 +1,12 @@
+## Current — 2026-09-28 #421 late second LOC+172 candidate
+
+| Head | Check | Result and limit |
+| --- | --- | --- |
+| `2c4d65e095349761511943c42840c451bacaaeda` | Ediel `36480846526`, browser `36480846370`, Full E2E `36480846275`, tenant `36480846292`, OPS `36480846598` | All SUCCESS; native 394/394, clean replay, generated types/schema parity. This precedes the new LOC+172 correction. |
+| Local unpublished candidate | Identity/E035/E66/S01 RED then GREEN; 82/82 focused, app/tests/scripts TypeScript, `db:migrations:check`, `db:types:check`, scoped ESLint, 121/231 integrity, diff check | Native four new cases, exact-head 398/398, replay/types/schema and five workflows pending. No positive object, historical ERC42 or market activation. |
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 S01/175 retry defect and correction
 
 | Exact head | Check | Result and limit |

@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T20:38:58Z",
+  "updated_at": "2026-09-28T21:57:50Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 late LOC+175 physical IDE point/history/persistent refusal; owner gates still blocked",
+  "active_item": "F3 #421 late second LOC+172 physical IDE point/history/S01-E66 refusal; external owner gates still blocked",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish corrected native market-ACK assertion and factual CI/UTC evidence on same draft only after remote 97342339 check; require native 394/394, clean replay, types/schema and five exact-head workflows. No product SQL change. Historical 203/505, positive 175 and E035 history await external records; no traffic or #310.",
+  "next_action": "Publish test-first late second-LOC+172 correction after checking remote 2c4d65e; require four new native cases, 398/398, clean replay, types/schema and five exact-head workflows. Review full diff and PR threads, update same draft checkpoint. Historical 203/505, positive 175 and E035 history await external records; no traffic or #310.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "97342339f7cd7ee765247fe890d0f4dd2d2596e6",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -961,18 +961,25 @@
     "frozen_totals": "121 cards and 231 contracts; no new percentage",
     "market_activated": false
   },
-  "active_pr_head_before_pending_commit": "b99e5f36137f9a88666f122830f82013d47a4b6c",
-  "active_candidate_evidence": "Four workflows SUCCESS on b99e5f; OPS 36438855705 native 386/387, actual held retry updated_at changed. Forward 20260928181500 private exact hold no-op, local migrations/types/scripts TS/spec inventory/diff PASS; new head native/replay/parity pending. 203/505, positive175, E035 remain blocked; traffic held.",
+  "active_pr_head_before_pending_commit": "2c4d65e095349761511943c42840c451bacaaeda",
+  "active_candidate_evidence": "Physical second LOC+172 after SEQ helper/E035/E66/S01 RED then GREEN; actual mixed S01 both orders held; four new native cases pending. Local 82/82, three TS projects, migrations/types, lint, 121/231 integrity and diff PASS. Prior exact head 2c4d65e native 394/394 and five workflows green. Historical 203/505, positive175, E035 remain blocked; traffic held.",
   "active_pr_latest_ci": {
-    "head": "fb7573b39be7989abc9fce41d905ef62b5045fba",
-    "ediel": 36457353485,
-    "browser": 36457353533,
-    "full_e2e": 36457353481,
-    "tenant": 36457353551,
-    "ops": 36457353504,
-    "native": "SUCCESS 389/389; both mixed S01 physical orders and stable retry; E035 prior causes not isolated",
+    "head": "2c4d65e095349761511943c42840c451bacaaeda",
+    "ediel": 36480846526,
+    "browser": 36480846370,
+    "full_e2e": 36480846275,
+    "tenant": 36480846292,
+    "ops": 36480846598,
+    "native": "SUCCESS 394/394; late LOC+175 bounded refusal and stable retry; E035 prior causes not isolated",
     "replay_schema_types": "SUCCESS types SHA256 36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d and schema 08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6",
-    "candidate_forward": "No new product SQL; synthetic native trigger probes mixed S01 storage rollback and unchanged retry",
-    "candidate_ci": "PENDING_MIXED_S01_ROLLBACK_NATIVE_HEAD"
+    "candidate_forward": "20260928215000 private supported_point_v1 post-SEQ duplicate LOC+172 refusal; TypeScript E035/E66/S01 fence",
+    "candidate_ci": "PENDING_LATE_172_NATIVE_398_AND_EXACT_HEAD"
+  },
+  "pr421_late172_candidate": {
+    "base_verified_head": "2c4d65e095349761511943c42840c451bacaaeda",
+    "migration": "20260928215000_utilts_late_172_physical_ide_fence.sql",
+    "local": "RED helper/E035/E66/S01 then GREEN 82/82; app/tests/scripts TS, full static migrations/types, lint, 121/231 integrity, diff check PASS",
+    "native": "Four new cases pending exact-head clean replay; PostgreSQL/Docker unavailable locally",
+    "scope": "physical IDE point/history/positive-sink refusal only; no historical ERC42, positive LOC+175, full E035 or market activation"
   }
 }
