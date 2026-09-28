@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 package decision blockers
+
+Mixed LOC point-sink fence is native PR-verified on `59d9419e`, but the audit correction has not yet been pushed/checked on a final head. Receiver tenant proof does not authenticate physical incoming NAD+MS; authentic pre-ledger/deleted originals and lawful retention are missing for temporal BGM203 and separate IDE505. Positive LOC175 lacks versioned object, actor/mandate and sink. E035 old Storage delete/before-witness root remains unknown, as do historical coverage/retention. No staging/TGT/AGT/counterparty/live send or market activation; #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 native and historical owner gates
 
 Mixed LOC+172/LOC+175 SQL fix awaits draft #421 exact-head native, replay and parity; no local Docker/psql. Receiver tenant identity cannot prove incoming NAD+MS legal sender; authentic pre-ledger/deleted originals and lawful retention remain absent for temporal BGM203 and distinct IDE505. Positive LOC175 requires versioned regulating-object owner, actor/mandate and sink. E035 prior delete/before-witness failure remains causally unknown. Keep draft, traffic blocked and #310 excluded.

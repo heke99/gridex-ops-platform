@@ -1,3 +1,10 @@
+## Current — 2026-09-28 #421 final exact-head review
+
+1. Publish factual audit/matrix correction after native 385/385 on `59d9419e`; no production code change. Require all applicable final exact-head jobs without manually rerunning identical code.
+2. Review the whole PR, threads, branch/main heads and exact final checkpoint. Retain draft because shared historical legal sender/original history/retention, positive object owner/mandate and E035 remain unproved; do not merge prematurely.
+3. Next source-backed step is the trusted physical NAD+MS-to-tenant/representative and authentic pre-ledger/deleted original corpus/retention decision for distinct 203 and 505 atomic namespaces. Continue object registry/mandate and E035 retention independently inside this package only when evidence is supplied; traffic stays held.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 bounded mixed-object fence
 
 1. Complete one private SQL forward migration and two native direct-RPC cases for an IDE mixing LOC+172/175, preserving a clean LOC+172 positive control and zero receipt/ACK/series/effects on two refused attempts. Local ordinary/static checks pass.

@@ -1,3 +1,8 @@
+## PR-verified bounded mixed-object fence — 2026-09-28 #421
+
+Exact head `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` passed four mandatory workflows plus tenant integrity; OPS native 385/385 included physical LOC+175 before/after LOC+172, no receipt/ACK/series/effects on two attempts and clean LOC+172 positive. Replay, generated types `36e98937...` and schema `08ad0f03...` matched. This verifies only the private point-sink hold, not the sender-wide 203/505 or positive LOC175 capabilities. Audit review correction pending final head.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Verified local boundary analysis — 2026-09-28 #421
 
 The current TypeScript consumption identity rejects mixed LOC+172/175 in one IDE, while private SQL selected the point. Original and forward SQL definitions were compared mechanically: only the new within-IDE 175 guard differs. The forward migration and two native cases are authored, but native execution and PR verification remain pending. Local ordinary 78/78, script types, migration/type integrity, scoped ESLint and diff check passed. No source-wide historical duplicate or positive regulating-object implementation is claimed.

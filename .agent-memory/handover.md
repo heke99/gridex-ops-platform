@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 native 385/385 and review correction
+
+Head `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` passed all applicable workflows, OPS native 385/385, replay and exact generated type/schema parity. GitHub PR remains open/draft; full 21-file diff reviewed, no review threads or reviews. Factual audit/matrix correction is local pending publication, then final exact-head CI. Historical legal NAD sender mapping/corpus/retention and separate 203/505 reservations, positive LOC175 actor/mandate/object/sink and E035 history remain unproved. No main merge or market activation; #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 mixed-object guard candidate
 
 Published draft #421 head `da1026eb53df1229a1c9750ce6d1409b5354a77f` passed four workflows and OPS native 383/383. Local forward SQL migration changes only private supported-point body and adds two native direct service-RPC cases plus clean-point control. Ordinary 78/78, script types, migration/type integrity, lint and diff pass. Local Docker/psql absent; require exact-head OPS native replay and type/schema parity. Push/PR checkpoint pending. Legal sender/203/505 and E035 blockers remain; #310 untouched and traffic held.

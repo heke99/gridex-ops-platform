@@ -1,3 +1,8 @@
+## 2026-09-28 — #421 native result and full diff review
+
+Published non-force-forward to draft #421 `59d9419e` and reconstructed its exact unsigned Git object locally, leaving branch clean and tracking matching remote. Ediel/browser/Full E2E/tenant integrity/OPS all green; native 385/385, clean replay, generated types/schema parity. Full 21-file PR diff and zero threads/reviews reviewed. Found stale no-migration audit sentence and pending status after native acceptance; factual audit/matrix correction local awaiting forward commit and final exact-head CI. Package historical issuer/history, regulating-object owner and E035 gates remain open, traffic held and #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## 2026-09-28 — #421 mixed LOC+175 sink boundary
 
 Actual remote draft head `da1026eb` and main `53bf989b` were checked; previous exact-head four CI runs were green. Traced physical NAD+MS against receiver tenant identity and existing SQL/TS consumption; found private SQL can select LOC+172 when the same IDE also has LOC+175. Created a forward private-function fence using CLI 2.101.0, two native direct-RPC negative cases and a clean point control, and documented unresolved historical sender/historical-corpus owner. Local 78/78 ordinary, scripts typecheck, migration/type integrity, scoped lint and diff pass. No local native database. Publish candidate and inspect exact-head CI next; no market traffic or PR310 action.

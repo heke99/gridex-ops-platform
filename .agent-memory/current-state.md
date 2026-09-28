@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 mixed-object native gate passed
+
+Draft #421 exact head `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` passed Ediel `36426566433`, browser `36426566460`, Full E2E `36426566380`, tenant integrity `36426566448`, and OPS `36426566523` including verify, quality and clean replay. Native 385/385 covers both mixed physical LOC orders, two stable refusals and clean point; generated types `36e98937...` and schema `08ad0f03...` matched. Review found one stale audit sentence and matrix pending status; local documentation correction is unpushed and needs exact-head checks when published. Historical 203/505, positive LOC175, E035 history/retention and Storage root remain open, so draft unmerged, traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 mixed LOC+175 SQL boundary candidate
 
 Remote draft #421 exact head `da1026eb53df1229a1c9750ce6d1409b5354a77f` passed four workflows, OPS native 383/383, replay/types/schema. A local unpushed candidate fences private `supported_point_v1`: TS rejects a single IDE mixing LOC+172 and LOC+175, while the prior SQL accepted a point. One forward migration, two direct native-RPC cases, and positive clean-point control added. Local ordinary 78/78, script types, migration/type gates and scoped lint pass; native and new exact-head CI pending. No historical 203/505 or positive LOC175 authority, no traffic, #310 untouched.

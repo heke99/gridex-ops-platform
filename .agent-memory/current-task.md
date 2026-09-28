@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 final review checkpoint
+
+One active item: publish the bounded audit/matrix correction found in full diff review. Published `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` is fully green: Ediel `36426566433`, browser `36426566460`, Full E2E `36426566380`, tenant integrity `36426566448`, OPS `36426566523` native 385/385 and generated type/schema parity. Current correction removes the audit's obsolete no-migration claim and marks only the mixed-object fence PR-verified. Next: commit/push this factual checkpoint to same draft, verify exact final head CI and review/remote status. Keep historical BGM203, IDE505, positive 175 and E035 blocked until owners/history/mandate/retention exist; no merge, traffic or #310 change.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 private UTILTS mixed-object sink fence
 
 Single active item: publish the LOC+172/LOC+175 private SQL guard to draft #421. Remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`, last green PR head `da1026eb53df1229a1c9750ce6d1409b5354a77f`. The forward migration `20260928130148`, native service-RPC negative/positive cases, audit and manifests are unpushed. Local 78/78, script types, migration/types gates and lint pass. Next: inspect diff, commit/push to same draft; inspect first real native/replay/type/schema and other exact-head CI failures, then review diff/threads and retain draft for shared historical sender, retention, E035 and regulating-object ownership decisions. Traffic blocked, no staging or #310 work.

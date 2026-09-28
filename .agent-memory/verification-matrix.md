@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 native exact-head receipt
+
+| Exact head | Check | Result and bound |
+| --- | --- | --- |
+| `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` | Ediel `36426566433`, browser `36426566460`, Full E2E `36426566380`, tenant integrity `36426566448`, OPS `36426566523` | All SUCCESS. OPS verify/quality/replay; native 385/385 including two new mixed-object cases; generated types `36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d`, schema `08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6` matched. No package completion. |
+| Local review correction, unpushed | Audit no-migration contradiction removed; matrix marks only bounded fence PR-verified | Documentation final-head CI pending; source, SQL and test unchanged. |
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 mixed-object candidate
 
 | Head | Check | Result and limit |
