@@ -51,7 +51,7 @@ T49,Tomdatabasreplay och uppgradering bevarar relationer och semantik.,P5/P8,NOT
 T50,"Äldre importer, actions och RPC kan inte kringgå nya regler.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T51,Loggar innehåller inte hemligheter eller onödiga personuppgifter.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T52,"Rollhöjning, återställning och nyckelutgivning har rätt skydd.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T53,Supportärenden kan pagineras fram även bland många andra ärenden.,P5/P8,PARTIAL,__tests__/tenant-support-list-pagination.test.ts (mockad PostgREST-gräns; RED/GREEN),"Native databas, API/UI-konsumenter och stabil sidindelning vid samtidiga inserts återstår; ingen full acceptans."
+T53,Supportärenden kan pagineras fram även bland många andra ärenden.,P5/P8,PARTIAL,__tests__/tenant-support-list-pagination.test.ts (mockad RED/GREEN) + scripts/ediel-case-view-native.test.ts (CI-grind väntar),"Native clean-replay-resultat, API/UI-konsumenter och stabil sidindelning vid samtidiga inserts återstår; ingen full acceptans."
 T54,Samma sub eller mejl hos olika identitetsleverantörer blandas inte.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T55,Backup/restore och incidentprocedur verifieras i tillåten isolering.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 U01,Samtliga OPS-sidor är inventerade och klassificerade.,P5/P7,PARTIAL,manifest.json + JSONL (statiska kandidater),"Importerade komponenter utanför scope, rolldynamik, varje faktisk åtgärd och browserbevis återstår."

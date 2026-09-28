@@ -152,11 +152,15 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const foreignList = await listCustomerCases({ companyId: companyB, source: 'ediel_inbound_state_machine', offset: 0, limit: 201 })
   expect(foreignList).toHaveLength(1)
   expect(foreignList[0]).toMatchObject({ id: foreign.id, company_id: companyB, customer_id: customerB, customer_name: 'Synthetic B', customer_email: 'case-b@example.invalid', customer_number: `CASE-B-${tag}` })
-  // Exercise the actual default-list Support consumer against the same schema.
-  // The newest Ediel case consumes one of the unchanged 200 default-list slots.
+  // Support filtering must happen before the database page boundary. The
+  // Ediel cases and 201 support cases share this tenant, so the second page
+  // must still expose the last support case without duplicating the first.
   const supportList = await listTenantSupportCases({ companyId: companyA, limit: 200 })
-  expect(supportList).toHaveLength(199)
-  for (const row of supportList) expect(row).toMatchObject({ source: 'tenant_support_fixture', company_id: companyA, customer_id: customerA, customer_name: 'Synthetic A', customer_email: 'case-a@example.invalid', customer_number: `CASE-A-${tag}` })
+  const supportPageTwo = await listTenantSupportCases({ companyId: companyA, limit: 200, offset: 200 })
+  expect(supportList).toHaveLength(200)
+  expect(supportPageTwo).toHaveLength(1)
+  expect(new Set([...supportList, ...supportPageTwo].map((row) => row.id)).size).toBe(201)
+  for (const row of [...supportList, ...supportPageTwo]) expect(row).toMatchObject({ source: 'tenant_support_fixture', company_id: companyA, customer_id: customerA, customer_name: 'Synthetic A', customer_email: 'case-a@example.invalid', customer_number: `CASE-A-${tag}` })
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_cases WHERE company_id=${quote(companyA)} AND created_at>(SELECT created_at FROM public.customer_cases WHERE id=${quote(old.id)})`)).toBeGreaterThan(200)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id IN (${quote(companyA)},${quote(companyB)})`)).toBe(0)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.billing_underlays WHERE company_id IN (${quote(companyA)},${quote(companyB)})`)).toBe(0)
