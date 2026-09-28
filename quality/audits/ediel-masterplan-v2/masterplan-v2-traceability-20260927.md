@@ -1,3 +1,7 @@
+## Uppföljning 2026-09-28: fält202 källbundet svar efter första CI-fel
+
+Första #420-head `a820ff0e` hade grön Ediel/browser men Full E2E:s sex guidefel visade att den tidiga spärren tog även andra policyfel. Den lokala rättningen begränsar stoppet till fysiskt saknat eller otillåtet BGM/C002/1001, projicerar ERC41/42 fält202 före kodspecifikt policyval och kvalificerar BGM27/original ACW. Kompletta konsument- och guideprov 125/125 är gröna; två native-ACK-fall och ny exakt PR-heads CI återstår. Inga ERC40/100 eller annan funktionsimplementering påstås. Leveransjournalens tidigare #415/#416/#417/#419 är oförändrade.
+
 ## Uppföljning 2026-09-28: verifierade leveranser och nästa 202-spärr
 
 #416 (206 och 313) mergades som `d7eaa4b0`, #417 (204) som `a5f73de8` och #419 (202/C002) som `f030d507`. Varje angivet PR-sluthead har fyra gröna CI-flöden och OPS native 376/376, 377/377 respektive 378/378 med ren replay och schema-/typparitet; Vercel-koden är READY på respektive merge-SHA. Även #415:s avgränsade 205-väg är mergad. Den maskinläsbara [leveransjournalen](f3-prodat-header-delivery-ledger-20260928.json) skiljer specificerat, implementerat, lokalt provat, PR-verifierat, mergat och koddeployat från marknadsaktivering per delregel. Den frysta totalsumman 121 regelkort och 231 kontrakt och deras formella status ändras inte: ACK-02/ACK-10 och AT-ACK-02/AT-ACK-10 har bara delbevis.

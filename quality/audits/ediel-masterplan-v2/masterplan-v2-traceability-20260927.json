@@ -7030,13 +7030,15 @@
     "accepted_pr_head": "4d26c9a15a249dfe8ee4ff720fc3b9ac43979cbd",
     "accepted_main": "f030d507a9532c6fcafc55fd812305a82c9c1076",
     "accepted_ci": "four exact-head workflows; clean replay, native 378/378, schema/type parity; same-SHA Vercel READY",
-    "active_pr": null,
+    "active_pr": 420,
     "active_branch": "codex/ediel-v2-f3-prodat-next2-20260928",
-    "candidate": "missing/unlisted field202 policy failure: local fail-close RED/GREEN; native/CI pending",
+    "candidate": "missing/unlisted physical 202 source-bound 41/42, BGM27 and no business effects; local 125/125, native/new-head CI pending",
     "bounded_delivery_ledger": "quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json",
     "formal_status": "unchanged; ACK-02/ACK-10 and AT-ACK-02/AT-ACK-10 partial",
     "market_traffic": "held",
-    "next_action": "Publish local policy-boundary candidate and inspect first exact-head native/CI; then prove ERC41/42 or keep APERAK held under source/owner evidence"
+    "next_action": "Check first-head OPS native, publish scoped field202 correction and new native expectations to PR420; require all exact-head gates and review before one merge",
+    "first_published_head": "a820ff0e0b942668d228d4f8b6eecf66ab4d251c",
+    "first_ci": "Ediel/browser success; Full E2E six guide-resolution failures from overbroad guard, locally corrected; OPS native pending"
   },
   "followup_history_20260927": {
     "accepted_pr_414": 414,

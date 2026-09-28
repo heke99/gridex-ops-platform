@@ -4,13 +4,13 @@
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-f3-prodat-next2-20260928",
-  "active_pr": null,
+  "active_pr": 420,
   "base_head_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
   "runtime_accepted_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
   "last_merged_pr": 419,
   "last_accepted_pr": 419,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 field202 missing/unlisted policy-resolution fail-close; locally tested, native/PR pending",
+  "active_item": "PR420 F3 field202 missing/unlisted physical code; typed 41/42 and whole-message ACK locally tested, native/CI pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Commit/publish candidate to same branch, open draft PR, inspect first real exact-head OPS native/replay/schema/type and Ediel/browser/E2E. Correct first actual CI failure; review full diff/threads. Merge once only at coherent fully green boundary; verify main/deployment. No market activation; #310 paused.",
+  "next_action": "Inspect first-head OPS native result, then commit/publish scoped field202 41/42 correction and native expectations to PR420. Recheck first actual exact-head CI/native/replay/schema/type; review full diff/threads, merge once only if all gates pass. Market held; #310 paused.",
   "latest_verified_delivery": {
     "main_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
     "merged_prs": [
@@ -920,7 +920,7 @@
       "204",
       "202/C002"
     ],
-    "active_candidate": "missing/unlisted 202 policy failure fail-close (local only)",
+    "active_candidate": "missing/unlisted 202 typed 41/42 and BGM27; local 125/125, PR/native pending",
     "formal_rules": [
       "ACK-02 partial",
       "ACK-10 partial"

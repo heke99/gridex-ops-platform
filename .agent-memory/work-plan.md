@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+1. Inspect first #420 head OPS native; fix any first real native failure.
+2. Publish scoped physical-202 correction and source-qualified 41/42 whole-message response to same draft PR, then inspect all exact-head gates.
+3. Review full diff/threads, merge one coherent package only if native replay/parity and all CI green; verify main/deployment. Older current plan below SUPERSEDED.
+
 ## Current — 2026-09-28 field202 policy boundary
 
 1. Publish locally verified fail-close and native fixtures on the clean branch from #419 main; open one draft PR.

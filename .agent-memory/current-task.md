@@ -1,3 +1,7 @@
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 local second step: physical missing/unlisted field202 now yields source-qualified 41/42 BGM27, original ACW and no business effects, with wrong-guide cases preserved. First `a820ff0e` Full E2E failure identified and locally corrected. Native first-head result and new exact-head CI pending. Publish second step after inspecting native. Earlier current candidate below SUPERSEDED.
+
 ## Current — F3 field202 policy boundary
 
 Branch `codex/ediel-v2-f3-prodat-next2-20260928` at base `f030d507`. Missing/unlisted 202 has local real-consumer RED/GREEN and native variants added. Current phase: locally tested, unpublished/unverified native; no active PR yet. See `quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md` and delivery ledger. Publish draft, inspect first exact-head CI/native/replay/parity, review diff and threads. Do not claim ERC41/42 or ERC40/100 outbound completion from safe hold. #415/#416/#417/#419 are merged and web code READY, market held. Prior sections below SUPERSEDED for next action.

@@ -90,31 +90,31 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     'supply',(SELECT count(*) FROM public.customer_supply_periods WHERE source_message_id=${literal(ids.source)}))`)
   const first=persisted()
   const blocked=sql<{message:string;payload:unknown}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',message,'payload',payload) ORDER BY created_at),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(ids.source)} AND event_status='warning'`)
-  expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual(policyOnly?[['CONTRL','positive']]:[['APERAK','negative'],['CONTRL','positive']])
+  expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual([['APERAK','negative'],['CONTRL','positive']])
   expect(first.messages.every(row=>row.company===ids.company&&row.route===ids.route&&row.profile===ids.profile)).toBe(true)
-  const aperak=policyOnly?'':first.messages[0].wire
+  const aperak=first.messages[0].wire
   if (variant === 'gas-unit-on-electric-register') expect(aperak).toContain('ERC+42::260')
   if (variant === 'whole-message-lin-sequence') {
     expect(aperak).toContain('BGM+++27')
     expect(aperak).toContain('FTX+AAO++314::260')
     expect(aperak).toContain('RFF+ACW:D')
     expect(aperak).not.toContain('BGM+++34')
-  } else if (variant === 'missing-header-date' || variant === 'invalid-header-date' || variant === 'missing-header-offset' || variant === 'invalid-header-offset' || variant === 'missing-header-ack-request' || variant === 'invalid-header-ack-request' || variant === 'lowercase-header-ack-request' || variant === 'invalid-header-function' || variant === 'invalid-header-code-metadata') {
+  } else if (variant === 'missing-header-date' || variant === 'invalid-header-date' || variant === 'missing-header-offset' || variant === 'invalid-header-offset' || variant === 'missing-header-ack-request' || variant === 'invalid-header-ack-request' || variant === 'lowercase-header-ack-request' || variant === 'invalid-header-function' || variant === 'invalid-header-code-metadata' || policyOnly) {
     expect(aperak).toContain('BGM+++27')
     expect(aperak).toContain(variant.startsWith('missing-') ? 'ERC+41::260' : 'ERC+42::260')
-    expect(aperak).toContain(variant.endsWith('ack-request') ? 'FTX+AAO++313::260' : variant.endsWith('offset') ? 'FTX+AAO++206::260' : variant === 'invalid-header-function' ? 'FTX+AAO++204::260' : variant === 'invalid-header-code-metadata' ? 'FTX+AAO++202::260' : 'FTX+AAO++205::260')
+    expect(aperak).toContain(variant.endsWith('ack-request') ? 'FTX+AAO++313::260' : variant.endsWith('offset') ? 'FTX+AAO++206::260' : variant === 'invalid-header-function' ? 'FTX+AAO++204::260' : variant === 'invalid-header-code-metadata' || policyOnly ? 'FTX+AAO++202::260' : 'FTX+AAO++205::260')
     expect(aperak).toContain('RFF+ACW:D')
     expect(aperak).not.toContain('BGM+++34')
     expect(aperak).not.toContain('RFF+Z07:')
-  } else if (!policyOnly) {
+  } else {
     expect(aperak).toContain('BGM+++34')
     expect(aperak).toContain('FTX+AAO++213::260')
   }
   if (!variant.includes('header-')) expect(aperak).toContain('RFF+Z07:735123456789012345')
   expect(aperak).not.toContain('RFF+Z07:735123456789012352')
-  expect(first.outbox).toHaveLength(policyOnly?1:2)
+  expect(first.outbox).toHaveLength(2)
   expect(first.outbox.every(row=>row.company===ids.company&&row.source===ids.source&&row.profile===ids.profile&&row.status==='queued'&&row.hash?.length===64)).toBe(true)
-  if (policyOnly) expect(blocked.some(row=>JSON.stringify(row.payload).includes('"ackFamily":"APERAK"'))).toBe(true)
+  if (policyOnly) expect(blocked.some(row=>JSON.stringify(row.payload).includes('"ackFamily":"APERAK"'))).toBe(false)
   expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])
   await processInboundEdielMessage(input)
   expect(persisted()).toEqual(first)

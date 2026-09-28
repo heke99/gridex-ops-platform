@@ -1,3 +1,7 @@
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 typed negative P-APERAK 41/42 field202 is locally verified for missing/unlisted physical code; durable native owner/route/retry and exact-head CI pending. ERC40/100 still lacks evidence of an actually documented but unimplemented function. Historical 203/IDE505, positive LOC+175, E035 and external activation remain open. Earlier current below SUPERSEDED.
+
 ## Current — 2026-09-28 boundaries
 
 Missing/unlisted PRODAT field202 has a local policy fail-close fix; its native persisted CONTRL/route/retry and exact-head CI are pending. A negative P-APERAK field202 ERC41/42 still needs a typed, physical-source-bound error and original ACW with durable route/actor proof; ERC40/100 applies only to a documented but unimplemented function, which is not established by Z99. Historical field203/IDE505 uniqueness, positive LOC+175 owner/mandate/sink/retry, E035 history/retention/deletion, full grammar and remaining phases remain open. No market activation. Older blocks below are historical; #310 remains paused.

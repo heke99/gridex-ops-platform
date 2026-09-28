@@ -860,12 +860,19 @@ export async function processInboundEdielMessage(params: {
     return runtimeMessage;
   }
 
-  // A readable interchange can receive its technical receipt, but an unresolved
-  // PRODAT policy has no qualified application finding or business authority.
-  // In particular, BGM/C002/1001 must not fall through to a cached Z04 case.
-  if (runtimeMessage.message_family === "PRODAT" &&
+  // Missing/unlisted BGM/C002/1001 is checked against the physical header
+  // before code-specific policy exists. Do not borrow a cached Z04 case;
+  // only its source-qualified field 202 error may authorize negative APERAK.
+  const unresolved202Wire=runtimeMessage.message_family === "PRODAT" && runtimeMessage.raw_payload &&
+    canonicalRuntime.decision.applicationDecision === "rejected" && !canonicalRuntime.decision.policy
+      ? tokenizeEdifact(runtimeMessage.raw_payload) : null;
+  const unresolved202=unresolved202Wire
+    ? prodatHeaderFieldRejection({field:'202',sourceWire:unresolved202Wire,errors:[]}) : null;
+  if (runtimeMessage.message_family === "PRODAT" && unresolved202?.defect &&
       canonicalRuntime.decision.applicationDecision === "rejected" &&
       !canonicalRuntime.decision.policy) {
+    const plan=canonicalRuntime.decision.responsePlan.find(item=>item.family==="APERAK"&&item.outcome==="negative");
+    const field202=prodatHeaderFieldRejection({field:'202',sourceWire:unresolved202Wire,errors:plan?.applicationErrors});
     try {
       try {
         await createAckIfMissing({actorUserId, sourceMessage:runtimeMessage, ackFamily:"CONTRL", outcome:"positive"});
@@ -873,8 +880,18 @@ export async function processInboundEdielMessage(params: {
         await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:"CONTRL",
           reason:formatErrorMessage(error,"Teknisk kvittens kunde inte kvalificeras.")});
       }
-      await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:"APERAK",
-        reason:"PRODAT-policy och källbunden applikationsdiagnos saknas; negativ APERAK kräver kvalificerad orsak."});
+      if (field202.qualified && plan?.applicationErrors?.length) {
+        try {
+          await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:"APERAK",outcome:"negative",
+            messageText:plan.reason,applicationErrors:plan.applicationErrors});
+        } catch (error) {
+          await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:"APERAK",
+            reason:formatErrorMessage(error,"Källbunden APERAK kunde inte kvalificeras.")});
+        }
+      } else {
+        await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:"APERAK",
+          reason:"PRODAT-policy och källbunden applikationsdiagnos saknas; negativ APERAK kräver kvalificerad orsak."});
+      }
     } finally {
       await canonicalRuntime.sourceOwnerSession?.finish();
     }

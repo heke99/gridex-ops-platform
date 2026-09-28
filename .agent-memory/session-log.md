@@ -1,3 +1,7 @@
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+2026-09-28 follow-up: first PR420 CI Full E2E failure was six tests expecting guide-resolution exception, not field202. TDD added typed 41/42 from physical missing/unlisted BGM, BGM27/ACW, forged/foreign/positive guards, consumer tenant ACK/no business/retry. Scoped the branch to physical 202; local 125/125 includes all six previously failing cases. Native first-head still running; new head unpublished. No staging/market sends or #310 action.
+
 ## 2026-09-28 — field202 policy boundary continuation
 
 Fetched unchanged clean remote main and next2 branch `f030d507`; verified merged #415/#416/#417/#419 PR bodies and no open PR on next2. Read AGENTS, masterplan, frozen P/APERAK source, register, actual policy/consumer/renderer, and stale memory. A complete physical PRODAT with unlisted Z99 and stale stored Z04 policy reached rejected application but threw in ACK policy after bypassing header guard; missing code took another hold. Added actual-consumer RED/GREEN and no-route/retry cases, policy-null fail-close before business, native SQL variants, bounded audit, ledger and refreshed project checkpoint. Focused27/27, three TS projects, scoped lint/diff pass. Native/CI unpublished/pending; no market sends, #310 untouched. Next publish draft and inspect actual first CI.

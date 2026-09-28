@@ -1,3 +1,7 @@
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 first head `a820ff0e`: Ediel/browser SUCCESS; Full E2E coverage six invalid-guide regressions on overly broad guard; OPS native pending. Local scoped field202 41/42 correction plus preserved guide behavior passes three files 125/125, three TS projects, scoped lint/diff. New native/CI pending. #415/#416/#417/#419 exact-head accepted receipts and formal 121/231 unchanged. Earlier current below SUPERSEDED.
+
 ## Current evidence — 2026-09-28
 
 #415 `eee4a3fe` four CI green, OPS native371/371; #416 `7414fd9c` four green, native376/376; #417 `32559fb9` four green, native377/377; #419 `4d26c9a1` four green, native378/378. Each OPS had clean migration replay and exact type/schema parity; current remote main `f030d507` is same-SHA Vercel READY. Current 202 missing/unlisted: real consumer RED on unlisted code's ACK-policy exception, GREEN 27/27; app/tests/scripts TypeScript, scoped lint zero errors and diff check pass. Native two cases and exact-head CI pending. Formal status and market traffic unchanged; details in F3 ledger. Earlier 'Current' entries below SUPERSEDED.

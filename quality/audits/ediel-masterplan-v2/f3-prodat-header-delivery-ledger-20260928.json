@@ -145,16 +145,18 @@
   ],
   "active_candidate": {
     "field": "202",
-    "scope": "missing or unlisted BGM/C002/1001; fail-closed policy boundary",
+    "scope": "missing or unlisted physical BGM/C002/1001; typed source-bound whole-message rejection",
     "specified": true,
     "implemented_locally": true,
-    "local_consumer_red_green": "two accepted-syntax cases plus no-route and retry; 27/27 focused",
+    "local_consumer_red_green": "125/125 in three files, including six previous guide-resolution failures; forged/foreign/positive and no-route/retry covered",
     "pr_verified": false,
     "merged": false,
     "production_code_deployed": false,
     "market_activated": false,
-    "native": "added, pending exact-head OPS execution",
-    "ack_limit": "technical CONTRL only on qualified route; negative APERAK held pending source-qualified field error, no ERC40/100 inferred"
+    "native": "two real-DB variants updated for persisted negative APERAK; pending new exact-head OPS",
+    "ack_limit": "41/202 or 42/202 and BGM27/original ACW only from physical source; ERC40/100 not inferred",
+    "first_published_head": "a820ff0e0b942668d228d4f8b6eecf66ab4d251c",
+    "first_ci": "Ediel and browser green; Full E2E coverage failed six unrelated guide-resolution tests due overbroad policy guard; scoped local fix made all six green; OPS native pending"
   },
   "register_reconciliation": {
     "rule_cards": 121,
