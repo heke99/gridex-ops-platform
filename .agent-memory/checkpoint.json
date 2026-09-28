@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T23:28:39Z",
+  "updated_at": "2026-09-28T23:43:32Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 test-first native S01 empty-observation point authority probe; no production change",
+  "active_item": "F3 #421 confirmed S01 empty-contract SQL point authority defect; forward guard candidate local checks green/native pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Fast-forward publish native S01 agency-89 empty-contract test from fbcf1eeb; inspect first actual native failure before any forward SQL correction. Preserve draft and market hold.",
+  "next_action": "Fast-forward publish S01 forward SQL guard and evidence from fdc555a4; read first exact-head native, require replay/type/schema/five workflows and full review. Keep draft, market hold and #310 untouched.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -49,11 +49,11 @@
     ],
     "native_before_this_step": "400/400",
     "native_on_last_verified_head": "400/400; clean replay, generated type/schema parity and five workflows green",
-    "next_head_checks": "Read first native failure, then forward SQL correction only if confirmed; exact-head negative/positive native, replay, five workflows, type/schema parity and full diff/reviews.",
-    "local_candidate": "Native direct S01 agency-89 empty-contract refusal test with actual consumer hold and clean agency-9 positive control; scripts TypeScript/lint/spec/diff pass, native RED pending CI; no product change.",
-    "last_published_head": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
-    "first_new_head_failure": "e561d50b OPS 36495674403 native 398/400: both new tests expected APERAK call at line 1080 but unconditional mockRejectedValueOnce hit technical CONTRL first. Persisted held and accepted/unfinalized rows, receipt/contract/series counts passed. Test-only correction targets first APERAK; generated parity not reached.",
-    "candidate": "Native direct S01 agency-89 empty-contract refusal test with actual consumer hold and clean agency-9 positive control; scripts TypeScript/lint/spec/diff pass, native RED pending CI; no product change."
+    "next_head_checks": "Require five exact-head workflows, OPS native 401/401 incl two direct refusal attempts, actual consumer and clean positive, clean replay, generated types/schema parity, full diff/reviews.",
+    "local_candidate": "Forward 20260928234022 public service RPC body adds S01 to accepted physical-point prewrite predicate; same signature/grants. Migrations/types, scripts TypeScript, 4 targeted ordinary, spec/diff checks pass; native 401/401 and replay/type/schema parity pending new exact head.",
+    "last_published_head": "fdc555a4d1f062ffa1d3063859caf94531384d3b",
+    "first_new_head_failure": "fdc555a4 OPS 36498319836 native 400/401: direct S01 agency-89 empty-contract service RPC resolved accepted/positive_aperak and durable series despite supported_point_v1 returning null. Test line 378 failed before subsequent no-effects/consumer/clean control; no product SQL changed on red head. Companion workflows and OPS verify/quality passed; generated parity not reached.",
+    "candidate": "Forward 20260928234022 public service RPC body adds S01 to accepted physical-point prewrite predicate; same signature/grants. Migrations/types, scripts TypeScript, 4 targeted ordinary, spec/diff checks pass; native 401/401 and replay/type/schema parity pending new exact head."
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
