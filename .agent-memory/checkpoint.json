@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T14:44:54Z",
+  "updated_at": "2026-09-28T15:02:08Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 S01 valid LOC+175 ownerless ACK/series hold: local RED/GREEN, private SQL/native candidate pending publication and exact-head CI",
+  "active_item": "F3 #421 S01 LOC+175 held ACK retry: b99e5f OPS native 386/387 timestamp mutation, forward 20260928181500 candidate pending exact-head CI",
   "current_audit": "quality/audits/ediel-masterplan-v2/identity-e035-next-package-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -958,6 +958,18 @@
     "frozen_totals": "121 cards and 231 contracts; no new percentage",
     "market_activated": false
   },
-  "active_pr_head_before_pending_commit": null,
-  "active_candidate_evidence": "Next branch E035 test-only RPC stage observation local TypeScript/lint/diff PASS; native PR pending; 203/IDE505/LOC175 owners unresolved."
+  "active_pr_head_before_pending_commit": "b99e5f36137f9a88666f122830f82013d47a4b6c",
+  "active_candidate_evidence": "Four workflows SUCCESS on b99e5f; OPS 36438855705 native 386/387, actual held retry updated_at changed. Forward 20260928181500 private exact hold no-op, local migrations/types/scripts TS/spec inventory/diff PASS; new head native/replay/parity pending. 203/505, positive175, E035 remain blocked; traffic held.",
+  "active_pr_latest_ci": {
+    "head": "b99e5f36137f9a88666f122830f82013d47a4b6c",
+    "ediel": 36438855172,
+    "browser": 36438855374,
+    "full_e2e": 36438855244,
+    "tenant": 36438855583,
+    "ops": 36438855705,
+    "native": "FAILED 386/387; actual held S01/175 retry mutates ACK updated_at",
+    "replay_schema_types": "NOT_REACHED",
+    "candidate_forward": "20260928181500_utilts_held_retry_stable_reservation.sql",
+    "candidate_ci": "PENDING_NEW_HEAD"
+  }
 }

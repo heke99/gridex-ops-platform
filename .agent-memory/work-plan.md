@@ -1,3 +1,10 @@
+## Current — 2026-09-28 #421 held retry correction
+
+1. Review and publish private forward `20260928181500` plus checksum/types manifest and exact failure checkpoint; no published migration rewrite. Local migration/type, scripts TS and 121/231 inventory checks pass.
+2. Inspect first error from each workflow on new exact head; require native 387/387 including stable held retry, clean replay and generated schema/type parity. Review whole PR diff and threads, update same draft with actual SHA and proofs.
+3. Keep #421 draft while trusted historical sender/corpus/retention, positive LOC+175 object/actor/mandate/sink, and E035 history/retention decisions remain unproved. No invented ERC42, merge, market sends or #310 edit.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 S01/175 source-backed hold
 
 1. Publish the local real-consumer RED/GREEN and private sink/native tests as one code milestone to draft #421, fast-forward only from verified remote `f342e7999de02f9bd80805de9559c498dd149965`.

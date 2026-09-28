@@ -1,3 +1,8 @@
+## 2026-09-28 — #421 held retry native failure and forward correction
+
+Published `b99e5f` four workflows succeeded, OPS `36438855705` native 386/387 failed only the real S01/175 held retry: ACK reservation timestamp changed. The direct forged accepted physical object fence, tenant and clean point cases passed. Created private forward `20260928181500` with exact existing unfinalized hold/no-response/no-series/issue-code no-op under lock, preserving changed-assessment upgrade. Local migration/types, scripts TS, spec inventory, diff pass; publish and exact-head native/replay/parity pending. No blind rerun or market traffic; #310 untouched.
+
+Older entries below are historical.
 ## 2026-09-28 — #421 valid S01/175 ownerless hold candidate
 
 Verified remote draft/main and existing exact-head green checks before edit. Source U25-A-4 p54/63 and UG-123-14–16 allows conditional 175 but no object owner. Actual nonbilling S01 first failed negative internal-hold test; per-IDE hold and clear point payload now pass, clean sibling positive. Private `persist_series_v1` refusal before ACK/series plus native direct and actual retry cases are local. 136/136 affected, three TS projects, migration/types, lint/diff passed; no native local DB. Next commit/push, inspect exact-head CI and update draft. No traffic, #310, staging or merge.

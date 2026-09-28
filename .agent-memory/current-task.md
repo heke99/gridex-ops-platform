@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 identical held reservation retry
+
+One active item: publish `20260928181500` forward private SQL fix to the same draft. Published `b99e5f` failed OPS native 386/387 because identical `internal_review`/`none` retry re-upserted ACK `updated_at`; four other workflows passed. The existing real-consumer native test supplies the negative assertion; changed assessments retain the earlier upgrade path. Local migration/types, scripts TypeScript and spec inventory pass. Next inspect full diff, fast-forward publish, require five exact-head workflows, native 387/387, clean replay and generated parity, and update PR evidence. Keep package draft until issuer/history/retention and positive object ownership are proven. No traffic or #310 action.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 S01/LOC+175 persistent hold
 
 One active item: publish the source-backed S01 valid-regulating-object hold with private sink fence and native direct/actual-consumer retry cases. Previous exact published head `f342e7999de02f9bd80805de9559c498dd149965` is fully green. First action: commit/push this local RED/GREEN code candidate, inspect the first real CI failure including native, clean replay and generated schema/types, then review whole diff and update draft #421 exact-head receipt. Do not merge until historical issuer/history/retention, positive object owner/mandate/sink and E035 gates have their own proof. No traffic or #310 action.

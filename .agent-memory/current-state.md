@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 held retry correction candidate
+
+Remote draft #421 `b99e5f36137f9a88666f122830f82013d47a4b6c`: Ediel `36438855172`, browser `36438855374`, Full E2E `36438855244`, tenant `36438855583` SUCCESS. OPS `36438855705` verify/quality SUCCESS, clean replay FAILED at native 386/387. First failure is actual S01/175 held retry mutating ACK reservation `updated_at`; direct forged positive/tenant and clean point cases passed. New forward private-function correction avoids rewriting the identical unfinalized hold under the source lock. Local migration/type checks, scripts TypeScript and spec inventory pass; native 387/387, replay and parity require new exact-head CI. No historical 203/505, positive 175, E035 retention or market activation closure. Main `53bf989b`; draft unmerged, traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 S01 valid LOC+175 hold candidate
 
 Published draft #421 `f342e7999de02f9bd80805de9559c498dd149965` passed all five applicable workflows, OPS native 385/385 and clean replay/type/schema parity. A new S01 valid-175 actual-consumer RED showed no internal review; local correction holds only unowned object IDEs and clears point payloads. Private SQL forward and two native cases require exact-head CI. Local 136/136 affected tests, three TS projects, migration/type integrity and scoped lint passed. No positive 175, historical 203/505 or E035 retention closure. Main remains `53bf989b`; draft unmerged, traffic blocked, #310 untouched.

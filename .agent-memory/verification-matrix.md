@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 S01/175 retry defect and correction
+
+| Exact head | Check | Result and limit |
+| --- | --- | --- |
+| `b99e5f36137f9a88666f122830f82013d47a4b6c` | Ediel `36438855172`, browser `36438855374`, E2E `36438855244`, tenant `36438855583`, OPS `36438855705` | First four SUCCESS; OPS verify/quality SUCCESS, clean replay native 386/387 FAILED at held S01/175 retry `updated_at`. Direct physical refusal/tenant/control passed. Replay schema/types not reached. |
+| Local forward correction | SQL identical held reservation no-op; migration/type checks, scripts TS, diff, 121/231 inventory PASS | Native 387/387, replay, type/schema parity and five workflows pending new exact head. No full rule/market acceptance. |
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 S01/175 candidate
 
 | Head | Check | Bound result |

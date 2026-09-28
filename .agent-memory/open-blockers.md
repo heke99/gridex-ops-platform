@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 held retry correction awaits native
+
+`b99e5f` OPS native 386/387 found identical held S01/175 ACK reservation timestamp mutation; clean replay and generated parity did not complete. Private forward `20260928181500` is local pending publication and exact-head native proof. Historical 203/505 still need trusted physical NAD+MS legal sender-to-tenant/representative attribution, authentic pre-ledger and deleted originals, and lawful retention. Positive LOC+175 needs versioned object registry, legal actor/mandate, distinct sink and retry/final ACK owner. E035 historical/deletion coverage and retention are unproved; old Storage delete/before_witness root remains unknown. Draft unmerged, market traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 S01/175 native gate pending
 
 The candidate only fences unowned positive S01/E73/S06 LOC+175. Native SQL direct accepted/refused/retry and actual persisted hold have not run; do not claim PR verification. Positive 175 still needs a versioned object registry, legal actor/mandate, own sink, final ACK and retry owner. Historical UTILTS 203/505 require trusted physical NAD+MS-to-tenant/UNB representation, authentic pre-ledger/deleted corpus and lawful retention. E035 history/deletion and prior Storage `delete/before_witness` cause remain unknown. Main/traffic/#310 boundaries unchanged.
