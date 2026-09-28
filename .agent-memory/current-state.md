@@ -1,3 +1,27 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Prior #415/#416/#417/#419 bounded deliveries remain accepted in ledger.
+
+OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+#420 head `31221ee9` Ediel/browser/Full E2E success; OPS clean replay failed two stale-profile 202 fixtures (378/380). Its stale Z04 native fixture did not prove genuine inbound 202 ACK: mailbox would store `PRODAT_UNKNOWN` or `Z99`, and code-specific profile trigger rejects the source. Current unpublished gateway correction blocks positive CONTRL and APERAK for mismatched physical/stored code. Local affected 125/125, three TypeScript projects, lint/diff pass; native genuine-ingress/hold/retry and final exact-head gates pending. Previous #415/#416/#417/#419 accepted deliveries remain in the bounded ledger. No market activation.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 first head `a820ff0e` Ediel/browser success; Full E2E failed six unrelated guide-resolution assertions because initial policy-null guard was too broad. Local second step scopes it to physical field202 missing/unlisted and now creates typed ERC41/42, BGM27 and original ACW. Three files 125/125 (including six regressions), TypeScript/lint/diff pass. Native and new exact-head CI pending; prior #415/#416/#417/#419 delivery ledger remains authoritative. Earlier candidate below SUPERSEDED.
+
+## Current — 2026-09-28 after #419, field202 policy boundary candidate
+
+#415 (205), #416 (206/313), #417 (204) and #419 (202/C002) have bounded exact-head CI/native acceptance and were merged once each. Remote main `f030d507a9532c6fcafc55fd812305a82c9c1076`, Vercel `dpl_HY8hqZ4FXNK6XLNVSjMbSsJQ29Jk` READY at the same SHA; web code deployed, Ediel market not activated. Branch `codex/ediel-v2-f3-prodat-next2-20260928` started clean from that main. New missing/unlisted 202 policy failure was locally RED/GREEN and stops before business, with only source/route-qualified technical CONTRL; negative APERAK is held without a typed field error. Actual consumer 27/27, app/tests/scripts TypeScript, scoped lint/diff pass; two native fixtures await CI. Ledger: `quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json`. First action: publish current candidate in a draft PR, inspect first actual native/replay/type/schema and ordinary exact-head CI; fix first real failure, review, then decide one merge at a coherent boundary. Formal ACK-02/ACK-10 and AT-ACK-02/10 remain partial; 121/231 unchanged. Historical 203/IDE505, positive LOC+175, E035, full grammar and external gates remain open. #310 untouched; no staging/TGT/AGT/counterparty/live sends.
+
+All earlier `Current`, `Latest` and candidate sections below are historical and **SUPERSEDED** for branch/head/next action; their test receipts remain historical evidence.
+
 ## Current — 2026-09-27 F3 header206 candidate after #415
 #415 exact head `eee4a3fe` four workflows and native371/371/schema/types passed, merged main `bd3e131e`, Vercel READY same SHA. Branch `codex/ediel-v2-f3-prodat-header-206-20260927` locally reproduces missing/invalid required offset206 BGM34 despite ERC41/42; shared source qualification now yields BGM27 and stops before business. Local six files269/269, three TS projects, scoped lint pass. Native two SQL/ACK/retry cases added but unpublished/unverified. Market held; #310 untouched.
 

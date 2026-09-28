@@ -1,3 +1,23 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Next: Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+PR #420 current next action: publish canonical ACK owner mismatch fence and native two real-ingress trigger-rejection cases. Then check clean replay, native hold/route/tenant/retry, schema/type parity and four exact-head workflows; review full diff/threads. Genuine missing/unlisted 202 ACK stays blocked pending durable tenant/legal-actor diagnostic owner and rule-pack authority. Earlier #420 positive ACK assertions are superseded.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 local second step: physical missing/unlisted field202 now yields source-qualified 41/42 BGM27, original ACW and no business effects, with wrong-guide cases preserved. First `a820ff0e` Full E2E failure identified and locally corrected. Native first-head result and new exact-head CI pending. Publish second step after inspecting native. Earlier current candidate below SUPERSEDED.
+
+## Current — F3 field202 policy boundary
+
+Branch `codex/ediel-v2-f3-prodat-next2-20260928` at base `f030d507`. Missing/unlisted 202 has local real-consumer RED/GREEN and native variants added. Current phase: locally tested, unpublished/unverified native; no active PR yet. See `quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md` and delivery ledger. Publish draft, inspect first exact-head CI/native/replay/parity, review diff and threads. Do not claim ERC41/42 or ERC40/100 outbound completion from safe hold. #415/#416/#417/#419 are merged and web code READY, market held. Prior sections below SUPERSEDED for next action.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 

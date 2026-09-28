@@ -1,3 +1,25 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+PR420 470625da: Ediel 36408877709 SUCCESS; browser 36408877599 SUCCESS; Full E2E 36408877711 FAILED only normative authority import from kernel (smoke and coverage), reproduced RED locally then GREEN via canonical field projection; affected 126/126 and route regression PASS. OPS 36408877538 native/replay pending. Three TS projects/scoped lint being completed; current fix unpublished. Frozen 121/231 formal partial, no activation.
+
+OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+#420 second head `31221ee9`: Ediel `36407534632`, browser `36407534622`, Full E2E `36407534583` SUCCESS; OPS `36407534620` clean replay failed two stale-profile 202 fixtures (378/380). Local current correction 125/125 across three files, app/tests/scripts TypeScript, scoped lint/diff PASS. New native genuine-ingress trigger and stale-profile hold/retry, clean replay, type/schema parity and final exact-head CI are pending; prior Z04 positive ACK assertion is invalidated by the actual mailbox/persistence code. #415/#416/#417/#419 remain bounded accepted, ACK-02/ACK-10 and AT-ACK-02/10 partial, 121/231 unchanged.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 first head `a820ff0e`: Ediel/browser SUCCESS; Full E2E coverage six invalid-guide regressions on overly broad guard; OPS native pending. Local scoped field202 41/42 correction plus preserved guide behavior passes three files 125/125, three TS projects, scoped lint/diff. New native/CI pending. #415/#416/#417/#419 exact-head accepted receipts and formal 121/231 unchanged. Earlier current below SUPERSEDED.
+
+## Current evidence — 2026-09-28
+
+#415 `eee4a3fe` four CI green, OPS native371/371; #416 `7414fd9c` four green, native376/376; #417 `32559fb9` four green, native377/377; #419 `4d26c9a1` four green, native378/378. Each OPS had clean migration replay and exact type/schema parity; current remote main `f030d507` is same-SHA Vercel READY. Current 202 missing/unlisted: real consumer RED on unlisted code's ACK-policy exception, GREEN 27/27; app/tests/scripts TypeScript, scoped lint zero errors and diff check pass. Native two cases and exact-head CI pending. Formal status and market traffic unchanged; details in F3 ledger. Earlier 'Current' entries below SUPERSEDED.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 

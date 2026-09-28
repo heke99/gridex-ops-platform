@@ -1,3 +1,23 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+First outgoing 41/42/202 blocker remains real diagnostic source ownership: PRODAT_UNKNOWN/Z99 cannot bind a code-specific canonical profile. On 470625da Full E2E normative guard failed for direct matrix import; locally corrected through canonical field projection, unpublished. OPS native pending; older 203/IDE505, LOC+175, E035, grammar and market gates remain open.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+First blocker for field202 outbound 41/42: actual mailbox stores `PRODAT_UNKNOWN` or `Z99`; database requires exactly one matching code-specific profile and rejects the inbound source, so no tenant/legal-actor-bound durable owner/snapshot exists. Borrowed Z04 cannot authorize positive CONTRL or APERAK. Native correction and final gates pending. ERC40/100 not inferred. Historical field203/IDE505 uniqueness, positive LOC+175, E035 coverage/retention/deletion, grammar and external gates remain open.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 typed negative P-APERAK 41/42 field202 is locally verified for missing/unlisted physical code; durable native owner/route/retry and exact-head CI pending. ERC40/100 still lacks evidence of an actually documented but unimplemented function. Historical 203/IDE505, positive LOC+175, E035 and external activation remain open. Earlier current below SUPERSEDED.
+
+## Current — 2026-09-28 boundaries
+
+Missing/unlisted PRODAT field202 has a local policy fail-close fix; its native persisted CONTRL/route/retry and exact-head CI are pending. A negative P-APERAK field202 ERC41/42 still needs a typed, physical-source-bound error and original ACW with durable route/actor proof; ERC40/100 applies only to a documented but unimplemented function, which is not established by Z99. Historical field203/IDE505 uniqueness, positive LOC+175 owner/mandate/sink/retry, E035 history/retention/deletion, full grammar and remaining phases remain open. No market activation. Older blocks below are historical; #310 remains paused.
+
 ## Current — header206 verification and wider gates
 206 missing/invalid local ACK/consumer is a code candidate; actual native stored ACK/outbox/retry, clean replay, schema/type parity and PR review remain pending. 203/505 historical issuer uniqueness, positive LOC175 registry/mandate/sink, E035 history/retention, G06 grammar and E66/DDQ live activation gate remain open. PR310 paused.
 

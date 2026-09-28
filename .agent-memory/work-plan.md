@@ -1,3 +1,33 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+1. Publish locally verified canonical projection fix for Full E2E normative import failure on 470625da and update the PR checkpoint.
+2. Check first native/replay result and all new exact-head CI, schema/type parity; correct the first actual failure only.
+3. Review complete PR diff/threads and decide a single coherent safe-hold merge if all gates pass; durable diagnostic owner/ACK remains separate and unproved. Verify main/deployment, then branch from new main. #310/market held.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+1. Publish current gateway mismatch fence, native genuine-ingress trigger rejection and stale-Z04 hold/retry to the same draft #420.
+2. Require exact-head Ediel/browser/Full E2E/OPS, native clean replay and schema/type parity. Correct only first real failure; review complete diff and review threads.
+3. Merge once only if this physical-202 fail-close boundary is coherent and all gates pass; otherwise keep draft. Genuine outbound 41/42 awaits a durable diagnostic source owner, legal actor, route and retry in a separate proven package. Verify main/deploy then branch from new main. Market/#310 held.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+1. Inspect first #420 head OPS native; fix any first real native failure.
+2. Publish scoped physical-202 correction and source-qualified 41/42 whole-message response to same draft PR, then inspect all exact-head gates.
+3. Review full diff/threads, merge one coherent package only if native replay/parity and all CI green; verify main/deployment. Older current plan below SUPERSEDED.
+
+## Current — 2026-09-28 field202 policy boundary
+
+1. Publish locally verified fail-close and native fixtures on the clean branch from #419 main; open one draft PR.
+2. Inspect first actual exact-head CI, especially OPS native/replay/schema/type parity and Ediel/browser/E2E. Fix the first real failure only; review full diff and threads.
+3. Prove source-bound ERC41/42 if a complete physical original, actor/route and durable ACK can be qualified in this coherent package; otherwise retain explicit hold. Merge one larger bounded package only with all applicable gates green, verify main/deployment and branch from new main. Keep #310 and market traffic held.
+
+Earlier `Current` plans below SUPERSEDED.
+
 ## Current — F3 header206
 1. Publish source-qualified 206 renderer/consumer and native missing/invalid cases in one draft PR.
 2. Resolve first exact-head CI failure; require clean replay, native, schema/types, Ediel/browser/full E2E and quality.

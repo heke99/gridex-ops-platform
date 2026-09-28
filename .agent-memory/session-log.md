@@ -1,3 +1,25 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+2026-09-28: PR420 470625da exact-head Ediel/browser PASS. Full E2E smoke+coverage identified one repo normative authority violation from direct field matrix import in ACK gateway. Confirmed locally RED; moved list check to canonical PRODAT document projection and used it from header and kernel, then guard, route regression and 126/126 PASS. Native replay still running. No CI rerun on unchanged SHA.
+
+OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+2026-09-28: Confirmed PR420 `31221ee9` Ediel/browser/Full E2E success; OPS clean replay failed two stale-profile 202 fixtures (378/380). Discovered real mailbox maps physical missing code to `PRODAT_UNKNOWN` and DB profile trigger blocks source insert, while old native case borrowed stored Z04 for BGM++/Z99. TDD RED four unsafe positive ACK expectations then GREEN 125/125 via canonical gateway physical/stored code fence. Native now asserts zero outbound/affärseffekter/stable retry plus two real-profile insertion rejections. Publication and exact-head gates pending. #310 and market traffic untouched.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+2026-09-28 follow-up: first PR420 CI Full E2E failure was six tests expecting guide-resolution exception, not field202. TDD added typed 41/42 from physical missing/unlisted BGM, BGM27/ACW, forged/foreign/positive guards, consumer tenant ACK/no business/retry. Scoped the branch to physical 202; local 125/125 includes all six previously failing cases. Native first-head still running; new head unpublished. No staging/market sends or #310 action.
+
+## 2026-09-28 — field202 policy boundary continuation
+
+Fetched unchanged clean remote main and next2 branch `f030d507`; verified merged #415/#416/#417/#419 PR bodies and no open PR on next2. Read AGENTS, masterplan, frozen P/APERAK source, register, actual policy/consumer/renderer, and stale memory. A complete physical PRODAT with unlisted Z99 and stale stored Z04 policy reached rejected application but threw in ACK policy after bypassing header guard; missing code took another hold. Added actual-consumer RED/GREEN and no-route/retry cases, policy-null fail-close before business, native SQL variants, bounded audit, ledger and refreshed project checkpoint. Focused27/27, three TS projects, scoped lint/diff pass. Native/CI unpublished/pending; no market sends, #310 untouched. Next publish draft and inspect actual first CI.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 
