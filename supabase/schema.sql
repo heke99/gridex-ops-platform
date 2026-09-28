@@ -15917,12 +15917,15 @@ declare
   v_client_id uuid := nullif(p_command->>'clientId','')::uuid;
   v_subject text := nullif(p_command->>'subject','');
   v_mode text := p_command->>'mode';
+  v_target text := coalesce(p_command->>'contactTarget','primary');
+  v_type text := nullif(p_command->>'contactType','');
   v_reason text := nullif(btrim(p_command->>'reason'),'');
   v_key text := p_command->>'idempotencyKey';
   v_expected bigint := (p_command->>'expectedRevision')::bigint;
   v_changes jsonb := p_command->'changes';
   v_customer public.customers%rowtype;
   v_primary public.customer_contacts%rowtype;
+  v_secondary public.customer_contacts%rowtype;
   v_primary_count integer;
   v_email text;
   v_phone text;
@@ -15943,9 +15946,13 @@ begin
   if p_command is null or jsonb_typeof(p_command) <> 'object'
      or exists (select 1 from jsonb_object_keys(p_command) as k(key)
        where k.key not in ('companyId','customerId','contactId','actorUserId','clientId','subject',
-         'mode','reason','idempotencyKey','expectedRevision','changes'))
+         'mode','reason','idempotencyKey','expectedRevision','changes','contactTarget','contactType'))
      or v_company_id is null or v_customer_id is null
      or v_mode is null or v_mode not in ('ops','api')
+     or v_target not in ('primary','secondary')
+     or (v_target='primary' and (p_command ? 'contactTarget' or p_command ? 'contactType'))
+     or (v_target='secondary' and (v_mode<>'ops' or v_type is null
+       or v_type not in ('billing','operations','technical','other')))
      or v_expected is null or v_expected < 0 or v_key is null
      or v_key !~ '^[A-Za-z0-9._:+~-]{8,200}$'
      or v_changes is null or jsonb_typeof(v_changes) <> 'object' or v_changes = '{}'::jsonb
@@ -16011,6 +16018,9 @@ begin
     'contactId',v_selected_contact_id,
     'subjectHash',case when v_subject is null then null else public.canonical_json_sha256(to_jsonb(v_subject)) end,
     'expectedRevision',v_expected,'changesHash',public.canonical_json_sha256(v_changes));
+  if v_target='secondary' then
+    v_request:=v_request||jsonb_build_object('contactTarget',v_target,'contactType',v_type);
+  end if;
   select * into v_existing from public.canonical_command_results
   where company_id=v_company_id and command_type='customer.contact.change.v1'
     and idempotency_key=v_key;
@@ -16041,6 +16051,53 @@ begin
         and length(btrim(e.value#>>'{}')) > 120)
   then raise exception 'invalid_contact_field' using errcode='22023'; end if;
 
+  if v_target='secondary' then
+    if v_selected_contact_id is not null then
+      select * into v_secondary from public.customer_contacts
+      where id=v_selected_contact_id and company_id=v_company_id
+        and customer_id=v_customer_id for update;
+      if not found or v_secondary.is_primary then
+        raise exception 'contact_selection_conflict' using errcode='P0001';
+      end if;
+    end if;
+    v_email:=case when v_changes ? 'email'
+      then nullif(lower(btrim(v_changes->>'email')),'') else v_secondary.email end;
+    v_phone:=case when v_changes ? 'phone'
+      then nullif(btrim(v_changes->>'phone'),'') else v_secondary.phone end;
+    v_contact_name:=case when v_changes ? 'name'
+      then nullif(btrim(v_changes->>'name'),'') else v_secondary.name end;
+    v_contact_title:=case when v_changes ? 'title'
+      then nullif(btrim(v_changes->>'title'),'') else v_secondary.title end;
+    if v_email is null and v_phone is null and v_contact_name is null then
+      raise exception 'contact_method_required' using errcode='22023';
+    end if;
+    v_changed:=v_secondary.id is null
+      or v_secondary.type is distinct from v_type
+      or v_secondary.email is distinct from v_email
+      or v_secondary.phone is distinct from v_phone
+      or v_secondary.name is distinct from v_contact_name
+      or v_secondary.title is distinct from v_contact_title;
+    if v_changed then
+      update public.customers set contact_revision=contact_revision+1,
+        updated_at=clock_timestamp(),updated_by=v_actor_id
+      where id=v_customer_id and company_id=v_company_id;
+      if v_secondary.id is null then
+        insert into public.customer_contacts(company_id,customer_id,type,is_primary,
+          name,title,email,phone,created_by,updated_by)
+        values(v_company_id,v_customer_id,v_type,false,v_contact_name,
+          v_contact_title,v_email,v_phone,v_actor_id,v_actor_id)
+        returning id into v_contact_id;
+      else
+        update public.customer_contacts set type=v_type,name=v_contact_name,
+          title=v_contact_title,email=v_email,phone=v_phone,updated_by=v_actor_id,
+          updated_at=clock_timestamp()
+        where id=v_secondary.id and company_id=v_company_id and customer_id=v_customer_id;
+        v_contact_id:=v_secondary.id;
+      end if;
+    else
+      v_contact_id:=v_secondary.id;
+    end if;
+  else
   v_email:=case when v_changes ? 'email' then nullif(lower(btrim(v_changes->>'email')),'') else v_customer.email end;
   v_phone:=case when v_changes ? 'phone' then nullif(btrim(v_changes->>'phone'),'') else v_customer.phone end;
   if v_email is null and v_phone is null then
@@ -16097,6 +16154,7 @@ begin
   else
     v_contact_id:=v_primary.id;
   end if;
+  end if;
 
   v_result:=jsonb_build_object('companyId',v_company_id,'customerId',v_customer_id,
     'contactId',v_contact_id,'revision',v_expected+case when v_changed then 1 else 0 end,
@@ -16116,18 +16174,30 @@ begin
   values(v_company_id,'CUSTOMER_CONTACT_COMMAND','customer',v_customer_id,
     (v_result->>'revision')::bigint,v_actor_id,coalesce(v_reason,'delegated_customer'),v_key,
     jsonb_build_object('revision',v_expected),jsonb_build_object('revision',v_result->'revision'),
-    jsonb_build_object('mode',v_mode,'clientId',v_client_id,'changed',v_changed));
+    jsonb_build_object('mode',v_mode,'clientId',v_client_id,'changed',v_changed)
+      || case when v_target='secondary' then
+        jsonb_build_object('contactTarget',v_target,'contactId',v_contact_id)
+        else '{}'::jsonb end);
   if v_changed then
     insert into public.canonical_domain_events(company_id,event_type,aggregate_type,
       aggregate_id,aggregate_version,idempotency_key,payload,created_by)
-    values(v_company_id,'CUSTOMER_CONTACT_CHANGED','customer',v_customer_id,
+    values(v_company_id,case when v_target='secondary' then
+        'CUSTOMER_SECONDARY_CONTACT_CHANGED' else 'CUSTOMER_CONTACT_CHANGED' end,
+      'customer',v_customer_id,
       (v_result->>'revision')::bigint,v_key,
-      jsonb_build_object('customerId',v_customer_id,'revision',v_result->'revision'),v_actor_id)
+      jsonb_build_object('customerId',v_customer_id,'revision',v_result->'revision')
+        || case when v_target='secondary' then
+          jsonb_build_object('contactId',v_contact_id,'contactTarget',v_target)
+          else '{}'::jsonb end,v_actor_id)
     returning id into v_event_id;
     insert into public.canonical_event_outbox(company_id,domain_event_id,topic,
       idempotency_key,payload)
-    values(v_company_id,v_event_id,'customer.contact.changed',v_key,
-      jsonb_build_object('customerId',v_customer_id,'revision',v_result->'revision'));
+    values(v_company_id,v_event_id,case when v_target='secondary' then
+        'customer.contact.secondary.changed' else 'customer.contact.changed' end,v_key,
+      jsonb_build_object('customerId',v_customer_id,'revision',v_result->'revision')
+        || case when v_target='secondary' then
+          jsonb_build_object('contactId',v_contact_id,'contactTarget',v_target)
+          else '{}'::jsonb end);
   end if;
   insert into public.canonical_command_results(company_id,command_type,idempotency_key,
     request_payload,result_payload,actor_user_id)

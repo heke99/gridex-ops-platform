@@ -127,6 +127,7 @@ test('delegated HTTP API uses the same revision, rejects forged identity and rep
   await secondary.locator('input[name="name"]').fill('Synthetic Billing')
   await secondary.locator('input[name="email"]').fill('billing@example.invalid')
   await secondary.getByRole('button', { name: 'Lägg till kontakt' }).click()
+  await expect(writer.getByText('Sparad kontaktrevision: 3')).toBeVisible()
   await writer.reload()
   const savedSecondary = writer.locator('article:has-text("Synthetic Billing")')
   await expect(savedSecondary).toContainText('billing@example.invalid')

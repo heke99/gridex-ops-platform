@@ -5,5 +5,5 @@
   "generated_types": "supabase/database.types.ts",
   "sha256": "011f8f80fa51ad46140598bae366fc29616bd6d8e7767f05135622ef6247afc3",
   "latest_migration": "20260928213000_secondary_contact_atomic_command.sql",
-  "latest_migration_schema_effect": "Secondary OPS contacts use the existing jsonb contact RPC and customer contact_revision; the function signature and generated TypeScript type shapes are unchanged. This candidate still requires an authentic clean replay to confirm byte parity and refresh the schema snapshot."
+  "latest_migration_schema_effect": "Secondary OPS contacts use the existing jsonb contact RPC and customer contact_revision. Authentic empty replay on candidate 0dcec790c79d4ef1fb05aec42ff24413b4621188 (OPS 36487682200, artifact 11000520569) regenerated identical TypeScript bytes (sha256 011f8f80fa51ad46140598bae366fc29616bd6d8e7767f05135622ef6247afc3) and supplied schema.sql plus fingerprint d18b1862bb276bcc22ed6568c34e549ccc144e91d19a6b7aa4210443a8a1fd9b. Its native contact fixture passed; the later browser fixture failed after an immediate reload, so this candidate has no complete clean-replay pass."
 }
