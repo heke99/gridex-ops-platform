@@ -108,9 +108,10 @@ check(applicationCommunication.includes('strictPortalUrl(data?.customer_portal_u
 check(applicationCommunication.includes('parsed.protocol !== "https:"') && applicationCommunication.includes('parsed.username') && applicationCommunication.includes('parsed.password'), 'tenant portal URL validation rejects non-HTTPS and credential-bearing URLs')
 check(applicationProcess.includes('resumeCommittedIdempotentApplication') && applicationPersistence.includes('resumed_from_failed_or_partial: true'), 'failed/partial committed applications resume without recreating the customer graph')
 
-check(resolver.includes('customer_portal_link_not_persisted') && resolver.includes('customer_portal_link_verification_failed'), 'portal account and identity linking is fail closed')
+check(resolver.includes('customer_portal_link_not_persisted') && resolver.includes('customer_portal_link_verification_failed'), 'explicit website application link verifies persisted account and identity')
 check(resolver.includes('customer_portal_identity_customer_conflict') && resolver.includes(".eq('customer_id', input.customerId)"), 'portal identities cannot be reassigned across customers within a tenant')
-check(resolver.includes("str(verifiedAccount, 'status') !== 'active'") && resolver.includes('verifiedAccount.is_active !== true'), 'portal account is re-read and verified active')
+check(resolver.includes("str(verifiedAccount, 'status') !== 'active'") && resolver.includes('verifiedAccount.is_active !== true') && resolver.includes("throw new Error('customer_portal_account_inactive')"), 'explicit link refuses inactive accounts and verifies active state')
+check(resolver.includes('const linked = await linkedByAccount(') && !/resolvePortalCustomer\([\s\S]*?ensureCustomerPortalUserLink\(/.test(resolver), 'portal lookup does not invoke the explicit website link writer')
 check(status.includes('lineageScore') && status.includes('customer_contract_id') && status.includes('customer_site_id') && status.includes('metering_point_id'), 'status correlates switch and supply to exact application lineage')
 check(status.includes("from('customer_contracts')") && status.includes('contract_status: clean(contract.status)'), 'status reads actual customer contract status')
 check(status.includes('application_number,customer_number,customer_id') && status.includes('clean(application.customer_number) ?? clean(response.customer_number)'), 'status reads canonical customer_number before legacy response payload')

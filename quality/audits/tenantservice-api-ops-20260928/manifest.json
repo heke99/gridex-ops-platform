@@ -1,0 +1,25 @@
+{
+  "generated_from": "source tree at execution time",
+  "scope": [
+    "app/admin",
+    "components/admin",
+    "components/tenant",
+    "components/customer"
+  ],
+  "limitations": "Regex discovery only; imported components outside listed directories, dynamic controls, role visibility, server effects and browser behavior require manual tracing.",
+  "counts": {
+    "pages": 147,
+    "uiCandidates": 3439,
+    "apiRoutes": 121,
+    "serverActionFiles": 101
+  },
+  "files": [
+    "pages.jsonl",
+    "api-routes.jsonl",
+    "server-actions.jsonl",
+    "ui-actions-1.jsonl",
+    "ui-actions-2.jsonl",
+    "ui-actions-3.jsonl",
+    "ui-actions-4.jsonl"
+  ]
+}
