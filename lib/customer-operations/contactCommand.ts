@@ -46,11 +46,9 @@ export async function changeCustomerContact(input: {
     idempotencyKey: input.idempotencyKey,
     changes: input.changes,
   }
-  // The forward migration supplies this RPC. Use the committed generated
-  // signature after its first clean replay has produced authentic types.
   const { data, error } = await supabaseService.rpc(
-    'gridex_change_customer_contact_v1' as never,
-    { p_command } as never,
+    'gridex_change_customer_contact_v1',
+    { p_command },
   )
   if (error) {
     const code = String(error.message ?? '')

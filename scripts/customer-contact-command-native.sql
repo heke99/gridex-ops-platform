@@ -204,3 +204,4 @@ end;
 $deny$;
 
 rollback;
+\echo P2_CONTACT_NATIVE_PASS

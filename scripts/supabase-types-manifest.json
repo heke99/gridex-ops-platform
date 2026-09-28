@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-28T13:46:00Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-run36430660736-artifact10973373776",
+  "generated_at": "2026-09-28T16:38:00Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-run36452195657-artifact10983354084",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "0cea3c8ba6736b6971e83284074cc8b9169ca7896152e27635c9c73049c8cf68",
-  "latest_migration": "20260928133000_customer_case_publication_tenant_classification.sql",
-  "latest_migration_schema_effect": "Forward classifies the service-role-only publication table as tenant-owned and scopes unique keys by company. Generated types were byte-identical; type hash and schema snapshot are from isolated run 36430660736 artifact 10973373776. Final-head browser, invariant and parity replay remains required."
+  "sha256": "011f8f80fa51ad46140598bae366fc29616bd6d8e7767f05135622ef6247afc3",
+  "latest_migration": "20260928164025_contact_actor_lock_privilege.sql",
+  "latest_migration_schema_effect": "The generated types came from isolated run 36452195657 after 20260928161539_customer_contact_atomic_command.sql; the subsequent forward migration replaces only the function body and adds a private lock helper. Exact-head generated parity is pending."
 }

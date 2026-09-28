@@ -28043,6 +28043,7 @@ export type Database = {
           campaign_id: string | null
           company_id: string | null
           company_name: string | null
+          contact_revision: number
           created_at: string
           created_by: string | null
           customer_number: string | null
@@ -28105,6 +28106,7 @@ export type Database = {
           campaign_id?: string | null
           company_id?: string | null
           company_name?: string | null
+          contact_revision?: number
           created_at?: string
           created_by?: string | null
           customer_number?: string | null
@@ -28167,6 +28169,7 @@ export type Database = {
           campaign_id?: string | null
           company_id?: string | null
           company_name?: string | null
+          contact_revision?: number
           created_at?: string
           created_by?: string | null
           customer_number?: string | null
@@ -88553,6 +88556,10 @@ export type Database = {
           customer_case_id: string
           revision: number
         }[]
+      }
+      gridex_change_customer_contact_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_claim_billing_automation_jobs: {
         Args: { p_limit?: number; p_worker_id: string }
