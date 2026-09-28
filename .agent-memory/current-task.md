@@ -1,3 +1,9 @@
+## Current — 2026-09-28 F3 identity/E035 owner package
+
+One active work item: source-qualify historical 203, separate IDE505, positive LOC+175 and E035 history/retention, while instrumenting the previously unlocated E035 Storage boundary in its native test. Base main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Local scripts TypeScript, scoped ESLint and diff check passed for the test-only trace; native CI pending. First action: publish a coherent draft with the diagnostic and bounded source/activation evidence, inspect the first exact-head native result, then continue only source-supported work. No guessed ERC42/object sink, staging, live sends or #310 changes.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Next: Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.

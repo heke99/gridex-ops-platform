@@ -1,8 +1,8 @@
 {
   "title": "Ediel F3 PRODAT header bounded delivery evidence",
   "as_of": "2026-09-28",
-  "verified_main_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
-  "current_branch": "codex/ediel-v2-f3-prodat-next2-20260928",
+  "verified_main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "current_branch": "codex/ediel-v2-identity-e035-owner-20260928",
   "rule_cards": {
     "ACK-02": "partial",
     "ACK-10": "partial"
@@ -141,9 +141,50 @@
       ],
       "deployment": "dpl_HY8hqZ4FXNK6XLNVSjMbSsJQ29Jk",
       "limits": "Bounded field and actual consumer/ACK path only; ACK-02, ACK-10, AT-ACK-02, AT-ACK-10 remain partial."
+    },
+    {
+      "field": "202 missing/unlisted physical code safe hold",
+      "scope": "internal ERC41/42/202 BGM27/ACW draft; mismatched persisted Z04 ACK and business hold; no genuine outbound APERAK",
+      "source": "P26.A r3 §2.2 p16; §2.6 p42; P-APERAK 16.B pp90–93",
+      "pr": 420,
+      "pr_head": "3251d8c85c1eaa1b97132120fdebbb47756a1974",
+      "main_merge_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "lifecycle": {
+        "specified": true,
+        "implemented": true,
+        "locally_tested": true,
+        "pr_verified": true,
+        "merged": true,
+        "production_code_deployed": true,
+        "market_activated": false
+      },
+      "ops_native": "382/382",
+      "ci_run_ids_ediel_browser_e2e_ops": [
+        36414870954,
+        36414870963,
+        36414871149,
+        36414871075
+      ],
+      "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+      "schema_fingerprint": "08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6",
+      "deployment": "dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu READY on exact merge SHA",
+      "limits": "Actual PRODAT_UNKNOWN/Z99 insertion fails code-specific profile trigger; no durable diagnostic owner/legal actor/mandate/route/retry and no outgoing 41/42 ACK. Earlier E035 Storage failure root unproved. ACK-02/ACK-10 and AT-ACK-02/10 remain partial."
     }
   ],
-  "active_candidate": {
+  "register_reconciliation": {
+    "rule_cards": 121,
+    "acceptance_contracts": 231,
+    "formal_status": "unchanged; #420 bounded proof does not close ACK-02/ACK-10 or AT-ACK-02/AT-ACK-10; no whole-phase percentage",
+    "source": "masterplan-v2-traceability-20260927.json"
+  },
+  "other_open": [
+    "historical PRODAT 203 and IDE505 scope/owner",
+    "positive LOC+175 owner/mandate/sink/retry",
+    "E035 history/retention/deletion",
+    "full grammar and F0–F2/F4–F7",
+    "external market activation per named capability"
+  ],
+  "closed_candidate_history": {
     "field": "202",
     "scope": "missing or unlisted physical BGM/C002/1001; typed 41/42 draft with safe hold at ACK persistence",
     "specified": true,
@@ -163,19 +204,9 @@
     "native_pending": "14 existing Z04 variants: two stale Z04 profile versus missing/Z99 raw physical code must hold both ACKs, zero business effects and stable retry. Two new real-ingress source owner inserts must fail code-specific profile trigger; exact-head OPS pending",
     "ack_limit": "Source-bound physical 41/42/202 and BGM27/ACW draft only. Genuine PRODAT_UNKNOWN/Z99 fails inbound code-specific profile trigger. No persisted ACK/outbox or market response qualified; positive CONTRL and APERAK blocked for stale profile; ERC40/100 not inferred.",
     "first_remaining_gate": "Durable tenant/legal-actor-bound diagnostic source owner and rule-pack authority for genuine missing/unlisted 202, then route, ACK/outbox and retry proof without borrowed Z04 profile.",
-    "third_ci": "Ediel 36408877709 and browser 36408877599 success; Full E2E 36408877711 failed smoke+coverage on one forbidden operational import of raw normative matrix in kernel; local shared canonical projection fix passes guard, route, affected 126/126. OPS 36408877538 native pending. OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress."
+    "third_ci": "Ediel 36408877709 and browser 36408877599 success; Full E2E 36408877711 failed smoke+coverage on one forbidden operational import of raw normative matrix in kernel; local shared canonical projection fix passes guard, route, affected 126/126. OPS 36408877538 native pending. OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.",
+    "final_head": "3251d8c85c1eaa1b97132120fdebbb47756a1974",
+    "final_result": "merged bounded safe hold in #420; earlier pending gate notes are historical only"
   },
-  "register_reconciliation": {
-    "rule_cards": 121,
-    "acceptance_contracts": 231,
-    "formal_status": "unchanged; no new completed percentage or phase certification",
-    "source": "masterplan-v2-traceability-20260927.json"
-  },
-  "other_open": [
-    "historical PRODAT 203 and IDE505 scope/owner",
-    "positive LOC+175 owner/mandate/sink/retry",
-    "E035 history/retention/deletion",
-    "full grammar and F0–F2/F4–F7",
-    "external market activation per named capability"
-  ]
+  "active_candidate": null
 }

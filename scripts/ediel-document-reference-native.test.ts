@@ -266,7 +266,11 @@ it('interruption before witness leaves committed unwitnessed outcome',async()=>{
 })
 it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['delete','replace'].map(loss=>({boundary,loss}))))('storage $loss at $boundary preserves old receipt and new reads hold',async({boundary,loss})=>{
  const f=await seed();const original=supabaseService.rpc.bind(supabaseService)
- const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string;observation?:unknown}={}
+ // The previous delete/before_witness failure returned before the witness
+ // hook (trace was empty). Record each RPC boundary without changing the
+ // fail-closed capture result or logging a document body or credentials.
+ const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string;observation?:unknown;
+  rpcStages:{name:string;phase:'start'|'returned'|'threw';error?:string;keys?:string[];eligible?:boolean}[]}={rpcStages:[]}
  const lose=async()=>{
   trace.storage='started'
   try{
@@ -275,14 +279,28 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    expect(result.error).toBeNull()
   }catch(error){trace.storageError=error instanceof Error?error.message:String(error);throw error}
  }
- if(boundary!=='after_witness')vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
-  if(name===(boundary==='before_append'?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1'))return {abortSignal:async()=>{
-   trace.hook=name
-   if(name==='gridex_observe_document_reference_v1')trace.observation=(params as {p_observation?:unknown})?.p_observation
-   await lose();const response=await original(name,params,options)
-   trace.rpcError=response.error?.message;return response
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  const hooked=boundary!=='after_witness'&&name===(boundary==='before_append'
+   ?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1')
+  if(!hooked&&!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   trace.rpcStages.push({name,phase:'start'})
+   if(hooked){
+    trace.hook=name
+    if(name==='gridex_observe_document_reference_v1')trace.observation=(params as {p_observation?:unknown})?.p_observation
+    await lose()
+   }
+   try{
+    const response=await request.abortSignal(signal)
+    const data=response.data
+    trace.rpcStages.push({name,phase:'returned',...(response.error?{error:response.error.message}:{}),
+     ...(data&&typeof data==='object'&&!Array.isArray(data)?{keys:Object.keys(data).sort(),
+      eligible:(data as {eligible?:boolean}).eligible===true}: {})})
+    if(hooked)trace.rpcError=response.error?.message
+    return response
+   }catch(error){trace.rpcStages.push({name,phase:'threw',error:error instanceof Error?error.message:String(error)});throw error}
   }} as unknown as ReturnType<typeof supabaseService.rpc>
-  return original(name,params,options)
  })
  const capture=await captureDocumentReference(args(f))
  if(capture.status==='unconfirmed'){
@@ -296,7 +314,8 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
    WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
   const clock=sql<{recordedAt:string;dbNow:string}>(`SELECT jsonb_build_object('recordedAt',recorded_at,'dbNow',clock_timestamp()) FROM gridex_received_sources.document_reference_attempts WHERE id=${literal(capture.attemptId)}`)
-  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,clock,durable})}`)
+  const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
+  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,clock,durable,readback})}`)
  }
  expect(capture).toMatchObject({status:'recorded',observation:'verified_at_observation'})
  vi.restoreAllMocks();const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'),old=saved(f,cutoff)

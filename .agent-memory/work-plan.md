@@ -1,3 +1,12 @@
+## Current — 2026-09-28 F3 identity/E035 package
+
+1. Publish test-only E035 RPC-stage observation and source/activation audit on one draft from main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`; no prod behavior change.
+2. Inspect exact-head native and ordinary CI; diagnose any first real failure without blind retries, then update checkpoint.
+3. Qualify field203 issuer/history, IDE505 separate sender/occurrence scope and positive LOC175 legal object/mandate/sink; if absent, preserve holds and proceed with an independently source-backed criterion.
+4. Keep the 121/231 per-ID register and capability activation matrix tied to exact PR/CI/native evidence. No small merges, staging/TGT/AGT/counterparty/live sends or #310 action.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 1. Publish locally verified canonical projection fix for Full E2E normative import failure on 470625da and update the PR checkpoint.

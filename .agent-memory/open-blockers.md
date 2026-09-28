@@ -1,3 +1,9 @@
+## Current — 2026-09-28 after #420
+
+Genuine PRODAT missing/Z99 outbound 41/42/202 has no durable diagnostic profile, legal actor/mandate, route or retry owner. Historical 203 and IDE505 require separate issuer scopes and authentic pre-ledger/deletion coverage before atomic duplicate reservation. Positive LOC+175 lacks legal actor/mandate, versioned object registry and distinct sink. E035 retention/deletion and pre-ledger coverage are unknown; prior Storage `delete/before_witness` failure stage/root is unproved despite #420 native pass. Full UNSM grammar and G01–G07 external gates remain open. No staging, market traffic or #310 action.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 First outgoing 41/42/202 blocker remains real diagnostic source ownership: PRODAT_UNKNOWN/Z99 cannot bind a code-specific canonical profile. On 470625da Full E2E normative guard failed for direct matrix import; locally corrected through canonical field projection, unpublished. OPS native pending; older 203/IDE505, LOC+175, E035, grammar and market gates remain open.

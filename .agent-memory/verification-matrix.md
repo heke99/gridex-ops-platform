@@ -1,3 +1,9 @@
+## Current — 2026-09-28 #420 final receipt and next candidate
+
+Ediel 36414870954, browser 36414870963, Full E2E 36414871149, OPS 36414871075 (native 382/382, clean replay, type/schema parity): SUCCESS on #420 head 3251d8c85c1eaa1b97132120fdebbb47756a1974. Merge `main` `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` and Vercel READY `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu`. PR review: 20 changed files, no open threads/submitted reviews, diff check clean; CodeRabbit draft notice is not review approval. New branch E035 test-only diagnostic: `npm run typecheck:scripts`, scoped ESLint and diff check pass locally; native not run locally (no Docker/psql) and PR CI pending. `node scripts/check-ediel-masterplan-v2.cjs` confirms 121/231 register integrity only; coverage statuses 114/7 rule NOT_VERIFIED/PARTIAL and 224/7 acceptance NOT_EXECUTED/PARTIAL. No market activation or whole percentage.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 PR420 470625da: Ediel 36408877709 SUCCESS; browser 36408877599 SUCCESS; Full E2E 36408877711 FAILED only normative authority import from kernel (smoke and coverage), reproduced RED locally then GREEN via canonical field projection; affected 126/126 and route regression PASS. OPS 36408877538 native/replay pending. Three TS projects/scoped lint being completed; current fix unpublished. Frozen 121/231 formal partial, no activation.

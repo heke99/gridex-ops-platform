@@ -1,3 +1,9 @@
+## Current — 2026-09-28 accepted #420 and next draft preparation
+
+#420 head `3251d8c85c1eaa1b97132120fdebbb47756a1974` passed four exact-head workflows, OPS native 382/382 and replay/types/schema; merged remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` with same-SHA Vercel READY `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu`. The physical field202 safe hold is delivered, not outbound 41/42 APERAK or market activation. E035 `delete/before_witness` passed on this run but its earlier `unconfirmed` root remains unknown. Next branch `codex/ediel-v2-identity-e035-owner-20260928` is local at this checkpoint with test-only RPC-boundary diagnostics and source/activation audit; local scripts TS/lint/diff pass, native PR pending. Next: push/open one draft, inspect actual native, then qualify 203/505 legal issuer/history and LOC175 object/mandate. #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Genuine PRODAT_UNKNOWN/Z99 has no durable code-specific profile; current safe hold is pending native proof. Next: Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.

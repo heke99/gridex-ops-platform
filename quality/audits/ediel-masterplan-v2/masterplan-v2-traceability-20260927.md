@@ -1,3 +1,7 @@
+## Uppföljning 2026-09-28: #420 slutlig avgränsad leverans
+
+På exakt PR-head `3251d8c8` passerade Ediel, browser, Full E2E och OPS; OPS native 382/382, ren migrationsreplay och genererad typ-/schemaparitet. Hela 20-filersdiffen och reviewtrådarna granskades; #420 mergades en gång till `main` `53bf989b`, och Vercel `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu` blev READY på samma SHA. Säker spärr för fysiskt saknad/okänd PRODAT 202 och ett internt ERC41/42-utkast är den accepterade delen. Verklig outbound APERAK, historisk 203/IDE505, positiv LOC+175 och E035 historik/retention är inte accepterade; E035:s tidigare Storage-fel är inte rotorsaksbestämt. Se [leveransliggaren](f3-prodat-header-delivery-ledger-20260928.json) och [aktiveringsmatrisen](capability-activation-matrix-20260928.md). Äldre uppföljningar nedan är historiska för sina respektive heads. Frysta 121/231, fulla F-faser och marknadsaktivering är fortsatt öppna.
+
 ## Uppföljning 2026-09-28: första CI-felet på tredje #420-head
 
 Exakt head `470625da` gav grön Ediel och browser, medan Full E2E:s smoke och coverage föll på samma förbjudna direkta import av normmatrisen från `kernel.ts`. Den lokala rättningen använder kanonisk PRODAT-fältprojektion; normgrind, ruttsvit och berörda 126/126 är gröna. OPS native och ny sluthead saknas ännu. Beständigt ägarskap för verklig `PRODAT_UNKNOWN`/`Z99` och outbound-ACK är fortsatt öppet.

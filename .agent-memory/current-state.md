@@ -1,3 +1,9 @@
+## Current — 2026-09-28 after accepted #420
+
+Remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` merged #420 once. Vercel `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu` is READY on the same SHA. Ediel 36414870954, browser 36414870963, Full E2E 36414871149, OPS 36414871075 (native 382/382, clean replay, type/schema parity): SUCCESS on #420 head 3251d8c85c1eaa1b97132120fdebbb47756a1974. New branch `codex/ediel-v2-identity-e035-owner-20260928` starts from main. E035 native attempt/observation/witness diagnostic change and identity/activation evidence are local pending publication and PR-native proof. No market activation; #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Prior #415/#416/#417/#419 bounded deliveries remain accepted in ledger.

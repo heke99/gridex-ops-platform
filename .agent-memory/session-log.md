@@ -1,3 +1,9 @@
+## 2026-09-28 — #420 merge and next package
+
+Verified run IDs and exact head `3251d8c85c1eaa1b97132120fdebbb47756a1974`: Ediel/browser/Full E2E/OPS success, OPS native 382/382 with prior E035 case passing, clean replay and type/schema parity. Reviewed full diff and zero review threads; updated #420 description without changing its head, made one merge to `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`, verified remote main and Vercel READY same SHA. No market activation or #310 change. Branched from new main; added test-only sanitized RPC-stage trace for the unresolved E035 Storage case and bounded identity/activation evidence. Local scripts TS, lint, diff pass; native/new PR pending.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 2026-09-28: PR420 470625da exact-head Ediel/browser PASS. Full E2E smoke+coverage identified one repo normative authority violation from direct field matrix import in ACK gateway. Confirmed locally RED; moved list check to canonical PRODAT document projection and used it from header and kernel, then guard, route regression and 126/126 PASS. Native replay still running. No CI rerun on unchanged SHA.

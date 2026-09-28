@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T10:22:31Z",
+  "updated_at": "2026-09-28T11:38:23.334984Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-f3-prodat-next2-20260928",
-  "active_pr": 420,
-  "base_head_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
-  "runtime_accepted_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
-  "last_merged_pr": 419,
-  "last_accepted_pr": 419,
+  "branch": "codex/ediel-v2-identity-e035-owner-20260928",
+  "active_pr": null,
+  "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "last_merged_pr": 420,
+  "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR420 field202 physical missing/unlisted code: 41/42 draft only; correct false outbound ACK from stale Z04 persisted owner",
-  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md",
+  "active_item": "F3 identity/E035 native observation and source qualification; first publish draft from accepted #420 main",
+  "current_audit": "quality/audits/ediel-masterplan-v2/identity-e035-next-package-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,9 +30,9 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.",
+  "next_action": "Push local test-only E035 boundary diagnostic and identity/activation audit to one early draft; inspect exact-head native outcome, then qualify issuer/history and positive LOC175 owner without guessed behavior.",
   "latest_verified_delivery": {
-    "main_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
+    "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
     "merged_prs": [
       387,
       388,
@@ -58,12 +58,13 @@
       415,
       416,
       417,
-      419
+      419,
+      420
     ],
     "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
     "pr390_ops_run": 36245827122,
     "pr390_native_tests": "343/343",
-    "vercel_deployment": "dpl_HY8hqZ4FXNK6XLNVSjMbSsJQ29Jk READY for exact main f030d507; code deployment only",
+    "vercel_deployment": "dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu READY on exact main 53bf989b0ad402bb2ce151c186eea31f1ec9cf03; code deployment only",
     "boundary": "web deployed; Ediel market capabilities not activated",
     "pr392_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
     "pr392_ops_run": 36247794182,
@@ -90,7 +91,10 @@
     "pr419_ops_run": 36401020685,
     "pr419_native_tests": "378/378",
     "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-    "schema_fingerprint": "08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6"
+    "schema_fingerprint": "08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6",
+    "pr420_head": "3251d8c85c1eaa1b97132120fdebbb47756a1974",
+    "pr420_ops_run": 36414871075,
+    "pr420_native_tests": "382/382"
   },
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
@@ -204,7 +208,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "PR371_FINAL_SPEC_QUALITY_NATIVE_ACCEPTED; PR372_TASK1_SPEC_QUALITY_APPROVED",
-  "ordinary_final_head_ci": "PR394_FOUR_APPLICABLE_SUCCESS_NATIVE_REPLAY",
+  "ordinary_final_head_ci": "PR420_FOUR_APPLICABLE_SUCCESS_NATIVE382_REPLAY_SCHEMA_TYPES",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -219,7 +223,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "09c1727c109cc73d279272b80763f96a48bbeb9e",
+  "last_verified_pr_head": "3251d8c85c1eaa1b97132120fdebbb47756a1974",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -918,9 +922,10 @@
       "206",
       "313",
       "204",
-      "202/C002"
+      "202/C002",
+      "202 missing/unlisted physical safe hold"
     ],
-    "active_candidate": "Missing/unlisted physical 202: typed 41/42/BGM27 draft, stale-profile ACK safely held; local 126/126 including normative authority, final PR/native gates pending",
+    "active_candidate": null,
     "formal_rules": [
       "ACK-02 partial",
       "ACK-10 partial"
@@ -932,6 +937,6 @@
     "frozen_totals": "121 cards and 231 contracts; no new percentage",
     "market_activated": false
   },
-  "active_pr_head_before_pending_commit": "470625da871eeba4b53a6356215f286a32f77ec6",
-  "active_candidate_evidence": "PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress."
+  "active_pr_head_before_pending_commit": null,
+  "active_candidate_evidence": "Next branch E035 test-only RPC stage observation local TypeScript/lint/diff PASS; native PR pending; 203/IDE505/LOC175 owners unresolved."
 }
