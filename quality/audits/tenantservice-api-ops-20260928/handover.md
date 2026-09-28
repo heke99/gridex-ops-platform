@@ -1,5 +1,13 @@
 # Tenantservice/API/OPS — överlämning, checkpoint 2026-09-28
 
+## Senaste P2a browser/API-replay och nästa kandidat
+
+På `d74e23d8` passerade OPS `36474772294` verify och quality; clean replay `109105589330` passerade äldre native kontakt-/samtidighetsfall och Ediel-browser, skapade en syntetisk GoTrue-fixtur men föll i nya Playwright på en otillåten Next route-återexport (`dynamic`). Ingen primärkontakt via browser/API eller native efterläsning passerade. På `cc023771` (OPS `36476015972`, clean `109109811066`) passerade det syntetiska API-klientens nya native autentiseringspreflight med matchande lokalt kvitto och kapabilitet, men browsern hade samma route-fel.
+
+`597ac253` rättade route-konfigurationen. OPS `36476762521` verify `109112300478` och quality `109112300153` passerade; tenant `36476762538`, public browser `36476762630`, Ediel `36476762532` och full E2E `36476762522` passerade, crawler `36476762549` var skipped. Clean `109112300410` passerade native kontakt och tvåsessionskonflikt samt syntetisk Auth/API-preflight. Den nya browsern kunde logga in men kundkortets databasfråga refererade `customers.moved_out_at`, som saknas i den autentiska rena schemaåterspelningen. Därför visades inget kontaktformulär och positivt API-anrop fick 409 på ej sparad revision; det efterföljande native browserprovet kördes **inte**. Artifact `10994540875` och loggen visar felet. En lokal korrigering tar bort tre oanvända, ej existerande livscykelkolumner från kundkortets läsfråga och typ, med 25/25 fält matchade mot genererade kundtyper, app-typecheck och scoped lint utan fel. Dess exakta kommande CI och browser/API/native resultat är fortfarande **väntande**. Livscykelåtgärdens separata skrivväg mot äldre kolumner/tabell är inte verifierad av detta kontaktprov och ska hanteras separat.
+
+`requirements.csv` behåller samtliga 75 ID som tidigare; berörda rader visar att browserflödet ännu inte passerat. Ingen merge, produktionsmigration eller riktig trafik har körts.
+
 ## Ny P2a browser/API-kandidat (ännu inte native/browser-godkänd)
 
 Remote `bf22cbf823dfa12bde373f791f3b31bfa4401b2f` hade OPS run `36455804288` success: verify `109041713026`, quality `109041712977` och clean replay `109041712659`, inklusive den redan committade tvåsessionsfixturen. Tenant `36455804103`, public browser `36455804080`, Ediel `36455804095` och full E2E `36455804117` var success; crawler `36455804099` skipped. Detta är bevis för **föregående head**, inte det nya browser/API-provet. Ingen manuell omkörning av run 36455804288 gjordes.
