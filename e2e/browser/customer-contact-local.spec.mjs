@@ -7,6 +7,11 @@ const enabled = process.env.GRIDEX_CONTACT_LOCAL_E2E === '1'
   && Boolean(process.env.GRIDEX_CONTACT_FIXTURE_PATH && process.env.GRIDEX_CONTACT_TEST_PASSWORD)
 test.skip(!enabled, 'Requires the disposable local Supabase replay and Auth fixture.')
 
+// Both tests consume one externally provisioned, mutable database fixture.
+// An individual Playwright retry would inherit the previous attempt's writes;
+// a failed attempt must instead be retried with a fresh clean replay.
+test.describe.configure({ mode: 'serial', retries: 0 })
+
 const fixture = enabled ? JSON.parse(readFileSync(process.env.GRIDEX_CONTACT_FIXTURE_PATH, 'utf8')) : null
 const card = (customerId) => `/admin/customers/${customerId}?tab=profile`
 const contactForm = (page) => page.locator(`form:has(input[name="id"][value="${fixture.contactA}"])`)
@@ -127,11 +132,11 @@ test('delegated HTTP API uses the same revision, rejects forged identity and rep
   await secondary.locator('input[name="name"]').fill('Synthetic Billing')
   await secondary.locator('input[name="email"]').fill('billing@example.invalid')
   await secondary.getByRole('button', { name: 'Lägg till kontakt' }).click()
-  await expect(writer.getByText('Sparad kontaktrevision: 3')).toBeVisible()
+  await expect(writer.getByText('Sparad kontaktrevision: 3', { exact: true })).toBeVisible()
   await writer.reload()
   const savedSecondary = writer.locator('article:has-text("Synthetic Billing")')
   await expect(savedSecondary).toContainText('billing@example.invalid')
   await expect(savedSecondary).toContainText('Sekundär')
-  await expect(writer.getByText('Sparad kontaktrevision: 3')).toBeVisible()
+  await expect(writer.getByText('Sparad kontaktrevision: 3', { exact: true })).toBeVisible()
   await writer.close()
 })
