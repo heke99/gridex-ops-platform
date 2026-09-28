@@ -1070,7 +1070,14 @@ it.each(['object-first', 'point-first'] as const)(
     'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id) ORDER BY source_transaction_id)
    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`)
 
-  effects.ack.mockRejectedValueOnce(new Error('after_mixed_s01_reservation_before_ack'))
+  let aperakInterrupted = false
+  effects.ack.mockImplementation(async ({ sourceMessage, ackFamily }: { sourceMessage: EdielMessageRow; ackFamily: string }) => {
+    if (ackFamily === 'APERAK' && !aperakInterrupted) {
+      aperakInterrupted = true
+      throw new Error('after_mixed_s01_reservation_before_ack')
+    }
+    return { id: sourceMessage.id }
+  })
   await expect(run()).rejects.toThrow('after_mixed_s01_reservation_before_ack')
   expect(outcomes().find(row => row.id === heldId)).toMatchObject({ disposition: 'internal_review', plan: 'none', final: null, series: null })
   expect(outcomes().find(row => row.id === pointId)).toMatchObject({ disposition: 'accepted', plan: 'positive_aperak', final: null, series: expect.any(String) })
@@ -1088,7 +1095,7 @@ it.each(['object-first', 'point-first'] as const)(
   expect(outcomes().find(row => row.id === pointId)).toMatchObject({ disposition: 'accepted', plan: 'positive_aperak', final: 'positive_aperak', series: expect.any(String) })
   expect(sql(`SELECT to_jsonb(a) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source.id)} AND source_transaction_id=${lit(heldId)}`)).toEqual(heldBefore)
   expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(1)
-  expect(effects.ack.mock.calls[0][0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'positive',
+  expect(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')?.[0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'positive',
     draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: pointId } } })
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   const completed = snapshot(source.id)

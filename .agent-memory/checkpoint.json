@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T22:57:53Z",
+  "updated_at": "2026-09-28T23:11:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 mixed S01 held-object/point ACK interruption native proof; exact-head clean replay pending",
+  "active_item": "F3 #421 mixed S01 native 398/400 first test-injection failure; APERAK-only correction locally verified",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Fast-forward publish the two-order native ACK-interruption proof and corrected activation matrix; inspect first exact-head CI/native failure or certify native 400/400, clean replay and five workflows. Review diff and threads. Keep draft/market hold/#310; external historical issuer/corpus/retention and positive object owner remain absent.",
+  "next_action": "Fast-forward publish corrected APERAK-only injection from e561d50b; inspect first exact-head native result, require clean replay/types/schema and five workflows. Review full PR diff/threads; keep draft, market hold and #310. External issuer/history/retention/object owner remain absent.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "97342339f7cd7ee765247fe890d0f4dd2d2596e6",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -50,10 +50,10 @@
     "native_before_this_step": "398/398",
     "native_on_last_verified_head": "398/398; clean replay, generated type/schema parity and five workflows green",
     "next_head_checks": "Five workflows, OPS native clean replay/type/schema parity, full diff/reviews; no SQL schema change.",
-    "local_candidate": "Native mixed S01 LOC+175 held object plus LOC+172 point, both physical orders: synthetic ACK exception after durable point reservation, then only point ACK and unchanged held row/retry. Script/test TypeScript, scoped lint, inventory, diff pass; native exact-head pending; no product code change.",
-    "last_published_head": "d24ccc85ca953ce2c9f312f83d53703731942389",
-    "first_new_head_failure": "None on d24ccc85; earlier Storage delete/before_witness and 11be9ea8 attempt-without-witness roots remain unknown.",
-    "candidate": "Native mixed S01 LOC+175 held object plus LOC+172 point, both physical orders: synthetic ACK exception after durable point reservation, then only point ACK and unchanged held row/retry. Script/test TypeScript, scoped lint, inventory, diff pass; native exact-head pending; no product code change."
+    "local_candidate": "APERAK-only ACK interruption and scoped retry call assertion, scripts TypeScript/scoped lint/diff pass; native 400/400 and generated parity pending a new exact head. No product code change.",
+    "last_published_head": "e561d50bbaf5fb1ac1e83f768ac6c75a09be2e57",
+    "first_new_head_failure": "e561d50b OPS 36495674403 native 398/400: both new tests expected APERAK call at line 1080 but unconditional mockRejectedValueOnce hit technical CONTRL first. Persisted held and accepted/unfinalized rows, receipt/contract/series counts passed. Test-only correction targets first APERAK; generated parity not reached.",
+    "candidate": "APERAK-only ACK interruption and scoped retry call assertion, scripts TypeScript/scoped lint/diff pass; native 400/400 and generated parity pending a new exact head. No product code change."
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",

@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 first ACK-injection native diagnosis
+
+Published `e561d50b`: Ediel, browser, Full E2E, tenant and OPS verify/quality passed. OPS `36495674403` clean replay native **398/400** failed both new mixed S01 tests at the first APERAK-call assertion; the unconditional mock exception had hit technical CONTRL first. Held and accepted/unfinalized rows plus one receipt, contract and series already matched. This is a test injection error, not a demonstrated product ACK defect. The local correction interrupts only the first APERAK and filters the scoped point ACK on retry; scripts TypeScript, lint and diff pass. New-head native/replay/types/schema pending. Earlier E035 Storage failures remain unexplained. Legal sender mapping, continuous authentic/deleted originals, lawful retention, positive LOC+175 object/mandate/sink/ACK owner and full E035 history remain absent. #421 draft, #310 untouched, market traffic blocked.
+
+Next: publish from exact remote `e561d50b` by fast-forward, read first native result, require all five workflows and review full diff/threads.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 exact-head evidence
 
 | Boundary | Evidence | Limit |
