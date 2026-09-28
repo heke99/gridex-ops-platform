@@ -1,3 +1,11 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Prior #415/#416/#417/#419 bounded deliveries remain accepted in ledger.
+
+OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
 ## Current — 2026-09-28 PR #420 persisted field202 owner correction
 
 #420 head `31221ee9` Ediel/browser/Full E2E success; OPS clean replay failed two stale-profile 202 fixtures (378/380). Its stale Z04 native fixture did not prove genuine inbound 202 ACK: mailbox would store `PRODAT_UNKNOWN` or `Z99`, and code-specific profile trigger rejects the source. Current unpublished gateway correction blocks positive CONTRL and APERAK for mismatched physical/stored code. Local affected 125/125, three TypeScript projects, lint/diff pass; native genuine-ingress/hold/retry and final exact-head gates pending. Previous #415/#416/#417/#419 accepted deliveries remain in the bounded ledger. No market activation.

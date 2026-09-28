@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Next: Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
 ## Current — 2026-09-28 PR #420 persisted field202 owner correction
 
 PR #420 current next action: publish canonical ACK owner mismatch fence and native two real-ingress trigger-rejection cases. Then check clean replay, native hold/route/tenant/retry, schema/type parity and four exact-head workflows; review full diff/threads. Genuine missing/unlisted 202 ACK stays blocked pending durable tenant/legal-actor diagnostic owner and rule-pack authority. Earlier #420 positive ACK assertions are superseded.

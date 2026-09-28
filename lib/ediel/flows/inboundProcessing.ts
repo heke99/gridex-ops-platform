@@ -861,8 +861,9 @@ export async function processInboundEdielMessage(params: {
   }
 
   // Missing/unlisted BGM/C002/1001 is checked against the physical header
-  // before code-specific policy exists. Do not borrow a cached Z04 case;
-  // only its source-qualified field 202 error may authorize negative APERAK.
+  // before code-specific policy exists. A typed field 202 finding can qualify
+  // the draft; the canonical ACK gateway still requires the persisted code
+  // to own the physical source before either response is written.
   const unresolved202Wire=runtimeMessage.message_family === "PRODAT" && runtimeMessage.raw_payload &&
     canonicalRuntime.decision.applicationDecision === "rejected" && !canonicalRuntime.decision.policy
       ? tokenizeEdifact(runtimeMessage.raw_payload) : null;

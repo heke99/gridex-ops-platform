@@ -7036,12 +7036,14 @@
     "bounded_delivery_ledger": "quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json",
     "formal_status": "unchanged; ACK-02/ACK-10 and AT-ACK-02/AT-ACK-10 partial",
     "market_traffic": "held",
-    "next_action": "Publish canonical ACK mismatch fence and native genuine-ingress trigger proof to PR420; inspect exact-head native/replay/schema/type and CI, then decide coherent merge or keep draft; design durable diagnostic owner separately",
+    "next_action": "Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.",
     "first_published_head": "a820ff0e0b942668d228d4f8b6eecf66ab4d251c",
     "first_ci": "Ediel/browser success; Full E2E six guide-resolution failures from overbroad guard, locally corrected; OPS native pending",
     "second_published_head": "31221ee99de0722903d9a85f58bc1351605fd8db",
     "second_ci": "Ediel/browser/Full E2E success; OPS clean replay 378/380, two stale Z04 missing/Z99 native assertions failed due APERAK blocked event despite queued ACK. Ownership finding and current guard correct unsafe outbound interpretation.",
-    "owner_blocker": "Mailbox diagnosticMessageCode PRODAT_UNKNOWN or Z99 has no code-specific canonical profile; DB trigger rejects source insertion. Manually stored Z04 versus raw missing/Z99 is stale and ACK gateway must hold positive CONTRL and APERAK."
+    "owner_blocker": "Mailbox diagnosticMessageCode PRODAT_UNKNOWN or Z99 has no code-specific canonical profile; DB trigger rejects source insertion. Manually stored Z04 versus raw missing/Z99 is stale and ACK gateway must hold positive CONTRL and APERAK.",
+    "third_published_head": "470625da871eeba4b53a6356215f286a32f77ec6",
+    "third_ci": "Ediel/browser success; Full E2E smoke+coverage failed same normative-authority import; local canonical projection fix verified, OPS native pending OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress."
   },
   "followup_history_20260927": {
     "accepted_pr_414": 414,

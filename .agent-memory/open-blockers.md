@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+First outgoing 41/42/202 blocker remains real diagnostic source ownership: PRODAT_UNKNOWN/Z99 cannot bind a code-specific canonical profile. On 470625da Full E2E normative guard failed for direct matrix import; locally corrected through canonical field projection, unpublished. OPS native pending; older 203/IDE505, LOC+175, E035, grammar and market gates remain open.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
 ## Current — 2026-09-28 PR #420 persisted field202 owner correction
 
 First blocker for field202 outbound 41/42: actual mailbox stores `PRODAT_UNKNOWN` or `Z99`; database requires exactly one matching code-specific profile and rejects the inbound source, so no tenant/legal-actor-bound durable owner/snapshot exists. Borrowed Z04 cannot authorize positive CONTRL or APERAK. Native correction and final gates pending. ERC40/100 not inferred. Historical field203/IDE505 uniqueness, positive LOC+175, E035 coverage/retention/deletion, grammar and external gates remain open.

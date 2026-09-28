@@ -56,6 +56,11 @@ export function prodatDocumentValue(
   return prodatDocumentState(field, segments, una).value
 }
 
+/** Canonical field 202 projection shared by the header and ACK owner guard. */
+export function isListedProdatDocumentCode(value: string | null | undefined): boolean {
+  return Boolean(value && PRODAT_26A_MESSAGE_CODES.some(code => code === value))
+}
+
 /** Serialize the four documented BGM fields, not a parallel message profile. */
 export function renderProdatDocumentHeader(input: {
   code: string

@@ -1,7 +1,6 @@
 import {tokenizeEdifact, segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatDateState} from './prodatDateFields'
-import {prodatDocumentState,prodatDocumentValue} from './prodatDocumentFields'
-import {PRODAT_26A_MESSAGE_CODES} from './prodat26AFieldMatrix'
+import {isListedProdatDocumentCode,prodatDocumentState,prodatDocumentValue} from './prodatDocumentFields'
 import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
 import type {ProdatFailureEvidence} from './prodatFailureEvidence'
 import type {AperakEngineApplicationError} from '@/lib/ediel/aperakEngine'
@@ -28,7 +27,7 @@ export function prodatHeaderFieldRejection(params:{
   // missing national header. The syntax owner handles broken envelopes.
   const complete=start>=0&&bgm>start&&end>bgm&&segmentComposite(rows[start],2,sourceWire.una)[0]==='PRODAT'
   const messageCode=complete?prodatDocumentValue('202',rows,sourceWire.una):null
-  const listedCode=Boolean(messageCode && PRODAT_26A_MESSAGE_CODES.some(code=>code===messageCode))
+  const listedCode=isListedProdatDocumentCode(messageCode)
   const date=complete && (field==='205'||field==='206')?prodatDateState(field,rows,sourceWire.una):null
   const document=complete && (field==='202'||field==='204'||field==='313')?prodatDocumentState(field,rows,sourceWire.una):null
   const defect=date ? date.present ? date.malformed ? 'invalid' : null : 'missing'

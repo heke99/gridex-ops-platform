@@ -1,3 +1,11 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+1. Publish locally verified canonical projection fix for Full E2E normative import failure on 470625da and update the PR checkpoint.
+2. Check first native/replay result and all new exact-head CI, schema/type parity; correct the first actual failure only.
+3. Review complete PR diff/threads and decide a single coherent safe-hold merge if all gates pass; durable diagnostic owner/ACK remains separate and unproved. Verify main/deployment, then branch from new main. #310/market held.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
 ## Current — 2026-09-28 PR #420 persisted field202 owner correction
 
 1. Publish current gateway mismatch fence, native genuine-ingress trigger rejection and stale-Z04 hold/retry to the same draft #420.

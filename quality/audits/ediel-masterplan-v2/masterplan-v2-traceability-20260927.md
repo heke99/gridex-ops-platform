@@ -1,3 +1,7 @@
+## Uppföljning 2026-09-28: första CI-felet på tredje #420-head
+
+Exakt head `470625da` gav grön Ediel och browser, medan Full E2E:s smoke och coverage föll på samma förbjudna direkta import av normmatrisen från `kernel.ts`. Den lokala rättningen använder kanonisk PRODAT-fältprojektion; normgrind, ruttsvit och berörda 126/126 är gröna. OPS native och ny sluthead saknas ännu. Beständigt ägarskap för verklig `PRODAT_UNKNOWN`/`Z99` och outbound-ACK är fortsatt öppet.
+
 ## Uppföljning 2026-09-28: fält202 verkligt ägarskap vid inläsning
 
 PR #420 andra head `31221ee9` klarade Ediel/browser/Full E2E, men dess native Z04-fixtur lagrar felaktigt Z04-profil mot fysiskt BGM++/Z99. Verklig mailbox använder `PRODAT_UNKNOWN`/`Z99` och databastriggern kräver kodspecifik profil; den skapar då ingen beständig källrad. Därför är ERC41/42/202 och BGM27/ACW bara lokalt källkvalificerad draft, inte verifierad outbound-kvittens. Nästa korrigering spärrar positiv CONTRL och APERAK i kanonisk ACK-skrivare när fysiskt och lagrat kodägarskap inte matchar. Native-proven ska styrka triggeravvisning, noll ACK/outbox och affärseffekter samt stabil retry. 121/231 och ACK-02/ACK-10/AT-ACK-02/AT-ACK-10 är oförändrat delvisa. Tidigare #420-text nedan är historisk för den head den beskrev och ersätts av denna uppföljning.

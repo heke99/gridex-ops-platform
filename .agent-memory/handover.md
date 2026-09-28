@@ -1,3 +1,11 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. Genuine PRODAT_UNKNOWN/Z99 has no durable code-specific profile; current safe hold is pending native proof. Next: Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.
+
+OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
 ## Current — 2026-09-28 PR #420 persisted field202 owner correction
 
 PR #420 base main `f030d507`, second published head `31221ee9` Ediel/browser/Full E2E success, OPS clean replay failed two stale-profile 202 fixtures (378/380). Source-owner discovery invalidates prior native positive ACK assertion for BGM++/Z99 with manually stored Z04 profile. Local correction guards canonical ACK persistence; tests 125/125 and three TS/lint pass. Publish the correction and native trigger/hold/retry proof, then inspect exact-head gates and decide one coherent merge. Ledger/audit in quality/audits/ediel-masterplan-v2. #310/market traffic held.

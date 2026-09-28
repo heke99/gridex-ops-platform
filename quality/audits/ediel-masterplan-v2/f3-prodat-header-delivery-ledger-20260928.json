@@ -155,13 +155,15 @@
     "market_activated": false,
     "published_commits": [
       "a820ff0e0b942668d228d4f8b6eecf66ab4d251c",
-      "31221ee99de0722903d9a85f58bc1351605fd8db"
+      "31221ee99de0722903d9a85f58bc1351605fd8db",
+      "470625da871eeba4b53a6356215f286a32f77ec6"
     ],
     "first_ci": "a820ff0e Ediel/browser success; Full E2E failed six unrelated guide-resolution tests; scoped physical-202 fix on 31221ee9 passed Ediel/browser/Full E2E; OPS clean replay 378/380; two stale Z04 fixtures expected no blocked APERAK despite one being recorded",
     "local_evidence": "125/125 in three files, all six guide regressions; current ACK gateway stale-profile hold also 125/125; app/tests/scripts TypeScript, scoped lint, diff pass",
     "native_pending": "14 existing Z04 variants: two stale Z04 profile versus missing/Z99 raw physical code must hold both ACKs, zero business effects and stable retry. Two new real-ingress source owner inserts must fail code-specific profile trigger; exact-head OPS pending",
     "ack_limit": "Source-bound physical 41/42/202 and BGM27/ACW draft only. Genuine PRODAT_UNKNOWN/Z99 fails inbound code-specific profile trigger. No persisted ACK/outbox or market response qualified; positive CONTRL and APERAK blocked for stale profile; ERC40/100 not inferred.",
-    "first_remaining_gate": "Durable tenant/legal-actor-bound diagnostic source owner and rule-pack authority for genuine missing/unlisted 202, then route, ACK/outbox and retry proof without borrowed Z04 profile."
+    "first_remaining_gate": "Durable tenant/legal-actor-bound diagnostic source owner and rule-pack authority for genuine missing/unlisted 202, then route, ACK/outbox and retry proof without borrowed Z04 profile.",
+    "third_ci": "Ediel 36408877709 and browser 36408877599 success; Full E2E 36408877711 failed smoke+coverage on one forbidden operational import of raw normative matrix in kernel; local shared canonical projection fix passes guard, route, affected 126/126. OPS 36408877538 native pending. OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress."
   },
   "register_reconciliation": {
     "rule_cards": 121,

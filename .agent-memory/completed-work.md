@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 normative import correction
+
+#420 is still draft and not a completed bounded delivery. Its 470625da Ediel/browser succeeded, Full E2E authority guard failed; a local narrow import fix passes 126/126 and route guard, OPS native pending. Prior #415/#416/#417/#419 remain the only accepted header deliveries listed below.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
 ## Current — 2026-09-28 PR #420 persisted field202 owner correction
 
 #420 is **not** in merged completed work. The first published head `a820ff0e` had Full E2E six guide-resolution failures; `31221ee9` fixed those and passed Ediel/browser/Full E2E. Its synthetic native ACK assertion is superseded because a real missing/Z99 code cannot acquire the stored Z04 profile. The current ACK fence is local 125/125 and awaiting native/CI. Earlier #415/#416/#417/#419 accepted bounded deliveries are recorded below and in the ledger; no formal 121/231 completion or market activation.
