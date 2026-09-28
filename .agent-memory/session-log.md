@@ -1,3 +1,7 @@
+## 2026-09-28 — field202 policy boundary continuation
+
+Fetched unchanged clean remote main and next2 branch `f030d507`; verified merged #415/#416/#417/#419 PR bodies and no open PR on next2. Read AGENTS, masterplan, frozen P/APERAK source, register, actual policy/consumer/renderer, and stale memory. A complete physical PRODAT with unlisted Z99 and stale stored Z04 policy reached rejected application but threw in ACK policy after bypassing header guard; missing code took another hold. Added actual-consumer RED/GREEN and no-route/retry cases, policy-null fail-close before business, native SQL variants, bounded audit, ledger and refreshed project checkpoint. Focused27/27, three TS projects, scoped lint/diff pass. Native/CI unpublished/pending; no market sends, #310 untouched. Next publish draft and inspect actual first CI.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 

@@ -1,3 +1,9 @@
+## Uppföljning 2026-09-28: verifierade leveranser och nästa 202-spärr
+
+#416 (206 och 313) mergades som `d7eaa4b0`, #417 (204) som `a5f73de8` och #419 (202/C002) som `f030d507`. Varje angivet PR-sluthead har fyra gröna CI-flöden och OPS native 376/376, 377/377 respektive 378/378 med ren replay och schema-/typparitet; Vercel-koden är READY på respektive merge-SHA. Även #415:s avgränsade 205-väg är mergad. Den maskinläsbara [leveransjournalen](f3-prodat-header-delivery-ledger-20260928.json) skiljer specificerat, implementerat, lokalt provat, PR-verifierat, mergat och koddeployat från marknadsaktivering per delregel. Den frysta totalsumman 121 regelkort och 231 kontrakt och deras formella status ändras inte: ACK-02/ACK-10 och AT-ACK-02/AT-ACK-10 har bara delbevis.
+
+Nästa verkliga 202-glapp är att okänd BGM-kod med avvisat policyval kunde nå inbound affärsvägen; saknad kod tog en annan spärrväg. Den lokala korrigeringen håller båda före affärseffekter och skapar högst tenantkvalificerad teknisk CONTRL. Ingen obestyrkt ERC40/100 eller negativ APERAK sänds. Native/PR-CI för detta nya delsteg väntar. Se [avgränsad analys](f3-prodat-field202-policy-boundary-20260928.md). Koddeploy är inte marknadsaktivering; alla externa grindar är öppna. Historisk 203/IDE505, positiv LOC+175, E035 och full grammatik återstår.
+
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
 ## Uppföljning efter mergad #417: fält 202 C002

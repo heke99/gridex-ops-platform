@@ -1,3 +1,7 @@
+## Current — 2026-09-28 boundaries
+
+Missing/unlisted PRODAT field202 has a local policy fail-close fix; its native persisted CONTRL/route/retry and exact-head CI are pending. A negative P-APERAK field202 ERC41/42 still needs a typed, physical-source-bound error and original ACW with durable route/actor proof; ERC40/100 applies only to a documented but unimplemented function, which is not established by Z99. Historical field203/IDE505 uniqueness, positive LOC+175 owner/mandate/sink/retry, E035 history/retention/deletion, full grammar and remaining phases remain open. No market activation. Older blocks below are historical; #310 remains paused.
+
 ## Current — header206 verification and wider gates
 206 missing/invalid local ACK/consumer is a code candidate; actual native stored ACK/outbox/retry, clean replay, schema/type parity and PR review remain pending. 203/505 historical issuer uniqueness, positive LOC175 registry/mandate/sink, E035 history/retention, G06 grammar and E66/DDQ live activation gate remain open. PR310 paused.
 

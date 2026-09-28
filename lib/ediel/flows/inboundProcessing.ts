@@ -860,6 +860,27 @@ export async function processInboundEdielMessage(params: {
     return runtimeMessage;
   }
 
+  // A readable interchange can receive its technical receipt, but an unresolved
+  // PRODAT policy has no qualified application finding or business authority.
+  // In particular, BGM/C002/1001 must not fall through to a cached Z04 case.
+  if (runtimeMessage.message_family === "PRODAT" &&
+      canonicalRuntime.decision.applicationDecision === "rejected" &&
+      !canonicalRuntime.decision.policy) {
+    try {
+      try {
+        await createAckIfMissing({actorUserId, sourceMessage:runtimeMessage, ackFamily:"CONTRL", outcome:"positive"});
+      } catch (error) {
+        await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:"CONTRL",
+          reason:formatErrorMessage(error,"Teknisk kvittens kunde inte kvalificeras.")});
+      }
+      await createAckBlockedEvent({actorUserId,sourceMessage:runtimeMessage,ackFamily:"APERAK",
+        reason:"PRODAT-policy och källbunden applikationsdiagnos saknas; negativ APERAK kräver kvalificerad orsak."});
+    } finally {
+      await canonicalRuntime.sourceOwnerSession?.finish();
+    }
+    return runtimeMessage;
+  }
+
   if (prodatInternalReview(runtimeMessage)) {
     await canonicalRuntime.sourceOwnerSession?.finish();
     await createAutomaticPositiveAcks({actorUserId, sourceMessage: runtimeMessage});

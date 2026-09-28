@@ -1,3 +1,11 @@
+## Current — 2026-09-28 field202 policy boundary
+
+1. Publish locally verified fail-close and native fixtures on the clean branch from #419 main; open one draft PR.
+2. Inspect first actual exact-head CI, especially OPS native/replay/schema/type parity and Ediel/browser/E2E. Fix the first real failure only; review full diff and threads.
+3. Prove source-bound ERC41/42 if a complete physical original, actor/route and durable ACK can be qualified in this coherent package; otherwise retain explicit hold. Merge one larger bounded package only with all applicable gates green, verify main/deployment and branch from new main. Keep #310 and market traffic held.
+
+Earlier `Current` plans below SUPERSEDED.
+
 ## Current — F3 header206
 1. Publish source-qualified 206 renderer/consumer and native missing/invalid cases in one draft PR.
 2. Resolve first exact-head CI failure; require clean replay, native, schema/types, Ediel/browser/full E2E and quality.

@@ -1,3 +1,7 @@
+## Current evidence — 2026-09-28
+
+#415 `eee4a3fe` four CI green, OPS native371/371; #416 `7414fd9c` four green, native376/376; #417 `32559fb9` four green, native377/377; #419 `4d26c9a1` four green, native378/378. Each OPS had clean migration replay and exact type/schema parity; current remote main `f030d507` is same-SHA Vercel READY. Current 202 missing/unlisted: real consumer RED on unlisted code's ACK-policy exception, GREEN 27/27; app/tests/scripts TypeScript, scoped lint zero errors and diff check pass. Native two cases and exact-head CI pending. Formal status and market traffic unchanged; details in F3 ledger. Earlier 'Current' entries below SUPERSEDED.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 

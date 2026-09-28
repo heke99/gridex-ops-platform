@@ -7025,6 +7025,20 @@
     }
   ],
   "followup": {
+    "as_of": "2026-09-28",
+    "last_accepted_pr": 419,
+    "accepted_pr_head": "4d26c9a15a249dfe8ee4ff720fc3b9ac43979cbd",
+    "accepted_main": "f030d507a9532c6fcafc55fd812305a82c9c1076",
+    "accepted_ci": "four exact-head workflows; clean replay, native 378/378, schema/type parity; same-SHA Vercel READY",
+    "active_pr": null,
+    "active_branch": "codex/ediel-v2-f3-prodat-next2-20260928",
+    "candidate": "missing/unlisted field202 policy failure: local fail-close RED/GREEN; native/CI pending",
+    "bounded_delivery_ledger": "quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json",
+    "formal_status": "unchanged; ACK-02/ACK-10 and AT-ACK-02/AT-ACK-10 partial",
+    "market_traffic": "held",
+    "next_action": "Publish local policy-boundary candidate and inspect first exact-head native/CI; then prove ERC41/42 or keep APERAK held under source/owner evidence"
+  },
+  "followup_history_20260927": {
     "accepted_pr_414": 414,
     "accepted_head": "32866bc4c3619e8b0d88203968d5615d570fee92",
     "accepted_main": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",

@@ -17,10 +17,11 @@ function sql<T>(statement:string):T {
   return output?JSON.parse(output) as T:undefined as T
 }
 
-for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence','missing-header-date','invalid-header-date','missing-header-offset','invalid-header-offset','missing-header-ack-request','invalid-header-ack-request','lowercase-header-ack-request','invalid-header-function','invalid-header-code-metadata'] as const) it(`real inbound Z04 ${variant} persists only routed negative APERAK and retry-stable outbox, never business state`,async()=>{
+for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence','missing-header-date','invalid-header-date','missing-header-offset','invalid-header-offset','missing-header-ack-request','invalid-header-ack-request','lowercase-header-ack-request','invalid-header-function','invalid-header-code-metadata','missing-header-code','unlisted-header-code'] as const) it(`real inbound Z04 ${variant} persists only qualified ACK intent and retry-stable outbox, never business state`,async()=>{
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
+  const policyOnly=variant==='missing-header-code'||variant==='unlisted-header-code'
   // The active legal actor identifier is unique across tenants in the native database.
-  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : variant === 'gas-unit-on-electric-register' ? '54322' : variant === 'whole-message-lin-sequence' ? '54323' : variant === 'missing-header-date' ? '54324' : variant === 'invalid-header-date' ? '54325' : variant === 'missing-header-offset' ? '54326' : variant === 'invalid-header-offset' ? '54327' : variant === 'missing-header-ack-request' ? '54328' : variant === 'invalid-header-ack-request' ? '54329' : variant === 'lowercase-header-ack-request' ? '54330' : variant === 'invalid-header-function' ? '54331' : '54332'
+  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : variant === 'gas-unit-on-electric-register' ? '54322' : variant === 'whole-message-lin-sequence' ? '54323' : variant === 'missing-header-date' ? '54324' : variant === 'invalid-header-date' ? '54325' : variant === 'missing-header-offset' ? '54326' : variant === 'invalid-header-offset' ? '54327' : variant === 'missing-header-ack-request' ? '54328' : variant === 'invalid-header-ack-request' ? '54329' : variant === 'lowercase-header-ack-request' ? '54330' : variant === 'invalid-header-function' ? '54331' : variant === 'missing-header-code' ? '54333' : variant === 'unlisted-header-code' ? '54334' : '54332'
   const parts=mixedZ04Parts()
   if (variant === 'gas-unit-on-electric-register') {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
@@ -30,7 +31,7 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
     parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
   }
-  if (variant === 'missing-header-date' || variant === 'invalid-header-date' || variant === 'missing-header-offset' || variant === 'invalid-header-offset' || variant === 'missing-header-ack-request' || variant === 'invalid-header-ack-request' || variant === 'lowercase-header-ack-request' || variant === 'invalid-header-function' || variant === 'invalid-header-code-metadata') {
+  if (variant === 'missing-header-date' || variant === 'invalid-header-date' || variant === 'missing-header-offset' || variant === 'invalid-header-offset' || variant === 'missing-header-ack-request' || variant === 'invalid-header-ack-request' || variant === 'lowercase-header-ack-request' || variant === 'invalid-header-function' || variant === 'invalid-header-code-metadata' || policyOnly) {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
     parts.splice(second+1,0,qty('20'))
   }
@@ -46,6 +47,8 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   if (variant === 'lowercase-header-ack-request') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+9+ab')
   if (variant === 'invalid-header-function') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+7+AB')
   if (variant === 'invalid-header-code-metadata') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04:BOGUS+D+9+AB')
+  if (variant === 'missing-header-code') wire=wire.replace('BGM+Z04+D+9+AB','BGM++D+9+AB')
+  if (variant === 'unlisted-header-code') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z99+D+9+AB')
   const receivedAt=new Date().toISOString()
   const sourceContext={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:ids.source,
     companyId:ids.company,environment:'test',messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:receivedAt,capturedAt:receivedAt}}
@@ -87,9 +90,9 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     'supply',(SELECT count(*) FROM public.customer_supply_periods WHERE source_message_id=${literal(ids.source)}))`)
   const first=persisted()
   const blocked=sql<{message:string;payload:unknown}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',message,'payload',payload) ORDER BY created_at),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(ids.source)} AND event_status='warning'`)
-  expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual([['APERAK','negative'],['CONTRL','positive']])
+  expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual(policyOnly?[['CONTRL','positive']]:[['APERAK','negative'],['CONTRL','positive']])
   expect(first.messages.every(row=>row.company===ids.company&&row.route===ids.route&&row.profile===ids.profile)).toBe(true)
-  const aperak=first.messages[0].wire
+  const aperak=policyOnly?'':first.messages[0].wire
   if (variant === 'gas-unit-on-electric-register') expect(aperak).toContain('ERC+42::260')
   if (variant === 'whole-message-lin-sequence') {
     expect(aperak).toContain('BGM+++27')
@@ -103,14 +106,15 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     expect(aperak).toContain('RFF+ACW:D')
     expect(aperak).not.toContain('BGM+++34')
     expect(aperak).not.toContain('RFF+Z07:')
-  } else {
+  } else if (!policyOnly) {
     expect(aperak).toContain('BGM+++34')
     expect(aperak).toContain('FTX+AAO++213::260')
   }
   if (!variant.includes('header-')) expect(aperak).toContain('RFF+Z07:735123456789012345')
   expect(aperak).not.toContain('RFF+Z07:735123456789012352')
-  expect(first.outbox).toHaveLength(2)
+  expect(first.outbox).toHaveLength(policyOnly?1:2)
   expect(first.outbox.every(row=>row.company===ids.company&&row.source===ids.source&&row.profile===ids.profile&&row.status==='queued'&&row.hash?.length===64)).toBe(true)
+  if (policyOnly) expect(blocked.some(row=>JSON.stringify(row.payload).includes('"ackFamily":"APERAK"'))).toBe(true)
   expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])
   await processInboundEdielMessage(input)
   expect(persisted()).toEqual(first)

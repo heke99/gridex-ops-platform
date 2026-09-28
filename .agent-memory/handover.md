@@ -1,3 +1,9 @@
+## Current — 2026-09-28 after #419, field202 policy boundary candidate
+
+#415 (205), #416 (206/313), #417 (204) and #419 (202/C002) have bounded exact-head CI/native acceptance and were merged once each. Remote main `f030d507a9532c6fcafc55fd812305a82c9c1076`, Vercel `dpl_HY8hqZ4FXNK6XLNVSjMbSsJQ29Jk` READY at the same SHA; web code deployed, Ediel market not activated. Branch `codex/ediel-v2-f3-prodat-next2-20260928` started clean from that main. New missing/unlisted 202 policy failure was locally RED/GREEN and stops before business, with only source/route-qualified technical CONTRL; negative APERAK is held without a typed field error. Actual consumer 27/27, app/tests/scripts TypeScript, scoped lint/diff pass; two native fixtures await CI. Ledger: `quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json`. First action: publish current candidate in a draft PR, inspect first actual native/replay/type/schema and ordinary exact-head CI; fix first real failure, review, then decide one merge at a coherent boundary. Formal ACK-02/ACK-10 and AT-ACK-02/10 remain partial; 121/231 unchanged. Historical 203/IDE505, positive LOC+175, E035, full grammar and external gates remain open. #310 untouched; no staging/TGT/AGT/counterparty/live sends.
+
+All earlier `Current`, `Latest` and candidate sections below are historical and **SUPERSEDED** for branch/head/next action; their test receipts remain historical evidence.
+
 ## Current — 2026-09-27 #416 candidate
 #415 final head `eee4a3fe` native371/371 and all CI green; main/Vercel READY `bd3e131e`. Clean branch `codex/ediel-v2-f3-prodat-header-206-20260927` has local 206 RED/GREEN and two native fixtures, focused269/269 and app/tests/scripts TS/lint. First action: commit/publish draft PR, inspect exact-head native and CI, then single merge only if green. No market activation or #310 work.
 

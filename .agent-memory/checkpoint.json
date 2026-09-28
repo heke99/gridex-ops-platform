@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T08:10:00Z",
+  "updated_at": "2026-09-28T11:50:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-f3-prodat-header-204-20260927",
-  "active_pr": 417,
-  "base_head_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
-  "runtime_accepted_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
-  "last_merged_pr": 416,
-  "last_accepted_pr": 416,
+  "branch": "codex/ediel-v2-f3-prodat-next2-20260928",
+  "active_pr": null,
+  "base_head_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
+  "runtime_accepted_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
+  "last_merged_pr": 419,
+  "last_accepted_pr": 419,
   "root_main_acceptance_comment": null,
-  "active_item": "PR417 F3 optional header204 invalid supplied value; source-bound whole-message ACK published; exact-head native/CI pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-204-whole-message-20260928.md",
+  "active_item": "F3 field202 missing/unlisted policy-resolution fail-close; locally tested, native/PR pending",
+  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,9 +30,9 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Inspect first actual CI result on PR417 head 09fba884, require native/replay/schema/type and all applicable workflows, review full diff/threads, merge once if green; verify main/deployment. Market activation separate; PR310 untouched.",
+  "next_action": "Commit/publish candidate to same branch, open draft PR, inspect first real exact-head OPS native/replay/schema/type and Ediel/browser/E2E. Correct first actual CI failure; review full diff/threads. Merge once only at coherent fully green boundary; verify main/deployment. No market activation; #310 paused.",
   "latest_verified_delivery": {
-    "main_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+    "main_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
     "merged_prs": [
       387,
       388,
@@ -54,12 +54,16 @@
       404,
       405,
       406,
-      407
+      407,
+      415,
+      416,
+      417,
+      419
     ],
     "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
     "pr390_ops_run": 36245827122,
     "pr390_native_tests": "343/343",
-    "vercel_deployment": "dpl_DHxSRfKFzgf2dvHX2voGycGVW3qF READY for main d7eaa4b0; code deployment only",
+    "vercel_deployment": "dpl_HY8hqZ4FXNK6XLNVSjMbSsJQ29Jk READY for exact main f030d507; code deployment only",
     "boundary": "web deployed; Ediel market capabilities not activated",
     "pr392_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
     "pr392_ops_run": 36247794182,
@@ -75,7 +79,18 @@
     "e035_observation_time": "UNRESOLVED_INTERMITTENT",
     "pr414_head": "32866bc4c3619e8b0d88203968d5615d570fee92",
     "pr414_ops_run": 36348073847,
-    "pr414_native_tests": "369/369"
+    "pr414_native_tests": "369/369",
+    "pr416_head": "7414fd9c03396234b9de292a47406e66bbfdfa74",
+    "pr416_ops_run": 36356832324,
+    "pr416_native_tests": "376/376",
+    "pr417_head": "32559fb9397242f1dcb9585a352a718847471673",
+    "pr417_ops_run": 36396504321,
+    "pr417_native_tests": "377/377",
+    "pr419_head": "4d26c9a15a249dfe8ee4ff720fc3b9ac43979cbd",
+    "pr419_ops_run": 36401020685,
+    "pr419_native_tests": "378/378",
+    "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+    "schema_fingerprint": "08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6"
   },
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
@@ -895,5 +910,26 @@
     "formal_acceptance": "unchanged; partial ACK-02/ACK-10",
     "market_traffic": "held",
     "draft_pr": 417
+  },
+  "ediel_f3_header_evidence": {
+    "ledger": "quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json",
+    "delivered_bounded_fields": [
+      "205",
+      "206",
+      "313",
+      "204",
+      "202/C002"
+    ],
+    "active_candidate": "missing/unlisted 202 policy failure fail-close (local only)",
+    "formal_rules": [
+      "ACK-02 partial",
+      "ACK-10 partial"
+    ],
+    "formal_contracts": [
+      "AT-ACK-02 partial",
+      "AT-ACK-10 partial"
+    ],
+    "frozen_totals": "121 cards and 231 contracts; no new percentage",
+    "market_activated": false
   }
 }

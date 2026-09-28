@@ -1,3 +1,7 @@
+## Current — F3 field202 policy boundary
+
+Branch `codex/ediel-v2-f3-prodat-next2-20260928` at base `f030d507`. Missing/unlisted 202 has local real-consumer RED/GREEN and native variants added. Current phase: locally tested, unpublished/unverified native; no active PR yet. See `quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md` and delivery ledger. Publish draft, inspect first exact-head CI/native/replay/parity, review diff and threads. Do not claim ERC41/42 or ERC40/100 outbound completion from safe hold. #415/#416/#417/#419 are merged and web code READY, market held. Prior sections below SUPERSEDED for next action.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 
