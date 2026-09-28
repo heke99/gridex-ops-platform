@@ -914,6 +914,59 @@ it.each(['object-first', 'point-first'] as const)(
   expect(snapshot(source.id)).toEqual(before)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
+it.each(['object-first', 'point-first'] as const)(
+  'native mixed S01 %s rolls back the held reservation when its point sibling cannot persist, then retries', async order => {
+  const f = await seed()
+  const lines = f.original.raw_payload!.split('\n')
+  const start = lines.findIndex(line => line.startsWith('IDE+24+'))
+  const end = lines.findIndex(line => line.startsWith('UNT+'))
+  const point = lines.slice(start, end)
+  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const object = (order === 'object-first' ? point : second).map(line =>
+    line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
+  const sibling = order === 'object-first' ? second : point
+  lines.splice(start, end - start, ...(order === 'object-first' ? [...object, ...sibling] : [...sibling, ...object]))
+  const unt = lines.findIndex(line => line.startsWith('UNT+'))
+  const unh = lines.findIndex(line => line.startsWith('UNH+'))
+  lines[unt] = `UNT+${unt - unh + 1}+1'`
+  const raw = lines.join('\n').replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+  const source = await f.insertSource(raw, 'S01')
+  sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  const suffix = randomUUID().replaceAll('-', '')
+  sql(`CREATE FUNCTION public.native_mixed_s01_fail_${suffix}() RETURNS trigger LANGUAGE plpgsql AS $$
+   BEGIN RAISE EXCEPTION 'synthetic_mixed_s01_point_storage_failure'; END $$;
+   CREATE TRIGGER native_mixed_s01_fail_${suffix} BEFORE INSERT ON public.meter_reading_series
+   FOR EACH ROW WHEN (NEW.source_ediel_message_id=${lit(source.id)}::uuid)
+   EXECUTE FUNCTION public.native_mixed_s01_fail_${suffix}();`)
+  try {
+    await expect(run()).rejects.toThrow('synthetic_mixed_s01_point_storage_failure')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+    expect(effects.ack).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
+    expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  } finally {
+    sql(`DROP TRIGGER native_mixed_s01_fail_${suffix} ON public.meter_reading_series;
+     DROP FUNCTION public.native_mixed_s01_fail_${suffix}();`)
+  }
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'final',final_response_type,'series',persisted_series_id)
+   ORDER BY source_transaction_id) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
+    .toEqual(order === 'object-first'
+      ? [{ disposition: 'internal_review', final: null, series: null }, { disposition: 'accepted', final: 'positive_aperak', series: expect.any(String) }]
+      : [{ disposition: 'accepted', final: 'positive_aperak', series: expect.any(String) }, { disposition: 'internal_review', final: null, series: null }])
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(1)
+  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(1)
+  expect(effects.complete).not.toHaveBeenCalled()
+  const before = snapshot(source.id)
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(snapshot(source.id)).toEqual(before)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
 it.each([
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],

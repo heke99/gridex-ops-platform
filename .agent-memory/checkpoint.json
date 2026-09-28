@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T17:15:53Z",
+  "updated_at": "2026-09-28T17:34:39Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish the two-order mixed S01 native sibling/retry test plus source and matrix evidence to draft #421; inspect first exact-head native and all workflow results. Implement only a reproduced defect. Historical 203/505, positive 175 and E035 completeness require external owner/history/retention records. Traffic and #310 held.",
+  "next_action": "Publish the two-order mixed S01 induced point-storage rollback/retry native probe to draft #421; inspect first exact-head native and all workflow results. Implement only a reproduced defect. Historical 203/505, positive 175 and E035 completeness require external owner/history/retention records. Traffic and #310 held.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -39,19 +39,19 @@
     "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
     "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
     "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
-    "last_verified_exact_head": "3002c27707254077348f3f7cf25ef3bdad460986",
+    "last_verified_exact_head": "fb7573b39be7989abc9fce41d905ef62b5045fba",
     "last_verified_workflows": [
-      36451363360,
-      36451363455,
-      36451363463,
-      36451501476,
-      36451363469
+      36457353485,
+      36457353533,
+      36457353481,
+      36457353504,
+      36457353551
     ],
     "native_before_this_step": "382/382",
-    "native_on_last_verified_head": "387/387; clean replay and generated public types/schema parity on 3002c27707254077348f3f7cf25ef3bdad460986",
-    "next_head_checks": "Two-order mixed S01 durable sibling/retry native probe and five workflows after publication; no 203/505 or positive LOC175 runtime activation.",
-    "local_candidate": "Test/evidence only: two physical orders for ownerless S01 object plus clean point sibling; local affected 119/119, scripts/tests TypeScript, scoped lint, 121/231 integrity and diff pass. Native DB absent locally.",
-    "last_published_head": "3002c27707254077348f3f7cf25ef3bdad460986",
+    "native_on_last_verified_head": "389/389; two-order mixed S01 sibling/ACK/series/contract and stable retry; clean replay and generated public types/schema parity on fb7573b39be7989abc9fce41d905ef62b5045fba",
+    "next_head_checks": "Two-order mixed S01 induced point-storage rollback/retry native probe and five workflows after publication; no 203/505 or positive LOC175 runtime activation.",
+    "local_candidate": "Test/evidence only: two physical orders with synthetic point-series insert failure after/around a held S01 object reservation; scripts TypeScript, scoped lint and diff pass. Native DB absent locally.",
+    "last_published_head": "fb7573b39be7989abc9fce41d905ef62b5045fba",
     "first_new_head_failure": "OPS 36449193344 clean replay native 386/387; baseline document-reference capture unconfirmed after one attempt, zero outcome/witness; other four workflows and OPS verify/quality succeeded; type/schema parity not reached"
   },
   "latest_verified_delivery": {
@@ -963,15 +963,15 @@
   "active_pr_head_before_pending_commit": "b99e5f36137f9a88666f122830f82013d47a4b6c",
   "active_candidate_evidence": "Four workflows SUCCESS on b99e5f; OPS 36438855705 native 386/387, actual held retry updated_at changed. Forward 20260928181500 private exact hold no-op, local migrations/types/scripts TS/spec inventory/diff PASS; new head native/replay/parity pending. 203/505, positive175, E035 remain blocked; traffic held.",
   "active_pr_latest_ci": {
-    "head": "3002c27707254077348f3f7cf25ef3bdad460986",
-    "ediel": 36451363360,
-    "browser": 36451363455,
-    "full_e2e": 36451363463,
-    "tenant": 36451363469,
-    "ops": 36451501476,
-    "native": "SUCCESS 387/387; E035 prior causes not isolated",
+    "head": "fb7573b39be7989abc9fce41d905ef62b5045fba",
+    "ediel": 36457353485,
+    "browser": 36457353533,
+    "full_e2e": 36457353481,
+    "tenant": 36457353551,
+    "ops": 36457353504,
+    "native": "SUCCESS 389/389; both mixed S01 physical orders and stable retry; E035 prior causes not isolated",
     "replay_schema_types": "SUCCESS types SHA256 36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d and schema 08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6",
-    "candidate_forward": "No new SQL; two-order mixed S01 native and mocked consumer probe",
-    "candidate_ci": "PENDING_MIXED_S01_NATIVE_HEAD"
+    "candidate_forward": "No new product SQL; synthetic native trigger probes mixed S01 storage rollback and unchanged retry",
+    "candidate_ci": "PENDING_MIXED_S01_ROLLBACK_NATIVE_HEAD"
   }
 }
