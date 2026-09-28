@@ -41,6 +41,7 @@ vi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielPro
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))
 
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {createCanonicalAckMessage} from '@/lib/ediel/core/kernel'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
@@ -54,7 +55,7 @@ beforeEach(()=>{state.messages=[];state.outbox=[];state.events=[];state.effects=
 it.each([
  ['missing','BGM++D+9+AB'],
  ['unlisted','BGM+Z99+D+9+AB'],
-])('routes a %s field 202 code through typed policy-boundary ACK without business effects',async(_kind,bgm)=>{
+])('holds a %s field 202 code when the stored Z04 profile does not own the physical source',async(_kind,bgm)=>{
  const parts=mixedZ04Parts()
  const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
  parts.splice(second+1,0,qty('20'))
@@ -66,11 +67,12 @@ it.each([
  const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id}
  await processInboundEdielMessage(input)
  expect(state.effects).toEqual([])
- expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
- expect(state.messages.every(row=>row.company_id===state.source!.company_id&&row.related_message_id===state.source!.id&&
-  row.communication_route_id==='00000000-0000-4000-8000-000000000030')).toBe(true)
- expect(state.outbox).toHaveLength(2)
- expect(state.outbox.every(row=>row.company_id===state.source!.company_id)).toBe(true)
+ expect(state.messages).toEqual([])
+ expect(state.outbox).toEqual([])
+ expect(state.events).toEqual(expect.arrayContaining([
+  expect.objectContaining({payload:expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'})}),
+  expect.objectContaining({payload:expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'})}),
+ ]))
  const first={messages:state.messages.map(row=>row.id),outbox:state.outbox.map(row=>row.lock_key)}
  await processInboundEdielMessage(input)
  expect({messages:state.messages.map(row=>row.id),outbox:state.outbox.map(row=>row.lock_key)}).toEqual(first)
@@ -98,6 +100,9 @@ it.each([
  expect(draft.rawPayload).toContain('RFF+ACW:D')
  expect(draft.rawPayload).not.toContain('RFF+Z07:')
  expect(draft.rawPayload).not.toContain('ERC+40::260')
+ await expect(createCanonicalAckMessage({actorUserId:'00000000-0000-4000-8000-000000000009',sourceMessage:state.source!,
+  ackFamily:'APERAK',outcome:'negative',draft})).rejects.toThrow('canonical_ack_prodat_source_code_profile_mismatch')
+ expect(state.messages).toEqual([])
  expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'positive'})).toThrow('aperak_prodat_header_202_response_unqualified')
  expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:[{ercCode:erc,fieldCode:'202',text:'invented'}]}))
   .toThrow('aperak_prodat_header_202_response_unqualified')
@@ -108,11 +113,12 @@ it.each([
  const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id}
  await processInboundEdielMessage(input)
  expect(state.effects).toEqual([])
- expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
- expect(state.messages.every(row=>row.company_id===state.source!.company_id&&row.related_message_id===state.source!.id&&
-  row.communication_route_id==='00000000-0000-4000-8000-000000000030')).toBe(true)
- expect(state.outbox).toHaveLength(2)
- expect(state.outbox.every(row=>row.company_id===state.source!.company_id)).toBe(true)
+ expect(state.messages).toEqual([])
+ expect(state.outbox).toEqual([])
+ expect(state.events).toEqual(expect.arrayContaining([
+  expect.objectContaining({payload:expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'})}),
+  expect.objectContaining({payload:expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'})}),
+ ]))
  const before={ids:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}
  await processInboundEdielMessage(input)
  expect({ids:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}).toEqual(before)

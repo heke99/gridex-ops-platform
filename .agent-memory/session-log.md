@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+2026-09-28: Confirmed PR420 `31221ee9` Ediel/browser/Full E2E success; OPS clean replay failed two stale-profile 202 fixtures (378/380). Discovered real mailbox maps physical missing code to `PRODAT_UNKNOWN` and DB profile trigger blocks source insert, while old native case borrowed stored Z04 for BGM++/Z99. TDD RED four unsafe positive ACK expectations then GREEN 125/125 via canonical gateway physical/stored code fence. Native now asserts zero outbound/affärseffekter/stable retry plus two real-profile insertion rejections. Publication and exact-head gates pending. #310 and market traffic untouched.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
 ## Current — 2026-09-28 PR #420 scoped field202 response
 
 2026-09-28 follow-up: first PR420 CI Full E2E failure was six tests expecting guide-resolution exception, not field202. TDD added typed 41/42 from physical missing/unlisted BGM, BGM27/ACW, forged/foreign/positive guards, consumer tenant ACK/no business/retry. Scoped the branch to physical 202; local 125/125 includes all six previously failing cases. Native first-head still running; new head unpublished. No staging/market sends or #310 action.

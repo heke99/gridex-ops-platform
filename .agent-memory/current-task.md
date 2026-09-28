@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+PR #420 current next action: publish canonical ACK owner mismatch fence and native two real-ingress trigger-rejection cases. Then check clean replay, native hold/route/tenant/retry, schema/type parity and four exact-head workflows; review full diff/threads. Genuine missing/unlisted 202 ACK stays blocked pending durable tenant/legal-actor diagnostic owner and rule-pack authority. Earlier #420 positive ACK assertions are superseded.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
 ## Current — 2026-09-28 PR #420 scoped field202 response
 
 PR #420 local second step: physical missing/unlisted field202 now yields source-qualified 41/42 BGM27, original ACW and no business effects, with wrong-guide cases preserved. First `a820ff0e` Full E2E failure identified and locally corrected. Native first-head result and new exact-head CI pending. Publish second step after inspecting native. Earlier current candidate below SUPERSEDED.

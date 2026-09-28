@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+#420 is **not** in merged completed work. The first published head `a820ff0e` had Full E2E six guide-resolution failures; `31221ee9` fixed those and passed Ediel/browser/Full E2E. Its synthetic native ACK assertion is superseded because a real missing/Z99 code cannot acquire the stored Z04 profile. The current ACK fence is local 125/125 and awaiting native/CI. Earlier #415/#416/#417/#419 accepted bounded deliveries are recorded below and in the ledger; no formal 121/231 completion or market activation.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
 ## Verified bounded PRODAT header deliveries — 2026-09-28
 
 #415 field205 head `eee4a3fe` native371/371 merged `bd3e131e`; #416 field206/313 head `7414fd9c` native376/376 merged `d7eaa4b0`; #417 field204 head `32559fb9` native377/377 merged `a5f73de8`; #419 field202/C002 head `4d26c9a1` native378/378 merged `f030d507`. Each exact head passed Ediel/browser/Full E2E/OPS with clean native replay and schema/type parity, and Vercel web code was READY at its merge SHA. The current 202 missing/unlisted policy fail-close is only locally tested and belongs in current task, not completed work. Per-rule lifecycle and PR receipts: `quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json`. Formal cards/contracts remain partial; no Ediel market activation. Older entries below are historical.

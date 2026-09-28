@@ -1,3 +1,7 @@
+## Uppföljning 2026-09-28: fält202 verkligt ägarskap vid inläsning
+
+PR #420 andra head `31221ee9` klarade Ediel/browser/Full E2E, men dess native Z04-fixtur lagrar felaktigt Z04-profil mot fysiskt BGM++/Z99. Verklig mailbox använder `PRODAT_UNKNOWN`/`Z99` och databastriggern kräver kodspecifik profil; den skapar då ingen beständig källrad. Därför är ERC41/42/202 och BGM27/ACW bara lokalt källkvalificerad draft, inte verifierad outbound-kvittens. Nästa korrigering spärrar positiv CONTRL och APERAK i kanonisk ACK-skrivare när fysiskt och lagrat kodägarskap inte matchar. Native-proven ska styrka triggeravvisning, noll ACK/outbox och affärseffekter samt stabil retry. 121/231 och ACK-02/ACK-10/AT-ACK-02/AT-ACK-10 är oförändrat delvisa. Tidigare #420-text nedan är historisk för den head den beskrev och ersätts av denna uppföljning.
+
 ## Uppföljning 2026-09-28: fält202 källbundet svar efter första CI-fel
 
 Första #420-head `a820ff0e` hade grön Ediel/browser men Full E2E:s sex guidefel visade att den tidiga spärren tog även andra policyfel. Den lokala rättningen begränsar stoppet till fysiskt saknat eller otillåtet BGM/C002/1001, projicerar ERC41/42 fält202 före kodspecifikt policyval och kvalificerar BGM27/original ACW. Kompletta konsument- och guideprov 125/125 är gröna; två native-ACK-fall och ny exakt PR-heads CI återstår. Inga ERC40/100 eller annan funktionsimplementering påstås. Leveransjournalens tidigare #415/#416/#417/#419 är oförändrade.

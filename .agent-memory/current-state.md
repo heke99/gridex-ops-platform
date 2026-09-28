@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+#420 head `31221ee9` Ediel/browser/Full E2E success; OPS clean replay failed two stale-profile 202 fixtures (378/380). Its stale Z04 native fixture did not prove genuine inbound 202 ACK: mailbox would store `PRODAT_UNKNOWN` or `Z99`, and code-specific profile trigger rejects the source. Current unpublished gateway correction blocks positive CONTRL and APERAK for mismatched physical/stored code. Local affected 125/125, three TypeScript projects, lint/diff pass; native genuine-ingress/hold/retry and final exact-head gates pending. Previous #415/#416/#417/#419 accepted deliveries remain in the bounded ledger. No market activation.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
 ## Current — 2026-09-28 PR #420 scoped field202 response
 
 PR #420 first head `a820ff0e` Ediel/browser success; Full E2E failed six unrelated guide-resolution assertions because initial policy-null guard was too broad. Local second step scopes it to physical field202 missing/unlisted and now creates typed ERC41/42, BGM27 and original ACW. Three files 125/125 (including six regressions), TypeScript/lint/diff pass. Native and new exact-head CI pending; prior #415/#416/#417/#419 delivery ledger remains authoritative. Earlier candidate below SUPERSEDED.

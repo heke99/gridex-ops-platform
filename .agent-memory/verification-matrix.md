@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+#420 second head `31221ee9`: Ediel `36407534632`, browser `36407534622`, Full E2E `36407534583` SUCCESS; OPS `36407534620` clean replay failed two stale-profile 202 fixtures (378/380). Local current correction 125/125 across three files, app/tests/scripts TypeScript, scoped lint/diff PASS. New native genuine-ingress trigger and stale-profile hold/retry, clean replay, type/schema parity and final exact-head CI are pending; prior Z04 positive ACK assertion is invalidated by the actual mailbox/persistence code. #415/#416/#417/#419 remain bounded accepted, ACK-02/ACK-10 and AT-ACK-02/10 partial, 121/231 unchanged.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
 ## Current — 2026-09-28 PR #420 scoped field202 response
 
 PR #420 first head `a820ff0e`: Ediel/browser SUCCESS; Full E2E coverage six invalid-guide regressions on overly broad guard; OPS native pending. Local scoped field202 41/42 correction plus preserved guide behavior passes three files 125/125, three TS projects, scoped lint/diff. New native/CI pending. #415/#416/#417/#419 exact-head accepted receipts and formal 121/231 unchanged. Earlier current below SUPERSEDED.

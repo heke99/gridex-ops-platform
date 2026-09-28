@@ -14,6 +14,9 @@ import {
   hasCanonicalAckDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
+import {PRODAT_26A_MESSAGE_CODES} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   createCanonicalOutboundMessage,
@@ -153,6 +156,15 @@ export async function createCanonicalAckMessage(params: {
   draft: CreateEdielMessageInput
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
+  if (params.sourceMessage.message_family === 'PRODAT' && params.sourceMessage.raw_payload &&
+      (params.ackFamily === 'APERAK' || params.ackFamily === 'CONTRL' && params.outcome !== 'negative')) {
+    const wire=tokenizeEdifact(params.sourceMessage.raw_payload)
+    const physicalCode=prodatDocumentValue('202',wire.segments,wire.una)
+    if (!physicalCode || !PRODAT_26A_MESSAGE_CODES.some(code=>code===physicalCode) ||
+        physicalCode !== params.sourceMessage.message_code) {
+      throw new Error('canonical_ack_prodat_source_code_profile_mismatch')
+    }
+  }
   const sourceSnapshot = inheritedSourceRulePackSnapshot(params.sourceMessage)
   const companyId = params.draft.companyId ?? params.sourceMessage.company_id ?? null
   if (!companyId) throw new Error('canonical_ack_company_required')

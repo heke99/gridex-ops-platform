@@ -1,3 +1,9 @@
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+First blocker for field202 outbound 41/42: actual mailbox stores `PRODAT_UNKNOWN` or `Z99`; database requires exactly one matching code-specific profile and rejects the inbound source, so no tenant/legal-actor-bound durable owner/snapshot exists. Borrowed Z04 cannot authorize positive CONTRL or APERAK. Native correction and final gates pending. ERC40/100 not inferred. Historical field203/IDE505 uniqueness, positive LOC+175, E035 coverage/retention/deletion, grammar and external gates remain open.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
 ## Current — 2026-09-28 PR #420 scoped field202 response
 
 PR #420 typed negative P-APERAK 41/42 field202 is locally verified for missing/unlisted physical code; durable native owner/route/retry and exact-head CI pending. ERC40/100 still lacks evidence of an actually documented but unimplemented function. Historical 203/IDE505, positive LOC+175, E035 and external activation remain open. Earlier current below SUPERSEDED.

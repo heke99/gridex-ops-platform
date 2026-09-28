@@ -1,3 +1,11 @@
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+1. Publish current gateway mismatch fence, native genuine-ingress trigger rejection and stale-Z04 hold/retry to the same draft #420.
+2. Require exact-head Ediel/browser/Full E2E/OPS, native clean replay and schema/type parity. Correct only first real failure; review complete diff and review threads.
+3. Merge once only if this physical-202 fail-close boundary is coherent and all gates pass; otherwise keep draft. Genuine outbound 41/42 awaits a durable diagnostic source owner, legal actor, route and retry in a separate proven package. Verify main/deploy then branch from new main. Market/#310 held.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
 ## Current — 2026-09-28 PR #420 scoped field202 response
 
 1. Inspect first #420 head OPS native; fix any first real native failure.

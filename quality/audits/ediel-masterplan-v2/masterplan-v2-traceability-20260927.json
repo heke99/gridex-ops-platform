@@ -7032,13 +7032,16 @@
     "accepted_ci": "four exact-head workflows; clean replay, native 378/378, schema/type parity; same-SHA Vercel READY",
     "active_pr": 420,
     "active_branch": "codex/ediel-v2-f3-prodat-next2-20260928",
-    "candidate": "missing/unlisted physical 202 source-bound 41/42, BGM27 and no business effects; local 125/125, native/new-head CI pending",
+    "candidate": "PR420 field202 physical 41/42 draft locally qualified; stale Z04 profile ACK safety hold under correction; genuine ingress cannot persist PRODAT_UNKNOWN/Z99 source without code-specific profile",
     "bounded_delivery_ledger": "quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json",
     "formal_status": "unchanged; ACK-02/ACK-10 and AT-ACK-02/AT-ACK-10 partial",
     "market_traffic": "held",
-    "next_action": "Check first-head OPS native, publish scoped field202 correction and new native expectations to PR420; require all exact-head gates and review before one merge",
+    "next_action": "Publish canonical ACK mismatch fence and native genuine-ingress trigger proof to PR420; inspect exact-head native/replay/schema/type and CI, then decide coherent merge or keep draft; design durable diagnostic owner separately",
     "first_published_head": "a820ff0e0b942668d228d4f8b6eecf66ab4d251c",
-    "first_ci": "Ediel/browser success; Full E2E six guide-resolution failures from overbroad guard, locally corrected; OPS native pending"
+    "first_ci": "Ediel/browser success; Full E2E six guide-resolution failures from overbroad guard, locally corrected; OPS native pending",
+    "second_published_head": "31221ee99de0722903d9a85f58bc1351605fd8db",
+    "second_ci": "Ediel/browser/Full E2E success; OPS clean replay 378/380, two stale Z04 missing/Z99 native assertions failed due APERAK blocked event despite queued ACK. Ownership finding and current guard correct unsafe outbound interpretation.",
+    "owner_blocker": "Mailbox diagnosticMessageCode PRODAT_UNKNOWN or Z99 has no code-specific canonical profile; DB trigger rejects source insertion. Manually stored Z04 versus raw missing/Z99 is stale and ACK gateway must hold positive CONTRL and APERAK."
   },
   "followup_history_20260927": {
     "accepted_pr_414": 414,
