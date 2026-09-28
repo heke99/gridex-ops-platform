@@ -50,6 +50,7 @@ type CustomerProfile = {
  org_number: string | null
  email: string | null
  phone: string | null
+ contact_revision: number
  apartment_number: string | null
  moved_out_at?: string | null
  lifecycle_closed_at?: string | null
@@ -254,7 +255,7 @@ export default function CustomerProfileCard({
  <div className="text-sm text-slate-700">
  <p>E-post: {customer.email ?? '—'}</p>
  <p>Telefon: {customer.phone ?? '—'}</p>
- <p className="mt-1 text-xs">Ändra primär kontakt under Kontakter. Sparad kontaktrevision: {Number((customer as unknown as Record<string, unknown>).contact_revision ?? 0)}.</p>
+ <p className="mt-1 text-xs">Ändra primär kontakt under Kontakter. Sparad kontaktrevision: {customer.contact_revision}.</p>
  </div>
 
  <label className="grid gap-1 text-sm md:col-span-2">

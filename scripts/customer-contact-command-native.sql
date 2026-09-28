@@ -21,6 +21,11 @@ insert into public.company_memberships(company_id,user_id,membership_role,status
   accepted_at,metadata,role,is_active,joined_at,role_key) values
   (:'company_a',:'actor_a','company_admin','active',now(),'{}','company_admin',true,now(),'company_admin'),
   (:'company_b',:'actor_b','company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+-- The clean replay need not seed product permission catalog rows. The fixture
+-- owns only this synthetic grant, then rolls it back with every other row.
+insert into public.permissions(key,name)
+values('masterdata.write','Synthetic masterdata write')
+on conflict (key) do nothing;
 insert into public.user_permissions(user_id,company_id,permission_id,permission_key)
 select :'actor_a',:'company_a',id,key from public.permissions
 where key='masterdata.write';
