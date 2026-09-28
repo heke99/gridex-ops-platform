@@ -44,6 +44,26 @@ describe('shared contact command boundary', () => {
     })
   })
 
+  it('marks a secondary OPS change explicitly without extending delegated API authority', async () => {
+    fixture.rpc.mockResolvedValueOnce({
+      data: { companyId: 'tenant-a', customerId: 'customer-a', revision: 5, changed: true, replayed: false },
+      error: null,
+    })
+    await changeCustomerContact({
+      ...base, contactTarget: 'secondary', contactType: 'billing',
+      actor: { kind: 'ops', userId: 'actor-a', reason: 'Verified correction' },
+    })
+    expect(fixture.rpc.mock.calls[0][1].p_command).toMatchObject({
+      contactTarget: 'secondary', contactType: 'billing', mode: 'ops',
+      expectedRevision: 4,
+    })
+    await expect(changeCustomerContact({
+      ...base, contactTarget: 'secondary', contactType: 'billing',
+      actor: { kind: 'api', clientId: 'client-a', subject: 'subject-a' },
+    })).rejects.toMatchObject({ code: 'invalid_contact_command' })
+    expect(fixture.rpc).toHaveBeenCalledTimes(1)
+  })
+
   it('refuses forged response scope and maps revision conflicts', async () => {
     fixture.rpc.mockResolvedValueOnce({ data: { companyId: 'tenant-b', customerId: 'customer-a', revision: 5, changed: true, replayed: false }, error: null })
     await expect(changeCustomerContact({ ...base, actor: { kind: 'ops', userId: 'actor-a', reason: 'Correction' } }))

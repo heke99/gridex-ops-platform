@@ -70,7 +70,7 @@ test('staff browser saves the primary phone while read-only and foreign tenant a
   }
 })
 
-test('delegated HTTP API uses the same revision, rejects forged identity and replays one result', async ({ request }) => {
+test('delegated HTTP API uses the same revision, rejects forged identity and replays one result', async ({ request, browser }) => {
   const url = '/api/v1/customer/profile-update'
   const headers = {
     authorization: `Bearer ${fixture.apiKey}`,
@@ -115,4 +115,22 @@ test('delegated HTTP API uses the same revision, rejects forged identity and rep
   })
   expect(me.status()).toBe(200)
   expect((await me.json()).data).toMatchObject({ contact_revision: 2, phone: '+46222222222', email: 'before@example.invalid' })
+
+  const writer = await browser.newPage()
+  await login(writer, fixture.writerEmail)
+  await writer.goto(card(fixture.customerA))
+  await writer.getByText('Lägg till ny kontakt').click()
+  const secondary = writer.locator('details:has(summary:text-is("Lägg till ny kontakt")) form')
+  await expect(secondary.locator('input[name="expected_revision"]')).toHaveValue('2')
+  await secondary.locator('select[name="type"]').selectOption('billing')
+  await secondary.locator('input[name="is_primary"]').uncheck()
+  await secondary.locator('input[name="name"]').fill('Synthetic Billing')
+  await secondary.locator('input[name="email"]').fill('billing@example.invalid')
+  await secondary.getByRole('button', { name: 'Lägg till kontakt' }).click()
+  await writer.reload()
+  const savedSecondary = writer.locator('article:has-text("Synthetic Billing")')
+  await expect(savedSecondary).toContainText('billing@example.invalid')
+  await expect(savedSecondary).toContainText('Sekundär')
+  await expect(writer.getByText('Sparad kontaktrevision: 3')).toBeVisible()
+  await writer.close()
 })

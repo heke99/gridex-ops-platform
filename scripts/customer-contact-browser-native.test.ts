@@ -71,6 +71,7 @@ it('uses real local Auth and verifies the browser/API contact result with native
       revision: number; email: string; phone: string; name: string; contactEmail: string
       contactPhone: string; audit: number; opsAudit: number; apiAudit: number
       domains: number; outbox: number; commands: number; completions: number
+      secondaryContacts: number; secondaryDomains: number; secondaryOutbox: number
       otherPhone: string; otherRevision: number; contaminated: number
     }>(`SELECT jsonb_build_object(
       'revision',(SELECT contact_revision FROM public.customers WHERE id=${quote(fixture.customerA)} AND company_id=${quote(fixture.companyA)}),
@@ -84,6 +85,9 @@ it('uses real local Auth and verifies the browser/API contact result with native
       'apiAudit',(SELECT count(*) FROM public.canonical_audit_events WHERE company_id=${quote(fixture.companyA)} AND aggregate_id=${quote(fixture.customerA)} AND event_type='CUSTOMER_CONTACT_COMMAND' AND actor_user_id IS NULL),
       'domains',(SELECT count(*) FROM public.canonical_domain_events WHERE company_id=${quote(fixture.companyA)} AND aggregate_id=${quote(fixture.customerA)} AND event_type='CUSTOMER_CONTACT_CHANGED'),
       'outbox',(SELECT count(*) FROM public.canonical_event_outbox WHERE company_id=${quote(fixture.companyA)} AND topic='customer.contact.changed'),
+      'secondaryContacts',(SELECT count(*) FROM public.customer_contacts WHERE company_id=${quote(fixture.companyA)} AND customer_id=${quote(fixture.customerA)} AND not is_primary AND type='billing' AND name='Synthetic Billing' AND email='billing@example.invalid'),
+      'secondaryDomains',(SELECT count(*) FROM public.canonical_domain_events WHERE company_id=${quote(fixture.companyA)} AND aggregate_id=${quote(fixture.customerA)} AND event_type='CUSTOMER_SECONDARY_CONTACT_CHANGED'),
+      'secondaryOutbox',(SELECT count(*) FROM public.canonical_event_outbox WHERE company_id=${quote(fixture.companyA)} AND topic='customer.contact.secondary.changed'),
       'commands',(SELECT count(*) FROM public.canonical_command_results WHERE company_id=${quote(fixture.companyA)} AND command_type='customer.contact.change.v1'),
       'completions',(SELECT count(*) FROM public.customer_portal_completions WHERE company_id=${quote(fixture.companyA)} AND api_client_id=${quote(fixture.apiClientId)} AND completion_type='profile_update'),
       'otherPhone',(SELECT phone FROM public.customers WHERE id=${quote(fixture.customerB)} AND company_id=${quote(fixture.companyB)}),
@@ -91,9 +95,10 @@ it('uses real local Auth and verifies the browser/API contact result with native
       'contaminated',(SELECT count(*) FROM public.canonical_command_results WHERE company_id=${quote(fixture.companyB)} AND command_type='customer.contact.change.v1')
     )`)
     expect(state).toEqual({
-      revision: 2, email: 'before@example.invalid', phone: '+46222222222',
+      revision: 3, email: 'before@example.invalid', phone: '+46222222222',
       name: 'Synthetic Primary', contactEmail: 'before@example.invalid', contactPhone: '+46222222222',
-      audit: 2, opsAudit: 1, apiAudit: 1, domains: 2, outbox: 2, commands: 2,
+      audit: 3, opsAudit: 2, apiAudit: 1, domains: 2, outbox: 2, commands: 3,
+      secondaryContacts: 1, secondaryDomains: 1, secondaryOutbox: 1,
       completions: 1, otherPhone: '+4600000001', otherRevision: 0, contaminated: 0,
     })
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.canonical_event_outbox o
@@ -101,6 +106,7 @@ it('uses real local Auth and verifies the browser/API contact result with native
       WHERE o.company_id=${quote(fixture.companyA)} AND e.aggregate_id=${quote(fixture.customerA)}
         AND o.topic='customer.contact.changed' AND e.aggregate_version IN (1,2)`)).toBe(2)
     console.log('P2_CONTACT_BROWSER_API_NATIVE_PASS')
+    console.log('P2_SECONDARY_CONTACT_BROWSER_NATIVE_PASS')
     return
   }
 

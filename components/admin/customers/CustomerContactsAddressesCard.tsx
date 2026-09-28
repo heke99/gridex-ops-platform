@@ -129,8 +129,9 @@ export async function saveCustomerContactAction(formData: FormData) {
 
  const companyId = await authorizedCustomerCompany(actorUserId, customerId)
 
- const type = isPrimary ? 'primary' : typeInput
- const title = customerType === 'private' && isPrimary ? titleInput : titleInput
+ if (!isPrimary && !['billing', 'operations', 'technical', 'other'].includes(typeInput)) {
+   throw new Error('Välj en giltig typ för sekundär kontakt')
+ }
 
  const before = contactId
  ? await supabaseService
@@ -148,61 +149,18 @@ export async function saveCustomerContactAction(formData: FormData) {
    throw new Error('Primär kontakt kan endast ändras med kontaktkommandot.')
  }
 
- if (isPrimary) {
-   await changeCustomerContact({
-     companyId,
-     customerId,
-     contactId: contactId || null,
-     actor: { kind: 'ops', userId: actorUserId, reason: 'OPS customer contact form' },
-     expectedRevision,
-     idempotencyKey,
-     changes: { name, title, email, phone },
-   })
-   revalidatePath(`/admin/customers/${customerId}`)
-   return
- }
-
- const payload = {
- company_id: companyId,
- customer_id: customerId,
- type,
- name,
- email,
- phone,
- title,
- is_primary: isPrimary,
- }
-
- const { data, error } = contactId
- ? await supabaseService
- .from('customer_contacts')
- .update(payload)
- .eq('id', contactId)
- .eq('customer_id', customerId)
- .eq('company_id', companyId)
- .select('*')
- .single()
- : await supabaseService
- .from('customer_contacts')
- .insert(payload)
- .select('*')
- .single()
-
- if (error) throw error
-
- await insertAuditLog({
- actorUserId,
- companyId,
- entityType: 'customer_contact',
- entityId: data.id,
- action: contactId ? 'customer_contact_updated' : 'customer_contact_created',
- oldValues: before.data,
- newValues: data,
- metadata: {
- customerId,
- customerType,
- isPrimary,
- },
+ await changeCustomerContact({
+   companyId,
+   customerId,
+   contactId: contactId || null,
+   ...(isPrimary ? {} : {
+     contactTarget: 'secondary' as const,
+     contactType: typeInput as 'billing' | 'operations' | 'technical' | 'other',
+   }),
+   actor: { kind: 'ops', userId: actorUserId, reason: 'OPS customer contact form' },
+   expectedRevision,
+   idempotencyKey,
+   changes: { name, title: titleInput, email, phone },
  })
 
  revalidatePath(`/admin/customers/${customerId}`)

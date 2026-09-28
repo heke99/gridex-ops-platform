@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-run36453296814-artifact10984720807",
   "generated_types": "supabase/database.types.ts",
   "sha256": "011f8f80fa51ad46140598bae366fc29616bd6d8e7767f05135622ef6247afc3",
-  "latest_migration": "20260928164025_contact_actor_lock_privilege.sql",
-  "latest_migration_schema_effect": "The P2a contact revision and service-only RPC types were generated from the isolated clean replay on a62c120e (artifact 10984720807); the forward actor-lock helper left the generated type bytes equal to the preceding replay. Schema fingerprint 903d0be749052bb6a7dd9533c7d973a8bdcfa9560b7c93df68a2238a4b388ad8 is from the same a62c120e artifact. Native fixture failed at an unseeded synthetic permission; exact-head final parity and native cases remain pending."
+  "latest_migration": "20260928213000_secondary_contact_atomic_command.sql",
+  "latest_migration_schema_effect": "Secondary OPS contacts use the existing jsonb contact RPC and customer contact_revision; the function signature and generated TypeScript type shapes are unchanged. This candidate still requires an authentic clean replay to confirm byte parity and refresh the schema snapshot."
 }

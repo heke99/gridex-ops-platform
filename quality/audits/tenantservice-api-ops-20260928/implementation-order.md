@@ -28,3 +28,9 @@ The tenant-machine `/api/v1/customer/sync` still had a direct `customers.phone` 
 ## Verification boundary
 
 The first P2a candidate passed 13 focused mock/contract tests, app/test typecheck, scoped lint, migration checksum integrity and public API contract static check on Node 22. The follow-up adds two read-contract tests and exposes the saved revision on the delegated customer read. These do not prove SQL execution, concurrent transactions, generated schema parity, browser behavior or production access.
+
+## Exact published contact checkpoint and next candidate
+
+`3af25a7aa106f1d2038a2b759d26695e43ec9d43` OPS `36482130912` passed verify, quality and clean replay `109130083546`: synthetic primary contact via the actual OPS browser and delegated API, revision 1 then 2, denial/replay cases, native contact/audit/outbox/completion after-read, two-session conflict and schema/type parity. The marker was `P2_CONTACT_BROWSER_API_NATIVE_PASS`. This evidence is bounded to that primary-contact path.
+
+The next P2 writer is the contact card's secondary form. On the published head it ignored the displayed `expected_revision`, directly inserted/updated `customer_contacts` and separately inserted `audit_logs`. A stale-revision action test was RED before the fix. The candidate extends the same locked contact command to OPS-only secondary contact create/update, retains the existing primary request hashes, increments customer `contact_revision` and emits an explicitly secondary domain/outbox event without changing primary email/phone. It adds native and browser/post-browser fixtures. Its own exact-head CI and authentic schema snapshot must pass before this new path gains verified status. The billing candidate in the other dirty checkout is preserved separately.

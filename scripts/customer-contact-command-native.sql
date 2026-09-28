@@ -69,9 +69,12 @@ declare
   other_customer uuid:=current_setting('gridex.test_customer_other')::uuid;
   client uuid:=current_setting('gridex.test_client_a')::uuid;
   command jsonb;
+  api_command jsonb;
   first_result jsonb;
   replay_result jsonb;
   api_result jsonb;
+  secondary_result jsonb;
+  secondary_contact uuid;
   before_count bigint;
 begin
   command:=jsonb_build_object('companyId',ca,'customerId',cu,'contactId',contact,'actorUserId',aa,
@@ -156,6 +159,7 @@ begin
   command:=jsonb_build_object('companyId',ca,'customerId',cu,'clientId',client,
     'subject',aa::text,'mode','api','expectedRevision',1,
     'idempotencyKey','p2-native-api-one','changes',jsonb_build_object('email','after@example.invalid'));
+  api_command:=command;
   api_result:=public.gridex_change_customer_contact_v1(command);
   if api_result->>'revision'<>'2' or api_result->>'completionReference' is null
     or (select email from public.customer_contacts where customer_id=cu and is_primary)<>'after@example.invalid'
@@ -170,6 +174,97 @@ begin
         where company_id=ca and idempotency_key='p2-native-api-one')<>1 then
     raise exception 'p2_api_commit_before_response_replay_failed';
   end if;
+  command:=jsonb_build_object('companyId',ca,'customerId',cu,'actorUserId',aa,
+    'mode','ops','reason','Verified secondary contact',
+    'contactTarget','secondary','contactType','billing',
+    'expectedRevision',1,'idempotencyKey','p2-secondary-stale',
+    'changes',jsonb_build_object('name','Synthetic Billing','email','billing@example.invalid'));
+  begin
+    perform public.gridex_change_customer_contact_v1(command);
+    raise exception 'p2_secondary_stale_revision_was_accepted';
+  exception when raise_exception then
+    if sqlerrm<>'contact_revision_conflict' then raise; end if;
+  end;
+  if exists(select 1 from public.customer_contacts
+      where company_id=ca and customer_id=cu and type='billing')
+    or exists(select 1 from public.canonical_command_results
+      where company_id=ca and idempotency_key='p2-secondary-stale') then
+    raise exception 'p2_secondary_stale_mutated_rows';
+  end if;
+  command:=command||jsonb_build_object('expectedRevision',2,
+    'idempotencyKey','p2-secondary-create');
+  secondary_result:=public.gridex_change_customer_contact_v1(command);
+  secondary_contact:=(secondary_result->>'contactId')::uuid;
+  if secondary_result->>'revision'<>'3'
+    or secondary_contact is null
+    or (select count(*) from public.customer_contacts
+      where id=secondary_contact and company_id=ca and customer_id=cu
+        and not is_primary and type='billing' and email='billing@example.invalid')<>1
+    or (select phone from public.customers where id=cu)<>'+46123456789'
+    or (select email from public.customers where id=cu)<>'after@example.invalid'
+    or (select contact_revision from public.customers where id=cu)<>3
+    or (select count(*) from public.canonical_domain_events
+      where company_id=ca and aggregate_id=cu and event_type='CUSTOMER_SECONDARY_CONTACT_CHANGED')<>1
+    or (select count(*) from public.canonical_event_outbox
+      where company_id=ca and topic='customer.contact.secondary.changed')<>1 then
+    raise exception 'p2_secondary_create_not_atomic';
+  end if;
+  replay_result:=public.gridex_change_customer_contact_v1(command);
+  if replay_result->>'replayed'<>'true' or replay_result->>'contactId'<>secondary_contact::text
+    or (select count(*) from public.canonical_event_outbox
+      where company_id=ca and topic='customer.contact.secondary.changed')<>1 then
+    raise exception 'p2_secondary_replay_duplicated_effects';
+  end if;
+  begin
+    perform public.gridex_change_customer_contact_v1(command||jsonb_build_object(
+      'contactType','technical'));
+    raise exception 'p2_secondary_changed_key_was_accepted';
+  exception when unique_violation then
+    if sqlerrm<>'contact_idempotency_conflict' then raise; end if;
+  end;
+  begin
+    perform public.gridex_change_customer_contact_v1(command||jsonb_build_object(
+      'mode','api','actorUserId',null,'clientId',client,'subject',aa::text,
+      'idempotencyKey','p2-secondary-delegated'));
+    raise exception 'p2_secondary_delegated_was_accepted';
+  exception when invalid_parameter_value then
+    if sqlerrm<>'invalid_contact_command' then raise; end if;
+  end;
+  begin
+    perform public.gridex_change_customer_contact_v1(command||jsonb_build_object(
+      'contactId',contact,'expectedRevision',3,'idempotencyKey','p2-secondary-primary-target'));
+    raise exception 'p2_secondary_changed_primary_contact';
+  exception when raise_exception then
+    if sqlerrm<>'contact_selection_conflict' then raise; end if;
+  end;
+  command:=command||jsonb_build_object('contactId',secondary_contact,
+    'expectedRevision',3,'idempotencyKey','p2-secondary-update',
+    'changes',jsonb_build_object('phone','+46333333333'));
+  secondary_result:=public.gridex_change_customer_contact_v1(command);
+  if secondary_result->>'revision'<>'4'
+    or (select phone from public.customer_contacts where id=secondary_contact)<>'+46333333333'
+    or (select email from public.customer_contacts where id=secondary_contact)<>'billing@example.invalid'
+    or (select phone from public.customer_contacts where id=contact)<>'+46123456789'
+    or (select contact_revision from public.customers where id=cu)<>4 then
+    raise exception 'p2_secondary_update_changed_primary_or_lost_fields';
+  end if;
+  insert into public.canonical_audit_events(company_id,event_type,aggregate_type,
+    aggregate_id,idempotency_key) values
+    (ca,'CUSTOMER_CONTACT_COMMAND','customer',cu,'p2-secondary-fault');
+  begin
+    perform public.gridex_change_customer_contact_v1(command||jsonb_build_object(
+      'expectedRevision',4,'idempotencyKey','p2-secondary-fault',
+      'changes',jsonb_build_object('phone','+46444444444')));
+    raise exception 'p2_secondary_fault_was_accepted';
+  exception when unique_violation then null;
+  end;
+  if (select phone from public.customer_contacts where id=secondary_contact)<>'+46333333333'
+    or (select contact_revision from public.customers where id=cu)<>4
+    or exists(select 1 from public.canonical_command_results
+      where company_id=ca and idempotency_key='p2-secondary-fault') then
+    raise exception 'p2_secondary_fault_did_not_rollback';
+  end if;
+  command:=api_command;
   begin
     perform public.gridex_change_customer_contact_v1(command||
       jsonb_build_object('customerId',other_customer,'idempotencyKey','p2-native-other-customer'));

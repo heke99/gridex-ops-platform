@@ -7,6 +7,7 @@ const fixture = vi.hoisted(() => ({
   customerTenant: 'tenant-b',
   customerStatus: 'active',
   commands: [] as Array<Record<string, unknown>>,
+  commandRevision: 7,
 }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/admin/guards', () => ({
@@ -24,6 +25,7 @@ vi.mock('@/lib/tenant/scope', () => ({
 vi.mock('@/lib/customer-operations/contactCommand', () => ({
   changeCustomerContact: async (input: Record<string, unknown>) => {
     fixture.commands.push(input)
+    if (input.expectedRevision !== fixture.commandRevision) throw new Error('contact_revision_conflict')
     return { revision: 1, changed: true, replayed: false }
   },
 }))
@@ -62,6 +64,7 @@ describe('OPS customer-card contact and address authorization', () => {
     fixture.customerTenant = 'tenant-b'
     fixture.customerStatus = 'active'
     fixture.commands = []
+    fixture.commandRevision = 7
   })
   it('denies a forged cross-tenant primary contact before any service-role write', async () => {
     fixture.mutations = []
@@ -109,6 +112,35 @@ describe('OPS customer-card contact and address authorization', () => {
       actor: { kind: 'ops', userId: 'actor-a', reason: 'OPS customer contact form' },
       expectedRevision: 7, idempotencyKey: 'p2-ops-repeatable-key',
       changes: { name: 'Example', title: null, email: null, phone: '0700000000' },
+    }])
+  })
+
+  it('rejects a stale secondary-contact save before any direct service-role mutation', async () => {
+    fixture.customerTenant = 'tenant-a'
+    fixture.commandRevision = 8
+    await expect(saveCustomerContactAction(form({
+      customer_id: 'customer-b', name: 'Billing contact', type: 'billing',
+      email: 'billing@example.invalid', expected_revision: '7',
+      idempotency_key: 'secondary-stale-key',
+    }))).rejects.toThrow('contact_revision_conflict')
+    expect(fixture.mutations).toEqual([])
+    expect(fixture.commands).toHaveLength(1)
+  })
+
+  it('creates a secondary contact through the same tenant-scoped command', async () => {
+    fixture.customerTenant = 'tenant-a'
+    await saveCustomerContactAction(form({
+      customer_id: 'customer-b', name: 'Billing contact', type: 'billing',
+      email: 'billing@example.invalid', expected_revision: '7',
+      idempotency_key: 'secondary-create-key',
+    }))
+    expect(fixture.mutations).toEqual([])
+    expect(fixture.commands).toEqual([{
+      companyId: 'tenant-a', customerId: 'customer-b', contactId: null,
+      contactTarget: 'secondary', contactType: 'billing',
+      actor: { kind: 'ops', userId: 'actor-a', reason: 'OPS customer contact form' },
+      expectedRevision: 7, idempotencyKey: 'secondary-create-key',
+      changes: { name: 'Billing contact', title: null, email: 'billing@example.invalid', phone: null },
     }])
   })
 

@@ -22,6 +22,8 @@ export async function changeCustomerContact(input: {
   companyId: string
   customerId: string
   contactId?: string | null
+  contactTarget?: 'secondary'
+  contactType?: 'billing' | 'operations' | 'technical' | 'other'
   actor: ContactActor
   expectedRevision: number
   idempotencyKey: string
@@ -30,13 +32,19 @@ export async function changeCustomerContact(input: {
   if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0 ||
       Object.keys(input.changes).length === 0 ||
       Object.keys(input.changes).some(key => !['email', 'phone', 'name', 'title'].includes(key)) ||
-      (input.actor.kind === 'api' && ('name' in input.changes || 'title' in input.changes))) {
+      (input.actor.kind === 'api' && ('name' in input.changes || 'title' in input.changes)) ||
+      (input.contactTarget === 'secondary' &&
+        (input.actor.kind !== 'ops' || !['billing', 'operations', 'technical', 'other'].includes(input.contactType ?? ''))) ||
+      (input.contactTarget !== 'secondary' && input.contactType !== undefined)) {
     throw new ContactCommandError('invalid_contact_command', 422)
   }
   const p_command = {
     companyId: input.companyId,
     customerId: input.customerId,
     contactId: input.contactId ?? null,
+    ...(input.contactTarget === 'secondary'
+      ? { contactTarget: 'secondary', contactType: input.contactType }
+      : {}),
     mode: input.actor.kind,
     actorUserId: input.actor.kind === 'ops' ? input.actor.userId : null,
     clientId: input.actor.kind === 'api' ? input.actor.clientId : null,
