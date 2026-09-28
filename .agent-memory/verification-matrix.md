@@ -511,3 +511,5 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | Lowercase `BGM/4343=ab` | RED complete Z04 application accepted; GREEN ERC42/313, BGM27, no mocked business. | Native new-head result pending. |
 | Related tests and static | Five files 48/48, consumer20/20, app/tests/scripts TypeScript and scoped lint/diff PASS. | Prior-head CI not transferable. |
 | Independent read-only review | One important mismatch identified and corrected; no other concrete blocker in full diff. | Must recheck final SHA and CI. |
+## 2026-09-28 — #417 local and pending exact-head evidence
+Remote `09fba884` / tree `ac40f187`: five relevant Vitest files 150/150 PASS; `node --experimental-vm-modules scripts/test-ediel-unb-ack-request.cjs` 64/64 PASS; app/tests/scripts TypeScript PASS; five changed TS files ESLint 0 errors, one existing unused-variable warning; `git diff --check` PASS. Native real-DB header204 fixture and Ediel/browser/Full E2E/OPS clean replay/schema/type parity are PENDING on that remote head. No formal market acceptance claimed.
