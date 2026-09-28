@@ -1,5 +1,23 @@
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
+## Uppföljning efter mergad #417: fält 202 C002
+
+PR #417 mergades som `a5f73de8`; fyra tillämpliga CI-flöden, OPS native
+377/377, ren replay samt schema-/typparitet passerade på dess exakta head.
+Vercel var READY på samma merge-SHA; marknadstrafiken förblev spärrad.
+På nästa rena branch reproducerades ett komplett Z04 med `BGM+Z04:BOGUS`:
+den frysta P26.A-tabellen markerar de övriga C002-komponenterna som X,
+och canonical validering gav ERC42/202, men inbound fortsatte genom
+ärende-/affärsvägen. Den avgränsade korrigeringen ger källbundet BGM27,
+stoppar affärsvägen och bevarar originalets ACW; lokalt fem filer 52/52 och
+tre TypeScript-projekt. Native lagring/retry och exakt ny PR-heads CI är
+ännu inte kvalificerade. Se
+[`f3-prodat-header-202-c002-whole-message-20260928.md`](f3-prodat-header-202-c002-whole-message-20260928.md).
+Detta är delbevis för ACK-02/ACK-10, inte färdigstatus för ett helt kort eller
+någon av de 231 kontrakten. Okänd/saknad 202, fält203:s historiska ägare,
+IDE505, positiv LOC+175, E035 och full grammatik ligger kvar som separata
+bevisgränser. De frysta 121/231 får ingen ny procent av detta prov.
+
 ## Uppföljning efter mergad #416: valfritt fält 204
 
 PR #416 mergades som `d7eaa4b0` och Vercel var READY på samma commit. Nästa
