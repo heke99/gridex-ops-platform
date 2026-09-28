@@ -302,6 +302,7 @@
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.100.0",
     "imapflow": "1.7.8",
+    "jose": "6.2.12",
     "ldapts": "^8.1.8",
     "next": "16.3.5",
     "node-forge": "^1.4.0",

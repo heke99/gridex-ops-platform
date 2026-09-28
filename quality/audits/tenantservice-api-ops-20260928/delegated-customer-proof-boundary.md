@@ -51,3 +51,40 @@ as an independently verified delegated assertion.
 
 No token format, trust root or new permission is implied by this note. Until
 those inputs exist, T02/T06/T07/T30/T54 and full P1 acceptance remain open.
+
+## P1 checkpoint after the handoff (2026-09-28)
+
+The code now has an opt-in, platform-managed trust boundary for routes using
+`requireCustomerPortalApiContext` and the delegated mode of
+`requireCustomerPortalApiContextForIdentifiers`. It requires
+`x-gridex-customer-assertion` in addition to the integration API key. The
+server-only `GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON` maps each integration
+client UUID to an HTTPS issuer, audience, pinned **public** RS256 JWKS, and an
+issuer/subject-to-customer UUID binding. Example structure with invented
+identifiers (no private key or real customer mapping belongs in the repo):
+
+```json
+{"<api-client-uuid>":{"issuer":"https://issuer.example.test","audience":"gridex-customer-portal","jwks":{"keys":[{"kty":"RSA","n":"<public-modulus>","e":"AQAB","kid":"<key-id>","alg":"RS256","use":"sig"}]},"bindings":{"https://issuer.example.test":{"<subject>":"<customer-uuid>"}}}}
+```
+
+The signed JWT requires `iss`, `aud`, `sub`, `iat`, `exp`, `company_id`,
+`api_client_id`, `customer_id`, and exact `action` (`METHOD /api/v1/customer/...`,
+including the concrete resource path). `jose` verifies the signature and a
+five-minute maximum token age. The platform binding is checked independently
+of the client's metadata or supplied customer identifiers. The resolver is
+forced onto the signed subject's **active** portal-account path; it must
+resolve the same customer before any protected handler proceeds. This happens
+again before idempotency replay. Missing configuration or proof fails closed.
+`POST /api/v1/customer/sync` uses a separate tenant machine mode and now
+requires the literal `customer_sync.write` client scope; a broad legacy
+`customer_portal.write` alias alone cannot select the machine mode.
+
+This is a checkpoint, **not a configured production integration**. No real
+issuer, key rotation, enrollment/recovery authority or customer bindings were
+available here. The in-memory JSON bindings are a deliberately bounded
+configuration contract; bulk enrollment and immediate external issuer-session
+revocation require an authoritative managed source. JWTs are short lived but
+not one-time use. Sensitive write step-up, request-body binding, real two-
+customer/two-tenant database replay, OpenAPI release synchronization, native
+grants and browser evidence remain open. The current public release spec
+`2026-08-22.2` predates this draft runtime gate; do not mark T48 complete.

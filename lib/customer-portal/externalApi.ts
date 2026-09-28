@@ -12,6 +12,7 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 import { canonicalApiError, normalizeApiBlockers } from '@/lib/api/apiError'
 import { ApiInputError } from '@/lib/api/strictRequest'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
+import { verifyCustomerDelegationAssertion } from '@/lib/customer-portal/delegationAssertion'
 
 export type LinkedPortalIdentity = {
   id: string | null
@@ -187,10 +188,57 @@ export function portalIdentifiersFromPayload(payload: unknown): Partial<Customer
   }
 }
 
+type PortalResolution = Awaited<ReturnType<typeof resolvePortalCustomer>>
+
+async function resolveDelegatedPortalCustomer(input: {
+  request: NextRequest
+  client: IntegrationApiClient
+  identifiers?: Partial<CustomerPortalIdentifiers>
+}): Promise<PortalResolution> {
+  const assertion = await verifyCustomerDelegationAssertion({
+    token: input.request.headers.get('x-gridex-customer-assertion'),
+    configuration: process.env.GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON,
+    companyId: input.client.company_id,
+    clientId: input.client.id,
+    action: `${input.request.method} ${input.request.nextUrl.pathname}`,
+  })
+  const identifiers = input.identifiers ?? {}
+  const presented = portalIdentifiersFromRequest(input.request)
+  const suppliedUsers = [identifiers.authUserId, identifiers.customerPortalUserId, presented.authUserId, presented.customerPortalUserId]
+    .filter((value): value is string => Boolean(value))
+  const denied = (code: string): PortalResolution => ({
+    ok: false, status: 403, code,
+    error: 'Ett giltigt och aktivt kundmandat krävs.',
+    identifiers: { ...presented, ...identifiers },
+  })
+  if (!assertion) return denied('customer_delegation_required')
+  if (suppliedUsers.some((value) => value !== assertion.subject)) return denied('customer_delegation_subject_mismatch')
+
+  // Force the signed subject down the account path. A bare customer number,
+  // email or external ID must never serve as delegated authority.
+  const resolution = await resolvePortalCustomer({
+    client: input.client,
+    request: input.request,
+    identifiers: {
+      ...identifiers,
+      authUserId: assertion.subject,
+      customerPortalUserId: assertion.subject,
+    },
+  })
+  if (!resolution.ok) return resolution
+  if (resolution.customer.customer_id !== assertion.customerId ||
+      resolution.customer.provider !== 'customer_portal_accounts' ||
+      resolution.customer.customer_portal_user_id !== assertion.subject) {
+    return denied('customer_delegation_link_mismatch')
+  }
+  return resolution
+}
+
 export async function requireCustomerPortalApiContextForIdentifiers(
   request: NextRequest,
   identifiers: Partial<CustomerPortalIdentifiers>,
-  scopes: IntegrationScopeRequirement = ['customer_portal.read']
+  scopes: IntegrationScopeRequirement = ['customer_portal.read'],
+  authority: 'delegated' | 'tenant_machine' = 'delegated',
 ): Promise<
   | { ok: true; client: IntegrationApiClient; identity: LinkedPortalIdentity; startedAt: number }
   | { ok: false; response: NextResponse; startedAt: number }
@@ -202,7 +250,16 @@ export async function requireCustomerPortalApiContextForIdentifiers(
     return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
   }
 
-  const resolution = await resolvePortalCustomer({ client: auth.client, request, identifiers })
+  // The sync writer is a tenant backend operation with its own exact scope.
+  // It is never an implicit exception for customer-delegated reads/writes.
+  const machineAllowed = authority === 'tenant_machine' &&
+    request.method === 'POST' && request.nextUrl.pathname === '/api/v1/customer/sync' &&
+    auth.client.scopes.includes('customer_sync.write')
+  const resolution = authority === 'tenant_machine'
+    ? machineAllowed
+      ? await resolvePortalCustomer({ client: auth.client, request, identifiers })
+      : { ok: false as const, status: 403, code: 'machine_scope_required', error: 'Ett separat tenantmaskinmandat krävs.', identifiers: portalIdentifiersFromRequest(request) }
+    : await resolveDelegatedPortalCustomer({ request, client: auth.client, identifiers })
   if (!resolution.ok) {
     await logIntegrationApiRequest({
       client: auth.client,
@@ -210,7 +267,7 @@ export async function requireCustomerPortalApiContextForIdentifiers(
       statusCode: resolution.status,
       startedAt,
       errorCode: resolution.code,
-      metadata: { ...resolution.identifiers },
+      metadata: resolution.code.startsWith('customer_delegation_') ? { decision: 'denied' } : { ...resolution.identifiers },
     })
     return { ok: false, response: jsonError(resolution.error, resolution.status, resolution.code), startedAt }
   }
@@ -222,7 +279,7 @@ export async function resolveLinkedPortalIdentity(
   request: NextRequest,
   client: IntegrationApiClient
 ): Promise<{ ok: true; identity: LinkedPortalIdentity } | { ok: false; status: number; error: string; code: string }> {
-  const resolution = await resolvePortalCustomer({ request, client })
+  const resolution = await resolveDelegatedPortalCustomer({ request, client })
   if (!resolution.ok) {
     return { ok: false, status: resolution.status, error: resolution.error, code: resolution.code }
   }
@@ -252,7 +309,7 @@ export async function requireCustomerPortalApiContext(
       statusCode: identity.status,
       startedAt,
       errorCode: identity.code,
-      metadata: { ...portalIdentifiersFromRequest(request) },
+      metadata: identity.code.startsWith('customer_delegation_') ? { decision: 'denied' } : { ...portalIdentifiersFromRequest(request) },
     })
     return { ok: false, response: jsonError(identity.error, identity.status, identity.code), startedAt }
   }
