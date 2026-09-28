@@ -69,7 +69,30 @@ function isUuid(value: string | null | undefined): value is string {
   return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
 }
 
-function headerOrQuery(request: NextRequest, headers: string[], queries: string[]): string | null {
+const PORTAL_IDENTIFIER_SOURCES = {
+  externalCustomerId: {
+    headers: ['x-gridex-external-customer-id', 'x-external-customer-id'],
+    queries: ['external_customer_id', 'externalCustomerId', 'customer_external_id'],
+  },
+  customerNumber: {
+    headers: ['x-gridex-customer-number', 'x-customer-number'],
+    queries: ['customer_number', 'customerNumber'],
+  },
+  email: {
+    headers: ['x-gridex-customer-email', 'x-customer-email'],
+    queries: ['email', 'customer_email'],
+  },
+  authUserId: {
+    headers: ['x-gridex-auth-user-id', 'x-auth-user-id', 'x-gridex-web-auth-user-id'],
+    queries: ['auth_user_id', 'authUserId', 'web_auth_user_id', 'webAuthUserId'],
+  },
+  customerPortalUserId: {
+    headers: ['x-gridex-customer-portal-user-id', 'x-customer-portal-user-id', 'x-gridex-portal-user-id'],
+    queries: ['customer_portal_user_id', 'customerPortalUserId', 'portal_user_id', 'portalUserId'],
+  },
+} as const
+
+function headerOrQuery(request: NextRequest, headers: readonly string[], queries: readonly string[]): string | null {
   for (const header of headers) {
     const value = clean(request.headers.get(header))
     if (value) return value
@@ -81,18 +104,30 @@ function headerOrQuery(request: NextRequest, headers: string[], queries: string[
   return null
 }
 
+function conflictingRequestIdentifiers(request: NextRequest): boolean {
+  return (Object.keys(PORTAL_IDENTIFIER_SOURCES) as Array<keyof CustomerPortalIdentifiers>).some((field) => {
+    const { headers, queries } = PORTAL_IDENTIFIER_SOURCES[field]
+    const normalize = field === 'email' ? normalizeEmail : clean
+    const values = [
+      ...headers.map((header) => request.headers.get(header)),
+      ...queries.flatMap((query) => request.nextUrl.searchParams.getAll(query)),
+    ].map(normalize).filter((value): value is string => value !== null)
+    return new Set(values).size > 1
+  })
+}
+
+function requestIdentifier(request: NextRequest, field: keyof CustomerPortalIdentifiers): string | null {
+  const { headers, queries } = PORTAL_IDENTIFIER_SOURCES[field]
+  return headerOrQuery(request, headers, queries)
+}
+
 export function portalIdentifiersFromRequest(request: NextRequest): CustomerPortalIdentifiers {
-  const externalCustomerId = headerOrQuery(
-    request,
-    ['x-gridex-external-customer-id', 'x-external-customer-id'],
-    ['external_customer_id', 'externalCustomerId', 'customer_external_id']
-  )
   return {
-    externalCustomerId,
-    customerNumber: headerOrQuery(request, ['x-gridex-customer-number', 'x-customer-number'], ['customer_number', 'customerNumber']),
-    email: normalizeEmail(headerOrQuery(request, ['x-gridex-customer-email', 'x-customer-email'], ['email', 'customer_email'])),
-    authUserId: headerOrQuery(request, ['x-gridex-auth-user-id', 'x-auth-user-id', 'x-gridex-web-auth-user-id'], ['auth_user_id', 'authUserId', 'web_auth_user_id', 'webAuthUserId']),
-    customerPortalUserId: headerOrQuery(request, ['x-gridex-customer-portal-user-id', 'x-customer-portal-user-id', 'x-gridex-portal-user-id'], ['customer_portal_user_id', 'customerPortalUserId', 'portal_user_id', 'portalUserId']),
+    externalCustomerId: requestIdentifier(request, 'externalCustomerId'),
+    customerNumber: requestIdentifier(request, 'customerNumber'),
+    email: normalizeEmail(requestIdentifier(request, 'email')),
+    authUserId: requestIdentifier(request, 'authUserId'),
+    customerPortalUserId: requestIdentifier(request, 'customerPortalUserId'),
   }
 }
 
@@ -717,11 +752,11 @@ export async function resolvePortalCustomer(input: {
     customerPortalUserId: presented.customerPortalUserId ?? fromRequest?.customerPortalUserId ?? null,
   }
 
-  if (fromRequest && (['externalCustomerId', 'customerNumber', 'email', 'authUserId', 'customerPortalUserId'] as const)
+  if ((input.request && conflictingRequestIdentifiers(input.request)) || (fromRequest && (['externalCustomerId', 'customerNumber', 'email', 'authUserId', 'customerPortalUserId'] as const)
     .some((field) => {
       const explicit = field === 'email' ? normalizeEmail(presented.email) : clean(presented[field])
       return Boolean(explicit && fromRequest[field] && explicit !== fromRequest[field])
-    })) {
+    }))) {
     return { ok: false, status: 403, code: 'customer_identifier_mismatch', error: 'Kundidentifierarna stämmer inte överens.', identifiers }
   }
 

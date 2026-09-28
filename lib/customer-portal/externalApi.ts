@@ -165,14 +165,25 @@ function cleanIdentifier(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function consistentPayloadIdentifier(body: Record<string, unknown>, keys: string[], email = false): string | null {
+  const values = keys
+    .map((key) => cleanIdentifier(body[key]))
+    .filter((value): value is string => value !== null)
+    .map((value) => email ? value.toLowerCase() : value)
+  if (new Set(values).size > 1) {
+    throw new ApiInputError('Kundidentifierarna stämmer inte överens.', 'customer_identifier_mismatch', 403, keys[0])
+  }
+  return values[0] ?? null
+}
+
 export function portalIdentifiersFromPayload(payload: unknown): Partial<CustomerPortalIdentifiers> {
   const body = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {}
   return {
-    externalCustomerId: cleanIdentifier(body.external_customer_id) ?? cleanIdentifier(body.externalCustomerId) ?? cleanIdentifier(body.customer_external_id),
-    customerNumber: cleanIdentifier(body.customer_number) ?? cleanIdentifier(body.customerNumber),
-    email: normalizeEmail(body.email ?? body.customer_email) || null,
-    authUserId: cleanIdentifier(body.auth_user_id) ?? cleanIdentifier(body.authUserId) ?? cleanIdentifier(body.web_auth_user_id) ?? cleanIdentifier(body.webAuthUserId),
-    customerPortalUserId: cleanIdentifier(body.customer_portal_user_id) ?? cleanIdentifier(body.customerPortalUserId) ?? cleanIdentifier(body.portal_user_id) ?? cleanIdentifier(body.portalUserId),
+    externalCustomerId: consistentPayloadIdentifier(body, ['external_customer_id', 'externalCustomerId', 'customer_external_id']),
+    customerNumber: consistentPayloadIdentifier(body, ['customer_number', 'customerNumber']),
+    email: consistentPayloadIdentifier(body, ['email', 'customer_email'], true),
+    authUserId: consistentPayloadIdentifier(body, ['auth_user_id', 'authUserId', 'web_auth_user_id', 'webAuthUserId']),
+    customerPortalUserId: consistentPayloadIdentifier(body, ['customer_portal_user_id', 'customerPortalUserId', 'portal_user_id', 'portalUserId']),
   }
 }
 

@@ -133,6 +133,29 @@ describe('customer portal read boundary', () => {
     expect(fixture.mutations).toEqual([])
   })
 
+  it.each([
+    new NextRequest('http://localhost/api/v1/customer/portal-bundle', {
+      headers: { 'x-gridex-customer-number': 'C-10', 'x-customer-number': 'C-20' },
+    }),
+    new NextRequest('http://localhost/api/v1/customer/portal-bundle?customer_number=C-10&customer_number=C-20'),
+    new NextRequest('http://localhost/api/v1/customer/portal-bundle?customer_number=C-20', {
+      headers: { 'x-gridex-customer-number': 'C-10' },
+    }),
+  ])('rejects contradictory aliases within the same request before returning a customer', async (request) => {
+    const result = await resolvePortalCustomer({ client, request })
+    expect(result).toMatchObject({ ok: false, status: 403, code: 'customer_identifier_mismatch' })
+    expect(fixture.mutations).toEqual([])
+  })
+
+  it('accepts repeated equivalent request identifiers', async () => {
+    const request = new NextRequest('http://localhost/api/v1/customer/portal-bundle?customer_number=C-10&customerNumber=C-10', {
+      headers: { 'x-gridex-customer-number': 'C-10' },
+    })
+    const result = await resolvePortalCustomer({ client, request })
+    expect(result.ok && result.customer.customer_id).toBe('customer-a')
+    expect(fixture.mutations).toEqual([])
+  })
+
   it('preserves an existing portal role and verification state on an explicit website link retry', async () => {
     fixture.accounts = [{
       id: 'account-a', company_id: 'tenant-a', customer_id: 'customer-a',

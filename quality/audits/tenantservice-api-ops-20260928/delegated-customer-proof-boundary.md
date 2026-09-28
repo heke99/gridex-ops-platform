@@ -5,7 +5,8 @@
 `requireIntegrationApiAccess` authenticates a tenant integration key and checks
 its scopes, tenant state, IP/origin and rate limit. `resolvePortalCustomer` then
 resolves a customer from identifiers supplied by that client in headers, query
-or payload. The new consistency guard rejects contradictory identifiers, but
+or payload. The consistency guard rejects contradictory canonical identifiers
+and aliases within the supported request and payload fields, but
 a single identifier still selects any matching customer in that tenant. An API
 scope or a stored `match_strength='strong'` is not proof that the current end
 user authorized this particular request.
