@@ -9142,6 +9142,7 @@ $$;
 CREATE FUNCTION public.canonical_transition_tenant_lifecycle(p_company_id uuid, p_target_status text, p_expected_state_version bigint, p_reason text, p_actor_user_id uuid, p_idempotency_key text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
+    SET application_name TO 'gridex_portal_lifecycle_resume_v1'
     AS $$
 declare
   v_cached jsonb;
@@ -85886,10 +85887,22 @@ CREATE TRIGGER customer_match_review_cases_validate_tg BEFORE INSERT OR UPDATE O
 CREATE TRIGGER customer_onboarding_legal_snapshots_immutable_tg BEFORE DELETE OR UPDATE ON public.customer_onboarding_legal_snapshots FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_onboarding_legal_snapshot();
 
 --
+-- Name: customer_portal_accounts customer_portal_account_revocation_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_portal_account_revocation_guard BEFORE UPDATE ON public.customer_portal_accounts FOR EACH ROW EXECUTE FUNCTION private.gridex_guard_portal_revocation_v1();
+
+--
 -- Name: customer_portal_identities customer_portal_identities_match_strength_normalize_tg; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER customer_portal_identities_match_strength_normalize_tg BEFORE INSERT OR UPDATE OF match_strength ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION public.gridex_normalize_customer_portal_identity_match_strength();
+
+--
+-- Name: customer_portal_identities customer_portal_identity_revocation_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_portal_identity_revocation_guard BEFORE UPDATE ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION private.gridex_guard_portal_revocation_v1();
 
 --
 -- Name: customer_sites customer_sites_invalidate_operations_on_address_change; Type: TRIGGER; Schema: public; Owner: -
@@ -86948,6 +86961,12 @@ CREATE TRIGGER utilts_bound_source_guard BEFORE UPDATE ON public.ediel_messages 
 --
 
 CREATE TRIGGER website_application_atomic_portal_identity AFTER INSERT OR UPDATE ON public.website_customer_applications FOR EACH ROW WHEN ((new.customer_id IS NOT NULL)) EXECUTE FUNCTION public.gridex_commit_website_portal_identity();
+
+--
+-- Name: website_customer_applications website_application_portal_account_active_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER website_application_portal_account_active_guard AFTER INSERT OR UPDATE ON public.website_customer_applications FOR EACH ROW WHEN ((new.customer_id IS NOT NULL)) EXECUTE FUNCTION private.gridex_check_website_portal_account_v1();
 
 --
 -- Name: website_customer_applications website_application_quote_binding_v2; Type: TRIGGER; Schema: public; Owner: -
@@ -118744,7 +118763,7 @@ GRANT ALL ON TABLE public.customer_ops_timeline_v TO service_role;
 -- Name: TABLE customer_portal_accounts; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON TABLE public.customer_portal_accounts TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE public.customer_portal_accounts TO authenticated;
 GRANT ALL ON TABLE public.customer_portal_accounts TO service_role;
 
 --
@@ -118779,7 +118798,7 @@ GRANT ALL ON TABLE public.customer_portal_events TO service_role;
 -- Name: TABLE customer_portal_identities; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON TABLE public.customer_portal_identities TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE public.customer_portal_identities TO authenticated;
 GRANT ALL ON TABLE public.customer_portal_identities TO service_role;
 
 --
