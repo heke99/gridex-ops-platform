@@ -2,6 +2,8 @@
 
 This directory tracks the independent tenantservice initiative. It does not supersede the Ediel checkpoint in `.agent-memory/` or import paused PR #310. Base: remote `main` `d7eaa4b0b880b7280d8f164630a6cdb51baabba8`; branch: `codex/tenantservice-api-ops-20260928`.
 
+The complete original assignment is preserved verbatim in [`masteruppdrag.md`](masteruppdrag.md), including T01–T55 and U01–U20. Their status matrix is [`requirements.csv`](requirements.csv). The latest handoff checkpoint is [`handover.md`](handover.md).
+
 ## Status
 
 **P0 incomplete. P1, P2/P3, P4 and P5 partial. No phase accepted.** The 75 supplied acceptance IDs are in `requirements.csv`; none is fully accepted. T04/T05/T25 have bounded server-boundary evidence; F05's forward migration and native fixture passed exact-head CI on `9c0f06bd`. T53 passed native two-page replay at `28b0a236` and the expanded native fixture on `5caaad3e`. U01/U02 have static discovery evidence only. Publication and browser evidence remains bounded to the cases and surfaces tested below.
