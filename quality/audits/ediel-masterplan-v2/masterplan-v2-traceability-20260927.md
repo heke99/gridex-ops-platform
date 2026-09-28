@@ -1,5 +1,18 @@
 # Ediel masterplan v2: kod- och kontraktsavstämning
 
+## Uppföljning efter mergad #416: valfritt fält 204
+
+PR #416 mergades som `d7eaa4b0` och Vercel var READY på samma commit. Nästa
+avgränsade F3-fall är ett **angivet men ogiltigt** BGM/1225 fält 204. Den
+frysta P26.A-källan tillåter utelämning samt koderna `9` och `5`. Ett komplett
+Z04 med `7` gav redan ERC42/204 men BGM34 och otillåtna konsumentanrop.
+Korrigeringen ger ett källbundet BGM27 och stoppar affärsvägen; lokalt 150/150,
+ACK-skript 64/64 och tre TypeScript-projekt passerar. Native lagring/retry och
+exakt PR-heads CI återstår. Se
+[`f3-prodat-header-204-whole-message-20260928.md`](f3-prodat-header-204-whole-message-20260928.md).
+ACK-02/ACK-10 och kontrakten förblir delvisa; frysta 121/231 och faserna får
+ingen ny färdigprocent av detta prov. Verklig Edieltrafik förblir spärrad.
+
 ## Uppföljning i draft #416: källbundet fält 313
 
 På exakt `9d76377a` var Ediel, browser, Full E2E och OPS gröna för fält 206;

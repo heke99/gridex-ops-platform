@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-27T22:50:00Z",
+  "updated_at": "2026-09-28T08:10:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-f3-prodat-header-206-20260927",
-  "active_pr": 416,
-  "base_head_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
-  "runtime_accepted_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
-  "last_merged_pr": 415,
-  "last_accepted_pr": 415,
+  "branch": "codex/ediel-v2-f3-prodat-header-204-20260927",
+  "active_pr": 417,
+  "base_head_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+  "runtime_accepted_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+  "last_merged_pr": 416,
+  "last_accepted_pr": 416,
   "root_main_acceptance_comment": null,
-  "active_item": "PR416 F3 header206 + 313; independent-review lowercase 313 split reproduced/fixed locally, corrected head CI pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-313-whole-message-20260928.md",
+  "active_item": "PR417 F3 optional header204 invalid supplied value; source-bound whole-message ACK published; exact-head native/CI pending",
+  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-204-whole-message-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,9 +30,9 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish literal field313 AB/NA validation and third native variant to draft PR416 from exact 63244be9; require corrected-head CI/native/replay/schema/type, repeat final review, then one merge if green. Market activation separate; PR310 untouched.",
+  "next_action": "Inspect first actual CI result on PR417 head 09fba884, require native/replay/schema/type and all applicable workflows, review full diff/threads, merge once if green; verify main/deployment. Market activation separate; PR310 untouched.",
   "latest_verified_delivery": {
-    "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
+    "main_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
     "merged_prs": [
       387,
       388,
@@ -59,7 +59,7 @@
     "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
     "pr390_ops_run": 36245827122,
     "pr390_native_tests": "343/343",
-    "vercel_deployment": "dpl_HeaoXWUthsimtVLj8Kt5hPuk8buo READY for main 62ca24a1",
+    "vercel_deployment": "dpl_DHxSRfKFzgf2dvHX2voGycGVW3qF READY for main d7eaa4b0; code deployment only",
     "boundary": "web deployed; Ediel market capabilities not activated",
     "pr392_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
     "pr392_ops_run": 36247794182,
@@ -884,6 +884,16 @@
     "draft_pr": 416,
     "published_review_head": "9da23117818df74c842c6c0c77db3aedae6ac93c",
     "first_ci_failure": "Ediel 36352375005: eight document-consumer synthetic complete P wires missing mandatory header206",
-    "local_fixture_correction": "DTM+ZZZ:1:805, computed UNT; affected34/34, test TS/lint PASS, unpublished"
+    "local_fixture_correction": "DTM+ZZZ:1:805, computed UNT; affected34/34, test TS/lint PASS; final head 7414fd9c all four workflows, native376/376, replay/schema/type parity; merged d7eaa4b0 and same-SHA Vercel READY"
+  },
+  "pr417_candidate": {
+    "base": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+    "published_head": "09fba884be04bafa27dd593aafb5a6e32c658380",
+    "published_tree": "ac40f187889ed20a501adb78a36acf91415018f3",
+    "local_verification": "150/150 five related files, ACK source 64/64, app/tests/scripts TS, lint 0 errors, diff check",
+    "native_and_ci": "pending exact-head four workflows including clean replay, generated schema/type parity",
+    "formal_acceptance": "unchanged; partial ACK-02/ACK-10",
+    "market_traffic": "held",
+    "draft_pr": 417
   }
 }

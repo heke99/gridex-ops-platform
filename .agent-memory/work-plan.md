@@ -473,3 +473,7 @@ Publish and qualify bounded UG-122-24 SVK five-digit NAD party ID; require nativ
 1. Publish literal field313 validation after RED/GREEN and the added native lowercase variant to the same draft PR.
 2. Require all applicable CI, clean replay, native stored ACK/no-business/retry and schema/type parity on the corrected exact head; fix first true failure only.
 3. Review final diff and comments, merge the 206+313 package once if gates pass, verify main/deployment and begin next package. No market test/send and no PR310 work.
+## Current — 2026-09-28 PR #417
+1. Inspect exact-head CI for `09fba884`: Ediel, browser, Full E2E and OPS native clean replay/schema/type parity. Fix only the first real failure with a new tested commit.
+2. Review the complete #417 diff and open review threads. Merge the coherent field204 package once only if all gates are green on the final head, then verify remote main/merge SHA and same-SHA deployment.
+3. Branch the next source-backed package from new main. Keep historical 203/IDE505, positive LOC+175, E035 and market activation behind their separate evidence gates; leave #310 untouched.
