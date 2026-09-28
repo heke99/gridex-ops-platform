@@ -707,12 +707,22 @@ export async function resolvePortalCustomer(input: {
   request?: NextRequest
   identifiers?: Partial<CustomerPortalIdentifiers>
 }): Promise<PortalCustomerResolution> {
+  const presented = input.identifiers ?? {}
+  const fromRequest = input.request ? portalIdentifiersFromRequest(input.request) : null
   const identifiers: CustomerPortalIdentifiers = {
-    externalCustomerId: input.identifiers?.externalCustomerId ?? (input.request ? portalIdentifiersFromRequest(input.request).externalCustomerId : null),
-    customerNumber: input.identifiers?.customerNumber ?? (input.request ? portalIdentifiersFromRequest(input.request).customerNumber : null),
-    email: normalizeEmail(input.identifiers?.email ?? (input.request ? portalIdentifiersFromRequest(input.request).email : null)),
-    authUserId: input.identifiers?.authUserId ?? (input.request ? portalIdentifiersFromRequest(input.request).authUserId : null),
-    customerPortalUserId: input.identifiers?.customerPortalUserId ?? (input.request ? portalIdentifiersFromRequest(input.request).customerPortalUserId : null),
+    externalCustomerId: presented.externalCustomerId ?? fromRequest?.externalCustomerId ?? null,
+    customerNumber: presented.customerNumber ?? fromRequest?.customerNumber ?? null,
+    email: normalizeEmail(presented.email ?? fromRequest?.email),
+    authUserId: presented.authUserId ?? fromRequest?.authUserId ?? null,
+    customerPortalUserId: presented.customerPortalUserId ?? fromRequest?.customerPortalUserId ?? null,
+  }
+
+  if (fromRequest && (['externalCustomerId', 'customerNumber', 'email', 'authUserId', 'customerPortalUserId'] as const)
+    .some((field) => {
+      const explicit = field === 'email' ? normalizeEmail(presented.email) : clean(presented[field])
+      return Boolean(explicit && fromRequest[field] && explicit !== fromRequest[field])
+    })) {
+    return { ok: false, status: 403, code: 'customer_identifier_mismatch', error: 'Kundidentifierarna stämmer inte överens.', identifiers }
   }
 
   if (!identifiers.externalCustomerId && !identifiers.customerNumber && !identifiers.email && !identifiers.authUserId && !identifiers.customerPortalUserId) {
@@ -748,6 +758,14 @@ export async function resolvePortalCustomer(input: {
         return { ok: false, status: 409, code: 'ambiguous_customer_match', error: 'Flera kunder matchar samma e-post inom tenant. Skicka customer_number eller external_customer_id.', identifiers }
       }
       return { ok: false, status: 404, code: 'customer_not_found', error: 'Kunden hittades inte eller är inte länkad till API-klienten.', identifiers }
+    }
+
+    // The lookup order must not silently choose one customer when other
+    // client-presented identifiers name a different customer in the tenant.
+    if ((identifiers.externalCustomerId && identifiers.externalCustomerId !== resolved.external_customer_id) ||
+        (identifiers.customerNumber && identifiers.customerNumber !== resolved.customer_number) ||
+        (identifiers.email && identifiers.email !== resolved.email)) {
+      return { ok: false, status: 403, code: 'customer_identifier_mismatch', error: 'Kundidentifierarna stämmer inte överens.', identifiers }
     }
 
     return { ok: true, customer: resolved }

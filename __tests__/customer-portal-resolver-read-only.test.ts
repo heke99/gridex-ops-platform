@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 
 const fixture = vi.hoisted(() => ({
   accounts: [] as Record<string, unknown>[],
@@ -11,6 +12,11 @@ vi.mock('@/lib/supabase/service', () => {
     id: 'customer-a', company_id: 'tenant-a', customer_number: 'C-10',
     external_customer_id: 'EXT-10', email: 'customer@example.test',
     phone: '0700000000', status: 'active',
+  }
+  const otherCustomer = {
+    id: 'customer-b', company_id: 'tenant-a', customer_number: 'C-20',
+    external_customer_id: 'EXT-20', email: 'other@example.test',
+    phone: '0700000001', status: 'active',
   }
   function from(table: string) {
     const filters: Record<string, unknown> = {}
@@ -28,7 +34,7 @@ vi.mock('@/lib/supabase/service', () => {
       then: (resolve: (value: unknown) => unknown) => resolve({ data: rows(), error: null }),
     }
     function rows() {
-      const source = table === 'customers' ? [customer]
+      const source = table === 'customers' ? [customer, otherCustomer]
         : table === 'customer_portal_accounts' ? fixture.accounts
           : table === 'customer_portal_identities' ? fixture.identities : []
       return source.filter((row) => Object.entries(filters).every(([key, value]) => row[key] === value))
@@ -99,6 +105,31 @@ describe('customer portal read boundary', () => {
   it('requires an existing link instead of creating one from two presented identifiers', async () => {
     const result = await resolvePortalCustomer({ client, identifiers }).catch(() => ({ ok: false as const }))
     expect(result.ok).toBe(false)
+    expect(fixture.mutations).toEqual([])
+  })
+
+  it.each([
+    { externalCustomerId: 'EXT-20', customerNumber: 'C-10' },
+    { externalCustomerId: 'EXT-10', customerNumber: 'C-20' },
+    { customerNumber: 'C-10', email: 'other@example.test' },
+  ])('rejects conflicting presented identifiers before returning a customer: %j', async (presented) => {
+    const result = await resolvePortalCustomer({ client, identifiers: presented })
+    expect(result).toMatchObject({ ok: false, status: 403, code: 'customer_identifier_mismatch' })
+    expect(fixture.mutations).toEqual([])
+  })
+
+  it('preserves a single tenant-scoped customer number lookup', async () => {
+    const result = await resolvePortalCustomer({ client, identifiers: { customerNumber: 'C-10' } })
+    expect(result.ok && result.customer.customer_id).toBe('customer-a')
+    expect(fixture.mutations).toEqual([])
+  })
+
+  it('rejects a body customer that conflicts with the same identifier in the request header', async () => {
+    const request = new NextRequest('http://localhost/api/v1/customer/portal-bundle', {
+      headers: { 'x-gridex-customer-number': 'C-20' },
+    })
+    const result = await resolvePortalCustomer({ client, request, identifiers: { customerNumber: 'C-10' } })
+    expect(result).toMatchObject({ ok: false, status: 403, code: 'customer_identifier_mismatch' })
     expect(fixture.mutations).toEqual([])
   })
 
