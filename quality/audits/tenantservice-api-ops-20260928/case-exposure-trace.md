@@ -1,9 +1,9 @@
 # Case and note exposure trace — next dependency
 
 The source trace below identified the prior exposure. The forward publication
-boundary in `20260928113000_customer_case_publication_boundary.sql` is a
-candidate fix awaiting exact-head native replay and browser evidence. It is
-not full T33/T26 acceptance.
+boundary in `20260928113000_customer_case_publication_boundary.sql` has
+bounded native evidence on intermediate heads; the final browser and
+post-browser chain remains pending. It is not full T33/T26 acceptance.
 
 | Consumer | Source fields | Observed boundary | Release condition |
 | --- | --- | --- | --- |
