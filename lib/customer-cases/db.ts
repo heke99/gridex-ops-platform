@@ -74,6 +74,7 @@ export async function listCustomerCases(options: {
   statuses?: readonly string[]
   type?: string | null
   source?: string | null
+  supportOnly?: boolean
   query?: string | null
   limit?: number
   offset?: number
@@ -94,6 +95,11 @@ export async function listCustomerCases(options: {
   if (options.statuses) query = query.in('status', [...options.statuses])
   if (options.type && options.type !== 'all') query = query.eq('case_type', options.type)
   if (options.source) query = query.eq('source', options.source)
+  if (options.supportOnly) {
+    // Filter before LIMIT/OFFSET. The anchored regex keeps underscores literal;
+    // LIKE would also match unrelated sources such as tenantXsupport_...
+    query = query.or('metadata->support_case.eq.true,source.match.^tenant_support_')
+  }
   if (options.query?.trim()) {
     query = query.or(`title.ilike.%${options.query.trim()}%,description.ilike.%${options.query.trim()}%,reason_category.ilike.%${options.query.trim()}%`)
   }
