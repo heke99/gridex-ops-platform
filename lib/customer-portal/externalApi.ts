@@ -11,6 +11,7 @@ import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPorta
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { canonicalApiError, normalizeApiBlockers } from '@/lib/api/apiError'
 import { ApiInputError } from '@/lib/api/strictRequest'
+import { PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import { verifyCustomerDelegationAssertion } from '@/lib/customer-portal/delegationAssertion'
 
@@ -342,7 +343,7 @@ export function handleCustomerPortalRouteError(input: {
   startedAt: number
   error: unknown
 }) {
-  if (input.error instanceof ApiInputError) {
+  if (input.error instanceof ApiInputError || input.error instanceof PortalCursorError) {
     void logIntegrationApiRequest({
       client: input.client ?? null,
       request: input.request,

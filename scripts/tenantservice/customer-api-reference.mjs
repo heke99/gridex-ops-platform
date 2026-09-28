@@ -21,12 +21,13 @@ const apiKey = 'synthetic-backend-only-key'
 const contactPath = '/api/v1/customer/profile-update'
 
 export async function delegatedRequest({ baseUrl, method, path, signAssertion, body, idempotencyKey }) {
+  const pathname = new URL(path, baseUrl).pathname
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'x-gridex-customer-number': customerNumber,
-      'x-gridex-customer-assertion': await signAssertion(`${method} ${path}`),
+      'x-gridex-customer-assertion': await signAssertion(`${method} ${pathname}`),
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
@@ -45,6 +46,7 @@ async function syntheticServer(publicKey) {
   const completions = new Map()
 
   const server = createServer(async (request, response) => {
+    const url = new URL(request.url, 'http://127.0.0.1')
     const reply = (status, data) => {
       response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
       response.end(JSON.stringify(data))
@@ -60,17 +62,57 @@ async function syntheticServer(publicKey) {
       })
       if (payload.sub !== subject || payload.company_id !== tenantId ||
           payload.api_client_id !== clientId || payload.customer_id !== customerId ||
-          payload.action !== `${request.method} ${request.url}`) throw new Error('Wrong customer action')
+          payload.action !== `${request.method} ${url.pathname}`) throw new Error('Wrong customer action')
     } catch {
       reply(403, { error: { code: 'customer_delegation_required' } })
       return
     }
 
-    if (request.method === 'GET' && request.url === '/api/v1/customer/me') {
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/me') {
       reply(200, { data: { customer_number: customerNumber, contact_revision: state.revision, phone: state.phone } })
       return
     }
-    if (request.method !== 'POST' || request.url !== contactPath) {
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/contracts') {
+      const cursor = url.searchParams.get('cursor')
+      if (cursor && cursor !== 'synthetic-next-contract') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      reply(200, {
+        data: [{
+          contract_reference: `contract_${(cursor ? 'b' : 'a').repeat(32)}`,
+          contract_number: null, offer_reference: null, contract_name: null, contract_type: null,
+          energy_direction: 'consumption', status: cursor ? 'active' : null,
+          start_date: null, end_date: null, signed_at: null, withdrawal_deadline_at: null,
+          signature_snapshot_sha256: null, price_area: null, monthly_fee_sek: null,
+          invoice_fee_sek: null, fixed_price_ore_per_kwh: null, markup_ore_per_kwh: null,
+          binding_months: null, notice_months: null, auto_renew_enabled: false,
+          created_at: '2026-09-28T00:00:00Z',
+        }],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-contract' },
+      })
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/sites') {
+      reply(200, {
+        data: {
+          sites: [{ facility_reference: `facility_${'c'.repeat(32)}`, facility_id: null,
+            status: null, name: 'Synthetic site', facility_type: null,
+            address: { street: null, care_of: null, postal_code: null, city: 'Stockholm', country: 'SE' },
+            price_area: null, grid_area_code: null, move_in_date: null, move_out_date: null,
+            annual_consumption_kwh: null, created_at: '2026-09-28T00:00:00Z' }],
+          metering_points: [{ metering_point_reference: `metering_point_${'d'.repeat(32)}`,
+            facility_reference: `facility_${'c'.repeat(32)}`, metering_point_id: '735999000000000001',
+            facility_id: null, status: null, metering_type: null, resolution: null,
+            price_area: null, grid_area_code: null, start_date: null, end_date: null,
+            verification_status: null, created_at: null }],
+        },
+        page: { sites: { limit: 1, offset: 0, returned: 1, has_more: false, next_cursor: null } },
+      })
+      return
+    }
+    if (request.method !== 'POST' || url.pathname !== contactPath) {
       reply(404, { error: { code: 'resource_not_found' } })
       return
     }
@@ -148,11 +190,31 @@ export async function runSyntheticCustomerJourney() {
     const after = await call('GET', '/api/v1/customer/me')
     assert.equal(after.body.data.phone, '+46123456789')
     assert.equal(after.body.data.contact_revision, revision + 1)
+    const contracts = await call('GET', '/api/v1/customer/contracts?limit=1')
+    assert.equal(contracts.status, 200)
+    assert.equal(contracts.body.data[0].status, null)
+    assert.equal(contracts.body.page.has_more, true)
+    const nextContracts = await call('GET', `/api/v1/customer/contracts?limit=1&cursor=${contracts.body.page.next_cursor}`)
+    assert.equal(nextContracts.status, 200)
+    assert.equal(nextContracts.body.data[0].status, 'active')
+    assert.equal(nextContracts.body.page.has_more, false)
+    const sites = await call('GET', '/api/v1/customer/sites?limit=1')
+    assert.equal(sites.status, 200)
+    assert.equal(sites.body.data.sites.length, 1)
+    assert.equal(sites.body.data.metering_points[0].metering_point_id, '735999000000000001')
+    assert.equal(sites.body.page.sites.returned, 1)
+    const foreignCursor = await call('GET', '/api/v1/customer/contracts?cursor=foreign-customer-cursor')
+    assert.equal(foreignCursor.status, 400)
+    assert.equal(foreignCursor.body.error.code, 'invalid_cursor')
+    const wrongAction = await delegatedRequest({ baseUrl, method: 'GET', path: '/api/v1/customer/sites',
+      signAssertion: () => signAssertion('GET /api/v1/customer/me') })
+    assert.equal(wrongAction.status, 403)
     assert.deepEqual({ writes: state.writes, audit: state.audit, outbox: state.outbox }, {
       writes: 1, audit: 1, outbox: 1,
     })
     return { revisionBefore: revision, revisionAfter: state.revision, stale: stale.status,
-      replay: replay.status, changedKey: changedKey.status, writes: state.writes }
+      replay: replay.status, changedKey: changedKey.status, writes: state.writes,
+      contractPages: 2, sites: sites.body.data.sites.length, wrongAction: wrongAction.status }
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
   }

@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.1** (release candidate on the API draft branch)
+Current contract: **2026-09-29.2** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -51,3 +51,17 @@ document, legal and facility writers also remain separately staged. Do not
 infer the contact guarantee for these paths. See
 `scripts/tenantservice/customer-api-reference.mjs` for a runnable synthetic
 contact journey using an isolated in-memory issuer and customer.
+
+## Paginated support reads
+
+Use a new signed assertion for each exact GET path. `customer_contracts.read`
+allows `GET /api/v1/customer/contracts`, and `customer_sites.read` allows
+`GET /api/v1/customer/sites`. Each route accepts `limit` (default 50,
+maximum 100) and an opaque `cursor` from its own previous `page.next_cursor`.
+The cursor is bound to the current organization, customer and resource;
+another customer's cursor or a malformed cursor returns 400 `invalid_cursor`.
+Contracts return a public `data` array and `page`; sites return
+`data.sites`, `data.metering_points` for those sites, and `page.sites`.
+Missing contract fields remain JSON null where the canonical or legacy read
+model has no value. These reads do not grant any write scope. The synthetic
+reference client exercises both resources and their pagination shape.

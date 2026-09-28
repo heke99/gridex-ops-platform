@@ -736,6 +736,72 @@ module.exports = function finalizeCustomerPortalRelease({
     portal_identity: { $ref: '#/components/schemas/CustomerPortalIdentity' },
   }, ['customer_reference', 'customer_number', 'external_customer_id', 'customer_type', 'status', 'display_name', 'first_name', 'last_name', 'company_name', 'email', 'phone', 'contact_revision', 'created_at', 'portal_identity'])
   setResponse(portal, '/api/v1/customer/me', envelope({ $ref: '#/components/schemas/CustomerMeData' }), 'get')
+
+  portal.components.schemas.CustomerResourcePage = closedObject({
+    limit: { type: 'integer', minimum: 1, maximum: 100 },
+    offset: { type: 'integer', minimum: 0 },
+    returned: { type: 'integer', minimum: 0 },
+    has_more: { type: 'boolean' },
+    next_cursor: nullableString,
+  }, ['limit', 'offset', 'returned', 'has_more', 'next_cursor'])
+  portal.components.schemas.CustomerSite = closedObject({
+    facility_reference: nullableString,
+    facility_id: nullableString,
+    status: nullableString,
+    name: nullableString,
+    facility_type: nullableString,
+    address: { $ref: '#/components/schemas/CustomerSiteAddress' },
+    price_area: nullableString,
+    grid_area_code: nullableString,
+    move_in_date: nullableString,
+    move_out_date: nullableString,
+    annual_consumption_kwh: { type: ['number', 'null'] },
+    created_at: nullableString,
+  }, ['facility_reference', 'facility_id', 'status', 'name', 'facility_type', 'address', 'price_area', 'grid_area_code', 'move_in_date', 'move_out_date', 'annual_consumption_kwh', 'created_at'])
+  portal.components.schemas.CustomerSiteAddress = closedObject({
+    street: nullableString,
+    care_of: nullableString,
+    postal_code: nullableString,
+    city: nullableString,
+    country: string,
+  }, ['street', 'care_of', 'postal_code', 'city', 'country'])
+  portal.components.schemas.CustomerMeteringPoint = closedObject({
+    metering_point_reference: nullableString,
+    facility_reference: nullableString,
+    metering_point_id: nullableString,
+    facility_id: nullableString,
+    status: nullableString,
+    metering_type: nullableString,
+    resolution: nullableString,
+    price_area: nullableString,
+    grid_area_code: nullableString,
+    start_date: nullableString,
+    end_date: nullableString,
+    verification_status: nullableString,
+    created_at: nullableString,
+  }, ['metering_point_reference', 'facility_reference', 'metering_point_id', 'facility_id', 'status', 'metering_type', 'resolution', 'price_area', 'grid_area_code', 'start_date', 'end_date', 'verification_status', 'created_at'])
+  portal.components.schemas.CustomerSitesData = closedObject({
+    sites: { type: 'array', items: { $ref: '#/components/schemas/CustomerSite' } },
+    metering_points: { type: 'array', items: { $ref: '#/components/schemas/CustomerMeteringPoint' } },
+  }, ['sites', 'metering_points'])
+  portal.components.schemas.CustomerSitesPage = closedObject({
+    sites: { $ref: '#/components/schemas/CustomerResourcePage' },
+  }, ['sites'])
+  const contractsResponse = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerContract' } }, ['page'])
+  contractsResponse.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, '/api/v1/customer/contracts', contractsResponse, 'get')
+  const sitesResponse = envelope({ $ref: '#/components/schemas/CustomerSitesData' }, ['page'])
+  sitesResponse.properties.page = { $ref: '#/components/schemas/CustomerSitesPage' }
+  setResponse(portal, '/api/v1/customer/sites', sitesResponse, 'get')
+  for (const path of ['/api/v1/customer/contracts', '/api/v1/customer/sites']) {
+    const operation = portal.paths[path]?.get
+    if (!operation) continue
+    operation.parameters ??= []
+    operation.parameters.push(
+      { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } },
+      { name: 'cursor', in: 'query', required: false, schema: { type: 'string', description: 'Opaque cursor bound to the current organization, customer and resource; invalid or foreign cursors return 400 invalid_cursor.' } },
+    )
+  }
   setRequest(portal, '/api/v1/customer/profile-update', { $ref: '#/components/schemas/CustomerProfileUpdateRequest' })
   setResponse(portal, '/api/v1/customer/profile-update', envelope({ $ref: '#/components/schemas/CustomerProfileUpdateData' }), 'post')
   const profileOperation = portal.paths['/api/v1/customer/profile-update']?.post
