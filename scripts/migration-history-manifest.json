@@ -476,6 +476,7 @@
     "20260926213000_utilts_ide_qualifier_membership.sql": "75562a4aef429eccb344ead120f2b3c362b723b9fda429d028f6fd3f7500b8d0",
     "20260927160000_utilts_internal_storage_error_atomic_hold.sql": "18acae42edea79c3d8b8f13f717a9650c086b443e18bf8925fada3d409efad09",
     "20260928130000_customer_case_publication_conflict_and_history.sql": "aca0841548b5e5f17622b96e42d02ca765fd7c163dbbedd36f6306fd0160e202",
+    "20260928133000_customer_case_publication_tenant_classification.sql": "3f7909de60dcab56f9983fbd19dd81f6eafc93dd4bffca3104f2721353734c60",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
