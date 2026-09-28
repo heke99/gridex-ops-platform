@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T13:20:00Z",
+  "updated_at": "2026-09-28T13:58:30Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 identity/E035 owner package on draft #421; bounded LOC point sink verified, factual audit checkpoint correction pending",
+  "active_item": "F3 identity/E035 owner package on draft #421; locally verified mixed-object point-history diagnostic guard pending publication and exact-head CI",
   "current_audit": "quality/audits/ediel-masterplan-v2/identity-e035-next-package-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Commit/push factual audit/matrix CI correction to same draft #421; check exact final head required CI and review. Keep historical 203/505, positive 175 and E035 blocked; do not merge or activate market traffic.",
+  "next_action": "Publish the local E035 mixed-object source-reader guard and tests to draft #421, inspect first exact-head CI including native/replay/schema/types, then whole diff/review and update the PR receipt. Historical 203/505, positive 175 and E035 retention remain blocked; no merge or traffic.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -39,18 +39,18 @@
     "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
     "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
     "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
-    "last_verified_exact_head": "59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1",
+    "last_verified_exact_head": "7e11899d0a4bf2e86d8ba63555044071686937e0",
     "last_verified_workflows": [
-      36426566433,
-      36426566460,
-      36426566380,
-      36426566523,
-      36426566448
+      36428062439,
+      36428062188,
+      36428062437,
+      36428062276,
+      36428062115
     ],
     "native_before_this_step": "382/382",
     "native_on_last_verified_head": "385/385 including LOC175 before/after 172 direct service-RPC hold; clean replay, generated types 36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d and schema 08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6 matched",
-    "next_head_checks": "documentation correction pending publication: all applicable workflows on new exact head, confirm no code change and unchanged native/replay/parity",
-    "local_candidate": "factual audit/matrix correction after full 21-file review; production code and native cases unchanged, unpushed"
+    "next_head_checks": "new source-reader code and tests pending exact-head Ediel, browser, Full E2E, tenant integrity, OPS native/replay/schema/type checks and whole diff review",
+    "local_candidate": "E035 diagnostic point-history scope guard for mixed physical LOC172/175, RED two orders; GREEN 137/137 focused, tests TypeScript and lint; clean sibling and actual consumer positive/negative probes, unpushed"
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",

@@ -538,3 +538,10 @@ Publish and qualify bounded UG-122-24 SVK five-digit NAD party ID; require nativ
 1. Inspect exact-head CI for `09fba884`: Ediel, browser, Full E2E and OPS native clean replay/schema/type parity. Fix only the first real failure with a new tested commit.
 2. Review the complete #417 diff and open review threads. Merge the coherent field204 package once only if all gates are green on the final head, then verify remote main/merge SHA and same-SHA deployment.
 3. Branch the next source-backed package from new main. Keep historical 203/IDE505, positive LOC+175, E035 and market activation behind their separate evidence gates; leave #310 untouched.
+## Current — 2026-09-28 #421 mixed-object source history
+
+1. Publish the locally RED/GREEN tested E035 mixed physical IDE source-reader fence in one code/evidence commit to existing draft #421; no additional source-independent side rules.
+2. Inspect all applicable exact-head CI including native/replay/schema/type parity, then full diff/review threads and record remote head. Keep draft unmerged while the shared 203/505 sender-history-retention, positive 175 registry/mandate/sink and E035 coverage decisions are unresolved.
+3. When authentic legal-owner and historical/retention evidence is supplied, implement separate atomic 203 and 505 identities with real original/retry/ACK/zero-effect native probes; otherwise continue only source-qualified work within this package. No staging, TGT/AGT, counterparty/live messages or #310 action.
+
+Older Current sections below are historical and SUPERSEDED.

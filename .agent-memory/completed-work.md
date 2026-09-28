@@ -240,3 +240,8 @@ Reproduced missing and invalid BGM/4343 on complete Z04 through the actual inbou
 One read-only reviewer found field313 lowercase validator/ACK split in published `63244be9`. Actual consumer RED application accepted, scoped literal AB/NA comparison GREEN 20/20 direct and 48/48 five related tests; native third variant added but not run yet. No formal acceptance claim.
 ## 2026-09-28 — #417 bounded local step
 Invalid supplied PRODAT BGM/1225 field204 is now source-qualified for whole-message BGM27/ERC42, original ACW and pre-business stop. Positive omitted/9/5, forged/foreign error, tenant route, no effects, no route and stable retry have local 150/150 five-file consumer proof. Native persisted result and CI are pending; not an accepted whole contract or market capability. Published draft #417 head `09fba884` matches the locally tested tree.
+## Verified local work — 2026-09-28 #421 E035 diagnostic scope
+
+Reproduced source-ID association from both mixed physical LOC orders before the fix, then checked a minimal point-history exclusion and a clean sibling through direct reader and actual inbound consumer tests. Five focused files 137/137 passed; test TypeScript and scoped ESLint passed. This is local evidence only; PR/native gates and merge remain pending. No source-wide identity/ERC42, positive 175, E035 retention or market approval was completed.
+
+Older Current sections below are historical and SUPERSEDED.

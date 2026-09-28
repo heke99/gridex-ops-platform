@@ -568,3 +568,11 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | Independent read-only review | One important mismatch identified and corrected; no other concrete blocker in full diff. | Must recheck final SHA and CI. |
 ## 2026-09-28 — #417 local and pending exact-head evidence
 Remote `09fba884` / tree `ac40f187`: five relevant Vitest files 150/150 PASS; `node --experimental-vm-modules scripts/test-ediel-unb-ack-request.cjs` 64/64 PASS; app/tests/scripts TypeScript PASS; five changed TS files ESLint 0 errors, one existing unused-variable warning; `git diff --check` PASS. Native real-DB header204 fixture and Ediel/browser/Full E2E/OPS clean replay/schema/type parity are PENDING on that remote head. No formal market acceptance claimed.
+## Current — 2026-09-28 #421 E035 reader candidate
+
+| Exact head / local candidate | Check | Outcome and limit |
+| --- | --- | --- |
+| Published `7e11899d0a4bf2e86d8ba63555044071686937e0` | Ediel `36428062439`, browser `36428062188`, Full E2E `36428062437`, tenant `36428062115`, OPS `36428062276` | All SUCCESS; OPS native 385/385, clean replay, generated schema/type parity. Historical checkpoint, not the new reader fix. |
+| Local reader candidate, unpushed | Two physical order tests RED before fix; five related files 137/137 GREEN, app/test TypeScript and scoped ESLint, register integrity 121/231 | Read-only diagnostic guard and actual consumer probe; new exact-head CI/native/replay/parity pending. No historical issuer, retention or market activation claim. |
+
+Older Current sections below are historical and SUPERSEDED.

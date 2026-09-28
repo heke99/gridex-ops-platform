@@ -656,3 +656,8 @@ The local environment has no `psql` or Supabase CLI; newly added native stored A
 `63244be9` is superseded for merge by the locally verified lowercase-313 correction. Three added native variants require new-head OPS clean replay and schema/type parity; no local DB CLI. Formal 121/231 acceptance and all market gates remain open. PR #310 paused.
 ## Current — 2026-09-28 #417 remaining gates
 Optional P header204's invalid supplied value is implemented and locally verified on draft #417, but stored native ACK/outbox/retry, clean replay, generated schema/type parity and all exact-head CI are pending. ACK-02/ACK-10 remain partial; historical field203/IDE505 legal-actor uniqueness, positive LOC+175 mandate/object/sink, E035 pre-ledger coverage and retention/deletion, full grammar and external first-capability activation gates remain open. No staging, TGT/AGT, counterparty or live traffic. #310 paused.
+## Current — 2026-09-28 #421 owner/retention gates after diagnostic fix
+
+The mixed E035 point-history lookup is corrected locally but awaits publication and exact-head CI; it is diagnostic only. First historical 203/505 blocker: no authenticated physical NAD+MS-to-tenant/UNB-representative record, authentic pre-ledger/deleted UTILTS original corpus, or approved lawful retention/erasure decision. Positive LOC+175 needs a versioned object registry, actor/mandate and separate persistent sink/retry. E035 history/deletion coverage and prior Storage `delete/before_witness` root are still unknown. The source clauses do not grant these owners. #421 stays draft; #310 and market traffic stay untouched/blocked.
+
+Older Current sections below are historical and SUPERSEDED.
