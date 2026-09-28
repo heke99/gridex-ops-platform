@@ -592,3 +592,11 @@ Remote `09fba884` / tree `ac40f187`: five relevant Vitest files 150/150 PASS; `n
 | Local reader candidate, unpushed | Two physical order tests RED before fix; five related files 137/137 GREEN, app/test TypeScript and scoped ESLint, register integrity 121/231 | Read-only diagnostic guard and actual consumer probe; new exact-head CI/native/replay/parity pending. No historical issuer, retention or market activation claim. |
 
 Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 bounded PR verification and owner audit
+
+| Head / evidence | Verified result | Limit |
+| --- | --- | --- |
+| `1c556278cb70761a8956c2d7c80ffa0534aee7a8` | Ediel `36440881620`, browser `36440881646`, Full E2E `36440881582`, tenant `36440881463`, OPS `36440881394` all SUCCESS. OPS native 387/387, clean replay, generated types `36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d` and schema `08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6`. | Bounded S01/175 hold and mixed point/history fence; not historical 203/505, positive LOC+175 or E035 complete history. |
+| Repository source/data-model audit in current evidence commit | Inspected tenant receiver identity/evidence, counterparty/route schema, prospective source and UTILTS consumption receipts, removed generic transaction index, retention policy/checklist, E035 readset and object holds. Exact missing records and owner roles in `issuer-history-owner-gate-20260928.md`. | No live database/archive/mandate evidence; this commit requires its own exact-head PR CI. |
+
+Older Current sections below are historical and SUPERSEDED.

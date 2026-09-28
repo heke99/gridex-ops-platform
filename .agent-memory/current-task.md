@@ -819,3 +819,8 @@ P26.A optional field204 permits missing, 9 or 5; supplied 7 reached business des
 One active item: publish the test-first mixed LOC+172/LOC+175 E035 point-history diagnostic guard to the same draft #421 with this checkpoint. Direct reader and actual inbound consumer tests pass locally; the positive clean sibling remains scoped. Next: complete local type/lint/diff review, commit and push a fast-forward; inspect the first exact-head CI result including OPS native/replay/schema/types, then review the whole PR and record the exact head. Keep historical 203/505, positive 175 and E035 retention/Storage root open; no merge, market traffic or #310 action.
 
 Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 issuer/history/object owner decision
+
+One active item: publish the source/data-model owner gate and correct the activation matrix against #421's verified `1c556278` receipt. First inspect exact new-head mandatory checks and first actual failure, if any, without an unchanged-head rerun. No product-code change is justified before market operations supplies the NAD+MS/UNB tenant/issuer binding; archive/database owner supplies authentic pre-ledger and deleted UTILTS originals with a continuous coverage interval; legal/privacy owner decides retention/erasure and identity tombstones; product/network owner supplies versioned LOC+175 object/mandate/sink; and E035 owner proves historical/deletion coverage. The prior Storage delete/before_witness cause remains unknown. Keep draft unmerged and traffic/#310 held; report exact new SHA and any unpushed work in the PR receipt.
+
+Older Current sections below are historical and SUPERSEDED.

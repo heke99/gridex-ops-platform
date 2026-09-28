@@ -559,3 +559,10 @@ Publish and qualify bounded UG-122-24 SVK five-digit NAD party ID; require nativ
 3. When authentic legal-owner and historical/retention evidence is supplied, implement separate atomic 203 and 505 identities with real original/retry/ACK/zero-effect native probes; otherwise continue only source-qualified work within this package. No staging, TGT/AGT, counterparty/live messages or #310 action.
 
 Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 source/owner evidence milestone
+
+1. Publish `issuer-history-owner-gate-20260928.md` and the exact `1c556278` bounded CI correction to the same draft; local diff/spec/checkpoint checks first. No product rule or migration is added without the missing source/owner records.
+2. Inspect five exact new-head workflows once, read the first actual failure if one appears, review new diff and review threads, update the same PR with SHA, test limits and blocker. Do not manually rerun green jobs or merge this incomplete package.
+3. After the named owners provide attested issuer/representative, authentic original/deletion coverage and retention, write native competing-original/retry/concurrency tests for **separate** BGM203 and IDE505 before atomic implementation; independently qualify the LOC+175 object owner and E035 history/Storage stage. Maintain real traffic and #310 holds.
+
+Older Current sections below are historical and SUPERSEDED.

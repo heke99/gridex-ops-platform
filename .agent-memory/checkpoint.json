@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T15:02:08Z",
+  "updated_at": "2026-09-28T16:04:27Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,8 +10,8 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 S01 LOC+175 held ACK retry: b99e5f OPS native 386/387 timestamp mutation, forward 20260928181500 candidate pending exact-head CI",
-  "current_audit": "quality/audits/ediel-masterplan-v2/identity-e035-next-package-20260928.md",
+  "active_item": "F3 #421 source/data-model owner gate: bounded S01 and mixed-IDE fences PR-verified at 1c556278; historical issuer/original/retention and positive LOC175/E035 owners blocked",
+  "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish the S01/LOC+175 ownerless hold code, private forward and native tests to draft #421; inspect first actual native/replay/schema/type and ordinary CI failure on exact new head, review entire diff, update same PR. Historical 203/505 legal issuer/history/retention, positive LOC175 owner and E035 remain blocked; no merge or traffic.",
+  "next_action": "Publish the substantive issuer/history/object/retention source audit and activation-matrix correction to draft #421; inspect its exact new-head CI and review threads without blind rerun. Obtain attested physical NAD+MS/UNB issuer mapping, authentic pre-ledger/deleted UTILTS original coverage and lawful retention before separate 203/505 atomic native tests. Positive LOC175 and E035 remain blocked; no merge, traffic or #310 change.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -39,18 +39,18 @@
     "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
     "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
     "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
-    "last_verified_exact_head": "f342e7999de02f9bd80805de9559c498dd149965",
+    "last_verified_exact_head": "1c556278cb70761a8956c2d7c80ffa0534aee7a8",
     "last_verified_workflows": [
-      36433143715,
-      36433143701,
-      36433143760,
-      36433143729,
-      36433143725
+      36440881620,
+      36440881646,
+      36440881582,
+      36440881394,
+      36440881463
     ],
     "native_before_this_step": "382/382",
-    "native_on_last_verified_head": "385/385; clean replay and generated public types/schema parity on f342e7999de02f9bd80805de9559c498dd149965",
-    "next_head_checks": "S01 valid LOC175 actual per-IDE hold, private accepted-sink refusal, wrong-tenant/retry, native clean replay/schema/types and all exact-head workflows pending publication",
-    "local_candidate": "S01 valid LOC175 real consumer RED internalReviewRequired=false, then bounded hold GREEN including clean sibling; private persistence fence and native direct/actual retry tests. 136/136 affected, app/scripts/tests TS, migration/type integrity, scoped lint and diff pass; no local Postgres."
+    "native_on_last_verified_head": "387/387; clean replay and generated public types/schema parity on 1c556278cb70761a8956c2d7c80ffa0534aee7a8",
+    "next_head_checks": "Source/data-model gate and activation matrix are evidence-only changes; inspect five exact new-head workflows after publication. No 203/505 or positive LOC175 runtime activation.",
+    "local_candidate": "Inspected source/receiver/issuer/retention/object database and consumer boundaries; named exact missing records and owner roles in issuer-history-owner-gate-20260928.md. Product SQL and runtime unchanged."
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",

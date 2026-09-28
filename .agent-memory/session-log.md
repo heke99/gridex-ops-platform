@@ -428,3 +428,8 @@ Read main/branch and merged #416 from GitHub, source P26.A/P-APERAK, frozen plan
 Checked actual remote main/head, open draft and exact-head CI before edits; cloned clean matching branch. Read AGENTS/memory, masterplan CALL contracts, traceability, coverage, source amendment and current consumers. The E035 source reader could return a point's PRODAT source ID from an IDE also carrying LOC+175. Two order tests failed before the change, then 137/137 related tests, app/test TypeScript and lint passed; a clean sibling remains queryable and actual inbound mixed IDE has no point-history query or meter ingestion. One code/evidence commit and new-head CI pending. No #310, staging or traffic actions.
 
 Older Current sections below are historical and SUPERSEDED.
+## 2026-09-28 — #421 source/data-model owner audit
+
+Verified PR #421 open/draft at `1c556278`, main at `53bf989b`, clean fresh checkout, five exact-head successful workflows and OPS native 387/387 including replay/type/schema. Examined selected prior/current 203/207/505 amendment, masterplan, traceability, actual receiver identity and counterparty schemas, original capture/UTILTS receipt, removed generic index, retention and E035 readset, positive object owner path. No qualified inbound legal-sender mapping, authentic pre-ledger/deleted original coverage or signed identity retention decision found in the inspected repository; documented exact evidence requests and lifecycle limits in `issuer-history-owner-gate-20260928.md`, and reconciled stale S01/E035 matrix rows. The earlier Storage root stays unknown. This is an evidence commit without new market behavior, staging or #310 action; exact new-head CI must be checked after publication.
+
+Older Current sections below are historical.

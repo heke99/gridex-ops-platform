@@ -245,3 +245,8 @@ Invalid supplied PRODAT BGM/1225 field204 is now source-qualified for whole-mess
 Reproduced source-ID association from both mixed physical LOC orders before the fix, then checked a minimal point-history exclusion and a clean sibling through direct reader and actual inbound consumer tests. Five focused files 137/137 passed; test TypeScript and scoped ESLint passed. This is local evidence only; PR/native gates and merge remain pending. No source-wide identity/ERC42, positive 175, E035 retention or market approval was completed.
 
 Older Current sections below are historical and SUPERSEDED.
+## Verified bounded source/data-model review — 2026-09-28 #421
+
+The selected 203/207/505 amendment was traced against actual receiver identity/evidence, counterparty/route schema, prospective PRODAT source ledger, UTILTS UUID-scoped receipts, removed broad transaction index, retention category/checklist, E035 incomplete readset and LOC+175 consumer/SQL holds. `quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md` records exact missing external records, continuous coverage interval and decision owners. Corrected the activation matrix's stale pending status for bounded S01 and E035 fences from #421's `1c556278` five green workflows and OPS native 387/387/replay/types/schema. Local register integrity confirmed 121 rule IDs/231 acceptance IDs; memory JSON and diff checks passed. This is source review and evidence maintenance, not a new implemented historical rule, PR verification of this documentation commit, merge or market activation.
+
+Older Current sections below are historical.
