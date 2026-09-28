@@ -175,7 +175,7 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await caseArticle.locator('input[name="public_title"]').fill('Stale attempt')
   await caseArticle.locator('textarea[name="public_body"]').fill('Must not replace the first publication.')
   await caseArticle.getByRole('button', { name: 'Publicera ny kundsynlig version' }).click()
-  await expect(page.getByRole('alert')).toContainText('Publiceringen har ändrats')
+  await expect(support.getByRole('alert')).toContainText('Publiceringen har ändrats')
   await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
   await customer.reload()
   await expect(customer.getByRole('heading', { name: 'Customer visible browser subject' })).toBeVisible()
