@@ -23,6 +23,8 @@ module.exports = function finalizeCustomerPortalRelease({
   website,
   websitePath,
 }) {
+  const limitedText = (maxLength) => ({ type: 'string', minLength: 1, maxLength })
+  const limitedEmail = { type: 'string', format: 'email', maxLength: 320 }
   const identifierProperties = {
     email: { type: 'string', format: 'email', maxLength: 320 },
     customer_number: { type: 'string', maxLength: 100 },
@@ -39,14 +41,13 @@ module.exports = function finalizeCustomerPortalRelease({
         type: 'object',
         additionalProperties: false,
         properties: {
-          first_name: string,
-          last_name: string,
-          full_name: string,
-          company_name: string,
-          phone: string,
-          invoice_email: { type: 'string', format: 'email' },
-          language_code: string,
-          timezone: string,
+          first_name: limitedText(120),
+          last_name: limitedText(120),
+          full_name: limitedText(240),
+          company_name: limitedText(240),
+          invoice_email: limitedEmail,
+          language_code: limitedText(10),
+          timezone: limitedText(80),
         },
       },
       facility_data: {
@@ -648,29 +649,58 @@ module.exports = function finalizeCustomerPortalRelease({
   }
   const customerFacilityAddress = {
     ...closedObject({
-      street: string,
-      postal_code: string,
-      city: string,
-      country: string,
-      care_of: string,
-      apartment_number: string,
+      street: limitedText(300),
+      postal_code: limitedText(20),
+      city: limitedText(120),
+      country: limitedText(2),
+      care_of: limitedText(200),
+      apartment_number: limitedText(50),
     }),
     minProperties: 1,
   }
   portal.components.schemas.CustomerFacilityUpdate = closedObject({
-    facility_reference: string,
+    facility_reference: limitedText(120),
     address: customerFacilityAddress,
-    external_request_id: string,
+    external_request_id: limitedText(200),
   }, ['facility_reference', 'address'])
-  portal.components.schemas.CustomerProfileUpdateRequest = {
+  portal.components.schemas.CustomerContactFields = {
+    ...closedObject({
+      email: { type: 'string', format: 'email', maxLength: 320 },
+      phone: { type: 'string', minLength: 1, maxLength: 50 },
+    }),
+    minProperties: 1,
+  }
+  portal.components.schemas.CustomerNonContactFields = {
+    ...closedObject({
+      first_name: limitedText(120),
+      last_name: limitedText(120),
+      full_name: limitedText(240),
+      company_name: limitedText(240),
+      invoice_email: limitedEmail,
+      language_code: limitedText(10),
+      timezone: limitedText(80),
+    }),
+    minProperties: 1,
+  }
+  portal.components.schemas.CustomerContactChangeRequest = closedObject({
+    profile: { $ref: '#/components/schemas/CustomerContactFields' },
+    expected_contact_revision: { type: 'integer', minimum: 0 },
+  }, ['profile', 'expected_contact_revision'])
+  portal.components.schemas.CustomerNonContactProfileUpdateRequest = {
     type: 'object',
     additionalProperties: false,
-    anyOf: [{ required: ['profile'] }, { required: ['facility_data'] }],
+    oneOf: [{ required: ['profile'] }, { required: ['facility_data'] }],
     properties: {
-      profile: { $ref: '#/components/schemas/CustomerProfile' },
+      profile: { $ref: '#/components/schemas/CustomerNonContactFields' },
       facility_data: { $ref: '#/components/schemas/CustomerFacilityUpdate' },
       metadata: { type: 'object' },
     },
+  }
+  portal.components.schemas.CustomerProfileUpdateRequest = {
+    oneOf: [
+      { $ref: '#/components/schemas/CustomerContactChangeRequest' },
+      { $ref: '#/components/schemas/CustomerNonContactProfileUpdateRequest' },
+    ],
   }
   portal.components.schemas.CustomerProfileUpdateData = closedObject({
     completion_reference: string,
@@ -679,7 +709,33 @@ module.exports = function finalizeCustomerPortalRelease({
     profile_updated: { type: 'boolean' },
     facility_updated: { type: 'boolean' },
     address_result: { type: ['object', 'null'] },
+    contact_revision: { type: 'integer', minimum: 0 },
   }, ['completion_reference', 'status', 'created_at', 'profile_updated', 'facility_updated', 'address_result'])
+  portal.components.schemas.CustomerPortalIdentity = closedObject({
+    portal_identity_reference: nullableString,
+    external_customer_id: nullableString,
+    customer_number: nullableString,
+    match_strength: nullableString,
+    match_method: nullableString,
+    provider: nullableString,
+  }, ['portal_identity_reference', 'external_customer_id', 'customer_number', 'match_strength', 'match_method', 'provider'])
+  portal.components.schemas.CustomerMeData = closedObject({
+    customer_reference: nullableString,
+    customer_number: nullableString,
+    external_customer_id: nullableString,
+    customer_type: nullableString,
+    status: nullableString,
+    display_name: nullableString,
+    first_name: nullableString,
+    last_name: nullableString,
+    company_name: nullableString,
+    email: nullableString,
+    phone: nullableString,
+    contact_revision: { type: ['integer', 'null'], minimum: 0 },
+    created_at: nullableString,
+    portal_identity: { $ref: '#/components/schemas/CustomerPortalIdentity' },
+  }, ['customer_reference', 'customer_number', 'external_customer_id', 'customer_type', 'status', 'display_name', 'first_name', 'last_name', 'company_name', 'email', 'phone', 'contact_revision', 'created_at', 'portal_identity'])
+  setResponse(portal, '/api/v1/customer/me', envelope({ $ref: '#/components/schemas/CustomerMeData' }), 'get')
   setRequest(portal, '/api/v1/customer/profile-update', { $ref: '#/components/schemas/CustomerProfileUpdateRequest' })
   setResponse(portal, '/api/v1/customer/profile-update', envelope({ $ref: '#/components/schemas/CustomerProfileUpdateData' }), 'post')
   const profileOperation = portal.paths['/api/v1/customer/profile-update']?.post
@@ -689,14 +745,13 @@ module.exports = function finalizeCustomerPortalRelease({
       { bearerAuth: ['customer_facility_data.write'] },
     ]
     profileOperation['x-required-scopes'] = ['customer_contact.write', 'customer_facility_data.write']
-    profileOperation['x-scope-mode'] = 'any-per-request; both required when both operations are present'
+    profileOperation['x-scope-mode'] = 'any-per-request; profile changes require customer_contact.write; facility changes require customer_facility_data.write'
     profileOperation['x-scope-requirement'] = {
       anyOf: ['customer_contact.write', 'customer_facility_data.write'],
-      allOfWhenBothPayloadSectionsArePresent: [
-        'customer_contact.write',
-        'customer_facility_data.write',
-      ],
+      profile: ['customer_contact.write'],
+      facility: ['customer_facility_data.write'],
     }
+    profileOperation.description = 'A delegated contact-only update requires expected_contact_revision and Idempotency-Key. The command atomically persists the contact, customer projection, revision, audit, completion and durable outbox; a stale revision or changed payload for the same key returns 409. Non-contact profile and facility changes use separate legacy writers and do not yet share that transaction. Submit a profile or facility update separately.'
   }
 
   portal.components.schemas.CustomerEventIdentity = eventIdentity
@@ -874,6 +929,38 @@ module.exports = function finalizeCustomerPortalRelease({
     ensureStandardHeaders(document)
     normalizePublicOpenApiDocumentOperations(document)
     removeMisappliedLegalDescription(document)
+  }
+
+  for (const [path, item] of Object.entries(portal.paths)) {
+    if (!path.startsWith('/api/v1/customer/')) continue
+    for (const method of ['get', 'post']) {
+      const operation = item?.[method]
+      if (!operation) continue
+      operation.parameters = (operation.parameters ?? []).filter((parameter) =>
+        parameter.name !== 'x-gridex-customer-assertion')
+      for (const parameter of operation.parameters) {
+        if (!['x-gridex-auth-user-id', 'x-gridex-customer-portal-user-id'].includes(parameter.name)) continue
+        parameter.required = false
+        parameter.schema = {
+          type: 'string',
+          description: 'Optional account subject identifier; it is not authorization and must agree with the signed subject on delegated routes.',
+        }
+      }
+      if (path === '/api/v1/customer/sync') {
+        operation['x-customer-authority'] = 'tenant_machine'
+        continue
+      }
+      operation.parameters.push({
+        name: 'x-gridex-customer-assertion',
+        in: 'header',
+        required: true,
+        schema: {
+          type: 'string',
+          description: 'RS256 signed assertion from the platform-pinned issuer for this API client, customer and exact METHOD path; short lived and checked against the current active account link. The API key alone does not authorize a customer.',
+        },
+      })
+      operation['x-customer-authority'] = 'delegated'
+    }
   }
 
   function explicitlyPermissive(schema) {

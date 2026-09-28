@@ -126,6 +126,34 @@ check(apiAuth.includes('anyOf?: readonly string[]') && apiAuth.includes('anyOf.s
 
 const profileOperation = portal.paths['/api/v1/customer/profile-update']?.post
 check(profileOperation?.['x-scope-mode']?.startsWith('any-per-request'), 'profile-update documents operation-dependent OR scope semantics')
+for (const [path, method] of [
+  ['/api/v1/customer/me', 'get'],
+  ['/api/v1/customer/profile-update', 'post'],
+]) {
+  check(
+    portal.paths[path]?.[method]?.parameters?.some((parameter) =>
+      parameter.name === 'x-gridex-customer-assertion' && parameter.required === true),
+    `${method.toUpperCase()} ${path} documents the independently signed customer assertion`,
+  )
+}
+check(
+  !portal.paths['/api/v1/customer/sync']?.post?.parameters?.some((parameter) =>
+    parameter.name === 'x-gridex-customer-assertion') &&
+    portal.paths['/api/v1/customer/sync']?.post?.['x-required-scopes']?.join() === 'customer_sync.write',
+  'tenant-machine sync has its separate exact scope and no delegated assertion',
+)
+check(
+  portal.components.schemas.CustomerProfileUpdateRequest?.oneOf?.[0]?.$ref === '#/components/schemas/CustomerContactChangeRequest' &&
+    portal.components.schemas.CustomerContactChangeRequest?.required?.includes('expected_contact_revision') &&
+    portal.components.schemas.CustomerProfileUpdateData?.properties?.contact_revision?.type === 'integer' &&
+    portal.components.schemas.CustomerMeData?.required?.includes('contact_revision'),
+  'contact request, write response and GET /me revision are documented together',
+)
+check(
+  !portal.components.schemas.CustomerSyncRequest?.properties?.profile?.properties?.phone &&
+    profileContract.includes('value.profile && value.facility_data'),
+  'machine phone bypass and mixed legacy profile/facility writes are rejected in spec and parser',
+)
 check(
   profileRoute.includes("anyOf: ['customer_contact.write', 'customer_facility_data.write']") &&
     profileRoute.includes('missingIntegrationApiScopes'),

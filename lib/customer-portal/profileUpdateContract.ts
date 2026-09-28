@@ -47,6 +47,13 @@ const profileUpdateSchema = z.object({
       message: 'profile eller facility_data krävs.',
     })
   }
+  if (value.profile && value.facility_data) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['facility_data'],
+      message: 'Profil och anläggningsadress måste skickas som separata operationer.',
+    })
+  }
   if (value.profile && ('email' in value.profile || 'phone' in value.profile)) {
     if (value.expected_contact_revision === undefined) {
       context.addIssue({

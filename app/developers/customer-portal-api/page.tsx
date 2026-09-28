@@ -423,9 +423,13 @@ export default function CustomerPortalApiDocumentationPage() {
 
           <Section id="customer-portal" title="5. Customer Portal API">
             <p className="leading-7 text-slate-700">
-              The Customer Portal API exposes only data belonging to the verified linked customer identity. Use granular scopes and request only the capabilities your portal needs.
+              Customer-delegated reads and writes need both a server-side API key and an independent signed <code>x-gridex-customer-assertion</code> from the platform-pinned issuer. The assertion binds the active account, tenant, API client, customer and exact method/path; a customer number or the API key alone is insufficient. An unconfigured issuer or revoked account link is denied.
               Available resources include profile data, contracts, sites, invoices, metering values, documents, legal acceptances, powers of attorney, events and notifications.
             </p>
+            <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-700">
+              <strong>Contact changes:</strong> read <code>data.contact_revision</code> from <code>GET /api/v1/customer/me</code> using a fresh assertion for that GET action. Send <code>POST /api/v1/customer/profile-update</code> with a fresh POST assertion, <code>customer_contact.write</code>, <code>Idempotency-Key</code> and a contact-only body such as <code>{'{"profile":{"phone":"+46123456789"},"expected_contact_revision":2}'}</code>. Stale revisions and a changed payload under the same key return 409; an identical retry returns the stored completion after current authority is checked. The contact command commits its revision, audit, completion and internal outbox together. External delivery is separate.
+              <br /><strong>Other writes:</strong> noncontact profile fields currently use <code>customer_contact.write</code> and site addresses use <code>customer_facility_data.write</code>; submit them separately. Their legacy writers do not have the contact transaction guarantee. The tenant-machine <code>POST /api/v1/customer/sync</code> uses only <code>customer_sync.write</code> and refuses <code>profile.phone</code>. Real issuer enrollment must be configured by the platform before customer-delegated use.
+            </div>
             <EndpointTable rows={customerPortalRows} />
           </Section>
 
