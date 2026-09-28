@@ -370,26 +370,32 @@ it('holds a valid S01 LOC+175 without an owned regulating object and never reser
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
-it('keeps the clean S01 sibling eligible while a valid regulating-object IDE is held', async () => {
+it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling eligible with a valid %s regulating-object IDE', async order => {
   const message = incoming(false, true, '2026-10-01')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
   message.customer_id = null; message.site_id = null; message.metering_point_id = null
-  message.raw_payload = message.raw_payload!
+  const raw = message.raw_payload!
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
-    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+  const point = 'LOC+172+735999260731000007::9'
+  const at = order === 'object-first' ? raw.indexOf(point) : raw.lastIndexOf(point)
+  message.raw_payload = raw.slice(0, at) + raw.slice(at).replace(point, 'LOC+175+735999260731000007::9')
+  expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition)).toEqual(['accepted', 'accepted'])
   io.get.mockResolvedValue(message); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   expect(result.internalReviewRequired).toBe(true)
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
-  expect(persisted).toMatchObject([
+  const expected = [
     { disposition: 'internal_review', responseType: 'none', meteringPointId: null, externalMeteringPointId: null, quantities: [] },
     { disposition: 'accepted', responseType: 'positive_aperak', externalMeteringPointId: '735999260731000007' },
-  ])
+  ]
+  expect(persisted).toMatchObject(order === 'object-first' ? expected : expected.reverse())
   const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
   expect(aperaks).toHaveLength(1)
-  expect(JSON.stringify(aperaks[0][0].draft)).toContain('GRIDEX2607E66002')
+  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  expect(JSON.stringify(aperaks[0][0].draft)).toContain(pointId)
+  expect(io.event.mock.calls.filter(([call]) => call.eventType === 'aperak_sent').map(([call]) => call.payload.relatedTransactionReference)).toEqual([pointId])
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it.each([

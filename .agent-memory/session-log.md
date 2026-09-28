@@ -436,3 +436,8 @@ Older Current sections below are historical.
 
 ## 2026-09-28 — #421 first new-head failure and native diagnostic
 Evidence commit `11be9ea8` passed four ordinary workflows and OPS verify/quality; clean replay failed 386/387 at baseline E035 document capture, with one committed attempt and no outcome/witness. Log did not identify which capture boundary failed. Inspected actual JS capture, SQL begin/observe/witness clock validation, prior timing incidents and native test; did not infer root or loosen time guard. Added failure-only RPC/observation/clock/readback diagnostic to that case, updated audit, passed script/test TypeScript, lint, 14 unit tests and diff check. Next publish and read first exact-head native stage. No market work, #310 edit or merge.
+## 2026-09-28 — #421 source and consumer parity continuation
+
+Rechecked PR #421/open draft, remote main/head, clean clone, five exact `3002c277` successes and zero reviews. Traced source amendment, physical IDE scope, receiver identity, prospective ledger, receipt key, retention and regulating-object owner. Wrote two-order mocked S01 sibling controls and native persisted/retry probe. The first local failure was a test-only top-level ACK reference assertion; corrected to the draft and event payload; both controls now pass. Three related files 119/119, script/test TypeScript, scoped lint and 121/231 integrity passed. Native database is absent locally; publish this evidence/test candidate, diagnose its first CI outcome. No product change or external traffic.
+
+Older entries below are historical.

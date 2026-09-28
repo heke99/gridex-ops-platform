@@ -571,3 +571,10 @@ Older Current sections below are historical and SUPERSEDED.
 1. Publish the scoped failure-only diagnostic and failed-head audit to draft #421. Read the first exact-head native result; do not manually rerun unchanged code.
 2. If capture fails again, compare begin result, observation timestamps, observe RPC error and durable attempt time; reproduce the actual cause RED before a narrow correction. If it passes, keep both prior Storage and baseline capture causes open rather than calling them flakes.
 3. Keep historical sender-wide 203/505, positive LOC+175 and E035 completeness blocked pending the named source/owner decisions. Review whole PR and threads; leave draft unmerged and traffic disabled.
+## Current — 2026-09-28 #421 mixed S01 native proof
+
+1. Publish the locally checked two-order mocked/native S01 sibling/retry tests and source/matrix evidence in one fast-forward commit on #421.
+2. Read each exact-head workflow's first genuine failure, especially native durable ACK/series/receipt, clean replay and type/schema parity. Fix only a verified defect test-first; otherwise record the bounded proof. Review the complete final diff and review threads.
+3. Keep historical 203/505, positive LOC+175 and E035 completeness blocked until attested issuer, original/deletion coverage, retention and object/mandate owners exist. PR stays draft and market traffic blocked; #310 is excluded.
+
+Older Current sections below are historical and SUPERSEDED.

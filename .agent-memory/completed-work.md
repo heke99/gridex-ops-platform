@@ -253,3 +253,8 @@ Older Current sections below are historical.
 
 ## Verified diagnostic preparation — 2026-09-28
 On evidence head `11be9ea8`, read the first genuine replay failure and isolated it to document-reference baseline capture before DML assertions. Added failure-only synthetic RPC/observation/clock/readback stage capture in the existing native test; no application/SQL behavior change or causal fix claim. Locally `npm run typecheck:scripts`, `npm run typecheck:tests`, scoped ESLint, `npx vitest run __tests__/document-reference-capture.test.ts` (14/14) and diff check passed. Native execution and exact-head CI remain open.
+## Local mixed S01 consumer probe — 2026-09-28 #421
+
+Both physical orders of a valid S01/LOC+175 IDE with a clean LOC+172 sibling preserve the held object's no-response payload and the sibling's positive draft in the actual TypeScript consumer with mocked external IO. Three related files passed 119/119; scripts/tests TypeScript, scoped lint, spec integrity and diff checks passed. A new native test asserts persisted ACK/series/contract and identical retry; it has not run locally or in CI at this checkpoint. This is not a product-code fix or acceptance of historical 203/505, positive object consumption or E035 completeness.
+
+Older Current sections below are historical and SUPERSEDED.

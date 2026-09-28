@@ -606,3 +606,13 @@ Older Current sections below are historical and SUPERSEDED.
 | --- | --- | --- |
 | `11be9ea8ff6744c7e098285a97b54ebf137d01fa` | Ediel `36449193330`, browser `36449193329`, Full E2E `36449193333`, tenant `36449193323` SUCCESS. OPS `36449193344` verify/quality SUCCESS, clean replay FAILED native 386/387 at document-reference baseline capture; attempts 1, outcomes 0, witnesses 0. | Generated type/schema parity did not run; no exact-head merge gate. Storage delete/before_witness passed on this run but prior cause unknown. |
 | Diagnostic candidate in this commit | Failure-only synthetic RPC boundaries and attempt/observation/DB clocks. Local scripts/tests TypeScript, lint, 14/14 unit and diff check passed. | Native replay required on its own exact published head; no causal repair or historical authority asserted. |
+## Current — 2026-09-28 #421 mixed S01 sibling candidate
+
+| Head or tree | Check | Result / boundary |
+| --- | --- | --- |
+| `3002c277` remote | Ediel `36451363360`, browser `36451363455`, Full E2E `36451363463`, tenant `36451363469`, OPS `36451501476` | SUCCESS; OPS native 387/387 and clean replay/types/schema. Earlier E035 failures remain unexplained. |
+| Local candidate over `3002c277` | Three affected Vitest files | 119/119 PASS; two new physical S01 sibling orders pass with mocked IO, no DB proof. |
+| Local candidate | `npm run typecheck:scripts`, `npm run typecheck:tests`, scoped ESLint, `node scripts/check-ediel-masterplan-v2.cjs`, `git diff --check` | PASS; integrity 121 cards/231 contracts only. |
+| Next exact PR head | Native two-order durable object hold/point sibling and identical retry; five workflows and replay/types/schema | PENDING; no local psql/Docker. |
+
+Older Current sections below are historical and SUPERSEDED.

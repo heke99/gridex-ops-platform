@@ -739,3 +739,8 @@ Older Current sections below are historical and SUPERSEDED.
 
 ## Current continuation — 2026-09-28 #421 baseline native evidence
 Published source audit head `11be9ea8` passed Ediel/browser/Full E2E/tenant and OPS verify/quality; OPS clean replay failed native 386/387 at document-reference baseline capture (one attempt, no outcome/witness). Generated parity was not reached. This commit adds failure-only RPC/observation/clock diagnostic to that E035 native case and records the first failure in the audit. Local scripts/tests TypeScript, scoped lint, 14/14 unit, diff checks passed; native needs exact-head CI. Historical issuer/original/retention, positive LOC+175, E035 complete history and prior Storage root remain blocked. Draft unmerged, traffic held, #310 untouched.
+## Current — 2026-09-28 #421 mixed S01 durable sibling proof candidate
+
+Remote draft #421 `3002c27707254077348f3f7cf25ef3bdad460986` and main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` were rechecked; five workflows succeeded on the former, OPS native 387/387 and clean replay/type/schema. The new two-order S01/LOC+175 plus clean LOC+172 consumer probes passed locally in the mocked path (119/119 three related files), while a native durable sibling/retry test awaits exact-head CI. No product behavior changed. Source/schema recheck in the issuer gate confirms the absent attested sender binding, complete prior/deleted UTILTS corpus, retention decision and positive object owner. The guide PDFs were not present in this checkout for new byte-level comparison. #421 remains draft, #310 untouched, market traffic held.
+
+Older Current sections below are historical and SUPERSEDED.

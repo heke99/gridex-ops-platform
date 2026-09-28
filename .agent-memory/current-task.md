@@ -831,3 +831,8 @@ Older Current sections below are historical and SUPERSEDED.
 Published evidence head `11be9ea8` passed four ordinary workflows and OPS verify/quality, but clean replay stopped at native 386/387: a synthetic document-reference attempt committed without outcome/witness before the append-only DML assertions. Instrument that single baseline capture with failure-only RPC/observation/clock/readback evidence; scripts TypeScript, test TypeScript, targeted lint and 14/14 unit tests pass locally. Publish the diagnostic with the failed-head audit; inspect the first exact-head replay for the cause, then write a reproducing native test and fix only if established. If the run is green, the historical Storage cause and this baseline failure remain unexplained. Issuer/original/retention and positive LOC+175 owners are absent; keep #421 draft and traffic blocked, #310 untouched.
 
 Older Current sections above are historical and SUPERSEDED for the next action.
+## Current — 2026-09-28 #421 mixed S01 durable sibling/retry probe
+
+One active item: publish the two-order native S01 object-hold/point-sibling/retry test and source gate/matrix correction to draft #421, then inspect the first actual exact-head native result and all required workflows. Local 119/119 related ordinary tests, scripts/tests TypeScript, scoped ESLint, 121/231 integrity and diff checks passed; no local PostgreSQL/Docker. Do not infer a defect from missing prior native coverage. If native reveals a real mismatch, reproduce and identify its boundary before the smallest source-backed fix. No historical 203/505 ERC42, positive 175, E035 completion, staging/market send, merge or #310 action.
+
+Older Current sections below are historical and SUPERSEDED.

@@ -679,3 +679,8 @@ Older Current sections below are historical and SUPERSEDED.
 
 ## Additional exact-head gate — 2026-09-28
 Draft #421 evidence head `11be9ea8` has OPS clean replay native 386/387. A baseline E035 capture committed one attempt without outcome/witness; the cause is unknown until an instrumented boundary reveals its rejected operation or validation. Type/schema parity was not reached. The earlier Storage delete/before_witness cause is separately unknown. The source/owner blockers above remain unchanged; no package merge or market activation.
+## Current — 2026-09-28 #421 exact mixed sibling native proof pending
+
+The prior `3002c277` head passed all five workflows, native 387/387 and replay/types/schema. The new mixed S01 object-held plus point-accepted sibling/retry test has only local mocked consumer proof; exact native result is pending. External blockers: attested time-bound physical NAD+MS issuer to tenant/UNB representative, authentic continuous pre-ledger/deleted UTILTS originals and purge manifest, lawful raw/203/505 tombstone retention; positive LOC+175 object version/mandate/independent sink/final ACK owner; E035 earlier history/deletion and both unexplained native capture failures. #421 draft, #310 excluded, no real traffic or external tests.
+
+Older Current sections below are historical and SUPERSEDED.
