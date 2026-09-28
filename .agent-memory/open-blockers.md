@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 native and historical owner gates
+
+Mixed LOC+172/LOC+175 SQL fix awaits draft #421 exact-head native, replay and parity; no local Docker/psql. Receiver tenant identity cannot prove incoming NAD+MS legal sender; authentic pre-ledger/deleted originals and lawful retention remain absent for temporal BGM203 and distinct IDE505. Positive LOC175 requires versioned regulating-object owner, actor/mandate and sink. E035 prior delete/before-witness failure remains causally unknown. Keep draft, traffic blocked and #310 excluded.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 draft #421 original-source comparison
 
 Selected clauses are no longer missing: prior English U25-A-3 p73/127 and p79/128, current Swedish U25-A-4 p72/122 and p77/123 establish separate sender-wide UTILTS 203 and IDE505 temporal uniqueness/ERC42. Both identify NAD+MS/207 as the legal Ediel sender; UNB may name its representative. The corresponding prior Swedish edition and full G01 comparison remain open. First implementation blocker is trusted physical-sender-to-tenant/legal-actor attribution plus authentic pre-ledger/deleted original corpus and lawful retention before atomic cross-original reservations and national ERC42. Existing SQL checks physical IDE duplicate *within one source*; #421 `67243e4f` native 383/383 confirms this negative case and stable retry but cannot substitute for history. Positive LOC175 lacks versioned object registry, legal actor/mandate and a distinct sink/retry. E035 historical completeness/retention and old Storage delete-before-witness root remain unresolved despite #421 native diagnostics/pass. Draft stays open, traffic blocked, #310 untouched.

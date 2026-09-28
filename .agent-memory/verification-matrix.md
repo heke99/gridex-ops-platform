@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 mixed-object candidate
+
+| Head | Check | Result and limit |
+| --- | --- | --- |
+| `da1026eb53df1229a1c9750ce6d1409b5354a77f` | Ediel `36423676178`, browser `36423676347`, Full E2E `36423676245`, OPS `36423676176` | Four exact-head successes; OPS native 383/383, clean replay and generated parity. Precedes mixed-object fix. |
+| Local candidate, unpushed | SQL definition only guard differs, migration/type integrity, script typecheck, scoped ESLint/diff, 78/78 ordinary tests | Passed; two direct native-RPC cases, clean replay, schema/type regeneration and PR workflows await publication. No local Docker/psql. |
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 source comparison and native candidate
 
 | Head / source | Check | Result and bound |

@@ -187,6 +187,30 @@ it('equal cross-source content reuses immutable series, a new correction preserv
   expect(sql(`SELECT is_current FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toBe(false)
   expect((await persistUtiltsTransactionResults(input))[0].seriesId).toBe(first[0].seriesId)
 })
+it.each(['before', 'after'] as const)('mixed physical LOC+175 %s LOC+172 cannot acquire a point consumption receipt or ACK reservation', async order => {
+  const f = await seed(), supported = await f.prepare()
+  const point = "LOC+172+735999260731000007::9'"
+  const object = "LOC+175+735999260731000007::9'"
+  const raw = f.original.raw_payload!
+    .replace(point, order === 'before' ? `${object}\n${point}` : `${point}\n${object}`)
+    .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
+  const source = await f.insertSource(raw)
+  const physical = (message: EdielMessageRow) => sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(
+   gridex_utilts_binding.wire_tokens_v1(${lit(message.raw_payload)}),'GRIDEX2607E66001')),'null'::jsonb)`)
+  expect(physical(f.original)).toBe('735999260731000007')
+  expect(physical(source)).toBeNull()
+  // The service RPC is a separate authority boundary. A caller can supply a
+  // previously prepared point contract despite the application's LOC+175 hold.
+  const forged = { ...supported, sourceMessageId: source.id, rawPayload: source.raw_payload! }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  }
+  expect(effects.ack).not.toHaveBeenCalled()
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  expect((await persistUtiltsTransactionResults(supported))[0].persistenceStatus).toBe('persisted')
+})
 it('internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry', async () => {
   const f = await seed(), input = await f.prepare()
   const before = snapshot(f.original.id)

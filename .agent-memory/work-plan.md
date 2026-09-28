@@ -1,3 +1,10 @@
+## Current — 2026-09-28 #421 bounded mixed-object fence
+
+1. Complete one private SQL forward migration and two native direct-RPC cases for an IDE mixing LOC+172/175, preserving a clean LOC+172 positive control and zero receipt/ACK/series/effects on two refused attempts. Local ordinary/static checks pass.
+2. Commit/push to the same draft #421, inspect actual exact-head four workflows including clean native replay/types/schema, address the first real failure, review full diff and review threads. Record exact head in PR body. No blind rerun.
+3. Continue shared legal sender/historical originals/retention and regulating-object owner/E035 decisions only with source and native evidence; no historical ERC42 or LOC175 activation without those owners. No staging, market traffic or #310 work.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 draft #421 original-source and physical IDE step
 
 1. Prior/current 203/505/NAD+MS source amendment and real two-physical-IDE native negative case are published on draft #421 at `67243e4f`; four workflows green, native 383/383, clean migrations and type/schema parity. Correct the discovered field 207 source table page locator (prior p52/current p51), publish its evidence checkpoint to the same PR and require all applicable checks on the final exact head.

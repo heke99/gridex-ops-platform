@@ -1,3 +1,8 @@
+## Verified local boundary analysis — 2026-09-28 #421
+
+The current TypeScript consumption identity rejects mixed LOC+172/175 in one IDE, while private SQL selected the point. Original and forward SQL definitions were compared mechanically: only the new within-IDE 175 guard differs. The forward migration and two native cases are authored, but native execution and PR verification remain pending. Local ordinary 78/78, script types, migration/type integrity, scoped ESLint and diff check passed. No source-wide historical duplicate or positive regulating-object implementation is claimed.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Verified source comparison — 2026-09-28 #421 working package
 
 Published prior English U25-A-3 and current Swedish U25-A-4 originals were read and compared for UTILTS 203, NAD+MS legal sender and physical IDE505. Exact hashes, pages, effective windows and bounded conclusion are in `docs/ediel/masterplan-v2/amendment-prior-utilts-identity-2026-09-28.md`. This closes only the selected source-clause comparison; the amendment/native negative candidate has not yet passed new-head CI or merged. Historical reservation, positive LOC175 and E035 retention/Storage cause remain open.

@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 mixed LOC+175 SQL boundary candidate
+
+Remote draft #421 exact head `da1026eb53df1229a1c9750ce6d1409b5354a77f` passed four workflows, OPS native 383/383, replay/types/schema. A local unpushed candidate fences private `supported_point_v1`: TS rejects a single IDE mixing LOC+172 and LOC+175, while the prior SQL accepted a point. One forward migration, two direct native-RPC cases, and positive clean-point control added. Local ordinary 78/78, script types, migration/type gates and scoped lint pass; native and new exact-head CI pending. No historical 203/505 or positive LOC175 authority, no traffic, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 draft #421 source-bound identity checkpoint
 
 #421 draft at last published head `67243e4fc8f7986f46883d1ca4b50e265047e9a3` passed Ediel `36422224621`, browser `36422224619`, Full E2E `36422224629` and OPS `36422224712` (native 383/383 incl real duplicate IDE, clean replay/type/schema parity). Remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` is the one #420 merge; Vercel READY is a code deploy only. Selected prior/current U originals establish distinct sender-wide temporal 203/505 ERC42 clauses and legal NAD+MS, but no authentic prior corpus or trusted tenant mapping. A page citation correction and exact-head evidence record are local pending publication and final CI. E035 old Storage failure root unknown; positive LOC+175 lacks object/mandate/sink. Draft stays unmerged, real Ediel traffic blocked, #310 untouched.

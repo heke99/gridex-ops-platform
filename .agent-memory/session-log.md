@@ -1,3 +1,8 @@
+## 2026-09-28 — #421 mixed LOC+175 sink boundary
+
+Actual remote draft head `da1026eb` and main `53bf989b` were checked; previous exact-head four CI runs were green. Traced physical NAD+MS against receiver tenant identity and existing SQL/TS consumption; found private SQL can select LOC+172 when the same IDE also has LOC+175. Created a forward private-function fence using CLI 2.101.0, two native direct-RPC negative cases and a clean point control, and documented unresolved historical sender/historical-corpus owner. Local 78/78 ordinary, scripts typecheck, migration/type integrity, scoped lint and diff pass. No local native database. Publish candidate and inspect exact-head CI next; no market traffic or PR310 action.
+
+Older Current sections below are historical and SUPERSEDED.
 ## 2026-09-28 — #421 original-source and physical IDE work
 
 Confirmed #421 open/draft at published `67243e4fc8f7986f46883d1ca4b50e265047e9a3`, four green workflows incl native 383/383, clean replay and type/schema parity. Original prior/current U 203/505 and legal sender clauses were source compared; native real-wire duplicate IDE negative/retry passed with no receipt/ACK/effects. Full diff review found field 207 page locator p58/p54 was wrong; corrected to p52/p51 from originals locally, with exact-head evidence recorded. Publish source accuracy/evidence correction to same PR and require its final exact-head checks. No prod code, broad ERC42, LOC175 consumer, real traffic, staging or #310 action.

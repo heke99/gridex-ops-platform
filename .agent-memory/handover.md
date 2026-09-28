@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 mixed-object guard candidate
+
+Published draft #421 head `da1026eb53df1229a1c9750ce6d1409b5354a77f` passed four workflows and OPS native 383/383. Local forward SQL migration changes only private supported-point body and adds two native direct service-RPC cases plus clean-point control. Ordinary 78/78, script types, migration/type integrity, lint and diff pass. Local Docker/psql absent; require exact-head OPS native replay and type/schema parity. Push/PR checkpoint pending. Legal sender/203/505 and E035 blockers remain; #310 untouched and traffic held.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 draft #421 physical IDE/source step
 
 From verified main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`, draft #421 last published `67243e4fc8f7986f46883d1ca4b50e265047e9a3` with Ediel `36422224621`, browser `36422224619`, Full E2E `36422224629`, OPS `36422224712` green, native 383/383 (real duplicate physical IDE) and clean replay/types/schema. Source amendment compares two hashed U originals, p73/127 vs p72/122 for 203, p79/128 vs p77/123 for IDE505; legal NAD+MS table locators were corrected from p58/p54 to p52/p51 after original-page review. This source correction/evidence update is local pending publication; first publish to #421 and qualify final exact-head CI. Then continue trusted legal sender/history/deletion/retention and LOC175 owner qualification. No local Docker/psql, earlier E035 `delete/before_witness` cause unknown. No #310, staging, TGT/AGT, counterparty or market sends; keep branch draft.
