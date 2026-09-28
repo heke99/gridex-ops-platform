@@ -232,7 +232,10 @@ it('a misplaced LOC+175 after SEQ cannot acquire a point or object-shaped positi
    'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
    WHERE source_message_id=${lit(source.id)}`)).toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
-  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.meter).not.toHaveBeenCalled()
+  // A source-qualified technical CONTRL may acknowledge interchange syntax;
+  // this held transaction must not produce a positive market ACK.
+  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  expect(effects.meter).not.toHaveBeenCalled()
   expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   const before = snapshot(source.id)
   await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })

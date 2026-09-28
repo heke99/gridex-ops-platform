@@ -840,4 +840,6 @@ Older Current sections below are historical and SUPERSEDED.
 
 One active work item: publish the locally RED/GREEN late-LOC+175 physical IDE correction and native service-RPC/actual-consumer test to draft #421, only after checking the remote is still `e443bbfe`. Inspect first exact-head CI failure, native 394/394 expectation, clean replay and generated parity, then full PR diff/review threads. Keep this as a bounded refusal without invented national ERC, positive object sink or historical sender-wide uniqueness. External issuer, continuous original/deletion coverage, retention and E035 owner records remain the implementation gates. No merge, staging, market sends or #310 edit.
 
+First actual CI failure on `97342339` is native 393/394: the new test counted a permissible positive technical CONTRL as forbidden ACK. Publish the corrected market-family-only assertion plus accurate UTC checkpoint as a substantive test correction, fast-forward from checked remote, then require all five new-head workflows, native 394/394, clean replay and generated parity. No product SQL change from `97342339`.
+
 Older Current sections above are historical and SUPERSEDED.

@@ -445,4 +445,6 @@ Older entries below are historical.
 
 Rechecked draft/main/local status and U25-A-4 SG5 field 533. RED ordinary identity, actual history-reader and E66 consumer tests exposed a late LOC+175 after SEQ: point identity, inspected point source and accepted positive quantity 500. Added complete-IDE TS guards and private selector forward migration, native direct forged RPC and real processor stable retry test. Local 76/76 focused, three TS projects, lint, migration/type integrity, 121/231 spec inventory and diff passed. Last verified e443 five workflows/native 393, new-head native pending. External sender/history/retention/object/E035 records still absent; no traffic, merge or #310 action.
 
+Published exact tree as `97342339`; first CI failure OPS clean replay native 393/394 at new test line 235. Positive technical CONTRL was counted by an overbroad zero-ACK assertion after SQL selectors, two service refusals and actual held row passed. Filter only market ACK families and keep no meter/billing/completion plus stable retry checks. Correct the accidentally future checkpoint UTC timestamp with this test correction. No product code change or blind retry.
+
 Older entries above are historical.

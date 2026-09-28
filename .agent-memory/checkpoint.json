@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T22:24:00Z",
+  "updated_at": "2026-09-28T20:38:58Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -30,9 +30,9 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish local RED/GREEN late-175 physical IDE correction and native test to draft #421 only from verified e443bbfe; inspect first exact-head CI/native 394/394, replay/types/schema and full review. Historical 203/505, positive 175 and E035 history require external owner/coverage/retention. No traffic or #310.",
+  "next_action": "Publish corrected native market-ACK assertion and factual CI/UTC evidence on same draft only after remote 97342339 check; require native 394/394, clean replay, types/schema and five exact-head workflows. No product SQL change. Historical 203/505, positive 175 and E035 history await external records; no traffic or #310.",
   "pr421_source_checkpoint": {
-    "published_head_before_this_step": "e443bbfe5e347daf500869676357f6d6a8052dc9",
+    "published_head_before_this_step": "97342339f7cd7ee765247fe890d0f4dd2d2596e6",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
     "draft_pr": 421,
     "prior_original_sha256": "fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798",
@@ -49,11 +49,11 @@
     ],
     "native_before_this_step": "393/393",
     "native_on_last_verified_head": "393/393; S01 guide-negative sibling in both physical orders, prior mixed/rollback/retry controls; clean replay and public types/schema parity on e443bbfe",
-    "next_head_checks": "Late-LOC+175 physical IDE native selectors, two service refusals, held consumer/retry and clean point; five workflows, clean replay and generated parity after publication.",
-    "local_candidate": "Real RED/GREEN: late LOC+175 after SEQ point/history/positive E66; two TS guards, private SQL forward and native synthetic proof; 76/76 ordinary and static checks pass, native DB unavailable locally.",
-    "last_published_head": "e443bbfe5e347daf500869676357f6d6a8052dc9",
-    "first_new_head_failure": "None on e443bbfe; older two E035 Storage failures remain causally unexplained. Candidate has not run native on its new exact head.",
-    "candidate": "Late physical LOC+175 after SEQ; ordinary identity, actual history and E66 positive RED then 76/76 GREEN; private SQL forward 20260928201500 and native RPC/consumer retry pending exact-head CI"
+    "next_head_checks": "Native 394/394 with technical CONTRL permitted, zero market ACK/business effects and stable retry; five workflows, clean replay and generated parity after test correction.",
+    "local_candidate": "Test-only correction filters APERAK/UTILTS_ERR instead of all ACK calls; retains no meter/billing/completion and stable retry assertions. Corrected actual UTC checkpoint. Product code/SQL unchanged from 97342339.",
+    "last_published_head": "97342339f7cd7ee765247fe890d0f4dd2d2596e6",
+    "first_new_head_failure": "OPS 36479409499 clean replay native 393/394: new test line 235 incorrectly forbade positive technical CONTRL after selectors, two forged RPC refusals and held row passed; generated parity not reached. Four ordinary workflows and OPS verify/quality passed.",
+    "candidate": "Late physical LOC+175 correction published at 97342339: ordinary RED/GREEN; first native 393/394 stopped on overbroad technical CONTRL assertion after selector/refusal/hold passed. Test-only market ACK filter awaiting exact-head native/replay/parity."
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",

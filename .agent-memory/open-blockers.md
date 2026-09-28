@@ -688,4 +688,6 @@ Older Current sections below are historical and SUPERSEDED.
 
 The late-LOC+175 physical IDE correction has only local RED/GREEN and static verification; native PostgreSQL, clean replay, generated parity and exact-head workflow results are pending publication. No trusted time-bound NAD+MS legal sender-to-tenant/UNB representative binding, continuously attested pre-ledger/deleted UTILTS originals or lawful raw/tombstone retention period exists in the inspected repo. Positive LOC+175 still lacks versioned registry, actor/mandate, separate sink and ACK/retry owner. E035 pre-epoch/deletion coverage and earlier Storage failure causes remain unknown. The responsible functions and exact requested records are in the issuer-history-owner-gate audit. No market activation, merge or #310 edit.
 
+On published `97342339` native 393/394, first failure is test-only forbidden positive technical CONTRL assertion; service SQL refusals and held row passed. Corrected test awaits new-head CI to establish no business effects and stable retry, plus replay/types/schema. External records above remain absent.
+
 Older Current sections above are historical and SUPERSEDED.

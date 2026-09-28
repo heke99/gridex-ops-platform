@@ -622,5 +622,7 @@ Older Current sections below are historical and SUPERSEDED.
 | --- | --- | --- |
 | `e443bbfe5e347daf500869676357f6d6a8052dc9` | Ediel `36475263127`, browser `36475263038`, Full E2E `36475263155`, tenant `36475263046`, OPS `36475263162` | Five SUCCESS; OPS native 393/393, verify/quality/replay/types/schema per prior exact-head artifact. This predates late-175 correction. |
 | Local unpublished candidate | Three red ordinary tests then 76/76 green; app/tests/scripts TypeScript, scoped ESLint, migration checksum/integrity, types manifest, 121/231 inventory, diff check | Native physical selector, service RPC/rollback, actual consumer/retry, clean replay and generated parity await exact new head. No full contract or market acceptance. |
+| `97342339f7cd7ee765247fe890d0f4dd2d2596e6` | Ediel `36479409472`, browser `36479409553`, Full E2E `36479409615`, tenant `36479409495`, OPS `36479409499` | Four ordinary workflows SUCCESS, OPS verify/quality SUCCESS; clean replay native 393/394 FAILED on new test zero-ACK assertion. SQL point null, object true, two forged RPC rollbacks and held `internal_review` row passed. Actual technical CONTRL was allowed; downstream no-effect/retry assertions not reached; generated parity not reached. |
+| Local correction | Native assertion excludes only APERAK/UTILTS_ERR; permitted technical CONTRL remains visible | App code/SQL unchanged. New exact-head native 394/394, replay/schema/types and all workflows pending. |
 
 Older Current sections above are historical and SUPERSEDED.
