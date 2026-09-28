@@ -566,3 +566,8 @@ Older Current sections below are historical and SUPERSEDED.
 3. After the named owners provide attested issuer/representative, authentic original/deletion coverage and retention, write native competing-original/retry/concurrency tests for **separate** BGM203 and IDE505 before atomic implementation; independently qualify the LOC+175 object owner and E035 history/Storage stage. Maintain real traffic and #310 holds.
 
 Older Current sections below are historical and SUPERSEDED.
+
+## Current continuation — 2026-09-28 E035 first failure
+1. Publish the scoped failure-only diagnostic and failed-head audit to draft #421. Read the first exact-head native result; do not manually rerun unchanged code.
+2. If capture fails again, compare begin result, observation timestamps, observe RPC error and durable attempt time; reproduce the actual cause RED before a narrow correction. If it passes, keep both prior Storage and baseline capture causes open rather than calling them flakes.
+3. Keep historical sender-wide 203/505, positive LOC+175 and E035 completeness blocked pending the named source/owner decisions. Review whole PR and threads; leave draft unmerged and traffic disabled.

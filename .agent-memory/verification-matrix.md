@@ -600,3 +600,9 @@ Older Current sections below are historical and SUPERSEDED.
 | Repository source/data-model audit in current evidence commit | Inspected tenant receiver identity/evidence, counterparty/route schema, prospective source and UTILTS consumption receipts, removed generic transaction index, retention policy/checklist, E035 readset and object holds. Exact missing records and owner roles in `issuer-history-owner-gate-20260928.md`. | No live database/archive/mandate evidence; this commit requires its own exact-head PR CI. |
 
 Older Current sections below are historical and SUPERSEDED.
+
+## Current continuation — 2026-09-28 #421 first evidence-head gate
+| Head | Exact evidence | Limit |
+| --- | --- | --- |
+| `11be9ea8ff6744c7e098285a97b54ebf137d01fa` | Ediel `36449193330`, browser `36449193329`, Full E2E `36449193333`, tenant `36449193323` SUCCESS. OPS `36449193344` verify/quality SUCCESS, clean replay FAILED native 386/387 at document-reference baseline capture; attempts 1, outcomes 0, witnesses 0. | Generated type/schema parity did not run; no exact-head merge gate. Storage delete/before_witness passed on this run but prior cause unknown. |
+| Diagnostic candidate in this commit | Failure-only synthetic RPC boundaries and attempt/observation/DB clocks. Local scripts/tests TypeScript, lint, 14/14 unit and diff check passed. | Native replay required on its own exact published head; no causal repair or historical authority asserted. |

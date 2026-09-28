@@ -3,6 +3,7 @@
 One active item: publish `20260928181500` forward private SQL fix to the same draft. Published `b99e5f` failed OPS native 386/387 because identical `internal_review`/`none` retry re-upserted ACK `updated_at`; four other workflows passed. The existing real-consumer native test supplies the negative assertion; changed assessments retain the earlier upgrade path. Local migration/types, scripts TypeScript and spec inventory pass. Next inspect full diff, fast-forward publish, require five exact-head workflows, native 387/387, clean replay and generated parity, and update PR evidence. Keep package draft until issuer/history/retention and positive object ownership are proven. No traffic or #310 action.
 
 Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 #421 S01/LOC+175 persistent hold
 
 One active item: publish the source-backed S01 valid-regulating-object hold with private sink fence and native direct/actual-consumer retry cases. Previous exact published head `f342e7999de02f9bd80805de9559c498dd149965` is fully green. First action: commit/push this local RED/GREEN code candidate, inspect the first real CI failure including native, clean replay and generated schema/types, then review whole diff and update draft #421 exact-head receipt. Do not merge until historical issuer/history/retention, positive object owner/mandate/sink and E035 gates have their own proof. No traffic or #310 action.
@@ -824,3 +825,9 @@ Older Current sections below are historical and SUPERSEDED.
 One active item: publish the source/data-model owner gate and correct the activation matrix against #421's verified `1c556278` receipt. First inspect exact new-head mandatory checks and first actual failure, if any, without an unchanged-head rerun. No product-code change is justified before market operations supplies the NAD+MS/UNB tenant/issuer binding; archive/database owner supplies authentic pre-ledger and deleted UTILTS originals with a continuous coverage interval; legal/privacy owner decides retention/erasure and identity tombstones; product/network owner supplies versioned LOC+175 object/mandate/sink; and E035 owner proves historical/deletion coverage. The prior Storage delete/before_witness cause remains unknown. Keep draft unmerged and traffic/#310 held; report exact new SHA and any unpushed work in the PR receipt.
 
 Older Current sections below are historical and SUPERSEDED.
+
+## Current continuation — 2026-09-28 #421 E035 baseline capture diagnostic
+
+Published evidence head `11be9ea8` passed four ordinary workflows and OPS verify/quality, but clean replay stopped at native 386/387: a synthetic document-reference attempt committed without outcome/witness before the append-only DML assertions. Instrument that single baseline capture with failure-only RPC/observation/clock/readback evidence; scripts TypeScript, test TypeScript, targeted lint and 14/14 unit tests pass locally. Publish the diagnostic with the failed-head audit; inspect the first exact-head replay for the cause, then write a reproducing native test and fix only if established. If the run is green, the historical Storage cause and this baseline failure remain unexplained. Issuer/original/retention and positive LOC+175 owners are absent; keep #421 draft and traffic blocked, #310 untouched.
+
+Older Current sections above are historical and SUPERSEDED for the next action.

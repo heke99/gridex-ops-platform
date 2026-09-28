@@ -382,7 +382,29 @@ it('wrong-company actor has no document capture authority',async()=>{
  expect(saved(f)).toMatchObject({attempts:[]})
 })
 it('append-only outcome and witness reject service DML and privileged mutation',async()=>{
- const f=await seed(),capture=await captureDocumentReference(args(f))
+ const f=await seed(),original=supabaseService.rpc.bind(supabaseService)
+ // Capture can deliberately return unconfirmed after a committed attempt. Retain
+ // only synthetic RPC boundaries and clocks on failure so an absent outcome is
+ // attributable to begin validation, the byte observation, or the observe RPC.
+ const rpcStages:{name:string;phase:'start'|'returned'|'threw';code?:string;error?:string;
+  recordedAt?:string;eligible?:boolean;observation?:unknown;dataKeys?:string[]}[]=[]
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  if(!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   const observation=name==='gridex_observe_document_reference_v1'?(params as {p_observation?:unknown})?.p_observation:undefined
+   rpcStages.push({name,phase:'start',...(observation?{observation}:{})})
+   try{
+    const response=await request.abortSignal(signal),data=response.data
+    rpcStages.push({name,phase:'returned',...(response.error?{code:response.error.code,error:response.error.message}:{}),
+     ...(data&&typeof data==='object'&&!Array.isArray(data)?{
+      dataKeys:Object.keys(data).sort(),recordedAt:(data as {recordedAt?:string}).recordedAt,
+      eligible:(data as {eligible?:boolean}).eligible===true}: {})})
+    return response
+   }catch(error){rpcStages.push({name,phase:'threw',error:error instanceof Error?error.message:String(error)});throw error}
+  }} as unknown as ReturnType<typeof supabaseService.rpc>
+ })
+ const capture=await captureDocumentReference(args(f))
  const stage=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
   'attempts',(SELECT count(*) FROM gridex_received_sources.document_reference_attempts
    WHERE source_message_id=${literal(f.sourceMessageId)}),
@@ -393,7 +415,14 @@ it('append-only outcome and witness reject service DML and privileged mutation',
    JOIN gridex_received_sources.document_reference_outcomes o ON o.id=w.outcome_id
    JOIN gridex_received_sources.document_reference_attempts a ON a.id=o.attempt_id
    WHERE a.source_message_id=${literal(f.sourceMessageId)}))`)
- expect(capture,JSON.stringify({capture,stage})).toMatchObject({status:'recorded'})
+ if(capture.status!=='recorded'){
+  const attemptId='attemptId' in capture?capture.attemptId:undefined
+  const clock=attemptId?sql<{recordedAt:string;dbNow:string}|null>(`SELECT jsonb_build_object('recordedAt',recorded_at,'dbNow',clock_timestamp())
+   FROM gridex_received_sources.document_reference_attempts WHERE id=${literal(attemptId)}`):null
+  const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
+  throw Error(`document_reference_baseline_capture_stage ${JSON.stringify({capture,stage,rpcStages,clock,readback})}`)
+ }
+ vi.restoreAllMocks()
  for(const table of ['document_reference_outcomes','document_reference_witnesses']){
   expect(()=>sql(`SET ROLE service_role; DELETE FROM gridex_received_sources.${table};`)).toThrow()
   expect(()=>sql(`DELETE FROM gridex_received_sources.${table};`)).toThrow()

@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T16:04:27Z",
+  "updated_at": "2026-09-28T18:25:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 source/data-model owner gate: bounded S01 and mixed-IDE fences PR-verified at 1c556278; historical issuer/original/retention and positive LOC175/E035 owners blocked",
+  "active_item": "F3 #421 issuer/history/object gate blocked; E035 baseline document capture native 386/387 failure under boundary diagnosis",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish the substantive issuer/history/object/retention source audit and activation-matrix correction to draft #421; inspect its exact new-head CI and review threads without blind rerun. Obtain attested physical NAD+MS/UNB issuer mapping, authentic pre-ledger/deleted UTILTS original coverage and lawful retention before separate 203/505 atomic native tests. Positive LOC175 and E035 remain blocked; no merge, traffic or #310 change.",
+  "next_action": "Publish failure-only document-reference baseline RPC/observation/clock diagnostic to draft #421, inspect first exact-head native replay and causal stage; no blind unchanged-head rerun. Require attested legal issuer/representative, original/deletion coverage, lawful retention and LOC175 owner/mandate before implementation/merge. Traffic and #310 held.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -50,7 +50,9 @@
     "native_before_this_step": "382/382",
     "native_on_last_verified_head": "387/387; clean replay and generated public types/schema parity on 1c556278cb70761a8956c2d7c80ffa0534aee7a8",
     "next_head_checks": "Source/data-model gate and activation matrix are evidence-only changes; inspect five exact new-head workflows after publication. No 203/505 or positive LOC175 runtime activation.",
-    "local_candidate": "Inspected source/receiver/issuer/retention/object database and consumer boundaries; named exact missing records and owner roles in issuer-history-owner-gate-20260928.md. Product SQL and runtime unchanged."
+    "local_candidate": "Failure-only synthetic RPC/observation/clock/readback diagnostic in document-reference native test; no SQL/product change. Locally scripts/tests TypeScript, scoped lint, 14/14 unit and diff check passed; publish to inspect first exact-head native stage.",
+    "last_published_head": "11be9ea8ff6744c7e098285a97b54ebf137d01fa",
+    "first_new_head_failure": "OPS 36449193344 clean replay native 386/387; baseline document-reference capture unconfirmed after one attempt, zero outcome/witness; other four workflows and OPS verify/quality succeeded; type/schema parity not reached"
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",

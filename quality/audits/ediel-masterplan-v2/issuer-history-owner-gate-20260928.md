@@ -42,3 +42,9 @@ On exact `1c556278cb70761a8956c2d7c80ffa0534aee7a8`, Ediel `36440881620`, browse
 | E035 complete history/retention/deletion | Delvis | Nej | Nej | Nej | Nej | Nej |
 
 Skill routing for this bounded source/owner review: repository code/data-model inspection, existing Supabase/Postgres security and retention boundaries, source-to-code comparison and verification-before-completion. No UI/performance or general repository audit is in scope. One code author; no delegation. No product SQL or application behavior is changed by this evidence record.
+
+## Exact-head replay after this audit
+
+The evidence-only commit on draft #421, `11be9ea8ff6744c7e098285a97b54ebf137d01fa`, passed Ediel `36449193330`, browser `36449193329`, Full E2E `36449193333`, tenant `36449193323`, and OPS `verify`/`quality-release-gates` in `36449193344`. OPS clean replay failed its native suite at **386/387**: `append-only outcome and witness reject service DML and privileged mutation` received `unconfirmed` with one committed document-reference attempt and no outcome or witness. This was before the test's DML assertions. The separate Storage `delete/before_witness` case passed on this run; its earlier cause remains unknown. Generated type/schema parity did not run after this failure, and this head is not mergeable.
+
+The capture API intentionally hides its internal cause from the caller; the failure log contains no RPC/observation stage for this test. A scoped, failure-only native diagnostic now records synthetic begin/observe/witness RPC boundaries, error codes, the proposed observation and attempt/database clocks, plus a fresh readback. It does not change production capture or loosen SQL ordering. Diagnose the first real failure from the next instrumented exact-head replay; a later green run alone does not establish this failure's cause.
