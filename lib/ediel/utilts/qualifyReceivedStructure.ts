@@ -12,7 +12,7 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 
 export type ReceivedStructureQualification={
   runtime:UtiltsRuntimeResult;hasInternalReview:boolean;hasNationalMismatch:boolean
-  evidence:{version:1;owner:'received-structure-comparison-v1';status:'not_applicable'|'evaluated';
+  evidence:{version:1;owner:'received-structure-comparison-v1'|'regulating-object-ownership-v1';status:'not_applicable'|'evaluated';
     cutoffAt:string|null;snapshotId:string|null;readsetHash:string|null;comparisons:StructuralComparison[]}
 }
 
@@ -25,7 +25,34 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
   const result:ReceivedStructureQualification={runtime,hasInternalReview:false,hasNationalMismatch:false,
     evidence:{version:1,owner:'received-structure-comparison-v1',status:'not_applicable',cutoffAt:null,snapshotId:null,readsetHash:null,comparisons:[]}}
   if(canonicalPolicy.family!=='UTILTS'||canonicalPolicy.direction!=='inbound'||canonicalPolicy.code!==message.message_code
-    ||message.direction!=='inbound'||!['E30','E66','S07'].includes(message.message_code??''))return result
+    ||message.direction!=='inbound')return result
+  // U 25-A-4 pp.54/63 permits LOC+175 for these profiles, but a valid field
+  // is not a tenant/actor mandate or a durable regulating-object identity.
+  // The point comparison owner below is limited to E30/E66/S07. Hold only the
+  // accepted physical IDE here, preserving genuine guide-negative siblings.
+  if(['S01','E73','S06'].includes(message.message_code??'')){
+    const unowned=runtime.transactionDispositions.flatMap((disposition,index)=>
+      disposition.disposition==='accepted'&&runtime.facts.transactions[index]?.regulatingObjectPresent
+        ?[disposition.transactionId]:[])
+    if(!unowned.length)return result
+    const held=new Set(unowned)
+    const dispositions=runtime.transactionDispositions.map(disposition=>disposition.disposition==='accepted'&&held.has(disposition.transactionId)
+      ?{...disposition,disposition:'internal_review' as const,responseType:'none' as const,issueCodes:[...disposition.issueCodes,'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE']}:disposition)
+    result.evidence={...result.evidence,owner:'regulating-object-ownership-v1',status:'evaluated',comparisons:unowned.map(transactionId=>({
+      transactionId,status:'unavailable',reason:'regulating_object_owner_unavailable',codes:[],selected:[],
+    }))}
+    result.hasInternalReview=true
+    result.runtime={...runtime,transactionDispositions:dispositions,
+      validation:{...runtime.validation,ok:false,classification:runtime.validation.classification==='accepted'?'internal_review':runtime.validation.classification,
+        issues:[...runtime.validation.issues,...unowned.map(transactionId=>({severity:'warning' as const,kind:'functional' as const,
+          code:'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE',title:'Reglerobjektets ägare saknas',
+          description:'Juridisk aktör, mandat och beständig reglerobjektsägare är inte verifierade. Ingen nationell felkod har skapats.',
+          referenceNumber:transactionId,lineItemReference:transactionId}))]},
+      ackPlan:{...runtime.ackPlan,...(dispositions.every(disposition=>disposition.disposition==='internal_review')?{shouldSendAperak:false,aperakOutcome:null}:{}),
+        reason:'Reglerobjektets juridiska ägare och mandat är inte verifierade.'}}
+    return result
+  }
+  if(!['E30','E66','S07'].includes(message.message_code??''))return result
   const eligible=runtime.transactionDispositions.map((disposition,index)=>({disposition,index})).filter(({disposition})=>disposition.disposition==='accepted')
   if(!eligible.length)return result
   const raw=message.raw_payload

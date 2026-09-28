@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 S01/175 native gate pending
+
+The candidate only fences unowned positive S01/E73/S06 LOC+175. Native SQL direct accepted/refused/retry and actual persisted hold have not run; do not claim PR verification. Positive 175 still needs a versioned object registry, legal actor/mandate, own sink, final ACK and retry owner. Historical UTILTS 203/505 require trusted physical NAD+MS-to-tenant/UNB representation, authentic pre-ledger/deleted corpus and lawful retention. E035 history/deletion and prior Storage `delete/before_witness` cause remain unknown. Main/traffic/#310 boundaries unchanged.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 package decision blockers
 
 Mixed LOC point-sink fence is native PR-verified on `59d9419e`, but the audit correction has not yet been pushed/checked on a final head. Receiver tenant proof does not authenticate physical incoming NAD+MS; authentic pre-ledger/deleted originals and lawful retention are missing for temporal BGM203 and separate IDE505. Positive LOC175 lacks versioned object, actor/mandate and sink. E035 old Storage delete/before-witness root remains unknown, as do historical coverage/retention. No staging/TGT/AGT/counterparty/live send or market activation; #310 untouched.

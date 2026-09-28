@@ -155,7 +155,7 @@ export function buildUtiltsTransactionPersistencePayload(input: {
       byTransactionReference(input.matches, transactionId)
     // LOC+175 names a regulating object, never a metering point. A grid-area
     // or stale transaction match must not turn that IDE into a point identity.
-    const regulatingObject = input.messageCode === 'E66' && Boolean(transaction?.regulatingObjectId)
+    const regulatingObject = Boolean(transaction?.regulatingObjectPresent || transaction?.regulatingObjectId)
 
     return {
       transactionId,

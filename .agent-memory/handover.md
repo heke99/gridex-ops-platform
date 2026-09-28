@@ -1,3 +1,8 @@
+## Current — 2026-09-28 S01/175 ownerless consumer and private sink
+
+Remote #421 last verified `f342e7999de02f9bd80805de9559c498dd149965`, remote main `53bf989b`. New local candidate: U25-A-4 S01 valid LOC+175 was accepted by the nonbilling dispatcher without an owner; real-consumer test first failed at `internalReviewRequired=false`. Per-IDE internal hold, zero point payload, clean sibling and negative 533 preservation now pass locally. Private `persist_series_v1` forward rejects forged accepted 175 before ACK/series, with direct and actual native retries awaiting CI. Local 136/136 affected, app/scripts/tests TS, migration/type checks, lint/diff pass; no local Docker/psql. Publish one code commit to same draft and inspect first CI failure. Legal sender/203/505 history, positive 175 and E035 retention still blocked; no merge/traffic/#310 edit.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 native 385/385 and review correction
 
 Head `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` passed all applicable workflows, OPS native 385/385, replay and exact generated type/schema parity. GitHub PR remains open/draft; full 21-file diff reviewed, no review threads or reviews. Factual audit/matrix correction is local pending publication, then final exact-head CI. Historical legal NAD sender mapping/corpus/retention and separate 203/505 reservations, positive LOC175 actor/mandate/object/sink and E035 history remain unproved. No main merge or market activation; #310 untouched.

@@ -1,3 +1,10 @@
+## Current — 2026-09-28 #421 S01/175 source-backed hold
+
+1. Publish the local real-consumer RED/GREEN and private sink/native tests as one code milestone to draft #421, fast-forward only from verified remote `f342e7999de02f9bd80805de9559c498dd149965`.
+2. Read the first actual error in each exact-head workflow; require native two-attempt rollback, tenant isolation, real held ACK, clean point, replay, generated schema/type parity and all ordinary gates. Review the full PR diff and threads; update PR body with exact head and remaining blockers.
+3. Continue the coherent historical 203/505, positive 175 and E035 owner/history/retention decision only on authoritative evidence. No guessed ERC42, merge, staging, market send or #310 edit.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 final exact-head review
 
 1. Publish factual audit/matrix correction after native 385/385 on `59d9419e`; no production code change. Require all applicable final exact-head jobs without manually rerunning identical code.

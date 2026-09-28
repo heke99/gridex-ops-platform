@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
 import { findMatchingGridOwnerDataRequest } from '@/lib/ediel/matching'
@@ -21,7 +22,7 @@ vi.mock('@/lib/ediel/matching', () => ({
 }))
 // Parsing, matching orchestration, structural qualification, persistence payload,
 // real sinks and ACK planning/drafts all run. Only external reads/writes are fake.
-let results: unknown[]
+let results: unknown[] | undefined
 beforeEach(() => {
   vi.clearAllMocks(); results = []; io.findOutbound.mockResolvedValue(null); io.complete.mockResolvedValue(null)
   io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
@@ -347,6 +348,48 @@ it('routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK witho
   expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
   expect(JSON.stringify(io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')?.[0].draft)).toContain('533')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+it('holds a valid S01 LOC+175 without an owned regulating object and never reserves a positive point ACK', async () => {
+  const message = incoming(false, false, '2026-10-01')
+  message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
+  message.customer_id = null; message.site_id = null; message.metering_point_id = null
+  message.raw_payload = message.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+  expect(runUtiltsRuntimeForMessage(message).transactionDispositions).toMatchObject([{ disposition: 'accepted' }])
+  io.get.mockResolvedValue(message)
+  results = undefined // The RPC fixture echoes the actual prepared disposition.
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(result.internalReviewRequired).toBe(true)
+  expect(persisted?.p_transactions).toMatchObject([{ disposition: 'internal_review', responseType: 'none',
+    meteringPointId: null, externalMeteringPointId: null, quantities: [] }])
+  expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+it('keeps the clean S01 sibling eligible while a valid regulating-object IDE is held', async () => {
+  const message = incoming(false, true, '2026-10-01')
+  message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
+  message.customer_id = null; message.site_id = null; message.metering_point_id = null
+  message.raw_payload = message.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+  io.get.mockResolvedValue(message); results = undefined
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  expect(result.internalReviewRequired).toBe(true)
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
+  expect(persisted).toMatchObject([
+    { disposition: 'internal_review', responseType: 'none', meteringPointId: null, externalMeteringPointId: null, quantities: [] },
+    { disposition: 'accepted', responseType: 'positive_aperak', externalMeteringPointId: '735999260731000007' },
+  ])
+  const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
+  expect(aperaks).toHaveLength(1)
+  expect(JSON.stringify(aperaks[0][0].draft)).toContain('GRIDEX2607E66002')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it.each([

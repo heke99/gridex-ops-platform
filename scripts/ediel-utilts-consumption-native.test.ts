@@ -211,6 +211,28 @@ it.each(['before', 'after'] as const)('mixed physical LOC+175 %s LOC+172 cannot 
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(supported))[0].persistenceStatus).toBe('persisted')
 })
+it('native S01 valid LOC+175 cannot reserve a point series or positive ACK through a forged service RPC', async () => {
+  const f = await seed()
+  const raw = f.original.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+  const source = await f.insertSource(raw, 'S01')
+  const prepared = await f.prepare(source, false, false)
+  expect(prepared.transactions[0]).toMatchObject({ disposition: 'accepted', meteringPointId: null, externalMeteringPointId: null })
+  const forged = structuredClone(prepared)
+  forged.transactions[0].meteringPointId = f.ids.point
+  forged.transactions[0].externalMeteringPointId = '735999260731000007'
+  const wrongTenant = { ...forged, companyId: randomUUID() }
+  await expect(persistUtiltsTransactionResults(wrongTenant)).rejects.toThrow('utilts_source_binding_conflict')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_regulating_object_owner_unavailable')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  }
+  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
+  expect((await persistUtiltsTransactionResults(await f.prepare()))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
+})
 it('internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry', async () => {
   const f = await seed(), input = await f.prepare()
   const before = snapshot(f.original.id)
@@ -820,6 +842,29 @@ it('native S01 stores supplied LOC+175 field533 rejection with no aggregate or i
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
   const before = snapshot(source.id)
   await run()
+  expect(snapshot(source.id)).toEqual(before)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+})
+it('native valid S01 LOC+175 holds its ACK/series until a distinct object owner exists, including retry', async () => {
+  const f = await seed()
+  const raw = f.original.raw_payload!
+    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+  const source = await f.insertSource(raw, 'S01')
+  sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,
+   'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
+   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'internal_review', plan: 'none', final: null, series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
+  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  const before = snapshot(source.id)
+  expect((await run()).internalReviewRequired).toBe(true)
   expect(snapshot(source.id)).toEqual(before)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })

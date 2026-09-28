@@ -1,3 +1,11 @@
+## Current — 2026-09-28 #421 S01/175 candidate
+
+| Head | Check | Bound result |
+| --- | --- | --- |
+| `f342e7999de02f9bd80805de9559c498dd149965` | Ediel `36433143715`, browser `36433143701`, E2E `36433143760`, tenant `36433143725`, OPS `36433143729` | All SUCCESS, native 385/385, replay/schema/types parity. Precedes S01 code step. |
+| Local unpushed candidate | Real S01 consumer RED then GREEN; 136/136 affected; app/scripts/tests TS, migration/type integrity, scoped lint/diff | Private SQL direct forged accepted S01 and actual native hold/retry, all exact-head gates pending. No positive LOC175 or market activation. |
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 native exact-head receipt
 
 | Exact head | Check | Result and bound |

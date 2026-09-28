@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 S01 valid LOC+175 hold candidate
+
+Published draft #421 `f342e7999de02f9bd80805de9559c498dd149965` passed all five applicable workflows, OPS native 385/385 and clean replay/type/schema parity. A new S01 valid-175 actual-consumer RED showed no internal review; local correction holds only unowned object IDEs and clears point payloads. Private SQL forward and two native cases require exact-head CI. Local 136/136 affected tests, three TS projects, migration/type integrity and scoped lint passed. No positive 175, historical 203/505 or E035 retention closure. Main remains `53bf989b`; draft unmerged, traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 mixed-object native gate passed
 
 Draft #421 exact head `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` passed Ediel `36426566433`, browser `36426566460`, Full E2E `36426566380`, tenant integrity `36426566448`, and OPS `36426566523` including verify, quality and clean replay. Native 385/385 covers both mixed physical LOC orders, two stable refusals and clean point; generated types `36e98937...` and schema `08ad0f03...` matched. Review found one stale audit sentence and matrix pending status; local documentation correction is unpushed and needs exact-head checks when published. Historical 203/505, positive LOC175, E035 history/retention and Storage root remain open, so draft unmerged, traffic blocked, #310 untouched.

@@ -1,3 +1,8 @@
+## 2026-09-28 — #421 valid S01/175 ownerless hold candidate
+
+Verified remote draft/main and existing exact-head green checks before edit. Source U25-A-4 p54/63 and UG-123-14–16 allows conditional 175 but no object owner. Actual nonbilling S01 first failed negative internal-hold test; per-IDE hold and clear point payload now pass, clean sibling positive. Private `persist_series_v1` refusal before ACK/series plus native direct and actual retry cases are local. 136/136 affected, three TS projects, migration/types, lint/diff passed; no native local DB. Next commit/push, inspect exact-head CI and update draft. No traffic, #310, staging or merge.
+
+Older entries below are historical.
 ## 2026-09-28 — #421 native result and full diff review
 
 Published non-force-forward to draft #421 `59d9419e` and reconstructed its exact unsigned Git object locally, leaving branch clean and tracking matching remote. Ediel/browser/Full E2E/tenant integrity/OPS all green; native 385/385, clean replay, generated types/schema parity. Full 21-file PR diff and zero threads/reviews reviewed. Found stale no-migration audit sentence and pending status after native acceptance; factual audit/matrix correction local awaiting forward commit and final exact-head CI. Package historical issuer/history, regulating-object owner and E035 gates remain open, traffic held and #310 untouched.

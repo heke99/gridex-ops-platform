@@ -1,3 +1,8 @@
+## Current — 2026-09-28 #421 S01/LOC+175 persistent hold
+
+One active item: publish the source-backed S01 valid-regulating-object hold with private sink fence and native direct/actual-consumer retry cases. Previous exact published head `f342e7999de02f9bd80805de9559c498dd149965` is fully green. First action: commit/push this local RED/GREEN code candidate, inspect the first real CI failure including native, clean replay and generated schema/types, then review whole diff and update draft #421 exact-head receipt. Do not merge until historical issuer/history/retention, positive object owner/mandate/sink and E035 gates have their own proof. No traffic or #310 action.
+
+Older Current sections below are historical and SUPERSEDED.
 ## Current — 2026-09-28 #421 final review checkpoint
 
 One active item: publish the bounded audit/matrix correction found in full diff review. Published `59d9419e44e0b4a1fe08d0b51afb2f4e5409afe1` is fully green: Ediel `36426566433`, browser `36426566460`, Full E2E `36426566380`, tenant integrity `36426566448`, OPS `36426566523` native 385/385 and generated type/schema parity. Current correction removes the audit's obsolete no-migration claim and marks only the mixed-object fence PR-verified. Next: commit/push this factual checkpoint to same draft, verify exact final head CI and review/remote status. Keep historical BGM203, IDE505, positive 175 and E035 blocked until owners/history/mandate/retention exist; no merge, traffic or #310 change.
