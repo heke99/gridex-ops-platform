@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
 import type {
  CustomerAddressRow,
  CustomerContactRow,
@@ -53,8 +54,23 @@ async function getActorUserId(): Promise<string> {
  return user.id
 }
 
+async function authorizedCustomerCompany(actorUserId: string, customerId: string): Promise<string> {
+ const { data, error } = await supabaseService
+ .from('customers')
+ .select('id,company_id,status')
+ .eq('id', customerId)
+ .maybeSingle()
+
+ if (error) throw error
+ if (!data?.company_id) throw new Error('Forbidden')
+ const companyId = await assertUserCanOperateCompany(actorUserId, data.company_id)
+ if (data.status === 'archived') throw new Error('Archived customer')
+ return companyId
+}
+
 async function insertAuditLog(params: {
  actorUserId: string
+ companyId: string
  entityType: string
  entityId: string
  action: string
@@ -64,6 +80,7 @@ async function insertAuditLog(params: {
 }) {
  const { error } = await supabaseService.from('audit_logs').insert({
  actor_user_id: params.actorUserId,
+ company_id: params.companyId,
  entity_type: params.entityType,
  entity_id: params.entityId,
  action: params.action,
@@ -75,7 +92,7 @@ async function insertAuditLog(params: {
  if (error) throw error
 }
 
-async function saveCustomerContactAction(formData: FormData) {
+export async function saveCustomerContactAction(formData: FormData) {
  'use server'
 
  const actorUserId = await getActorUserId()
@@ -102,6 +119,8 @@ async function saveCustomerContactAction(formData: FormData) {
  throw new Error('Företag eller förening kräver namn på primär kontaktperson')
  }
 
+ const companyId = await authorizedCustomerCompany(actorUserId, customerId)
+
  const type = isPrimary ? 'primary' : typeInput
  const title = customerType === 'private' && isPrimary ? titleInput : titleInput
 
@@ -111,16 +130,19 @@ async function saveCustomerContactAction(formData: FormData) {
  .select('*')
  .eq('id', contactId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .maybeSingle()
  : { data: null, error: null }
 
  if (before.error) throw before.error
+ if (contactId && !before.data) throw new Error('Forbidden')
 
  if (isPrimary) {
  const query = supabaseService
  .from('customer_contacts')
  .update({ is_primary: false })
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
 
  const { error: clearError } = contactId
  ? await query.neq('id', contactId)
@@ -130,6 +152,7 @@ async function saveCustomerContactAction(formData: FormData) {
  }
 
  const payload = {
+ company_id: companyId,
  customer_id: customerId,
  type,
  name,
@@ -145,6 +168,7 @@ async function saveCustomerContactAction(formData: FormData) {
  .update(payload)
  .eq('id', contactId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .select('*')
  .single()
  : await supabaseService
@@ -164,12 +188,14 @@ async function saveCustomerContactAction(formData: FormData) {
  updated_at: new Date().toISOString(),
  })
  .eq('id', customerId)
+ .eq('company_id', companyId)
 
  if (customerSyncError) throw customerSyncError
  }
 
  await insertAuditLog({
  actorUserId,
+ companyId,
  entityType: 'customer_contact',
  entityId: data.id,
  action: contactId ? 'customer_contact_updated' : 'customer_contact_created',
@@ -185,7 +211,7 @@ async function saveCustomerContactAction(formData: FormData) {
  revalidatePath(`/admin/customers/${customerId}`)
 }
 
-async function saveCustomerAddressAction(formData: FormData) {
+export async function saveCustomerAddressAction(formData: FormData) {
  'use server'
 
  const actorUserId = await getActorUserId()
@@ -216,18 +242,23 @@ async function saveCustomerAddressAction(formData: FormData) {
  throw new Error('Anläggningsadress ändras under anläggningsuppgifter.')
  }
 
+ const companyId = await authorizedCustomerCompany(actorUserId, customerId)
+
  const before = addressId
  ? await supabaseService
  .from('customer_addresses')
  .select('*')
  .eq('id', addressId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .maybeSingle()
  : { data: null, error: null }
 
  if (before.error) throw before.error
+ if (addressId && !before.data) throw new Error('Forbidden')
 
  const payload = {
+ company_id: companyId,
  customer_id: customerId,
  type,
  street_1: street1,
@@ -247,6 +278,7 @@ async function saveCustomerAddressAction(formData: FormData) {
  .update(payload)
  .eq('id', addressId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .select('*')
  .single()
  : await supabaseService
@@ -259,6 +291,7 @@ async function saveCustomerAddressAction(formData: FormData) {
 
  await insertAuditLog({
  actorUserId,
+ companyId,
  entityType: 'customer_address',
  entityId: data.id,
  action: addressId ? 'customer_address_updated' : 'customer_address_created',
