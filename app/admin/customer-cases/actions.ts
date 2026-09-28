@@ -11,9 +11,11 @@ import type { CustomerCasePriority } from '@/lib/customer-cases/types'
 const ALLOWED_STATUSES = new Set(['open', 'action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'])
 const ALLOWED_PRIORITIES = new Set<CustomerCasePriority>(['low', 'normal', 'high', 'urgent'])
 
-async function companyIdFor(userId: string): Promise<string> {
+async function companyIdFor(userId: string, permissionCompanyId: string | null): Promise<string> {
   const scope = await getOperationalCompanyScope(userId)
-  if (!scope.companyId) throw new Error(scope.message ?? 'Bolagskoppling saknas.')
+  if (!scope.companyId || scope.companyId !== permissionCompanyId) {
+    throw new Error('Bolagsvalet har ändrats. Ladda om sidan innan du sparar.')
+  }
   return scope.companyId
 }
 
@@ -40,7 +42,7 @@ function revision(formData: FormData): number {
 
 export async function createCustomerCaseFromFormAction(formData: FormData): Promise<void> {
   const admin = await requireAdminActionAccess(['cases.write'])
-  const companyId = await companyIdFor(admin.userId)
+  const companyId = await companyIdFor(admin.userId, admin.companyId)
   const customerId = value(formData, 'customer_id')
   const title = value(formData, 'title')
   if (!customerId || !title) throw new Error('Kund och rubrik krävs för supportärendet.')
@@ -62,7 +64,7 @@ export async function createCustomerCaseFromFormAction(formData: FormData): Prom
 
 export async function updateCustomerCaseStatusAction(formData: FormData): Promise<void> {
   const admin = await requireAdminActionAccess(['cases.write'])
-  const companyId = await companyIdFor(admin.userId)
+  const companyId = await companyIdFor(admin.userId, admin.companyId)
   const caseId = value(formData, 'case_id')
   const status = value(formData, 'status')
   if (!caseId || !ALLOWED_STATUSES.has(status)) throw new Error('Ogiltig supportåtgärd.')
@@ -79,7 +81,7 @@ export async function updateCustomerCaseStatusAction(formData: FormData): Promis
 
 export async function publishCustomerCaseAction(formData: FormData): Promise<void> {
   const admin = await requireAdminActionAccess(['cases.write'])
-  const companyId = await companyIdFor(admin.userId)
+  const companyId = await companyIdFor(admin.userId, admin.companyId)
   const caseId = value(formData, 'case_id')
   const title = value(formData, 'public_title')
   const body = value(formData, 'public_body')
@@ -98,7 +100,7 @@ export async function publishCustomerCaseAction(formData: FormData): Promise<voi
 
 export async function revokeCustomerCasePublicationAction(formData: FormData): Promise<void> {
   const admin = await requireAdminActionAccess(['cases.write'])
-  const companyId = await companyIdFor(admin.userId)
+  const companyId = await companyIdFor(admin.userId, admin.companyId)
   const caseId = value(formData, 'case_id')
   if (!caseId || revision(formData) < 1) throw new Error('Ogiltig publiceringsrevision.')
   await revokeCustomerCasePublication({

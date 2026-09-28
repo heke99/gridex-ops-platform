@@ -1,6 +1,8 @@
 import AdminHeader from '@/components/admin/AdminHeader'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
+import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { listCustomerCases } from '@/lib/customer-cases/db'
 import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
 import { listCurrentCasePublications } from '@/lib/customer-cases/publication'
@@ -18,8 +20,14 @@ function formatDate(value: string | null | undefined) {
 }
 
 export default async function CustomerCasesPage() {
-  const context = await requireAdminPageKeyAccess('operations.tasks')
+  const context = await requireAdminPageAccess(['cases.read'])
   const scope = await resolveAdminTenantReadScope(context)
+  const operational = !scope.isPlatformAdmin ? await getOperationalCompanyScope(context.userId) : null
+  const membership = operational?.memberships.find((row) => row.companyId === scope.companyId)
+  const canWrite = Boolean(!scope.isPlatformAdmin && scope.companyId &&
+    context.companyId === scope.companyId && operational?.companyId === scope.companyId &&
+    context.permissions.includes('cases.write') && membership?.status === 'active' &&
+    isCompanyWritableInTenantWorkspace(membership.companyStatus))
   const [allCases, customers] = await Promise.all([
     listCustomerCases({ companyId: scope.companyId, limit: 200 }),
     scope.companyId ? listTenantSupportCustomerOptions(scope.companyId) : Promise.resolve([]),
@@ -42,7 +50,7 @@ export default async function CustomerCasesPage() {
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Totalt i supporthistorik</p><p className="mt-2 text-3xl font-semibold">{cases.length}</p></div>
         </section>
 
-        {!scope.isPlatformAdmin && scope.companyId ? (
+        {canWrite ? (
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Nytt supportärende</h2>
             <form action={createCustomerCaseFromFormAction} className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -79,15 +87,21 @@ export default async function CustomerCasesPage() {
                   </div>
                   <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority} · {row.status}</span>
                 </div>
-                {!['resolved', 'closed', 'cancelled'].includes(row.status) && !scope.isPlatformAdmin ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {['action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'].map((status) => (
-                      <form key={status} action={updateCustomerCaseStatusAction}>
-                        <input type="hidden" name="case_id" value={row.id} /><input type="hidden" name="status" value={status} />
-                        <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{status}</button>
-                      </form>
-                    ))}
-                  </div>
+                {!['resolved', 'closed', 'cancelled'].includes(row.status) && canWrite ? (
+                  <form action={updateCustomerCaseStatusAction} className="mt-4 flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="case_id" value={row.id} />
+                    <label className="grid gap-1 text-xs font-semibold text-slate-700">Ärendestatus
+                      <select name="status" required defaultValue="" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                        <option value="" disabled>Välj status</option>
+                        <option value="action_required">Kräver åtgärd</option>
+                        <option value="awaiting_external_response">Väntar externt</option>
+                        <option value="manual_follow_up">Manuell uppföljning</option>
+                        <option value="resolved">Löst</option>
+                        <option value="closed">Avslutat</option>
+                      </select>
+                    </label>
+                    <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Spara status</button>
+                  </form>
                 ) : null}
                 <div className="mt-5 border-t border-slate-200 pt-4">
                   <h3 className="text-sm font-semibold text-slate-900">Kundsynlig publicering</h3>
@@ -98,7 +112,7 @@ export default async function CustomerCasesPage() {
                       <p className="mt-2 text-xs">{publication.public_status} · {publication.channel} · publicerad {formatDate(publication.published_at)} av {publication.author_user_id}</p>
                     </div>
                   ) : <p className="mt-2 text-sm text-slate-600">Inte publicerat till kunden.</p>}
-                  {!scope.isPlatformAdmin ? (
+                  {canWrite ? (
                     <div className="mt-3 grid gap-3">
                       <form action={publishCustomerCaseAction} className="grid gap-2">
                         <input type="hidden" name="case_id" value={row.id} />

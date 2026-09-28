@@ -107,6 +107,13 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
 test('tenant writer publishes and withdraws; customer portal sees only authored text', async ({ browser }) => {
   const page = await browser.newPage()
   const customer = await browser.newPage()
+  const reader = await browser.newPage()
+  await login(reader, fixture.readOnlyEmail)
+  await reader.goto('/admin/customer-cases')
+  await expect(reader.getByRole('heading', { name: 'Supportkö' })).toBeVisible()
+  await expect(reader.getByRole('button', { name: 'Publicera till kunden' })).toHaveCount(0)
+  await expect(reader.getByRole('button', { name: 'Spara status' })).toHaveCount(0)
+  await reader.close()
   await login(page, fixture.writerEmail)
   await login(customer, fixture.portalEmail)
   await customer.goto('/portal/arenden')
