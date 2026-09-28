@@ -26,6 +26,16 @@ export async function listCurrentCasePublications(companyId: string, caseIds: st
   return (data ?? []) as CurrentCasePublication[]
 }
 
+export async function listCasePublicationHeads(companyId: string, caseIds: string[]): Promise<Map<string, number>> {
+  if (caseIds.length === 0) return new Map()
+  const { data, error } = await supabaseService.rpc('gridex_case_publication_heads_v1', {
+    p_company_id: companyId,
+    p_case_ids: caseIds,
+  })
+  if (error) throw error
+  return new Map((data ?? []).map((row: { customer_case_id: string; revision: number }) => [row.customer_case_id, row.revision]))
+}
+
 export async function publishCustomerCase(input: {
   companyId: string
   caseId: string

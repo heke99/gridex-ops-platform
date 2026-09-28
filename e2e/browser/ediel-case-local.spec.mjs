@@ -54,6 +54,21 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await expect(support.getByRole('heading', { name: 'Supportkö' })).toBeVisible()
   await expect(support).toContainText('Synthetic support')
   await expect(support).not.toContainText(fixture.recent.title)
+  const supportIds = new Set()
+  for (let pageNumber = 1; pageNumber <= 3; pageNumber++) {
+    const ids = await support.locator('article[data-case-id]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-case-id')))
+    for (const id of ids) {
+      expect(supportIds.has(id)).toBe(false)
+      supportIds.add(id)
+    }
+    if (pageNumber < 3) {
+      await support.getByRole('link', { name: 'Nästa sida' }).click()
+      await expect(page).toHaveURL(new RegExp(`page=${pageNumber + 1}`))
+    }
+  }
+  expect(supportIds.size).toBe(202)
+  await expect(support.getByRole('link', { name: 'Nästa sida' })).toHaveCount(0)
+  await expect(support.getByRole('link', { name: 'Föregående sida' })).toBeVisible()
   const foreignResponse = await page.goto(detail(fixture.foreign.id))
   // Next emits 200 after streaming starts, or 404 before it starts. Both must
   // render the actual not-found boundary, never a successful case/login/error.
@@ -146,6 +161,17 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await customer.goto('/portal/arenden')
   await expect(customer.locator('main')).toContainText('Inga ärenden har publicerats')
   await expect(customer.locator('main')).not.toContainText('Customer visible browser subject')
+  await page.reload()
+  await expect(caseArticle.locator('input[name="expected_revision"]')).toHaveValue('1')
+  await caseArticle.locator('input[name="public_title"]').fill('New public subject after withdrawal')
+  await caseArticle.locator('textarea[name="public_body"]').fill('Second authored message.')
+  await caseArticle.getByRole('button', { name: 'Publicera till kunden' }).click()
+  await expect(caseArticle).toContainText('Version 2 · New public subject after withdrawal')
+  await customer.reload()
+  await expect(customer.getByRole('heading', { name: 'New public subject after withdrawal' })).toBeVisible()
+  await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
+  await customer.reload()
+  await expect(customer.locator('main')).not.toContainText('New public subject after withdrawal')
   await customer.close()
   await page.close()
 })

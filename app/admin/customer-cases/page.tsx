@@ -1,25 +1,28 @@
 import AdminHeader from '@/components/admin/AdminHeader'
+import Link from 'next/link'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
-import { listCustomerCases } from '@/lib/customer-cases/db'
-import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
-import { listCurrentCasePublications } from '@/lib/customer-cases/publication'
+import { listTenantSupportCases, listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
+import { listCasePublicationHeads, listCurrentCasePublications } from '@/lib/customer-cases/publication'
 import { createCustomerCaseFromFormAction, publishCustomerCaseAction, revokeCustomerCasePublicationAction, updateCustomerCaseStatusAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
-function isSupportCase(row: { source?: string | null; metadata?: Record<string, unknown> | null }) {
-  return row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_')
-}
+const PAGE_SIZE = 100
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
   return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-export default async function CustomerCasesPage() {
+export default async function CustomerCasesPage({ searchParams }: {
+  searchParams?: Promise<{ page?: string | string[] }>
+}) {
+  const rawPage = (await searchParams)?.page
+  const requestedPage = typeof rawPage === 'string' && /^[1-9]\d*$/.test(rawPage) ? Number(rawPage) : 1
+  const page = Number.isSafeInteger(requestedPage) && requestedPage <= 10_000 ? requestedPage : 1
   const context = await requireAdminPageAccess(['cases.read'])
   const scope = await resolveAdminTenantReadScope(context)
   const operational = !scope.isPlatformAdmin ? await getOperationalCompanyScope(context.userId) : null
@@ -28,14 +31,17 @@ export default async function CustomerCasesPage() {
     context.companyId === scope.companyId && operational?.companyId === scope.companyId &&
     context.permissions.includes('cases.write') && membership?.status === 'active' &&
     isCompanyWritableInTenantWorkspace(membership.companyStatus))
-  const [allCases, customers] = await Promise.all([
-    listCustomerCases({ companyId: scope.companyId, limit: 200 }),
+  const [supportRows, customers] = await Promise.all([
+    scope.companyId ? listTenantSupportCases({ companyId: scope.companyId, limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE }) : Promise.resolve([]),
     scope.companyId ? listTenantSupportCustomerOptions(scope.companyId) : Promise.resolve([]),
   ])
-  const cases = allCases.filter(isSupportCase)
-  const publications = await (scope.companyId
-    ? listCurrentCasePublications(scope.companyId, cases.map((row) => row.id))
-    : Promise.resolve([]))
+  const hasNext = supportRows.length > PAGE_SIZE
+  const cases = supportRows.slice(0, PAGE_SIZE)
+  const caseIds = cases.map((row) => row.id)
+  const [publications, heads] = await Promise.all([
+    scope.companyId ? listCurrentCasePublications(scope.companyId, caseIds) : Promise.resolve([]),
+    scope.companyId ? listCasePublicationHeads(scope.companyId, caseIds) : Promise.resolve(new Map<string, number>()),
+  ])
   const publicationByCase = new Map(publications.map((item) => [item.customer_case_id, item]))
   const open = cases.filter((row) => !['resolved', 'closed', 'cancelled'].includes(row.status))
   const urgent = open.filter((row) => ['urgent', 'high'].includes(row.priority))
@@ -45,9 +51,9 @@ export default async function CustomerCasesPage() {
       <AdminHeader title="Support" subtitle="Tenant-isolerade supportärenden från API, kundportal och intern handläggning." userEmail={context.email} />
       <main className="space-y-6 p-6 lg:p-8">
         <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Öppna supportärenden</p><p className="mt-2 text-3xl font-semibold">{open.length}</p></div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Hög/akut prioritet</p><p className="mt-2 text-3xl font-semibold">{urgent.length}</p></div>
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Totalt i supporthistorik</p><p className="mt-2 text-3xl font-semibold">{cases.length}</p></div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Öppna på sidan</p><p className="mt-2 text-3xl font-semibold">{open.length}</p></div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Hög/akut på sidan</p><p className="mt-2 text-3xl font-semibold">{urgent.length}</p></div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Ärenden på sidan</p><p className="mt-2 text-3xl font-semibold">{cases.length}</p></div>
         </section>
 
         {canWrite ? (
@@ -72,12 +78,13 @@ export default async function CustomerCasesPage() {
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div><h2 className="text-lg font-semibold text-slate-950">Supportkö</h2><p className="mt-1 text-sm text-slate-600">Normal drift visas inte här. Endast uttryckliga supportärenden från tenantens kanaler.</p></div>
+          {scope.isPlatformAdmin ? <p className="mt-4 text-sm text-slate-600">Öppna tenantens arbetsyta för att läsa dess supportärenden.</p> : null}
           <div className="mt-5 space-y-3">
-            {cases.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga supportärenden i valt scope.</p> : null}
+            {cases.length === 0 && !scope.isPlatformAdmin ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga supportärenden på denna sida.</p> : null}
             {cases.map((row) => {
               const publication = publicationByCase.get(row.id)
               return (
-              <article key={row.id} className="rounded-2xl border border-slate-200 p-4">
+              <article key={row.id} data-case-id={row.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-slate-950">{row.title}</p>
@@ -116,7 +123,7 @@ export default async function CustomerCasesPage() {
                     <div className="mt-3 grid gap-3">
                       <form action={publishCustomerCaseAction} className="grid gap-2">
                         <input type="hidden" name="case_id" value={row.id} />
-                        <input type="hidden" name="expected_revision" value={publication?.revision ?? 0} />
+                        <input type="hidden" name="expected_revision" value={heads.get(row.id) ?? 0} />
                         <input name="public_title" required maxLength={180} placeholder="Kundsynlig rubrik (skriv uttryckligen)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
                         <textarea name="public_body" required maxLength={8000} rows={3} placeholder="Meddelande till kunden (intern text kopieras inte automatiskt)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
                         <select name="public_status" defaultValue="open" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
@@ -138,6 +145,13 @@ export default async function CustomerCasesPage() {
               )
             })}
           </div>
+          {!scope.isPlatformAdmin && scope.companyId ? (
+            <nav aria-label="Supportärenden sidor" className="mt-5 flex items-center gap-4 text-sm">
+              {page > 1 ? <Link className="font-semibold text-slate-800 underline" href={`/admin/customer-cases?page=${page - 1}`}>Föregående sida</Link> : null}
+              <span>Sida {page}</span>
+              {hasNext ? <Link className="font-semibold text-slate-800 underline" href={`/admin/customer-cases?page=${page + 1}`}>Nästa sida</Link> : null}
+            </nav>
+          ) : null}
         </section>
       </main>
     </div>

@@ -16,6 +16,7 @@ import { applyInboundBusinessStateMachine } from '@/lib/ediel/flows/inboundBusin
 import { listCustomerCases, updateCustomerCaseStatus } from '@/lib/customer-cases/db'
 import { listTenantSupportCases } from '@/lib/customer-cases/support'
 import { listPortalCases } from '@/lib/customer-portal/db'
+import { listCasePublicationHeads } from '@/lib/customer-cases/publication'
 import type { CustomerPortalContext } from '@/lib/customer-portal/types'
 
 const API = 'http://127.0.0.1:54321'
@@ -120,7 +121,8 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     expect(sql<{ status: string; updated_by: string }>(`SELECT jsonb_build_object('status',status,'updated_by',updated_by) FROM public.customer_cases WHERE id=${quote(fixture.recent.id)} AND company_id=${quote(fixture.companyA)}`)).toEqual({ status: 'resolved', updated_by: fixture.writerId })
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(fixture.recent.id)} AND company_id=${quote(fixture.companyA)} AND event_type='status_changed' AND message='Ediel-ärendestatus uppdaterad till resolved.'`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(fixture.supportId)} AND company_id=${quote(fixture.companyA)} AND revoked_at IS NOT NULL AND revision=1 AND public_title='Customer visible browser subject' AND public_body='A message authored for the customer.'`)).toBe(1)
-    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(fixture.supportId)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(2)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(fixture.supportId)} AND company_id=${quote(fixture.companyA)} AND revoked_at IS NOT NULL AND revision=2 AND public_title='New public subject after withdrawal'`)).toBe(1)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(fixture.supportId)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(4)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_portal_accounts WHERE user_id=${quote(fixture.portalUserId)} AND customer_id=${quote(fixture.customerA)} AND company_id=${quote(fixture.companyA)} AND status='active' AND is_active`)).toBe(1)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.audit_logs WHERE entity_id=${quote(fixture.recent.id)} AND company_id=${quote(fixture.companyA)} AND action='customer_case_status_changed' AND actor_user_id=${quote(fixture.writerId)}`)).toBe(1)
     expect(sql<string>(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${quote(fixture.old.id)} AND company_id=${quote(fixture.companyA)}`)).toBe('open')
@@ -146,6 +148,8 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   const actorB = await createActor(`${tag}-b`, companyB, ['cases.read', 'cases.write'])
   const old = await writeCase(companyA, customerA, writer.user)
   sql(`UPDATE public.customer_cases SET created_at=now()-interval '3 days' WHERE id=${quote(old.id)};
+    INSERT INTO public.customer_cases(company_id,customer_id,case_type,status,title,source,metadata,created_at)
+      SELECT ${quote(companyA)},${quote(customerA)},'other','open','Unrelated ordinary '||n,'internal_fixture','{}'::jsonb,now()-interval '1 hour' FROM generate_series(1,220) AS n;
     INSERT INTO public.customer_cases(company_id,customer_id,case_type,status,title,source,metadata,created_at)
       SELECT ${quote(companyA)},${quote(customerA)},'other','open','Synthetic support '||n,'tenant_support_fixture','{"support_case":true}'::jsonb,now()-interval '1 day' FROM generate_series(1,201) AS n;`)
   const recent = await writeCase(companyA, customerA, writer.user)
@@ -188,8 +192,11 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   for (const sensitive of ['next_action', 'description', 'priority', 'metadata']) expect(publicRows[0]).not.toHaveProperty(sensitive)
   expect(await listPortalCases({ companyId: companyB, customerIds: [customerB] } as CustomerPortalContext)).toEqual([])
   expect(await listPortalCases({ companyId: companyA, customerIds: [customerB] } as CustomerPortalContext)).toEqual([])
+  const staleStartedAt = Date.now()
   const stale = await supabaseService.rpc('gridex_publish_customer_case_v1', publishArgs)
-  expect(stale.error?.message).toContain('case_publication_revision_conflict')
+  expect(stale.error).toMatchObject({ code: 'PT409', message: 'case_publication_revision_conflict' })
+  expect(Date.now() - staleStartedAt).toBeLessThan(10_000)
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(recent.id)}`)).toBe(1)
   const second = await supabaseService.rpc('gridex_publish_customer_case_v1', {
     ...publishArgs, p_expected_revision: 1, p_title: 'Revised public subject', p_body: 'Revised public response', p_status: 'resolved',
   })
@@ -204,7 +211,27 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   console.log('[case-publication-native] revoke returned')
   expect(revoke).toMatchObject({ data: true, error: null })
   expect(await listPortalCases(portalContext)).toEqual([])
+  expect((await listCasePublicationHeads(companyA, [recent.id])).get(recent.id)).toBe(2)
+  expect((await readOnly.client.rpc('gridex_case_publication_heads_v1', {
+    p_company_id: companyA, p_case_ids: [recent.id],
+  })).error?.code).toBe('42501')
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(recent.id)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(3)
+  const staleAfterRevoke = await supabaseService.rpc('gridex_publish_customer_case_v1', {
+    ...publishArgs, p_expected_revision: 0,
+  })
+  expect(staleAfterRevoke.error).toMatchObject({ code: 'PT409', message: 'case_publication_revision_conflict' })
+  const republished = await supabaseService.rpc('gridex_publish_customer_case_v1', {
+    ...publishArgs, p_expected_revision: 2, p_title: 'Reopened public subject',
+  })
+  expect(republished.error).toBeNull()
+  expect(republished.data).toMatchObject({ revision: 3, public_title: 'Reopened public subject' })
+  expect((await listPortalCases(portalContext)).map((row) => row.public_title)).toEqual(['Reopened public subject'])
+  const finalRevoke = await supabaseService.rpc('gridex_revoke_customer_case_publication_v1', {
+    p_company_id: companyA, p_case_id: recent.id, p_actor_user_id: writer.user, p_expected_revision: 3,
+  })
+  expect(finalRevoke).toMatchObject({ data: true, error: null })
+  expect(await listPortalCases(portalContext)).toEqual([])
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(recent.id)}`)).toBe(3)
   sql(`DO $$ BEGIN
     BEGIN
       UPDATE public.customer_case_publications SET public_body='tampered' WHERE customer_case_id=${quote(recent.id)};
@@ -222,8 +249,8 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   expect(foreignList).toHaveLength(1)
   expect(foreignList[0]).toMatchObject({ id: foreign.id, company_id: companyB, customer_id: customerB, customer_name: 'Synthetic B', customer_email: 'case-b@example.invalid', customer_number: `CASE-B-${tag}` })
   // Support filtering must happen before the database page boundary. The
-  // Ediel cases and 201 support cases share this tenant, so the second page
-  // must still expose the last support case without duplicating the first.
+  // 220 newer ordinary cases precede 201 support cases. The second filtered
+  // page must still expose the last support case without duplicating the first.
   const supportList = await listTenantSupportCases({ companyId: companyA, limit: 200 })
   const supportPageTwo = await listTenantSupportCases({ companyId: companyA, limit: 200, offset: 200 })
   expect(supportList).toHaveLength(200)
