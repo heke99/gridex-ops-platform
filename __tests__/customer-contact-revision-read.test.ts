@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { assertPublicResponsePayload, PublicPayloadSafetyError } from '@/lib/api/publicPayloadSafety'
 import { publicPortalCustomer } from '@/lib/customer-portal/publicDto'
 
 describe('delegated customer contact read', () => {
@@ -15,5 +16,15 @@ describe('delegated customer contact read', () => {
     expect(publicPortalCustomer({ phone: '+46123456789' }, {})).toMatchObject({
       contact_revision: null,
     })
+  })
+
+  it('keeps synthetic business numbers distinct from internal UUIDs at the public response gate', () => {
+    const internalId = '5a87fbce-f40a-44e2-9e1f-bb252e7de060'
+    const profile = publicPortalCustomer({ customer_number: 'P2-A-5A87FBCE', contact_revision: 2 },
+      { customer_number: 'P2-A-5A87FBCE' })
+    expect(() => assertPublicResponsePayload({ data: profile })).not.toThrow()
+    const unsafe = publicPortalCustomer({ customer_number: internalId, contact_revision: 2 },
+      { customer_number: internalId })
+    expect(() => assertPublicResponsePayload({ data: unsafe })).toThrow(PublicPayloadSafetyError)
   })
 })

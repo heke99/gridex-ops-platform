@@ -106,13 +106,15 @@ it('uses real local Auth and verifies the browser/API contact result with native
 
   const companyA = randomUUID(), companyB = randomUUID()
   const customerA = randomUUID(), customerB = randomUUID(), contactA = randomUUID()
+  const customerNumberA = `P2-A-${customerA.slice(0, 8).toUpperCase()}`
+  const customerNumberB = `P2-B-${customerB.slice(0, 8).toUpperCase()}`
   sql(`
     INSERT INTO public.companies(id,name,status) VALUES
       (${quote(companyA)},'Synthetic browser contact A','active'),
       (${quote(companyB)},'Synthetic browser contact B','active');
     INSERT INTO public.customers(id,company_id,customer_number,name,customer_type,first_name,last_name,email,phone)
-      VALUES(${quote(customerA)},${quote(companyA)},${quote(customerA)},'Synthetic A','private','Synthetic','Customer','before@example.invalid','+4600000000'),
-      (${quote(customerB)},${quote(companyB)},${quote(customerB)},'Synthetic B','private','Other','Customer','other@example.invalid','+4600000001');
+      VALUES(${quote(customerA)},${quote(companyA)},${quote(customerNumberA)},'Synthetic A','private','Synthetic','Customer','before@example.invalid','+4600000000'),
+      (${quote(customerB)},${quote(companyB)},${quote(customerNumberB)},'Synthetic B','private','Other','Customer','other@example.invalid','+4600000001');
     INSERT INTO public.customer_contacts(id,company_id,customer_id,type,is_primary,name,email,phone)
       VALUES(${quote(contactA)},${quote(companyA)},${quote(customerA)},'primary',true,'Synthetic Primary','before@example.invalid','+4600000000');
     SELECT to_jsonb(count(*)) FROM public.customer_contacts WHERE id=${quote(contactA)};
@@ -168,7 +170,7 @@ it('uses real local Auth and verifies the browser/API contact result with native
       .setIssuer(issuer).setAudience(audience).setSubject(subject)
       .setIssuedAt().setExpirationTime('5m').sign(privateKey)
   writeFileSync(fixturePath, JSON.stringify({
-    companyA, companyB, customerA, customerB, contactA, writerId: writer.userId,
+    companyA, companyB, customerA, customerB, customerNumberB, contactA, writerId: writer.userId,
     writerEmail: writer.email, readerEmail: reader.email, foreignWriterEmail: foreignWriter.email,
     apiClientId, apiKey: apiKey.token, trust,
     apiPostAssertion: await sign('POST /api/v1/customer/profile-update'),

@@ -88,7 +88,7 @@ test('delegated HTTP API uses the same revision, rejects forged identity and rep
   })
   expect(wrongCustomer.status()).toBe(403)
   const forgedCustomer = await request.post(url, {
-    headers: { ...headers, 'x-gridex-customer-number': fixture.customerB }, data: body,
+    headers: { ...headers, 'x-gridex-customer-number': fixture.customerNumberB }, data: body,
   })
   expect(forgedCustomer.status()).toBe(403)
 
