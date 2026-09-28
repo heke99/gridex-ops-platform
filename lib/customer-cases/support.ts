@@ -204,19 +204,3 @@ export async function listTenantSupportCases(input: {
   // support predicate is permitted to leave this service boundary.
   return rows.filter((row) => row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_'))
 }
-
-export function publicSupportCase(row: CustomerCaseRow | CustomerCaseListRow) {
-  return {
-    id: row.id,
-    status: row.status,
-    priority: row.priority,
-    title: row.title,
-    description: row.description,
-    category: row.reason_category,
-    next_action: row.next_action,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    resolved_at: row.resolved_at,
-    closed_at: row.closed_at,
-  }
-}

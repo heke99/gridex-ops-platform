@@ -187,31 +187,20 @@ export type CustomerPortalContractRow = {
 
 export type CustomerPortalCaseRow = {
   id: string
+  customer_case_id: string
   customer_id: string
-  site_id: string | null
-  metering_point_id: string | null
-  case_type: string | null
-  status: string | null
-  priority: string | null
-  title: string | null
-  description: string | null
-  reason_category: string | null
-  next_action: string | null
-  created_at: string
-  updated_at: string
+  revision: number
+  public_status: 'open' | 'waiting_for_customer' | 'resolved' | 'closed'
+  public_title: string
+  public_body: string
+  published_at: string
 }
 
 export type CustomerPortalInfoRequestRow = {
   id: string
   customer_id: string
-  site_id: string | null
-  metering_point_id: string | null
   request_type: string | null
-  target_party_type: string | null
   status: string | null
-  requested_data_categories: unknown
-  notes: string | null
-  created_at: string
   updated_at: string
 }
 

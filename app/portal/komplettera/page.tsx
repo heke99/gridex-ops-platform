@@ -124,11 +124,6 @@ export default async function PortalCompletionPage({
                     Status {request.status ?? "—"} ·{" "}
                     {formatDate(request.updated_at)}
                   </div>
-                  {request.notes ? (
-                    <p className="mt-2 text-sm text-slate-600">
-                      {request.notes}
-                    </p>
-                  ) : null}
                 </div>
               ))}
               {requests.length === 0 ? (

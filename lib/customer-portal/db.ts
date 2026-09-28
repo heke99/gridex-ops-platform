@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import type {
   CustomerInvoiceDocumentRow,
   CustomerInvoiceLineRow,
@@ -470,12 +471,15 @@ export async function listPortalCases(
 ): Promise<CustomerPortalCaseRow[]> {
   if (context.customerIds.length === 0 || !context.companyId) return []
 
-  const { data, error } = await supabaseService
-    .from('customer_cases')
-    .select('id,customer_id,site_id,metering_point_id,case_type,status,priority,title,description,reason_category,next_action,created_at,updated_at')
-    .eq('company_id', context.companyId)
+  // Query only explicitly published snapshots. Never select a staff case row
+  // and never trim a mixed internal list before applying publication scope.
+  const { data, error } = await (tenantDb(context.companyId)
+    .from('customer_case_publications')
+    .select('id,customer_case_id,customer_id,revision,public_status,public_title,public_body,published_at') as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
     .in('customer_id', context.customerIds)
-    .order('updated_at', { ascending: false })
+    .is('revoked_at', null)
+    .order('published_at', { ascending: false })
+    .order('id', { ascending: false })
     .limit(100)
 
   if (error) throw error
@@ -489,7 +493,7 @@ export async function listPortalInfoRequests(
 
   const { data, error } = await supabaseService
     .from('customer_info_requests')
-    .select('id,customer_id,site_id,metering_point_id,request_type,target_party_type,status,requested_data_categories,notes,created_at,updated_at')
+    .select('id,customer_id,request_type,status,updated_at')
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
     .order('updated_at', { ascending: false })

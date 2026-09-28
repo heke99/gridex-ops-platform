@@ -3,7 +3,8 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomerCases } from '@/lib/customer-cases/db'
 import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
-import { createCustomerCaseFromFormAction, updateCustomerCaseStatusAction } from './actions'
+import { listCurrentCasePublications } from '@/lib/customer-cases/publication'
+import { createCustomerCaseFromFormAction, publishCustomerCaseAction, revokeCustomerCasePublicationAction, updateCustomerCaseStatusAction } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,10 @@ export default async function CustomerCasesPage() {
     scope.companyId ? listTenantSupportCustomerOptions(scope.companyId) : Promise.resolve([]),
   ])
   const cases = allCases.filter(isSupportCase)
+  const publications = await (scope.companyId
+    ? listCurrentCasePublications(scope.companyId, cases.map((row) => row.id))
+    : Promise.resolve([]))
+  const publicationByCase = new Map(publications.map((item) => [item.customer_case_id, item]))
   const open = cases.filter((row) => !['resolved', 'closed', 'cancelled'].includes(row.status))
   const urgent = open.filter((row) => ['urgent', 'high'].includes(row.priority))
 
@@ -61,7 +66,9 @@ export default async function CustomerCasesPage() {
           <div><h2 className="text-lg font-semibold text-slate-950">Supportkö</h2><p className="mt-1 text-sm text-slate-600">Normal drift visas inte här. Endast uttryckliga supportärenden från tenantens kanaler.</p></div>
           <div className="mt-5 space-y-3">
             {cases.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga supportärenden i valt scope.</p> : null}
-            {cases.map((row) => (
+            {cases.map((row) => {
+              const publication = publicationByCase.get(row.id)
+              return (
               <article key={row.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -82,8 +89,40 @@ export default async function CustomerCasesPage() {
                     ))}
                   </div>
                 ) : null}
+                <div className="mt-5 border-t border-slate-200 pt-4">
+                  <h3 className="text-sm font-semibold text-slate-900">Kundsynlig publicering</h3>
+                  {publication ? (
+                    <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-slate-800">
+                      <p className="font-semibold">Version {publication.revision} · {publication.public_title}</p>
+                      <p className="mt-1 whitespace-pre-wrap">{publication.public_body}</p>
+                      <p className="mt-2 text-xs">{publication.public_status} · {publication.channel} · publicerad {formatDate(publication.published_at)} av {publication.author_user_id}</p>
+                    </div>
+                  ) : <p className="mt-2 text-sm text-slate-600">Inte publicerat till kunden.</p>}
+                  {!scope.isPlatformAdmin ? (
+                    <div className="mt-3 grid gap-3">
+                      <form action={publishCustomerCaseAction} className="grid gap-2">
+                        <input type="hidden" name="case_id" value={row.id} />
+                        <input type="hidden" name="expected_revision" value={publication?.revision ?? 0} />
+                        <input name="public_title" required maxLength={180} placeholder="Kundsynlig rubrik (skriv uttryckligen)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+                        <textarea name="public_body" required maxLength={8000} rows={3} placeholder="Meddelande till kunden (intern text kopieras inte automatiskt)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+                        <select name="public_status" defaultValue="open" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                          <option value="open">Öppet</option><option value="waiting_for_customer">Väntar på kunden</option><option value="resolved">Löst</option><option value="closed">Avslutat</option>
+                        </select>
+                        <button className="rounded-xl border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-800">{publication ? 'Publicera ny kundsynlig version' : 'Publicera till kunden'}</button>
+                      </form>
+                      {publication ? (
+                        <form action={revokeCustomerCasePublicationAction}>
+                          <input type="hidden" name="case_id" value={row.id} />
+                          <input type="hidden" name="expected_revision" value={publication.revision} />
+                          <button className="rounded-xl border border-red-300 px-3 py-2 text-sm font-semibold text-red-800">Dra tillbaka publiceringen</button>
+                        </form>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </article>
-            ))}
+              )
+            })}
           </div>
         </section>
       </main>

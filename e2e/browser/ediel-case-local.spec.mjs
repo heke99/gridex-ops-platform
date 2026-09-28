@@ -103,3 +103,21 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
   await expect(reader.getByLabel('Ärendestatus')).toHaveCount(0)
   await reader.close()
 })
+
+test('tenant writer explicitly publishes and withdraws a customer-facing support snapshot', async ({ page }) => {
+  await login(page, fixture.writerEmail)
+  await page.goto('/admin/customer-cases')
+  const support = await adminContent(page)
+  const caseArticle = support.locator('article').filter({
+    has: support.locator(`input[name="case_id"][value="${fixture.supportId}"]`),
+  })
+  await expect(caseArticle).toHaveCount(1)
+  await expect(caseArticle).toContainText('Inte publicerat till kunden.')
+  await caseArticle.locator('input[name="public_title"]').fill('Customer visible browser subject')
+  await caseArticle.locator('textarea[name="public_body"]').fill('A message authored for the customer.')
+  await caseArticle.getByRole('button', { name: 'Publicera till kunden' }).click()
+  await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
+  await expect(caseArticle).toContainText('A message authored for the customer.')
+  await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
+  await expect(caseArticle).toContainText('Inte publicerat till kunden.')
+})

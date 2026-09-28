@@ -6,10 +6,10 @@ import { formatDate } from "@/lib/customer-portal/format";
 
 export const dynamic = "force-dynamic";
 
-function tone(status: string | null) {
+function tone(status: string) {
   if (["resolved", "closed", "done"].includes(String(status)))
     return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  if (["action_required", "blocked", "failed"].includes(String(status)))
+  if (status === "waiting_for_customer")
     return "border-red-200 bg-red-50 text-red-800";
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
@@ -25,8 +25,7 @@ export default async function PortalCasesPage() {
           Mina ärenden
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-          Här visas pågående och historiska ärenden kopplade till dina avtal,
-          anläggningar, mätvärden och fakturaunderlag.
+          Här visas ärenden som kundservice har publicerat till dig.
         </p>
       </section>
 
@@ -39,35 +38,25 @@ export default async function PortalCasesPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">
-                  {item.title ?? "Kundärende"}
+                  {item.public_title}
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Skapat {formatDate(item.created_at)} · Uppdaterat{" "}
-                  {formatDate(item.updated_at)}
+                  Publicerat {formatDate(item.published_at)}
                 </p>
               </div>
               <span
-                className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone(item.status)}`}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone(item.public_status)}`}
               >
-                {item.status ?? "okänd status"}
+                {item.public_status === "waiting_for_customer" ? "Väntar på dig" : item.public_status === "resolved" ? "Löst" : item.public_status === "closed" ? "Avslutat" : "Öppet"}
               </span>
             </div>
-            {item.description ? (
-              <p className="mt-4 text-sm leading-6 text-slate-700">
-                {item.description}
-              </p>
-            ) : null}
-            {item.next_action ? (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <strong>Nästa åtgärd:</strong> {item.next_action}
-              </div>
-            ) : null}
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.public_body}</p>
           </article>
         ))}
 
         {cases.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Inga ärenden finns för ditt kundkonto.
+            Inga ärenden har publicerats till ditt kundkonto.
           </div>
         ) : null}
       </section>
