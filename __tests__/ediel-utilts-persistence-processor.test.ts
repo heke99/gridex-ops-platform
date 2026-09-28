@@ -370,6 +370,21 @@ it('holds a valid S01 LOC+175 without an owned regulating object and never reser
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
+it('holds E66 point consumption when a LOC+175 appears after SEQ in the same physical IDE', async () => {
+  const message = incoming(false, false, '2026-10-01')
+  message.raw_payload = message.raw_payload!
+    .replace("SEQ++1'", "SEQ++1'\nLOC+175+735999260731000007::9'")
+    .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
+  const runtime = runUtiltsRuntimeForMessage(message)
+  expect(runtime.facts.transactions[0].regulatingObjectPresent).toBe(true)
+  expect(runtime.transactionDispositions[0].disposition).toBe('accepted')
+  io.get.mockResolvedValue(message); results = undefined
+  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
+  expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
+  expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling eligible with a valid %s regulating-object IDE', async order => {
   const message = incoming(false, true, '2026-10-01')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'

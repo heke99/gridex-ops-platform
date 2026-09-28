@@ -211,6 +211,34 @@ it.each(['before', 'after'] as const)('mixed physical LOC+175 %s LOC+172 cannot 
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(supported))[0].persistenceStatus).toBe('persisted')
 })
+it('a misplaced LOC+175 after SEQ cannot acquire a point or object-shaped positive reservation', async () => {
+  const f = await seed(), supported = await f.prepare()
+  const raw = f.original.raw_payload!
+    .replace("SEQ++1'", "SEQ++1'\nLOC+175+735999260731000007::9'")
+    .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
+  const source = await f.insertSource(raw)
+  const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
+  expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},'GRIDEX2607E66001')),'null'::jsonb)`)).toBeNull()
+  expect(sql<boolean>(`SELECT gridex_utilts_binding.unowned_regulating_object_v1(${tokens},'GRIDEX2607E66001')`)).toBe(true)
+  const forged = { ...supported, sourceMessageId: source.id, rawPayload: source.raw_payload! }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(/utilts_(consumption_identity_unsupported|regulating_object_owner_unavailable)/)
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  }
+  const processed = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(processed.ingestedMeterValueIds).toEqual([])
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
+   'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
+   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(effects.ack).not.toHaveBeenCalled(); expect(effects.meter).not.toHaveBeenCalled()
+  expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  const before = snapshot(source.id)
+  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect(snapshot(source.id)).toEqual(before)
+  expect((await persistUtiltsTransactionResults(supported))[0].persistenceStatus).toBe('persisted')
+})
 it('native S01 valid LOC+175 cannot reserve a point series or positive ACK through a forged service RPC', async () => {
   const f = await seed()
   const raw = f.original.raw_payload!

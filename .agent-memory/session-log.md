@@ -441,3 +441,8 @@ Evidence commit `11be9ea8` passed four ordinary workflows and OPS verify/quality
 Rechecked PR #421/open draft, remote main/head, clean clone, five exact `3002c277` successes and zero reviews. Traced source amendment, physical IDE scope, receiver identity, prospective ledger, receipt key, retention and regulating-object owner. Wrote two-order mocked S01 sibling controls and native persisted/retry probe. The first local failure was a test-only top-level ACK reference assertion; corrected to the draft and event payload; both controls now pass. Three related files 119/119, script/test TypeScript, scoped lint and 121/231 integrity passed. Native database is absent locally; publish this evidence/test candidate, diagnose its first CI outcome. No product change or external traffic.
 
 Older entries below are historical.
+## 2026-09-28 — #421 late LOC+175 physical IDE refusal
+
+Rechecked draft/main/local status and U25-A-4 SG5 field 533. RED ordinary identity, actual history-reader and E66 consumer tests exposed a late LOC+175 after SEQ: point identity, inspected point source and accepted positive quantity 500. Added complete-IDE TS guards and private selector forward migration, native direct forged RPC and real processor stable retry test. Local 76/76 focused, three TS projects, lint, migration/type integrity, 121/231 spec inventory and diff passed. Last verified e443 five workflows/native 393, new-head native pending. External sender/history/retention/object/E035 records still absent; no traffic, merge or #310 action.
+
+Older entries above are historical.

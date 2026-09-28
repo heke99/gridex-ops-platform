@@ -684,3 +684,8 @@ Draft #421 evidence head `11be9ea8` has OPS clean replay native 386/387. A basel
 The prior `3002c277` head passed all five workflows, native 387/387 and replay/types/schema. The new mixed S01 object-held plus point-accepted sibling/retry test has only local mocked consumer proof; exact native result is pending. External blockers: attested time-bound physical NAD+MS issuer to tenant/UNB representative, authentic continuous pre-ledger/deleted UTILTS originals and purge manifest, lawful raw/203/505 tombstone retention; positive LOC+175 object version/mandate/independent sink/final ACK owner; E035 earlier history/deletion and both unexplained native capture failures. #421 draft, #310 excluded, no real traffic or external tests.
 
 Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 owner gates and native candidate
+
+The late-LOC+175 physical IDE correction has only local RED/GREEN and static verification; native PostgreSQL, clean replay, generated parity and exact-head workflow results are pending publication. No trusted time-bound NAD+MS legal sender-to-tenant/UNB representative binding, continuously attested pre-ledger/deleted UTILTS originals or lawful raw/tombstone retention period exists in the inspected repo. Positive LOC+175 still lacks versioned registry, actor/mandate, separate sink and ACK/retry owner. E035 pre-epoch/deletion coverage and earlier Storage failure causes remain unknown. The responsible functions and exact requested records are in the issuer-history-owner-gate audit. No market activation, merge or #310 edit.
+
+Older Current sections above are historical and SUPERSEDED.

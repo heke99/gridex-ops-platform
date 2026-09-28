@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260928181500_utilts_held_retry_stable_reservation.sql",
-  "latest_migration_schema_effect": "Forward migration replaces only the private gridex_utilts_binding.persist_series_v1 function body to preserve an identical unfinalized internal-review reservation on retry. Public signatures and grants remain unchanged; the canonical snapshot covers public and gridex_received_sources, not the private binding schema. Generated public Database types retain their previous SHA256. Exact-head OPS native replay, type generation and canonical schema comparison must confirm this before acceptance."
+  "latest_migration": "20260928201500_utilts_late_175_physical_ide_fence.sql",
+  "latest_migration_schema_effect": "Forward migration replaces only two existing private gridex_utilts_binding selector bodies. A LOC+175 anywhere before the next physical IDE/UNT prevents point selection and is recognized by the ownerless-object refusal even when misplaced after SEQ. Public signatures, ownership and grants remain unchanged; the canonical snapshot covers public and gridex_received_sources, not the private binding schema. Generated public Database types retain their previous SHA256. Exact-head OPS native replay, type generation and canonical schema comparison must confirm this before acceptance."
 }

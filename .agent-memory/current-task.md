@@ -836,3 +836,8 @@ Older Current sections above are historical and SUPERSEDED for the next action.
 One active item: publish the two-order native S01 object-hold/point-sibling/retry test and source gate/matrix correction to draft #421, then inspect the first actual exact-head native result and all required workflows. Local 119/119 related ordinary tests, scripts/tests TypeScript, scoped ESLint, 121/231 integrity and diff checks passed; no local PostgreSQL/Docker. Do not infer a defect from missing prior native coverage. If native reveals a real mismatch, reproduce and identify its boundary before the smallest source-backed fix. No historical 203/505 ERC42, positive 175, E035 completion, staging/market send, merge or #310 action.
 
 Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 physical IDE scope correction
+
+One active work item: publish the locally RED/GREEN late-LOC+175 physical IDE correction and native service-RPC/actual-consumer test to draft #421, only after checking the remote is still `e443bbfe`. Inspect first exact-head CI failure, native 394/394 expectation, clean replay and generated parity, then full PR diff/review threads. Keep this as a bounded refusal without invented national ERC, positive object sink or historical sender-wide uniqueness. External issuer, continuous original/deletion coverage, retention and E035 owner records remain the implementation gates. No merge, staging, market sends or #310 edit.
+
+Older Current sections above are historical and SUPERSEDED.

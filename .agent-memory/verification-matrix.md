@@ -616,3 +616,11 @@ Older Current sections below are historical and SUPERSEDED.
 | Next exact PR head | Native two-order durable object hold/point sibling and identical retry; five workflows and replay/types/schema | PENDING; no local psql/Docker. |
 
 Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 late physical IDE scope candidate
+
+| Head | Check | Result and limit |
+| --- | --- | --- |
+| `e443bbfe5e347daf500869676357f6d6a8052dc9` | Ediel `36475263127`, browser `36475263038`, Full E2E `36475263155`, tenant `36475263046`, OPS `36475263162` | Five SUCCESS; OPS native 393/393, verify/quality/replay/types/schema per prior exact-head artifact. This predates late-175 correction. |
+| Local unpublished candidate | Three red ordinary tests then 76/76 green; app/tests/scripts TypeScript, scoped ESLint, migration checksum/integrity, types manifest, 121/231 inventory, diff check | Native physical selector, service RPC/rollback, actual consumer/retry, clean replay and generated parity await exact new head. No full contract or market acceptance. |
+
+Older Current sections above are historical and SUPERSEDED.

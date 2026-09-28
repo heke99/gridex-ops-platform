@@ -258,3 +258,8 @@ On evidence head `11be9ea8`, read the first genuine replay failure and isolated 
 Both physical orders of a valid S01/LOC+175 IDE with a clean LOC+172 sibling preserve the held object's no-response payload and the sibling's positive draft in the actual TypeScript consumer with mocked external IO. Three related files passed 119/119; scripts/tests TypeScript, scoped lint, spec integrity and diff checks passed. A new native test asserts persisted ACK/series/contract and identical retry; it has not run locally or in CI at this checkpoint. This is not a product-code fix or acceptance of historical 203/505, positive object consumption or E035 completeness.
 
 Older Current sections below are historical and SUPERSEDED.
+## Verified local bounded failure and correction candidate — 2026-09-28 #421
+
+Three synthetic ordinary tests reproduced a physical LOC+175 after SEQ being treated as a point identity, E035 point-history link and accepted E66 positive persistence. The local TypeScript correction passes 76/76 focused tests and three TypeScript projects; scoped lint, migration checksum/integrity and type manifest pass. Private SQL and actual-consumer native test are authored but **not yet executed** on PostgreSQL; this does not certify a PR-verified durable correction, historical ERC42, positive LOC+175 or E035 completeness. See the issuer-history-owner-gate audit and verification matrix.
+
+Older Current sections above are historical and SUPERSEDED.

@@ -140,9 +140,9 @@ function matchedScopes(ast: CanonicalEdifactAst, matches: readonly UtiltsTransac
     if (transactions.filter(item => item.transactionId === transaction.transactionId).length !== 1) continue
     const end = transaction.segments.findIndex(segment => segment.tag === 'SEQ')
     const header = end < 0 ? transaction.segments : transaction.segments.slice(0, end)
-    // LOC+175 belongs to the regulating-object domain. A point match cannot
-    // make this mixed physical IDE a point-scoped historical source query.
-    if (header.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '175')) continue
+    // LOC+175 belongs in SG5 before SEQ; a misplaced occurrence in the same
+    // physical IDE also cannot select point-scoped historical sources.
+    if (transaction.segments.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '175')) continue
     const locations = header.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '172')
     if (locations.length !== 1 || segmentComposite(locations[0], 1, ast.una).length !== 1) continue
     const parts = segmentComposite(locations[0], 2, ast.una)

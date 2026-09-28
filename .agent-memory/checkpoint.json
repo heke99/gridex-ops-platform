@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T17:34:39Z",
+  "updated_at": "2026-09-28T22:24:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 mixed S01 object hold and allowed point sibling durable retry probe; issuer/history/object gate still blocked",
+  "active_item": "F3 #421 late LOC+175 physical IDE point/history/persistent refusal; owner gates still blocked",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,29 +30,30 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish the two-order mixed S01 induced point-storage rollback/retry native probe to draft #421; inspect first exact-head native and all workflow results. Implement only a reproduced defect. Historical 203/505, positive 175 and E035 completeness require external owner/history/retention records. Traffic and #310 held.",
+  "next_action": "Publish local RED/GREEN late-175 physical IDE correction and native test to draft #421 only from verified e443bbfe; inspect first exact-head CI/native 394/394, replay/types/schema and full review. Historical 203/505, positive 175 and E035 history require external owner/coverage/retention. No traffic or #310.",
   "pr421_source_checkpoint": {
-    "published_head_before_this_step": "5c6a1ed4b3231ead2df803f28af98d6520f5c092",
+    "published_head_before_this_step": "e443bbfe5e347daf500869676357f6d6a8052dc9",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
     "draft_pr": 421,
     "prior_original_sha256": "fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798",
     "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
     "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
     "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
-    "last_verified_exact_head": "fb7573b39be7989abc9fce41d905ef62b5045fba",
+    "last_verified_exact_head": "e443bbfe5e347daf500869676357f6d6a8052dc9",
     "last_verified_workflows": [
-      36457353485,
-      36457353533,
-      36457353481,
-      36457353504,
-      36457353551
+      36475263127,
+      36475263038,
+      36475263155,
+      36475263046,
+      36475263162
     ],
-    "native_before_this_step": "382/382",
-    "native_on_last_verified_head": "389/389; two-order mixed S01 sibling/ACK/series/contract and stable retry; clean replay and generated public types/schema parity on fb7573b39be7989abc9fce41d905ef62b5045fba",
-    "next_head_checks": "Two-order mixed S01 induced point-storage rollback/retry native probe and five workflows after publication; no 203/505 or positive LOC175 runtime activation.",
-    "local_candidate": "Test/evidence only: two physical orders with synthetic point-series insert failure after/around a held S01 object reservation; scripts TypeScript, scoped lint and diff pass. Native DB absent locally.",
-    "last_published_head": "fb7573b39be7989abc9fce41d905ef62b5045fba",
-    "first_new_head_failure": "OPS 36449193344 clean replay native 386/387; baseline document-reference capture unconfirmed after one attempt, zero outcome/witness; other four workflows and OPS verify/quality succeeded; type/schema parity not reached"
+    "native_before_this_step": "393/393",
+    "native_on_last_verified_head": "393/393; S01 guide-negative sibling in both physical orders, prior mixed/rollback/retry controls; clean replay and public types/schema parity on e443bbfe",
+    "next_head_checks": "Late-LOC+175 physical IDE native selectors, two service refusals, held consumer/retry and clean point; five workflows, clean replay and generated parity after publication.",
+    "local_candidate": "Real RED/GREEN: late LOC+175 after SEQ point/history/positive E66; two TS guards, private SQL forward and native synthetic proof; 76/76 ordinary and static checks pass, native DB unavailable locally.",
+    "last_published_head": "e443bbfe5e347daf500869676357f6d6a8052dc9",
+    "first_new_head_failure": "None on e443bbfe; older two E035 Storage failures remain causally unexplained. Candidate has not run native on its new exact head.",
+    "candidate": "Late physical LOC+175 after SEQ; ordinary identity, actual history and E66 positive RED then 76/76 GREEN; private SQL forward 20260928201500 and native RPC/consumer retry pending exact-head CI"
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
