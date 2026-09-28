@@ -33,9 +33,10 @@ begin
     raise exception using errcode = '23514', message = 'customer_portal_identity_revoked';
   end if;
 
-  if tg_relid = 'public.customer_portal_accounts'::regclass
-     and (old.status = 'disabled' or old.is_active is distinct from true) then
-    raise exception using errcode = '23514', message = 'customer_portal_account_revoked';
+  if tg_relid = 'public.customer_portal_accounts'::regclass then
+    if old.status = 'disabled' or old.is_active is distinct from true then
+      raise exception using errcode = '23514', message = 'customer_portal_account_revoked';
+    end if;
   end if;
 
   return new;
