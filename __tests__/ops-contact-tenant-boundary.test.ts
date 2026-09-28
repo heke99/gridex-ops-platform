@@ -6,6 +6,7 @@ const fixture = vi.hoisted(() => ({
   selectedTenant: 'tenant-a',
   customerTenant: 'tenant-b',
   customerStatus: 'active',
+  commands: [] as Array<Record<string, unknown>>,
 }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/admin/guards', () => ({
@@ -18,6 +19,12 @@ vi.mock('@/lib/tenant/scope', () => ({
   assertUserCanOperateCompany: async (actor: string, company: string) => {
     if (actor !== 'actor-a' || company !== fixture.authorizedTenant) throw new Error('Forbidden')
     return company
+  },
+}))
+vi.mock('@/lib/customer-operations/contactCommand', () => ({
+  changeCustomerContact: async (input: Record<string, unknown>) => {
+    fixture.commands.push(input)
+    return { revision: 1, changed: true, replayed: false }
   },
 }))
 vi.mock('@/lib/supabase/service', () => ({
@@ -54,6 +61,7 @@ describe('OPS customer-card contact and address authorization', () => {
     fixture.selectedTenant = 'tenant-a'
     fixture.customerTenant = 'tenant-b'
     fixture.customerStatus = 'active'
+    fixture.commands = []
   })
   it('denies a forged cross-tenant primary contact before any service-role write', async () => {
     fixture.mutations = []
@@ -88,17 +96,20 @@ describe('OPS customer-card contact and address authorization', () => {
     expect(fixture.mutations).toEqual([])
   })
 
-  it('scopes each primary contact mutation to the authorized customer tenant', async () => {
+  it('passes the verified actor, tenant and displayed revision to one primary contact command', async () => {
     fixture.mutations = []
     fixture.customerTenant = 'tenant-a'
-    await saveCustomerContactAction(form({ customer_id: 'customer-b', name: 'Example', is_primary: 'on', phone: '0700000000' }))
-    expect(fixture.mutations.map((mutation) => `${mutation.table}.${mutation.kind}`)).toEqual([
-      'customer_contacts.update', 'customer_contacts.insert', 'customers.update', 'audit_logs.insert',
-    ])
-    for (const mutation of fixture.mutations) {
-      if (mutation.kind === 'update') expect(mutation.filters).toContainEqual(['company_id', 'tenant-a'])
-      else expect(mutation.payload.company_id).toBe('tenant-a')
-    }
+    await saveCustomerContactAction(form({
+      customer_id: 'customer-b', name: 'Example', is_primary: 'on', phone: '0700000000',
+      expected_revision: '7', idempotency_key: 'p2-ops-repeatable-key',
+    }))
+    expect(fixture.mutations).toEqual([])
+    expect(fixture.commands).toEqual([{
+      companyId: 'tenant-a', customerId: 'customer-b', contactId: null,
+      actor: { kind: 'ops', userId: 'actor-a', reason: 'OPS customer contact form' },
+      expectedRevision: 7, idempotencyKey: 'p2-ops-repeatable-key',
+      changes: { name: 'Example', title: null, email: null, phone: '0700000000' },
+    }])
   })
 
   it('scopes address insertion and audit to the authorized tenant', async () => {

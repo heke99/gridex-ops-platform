@@ -9,21 +9,21 @@ T07,"Förfalskad aktör, tenant eller verifierad-flagga ger ingen rättighet.",P
 T08,Tenantbyte i annan flik kan inte orsaka sparning till fel tenant.,P1,PARTIAL,"__tests__/ops-contact-tenant-boundary.test.ts (vald tenant avviker från kundens tenant och skrivning nekas)","Verklig flik-/browsersekvens, samtidighet och övriga skrivvägar återstår."
 T09,Direkt databas-/RPC-anrop med låg rättighet kan inte kringgå skydd.,P1,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T10,Återkallad session eller relation hanteras även med kvarvarande JWT.,P1,PARTIAL,"__tests__/customer-delegation-assertion.test.ts (plattformsmappning återkallad) + __tests__/customer-delegation-boundary.test.ts (kontolänk spärrad)","Native återkallelse, issuer-session, samtidighet och faktisk API-runtime återstår."
-T11,Kontaktändring via API och OPS ger samma tillåtna resultat.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T12,Ändring av endast telefon rensar inte andra fält.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
+T11,Kontaktändring via API och OPS ger samma tillåtna resultat.,P2/P3,PARTIAL,P2a shared RPC and OPS/API route tests: __tests__/customer-contact-command.test.ts; __tests__/customer-profile-contact-route.test.ts; __tests__/ops-contact-tenant-boundary.test.ts,"Clean replay/native parity, full customer/contact relationship fields, real issuer and browser still outstanding."
+T12,Ändring av endast telefon rensar inte andra fält.,P2/P3,PARTIAL,P2a contact-only command and phone-only synthetic native fixture scripts/customer-contact-command-native.sql; 13 focused mock/contract tests passed locally,"Native fixture, generated parity and OPS/API browser flow still outstanding."
 T13,Inloggningsändring använder rätt identitetsleverantör och verifiering.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T14,Faktureringsstandard ändras utan att avtalsundantag skrivs över.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T15,Readiness och export använder samma mottagare och revision.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T16,Profiländring skriver inte om utfärdad faktura.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T17,Omleverans har separat verifierat leveransbeslut.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T18,Samtidig profiländring och fakturalåsning blandar inte revisioner.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T19,Samtidiga profilskrivningar ger inte tyst dataförlust.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T20,Ogiltigt fält i atomiskt kommando ger ingen partiell ändring.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T21,Fel före avslutad lokaltransaktion lämnar inte kund och kontakt osynkade.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T22,Krasch efter commit före HTTP-svar återhämtas utan dubblett.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T23,Samma idempotensnyckel med annan payload nekas.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
+T19,Samtidiga profilskrivningar ger inte tyst dataförlust.,P2/P3,PARTIAL,P2a customer contact_revision locked under FOR UPDATE and stale-revision native fixture candidate,Concurrent two-session test and remaining profile writers outstanding.
+T20,Ogiltigt fält i atomiskt kommando ger ingen partiell ändring.,P2/P3,PARTIAL,P2a SQL field validation before writes and invalid email native fixture candidate,Clean replay/native execution and wider field contract outstanding.
+T21,Fel före avslutad lokaltransaktion lämnar inte kund och kontakt osynkade.,P2/P3,PARTIAL,"P2a SQL command inserts customer, primary contact, audit, outbox and result in one invocation; late audit uniqueness fault fixture candidate",Clean replay/native rollback proof and remaining writers outstanding.
+T22,Krasch efter commit före HTTP-svar återhämtas utan dubblett.,P2/P3,PARTIAL,P2a persisted canonical result and same-key API completion replay fixture candidate,Clean replay/native replay and actual HTTP-after-commit fault injection outstanding.
+T23,Samma idempotensnyckel med annan payload nekas.,P2/P3,PARTIAL,P2a request hash and changed-key native fixture candidate,Clean replay/native proof outstanding.
 T24,Samtidigt skapat ärende med samma nyckel ger ett logiskt ärende.,P2/P3,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T25,Idempotensreplay kringgår inte återkallad rättighet.,P2/P3,PARTIAL,__tests__/customer-portal-sync-revocation.test.ts (2 återspelsfall; mockad servergräns),"Övriga idempotenta API-rutter, samtidiga återkallelser och native runtime återstår; ingen full acceptans."
+T25,Idempotensreplay kringgår inte återkallad rättighet.,P2/P3,PARTIAL,Existing sync replay tests plus P2a account/client revocation before contact replay in native fixture candidate,Clean replay/native proof and concurrent revocation of other routes outstanding.
 T26,Webbärende visas i rätt tenant och rätt kundportal.,P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T27,Telefonsamtal kan fortsätta befintligt ärende.,P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T28,Identifierad kund utan portalkonto kan få behörig telefonhjälp.,P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
@@ -42,12 +42,12 @@ T40,Belastning från en tenant ger inte obegränsad påverkan på andra.,P4/P7,N
 T41,Återkallad API-nyckel stoppar nya otillåtna anrop.,P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T42,"XSS, CSRF och otillåtna fält ger ingen obehörig effekt.",P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T43,Anonymt intag läcker inte kundexistens eller historik.,P4/P7,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T44,"Kundkort, lista och fakturavy visar korrekt revision efter sparning.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
+T44,"Kundkort, lista och fakturavy visar korrekt revision efter sparning.",P5/P8,PARTIAL,OPS primary-contact card and profile show persisted contact_revision candidate,Browser save/refresh/list/invoice revision proof outstanding.
 T45,"Mobil, tangentbord, zoom, validering och konflikt är användbara.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T46,Obehörig teknisk deep link nekas på servern.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T47,Utgånget supportmandat stoppar fortsatt skyddad åtkomst.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T48,"OpenAPI, guide och klient överensstämmer med runtime.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
-T49,Tomdatabasreplay och uppgradering bevarar relationer och semantik.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
+T49,Tomdatabasreplay och uppgradering bevarar relationer och semantik.,P5/P8,PARTIAL,"P2a additive migration, checksum manifest and clean replay native fixture candidate",Clean replay/schema snapshot/types and upgrade against representative older schema outstanding.
 T50,"Äldre importer, actions och RPC kan inte kringgå nya regler.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T51,Loggar innehåller inte hemligheter eller onödiga personuppgifter.,P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."
 T52,"Rollhöjning, återställning och nyckelutgivning har rätt skydd.",P5/P8,NOT_VERIFIED,,"Runtime, databas och berörda UI-/API-vägar återstår."

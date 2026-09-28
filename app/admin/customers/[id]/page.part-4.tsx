@@ -902,6 +902,7 @@ export async function CustomerAdminDetailPage({
               contacts={contacts}
               addresses={addresses}
               sites={sites}
+              contactRevision={Number((customer as unknown as Record<string, unknown>).contact_revision ?? 0)}
             />
           </section>
         </SectionAnchor>
@@ -1159,6 +1160,7 @@ export async function CustomerAdminDetailPage({
             contacts={contacts}
             addresses={addresses}
             sites={sites}
+            contactRevision={Number((customer as unknown as Record<string, unknown>).contact_revision ?? 0)}
           />
         </SectionAnchor>
       ) : null}

@@ -1,10 +1,12 @@
 # Tenantservice/API/OPS — checkpoint 2026-09-28
 
-This directory tracks the independent tenantservice initiative. It does not supersede the Ediel checkpoint in `.agent-memory/` or import paused PR #310. Base: remote `main` `d7eaa4b0b880b7280d8f164630a6cdb51baabba8`; branch: `codex/tenantservice-api-ops-20260928`.
+This directory tracks the independent tenantservice initiative. It does not supersede the Ediel checkpoint in `.agent-memory/` or import paused PR #310. Original base: remote `main` `d7eaa4b0b880b7280d8f164630a6cdb51baabba8`; branch: `codex/tenantservice-api-ops-20260928`. At the 2026-09-28 continuation check, remote `main` was `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`.
 
 The complete original assignment is preserved verbatim in [`masteruppdrag.md`](masteruppdrag.md), including T01–T55 and U01–U20. Their status matrix is [`requirements.csv`](requirements.csv). The latest handoff checkpoint is [`handover.md`](handover.md).
 
 The new agent's continuation brief is preserved verbatim in [`continuation-instruction-20260928.md`](continuation-instruction-20260928.md). P1 work after the handoff is recorded in [`delegated-customer-proof-boundary.md`](delegated-customer-proof-boundary.md) and the current matrix. The handoff is historical; the PR head and CI on that head take precedence.
+
+The current dependency order and Ediel replay diagnosis are in [`implementation-order.md`](implementation-order.md). The 2026-09-28 correction head `4d336b6a2486fb82967d23687e6c53a0023c4339` passed OPS run `36449390788` including clean replay `109019928221`; it does not complete tenantservice. A P2a primary-contact command candidate is under review with local tests and a synthetic native fixture. Its own exact-head CI, generated type/schema parity and browser proof must be recorded before treating it as verified.
 
 ## Status
 

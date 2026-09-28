@@ -135,6 +135,7 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-revocation-native-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-contact-command-native.sql
           # Exercise the actual canonical registry, business writes and owner
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help

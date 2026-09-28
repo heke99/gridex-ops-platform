@@ -1,9 +1,11 @@
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'node:crypto'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
+import { changeCustomerContact } from '@/lib/customer-operations/contactCommand'
 import type {
  CustomerAddressRow,
  CustomerContactRow,
@@ -110,6 +112,8 @@ export async function saveCustomerContactAction(formData: FormData) {
  const phone = normalizeNullableString(getString(formData, 'phone'))
  const titleInput = normalizeNullableString(getString(formData, 'title'))
  const isPrimary = getCheckbox(formData, 'is_primary')
+ const expectedRevision = Number(getString(formData, 'expected_revision'))
+ const idempotencyKey = getString(formData, 'idempotency_key')
 
  if (!customerId) {
  throw new Error('customer_id saknas')
@@ -140,19 +144,22 @@ export async function saveCustomerContactAction(formData: FormData) {
 
  if (before.error) throw before.error
  if (contactId && !before.data) throw new Error('Forbidden')
+ if (!isPrimary && before.data?.is_primary) {
+   throw new Error('Primär kontakt kan endast ändras med kontaktkommandot.')
+ }
 
  if (isPrimary) {
- const query = supabaseService
- .from('customer_contacts')
- .update({ is_primary: false })
- .eq('customer_id', customerId)
- .eq('company_id', companyId)
-
- const { error: clearError } = contactId
- ? await query.neq('id', contactId)
- : await query
-
- if (clearError) throw clearError
+   await changeCustomerContact({
+     companyId,
+     customerId,
+     contactId: contactId || null,
+     actor: { kind: 'ops', userId: actorUserId, reason: 'OPS customer contact form' },
+     expectedRevision,
+     idempotencyKey,
+     changes: { name, title, email, phone },
+   })
+   revalidatePath(`/admin/customers/${customerId}`)
+   return
  }
 
  const payload = {
@@ -182,20 +189,6 @@ export async function saveCustomerContactAction(formData: FormData) {
  .single()
 
  if (error) throw error
-
- if (isPrimary) {
- const { error: customerSyncError } = await supabaseService
- .from('customers')
- .update({
- email,
- phone,
- updated_at: new Date().toISOString(),
- })
- .eq('id', customerId)
- .eq('company_id', companyId)
-
- if (customerSyncError) throw customerSyncError
- }
 
  await insertAuditLog({
  actorUserId,
@@ -348,10 +341,12 @@ function defaultAddressType(customerType: CustomerType): string {
 function ContactForm({
  customerId,
  customerType,
+ contactRevision,
  contact,
 }: {
  customerId: string
  customerType: CustomerType
+ contactRevision: number
  contact?: CustomerContactRow
 }) {
  const isPrimaryContact = contact?.is_primary ?? !contact
@@ -364,6 +359,8 @@ function ContactForm({
  <input type="hidden" name="customer_id" value={customerId} />
  <input type="hidden" name="customer_type" value={customerType} />
  <input type="hidden" name="id" value={contact?.id ?? ''} />
+ <input type="hidden" name="expected_revision" value={contactRevision} />
+ <input type="hidden" name="idempotency_key" value={randomUUID()} />
 
  <div className="grid gap-4 md:grid-cols-2">
  <label className="grid gap-1 text-sm">
@@ -588,12 +585,14 @@ export default function CustomerContactsAddressesCard({
  contacts,
  addresses,
  sites,
+ contactRevision,
 }: {
  customerId: string
  customerType: CustomerType
  contacts: CustomerContactRow[]
  addresses: CustomerAddressRow[]
  sites: CustomerSiteRow[]
+ contactRevision: number
 }) {
  const contactAddresses = addresses.filter((address) => address.type !== 'facility')
  return (
@@ -606,6 +605,7 @@ export default function CustomerContactsAddressesCard({
  <p className="mt-1 text-sm text-slate-700 ">
  {contactIntro(customerType)}
  </p>
+ <p className="mt-1 text-xs text-slate-600">Sparad kontaktrevision: {contactRevision}</p>
  </div>
 
  <div className="space-y-4 p-6">
@@ -653,6 +653,7 @@ export default function CustomerContactsAddressesCard({
  <ContactForm
  customerId={customerId}
  customerType={customerType}
+ contactRevision={contactRevision}
  contact={contact}
  />
  </div>
@@ -666,7 +667,7 @@ export default function CustomerContactsAddressesCard({
  Lägg till ny kontakt
  </summary>
  <div className="mt-4">
- <ContactForm customerId={customerId} customerType={customerType} />
+ <ContactForm customerId={customerId} customerType={customerType} contactRevision={contactRevision} />
  </div>
  </details>
  </div>

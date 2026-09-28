@@ -251,26 +251,11 @@ export default function CustomerProfileCard({
  <input type="hidden" name="org_number" value="" />
  )}
 
- <label className="grid gap-1 text-sm">
- <span className="text-slate-700 ">E-post</span>
- <input
- name="email"
- type="email"
- defaultValue={customer.email ?? ''}
- className={archivedInputClassName}
- {...archivedFieldProps}
- />
- </label>
-
- <label className="grid gap-1 text-sm">
- <span className="text-slate-700 ">Telefon</span>
- <input
- name="phone"
- defaultValue={customer.phone ?? ''}
- className={archivedInputClassName}
- {...archivedFieldProps}
- />
- </label>
+ <div className="text-sm text-slate-700">
+ <p>E-post: {customer.email ?? '—'}</p>
+ <p>Telefon: {customer.phone ?? '—'}</p>
+ <p className="mt-1 text-xs">Ändra primär kontakt under Kontakter. Sparad kontaktrevision: {Number((customer as unknown as Record<string, unknown>).contact_revision ?? 0)}.</p>
+ </div>
 
  <label className="grid gap-1 text-sm md:col-span-2">
  <span className="text-slate-700 ">Lägenhetsnummer</span>
