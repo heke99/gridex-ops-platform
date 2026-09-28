@@ -8,6 +8,8 @@ The new agent's continuation brief is preserved verbatim in [`continuation-instr
 
 The current dependency order and Ediel replay diagnosis are in [`implementation-order.md`](implementation-order.md). The 2026-09-28 correction head `4d336b6a2486fb82967d23687e6c53a0023c4339` passed OPS run `36449390788` including clean replay `109019928221`; it does not complete tenantservice. A P2a primary-contact command candidate is under review with local tests and a synthetic native fixture. Its own exact-head CI, generated type/schema parity and browser proof must be recorded before treating it as verified.
 
+Latest P2a evidence before the next candidate: on `6c01bf4d`, OPS `36454002484` verify and quality passed; its clean replay reached `P2_CONTACT_NATIVE_PASS`, identical generated types and fingerprint, then failed because committed `supabase/schema.sql` was stale. Artifact `10985322059` supplies the matching schema now copied into the next candidate. The next CI must also run a new two-session revision-conflict fixture. Tenant-machine sync phone is blocked from bypassing the atomic contact command; it is not yet routed through that command. P2 remains partial, and the public API release remains out of sync with draft runtime behavior.
+
 ## Status
 
 **P0 incomplete. P1, P2/P3, P4 and P5 partial. No phase accepted.** The 75 supplied acceptance IDs are in `requirements.csv`; none is fully accepted. T04/T05/T25 have bounded server-boundary evidence; F05's forward migration and native fixture passed exact-head CI on `9c0f06bd`. T53 passed native two-page replay at `28b0a236` and the expanded native fixture on `5caaad3e`. U01/U02 have static discovery evidence only. Publication and browser evidence remains bounded to the cases and surfaces tested below.
