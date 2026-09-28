@@ -622,7 +622,6 @@ export async function loadExistingIdentity(
     .eq("company_id", companyId)
     .eq("provider", WEBSITE_PORTAL_PROVIDER)
     .eq("external_customer_id", externalCustomerId)
-    .in("status", ["active", "pending_review"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -633,6 +632,14 @@ export async function loadExistingIdentity(
     customer_id: string | null;
     status: string;
   } | null;
+  if (identity?.status === "disabled") {
+    throw new WebsiteApplicationError({
+      message: "Portalidentiteten är spärrad och kräver manuell hantering.",
+      status: 409,
+      code: "portal_identity_revoked",
+      stage: "customer_lookup",
+    });
+  }
   if (!identity?.customer_id) return identity;
 
   const customerResult = await supabaseService
@@ -757,7 +764,17 @@ export async function upsertPortalIdentity(input: {
     .select("id")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23514" && error.message === "customer_portal_identity_revoked") {
+      throw new WebsiteApplicationError({
+        message: "Portalidentiteten är spärrad och kräver manuell hantering.",
+        status: 409,
+        code: "portal_identity_revoked",
+        stage: "portal_identity_create",
+      });
+    }
+    throw error;
+  }
   return data as { id: string };
 }
 

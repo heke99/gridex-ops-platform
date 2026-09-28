@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260927160000_utilts_internal_storage_error_atomic_hold.sql",
-  "latest_migration_schema_effect": "Forward CREATE OR REPLACE changes only the private persist_series_v1 function body, retaining its exact signature and grants; generated public Database types remain at the previously authenticated SHA256. Local Supabase CLI is unavailable. Exact-head OPS clean replay/type generation must confirm byte equality before merge."
+  "latest_migration": "20260928101000_portal_revocation_write_guard.sql",
+  "latest_migration_schema_effect": "Forward migration adds private trigger functions, table triggers, ACL changes and a function-local setting without changing the generated public Database type surface. The generated types remain at the previously authenticated SHA256. Local Supabase CLI is unavailable; exact-head OPS clean replay must confirm the schema and type contract before merge."
 }
