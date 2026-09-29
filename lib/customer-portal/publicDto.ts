@@ -288,10 +288,11 @@ export function publicPortalEvent(
   value: unknown,
 ): JsonRecord {
   const row = record(value)
+  const version = numberOrNull(row.event_version)
   return {
     event_reference: publicReference('event', companyId, row.id),
     event_type: text(row.event_type),
-    event_version: numberOrNull(row.event_version) ?? 1,
+    event_version: version !== null && Number.isInteger(version) && version > 0 ? version : null,
     occurred_at: text(row.occurred_at) ?? text(row.created_at),
     source: text(row.source),
   }

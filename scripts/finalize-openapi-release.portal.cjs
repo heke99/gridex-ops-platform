@@ -1161,7 +1161,7 @@ module.exports = function finalizeCustomerPortalRelease({
   const eventProperties = {
     event_reference: { type: 'string', pattern: '^event_[A-Za-z0-9_-]{32}$' },
     event_type: nullableString,
-    event_version: { type: 'integer', minimum: 1 },
+    event_version: { type: ['integer', 'null'], minimum: 1 },
     occurred_at: nullableString,
     source: nullableString,
   }

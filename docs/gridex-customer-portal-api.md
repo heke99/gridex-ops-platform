@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.5** (release candidate on the API draft branch)
+Current contract: **2026-09-29.6** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -132,8 +132,8 @@ stable keyset page, exposing only an opaque `event_reference`, type, version,
 occurrence time and source. It does not return an event payload or prove that
 every event type is suitable for a customer-facing notification. The current
 page RPC does not project the stored domain `event_version`, so the response
-currently reports the DTO fallback value 1 even if a stored event has a later
-version. Treat this field as limited until the read model is corrected.
+reports JSON null until the read model can supply a verified positive version.
+Treat this field as unavailable until the read model is corrected.
 
 Powers of attorney return an opaque authority reference, nullable public
 contract/facility references, scope, status and the available date fields.

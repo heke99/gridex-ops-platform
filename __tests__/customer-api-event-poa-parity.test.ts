@@ -43,7 +43,10 @@ describe('delegated event and power-of-attorney contract', () => {
     const schema = spec.components.schemas.CustomerEvent
     expect(schema.required?.sort()).toEqual(Object.keys(event).sort())
     expect(schema.properties?.event_reference?.pattern).toBe('^event_[A-Za-z0-9_-]{32}$')
-    expect(event).toMatchObject({ event_version: 1, occurred_at: '2026-09-29T00:00:00Z' })
+    expect(event).toMatchObject({ event_version: null, occurred_at: '2026-09-29T00:00:00Z' })
+    expect(publicPortalEvent('synthetic-company', {
+      id: '11111111-1111-4111-8111-111111111111', event_version: 3,
+    }).event_version).toBe(3)
     expect(JSON.stringify(event)).not.toMatch(/secret|private-customer|source_table/)
   })
 

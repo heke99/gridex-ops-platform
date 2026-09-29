@@ -63,7 +63,7 @@ describe('actual delegated event and power-of-attorney routes', () => {
     expect(fixture.inputs).toEqual([{ limit: 1, cursor: 'prior' }])
     const body = await response.json()
     expect(body.page).toMatchObject({ returned: 1, next_cursor: 'next-event' })
-    expect(body.data[0]).toMatchObject({ event_type: 'contact.updated', event_version: 1 })
+    expect(body.data[0]).toMatchObject({ event_type: 'contact.updated', event_version: null })
     expect(body.data[0].event_reference).toMatch(/^event_[A-Za-z0-9_-]{32}$/)
     expect(JSON.stringify(body)).not.toMatch(/secret|private-customer|source_table/)
   })
