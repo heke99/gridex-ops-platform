@@ -20,6 +20,8 @@ const audience = 'gridex-customer-portal'
 const apiKey = 'synthetic-backend-only-key'
 const contactPath = '/api/v1/customer/profile-update'
 const invoiceReference = `invoice_${'e'.repeat(32)}`
+const documentReference = `document_${'h'.repeat(32)}`
+const notificationReference = `notification_${'j'.repeat(32)}`
 const syntheticInvoice = (reference, number, status, amount) => ({
   invoice_reference: reference, invoice_number: number,
   period_start: null, period_end: null, total_kwh: null,
@@ -50,8 +52,10 @@ async function syntheticServer(publicKey) {
   jwk.alg = 'RS256'
   jwk.use = 'sig'
   const keySet = createLocalJWKSet({ keys: [jwk] })
-  const state = { revision: 2, phone: '+46111000000', writes: 0, audit: 0, outbox: 0 }
+  const state = { revision: 2, phone: '+46111000000', writes: 0, audit: 0, outbox: 0,
+    notificationReads: 0, notificationReadAt: null }
   const completions = new Map()
+  const notificationCompletions = new Map()
 
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, 'http://127.0.0.1')
@@ -151,6 +155,80 @@ async function syntheticServer(publicKey) {
           mime_type: null, file_size_bytes: null, status: null,
           secure_url: null, version: null, created_at: '2026-09-29T00:00:00Z' }],
       } })
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/documents') {
+      const cursor = url.searchParams.get('cursor')
+      if (cursor && cursor !== 'synthetic-next-document') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      reply(200, {
+        data: [{
+          document_reference: cursor ? `document_${'i'.repeat(32)}` : documentReference,
+          document_type: cursor ? 'power_of_attorney' : 'agreement',
+          title: cursor ? 'Synthetic authorization' : 'Synthetic agreement',
+          file_name: null, mime_type: null, file_size_bytes: null,
+          status: cursor ? 'signed' : 'published', secure_url: null, version: null,
+          created_at: '2026-09-29T00:00:00Z',
+        }],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-document' },
+      })
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/notifications') {
+      const cursor = url.searchParams.get('cursor')
+      if (cursor && cursor !== 'synthetic-next-notification') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      reply(200, {
+        data: [{
+          notification_reference: cursor ? `notification_${'k'.repeat(32)}` : notificationReference,
+          type: 'info', title: cursor ? 'Synthetic update' : 'Synthetic notice',
+          message: null, status: cursor ? 'unread' : state.notificationReadAt ? 'read' : 'unread',
+          read_at: cursor ? null : state.notificationReadAt, created_at: '2026-09-29T00:00:00Z',
+        }],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-notification' },
+      })
+      return
+    }
+    if (request.method === 'POST' && url.pathname === '/api/v1/customer/notifications/read') {
+      const chunks = []
+      for await (const chunk of request) chunks.push(chunk)
+      let body
+      try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch {
+        reply(400, { error: { code: 'invalid_json' } })
+        return
+      }
+      const refs = body?.notification_references
+      const key = request.headers['idempotency-key']
+      if (!key || !Array.isArray(refs) || refs.length === 0 || refs.length > 100 ||
+          Object.keys(body).some((field) => field !== 'notification_references') ||
+          refs.some((ref) => typeof ref !== 'string') || new Set(refs).size !== refs.length) {
+        reply(422, { error: { code: 'notification_reference_invalid' } })
+        return
+      }
+      const hash = JSON.stringify(body)
+      const previous = notificationCompletions.get(key)
+      if (previous) {
+        reply(previous.hash === hash ? 200 : 409, previous.hash === hash
+          ? previous.result : { error: { code: 'idempotency_conflict' } })
+        return
+      }
+      if (refs.some((ref) => ref !== notificationReference)) {
+        reply(404, { error: { code: 'notification_reference_not_found' } })
+        return
+      }
+      const updatedCount = state.notificationReadAt ? 0 : 1
+      state.notificationReads += updatedCount
+      state.notificationReadAt ??= '2026-09-29T00:00:00Z'
+      const result = { data: { updated_count: updatedCount, notification_references: refs,
+        read_at: '2026-09-29T00:00:00Z' } }
+      notificationCompletions.set(key, { hash, result })
+      reply(200, result)
       return
     }
     if (request.method !== 'POST' || url.pathname !== contactPath) {
@@ -261,12 +339,51 @@ export async function runSyntheticCustomerJourney() {
     const foreignInvoice = await call('GET', `/api/v1/customer/invoices/invoice_${'z'.repeat(32)}`)
     assert.equal(foreignInvoice.status, 404)
     assert.equal(foreignInvoice.body.error.code, 'invoice_not_found')
+    const documents = await call('GET', '/api/v1/customer/documents?limit=1')
+    assert.equal(documents.status, 200)
+    assert.equal(documents.body.data[0].document_reference, documentReference)
+    assert.equal(documents.body.data[0].secure_url, null)
+    assert.equal(documents.body.page.has_more, true)
+    const nextDocuments = await call('GET', `/api/v1/customer/documents?limit=1&cursor=${documents.body.page.next_cursor}`)
+    assert.equal(nextDocuments.status, 200)
+    assert.equal(nextDocuments.body.data[0].document_type, 'power_of_attorney')
+    assert.equal(nextDocuments.body.page.has_more, false)
+    const notifications = await call('GET', '/api/v1/customer/notifications?limit=1')
+    assert.equal(notifications.status, 200)
+    assert.equal(notifications.body.data[0].notification_reference, notificationReference)
+    assert.equal(notifications.body.page.has_more, true)
+    const nextNotifications = await call('GET', `/api/v1/customer/notifications?limit=1&cursor=${notifications.body.page.next_cursor}`)
+    assert.equal(nextNotifications.status, 200)
+    assert.equal(nextNotifications.body.page.has_more, false)
+    const markRead = await call('POST', '/api/v1/customer/notifications/read',
+      { notification_references: [notifications.body.data[0].notification_reference] }, 'synthetic-notification-read-1')
+    assert.equal(markRead.status, 200)
+    assert.equal(markRead.body.data.updated_count, 1)
+    const readReplay = await call('POST', '/api/v1/customer/notifications/read',
+      { notification_references: [notifications.body.data[0].notification_reference] }, 'synthetic-notification-read-1')
+    assert.deepEqual(readReplay.body, markRead.body)
+    const readBack = await call('GET', '/api/v1/customer/notifications?limit=1')
+    assert.equal(readBack.body.data[0].status, 'read')
+    assert.equal(readBack.body.data[0].read_at, markRead.body.data.read_at)
+    const readAgain = await call('POST', '/api/v1/customer/notifications/read',
+      { notification_references: [notificationReference] }, 'synthetic-notification-read-again')
+    assert.equal(readAgain.status, 200)
+    assert.equal(readAgain.body.data.updated_count, 0)
+    assert.equal(state.notificationReadAt, readBack.body.data[0].read_at)
+    const unknownNotification = await call('POST', '/api/v1/customer/notifications/read',
+      { notification_references: [`notification_${'z'.repeat(32)}`] }, 'synthetic-notification-read-2')
+    assert.equal(unknownNotification.status, 404)
+    assert.equal(unknownNotification.body.error.code, 'notification_reference_not_found')
+    const badNotification = await call('POST', '/api/v1/customer/notifications/read',
+      { notification_references: [notificationReference, notificationReference] }, 'synthetic-notification-read-3')
+    assert.equal(badNotification.status, 422)
     const foreignCursor = await call('GET', '/api/v1/customer/contracts?cursor=foreign-customer-cursor')
     assert.equal(foreignCursor.status, 400)
     assert.equal(foreignCursor.body.error.code, 'invalid_cursor')
     const wrongAction = await delegatedRequest({ baseUrl, method: 'GET', path: '/api/v1/customer/sites',
       signAssertion: () => signAssertion('GET /api/v1/customer/me') })
     assert.equal(wrongAction.status, 403)
+    assert.equal(state.notificationReads, 1)
     assert.deepEqual({ writes: state.writes, audit: state.audit, outbox: state.outbox }, {
       writes: 1, audit: 1, outbox: 1,
     })
@@ -274,6 +391,9 @@ export async function runSyntheticCustomerJourney() {
       replay: replay.status, changedKey: changedKey.status, writes: state.writes,
       contractPages: 2, sites: sites.body.data.sites.length, invoicePages: 2,
       invoiceDetail: invoice.status, foreignInvoice: foreignInvoice.status,
+      documentPages: 2, notificationPages: 2, notificationRead: markRead.status,
+      notificationReplay: readReplay.status, readAgainCount: readAgain.body.data.updated_count,
+      unknownNotification: unknownNotification.status,
       wrongAction: wrongAction.status }
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))

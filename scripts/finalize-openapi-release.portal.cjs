@@ -1113,6 +1113,62 @@ module.exports = function finalizeCustomerPortalRelease({
     type: 'object', additionalProperties: false,
     required: Object.keys(invoiceDocumentProperties), properties: invoiceDocumentProperties,
   }
+  // Documents and notifications use separate, customer-bound keyset pages.
+  // The notification legacy selector omits read_at, so it is optional.
+  const documentProperties = {
+    document_reference: { type: 'string', pattern: '^document_[A-Za-z0-9_-]{32}$' },
+    document_type: nullableString,
+    title: nullableString,
+    file_name: nullableString,
+    mime_type: nullableString,
+    file_size_bytes: nullableNumber,
+    status: nullableString,
+    secure_url: nullableString,
+    version: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerDocument = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(documentProperties), properties: documentProperties,
+  }
+  const notificationProperties = {
+    notification_reference: { type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$' },
+    type: string,
+    title: string,
+    message: nullableString,
+    status: string,
+    created_at: dateTime,
+    read_at: { type: ['string', 'null'], format: 'date-time' },
+  }
+  portal.components.schemas.CustomerNotification = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(notificationProperties).filter((key) => key !== 'read_at'),
+    properties: notificationProperties,
+  }
+  for (const [path, schemaName] of [
+    ['/api/v1/customer/documents', 'CustomerDocument'],
+    ['/api/v1/customer/notifications', 'CustomerNotification'],
+  ]) {
+    const operation = portal.paths[path].get
+    operation.parameters = [
+      ...operation.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+      ...clone(invoiceParameters),
+    ]
+    const listEnvelope = envelope({ type: 'array', items: { $ref: `#/components/schemas/${schemaName}` } }, ['page'])
+    listEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+    setResponse(portal, path, listEnvelope)
+  }
+  const notificationRead = portal.paths['/api/v1/customer/notifications/read'].post
+  portal.components.schemas.CustomerNotificationReadRequest.properties.notification_references.items = {
+    type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$',
+  }
+  portal.components.schemas.CustomerNotificationReadData.properties.notification_references.items = {
+    type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$',
+  }
+  notificationRead.responses['404'] = {
+    ...clone(notificationRead.responses['400']),
+    description: 'A notification reference is not visible to the verified customer.',
+  }
   portal.components.schemas.CustomerInvoiceDetail = {
     type: 'object', additionalProperties: false,
     required: ['invoice', 'lines', 'documents'],

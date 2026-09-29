@@ -436,6 +436,9 @@ export default function CustomerPortalApiDocumentationPage() {
             <p className="leading-7 text-slate-700">
               Invoices use <code>customer_invoices.read</code>. List them with <code>GET /api/v1/customer/invoices</code>, then follow <code>page.next_cursor</code>. Pass a returned <code>invoice_reference</code> to <code>GET /api/v1/customer/invoices/{'{id}'}</code> to read its public invoice, lines and documents. The reference is opaque; an invoice outside the customer&apos;s view returns 404 <code>invoice_not_found</code>. Unknown amounts remain JSON null. The synthetic client demonstrates both list pages, detail and 404.
             </p>
+            <p className="leading-7 text-slate-700">
+              Documents use <code>customer_documents.read</code> and notifications use <code>customer_notifications.read</code>. Their GET lists return public fields and a customer-bound <code>page.next_cursor</code>; an invalid or foreign cursor returns 400 <code>invalid_cursor</code>. A document&apos;s <code>secure_url</code> can be null, and the list does not provide a download endpoint. To mark listed notifications as read, send distinct <code>notification_references</code> with <code>customer_notifications.write</code>, a new signed POST assertion and an <code>Idempotency-Key</code> to <code>/api/v1/customer/notifications/read</code>. An unknown reference returns 404; identical key/payload replay returns its stored response. This legacy mark-read write still has separate update and idempotency completion steps. The synthetic client covers both lists, mark-read, replay and read-back.
+            </p>
             <EndpointTable rows={customerPortalRows} />
           </Section>
 

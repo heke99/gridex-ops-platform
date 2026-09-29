@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.3** (release candidate on the API draft branch)
+Current contract: **2026-09-29.4** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -85,3 +85,35 @@ references. An invoice outside the verified customer's view returns 404
 quantities remain JSON null; zero means an actual zero value. The synthetic
 reference client runs two list pages, a detail lookup and a 404 example.
 These reads do not prove a complete billing or document-delivery workflow.
+
+## Documents and notifications
+
+Use `customer_documents.read` for `GET /api/v1/customer/documents` and
+`customer_notifications.read` for `GET /api/v1/customer/notifications`.
+Each exact GET path needs its own signed customer assertion. Both return an
+allowlisted `data` array and `page`; `limit` defaults to 50 and is capped
+at 100. Follow only the opaque `page.next_cursor` returned for the same
+organization, customer and resource. An invalid or foreign cursor returns
+400 `invalid_cursor`. Document rows include an opaque
+`document_reference`, type, title, file metadata, status, nullable
+`secure_url`, version and creation time. The list does not itself provide
+a document download endpoint or a signed storage URL. Notification rows include
+`notification_reference`, type, title, nullable message, status and creation
+time; `read_at` is optional for the legacy read model.
+
+With `customer_notifications.write`, a separate POST assertion for
+`/api/v1/customer/notifications/read`, and an `Idempotency-Key`, send
+`{"notification_references":["notification_..."]}` with one to 100 distinct
+opaque references from the customer's list. Extra fields, duplicates and
+invalid references return 422; a reference outside the verified customer's
+view returns neutral 404 `notification_reference_not_found`. The response
+contains `updated_count`, the submitted references and `read_at`.
+Already read rows retain their first read timestamp and do not increase
+`updated_count` under a new key; the response `read_at` is the request's
+attempt time, so read the list again for a row's persisted timestamp.
+An identical retry under the same key returns the stored completion after
+current authority is checked; a changed payload under that key conflicts.
+The current route resolves references, updates rows and completes idempotency
+in separate database steps. It does not yet have the contact command's atomic
+mutation/completion/audit/outbox guarantee. The runnable synthetic client
+shows two pages of each list, mark-read, replay, read-back and a 404.

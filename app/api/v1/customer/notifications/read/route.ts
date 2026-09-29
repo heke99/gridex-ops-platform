@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
-import { isPublicReference, publicReference } from '@/lib/integrations/publicReferences'
+import { publicReference } from '@/lib/integrations/publicReferences'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -13,14 +13,16 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 function notificationReferences(payload: Record<string, unknown>): string[] {
-  const canonical = Array.isArray(payload.notification_references)
+  if (Object.keys(payload).some((key) => key !== 'notification_references')) {
+    throw new ApiInputError(
+      'Förfrågan innehåller fält som inte tillhör notisläsning.',
+      'notification_read_unknown_field',
+      422,
+    )
+  }
+  const references = Array.isArray(payload.notification_references)
     ? payload.notification_references
     : []
-  const references = Array.from(new Set(
-    canonical
-      .map((value) => String(value).trim())
-      .filter(Boolean),
-  ))
   if (references.length === 0) {
     throw new ApiInputError(
       'notification_references måste innehålla minst en notis.',
@@ -37,11 +39,21 @@ function notificationReferences(payload: Record<string, unknown>): string[] {
       'notification_references',
     )
   }
-  const invalid = references.find((reference) => !isPublicReference(reference) || !reference.startsWith('notification_'))
+  const invalid = references.some((reference) =>
+    typeof reference !== 'string' ||
+    !/^notification_[A-Za-z0-9_-]{32}$/.test(reference))
   if (invalid) {
     throw new ApiInputError(
       'notification_references måste innehålla giltiga publika notisreferenser.',
       'notification_reference_invalid',
+      422,
+      'notification_references',
+    )
+  }
+  if (new Set(references).size !== references.length) {
+    throw new ApiInputError(
+      'notification_references får inte innehålla dubbla notiser.',
+      'notification_reference_duplicate',
       422,
       'notification_references',
     )
@@ -113,6 +125,7 @@ export async function POST(request: NextRequest) {
           .update({ status: 'read', read_at: readAt, updated_at: readAt })
           .eq('company_id', context.client.company_id)
           .eq('customer_id', context.identity.customer_id)
+          .eq('status', 'unread')
           .in('id', [...resolved.values()])
           .select('id')
         if (error) throw error
