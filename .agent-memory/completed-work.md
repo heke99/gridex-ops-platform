@@ -1,5 +1,10 @@
 ## Verified inherited #421 checkpoint — d8fea097
 
+## Authoritative E72 forward-correction checkpoint — 2026-09-29
+
+Supersedes older pending status below. Test-only remote `ab8e12c6` OPS 36624954925 native **406/407** confirmed accepted/persisted positive APERAK and series for empty E72 agency89 despite null private point selector. Three guide-negative E72 controls passed; later hold/positive assertions did not run. Forward migration 20260929202207 and actual canonical consumer now include mandatory E72 point authority; ordinary consumer **51/51** locally. Corrected native and final exact-head five workflows/schema/types are pending. E73 final `d8fea097` remains fully verified (403/403, five green). See `quality/audits/ediel-masterplan-v2/e72-empty-request-point-identity-20260929.md`. No whole requirement closure, market activation or merge; external history/retention/LOC175 mandates still blocked. Old Storage cause unknown. #310 untouched.
+
+
 All five mandatory workflows and OPS verify/quality/clean replay SUCCESS; native403/403, generated types SHA25636e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d, schema fingerprint633beb02ff41589324576fb10d3daeb31d9b6c517ab63a755be8c1fef0362470. E73 gate is bounded PR-verified. New E72 work is test-first and **not completed**. Whole rule/contract and production activation statuses remain unchanged.
 
 ## Current — 2026-09-29 #421 E035 revalidation native 400/401 diagnosis

@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { e72PointRequestMessage } from './helpers/utiltsE72PointRequest'
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
 import { findMatchingGridOwnerDataRequest } from '@/lib/ediel/matching'
 import type { UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
@@ -348,6 +349,27 @@ it('routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK witho
   expect(persisted?.p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak' }])
   expect(JSON.stringify(io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')?.[0].draft)).toContain('533')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+it('holds a guide-valid E72 agency-89 request before positive point authority, preserving agency-9 requests', async () => {
+  const message = e72PointRequestMessage('tenant-a', '89')
+  const runtime = runUtiltsRuntimeForMessage(message)
+  expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
+  expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted' }])
+  io.get.mockResolvedValue(message); results = undefined
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  expect(result.internalReviewRequired).toBe(true)
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(persisted?.p_transactions).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [],
+    consumptionContract: { observations: [] } }])
+  expect(io.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  io.get.mockResolvedValue(e72PointRequestMessage())
+  await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  const point = io.rpc.mock.calls.filter(([name]) => name === 'gridex_persist_utilts_consumption_v1').at(-1)?.[1]
+  expect(point?.p_transactions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', quantities: [] }])
+  expect(io.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK' && call.outcome === 'positive')).toBe(true)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it('holds an E73 point request with unowned physical agency 89 before a positive ACK', async () => {

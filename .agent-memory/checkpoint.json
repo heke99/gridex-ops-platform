@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-29T19:47:08Z",
+  "updated_at": "2026-09-29T20:26:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR421 E72 test-first probe: local actual consumer fails hold; native empty-observation SQL authority unconfirmed",
+  "active_item": "PR421 E72 confirmed native RED406/407; minimal consumer/forward SQL correction local51/51; corrected exact-head native and final gates pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/e72-empty-request-point-identity-20260929.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -1034,5 +1034,15 @@
     "product_change": "NONE",
     "market_traffic": "HELD",
     "pr310": "UNTOUCHED"
+  },
+  "e72_forward_correction": {
+    "test_only_head": "ab8e12c6b8610d834adb407b6b12e40d881614e6",
+    "ops_run": 36624954925,
+    "native": "406/407 confirmed durable gap",
+    "migration": "20260929202207_utilts_e72_empty_request_point_identity.sql",
+    "consumer_local": "51/51",
+    "corrected_native": "pending",
+    "final_gates": "pending",
+    "e73_last_verified_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580"
   }
 }

@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260929170231_utilts_e73_empty_request_point_identity.sql",
-  "latest_migration_schema_effect": "Forward replacement adds E73 point requests with empty observations to the private physical LOC+172 prewrite guard, retaining the separate LOC+175 owner refusal and service-role-only grant. Test-only #421 f917fbec OPS 36600756414 exposed direct positive E73 agency-89 series/ACK at native 402/403. Corrected #421 0d9116fd OPS 36604270983 passed native 403/403, case native/browser, tenant invariants, parity selftest and byte-identical generated public types SHA256 36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d. Only the private function-body schema snapshot differed. The schema.sql/fingerprint 633beb02ff41589324576fb10d3daeb31d9b6c517ab63a755be8c1fef0362470 are copied from exact replay artifact 11050414114 (ZIP SHA256 4746ae4c1e6a114fa1e716671371b6f53ff0518d264969e57cfdaa057f35a941); final exact-head clean replay must confirm parity."
+  "latest_migration": "20260929202207_utilts_e72_empty_request_point_identity.sql",
+  "latest_migration_schema_effect": "Forward replacement adds mandatory E72 LOC+172 to the physical point prewrite guard even with empty observations. Native test-only ab8e12c6 OPS 36624954925 confirmed positive series/APERAK on unsupported agency89 (406/407). Consumer correction passes 51/51 locally. Native correction, public type parity and authentic replay schema snapshot are pending; E73 final d8fea097 remains historical SUCCESS."
 }
