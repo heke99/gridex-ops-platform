@@ -1005,7 +1005,7 @@ BEGIN
  OR ((observed->>'byteCount')::numeric>2097152 AND observed->>'reason' IS DISTINCT FROM 'oversize') THEN RAISE EXCEPTION 'invalid_document_observation' USING ERRCODE='23514'; END IF;
  IF observed->>'startedAt' IS NOT NULL OR observed->>'completedAt' IS NOT NULL THEN
  started:=(observed->>'startedAt')::timestamptz;completed:=(observed->>'completedAt')::timestamptz;
- IF started IS NULL OR completed IS NULL OR NOT isfinite(started) OR NOT isfinite(completed) OR completed<started OR started<a.recorded_at OR completed>clock_timestamp()+interval '1 second'
+ IF started IS NULL OR completed IS NULL OR NOT isfinite(started) OR NOT isfinite(completed) OR completed<started OR started<date_trunc('milliseconds',a.recorded_at) OR completed>clock_timestamp()+interval '1 second'
  THEN RAISE EXCEPTION 'invalid_document_observation_time' USING ERRCODE='23514'; END IF;
  END IF;
  IF observed->>'status'='verified_at_observation' AND (started IS NULL OR completed-started>interval '10 seconds' OR observed->>'sha256' IS DISTINCT FROM a.facts#>>'{document,document_sha256}' OR observed ? 'reason' OR a.facts->'eligible'<>'true'::jsonb)
