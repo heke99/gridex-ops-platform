@@ -1,3 +1,7 @@
+## 2026-09-29 — #421 E73 first SQL-head native 402/403
+
+All four companion workflows and OPS verify/quality passed on ba471ad4. Native 402/403: physical point refusals/consumer/retry/positive passed; added LOC+175 test failed in fixture guide validation before RPC due no qualifying object request target and invalid check digit. Corrected test forges direct accepted service input against a physical object source; product SQL unchanged. Exact-head native/replay pending.
+
 ## 2026-09-29 — #421 E73 request physical point guard
 
 Test-only f917fbec exact-head OPS 36600756414 confirmed native 402/403: direct service RPC accepted agency-89 LOC+172 E73 with no observations and persisted positive ACK/series. Forward SQL adds E73 to the physical point prewrite guard while retaining object-owner precedence. Native proof extends to LOC+175 distinct refusal; local migration/type integrity, scripts/tests TypeScript, lint, consumer unit, 121/231 specification integrity pass. New exact-head CI and authentic schema snapshot pending; external historical/retention/object/E035 gates blocked.

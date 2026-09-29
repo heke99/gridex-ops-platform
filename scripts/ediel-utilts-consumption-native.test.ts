@@ -422,11 +422,13 @@ it('native E73 point request rejects an unowned physical agency-89 point before 
   expect((await run()).internalReviewRequired).toBe(true)
   expect(snapshot(source.id)).toEqual(before)
   const clean = await f.insertSource(cleanRaw, 'E73')
-  expect((await persistUtiltsTransactionResults(await f.prepare(clean, false, false)))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
-  const object = await f.insertSource(cleanRaw.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9'), 'E73')
-  const objectInput = await f.prepare(object, false, false)
-  expect(objectInput.transactions).toMatchObject([{ disposition: 'accepted', seriesKind: 'request' }])
-  await expect(persistUtiltsTransactionResults(objectInput)).rejects.toThrow('utilts_regulating_object_owner_unavailable')
+  const cleanInput = await f.prepare(clean, false, false)
+  expect((await persistUtiltsTransactionResults(cleanInput))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
+  const object = await f.insertSource(cleanRaw.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'), 'E73')
+  // The service role can supply a formerly accepted point contract directly;
+  // its durable owner must still reject this different physical object source.
+  await expect(persistUtiltsTransactionResults({ ...cleanInput, sourceMessageId: object.id, rawPayload: object.raw_payload! }))
+    .rejects.toThrow('utilts_regulating_object_owner_unavailable')
   expect(snapshot(object.id)).toEqual({ acks: null, series: null, contracts: null })
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(object.id)}`)).toBe(0)
 })
