@@ -1,3 +1,7 @@
+## 2026-09-30 — S02 native oracle preserves forecast semantics
+
+Empty consumption observations are correct for nonbilling forecasts, not a waiver of physical required LOC172/QTY135. Use the public canonical dispatcher, real evidence trigger and ACK writer/finalizer. Direct atomicity tests call raw supabaseService.rpc, so an application guard cannot mask database acceptance. Source-required omissions must be per-IDE guide-negative fields209/515; do not invent E87/internal national codes. Forecast quantities remain QTY135; no actual consumption observations or assumed mandates. Product changes require authentic native RED first.
+
 ## 2026-09-29 — ERR builder consumes canonical policy facade
 
 Actual delivery guard rejected direct utiltsRulebook ownership inack.ts. Preserve the guard and use resolveCanonicalEdielPolicy with the generated ERR's own DTM137 date, matching the retained canonical validator; guide selection stays canonical. Do not add a projection allowlist exemption, a local version/effective-date rule, or a source-observation-date substitute. Full-IDE retry semantics are unchanged.

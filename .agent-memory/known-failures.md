@@ -1,3 +1,7 @@
+## 2026-09-30 — S02 ordinary RED; native unproved
+
+Unchangeddc1c9bae ordinary2/8PASS,6FAIL: missing own LOC172/QTY135/both still accepted/positive_aperak with clean sibling in either order. Qualifier does not hold S02; own persistence payload retains null/empty. Native15 cases pending; no product correction before native stage proof. Prepublication review corrected FTX+AAO field oracle (not RFF+AGO) and calls raw service RPC instead of an application adapter. ERR authority failure below is RESOLVED on finaldc1c9bae five green/native411; older Storage cause remains unknown.
+
 ## 2026-09-29 — Actual ERR delivery authority failure
 
 Exactd8eccdd6 native411/411 clean replay succeeded. FullE2E36639377447 smoke/coverage and OPS quality109647751055 failed only the introduced direct utiltsRulebook import inack.ts (ordinary6255/6256). Local canonicalEdielPolicy replacement retains guard/allowlist and is109/109 green; new-head gates pending. This is an introduced architecture error, not Storage/environment flakiness. Older Storage cause remains unknown.

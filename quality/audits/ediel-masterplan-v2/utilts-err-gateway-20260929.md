@@ -1,3 +1,7 @@
+## Final exact-head receipt — 2026-09-30
+
+Finaldc1c9bae five mandatory workflows and OPS verify/quality/replay SUCCESS; native411/411, all4 ERR cases, case/browser/tenant/parity/types/schema PASS. Exact run/job IDs and limits: S02 successor audit and PR421 final receipt. Earlier pending text is historical and SUPERSEDED by this authentic final result. No concurrent/whole-ID/market closure.
+
 # ACK-08 — actual UTILTS ERR gateway, 2026-09-29
 
 ## Baseline and requirement scope

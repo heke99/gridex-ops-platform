@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-29",
+  "updated_at": "2026-09-29T23:18:56.279806+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,8 +10,8 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR421 ERR d8eccdd6 native411 verified; canonical facade authority-gate correction local109; next exact-head delivery pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-20260929.md",
+  "active_item": "PR421 U-02 S02 own mandatory LOC172/QTY135 ordinary confirmed; test-only native probe",
+  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish the substantive canonicalEdielPolicy facade/code/test/evidence follow-up fast-forward from d8eccdd6 on draft PR421; verify its own native411/411 and all five exact-new-head workflows, inspect full diff/review threads/refs, then put final receipt in PR description. Next bounded candidate U-02 own-IDE S02 LOC172/QTY135 needs native RED before product changes. Keep all market/issuer/retention/LOC175/E035 holds.",
+  "next_action": "Fast-forward publish substantive S02 helper/native/config/evidence from exact dc1c9bae on draft PR421. Read first actual native result; require clean controls and all previous411 native tests before confirming durable risk. Ordinary RED file remains local until correction. Only then minimal canonical guide/prewrite forward fix and exact-head positive/negative/atomic/retry/five gates. Keep all issuer/history/retention/LOC175/fullE035/market holds.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -268,7 +268,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "0b6ea32ad7e284fc3eca30e827b16aab64614a31",
+  "last_verified_pr_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -737,7 +737,7 @@
     "final_ci": "ALL_APPLICABLE_SUCCESS",
     "active_agent": null
   },
-  "workspace": "/workspace/scratch/d9e6c237b68e/pr372-finish",
+  "workspace": "/workspace/scratch/d2ff6a61f553/gridex-ops-platform",
   "correction_process_task3b": {
     "status": "PARTIAL_PAUSED",
     "accepted_outbound_base": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
@@ -982,8 +982,8 @@
     "frozen_totals": "121 cards and 231 contracts; no new percentage",
     "market_activated": false
   },
-  "active_pr_head_before_pending_commit": "a671a663aa00a08eaee7c2d52c6c117418c0ad8b",
-  "active_candidate_evidence": "E72 native407/407 on00045ba5; sole replay failure old canonical schema snapshot; authentic artifact11061282485 copied.",
+  "active_pr_head_before_pending_commit": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
+  "active_candidate_evidence": "S02 ordinary2cleanPASS/6guideRED; 15-case native test-only probe, durable effect UNPROVED",
   "active_pr_latest_ci": {
     "head": "2c4d65e095349761511943c42840c451bacaaeda",
     "ediel": 36480846526,
@@ -1076,7 +1076,7 @@
     "stale_pending_sections": "SUPERSEDED"
   },
   "pr421_err_gateway_20260929": {
-    "status": "POLICY_FACADE_FOLLOWUP_EXACT_HEAD_PENDING",
+    "status": "BOUNDED_FINAL_HEAD_VERIFIED",
     "review_head": "0b6ea32ad7e284fc3eca30e827b16aab64614a31",
     "requirements": [
       "ACK-08",
@@ -1090,7 +1090,7 @@
     ],
     "reconciliation": "352 unique IDs; 346 current code/test hashes; 105 rows changed since historical main, 95 since historical audit head; formal statuses inherited unchanged",
     "ordinary_red": "4/4 expected failures: process mismatch, same-code distinct-IDE duplicate and earlier-than-intended interruption; no product edit",
-    "native": "411/411 verified on d8eccdd6; final policy-facade head native and five workflows PENDING",
+    "native": "Final dc1c9bae native411/411 and all five workflows SUCCESS",
     "independent_refutation": "CONFIRMED both primary process mismatch and distinct-IDE collision; read-only agents",
     "queued_candidates": [
       "U-02 S02 own-field borrowing",
@@ -1149,6 +1149,53 @@
       "ordinary": "6255/6256 PASS",
       "cause": "New direct utiltsRulebook import in operational ack.ts violates canonical policy authority guard"
     },
-    "followup_review": "APPROVE bounded code/tests/evidence; independent8/8 PASS, zero Critical/Important; stale top-level resume pointer corrected; final native/five gates pending"
+    "followup_review": "APPROVE bounded code/tests/evidence; independent8/8 PASS, zero Critical/Important; stale top-level resume pointer corrected; final native/five gates pending",
+    "final_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
+    "final_ci": {
+      "Ediel": 36641978972,
+      "browser": 36641978974,
+      "Full_E2E": 36641978957,
+      "tenant": 36641979472,
+      "OPS": 36641978949,
+      "all": "SUCCESS",
+      "verify": 109656114876,
+      "quality": 109656115294,
+      "replay": 109656115263
+    },
+    "final_receipt": "PR421 body updated; zero threads/reviews; actual logs verify case/browser/tenant/parity/types/schema"
+  },
+  "pr421_s02_required_20260930": {
+    "status": "ORDINARY_CONFIRMED_NATIVE_PROBE_PENDING",
+    "baseline_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
+    "source_ids": [
+      "UF-planning-209-51",
+      "UF-planning-505-51",
+      "UF-planning-514-52",
+      "UF-planning-515-52"
+    ],
+    "wider_ids": [
+      "U-02",
+      "AT-U-02",
+      "U-03",
+      "AT-U-03",
+      "U-14",
+      "AT-U-14",
+      "ACK-03",
+      "AT-ACK-03",
+      "ACK-08",
+      "AT-ACK-08",
+      "CALL-09",
+      "CALL-11",
+      "CALL-12",
+      "CALL-13"
+    ],
+    "ordinary": "2cleanPASS/6guideRED on unchanged product, both orders; unpublished RED test retained for fix",
+    "native": "15 new cases NOT EXECUTED locally; eventual426/426 required",
+    "product": "UNCHANGED",
+    "local": "scripts/tests TypeScript, lint, frozen integrity and diff PASS",
+    "review": "APPROVE bounded test-only setup, no remaining Critical/Important; corrected FTX field oracle and direct raw RPC",
+    "formal_closure": "No whole-ID promotion",
+    "traffic": "HELD",
+    "audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md"
   }
 }
