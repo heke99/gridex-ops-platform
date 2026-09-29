@@ -74,6 +74,8 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-09-29.3/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-09-29.3.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-09-29.4/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-09-29.4.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-09-29.4/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-09-29.4.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-09-29.5/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-09-29.5.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-09-29.5/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-09-29.5.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Current OpenAPI specification for customer portal integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verify the authenticated API client and retrieve its public integration context.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/public-contracts', scopes: ['api_contracts.read'], description: 'Retrieve contracts published to the general API channel.', rateLimitClass: 'read' },

@@ -177,6 +177,39 @@ async function syntheticServer(publicKey) {
       })
       return
     }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/events') {
+      const cursor = url.searchParams.get('cursor')
+      if (cursor && cursor !== 'synthetic-next-event') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      reply(200, {
+        data: [{ event_reference: `event_${(cursor ? 'm' : 'l').repeat(32)}`,
+          event_type: cursor ? 'invoice.issued' : 'contact.updated', event_version: 1,
+          occurred_at: '2026-09-29T00:00:00Z', source: 'tenant' }],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-event' },
+      })
+      return
+    }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/powers-of-attorney') {
+      const cursor = url.searchParams.get('cursor')
+      if (cursor && cursor !== 'synthetic-next-authority') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      reply(200, {
+        data: [{ power_of_attorney_reference: `power_of_attorney_${(cursor ? 'o' : 'n').repeat(32)}`,
+          contract_reference: null, facility_reference: null,
+          scope: 'metering', status: cursor ? 'expired' : 'active',
+          signed_at: null, accepted_at: null, valid_from: null,
+          valid_to: cursor ? '2026-09-28T00:00:00Z' : '2026-10-29T00:00:00Z',
+          created_at: '2026-09-29T00:00:00Z' }],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-authority' },
+      })
+      return
+    }
     if (request.method === 'GET' && url.pathname === '/api/v1/customer/notifications') {
       const cursor = url.searchParams.get('cursor')
       if (cursor && cursor !== 'synthetic-next-notification') {
@@ -348,6 +381,27 @@ export async function runSyntheticCustomerJourney() {
     assert.equal(nextDocuments.status, 200)
     assert.equal(nextDocuments.body.data[0].document_type, 'power_of_attorney')
     assert.equal(nextDocuments.body.page.has_more, false)
+    const events = await call('GET', '/api/v1/customer/events?limit=1')
+    assert.equal(events.status, 200)
+    assert.match(events.body.data[0].event_reference, /^event_[A-Za-z0-9_-]{32}$/)
+    assert.equal(events.body.data[0].event_version, 1)
+    assert.equal(events.body.page.has_more, true)
+    const nextEvents = await call('GET', `/api/v1/customer/events?limit=1&cursor=${events.body.page.next_cursor}`)
+    assert.equal(nextEvents.status, 200)
+    assert.equal(nextEvents.body.data[0].event_type, 'invoice.issued')
+    assert.equal(nextEvents.body.page.has_more, false)
+    const authorities = await call('GET', '/api/v1/customer/powers-of-attorney?limit=1')
+    assert.equal(authorities.status, 200)
+    assert.match(authorities.body.data[0].power_of_attorney_reference, /^power_of_attorney_[A-Za-z0-9_-]{32}$/)
+    assert.equal(authorities.body.data[0].contract_reference, null)
+    assert.equal(authorities.body.page.has_more, true)
+    const nextAuthorities = await call('GET', `/api/v1/customer/powers-of-attorney?limit=1&cursor=${authorities.body.page.next_cursor}`)
+    assert.equal(nextAuthorities.status, 200)
+    assert.equal(nextAuthorities.body.data[0].status, 'expired')
+    assert.equal(nextAuthorities.body.page.has_more, false)
+    const foreignEventCursor = await call('GET', '/api/v1/customer/events?cursor=foreign-customer-cursor')
+    assert.equal(foreignEventCursor.status, 400)
+    assert.equal(foreignEventCursor.body.error.code, 'invalid_cursor')
     const notifications = await call('GET', '/api/v1/customer/notifications?limit=1')
     assert.equal(notifications.status, 200)
     assert.equal(notifications.body.data[0].notification_reference, notificationReference)
@@ -394,6 +448,7 @@ export async function runSyntheticCustomerJourney() {
       documentPages: 2, notificationPages: 2, notificationRead: markRead.status,
       notificationReplay: readReplay.status, readAgainCount: readAgain.body.data.updated_count,
       unknownNotification: unknownNotification.status,
+      eventPages: 2, authorityPages: 2, foreignEventCursor: foreignEventCursor.status,
       wrongAction: wrongAction.status }
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))

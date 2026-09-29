@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.4** (release candidate on the API draft branch)
+Current contract: **2026-09-29.5** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -117,3 +117,26 @@ The current route resolves references, updates rows and completes idempotency
 in separate database steps. It does not yet have the contact command's atomic
 mutation/completion/audit/outbox guarantee. The runnable synthetic client
 shows two pages of each list, mark-read, replay, read-back and a 404.
+
+## Events and powers of attorney
+
+Use `customer_events.read` for `GET /api/v1/customer/events` and
+`customer_power_of_attorney.read` for `GET /api/v1/customer/powers-of-attorney`.
+Sign a fresh assertion for each exact GET path. Both return a public `data`
+array with `page`; `limit` defaults to 50 and is capped at 100. Follow
+`page.next_cursor` only within the same organization, customer and resource.
+Malformed or foreign cursors return 400 `invalid_cursor`.
+
+The event list combines customer events and customer-bound domain events in a
+stable keyset page, exposing only an opaque `event_reference`, type, version,
+occurrence time and source. It does not return an event payload or prove that
+every event type is suitable for a customer-facing notification. The current
+page RPC does not project the stored domain `event_version`, so the response
+currently reports the DTO fallback value 1 even if a stored event has a later
+version. Treat this field as limited until the read model is corrected.
+
+Powers of attorney return an opaque authority reference, nullable public
+contract/facility references, scope, status and the available date fields.
+The list grants no power to sign or change an authority. The synthetic client
+follows two pages of each resource and checks a foreign event cursor error;
+it uses a local issuer and synthetic records, not a deployed customer feed.

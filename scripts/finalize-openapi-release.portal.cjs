@@ -1158,6 +1158,46 @@ module.exports = function finalizeCustomerPortalRelease({
     listEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
     setResponse(portal, path, listEnvelope)
   }
+  const eventProperties = {
+    event_reference: { type: 'string', pattern: '^event_[A-Za-z0-9_-]{32}$' },
+    event_type: nullableString,
+    event_version: { type: 'integer', minimum: 1 },
+    occurred_at: nullableString,
+    source: nullableString,
+  }
+  portal.components.schemas.CustomerEvent = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(eventProperties), properties: eventProperties,
+  }
+  const powerOfAttorneyProperties = {
+    power_of_attorney_reference: { type: 'string', pattern: '^power_of_attorney_[A-Za-z0-9_-]{32}$' },
+    contract_reference: { type: ['string', 'null'], pattern: '^contract_[A-Za-z0-9_-]{32}$' },
+    facility_reference: { type: ['string', 'null'], pattern: '^facility_[A-Za-z0-9_-]{32}$' },
+    scope: nullableString,
+    status: nullableString,
+    signed_at: nullableString,
+    accepted_at: nullableString,
+    valid_from: nullableString,
+    valid_to: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerPowerOfAttorney = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(powerOfAttorneyProperties), properties: powerOfAttorneyProperties,
+  }
+  for (const [path, schemaName] of [
+    ['/api/v1/customer/events', 'CustomerEvent'],
+    ['/api/v1/customer/powers-of-attorney', 'CustomerPowerOfAttorney'],
+  ]) {
+    const operation = portal.paths[path].get
+    operation.parameters = [
+      ...operation.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+      ...clone(invoiceParameters),
+    ]
+    const listEnvelope = envelope({ type: 'array', items: { $ref: `#/components/schemas/${schemaName}` } }, ['page'])
+    listEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+    setResponse(portal, path, listEnvelope)
+  }
   const notificationRead = portal.paths['/api/v1/customer/notifications/read'].post
   portal.components.schemas.CustomerNotificationReadRequest.properties.notification_references.items = {
     type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$',
