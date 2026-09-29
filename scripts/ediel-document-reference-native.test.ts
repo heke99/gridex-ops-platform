@@ -220,6 +220,28 @@ it('missing bytes leave durable attempted/unavailable context',async()=>{
  expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'unavailable'})
  expect(saved(f)).toMatchObject({attempts:[{documentId:f.documentId,outcome:{observation:{status:'unavailable'}}}]})
 })
+it('accepts a millisecond-resolution observation started after a committed attempt',async()=>{
+ const f=await seed()
+ let attempt:Record<string,unknown>|null=null
+ let startedAt=''
+ // PostgreSQL keeps microseconds while the bounded Storage readback reports
+ // JavaScript milliseconds. Its start can be in the attempt's rounded millisecond.
+ for(let i=0;i<5;i++){
+  const opened=await begin(f);expect(opened.error).toBeNull()
+  attempt=opened.data as Record<string,unknown>
+  startedAt=new Date(attempt.recordedAt as string).toISOString()
+  if(sql<boolean>(`SELECT to_jsonb(${literal(startedAt)}::timestamptz<${literal(attempt.recordedAt)}::timestamptz)`))break
+ }
+ expect(attempt).not.toBeNull()
+ expect(sql<boolean>(`SELECT to_jsonb(${literal(startedAt)}::timestamptz<${literal(attempt!.recordedAt)}::timestamptz)`)).toBe(true)
+ const observation={status:'unavailable',reason:'hash_mismatch',startedAt,
+  completedAt:new Date(Date.parse(startedAt)+10).toISOString(),byteCount:13}
+ const outcome=await supabaseService.rpc('gridex_observe_document_reference_v1',{
+  p_company_id:f.companyId,p_environment:f.environment,p_attempt_id:attempt!.attemptId,
+  p_actor_user_id:f.actorUserId,p_observation:observation})
+ expect(outcome.error).toBeNull()
+ expect(outcome.data).toMatchObject({attemptId:attempt!.attemptId,status:'unavailable'})
+})
 it('null storage path remains unresolved with no verified observation',async()=>{
  const f=await seed(),id=randomUUID()
  sql(`INSERT INTO public.customer_contract_documents(id,company_id,customer_contract_id,document_type,storage_bucket,storage_path,mime_type,document_sha256,generation_snapshot) VALUES(${literal(id)},${literal(f.companyId)},${literal(f.contract)},'signed_contract_pdf','customer-contract-documents',NULL,'application/pdf',repeat('b',64),'{}')`)
@@ -320,7 +342,22 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
  expect(capture).toMatchObject({status:'recorded',observation:'verified_at_observation'})
  vi.restoreAllMocks();const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'),old=saved(f,cutoff)
  await lose()
+ const revalidationTrace:{name:string;error?:string;recordedAt?:unknown;status?:unknown;
+  observation?:unknown;availableAt?:unknown;returnedAt:string}[]=[]
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  if(!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   const response=await request.abortSignal(signal),data=response.data as Record<string,unknown>|null
+   revalidationTrace.push({name,...(response.error?{error:response.error.message}:{}),
+    ...(name==='gridex_observe_document_reference_v1'?{observation:(params as {p_observation?:unknown}).p_observation}:{}),
+    ...(data?.recordedAt?{recordedAt:data.recordedAt}:{}),...(data?.status?{status:data.status}:{}),
+    ...(data?.availableAt?{availableAt:data.availableAt}:{}),returnedAt:new Date().toISOString()})
+   return response
+  }} as unknown as ReturnType<typeof supabaseService.rpc>
+ })
  const fresh=await readDocumentReferenceContext({...args(f),cutoff})
+ vi.restoreAllMocks()
  if(fresh.revalidation.some(result=>result.status==='unconfirmed')){
   const durable=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
    'attempts',count(DISTINCT a.id),'outcomes',count(DISTINCT o.id),'witnesses',count(DISTINCT w.id))
@@ -332,8 +369,8 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
    WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
   const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
-  throw Error(`document_reference_revalidation_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,
-   object,readback,fresh,trace,durable})}`)
+  throw Error(`document_reference_revalidation_stage ${JSON.stringify({boundary,loss,revalidationTrace,durable,
+   object,readback,revalidation:fresh.revalidation,trace,fresh})}`)
  }
  expect(fresh.revalidation).toMatchObject([{status:'recorded',observation:'unavailable'}]);expect(fresh.contentStatus).toBe('document_reference_unavailable');expect(saved(f,cutoff)).toEqual({...old,visibilitySnapshot:expect.any(String)})
 })
