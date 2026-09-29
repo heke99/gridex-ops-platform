@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-29T20:37:00Z",
+  "updated_at": "2026-09-29T23:50:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,8 +10,8 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR421 E72 native407/407; authentic schema snapshot copied; final exact-head gates pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/e72-empty-request-point-identity-20260929.md",
+  "active_item": "PR421 ACK-08 ERR gateway: 352-row reconciliation and ordinary RED; native proof pending, product unchanged",
+  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-20260929.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish authentic E72 schema/evidence fast-forward from00045ba5, verify new exact-head five workflows/replay/types/schema, retain draft and traffic holds.",
+  "next_action": "Publish native test/reference/memory evidence fast-forward from0b6ea32a; read first actual native failure before minimal ERR process/IDE-key fix, then exact-head five gates.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1051,5 +1051,51 @@
     "schema_fingerprint": "c66e9457de217943904622927f60618c5fa0af1546376906df52bf7e360a7924",
     "artifact_zip_sha256": "c5487784b90b04c4dfcfee11ef149f8a6b73cd57185ba6afcd76a98b731bc738",
     "local_related": "148/148 five files"
+  },
+  "pr421_e72_final_20260929": {
+    "status": "VERIFIED",
+    "head": "0b6ea32ad7e284fc3eca30e827b16aab64614a31",
+    "main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+    "workflows": {
+      "ediel": 36627945061,
+      "browser_quality": 36627944962,
+      "full_e2e": 36627945097,
+      "tenant": 36627944970,
+      "ops": 36627944994
+    },
+    "ops_jobs": {
+      "verify": 109609634958,
+      "quality_release_gates": 109609634470,
+      "clean_migration_replay": 109609634821
+    },
+    "native": "407/407 SUCCESS; case-native/browser, tenant invariants, parity selftest and types/schema PASS",
+    "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+    "schema_fingerprint": "c66e9457de217943904622927f60618c5fa0af1546376906df52bf7e360a7924",
+    "artifact": 11061900794,
+    "artifact_zip_sha256": "0f96bb7457ba601861944fd79e8950305a7821f1fa8c500d305f2f326aeeea0e",
+    "stale_pending_sections": "SUPERSEDED"
+  },
+  "pr421_err_gateway_20260929": {
+    "status": "IN_PROGRESS",
+    "review_head": "0b6ea32ad7e284fc3eca30e827b16aab64614a31",
+    "requirements": [
+      "ACK-08",
+      "AT-ACK-08",
+      "SC-044",
+      "U-03",
+      "CALL-09"
+    ],
+    "reconciliation": "352 unique IDs; 346 current code/test hashes; 105 rows changed since historical main, 95 since historical audit head; formal statuses inherited unchanged",
+    "ordinary_red": "4/4 expected failures: process mismatch, same-code distinct-IDE duplicate and earlier-than-intended interruption; no product edit",
+    "native": "PENDING; four actual local DB consumer/gateway controls added",
+    "independent_refutation": "CONFIRMED both primary process mismatch and distinct-IDE collision; read-only agents",
+    "queued_candidates": [
+      "U-02 S02 own-field borrowing",
+      "U-03 direct consumer UNT syntax gate and header scope",
+      "ACK-03 physical IDE/reference/header scope",
+      "U-14 manual positive-ACK storage authority"
+    ],
+    "traffic": "HELD",
+    "external_issuer_retention_positive175_fullE035": "BLOCKED"
   }
 }

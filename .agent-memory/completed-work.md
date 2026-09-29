@@ -1,3 +1,8 @@
+
+## 2026-09-29 ACK-08 test-first checkpoint
+
+352-ID/346-reference reconciliation at0b6ea32a completed; inherited/formal statuses unchanged. Five bounded independent read-only requirement reviews and ERR refutation completed. Four ordinary RED tests executed before product edits. Baseline E72 final0b6ea32a native407/407 and five workflows verified; stale pending text superseded. No ERR implementation/native closure claimed.
+
 ## Verified inherited #421 checkpoint — d8fea097
 
 

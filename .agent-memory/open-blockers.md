@@ -1,3 +1,8 @@
+
+## 2026-09-29 ACK-08 test-first checkpoint
+
+ACK-08 active native proof: ERR wrong process metadata and code-only duplicate identity are ordinary-confirmed; four native controls pending. Historical203/505, LOC175, fullE035 and old Storage cause remain unchanged. No market activation.
+
 ## Current — 2026-09-29 #421 E72 test-first durable probe
 
 

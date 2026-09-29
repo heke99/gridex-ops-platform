@@ -1,3 +1,8 @@
+
+## 2026-09-29 ACK-08 test-first checkpoint
+
+ACK-08 / AT-ACK-08 / SC-044 / CALL-09: ordinary4/4 RED on0b6ea32a product, actual gateway/validator; native4 controls PENDING. Reconciliation121+231 exact IDs/346 paths, formal ledger unchanged. E72 final0b6ea32a fiveSUCCESS/native407/parityPASS.
+
 ## Current — 2026-09-29 #421 E72 test-first durable probe
 
 

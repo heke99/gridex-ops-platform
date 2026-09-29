@@ -1,3 +1,15 @@
+## Current — 2026-09-29 #421 ACK-08 ERR gateway native probe
+
+E72/E73 pending text below is SUPERSEDED by actual final head `0b6ea32ad7e284fc3eca30e827b16aab64614a31`: all five workflows SUCCESS (Ediel36627945061, browser36627944962, FullE2E36627945097, tenant36627944970, OPS36627944994), OPS verify/quality/clean replay, native407/407, case/browser/tenant/parity/types/schema PASS. Main remains53bf989b. Final artifact11061900794, ZIP SHA2560f96bb7457ba601861944fd79e8950305a7821f1fa8c500d305f2f326aeeea0e. Do not redo either point fix.
+
+Active: reconcile all121 rule cards/231 acceptance contracts at0b6ea32a, then bounded ACK-08 ERR gateway. All352 IDs and346 references reconcile;105 rows cite code changed since historical main (95 since prior audit head). Formal coverage and old semantic verdicts remain inherited, not newly accepted. Five bounded independent requirement reads and ERR refutation found: actual ERR builder uses process ack instead of canonical functional_rejection; canonical-qualified same-code distinct IDEs reuse one ACK. New ordinary suite4/4 RED before product edits. Native four-case actual canonical consumer/gateway suite added; product unchanged, native PENDING. Root owns all writes; review agents read-only.
+
+Next: publish substantive native/test/reconciliation evidence fast-forward from0b6ea32a, read first native result, then minimal canonical ERR process/full-IDE duplicate-key correction, focused controls and five exact-new-head gates. Other U-02 S02 own-field, U-03 direct syntax/header, ACK-03 references and U-14 manual storage-authority candidates are queued; native unproved.
+
+Historical203/505 issuer/history/retention, positiveLOC175 owner/mandate/separate sink/ACK and fullE035 remain BLOCKED. Older Storage cause unknown. Draft#421 unmerged; #310 untouched; traffic held. No staging/TGT/AGT/counterparty or real send.
+
+Older Current sections below are historical and SUPERSEDED for the active next action.
+
 ## Current — 2026-09-29 #421 E72 test-first durable probe
 
 

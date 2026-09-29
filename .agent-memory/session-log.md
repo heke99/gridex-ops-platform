@@ -1,3 +1,8 @@
+
+## 2026-09-29 ACK-08 test-first checkpoint
+
+2026-09-29: user authorized next action. Rechecked clean0b6ea32a refs/status/CI; reconciled352 IDs/346 paths, five bounded independent reads, ERR refutation, four ordinary RED. Added actual local-only native ERR consumer/gateway controls, product unchanged. Next publish/read native then minimal correction/exact-head gates; holds intact.
+
 ## Current — 2026-09-29 #421 E72 test-first durable probe
 
 
