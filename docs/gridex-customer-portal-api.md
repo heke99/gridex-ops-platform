@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.2** (release candidate on the API draft branch)
+Current contract: **2026-09-29.3** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -65,3 +65,23 @@ Contracts return a public `data` array and `page`; sites return
 Missing contract fields remain JSON null where the canonical or legacy read
 model has no value. These reads do not grant any write scope. The synthetic
 reference client exercises both resources and their pagination shape.
+
+## Invoice reads
+
+With `customer_invoices.read` and a fresh assertion for each exact GET path,
+`GET /api/v1/customer/invoices?limit=1` returns `data` as public invoice
+objects and an opaque `page.next_cursor`. `limit` defaults to 50 and is capped
+at 100. Use a returned cursor only for the same organization, customer and
+resource; malformed or foreign cursors return 400 `invalid_cursor`. Only
+issued, sent, paid, overdue, cancelled and credited invoices are listed.
+
+Use an invoice's `invoice_reference` (for example,
+`invoice_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee`) in
+`GET /api/v1/customer/invoices/{id}`. The path takes this opaque reference,
+not a database UUID or an invoice number. Its `data` contains `invoice`,
+`lines` and `documents`. Each item exposes only its public fields and
+references. An invoice outside the verified customer's view returns 404
+`invoice_not_found` without its lines or documents. Unknown amounts and
+quantities remain JSON null; zero means an actual zero value. The synthetic
+reference client runs two list pages, a detail lookup and a 404 example.
+These reads do not prove a complete billing or document-delivery workflow.

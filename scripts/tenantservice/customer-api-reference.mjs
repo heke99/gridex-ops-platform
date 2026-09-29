@@ -19,6 +19,14 @@ const issuer = 'https://issuer.example.test'
 const audience = 'gridex-customer-portal'
 const apiKey = 'synthetic-backend-only-key'
 const contactPath = '/api/v1/customer/profile-update'
+const invoiceReference = `invoice_${'e'.repeat(32)}`
+const syntheticInvoice = (reference, number, status, amount) => ({
+  invoice_reference: reference, invoice_number: number,
+  period_start: null, period_end: null, total_kwh: null,
+  amount_ex_vat: null, vat_amount: null, amount_inc_vat: amount,
+  currency: 'SEK', issued_at: null, due_date: null, paid_at: null,
+  status, created_at: '2026-09-29T00:00:00Z',
+})
 
 export async function delegatedRequest({ baseUrl, method, path, signAssertion, body, idempotencyKey }) {
   const pathname = new URL(path, baseUrl).pathname
@@ -112,6 +120,39 @@ async function syntheticServer(publicKey) {
       })
       return
     }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/invoices') {
+      const cursor = url.searchParams.get('cursor')
+      if (cursor && cursor !== 'synthetic-next-invoice') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      reply(200, {
+        data: [cursor
+          ? syntheticInvoice(`invoice_${'f'.repeat(32)}`, 'SYN-INV-2', 'paid', 125)
+          : syntheticInvoice(invoiceReference, 'SYN-INV-1', 'issued', null)],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-invoice' },
+      })
+      return
+    }
+    if (request.method === 'GET' && url.pathname.startsWith('/api/v1/customer/invoices/')) {
+      if (url.pathname !== `/api/v1/customer/invoices/${invoiceReference}`) {
+        reply(404, { error: { code: 'invoice_not_found' } })
+        return
+      }
+      reply(200, { data: {
+        invoice: syntheticInvoice(invoiceReference, 'SYN-INV-1', 'issued', null),
+        lines: [{ line_reference: `invoice_line_${'g'.repeat(32)}`,
+          description: 'Synthetic energy', quantity: null, unit_price: null,
+          amount_ex_vat: null, vat_amount: null, amount_inc_vat: 15,
+          created_at: '2026-09-29T00:00:00Z' }],
+        documents: [{ document_reference: `document_${'h'.repeat(32)}`,
+          document_type: 'invoice', title: 'Synthetic invoice', file_name: null,
+          mime_type: null, file_size_bytes: null, status: null,
+          secure_url: null, version: null, created_at: '2026-09-29T00:00:00Z' }],
+      } })
+      return
+    }
     if (request.method !== 'POST' || url.pathname !== contactPath) {
       reply(404, { error: { code: 'resource_not_found' } })
       return
@@ -203,6 +244,23 @@ export async function runSyntheticCustomerJourney() {
     assert.equal(sites.body.data.sites.length, 1)
     assert.equal(sites.body.data.metering_points[0].metering_point_id, '735999000000000001')
     assert.equal(sites.body.page.sites.returned, 1)
+    const invoices = await call('GET', '/api/v1/customer/invoices?limit=1')
+    assert.equal(invoices.status, 200)
+    assert.equal(invoices.body.data[0].invoice_reference, invoiceReference)
+    assert.equal(invoices.body.data[0].amount_inc_vat, null)
+    assert.equal(invoices.body.page.has_more, true)
+    const nextInvoices = await call('GET', `/api/v1/customer/invoices?limit=1&cursor=${invoices.body.page.next_cursor}`)
+    assert.equal(nextInvoices.status, 200)
+    assert.equal(nextInvoices.body.data[0].status, 'paid')
+    assert.equal(nextInvoices.body.page.has_more, false)
+    const invoice = await call('GET', `/api/v1/customer/invoices/${invoiceReference}`)
+    assert.equal(invoice.status, 200)
+    assert.equal(invoice.body.data.invoice.invoice_reference, invoices.body.data[0].invoice_reference)
+    assert.equal(invoice.body.data.lines.length, 1)
+    assert.equal(invoice.body.data.documents.length, 1)
+    const foreignInvoice = await call('GET', `/api/v1/customer/invoices/invoice_${'z'.repeat(32)}`)
+    assert.equal(foreignInvoice.status, 404)
+    assert.equal(foreignInvoice.body.error.code, 'invoice_not_found')
     const foreignCursor = await call('GET', '/api/v1/customer/contracts?cursor=foreign-customer-cursor')
     assert.equal(foreignCursor.status, 400)
     assert.equal(foreignCursor.body.error.code, 'invalid_cursor')
@@ -214,7 +272,9 @@ export async function runSyntheticCustomerJourney() {
     })
     return { revisionBefore: revision, revisionAfter: state.revision, stale: stale.status,
       replay: replay.status, changedKey: changedKey.status, writes: state.writes,
-      contractPages: 2, sites: sites.body.data.sites.length, wrongAction: wrongAction.status }
+      contractPages: 2, sites: sites.body.data.sites.length, invoicePages: 2,
+      invoiceDetail: invoice.status, foreignInvoice: foreignInvoice.status,
+      wrongAction: wrongAction.status }
   } finally {
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
   }

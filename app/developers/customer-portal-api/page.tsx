@@ -433,6 +433,9 @@ export default function CustomerPortalApiDocumentationPage() {
             <p className="leading-7 text-slate-700">
               Contracts use <code>customer_contracts.read</code>; sites and their metering points use <code>customer_sites.read</code>. Each read needs its own signed action assertion. Send <code>limit</code> up to 100 and follow the opaque <code>page.next_cursor</code> for contracts or <code>page.sites.next_cursor</code> for sites. A malformed cursor or one issued for another customer or resource returns 400 <code>invalid_cursor</code>. See the runnable synthetic reference client in <code>scripts/tenantservice/customer-api-reference.mjs</code> for both reads.
             </p>
+            <p className="leading-7 text-slate-700">
+              Invoices use <code>customer_invoices.read</code>. List them with <code>GET /api/v1/customer/invoices</code>, then follow <code>page.next_cursor</code>. Pass a returned <code>invoice_reference</code> to <code>GET /api/v1/customer/invoices/{'{id}'}</code> to read its public invoice, lines and documents. The reference is opaque; an invoice outside the customer&apos;s view returns 404 <code>invoice_not_found</code>. Unknown amounts remain JSON null. The synthetic client demonstrates both list pages, detail and 404.
+            </p>
             <EndpointTable rows={customerPortalRows} />
           </Section>
 

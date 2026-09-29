@@ -1,6 +1,6 @@
 # Gridex Website Integration API
 
-Current contract: **2026-09-29.2** (release candidate)
+Current contract: **2026-09-29.3** (release candidate)
 
 The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable website contract is published at `/api/v1/openapi/website-integration-v1.json`.
 

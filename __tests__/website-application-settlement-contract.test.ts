@@ -7,7 +7,7 @@ describe('website customer application settlement contract', () => {
   it('publishes a satisfiable settlement property and validates it at runtime', () => {
     const openApi = JSON.parse(read('docs/openapi/website-integration-v1.json'))
     const application = openApi.components.schemas.CustomerApplicationRequest
-    expect(openApi.info.version).toBe('2026-09-29.2')
+    expect(openApi.info.version).toBe('2026-09-29.3')
     expect(application.required).toContain('settlement')
     expect(application.properties.settlement).toEqual({
       $ref: '#/components/schemas/WebsiteQuoteSettlement',

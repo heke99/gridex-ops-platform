@@ -1065,6 +1065,72 @@ module.exports = function finalizeCustomerPortalRelease({
     }
   }
 
+  // The invoice list and detail routes expose the same canonical, opaque
+  // invoice_reference. Document their actual page and allowlisted projections.
+  const invoiceList = portal.paths['/api/v1/customer/invoices'].get
+  const invoiceDetail = portal.paths['/api/v1/customer/invoices/{id}'].get
+  const invoiceParameters = portal.paths['/api/v1/customer/contracts'].get.parameters
+    .filter((parameter) => ['limit', 'cursor'].includes(parameter.name))
+  invoiceList.parameters = [
+    ...invoiceList.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+    ...clone(invoiceParameters),
+  ]
+  const invoiceId = invoiceDetail.parameters.find((parameter) => parameter.name === 'id' && parameter.in === 'path')
+  invoiceId.schema = { type: 'string', pattern: '^invoice_[A-Za-z0-9_-]{32}$' }
+  invoiceId.description = 'Opaque invoice_reference returned by GET /api/v1/customer/invoices.'
+
+  const invoice = portal.components.schemas.CustomerInvoice
+  invoice.required = Object.keys(invoice.properties)
+  invoice.properties.invoice_reference = { type: 'string', pattern: '^invoice_[A-Za-z0-9_-]{32}$' }
+  const nullableNumber = { type: ['number', 'null'] }
+  const invoiceLineProperties = {
+    line_reference: { type: 'string', pattern: '^invoice_line_[A-Za-z0-9_-]{32}$' },
+    description: nullableString,
+    quantity: nullableNumber,
+    unit_price: nullableNumber,
+    amount_ex_vat: nullableNumber,
+    vat_amount: nullableNumber,
+    amount_inc_vat: nullableNumber,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerInvoiceLine = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(invoiceLineProperties), properties: invoiceLineProperties,
+  }
+  const invoiceDocumentProperties = {
+    document_reference: { type: 'string', pattern: '^document_[A-Za-z0-9_-]{32}$' },
+    document_type: nullableString,
+    title: nullableString,
+    file_name: nullableString,
+    mime_type: nullableString,
+    file_size_bytes: nullableNumber,
+    status: nullableString,
+    secure_url: nullableString,
+    version: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerInvoiceDocument = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(invoiceDocumentProperties), properties: invoiceDocumentProperties,
+  }
+  portal.components.schemas.CustomerInvoiceDetail = {
+    type: 'object', additionalProperties: false,
+    required: ['invoice', 'lines', 'documents'],
+    properties: {
+      invoice: { $ref: '#/components/schemas/CustomerInvoice' },
+      lines: { type: 'array', items: { $ref: '#/components/schemas/CustomerInvoiceLine' } },
+      documents: { type: 'array', items: { $ref: '#/components/schemas/CustomerInvoiceDocument' } },
+    },
+  }
+  const invoiceListEnvelope = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerInvoice' } }, ['page'])
+  invoiceListEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, '/api/v1/customer/invoices', invoiceListEnvelope)
+  setResponse(portal, '/api/v1/customer/invoices/{id}', envelope({ $ref: '#/components/schemas/CustomerInvoiceDetail' }))
+  invoiceDetail.responses['404'] = {
+    ...clone(invoiceDetail.responses['400']),
+    description: 'The invoice reference is not visible to the verified customer.',
+  }
+
   function assertLocalRefs(document, name) {
     const failures = []
     function walk(value) {

@@ -1,0 +1,27 @@
+# Separat API-spår: kundfakturaläsning, kandidat 2026-09-29.3
+
+Base för denna fortsättning: API-PR #422:s verifierade `98738b6b4a3f2e6fd23ee92603a9032b3d18e9d1`, i sin tur ovanpå masterplan-PR #418:s `750510b81bb4ff98e20723ae3f97a0e1bbb6d34f`. Slutlig publicerad SHA och exact-head CI redovisas i #422. Masterplanens gren, kanoniska `requirements.csv`, migrationer och andra agenters grenar ändras inte här.
+
+## Avgränsning och arbetsregler
+
+Aktiverade projektskill: `using-superpowers` för routing, `test-driven-development` och `systematic-debugging` för reproduktion före fix samt `verification-before-completion` för körda grindar. Route-/OpenAPI-jämförelsen följer relevant kontraktsprincip från `spec-to-code-compliance`, avgränsad till dessa två fakturaoperationer. Supabase-regler och installerad Next route-guide användes för den befintliga databas-/requestgränsen. `fp-check` gäller misstänkta säkerhetsfynd och `quality-playbook` en full kvalitetsrevision; de körs inte på detta verifierade numeriska svarsfel och avgränsade kontraktspaket. Full generell inventering, prestanda-/UI-revision, parallelldelegation och migrationsarbete är utanför detta API-paket och arbetsfördelningen.
+
+## Källspår och bekräftade avvikelser
+
+`GET /api/v1/customer/invoices` kräver `customer_invoices.read` samt signerad assertion för exakt GET-path. `listPortalInvoicesPage` filtrerar `customer_invoices` med både `company_id` och `customer_id`, begränsar status till `issued`, `sent`, `paid`, `overdue`, `cancelled`, `credited`, använder `created_at`/ID-nyckelset och returnerar `data` plus `page`. Föregående OpenAPI saknade `limit`, `cursor`, `page` och specifikt list-DTO.
+
+`GET /api/v1/customer/invoices/{id}` söker samma bundna kunds kanoniska `invoice_reference`, inte ett UUID. Migration `20260810110149_customer_invoice_public_reference.sql` fyller, låser och tenantindexerar den opaka `invoice_`-referensen. Detail-routen hämtar bara den matchande fakturans rader och dokument med `company_id`/faktura-ID och returnerar `data: {invoice, lines, documents}` eller neutral 404 `invoice_not_found`. Föregående OpenAPI angav `format: uuid`, generiskt 200 och saknade 404. Ingen SQL-förändring krävs för kontraktsrättningen.
+
+`publicDto.numberOrNull` anropade `Number(null)` och publicerade därmed okänt fakturabelopp/kvantitet som `0`; samma hjälpmetod påverkade bland annat avtalens avgiftsfält. Det är en faktisk värdeförvanskning. Null och tomt värde bevaras nu som null; numerisk nolla förblir nolla. Övrig numerisk konvertering har inte ändrats.
+
+## Prov och kandidat
+
+`__tests__/customer-api-invoice-parity.test.ts` gav **RED 3/3** före rättning: saknad listpagination, UUID-väg/generiskt detaljkontrakt och null→0. Efter rättning prövar det scope, assertion, queryparametrar, exakta schemareferenser/DTO-nycklar, opak detaljreferens, 404 samt nullbevarande inklusive avtalsfallback. `__tests__/customer-api-invoice-routes.test.ts` kör faktiska GET-routefunktioner med syntetiska service-rader och verifierar kundkontext, fakturareferens, företags-/fakturafilter för rader och dokument, publicerade nycklar utan internt ID och 404 utan efterföljande radläsning. `__tests__/customer-api-invoice-query.test.ts` kör den verkliga uppslagsfunktionen mot syntetisk frågebyggare och prövar samma tenants andra kund, annan tenant, rätt kund och statusfilter. Detta är mockad route-/frågeparitet, inte native fler-kund-databasbevis.
+
+Ny kandidat `2026-09-29.3` byggs med befintlig `finalize-openapi-release`/`professionalize-openapi-contract`-process, får nya versionerade routes, operation-ID:n, route-register, gemensam runtimeversion och dynamiskt beräknade manifesthashar. Den tidigare 29.2-releasefilen är byteoförändrad (customer SHA-256 `e417efa75e9def5e266f5de1c44c510ee198de4ab2b19690515ce7768e626e6f`; website `2e5a4b5c3838921f77de372e098f9d755f73e476e6259df22d4a7f0542302898`). Ny kandidat: customer SHA-256 `7a766b66a7cee19b3abd0eaaa846426f313e8a109b6368bbd313a1d0c74c822b`, website `db2de3253fe2f1e0444b2cea136bb787d9712bfa0e5b23c960ee25c8db3bab34`.
+
+Den körbara syntetiska HTTP-klienten använder sin temporära in-memory-utfärdare och visar nu även två fakturasidor, uppslag med listans referens, publika rader/dokument och 404 för annan referens. Den når ingen Gridex-miljö och använder ingen riktig issuer, maskinnyckel eller kunddata. Guiderna beskriver scope, cursor, referens, null och 404.
+
+Lokalt på kandidatträdet: 7 riktade Vitest-filer/25 fall, `api:docs`, `api:compatibility`, `api:release:verify`, `api:runtime:parity`, app-/test-/script-typecheck, scoped lint och syntetisk HTTP-klient passerade. `api:release:verify` har bara läst lokala filer eftersom `GRIDEX_API_BASE_URL` inte är satt; distribuerade bytes är inte verifierade. Inga tidigare CI-jobb har startats om.
+
+**T48** får fortsatt endast avgränsad PARTIAL evidens för kontakt, kontrakt, sites och nu fakturaläsning. T06 får inget nytt native fel-kund-bevis av dessa mocktester. P6:s verkliga supportsida med ärendeskapande → OPS-svar → återläsning, fler kundresurser, native tvåkunds-/fakturaprover, verklig issuer, driftsatt release och de äldre icke-atomiska profil-/synkskrivningarna återstår. Ingen hel T/U-punkt eller P0–P8-fas accepteras. Nästa separata API-paket kan ta dokument-/notifieringsresurser efter faktisk route- och DTO-verifiering; SQL-kommandogränsen för skrivluckorna ägs av masterplanagenten enligt tidigare API-evidens.
