@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.7** (release candidate on the API draft branch)
+Current contract: **2026-09-29.8** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -65,6 +65,29 @@ Contracts return a public `data` array and `page`; sites return
 Missing contract fields remain JSON null where the canonical or legacy read
 model has no value. These reads do not grant any write scope. The synthetic
 reference client exercises both resources and their pagination shape.
+
+## Legal acceptance reads
+
+`GET /api/v1/customer/legal-acceptances` requires `customer_legal.read` and
+a fresh signed assertion for exactly `GET /api/v1/customer/legal-acceptances`.
+This is read-only: no write scope or `Idempotency-Key` is required. Follow the
+opaque `page.next_cursor` with the same organization and verified customer.
+Foreign customer, tenant, resource or tampered cursors return 400
+`invalid_cursor` before the list read. `limit` defaults to 50 and is capped at
+100; missing, non-positive, fractional or non-numeric values use the default.
+The existing read filters organization and customer before an `accepted_at`
+descending page, breaking timestamp ties with the descending row key.
+
+The `data` array contains exactly `acceptance_reference`, `acceptance_type`,
+`document_reference`, `document_code`, `document_version`, `document_hash`,
+`accepted_at`, `source` and `created_at`. Acceptance references are opaque;
+document references derive from the bundle document or legacy legal text.
+Unavailable fields remain JSON null, including the document reference when
+neither source exists. Internal IDs, snapshots, metadata, trace/request IDs,
+contract relations and signatures are not item fields. The synthetic client
+follows two legal pages and rejects wrong signed actions and foreign cursors.
+This local evidence is PARTIAL, not native SQL/RLS or full phase acceptance.
+No external support/case/message/attachment endpoint exists in this package.
 
 ## Metering value reads
 

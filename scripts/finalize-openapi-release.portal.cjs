@@ -1003,7 +1003,7 @@ module.exports = function finalizeCustomerPortalRelease({
       const operation = item?.[method]
       if (!operation) continue
       operation.parameters = (operation.parameters ?? []).filter((parameter) =>
-        parameter.name !== 'x-gridex-customer-assertion')
+        parameter.name !== 'x-gridex-customer-assertion').map((parameter) => clone(parameter))
       for (const parameter of operation.parameters) {
         if (!['x-gridex-auth-user-id', 'x-gridex-customer-portal-user-id'].includes(parameter.name)) continue
         parameter.required = false
@@ -1234,6 +1234,36 @@ module.exports = function finalizeCustomerPortalRelease({
   const meteringEnvelope = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerMeteringValue' } }, ['page'])
   meteringEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
   setResponse(portal, meteringPath, meteringEnvelope)
+  const legalProperties = {
+    acceptance_reference: { type: 'string', pattern: '^acceptance_[A-Za-z0-9_-]{32}$' },
+    acceptance_type: nullableString,
+    document_reference: { type: ['string', 'null'], pattern: '^legal_document_[A-Za-z0-9_-]{32}$' },
+    document_code: nullableString,
+    document_version: nullableString,
+    document_hash: nullableString,
+    accepted_at: nullableString,
+    source: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerLegalAcceptance = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(legalProperties), properties: legalProperties,
+  }
+  const legalPath = '/api/v1/customer/legal-acceptances'
+  const legalReadOperation = portal.paths[legalPath].get
+  legalReadOperation.parameters = [
+    ...legalReadOperation.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+    { name: 'limit', in: 'query', required: false,
+      description: 'Positive integer page size, default 50, capped at 100. Missing, non-positive, fractional or non-numeric values use the default.',
+      schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } },
+    { name: 'cursor', in: 'query', required: false,
+      description: 'Opaque page.next_cursor bound to this organization, customer and legal-acceptances resource. Invalid, tampered or foreign cursors return 400 invalid_cursor.',
+      schema: { type: 'string' } },
+  ]
+  legalReadOperation.description = 'Read only the verified customer’s legal acceptances with customer_legal.read and a mandatory signed assertion for the exact GET path. Organization and customer filters precede a stable accepted_at/id descending keyset page. Return only the public nine-field DTO; unavailable legacy fields remain null. No write scope or Idempotency-Key is required.'
+  const legalEnvelope = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerLegalAcceptance' } }, ['page'])
+  legalEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, legalPath, legalEnvelope)
   const notificationRead = portal.paths['/api/v1/customer/notifications/read'].post
   portal.components.schemas.CustomerNotificationReadRequest.properties.notification_references.items = {
     type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$',

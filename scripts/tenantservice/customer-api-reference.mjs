@@ -150,6 +150,25 @@ async function syntheticServer(publicKey) {
       })
       return
     }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/legal-acceptances') {
+      const cursor = url.searchParams.get('cursor')
+      if (cursor && cursor !== 'synthetic-next-legal') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      reply(200, {
+        data: [{ acceptance_reference: `acceptance_${(cursor ? 'r' : 's').repeat(32)}`,
+          acceptance_type: 'terms',
+          document_reference: cursor ? null : `legal_document_${'t'.repeat(32)}`,
+          document_code: cursor ? null : 'terms', document_version: cursor ? null : '1',
+          document_hash: cursor ? null : 'a'.repeat(64),
+          accepted_at: '2026-09-29T00:00:00Z', source: cursor ? null : 'portal',
+          created_at: '2026-09-29T00:00:00Z' }],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-legal' },
+      })
+      return
+    }
     if (request.method === 'GET' && url.pathname === '/api/v1/customer/invoices') {
       const cursor = url.searchParams.get('cursor')
       if (cursor && cursor !== 'synthetic-next-invoice') {
@@ -393,6 +412,36 @@ export async function runSyntheticCustomerJourney() {
     const badMeteringCursor = await call('GET', `${meteringPath}&cursor=foreign-customer-cursor`)
     assert.equal(badMeteringCursor.status, 400)
     assert.equal(badMeteringCursor.body.error.code, 'invalid_cursor')
+    const legalPath = '/api/v1/customer/legal-acceptances?limit=1'
+    const legalFields = ['acceptance_reference', 'acceptance_type', 'document_reference',
+      'document_code', 'document_version', 'document_hash', 'accepted_at', 'source', 'created_at']
+    const legal = await call('GET', legalPath)
+    assert.equal(legal.status, 200)
+    assert.deepEqual(Object.keys(legal.body.data[0]).sort(), [...legalFields].sort())
+    assert.match(legal.body.data[0].acceptance_reference, /^acceptance_[A-Za-z0-9_-]{32}$/)
+    assert.match(legal.body.data[0].document_reference, /^legal_document_[A-Za-z0-9_-]{32}$/)
+    assert.equal(legal.body.data[0].document_code, 'terms')
+    assert.equal(legal.body.data[0].document_version, '1')
+    assert.equal(legal.body.data[0].document_hash, 'a'.repeat(64))
+    assert.equal(legal.body.data[0].source, 'portal')
+    assert.equal(legal.body.page.has_more, true)
+    const nextLegal = await call('GET', `${legalPath}&cursor=${legal.body.page.next_cursor}`)
+    assert.equal(nextLegal.status, 200)
+    assert.deepEqual(Object.keys(nextLegal.body.data[0]).sort(), [...legalFields].sort())
+    assert.notEqual(nextLegal.body.data[0].acceptance_reference, legal.body.data[0].acceptance_reference)
+    for (const field of ['document_reference', 'document_code', 'document_version', 'document_hash', 'source']) {
+      assert.equal(nextLegal.body.data[0][field], null)
+    }
+    assert.equal(nextLegal.body.page.has_more, false)
+    assert.equal(nextLegal.body.page.next_cursor, null)
+    assert.doesNotMatch(JSON.stringify([legal.body.data, nextLegal.body.data]), /snapshot|metadata|customer_id|company_id|contract_id|signature|request_id|trace_id/)
+    const foreignLegalCursor = await call('GET', `${legalPath}&cursor=foreign-customer-cursor`)
+    assert.equal(foreignLegalCursor.status, 400)
+    assert.equal(foreignLegalCursor.body.error.code, 'invalid_cursor')
+    const wrongLegalAction = await delegatedRequest({ baseUrl, method: 'GET', path: legalPath,
+      signAssertion: () => signAssertion('GET /api/v1/customer/events') })
+    assert.equal(wrongLegalAction.status, 403)
+    assert.equal(wrongLegalAction.body.error.code, 'customer_delegation_required')
     const invoices = await call('GET', '/api/v1/customer/invoices?limit=1')
     assert.equal(invoices.status, 200)
     assert.equal(invoices.body.data[0].invoice_reference, invoiceReference)
@@ -482,7 +531,9 @@ export async function runSyntheticCustomerJourney() {
     return { revisionBefore: revision, revisionAfter: state.revision, stale: stale.status,
       replay: replay.status, changedKey: changedKey.status, writes: state.writes,
       contractPages: 2, sites: sites.body.data.sites.length, meteringPages: 2,
-      foreignMeteringCursor: badMeteringCursor.status, invoicePages: 2,
+      foreignMeteringCursor: badMeteringCursor.status, legalPages: 2,
+      foreignLegalCursor: foreignLegalCursor.status, wrongLegalAction: wrongLegalAction.status,
+      invoicePages: 2,
       invoiceDetail: invoice.status, foreignInvoice: foreignInvoice.status,
       documentPages: 2, notificationPages: 2, notificationRead: markRead.status,
       notificationReplay: readReplay.status, readAgainCount: readAgain.body.data.updated_count,
