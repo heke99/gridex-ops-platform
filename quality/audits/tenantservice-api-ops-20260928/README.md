@@ -1,5 +1,7 @@
 # Tenantservice/API/OPS — checkpoint 2026-09-28
 
+Aktivt avgränsat uppdrag 2026-09-29: [event-v2-paket på #418 med native-bevis och handoff till #422](event-v2-evidence-20260929.md). Ny additiv RPC projicerar lagrad version; API-byte och release ägs av #422. Initial kandidat inväntar autentisk replay/typegen. Ingen hel fasacceptans eller produktionsändring.
+
 This directory tracks the independent tenantservice initiative. It does not supersede the Ediel checkpoint in `.agent-memory/` or import paused PR #310. Original base: remote `main` `d7eaa4b0b880b7280d8f164630a6cdb51baabba8`; branch: `codex/tenantservice-api-ops-20260928`. At the 2026-09-28 continuation check, remote `main` was `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`.
 
 The complete original assignment is preserved verbatim in [`masteruppdrag.md`](masteruppdrag.md), including T01–T55 and U01–U20. Their status matrix is [`requirements.csv`](requirements.csv). The latest handoff checkpoint is [`handover.md`](handover.md).
