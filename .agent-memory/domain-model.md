@@ -1,3 +1,7 @@
+## 2026-09-29 — Transaction-scoped ERR response identity
+
+A functional-negative UTILTS IDE owns its UTILTS_ERR, physical RFF+TN, full original relatedTransactionReference, source-operation key and final reservation response. Equal error codes in different IDEs do not make the responses interchangeable. Canonical ERR business process is functional_rejection. Real CALL-11 dispositions reach CALL-12 gateway/finalizer and existing CALL-13 binding; sequential retry must preserve receipt, full reservation, ACK bytes/ID/timestamps and contracts. Concurrent same-IDE reservation of ACK identity remains a separate unproved requirement.
+
 # Domain model
 
 Canonical correlation keys include `company_id`, `customer_id`,

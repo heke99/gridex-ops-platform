@@ -1,3 +1,7 @@
+## 2026-09-29 — Canonical ERR process and full physical IDE ownership
+
+After native a671a663407/411 reproduced both defects (all previous407 passed), derive ERR process from the canonical UTILTS profile and use complete original IDE for transaction-scoped ERR lookup/operation/23505 recovery. Retain APERAK and unscoped code sequencing. Independent review approves the bounded change pending exact-head native/five delivery gates. No repair of immutable historical wrong ACKs or claim of native concurrent deduplication. Formal ACK-08/SC-044/CALL-11 acceptance remains partial.
+
 ## 2026-09-24 — Task3a necessary S/MIME serial representation correction
 
 Native298/301 revealed actual existing inspectCmsRecipientInfo printed-serial parser treats OpenSSL decimal1234 as hex rather than certificate04D2; regex also truncates a prefixed0x form. Parent inspected index.part-1.ts530 and authorized narrowly correcting recognized OpenSSL serial representations after actual local crypto reproduction. Keep original native1234 fixture; do not choose serial9 to hide the defect. Exact integer conversion, no Number precision loss, wrong serial remains rejected; expected-certificate normalization and fallback policy unchanged. Focused real crypto tests and independent fix3 review mandatory. No broader crypto refactor or published migration change.

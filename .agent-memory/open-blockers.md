@@ -1,7 +1,7 @@
 
-## 2026-09-29 ACK-08 test-first checkpoint
+## 2026-09-29 ACK-08 native RED and bounded correction
 
-ACK-08 active native proof: ERR wrong process metadata and code-only duplicate identity are ordinary-confirmed; four native controls pending. Historical203/505, LOC175, fullE035 and old Storage cause remain unchanged. No market activation.
+Actual test-only a671a663 native407/411 confirms ERR wrong process and code-only distinct-IDE ACK collision; previous407 passed. The minimal canonical/full-IDE correction has ordinary108/108 and independent bounded approval. Corrected exact-new-head native and five gates remain pending. Sequential interruption/retry and 23505 identity recovery do not establish concurrent same-IDE deduplication. Historical203/505, LOC175, fullE035 and unknown older Storage cause remain unchanged. No market activation. E72/E73 older pending prose below is superseded by fully green0b6ea32a.
 
 ## Current — 2026-09-29 #421 E72 test-first durable probe
 

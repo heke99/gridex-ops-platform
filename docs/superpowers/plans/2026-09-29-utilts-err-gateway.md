@@ -34,15 +34,16 @@ The 352-row reconciliation is a reference/evidence inventory with five bounded f
 - [x] Verify local/remote refs, clean status, unpublished commits, existing five exact-head workflows and writing ownership.
 - [x] Read frozen masterplan/registers, inherited traceability, UTILTS sources, canonical policy and actual CALL consumers.
 - [x] Independently review U-02, U-03, U-14, ACK-03 and ACK-08; refute the selected ERR finding.
-- [ ] Save all 352 IDs and 346 current reference hashes; preserve inherited semantic and formal statuses explicitly.
-- [ ] Add ordinary real-gateway RED tests and execute them before product changes.
-- [ ] Add local-only native proofs; publish the substantive test/evidence step and read the first actual native result.
+- [x] Save all 352 IDs and 346 current reference hashes; preserve inherited semantic and formal statuses explicitly.
+- [x] Add ordinary real-gateway RED tests and execute them before product changes (four expected RED; added legacy control passes).
+- [x] Add local-only native proofs and publish substantive test/evidence step `a671a663`.
+- [x] Read actual native a671a663:407/411; all previous407 pass, four new expected product failures.
 
 ## Task 2 — Correct the bounded ERR failure
 
-- [ ] Derive ERR process type from the canonical UTILTS profile, leaving CONTRL/APERAK semantics intact.
-- [ ] Key transaction-scoped ERR duplicate lookup and source operation by the full original IDE; retain unscoped legacy ERR behavior.
-- [ ] Execute ordinary same-code/two-IDE, mixed responses, interruption/retry and legacy controls; typecheck and lint touched files.
+- [x] Derive ERR process type from the canonical UTILTS profile, leaving CONTRL/APERAK semantics intact.
+- [x] Key transaction-scoped ERR duplicate lookup and source operation by the full original IDE; retain unscoped legacy ERR behavior.
+- [x] Execute ordinary same-code/two-IDE, mixed responses, interruption/retry and legacy controls; typecheck and lint touched files.
 - [ ] Publish a coherent correction and evidence fast-forward on #421.
 
 ## Task 3 — Exact-head delivery
@@ -52,3 +53,5 @@ The 352-row reconciliation is a reference/evidence inventory with five bounded f
 - [ ] Review complete PR diff, review threads, local/remote refs and unpublished commits.
 - [ ] Put final receipt in the PR description. Correct stale memory with the substantive commit; avoid a status-only CI commit.
 - [ ] Keep draft/traffic holds and record the next source-backed candidate per requirement ID.
+
+Local correction checks:108/108 focused tests, tests/scripts TypeScript, lint0errors/4 inherited warnings, frozen121/231 and ACK persistence/chain/engine regression PASS. Independent review approves this bounded correction pending new-head native and delivery. Retained ordinary23505 controls are synthetic IO proof, not native concurrency. Native snapshots now include full receipt/reservation and ACK timestamps; source capture uses the actual family/date evidence trigger.

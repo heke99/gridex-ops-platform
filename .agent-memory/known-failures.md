@@ -1,3 +1,7 @@
+## 2026-09-29 — Confirmed ERR native RED and inherited static oracle
+
+Test-only a671a663 native407/411: three consumer/interruption tests fail earlier at CANONICAL_PROCESS_GROUP_MISMATCH, and the canonically qualified direct gateway returns first IDE ACK for second same-code IDE. All previous407 native tests pass. Fix is scoped to canonical process/full-IDE identity; new exact-head results pending. Optional uninvoked gridex-utilts-aperak-profile-regression.cjs also fails on unchanged verified0b6ea32a: stale source-string check for params.sourceMessage.message_family, while implementation uses usesUtiltsAperakProfile. This baseline oracle is not silently changed or claimed green. Older Storage delete/before_witness cause remains unknown.
+
 ## 2026-09-24 — Resolved document native prerequisites and supply aliases
 
 Task2b initial native228/261 failed33 seeds because customers.read existed in catalog/legacy eight-digit INSERT files but not canonical fourteen-digit clean replay. Resolved by published forward20260924021718 materializing only the established key, ON CONFLICT DO NOTHING, no assignments; repeat/metadata/assignment preservation qualified. Do not infer DB registry presence from catalog or role arrays.

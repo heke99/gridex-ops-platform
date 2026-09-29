@@ -26,6 +26,7 @@ import {
 } from '@/lib/ediel/core/ackPolicy'
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
+import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 
 export type {
   AckFamily,
@@ -1031,7 +1032,9 @@ function buildAckDraft(params: {
             ? 'E5SE5A'
             : 'E2SE6A'
           : 'E5SE5A',
-    processType: 'ack',
+    processType: params.ackFamily === 'UTILTS_ERR'
+      ? getCanonicalUtiltsProfile('ERR')!.businessProcess
+      : 'ack',
     environment: params.sourceMessage.environment,
     testFlag: params.sourceMessage.test_flag,
     status: 'draft',

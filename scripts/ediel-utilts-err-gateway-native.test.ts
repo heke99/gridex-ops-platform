@@ -15,7 +15,8 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 // Real local DB, source ownership, matching, canonical dispatcher, reservations,
 // ACK gateway/validator/writer and finalizer. No transport worker is invoked.
 // Only final metering/billing/completion writes are observed: rejected IDEs
-// must never reach them. No ACK or persistence adapter is replaced.
+// must never reach them. ACK/persistence adapters are real; only the explicit
+// interruption case throws before its second ERR writer call, then restores it.
 const sinks = vi.hoisted(() => ({ meter: vi.fn(), bill: vi.fn(), complete: vi.fn() }))
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: sinks.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
@@ -68,12 +69,14 @@ async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransact
   const insertSource = async (ownTransactions: UtiltsAckFixtureTransaction[]) => {
     const fixture = utiltsErrGatewayFixture({ company: ids.company, receiver: actorEdielId, transactions: ownTransactions })
     const { id, raw, parsed } = utiltsNativeSourceFixture(fixture.raw_payload!, randomUUID())
-    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-      SELECT ${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${literal(parsed.applicationReference)},'91100',${literal(actorEdielId)},${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
-      WHERE profile.message_code='E66' AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+    // Let the real trigger capture the unique family/date-qualified source
+    // evidence; prefilled rule-pack columns would bypass that boundary.
+    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
+      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${literal(parsed.applicationReference)},'91100',${literal(actorEdielId)},${literal(parsed.interchangeReference)});`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
+    expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
+      databaseRole: 'evidence_only', family: 'UTILTS', code: 'E66', effectiveDate: '2026-10-01' })
     return data as EdielMessageRow
   }
   const source = await insertSource(transactions)
@@ -81,16 +84,18 @@ async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransact
 }
 
 type Snapshot = {
-  acks: { id: string; family: string; outcome: string; reference: string; wire: string; process: string; company: string; operation: string; policy: Record<string, unknown> }[]
-  reservations: { transaction: string; disposition: string; plan: string; final: string | null; ack: string | null; series: string | null }[]
+  acks: { id: string; family: string; outcome: string; reference: string; wire: string; process: string; company: string; operation: string; policy: Record<string, unknown>; createdAt: string; updatedAt: string }[]
+  reservations: { transaction: string; disposition: string; plan: string; final: string | null; ack: string | null; series: string | null; row: Record<string, unknown> }[]
+  receipts: unknown[]
   series: { transaction: string; kind: string }[]
   outbox: unknown[]
   contracts: unknown[]
 }
 function snapshot(source: string): Snapshot {
   return sql(`SELECT jsonb_build_object(
-    'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'outcome',ack_outcome,'reference',parsed_payload->>'relatedTransactionReference','wire',raw_payload,'process',process_type,'company',company_id,'operation',source_operation_id,'policy',rule_pack_snapshot) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(source)}),
-    'reservations',(SELECT coalesce(jsonb_agg(jsonb_build_object('transaction',source_transaction_id,'disposition',disposition,'plan',planned_response_type,'final',final_response_type,'ack',response_message_id,'series',persisted_series_id) ORDER BY source_transaction_id),'[]') FROM public.ediel_ack_transaction_results WHERE source_message_id=${literal(source)}),
+    'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'outcome',ack_outcome,'reference',parsed_payload->>'relatedTransactionReference','wire',raw_payload,'process',process_type,'company',company_id,'operation',source_operation_id,'policy',rule_pack_snapshot,'createdAt',created_at,'updatedAt',updated_at) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(source)}),
+    'reservations',(SELECT coalesce(jsonb_agg(jsonb_build_object('transaction',source_transaction_id,'disposition',disposition,'plan',planned_response_type,'final',final_response_type,'ack',response_message_id,'series',persisted_series_id,'row',to_jsonb(a)) ORDER BY source_transaction_id),'[]') FROM public.ediel_ack_transaction_results a WHERE source_message_id=${literal(source)}),
+    'receipts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_message_id),'[]') FROM gridex_utilts_binding.receipts r WHERE source_message_id=${literal(source)}),
     'series',(SELECT coalesce(jsonb_agg(jsonb_build_object('transaction',source_transaction_reference,'kind',series_kind) ORDER BY source_transaction_reference),'[]') FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source)}),
     'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE source_message_id=${literal(source)}),
     'contracts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.transaction_id),'[]') FROM gridex_utilts_binding.contracts c WHERE source_message_id=${literal(source)}))`)
@@ -118,6 +123,7 @@ it('actual canonical consumer persists two independent same-code E87 ERRs, no fo
   expect(runUtiltsRuntimeForMessage(f.source).ackPlan.utiltsErrDetails.map(row => row.code)).toEqual(['E87', 'E87'])
   await f.consume()
   const first = snapshot(f.source.id)
+  expect(first.receipts).toHaveLength(1)
   assertErrs(f, first, references)
   expect(first.acks.filter(row => row.family === 'APERAK')).toEqual([])
   expect(first.series).toEqual([])

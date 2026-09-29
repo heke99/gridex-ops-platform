@@ -196,23 +196,27 @@ export async function createCanonicalAckMessage(params: {
     typeof draftWithSourceSnapshot.parsedPayload?.utiltsErrSequenceToken === 'string' &&
     draftWithSourceSnapshot.parsedPayload.utiltsErrSequenceToken.trim().length > 0
 
-  const allowSequencedAperak =
-    params.ackFamily === 'APERAK' &&
+  // A transaction response belongs to the full original IDE, even when two
+  // rejected IDEs have the same ERR code. Unscoped ERRs retain code sequencing.
+  const transactionAckFamily = params.ackFamily === 'APERAK' || params.ackFamily === 'UTILTS_ERR'
+    ? params.ackFamily : null
+  const allowSequencedTransactionAck =
+    transactionAckFamily !== null &&
     draftWithSourceSnapshot.parsedPayload?.ackScope === 'transaction' &&
     typeof draftWithSourceSnapshot.parsedPayload?.relatedTransactionReference === 'string' &&
     draftWithSourceSnapshot.parsedPayload.relatedTransactionReference.trim().length > 0
 
-  const sequenceToken = allowSequencedAperak
+  const sequenceToken = allowSequencedTransactionAck
     ? sequenceString(draftWithSourceSnapshot.parsedPayload?.relatedTransactionReference)
     : allowSequencedUtiltsErr
       ? sequenceString(draftWithSourceSnapshot.parsedPayload?.utiltsErrSequenceToken)
       : null
 
   const sequencedDuplicate =
-    allowSequencedAperak && sequenceToken
+    allowSequencedTransactionAck && transactionAckFamily && sequenceToken
       ? await findSequencedAckForSource({
           sourceMessageId: params.sourceMessage.id,
-          ackFamily: 'APERAK',
+          ackFamily: transactionAckFamily,
           outcome: params.outcome ?? null,
           sequenceField: 'relatedTransactionReference',
           sequenceValue: sequenceToken,
@@ -227,7 +231,7 @@ export async function createCanonicalAckMessage(params: {
           })
         : null
 
-  const duplicate = sequencedDuplicate ?? (allowSequencedUtiltsErr || allowSequencedAperak
+  const duplicate = sequencedDuplicate ?? (allowSequencedUtiltsErr || allowSequencedTransactionAck
     ? null
     : await hasCanonicalAckDuplicate({
         sourceMessageId: params.sourceMessage.id,
@@ -289,7 +293,7 @@ export async function createCanonicalAckMessage(params: {
     ackFamily: params.ackFamily,
   })
 
-  const refs = allowSequencedUtiltsErr || allowSequencedAperak
+  const refs = allowSequencedUtiltsErr || allowSequencedTransactionAck
     ? {
         ...baseRefs,
         externalReference: draftWithSourceSnapshot.externalReference ?? baseRefs.externalReference,
@@ -343,10 +347,10 @@ export async function createCanonicalAckMessage(params: {
     return await createEdielMessage(canonicalAckInput)
   } catch (error) {
     if (isPostgresUniqueViolation(error) && sequenceToken) {
-      const existing = allowSequencedAperak
+      const existing = allowSequencedTransactionAck && transactionAckFamily
         ? await findSequencedAckForSource({
             sourceMessageId: params.sourceMessage.id,
-            ackFamily: 'APERAK',
+            ackFamily: transactionAckFamily,
             outcome: params.outcome ?? null,
             sequenceField: 'relatedTransactionReference',
             sequenceValue: sequenceToken,
@@ -364,7 +368,7 @@ export async function createCanonicalAckMessage(params: {
       if (existing) return existing
     }
 
-    if (isPostgresUniqueViolation(error) && isLegacyAckPerSourceConstraint(error) && allowSequencedAperak) {
+    if (isPostgresUniqueViolation(error) && isLegacyAckPerSourceConstraint(error) && params.ackFamily === 'APERAK' && allowSequencedTransactionAck) {
       throw new Error(
         'Databasen blockerar fortfarande flera APERAK per källmeddelande via uq_ediel_messages_outbound_ack_per_source. Kör SQL-migrationen ediel_ack_transaction_scope.sql i Supabase och kör sedan engine igen.'
       )
