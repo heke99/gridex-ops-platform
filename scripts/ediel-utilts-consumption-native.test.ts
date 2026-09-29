@@ -392,6 +392,38 @@ it('native S01 empty contract cannot turn an agency-89 point into positive aggre
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(input))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
 })
+it('native E73 point request rejects an unowned physical agency-89 point before receipt or positive ACK', async () => {
+  const f = await seed()
+  const cleanRaw = f.original.raw_payload!
+    .replace('BGM+E66::260', 'BGM+E73::260')
+    .replace('23-DDQ-E66-T', '23-DDQ-E66-S')
+  const raw = cleanRaw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')
+  const source = await f.insertSource(raw, 'E73')
+  const input = await f.prepare(source, false, false)
+  expect(input.transactions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', seriesKind: 'request' }])
+  expect(input.contracts[0].observations).toEqual([])
+  const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
+  expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(persistUtiltsTransactionResults(input)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  }
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id))
+    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
+    .toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+  const before = snapshot(source.id)
+  expect((await run()).internalReviewRequired).toBe(true)
+  expect(snapshot(source.id)).toEqual(before)
+  const clean = await f.insertSource(cleanRaw, 'E73')
+  expect((await persistUtiltsTransactionResults(await f.prepare(clean, false, false)))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
+})
 it('internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry', async () => {
   const f = await seed(), input = await f.prepare()
   const before = snapshot(f.original.id)

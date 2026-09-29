@@ -350,6 +350,24 @@ it('routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK witho
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
+it('holds an E73 point request with unowned physical agency 89 before a positive ACK', async () => {
+  const message = incoming(false, false, '2026-10-01')
+  message.message_code = 'E73'; message.application_reference = '23-DDQ-E66-S'
+  message.raw_payload = message.raw_payload!
+    .replace('BGM+E66::260', 'BGM+E73::260')
+    .replace('23-DDQ-E66-T', '23-DDQ-E66-S')
+    .replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')
+  expect(runUtiltsRuntimeForMessage(message).transactionDispositions).toMatchObject([{ disposition: 'accepted' }])
+  io.get.mockResolvedValue(message); results = undefined
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
+  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
+  expect(result.internalReviewRequired).toBe(true)
+  expect(persisted?.p_transactions).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
+  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it('holds a valid S01 LOC+175 without an owned regulating object and never reserves a positive point ACK', async () => {
   const message = incoming(false, false, '2026-10-01')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
