@@ -241,6 +241,15 @@ it('accepts a millisecond-resolution observation started after a committed attem
   p_actor_user_id:f.actorUserId,p_observation:observation})
  expect(outcome.error).toBeNull()
  expect(outcome.data).toMatchObject({attemptId:attempt!.attemptId,status:'unavailable'})
+ const earlier=await begin(f);expect(earlier.error).toBeNull()
+ const beforeMillisecond=new Date(Date.parse((earlier.data as {recordedAt:string}).recordedAt)-1).toISOString()
+ const rejected=await supabaseService.rpc('gridex_observe_document_reference_v1',{
+  p_company_id:f.companyId,p_environment:f.environment,p_attempt_id:(earlier.data as {attemptId:string}).attemptId,
+  p_actor_user_id:f.actorUserId,p_observation:{...observation,startedAt:beforeMillisecond,
+   completedAt:new Date().toISOString()}})
+ expect(rejected.error?.message).toBe('invalid_document_observation_time')
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.document_reference_outcomes
+  WHERE attempt_id=${literal((earlier.data as {attemptId:string}).attemptId)}`)).toBe(0)
 })
 it('null storage path remains unresolved with no verified observation',async()=>{
  const f=await seed(),id=randomUUID()

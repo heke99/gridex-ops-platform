@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 E035 Storage replace/before_witness revalidation failed native 400/401; test-first timestamp/SQL boundary and fresh RPC diagnostic pending publication",
+  "active_item": "F3 #421 same-millisecond document observation native RED 401/402 on 05861c23; forward private SQL precision correction and preceding-ms negative control awaiting exact-head replay",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish diagnostic/native test from 26b0ac14 fast-forward; inspect first native SQL result and revalidation RPC error/times before product fix; keep draft and market hold.",
+  "next_action": "Publish SQL/test/evidence from exact 05861c23 fast-forward; inspect first native and replay/type/schema result, then five workflows and diff/review; keep draft and market hold.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
