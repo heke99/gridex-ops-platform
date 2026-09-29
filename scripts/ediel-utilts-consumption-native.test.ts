@@ -2,6 +2,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
+import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointRequest'
 import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
@@ -391,6 +392,74 @@ it('native S01 empty contract cannot turn an agency-89 point into positive aggre
   expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(input))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
+})
+it('native E72 empty request refuses unowned agency 89 atomically and preserves actual held/positive retries', async () => {
+  const f = await seed()
+  const source = await f.insertSource(e72PointRequestMessage(f.ids.company, '89').raw_payload!, 'E72')
+  const input = await f.prepare(source, false, false)
+  expect(input.transactions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', seriesKind: 'request', quantities: [] }])
+  expect(input.contracts[0].observations).toEqual([])
+  const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
+  expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
+  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_source_binding_conflict')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(persistUtiltsTransactionResults(input)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+    expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  }
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = (id: string) => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: id })
+  expect((await run(source.id)).internalReviewRequired).toBe(true)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('tenant',company_id,'disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id))
+    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
+    .toEqual([{ tenant: f.ids.company, disposition: 'internal_review', plan: 'none', final: null, series: null }])
+  expect(snapshot(source.id)).toMatchObject({ series: null, contracts: null })
+  expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
+  const before = snapshot(source.id)
+  const receipt = sql(`SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(source.id)}`)
+  expect(receipt).toBeTruthy()
+  expect((await run(source.id)).internalReviewRequired).toBe(true)
+  expect(snapshot(source.id)).toEqual(before)
+  expect(sql(`SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(source.id)}`)).toEqual(receipt)
+  expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
+  effects.ack.mockClear()
+  const clean = await f.insertSource(e72PointRequestMessage(f.ids.company).raw_payload!, 'E72')
+  expect((await run(clean.id)).internalReviewRequired).toBe(false)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('tenant',company_id,'disposition',disposition,'plan',planned_response_type,'final',final_response_type))
+    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(clean.id)}`))
+    .toEqual([{ tenant: f.ids.company, disposition: 'accepted', plan: 'positive_aperak', final: 'positive_aperak' }])
+  expect(effects.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK' && call.outcome === 'positive')).toBe(true)
+  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(clean.id)} AND series_kind='request'`)).toBe(1)
+  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(clean.id)} AND contract->'observations'='[]'::jsonb`)).toBe(1)
+  const cleanBefore = snapshot(clean.id)
+  await run(clean.id)
+  expect(snapshot(clean.id)).toEqual(cleanBefore)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
+})
+it.each(['missing', 'invalid-gs1', 'invalid-agency'] as const)('native E72 %s LOC+172 retains a guide-negative ACK and byte-stable retry without point effects', async defect => {
+  const f = await seed()
+  const raw = e72PointRequestMessage(f.ids.company).raw_payload!
+    .replace("LOC+172+735999260731000007::9'", defect === 'missing' ? '' : defect === 'invalid-gs1' ? "LOC+172+735999260731000008::9'" : "LOC+172+735999260731000007::160'")
+    .replace('UNT+14+1', defect === 'missing' ? 'UNT+13+1' : 'UNT+14+1')
+  const source = await f.insertSource(raw, 'E72')
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
+  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
+  expect((await run()).internalReviewRequired).toBe(false)
+  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id))
+    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
+    .toEqual([{ disposition: 'guide_rejected', plan: 'negative_aperak', final: 'negative_aperak', series: null }])
+  expect(snapshot(source.id)).toMatchObject({ series: null, contracts: null })
+  const aperak = effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')?.[0]
+  expect(aperak).toMatchObject({ outcome: 'negative' })
+  expect(JSON.stringify(aperak?.draft)).toContain('209')
+  expect(effects.ack.mock.calls.every(([call]) => call.ackFamily !== 'UTILTS_ERR' && !(call.ackFamily === 'APERAK' && call.outcome === 'positive'))).toBe(true)
+  const before = snapshot(source.id)
+  await run()
+  expect(snapshot(source.id)).toEqual(before)
+  expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
 })
 it('native E73 point request rejects an unowned physical agency-89 point before receipt or positive ACK', async () => {
   const f = await seed()

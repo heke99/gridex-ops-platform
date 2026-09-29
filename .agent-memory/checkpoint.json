@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-29T17:31:00Z",
+  "updated_at": "2026-09-29T19:47:08Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,8 +10,8 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR #421 0d9116fd native 403/403 and types pass; sole schema snapshot drift, authentic artifact 11050414114 candidate",
-  "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
+  "active_item": "PR421 E72 test-first probe: local actual consumer fails hold; native empty-observation SQL authority unconfirmed",
+  "current_audit": "quality/audits/ediel-masterplan-v2/e72-empty-request-point-identity-20260929.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish exact 0d9116fd artifact schema snapshot/evidence fast-forward; require five workflows, native replay/types/schema, full review/remote; keep draft and market hold.",
+  "next_action": "Publish native test-only from d8fea097; inspect first native refusal result before product SQL change. Keep draft and traffic hold.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -47,7 +47,7 @@
     "authentic_artifact": 11021687319,
     "artifact_zip_sha256": "c614369f7d3fe77c67a6617b4a98d56d386a7595e6c84f1d97baa49de6cd7668",
     "schema_fingerprint": "1a543e1fb12075c6d157c27f33bd9c46c53cc696f5b1cb80b22e254314d524b0",
-    "next_head_parity": "PENDING",
+    "next_head_parity": "SUCCESS on final d8fea097 (native403/403, clean replay/types/schema)",
     "market_traffic": "HELD",
     "historical_issuer_retention_positive_175_e035_history": "BLOCKED"
   },
@@ -59,21 +59,21 @@
     "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
     "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
     "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
-    "last_verified_exact_head": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
+    "last_verified_exact_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
     "last_verified_workflows": [
-      36496673731,
-      36496673648,
-      36496673481,
-      36496673611,
-      36496673620
+      36606642504,
+      36606642640,
+      36606642591,
+      36606642793,
+      36606642637
     ],
     "native_before_this_step": "400/400",
-    "native_on_last_verified_head": "400/400; clean replay, generated type/schema parity and five workflows green",
-    "next_head_checks": "First exact-head native test/trace before product fix; then require all five workflows, OPS replay/native/type/schema parity and full diff/reviews.",
+    "native_on_last_verified_head": "403/403; clean replay/types/schema SUCCESS",
+    "next_head_checks": "Inspect first E72 direct native atomic refusal before SQL correction; then final five workflows/replay/type/schema",
     "local_candidate": "Second forward 20260928235411 skips S01 point precheck only for unowned LOC+175 and retains private object-owner refusal; test clears individual source links before actual S01 nonbilling consumer. Migrations/types, scripts TypeScript/lint, 4 ordinary, spec/diff checks pass; native 401 and replay/type/schema pending new head.",
-    "last_published_head": "26b0ac143648fe5449896ae5b01523ff402f6d0a",
+    "last_published_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
     "first_new_head_failure": "26b0ac14 OPS 36539826693 native 400/401: Storage replace/before_witness old outcome/witness intact, readback hash_mismatch, fresh revalidation unconfirmed with 2 attempts/1 outcome/1 witness. Four companion workflows and OPS verify/quality green; schema parity not reached. Root cause unproved.",
-    "candidate": "Test-first SQL millisecond/microsecond observation boundary and fresh revalidation RPC/timing diagnostic; scripts TypeScript/lint and 14 document units pass; native pending.",
+    "candidate": "E72 test-first empty-observation physical point authority; SQL pending native result",
     "native_on_candidate": "OPS 36500691010 native 401/401, generated types SHA256 byte identical; schema baseline stale after only public function body changed, actual fingerprint 3c33545b9eb65f11cacc5f2fcbd947cd173ba44af79106fbf56bd33270efeaaa"
   },
   "latest_verified_delivery": {
@@ -982,8 +982,8 @@
     "frozen_totals": "121 cards and 231 contracts; no new percentage",
     "market_activated": false
   },
-  "active_pr_head_before_pending_commit": "8f3f7a1547343363f36a0d445de6462cf72c72b9",
-  "active_candidate_evidence": "8f3f7a15 four ordinary workflows and OPS verify/quality SUCCESS; clean replay native 396/398 FAILED two mixed S01 tests on false zero-source-receipt assertion after both held ACK rows. Private RPC requires one immutable original/membership receipt even when all IDEs held. Test-only correction asserts one and unchanged receipt/retry; zero contracts/series/market ACK/effects still require new native. Generated parity not reached. Historical 203/505, positive175, E035 blocked; traffic held.",
+  "active_pr_head_before_pending_commit": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+  "active_candidate_evidence": "E72 guide-valid agency89 ordinary actual consumer returned internalReviewRequired false. No product edits; four new native tests pending. Inherited d8fea097 all five workflows/replay/native403/types/schema success.",
   "active_pr_latest_ci": {
     "head": "2c4d65e095349761511943c42840c451bacaaeda",
     "ediel": 36480846526,
@@ -1014,6 +1014,25 @@
     "product_head": "ba471ad4b43e18495bfc94288ac40ca7a8979794",
     "first_failure": "test fixture guide rejected LOC+175 no-target and invalid GS1 before service-RPC; corrected test uses accepted clean point contract against separate object source",
     "corrected_head": "0d9116fd05b667b1935dbed017e8fa48bf2310f1",
-    "schema_artifact": "11050414114; ZIP SHA256 4746ae4c1e6a114fa1e716671371b6f53ff0518d264969e57cfdaa057f35a941; fingerprint 633beb02ff41589324576fb10d3daeb31d9b6c517ab63a755be8c1fef0362470"
+    "schema_artifact": "11050414114; ZIP SHA256 4746ae4c1e6a114fa1e716671371b6f53ff0518d264969e57cfdaa057f35a941; fingerprint 633beb02ff41589324576fb10d3daeb31d9b6c517ab63a755be8c1fef0362470",
+    "final_verified_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+    "final_ops_run": 36606642637,
+    "final_native": "403/403",
+    "final_replay": "SUCCESS",
+    "final_schema_fingerprint": "633beb02ff41589324576fb10d3daeb31d9b6c517ab63a755be8c1fef0362470"
+  },
+  "pr421_e72_point_candidate": {
+    "base_verified_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+    "source_ids": [
+      "UF-request-209-63",
+      "UG-123-10",
+      "UG-123-11",
+      "UG-123-12"
+    ],
+    "local_red": "Actual nonbilling consumer accepted agency89 wire, expected internal hold false; national guide validation accepted as intended.",
+    "native": "PENDING test-only; no local PostgreSQL/Docker",
+    "product_change": "NONE",
+    "market_traffic": "HELD",
+    "pr310": "UNTOUCHED"
   }
 }
