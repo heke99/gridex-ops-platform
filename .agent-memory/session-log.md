@@ -1,3 +1,7 @@
+## 2026-09-29 — ERR exact-head native and first delivery failure
+
+Published substantive correctiond8eccdd6; read actual native411/411 SUCCESS plus full receipt/reservation/ACK timestamp retry and case/tenant/parity/types/schema. Read first real FullE2E/quality failure: direct normative rulebook import. Kept guard, replaced with canonicalEdielPolicy/generated own ERR DTM137 date and canonical guide selection; strengthened Sep30/Oct1 clock controls. Local109/109 and route/ACK/type/lint PASS; independent read-only follow-up review8/8/no Critical/Important. Next publish coherent follow-up and require its own native/five gates; no unchanged-head rerun or traffic activation.
+
 
 ## 2026-09-29 ACK-08 test-first checkpoint
 

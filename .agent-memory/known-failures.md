@@ -1,3 +1,7 @@
+## 2026-09-29 — Actual ERR delivery authority failure
+
+Exactd8eccdd6 native411/411 clean replay succeeded. FullE2E36639377447 smoke/coverage and OPS quality109647751055 failed only the introduced direct utiltsRulebook import inack.ts (ordinary6255/6256). Local canonicalEdielPolicy replacement retains guard/allowlist and is109/109 green; new-head gates pending. This is an introduced architecture error, not Storage/environment flakiness. Older Storage cause remains unknown.
+
 ## 2026-09-29 — Confirmed ERR native RED and inherited static oracle
 
 Test-only a671a663 native407/411: three consumer/interruption tests fail earlier at CANONICAL_PROCESS_GROUP_MISMATCH, and the canonically qualified direct gateway returns first IDE ACK for second same-code IDE. All previous407 native tests pass. Fix is scoped to canonical process/full-IDE identity; new exact-head results pending. Optional uninvoked gridex-utilts-aperak-profile-regression.cjs also fails on unchanged verified0b6ea32a: stale source-string check for params.sourceMessage.message_family, while implementation uses usesUtiltsAperakProfile. This baseline oracle is not silently changed or claimed green. Older Storage delete/before_witness cause remains unknown.

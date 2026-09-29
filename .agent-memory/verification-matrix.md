@@ -1,3 +1,14 @@
+## 2026-09-29 — Bounded ACK-08/AT-ACK-08/SC-044/CALL-11/12/13
+
+| Head / boundary | Executed evidence | Status |
+|---|---|---|
+| a671a663 test-only | Native407/411; prior407 pass; process mismatch and same-code IDE collision | Confirmed product RED |
+| d8eccdd6 scoped correction | Native411/411, case/native/browser, tenant/parity/types/schema; clean replay109647751095 | Bounded durable proof PASS |
+| d8eccdd6 delivery | FullE2E36639377447 and quality109647751055 fail direct utiltsRulebook authority import; ordinary6255/6256 | Exact cause identified |
+| Local canonical facade follow-up |109/109 incl authority guard and dated ERR cases; tests/scripts types, lint, route/ACK regressions | Local PASS; new-head native/five gates PENDING |
+
+Formal whole requirements remain partial, inventory hashes remain0b6ea32a, concurrency deduplication unproved; all market holds retained. Older pending entries below are superseded at these bounded heads.
+
 
 ## 2026-09-29 ACK-08 test-first checkpoint
 

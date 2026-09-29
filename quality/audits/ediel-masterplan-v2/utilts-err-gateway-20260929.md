@@ -41,6 +41,16 @@ The corrected native fixture removes prefilled canonical source columns and requ
 
 **Inherited concurrency limit:** the database ACK unique index includes generated transaction_reference; source_operation_id has no unique index. Sequential interruption/retry and23505 recovery do not establish concurrent same-IDE deduplication. No blanket ACK-loop atomicity or repair of immutable historical wrong ACKs is claimed. See the separate differential review.
 
+## First corrected native and actual delivery follow-up
+
+Published correction **d8eccdd6dd2664550c099a9692f6219dd2a43381**: OPS36639375564 clean replay **109647751095 SUCCESS**, actual native **411/411 in7 files**. All four new ERR native cases pass, including real source family/date capture and full receipt/reservation/ACK timestamp stability. Case-native/browser1/1, tenant invariants, parity selftest, unchanged generated types and fingerprintc66e9457 PASS.
+
+Ediel36639375646, browser36639375657, tenant36639375538 and OPS verify109647751121 passed. First remaining actual failure in FullE2E36639377447 smoke/coverage and OPS quality109647751055 is the new operational direct import ofutiltsRulebook. All6255 other ordinary tests passed. This is an introduced authority-boundary violation, not a fixture, schema, Storage or environment issue.
+
+The substantive follow-up consumes **resolveCanonicalEdielPolicy** instead, selecting policy from the generated ERR's own DTM137 date as the existing validator does. Association/guide selection remains in canonical policy; no guard or allowlist is relaxed. CONTRL/APERAK and full-IDE duplicate/recovery semantics remain unchanged. Existing real Sep30E19 and Oct1E87 cases now fix only Date and assert own generated document date, restoring timers after each case.
+
+Actual local follow-up: **109/109 in7 files**, including normative authority guard and dated ERR cases; tests/scripts TypeScript, lint0errors/4 inherited warnings, route-readiness and canonical ACK persistence/chain/engine PASS. Final follow-up exact-head native411 and all five gates remain pending; the previous-head native result does not substitute for them.
+
 ## Canonical authority and actual CALL ownership
 
 | Boundary | Owner and executed path | Bounded evidence |
@@ -55,4 +65,4 @@ The table ties the bounded change to the actual consumers, not just the parser's
 
 ## Holds and next action
 
-Publish the substantive correction/test/evidence commit fast-forward froma671a663, then require native411/411 and five exact-new-head workflows before a durable-success receipt. The next source-backed U-02 S02 mandatory own-LOC172/QTY135 borrowing candidate has ordinary evidence but still needs native RED before product change. Formal whole-contract statuses remain unchanged. Historical203/505 issuer/originals/retention, positiveLOC175 owner/mandate/consumer/ACK and fullE035 stay blocked. Older Storage delete/before_witness cause stays unknown. #421 remains draft/unmerged, #310 untouched, traffic held. No staging, TGT/AGT, counterparty trial or real send.
+Publish the substantive canonical-facade follow-up fast-forward fromd8eccdd6, then require its own native411/411 and five exact-new-head workflows before a final delivery receipt. The next source-backed U-02 S02 mandatory own-LOC172/QTY135 borrowing candidate has ordinary evidence but still needs native RED before product change. Formal whole-contract statuses remain unchanged. Historical203/505 issuer/originals/retention, positiveLOC175 owner/mandate/consumer/ACK and fullE035 stay blocked. Older Storage delete/before_witness cause stays unknown. #421 remains draft/unmerged, #310 untouched, traffic held. No staging, TGT/AGT, counterparty trial or real send.

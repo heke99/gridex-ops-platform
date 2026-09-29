@@ -78,7 +78,10 @@ beforeEach(() => {
   database.raceCommitted = false
   vi.stubGlobal('fetch', () => { throw Error('external_network_forbidden') })
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 
 function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['transactions'], date: '2026-09-30' | '2026-10-01' = '2026-10-01') {
   const company = randomUUID(), actor = randomUUID(), route = randomUUID(), profile = randomUUID()
@@ -111,6 +114,8 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
 it.each([
   ['2026-09-30', 'E19'], ['2026-10-01', 'E87'],
 ] as const)('real %s functional rejection reaches the canonical ERR gateway and finalizes its own IDE', async (date, code) => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(`${date}T12:00:00Z`))
   const reference = 'ERR-OWN-IDE-1'
   const f = seed([{ reference, outcome: 'processability_rejected' }], date)
   expect(f.runtime.transactionDispositions.map(row => row.disposition)).toEqual(['processability_rejected'])
@@ -119,6 +124,7 @@ it.each([
   const errs = f.acks().filter(row => row.message_family === 'UTILTS_ERR')
   expect(errs).toHaveLength(1)
   expect(errs[0].process_type).toBe('functional_rejection')
+  expect(errs[0].raw_payload).toContain(`DTM+137:${date.replaceAll('-', '')}`)
   expect(errs[0].raw_payload).toContain(`RFF+TN:${reference}'`)
   expect(f.reservations[0]).toMatchObject({ final_response_type: 'utilts_err', response_message_id: errs[0].id })
   const before = structuredClone({ errs, reservation: f.reservations[0] })

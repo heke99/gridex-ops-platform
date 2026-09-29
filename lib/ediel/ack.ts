@@ -26,7 +26,7 @@ import {
 } from '@/lib/ediel/core/ackPolicy'
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
-import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 
 export type {
   AckFamily,
@@ -976,6 +976,20 @@ function buildAckDraft(params: {
             relatedTransactionReference: params.relatedTransactionReference ?? null,
           })
 
+  let processType = 'ack'
+  if (params.ackFamily === 'UTILTS_ERR') {
+    // Use the generated ERR's own document date, as the canonical validator
+    // does, rather than the original observation date or a second clock read.
+    const documentDate = segments.find(segment => segment.startsWith('DTM+137:'))?.split(':')[1] ?? ''
+    processType = resolveCanonicalEdielPolicy({
+      family: 'UTILTS_ERR',
+      messageCode: 'ERR',
+      direction: 'outbound',
+      referenceDate: `${documentDate.slice(0, 4)}-${documentDate.slice(4, 6)}-${documentDate.slice(6, 8)}`,
+      mode: 'catalog_evidence',
+    }).processGroup!
+  }
+
   if (!parties.senderEdielId || !parties.receiverEdielId) {
     throw new Error(
       `Kan inte skapa ${params.ackFamily}: inbound sender/receiver saknas för ${params.sourceMessage.id}.`
@@ -1032,9 +1046,7 @@ function buildAckDraft(params: {
             ? 'E5SE5A'
             : 'E2SE6A'
           : 'E5SE5A',
-    processType: params.ackFamily === 'UTILTS_ERR'
-      ? getCanonicalUtiltsProfile('ERR')!.businessProcess
-      : 'ack',
+    processType,
     environment: params.sourceMessage.environment,
     testFlag: params.sourceMessage.test_flag,
     status: 'draft',

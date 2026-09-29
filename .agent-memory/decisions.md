@@ -1,3 +1,7 @@
+## 2026-09-29 — ERR builder consumes canonical policy facade
+
+Actual delivery guard rejected direct utiltsRulebook ownership inack.ts. Preserve the guard and use resolveCanonicalEdielPolicy with the generated ERR's own DTM137 date, matching the retained canonical validator; guide selection stays canonical. Do not add a projection allowlist exemption, a local version/effective-date rule, or a source-observation-date substitute. Full-IDE retry semantics are unchanged.
+
 ## 2026-09-29 — Canonical ERR process and full physical IDE ownership
 
 After native a671a663407/411 reproduced both defects (all previous407 passed), derive ERR process from the canonical UTILTS profile and use complete original IDE for transaction-scoped ERR lookup/operation/23505 recovery. Retain APERAK and unscoped code sequencing. Independent review approves the bounded change pending exact-head native/five delivery gates. No repair of immutable historical wrong ACKs or claim of native concurrent deduplication. Formal ACK-08/SC-044/CALL-11 acceptance remains partial.

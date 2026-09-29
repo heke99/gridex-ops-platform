@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR421 bounded ERR process/full-IDE correction; native RED407/411 read; local108/108; new exact-head delivery pending",
+  "active_item": "PR421 ERR d8eccdd6 native411 verified; canonical facade authority-gate correction local109; next exact-head delivery pending",
   "current_audit": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-20260929.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish coherent ERR correction fast-forward froma671a663; require native411/411 and five exact-head workflows, final PR receipt; next U-02 S02 own-field candidate needs native RED.",
+  "next_action": "Publish the substantive canonicalEdielPolicy facade/code/test/evidence follow-up fast-forward from d8eccdd6 on draft PR421; verify its own native411/411 and all five exact-new-head workflows, inspect full diff/review threads/refs, then put final receipt in PR description. Next bounded candidate U-02 own-IDE S02 LOC172/QTY135 needs native RED before product changes. Keep all market/issuer/retention/LOC175/E035 holds.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1076,7 +1076,7 @@
     "stale_pending_sections": "SUPERSEDED"
   },
   "pr421_err_gateway_20260929": {
-    "status": "LOCAL_CORRECTION_EXACT_HEAD_PENDING",
+    "status": "POLICY_FACADE_FOLLOWUP_EXACT_HEAD_PENDING",
     "review_head": "0b6ea32ad7e284fc3eca30e827b16aab64614a31",
     "requirements": [
       "ACK-08",
@@ -1090,7 +1090,7 @@
     ],
     "reconciliation": "352 unique IDs; 346 current code/test hashes; 105 rows changed since historical main, 95 since historical audit head; formal statuses inherited unchanged",
     "ordinary_red": "4/4 expected failures: process mismatch, same-code distinct-IDE duplicate and earlier-than-intended interruption; no product edit",
-    "native": "Corrected exact new head PENDING; real family/date trigger, full receipt/reservation and ACK timestamps now included",
+    "native": "411/411 verified on d8eccdd6; final policy-facade head native and five workflows PENDING",
     "independent_refutation": "CONFIRMED both primary process mismatch and distinct-IDE collision; read-only agents",
     "queued_candidates": [
       "U-02 S02 own-field borrowing",
@@ -1111,21 +1111,44 @@
       "run_id": 36636440192,
       "job_id": 109638111444
     },
-    "correction": "Canonical ERR profile business process; full original IDE for scoped duplicate/operation/23505 recovery; no schema/grants/types changes",
+    "correction": "ERR process via resolveCanonicalEdielPolicy and generated ERR DTM137 date; full original IDE scoped lookup/operation/23505 recovery; no schema/grants/types/guard changes",
     "local": {
-      "focused_tests": "108/108 PASS",
+      "focused_tests": "109/109 PASS in7 files, including authority guard and dated Sep30/Oct1 ERR controls",
       "typescript_tests": "PASS",
       "typescript_scripts": "PASS",
       "scoped_lint": "0 errors; 4 inherited ack.ts unused warnings",
       "canonical_ack_persistence": "PASS",
       "ack_chain": "PASS",
       "acknowledgement_engine": "PASS",
-      "frozen_integrity": "33 originals,121 rules,231 contracts PASS"
+      "frozen_integrity": "33 originals,121 rules,231 contracts PASS",
+      "route_readiness": "PASS"
     },
     "independent_review": "APPROVE bounded correction pending exact-head native/delivery; zero Critical/Important introduced findings",
     "concurrency": "Native same-IDE concurrency deduplication unproved and unchanged; only sequential interruption/retry and simulated23505 identity recovery",
     "formal_closure": "No whole ACK-08/SC-044/U-03/CALL contract promotion",
     "audit": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-20260929.md",
-    "review": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-differential-review-20260929.md"
+    "review": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-differential-review-20260929.md",
+    "product_head": "d8eccdd6dd2664550c099a9692f6219dd2a43381",
+    "corrected_native": {
+      "head": "d8eccdd6dd2664550c099a9692f6219dd2a43381",
+      "passed": 411,
+      "total": 411,
+      "files": 7,
+      "run_id": 36639375564,
+      "job_id": 109647751095,
+      "conclusion": "SUCCESS",
+      "case_native": "1/1 PASS",
+      "case_browser": "1/1 PASS",
+      "tenant_invariants": "PASS",
+      "parity": "PASS",
+      "types_schema": "PASS unchanged"
+    },
+    "first_delivery_failure": {
+      "run_id": 36639377447,
+      "ops_quality_job_id": 109647751055,
+      "ordinary": "6255/6256 PASS",
+      "cause": "New direct utiltsRulebook import in operational ack.ts violates canonical policy authority guard"
+    },
+    "followup_review": "APPROVE bounded code/tests/evidence; independent8/8 PASS, zero Critical/Important; stale top-level resume pointer corrected; final native/five gates pending"
   }
 }

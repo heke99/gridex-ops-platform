@@ -44,14 +44,19 @@ The 352-row reconciliation is a reference/evidence inventory with five bounded f
 - [x] Derive ERR process type from the canonical UTILTS profile, leaving CONTRL/APERAK semantics intact.
 - [x] Key transaction-scoped ERR duplicate lookup and source operation by the full original IDE; retain unscoped legacy ERR behavior.
 - [x] Execute ordinary same-code/two-IDE, mixed responses, interruption/retry and legacy controls; typecheck and lint touched files.
-- [ ] Publish a coherent correction and evidence fast-forward on #421.
+- [x] Publish coherent correctiond8eccdd6 fast-forward on #421.
+- [x] Read actual native411/411 and first authority-boundary delivery failure.
+- [x] Replace direct rulebook import with canonicalEdielPolicy/own ERR DTM137; retain authority guard and dated controls.
+- [ ] Publish the substantive canonical-facade follow-up fast-forward and verify its exact head.
 
 ## Task 3 — Exact-head delivery
 
-- [ ] Read first CI failures; require actual native database proof before reporting persistence/retry as verified.
+- [x] Read first actual CI failure; previous corrected head native411/411 proven; final facade head still requires own native.
 - [ ] Verify all five mandatory workflows, OPS verify/quality/clean replay, native, case/browser, tenant invariants and type/schema parity on the exact new head.
 - [ ] Review complete PR diff, review threads, local/remote refs and unpublished commits.
 - [ ] Put final receipt in the PR description. Correct stale memory with the substantive commit; avoid a status-only CI commit.
 - [ ] Keep draft/traffic holds and record the next source-backed candidate per requirement ID.
 
 Local correction checks:108/108 focused tests, tests/scripts TypeScript, lint0errors/4 inherited warnings, frozen121/231 and ACK persistence/chain/engine regression PASS. Independent review approves this bounded correction pending new-head native and delivery. Retained ordinary23505 controls are synthetic IO proof, not native concurrency. Native snapshots now include full receipt/reservation and ACK timestamps; source capture uses the actual family/date evidence trigger.
+
+Follow-up: published d8eccdd6 native411/411 and clean replay SUCCESS; actual FullE2E/quality authority-import failure read and reproduced locally. Canonical facade replacement109/109 incl guard, tests/scripts types, lint and route/ACK regressions PASS; independent fresh review8/8. Final follow-up head native/five gates pending; no unchanged-head rerun.

@@ -1,3 +1,7 @@
+## 2026-09-29 — ERR final-head delivery pending
+
+D8eccdd6 native411/411 is verified. Canonical policy facade remediation is local109/109 green after actual authority guard failure; final follow-up head native/five gates still required. Whole ACK-08/SC-044/CALL acceptance and concurrent same-IDE deduplication are not established. Historical issuer/history/retention, positiveLOC175/fullE035 and unknown older Storage cause remain open; no traffic activation.
+
 
 ## 2026-09-29 ACK-08 native RED and bounded correction
 
