@@ -1,3 +1,7 @@
+## 2026-09-29 — #421 E73 native 403/403 and authentic schema snapshot
+
+Exact 0d9116fd OPS 36604270983 native 403/403, case browser/native, tenant/parity/typegen pass; four companion workflows and OPS verify/quality green. Sole schema snapshot drift is one private function predicate/functions hash. Artifact 11050414114 ZIP SHA256 4746ae4c1e6a114fa1e716671371b6f53ff0518d264969e57cfdaa057f35a941 supplies schema.sql/fingerprint 633beb02; copied for a new exact-head replay. External owner/history/retention/object gates and earlier Storage cause remain open.
+
 ## 2026-09-29 — #421 E73 first SQL-head native 402/403
 
 All four companion workflows and OPS verify/quality passed on ba471ad4. Native 402/403: physical point refusals/consumer/retry/positive passed; added LOC+175 test failed in fixture guide validation before RPC due no qualifying object request target and invalid check digit. Corrected test forges direct accepted service input against a physical object source; product SQL unchanged. Exact-head native/replay pending.

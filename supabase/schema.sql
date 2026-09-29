@@ -35141,7 +35141,7 @@ BEGIN
   IF NOT coalesce(gridex_utilts_binding.validate_contract_v1(c),false) THEN
    RAISE EXCEPTION 'utilts_consumption_contract_invalid' USING ERRCODE='P0U01'; END IF;
   IF item->>'disposition'='accepted' AND (p_message_code IN ('E30','E66','S07') OR jsonb_array_length(c->'observations')>0
-   OR (p_message_code='S01' AND NOT gridex_utilts_binding.unowned_regulating_object_v1(tokens,item->>'transactionId'))) THEN
+   OR (p_message_code IN ('S01','E73') AND NOT gridex_utilts_binding.unowned_regulating_object_v1(tokens,item->>'transactionId'))) THEN
    identity:=gridex_utilts_binding.supported_point_v1(tokens,item->>'transactionId');
    IF identity IS NULL OR EXISTS(SELECT FROM jsonb_array_elements(c->'observations') o WHERE o->>'externalPoint' IS DISTINCT FROM identity) THEN
     RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
