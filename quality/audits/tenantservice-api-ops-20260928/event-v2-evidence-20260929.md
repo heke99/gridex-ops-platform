@@ -64,7 +64,7 @@ limit + 1 för lookahead och sin tenant-/kund-/resursbundna cursor.
 skrivningar är syntetiska i samma rollback-transaktion på replayens lokala
 PostgreSQL. Den nya RPC:n anropas faktiskt under `SET LOCAL ROLE service_role`.
 
-| Prov | Förväntat bevis |
+| Prov | Faktiskt native-resultat: PASS |
 | --- | --- |
 | V1-lucka på samma lagrade rad | version 7 i tabellen; versionsfält saknas i faktisk v1-rad |
 | Version och projektion | domänversioner 7/3/2/4, kundversion 1, inga payload-/metadatafält |
@@ -77,17 +77,45 @@ PostgreSQL. Den nya RPC:n anropas faktiskt under `SET LOCAL ROLE service_role`.
 | Läsande funktion | källrader byte-/JSON-identiska före och efter läsningar |
 
 Lokal miljö saknar PostgreSQL, Docker och Supabase CLI. Native utförande och
-autentisk generering görs därför av den automatiska isolerade CI-replayen på
-publicerad kandidat. Kandidatens initiala schema-/typmanifest är uttryckligt
-**ej regenererat**; första replayen samlar autentiska artefakter utan att
-försvaga eller stänga av paritetsgrindarna. Efter semantisk diffgranskning av
-artefakten införs exakt genererade bytes, varefter nästa kandidat måste klara
-ordinarie kontroller på sin egen slutversion.
+autentisk generering utfördes i den automatiska isolerade CI-replayen. Den
+första diagnostiska kandidaten publicerades utan regenererade artefakter;
+paritetsgrindarna förblev oförändrade. Den nådde samtliga elva eventmarkörer
+ovan och övriga befintliga native/browser-prov, och avslutades sedan enbart
+med det väntade felet för den gamla typmanifest-hashen. Detta är verkligt
+native-bevis för RPC-paketet, inte ett grönt helhetsresultat för den kandidaten.
 
-Status vid kodpaketering: migrationsintegritet och workflow-YAML passerar
-lokalt; native, autentiska artefakter och slutversionens CI är **väntande**.
-Riktad applikationsregression och oberoende läsande granskning redovisas efter
-utförande. Inga native PASS eller avslutade krav påstås före körning.
+## Exakta prov- och artefaktversioner
+
+- #418 provad kod-head: `16aa90e59e1770addd2a1095897ab9cb790359a8`.
+- CI:s checkout: syntetisk merge `bd02380921fcad54d1e906c4997bd870987d01e3`
+  med aktuell `main` `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`.
+  Jämförelsen visar identiska migrations-, RPC-, fixture-, typ-/schema- och
+  workflow-filer mellan kandidaten och merge-checkouten; hela trädet skiljer
+  sig genom senare Ediel-arbete från main och påstås inte vara identiskt.
+- [OPS-run 36636567043](https://github.com/heke99/gridex-ops-platform/actions/runs/36636567043),
+  native-jobb `109638534974`, [artefakt 11065526805](https://github.com/heke99/gridex-ops-platform/actions/runs/36636567043/artifacts/11065526805).
+- Arkiv SHA-256: `f69a0cf484d19dfe6b5f13d63c2b27f85e2ee785562ad491d34ce11fbe2b2f21`.
+- Native-logg SHA-256: `dc7591912698d46626206e109722b6f1b61e5533eab65164cca7ec1b1e3f7c0c`.
+- Genererade typer SHA-256: `301fcaf283405cf7c9ef71f74363c276bb91269354f678a7c8baffe895bd7664`.
+- Genererad `schema.sql` SHA-256: `d30869e71ffba3aaa21285611833931e69336d954f857f903c1930c606a79092`.
+- Semantisk schemafingerprint: `dbeb4ba40bffcaf6c0e49b83ffa32417a9429baec3357ee37e8b388887564f86`.
+
+Artefaktens exakta bytes har införts i `database.types.ts`, `schema.sql` och
+`schema.fingerprint.json`. Typdiffen tillför endast v2-RPC:n; schemadiffen
+endast dess definition och ACL. Endast fingerprintsektionerna `functions`
+(+1) och `function_grants` (+2) ändras. Manifestet anger denna körning och
+dess begränsning. Inga historiska migrationer eller äldre releasebytes ändras.
+
+Lokal evidens: migrationsintegritet (652 filer/556 versionsgrupper),
+workflow-YAML, contract hardening, service-role-ratchet (2397 ≤ 2402),
+app-typecheck och sex portalregressionsfiler med 29/29 test passerade.
+Typecheck/test kördes på lokal Node 24; CI använder projektets Node 22.
+Oberoende läsande granskning fann inga konkreta fel; den ersätter inte
+native-provet. `ggshield` saknas, så automatisk hemlighetsskanning påstås inte.
+
+Den efterföljande artefakt-/evidenskandidatens exakta SHA och dess egna CI-
+resultat publiceras i #418 och överlämnas till #422 efter körning. Ingen
+fasacceptans eller produktionsbehörighet följer av detta avgränsade paket.
 
 ## API-handoff och återställning
 

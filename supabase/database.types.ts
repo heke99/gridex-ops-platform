@@ -91323,6 +91323,26 @@ export type Database = {
           source_table: string
         }[]
       }
+      portal_customer_events_page_v2: {
+        Args: {
+          p_company_id: string
+          p_cursor_id?: string
+          p_cursor_occurred_at?: string
+          p_cursor_source_rank?: number
+          p_customer_id: string
+          p_limit?: number
+        }
+        Returns: {
+          created_at: string
+          event_type: string
+          event_version: number
+          id: string
+          occurred_at: string
+          source: string
+          source_rank: number
+          source_table: string
+        }[]
+      }
       public_contract_feed_fingerprint_v1: {
         Args: {
           p_channel?: string
