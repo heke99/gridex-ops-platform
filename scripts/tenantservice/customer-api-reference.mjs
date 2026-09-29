@@ -124,6 +124,32 @@ async function syntheticServer(publicKey) {
       })
       return
     }
+    if (request.method === 'GET' && url.pathname === '/api/v1/customer/metering-values') {
+      const cursor = url.searchParams.get('cursor')
+      const from = url.searchParams.get('from')
+      const facility = url.searchParams.get('facility_id')
+      if (cursor && cursor !== 'synthetic-next-metering') {
+        reply(400, { error: { code: 'invalid_cursor', field: 'cursor' } })
+        return
+      }
+      if (from !== '2026-09-01T00:00:00Z' || facility !== '735999000000000001') {
+        reply(400, { error: { code: 'invalid_time_filter' } })
+        return
+      }
+      reply(200, {
+        data: [{
+          metering_value_reference: `metering_value_${(cursor ? 'p' : 'q').repeat(32)}`,
+          metering_point_reference: `metering_point_${'d'.repeat(32)}`,
+          period_start: cursor ? '2026-09-28T23:00:00Z' : '2026-09-29T00:00:00Z',
+          period_end: cursor ? '2026-09-29T00:00:00Z' : '2026-09-29T01:00:00Z',
+          resolution: 'hourly', quantity_kwh: cursor ? null : 1.25,
+          quality_status: null, status: 'stored', created_at: '2026-09-29T01:00:00Z',
+        }],
+        page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
+          next_cursor: cursor ? null : 'synthetic-next-metering' },
+      })
+      return
+    }
     if (request.method === 'GET' && url.pathname === '/api/v1/customer/invoices') {
       const cursor = url.searchParams.get('cursor')
       if (cursor && cursor !== 'synthetic-next-invoice') {
@@ -355,6 +381,18 @@ export async function runSyntheticCustomerJourney() {
     assert.equal(sites.body.data.sites.length, 1)
     assert.equal(sites.body.data.metering_points[0].metering_point_id, '735999000000000001')
     assert.equal(sites.body.page.sites.returned, 1)
+    const meteringPath = '/api/v1/customer/metering-values?from=2026-09-01T00%3A00%3A00Z&facility_id=735999000000000001&limit=1'
+    const metering = await call('GET', meteringPath)
+    assert.equal(metering.status, 200)
+    assert.equal(metering.body.data[0].quantity_kwh, 1.25)
+    assert.equal(metering.body.page.has_more, true)
+    const nextMetering = await call('GET', `${meteringPath}&cursor=${metering.body.page.next_cursor}`)
+    assert.equal(nextMetering.status, 200)
+    assert.equal(nextMetering.body.data[0].quantity_kwh, null)
+    assert.equal(nextMetering.body.page.has_more, false)
+    const badMeteringCursor = await call('GET', `${meteringPath}&cursor=foreign-customer-cursor`)
+    assert.equal(badMeteringCursor.status, 400)
+    assert.equal(badMeteringCursor.body.error.code, 'invalid_cursor')
     const invoices = await call('GET', '/api/v1/customer/invoices?limit=1')
     assert.equal(invoices.status, 200)
     assert.equal(invoices.body.data[0].invoice_reference, invoiceReference)
@@ -443,7 +481,8 @@ export async function runSyntheticCustomerJourney() {
     })
     return { revisionBefore: revision, revisionAfter: state.revision, stale: stale.status,
       replay: replay.status, changedKey: changedKey.status, writes: state.writes,
-      contractPages: 2, sites: sites.body.data.sites.length, invoicePages: 2,
+      contractPages: 2, sites: sites.body.data.sites.length, meteringPages: 2,
+      foreignMeteringCursor: badMeteringCursor.status, invoicePages: 2,
       invoiceDetail: invoice.status, foreignInvoice: foreignInvoice.status,
       documentPages: 2, notificationPages: 2, notificationRead: markRead.status,
       notificationReplay: readReplay.status, readAgainCount: readAgain.body.data.updated_count,

@@ -1198,6 +1198,42 @@ module.exports = function finalizeCustomerPortalRelease({
     listEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
     setResponse(portal, path, listEnvelope)
   }
+  const meteringValueProperties = {
+    metering_value_reference: { type: 'string', pattern: '^metering_value_[A-Za-z0-9_-]{32}$' },
+    metering_point_reference: { type: ['string', 'null'], pattern: '^metering_point_[A-Za-z0-9_-]{32}$' },
+    period_start: nullableString,
+    period_end: nullableString,
+    resolution: nullableString,
+    quantity_kwh: nullableNumber,
+    quality_status: nullableString,
+    status: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerMeteringValue = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(meteringValueProperties), properties: meteringValueProperties,
+  }
+  const meteringPath = '/api/v1/customer/metering-values'
+  const meteringOperation = portal.paths[meteringPath].get
+  meteringOperation.parameters = [
+    ...meteringOperation.parameters.filter((parameter) =>
+      !['from', 'to', 'facility_id', 'limit', 'cursor'].includes(parameter.name)),
+    ...clone(invoiceParameters),
+    ...['from', 'to'].map((name) => ({
+      name, in: 'query', required: false,
+      description: name === 'from'
+        ? 'Include rows with period_start on or after this instant.'
+        : 'Include rows with period_end on or before this instant. A date alone means midnight UTC.',
+      schema: { oneOf: [{ type: 'string', format: 'date' }, { type: 'string', format: 'date-time' }] },
+    })),
+    { name: 'facility_id', in: 'query', required: false,
+      description: 'Facility identifier normalized to digits. A nonempty value without digits returns 400 invalid_facility_id.',
+      schema: { type: 'string', pattern: '[0-9]' } },
+  ]
+  meteringOperation.description = 'Read the verified customer’s normalized metering values, filtered by organization and customer before a stable period_start/id keyset page. Invalid time filters return 400 invalid_time_filter; invalid or foreign cursors return 400 invalid_cursor. Only the public metering DTO is returned.'
+  const meteringEnvelope = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerMeteringValue' } }, ['page'])
+  meteringEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, meteringPath, meteringEnvelope)
   const notificationRead = portal.paths['/api/v1/customer/notifications/read'].post
   portal.components.schemas.CustomerNotificationReadRequest.properties.notification_references.items = {
     type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$',

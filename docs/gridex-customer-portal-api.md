@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.6** (release candidate on the API draft branch)
+Current contract: **2026-09-29.7** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -65,6 +65,27 @@ Contracts return a public `data` array and `page`; sites return
 Missing contract fields remain JSON null where the canonical or legacy read
 model has no value. These reads do not grant any write scope. The synthetic
 reference client exercises both resources and their pagination shape.
+
+## Metering value reads
+
+With `customer_metering.read` and a fresh assertion for the exact GET path,
+`GET /api/v1/customer/metering-values` reads normalized values for the verified
+customer. It returns an allowlisted `data` array and `page`, ordered by
+`period_start` and a stable row key. `limit` defaults to 50 and is capped at 100;
+follow `page.next_cursor` only with the same organization, customer and filter
+values. Invalid or foreign cursors return 400 `invalid_cursor`.
+
+Optional `from` includes rows whose `period_start` is on or after the supplied
+ISO date or timestamp. Optional `to` includes rows whose `period_end` is on or
+before it. A date without a time means midnight UTC, including for `to`.
+Malformed dates and timestamps return 400 `invalid_time_filter`. Optional
+`facility_id` is normalized to digits; a supplied value with no digits returns
+400 `invalid_facility_id` instead of removing the filter. The response exposes
+only opaque value and metering-point references, the period, resolution,
+quantity, quality/status and creation time; unavailable values remain null.
+The synthetic reference client follows two filtered pages and checks a bad
+cursor. Native multi-customer SQL and a deployed customer integration are not
+qualified by that client.
 
 ## Invoice reads
 

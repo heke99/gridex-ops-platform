@@ -11,7 +11,7 @@ import {
 } from '@/lib/integrations/websiteIntegrationContract'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
-export const OPENAPI_RELEASED_AT = '2026-09-29T09:40:58.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-09-29T16:57:54.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
