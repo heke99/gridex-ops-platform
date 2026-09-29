@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T23:56:14Z",
+  "updated_at": "2026-09-29T00:06:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "F3 #421 S01 second forward guard preserves LOC+175 refusal; native fixture corrected, local checks green/exact-head native pending",
+  "active_item": "F3 #421 S01 physical agency-89 native 401/401 green; authentic generated schema baseline from b77 replay artifact pending exact-head CI",
   "current_audit": "quality/audits/ediel-masterplan-v2/issuer-history-owner-gate-20260928.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Fast-forward publish second forward SQL and fixture from 0c1825c5; inspect first native result, require five workflows/401 native/replay/type/schema and full review. Keep draft and market hold.",
+  "next_action": "Commit authentic b77 schema snapshot and evidence, fast-forward publish from b77b3125, require five workflows and clean replay/type/schema parity; keep draft and market hold.",
   "pr421_source_checkpoint": {
     "published_head_before_this_step": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
     "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -49,11 +49,12 @@
     ],
     "native_before_this_step": "400/400",
     "native_on_last_verified_head": "400/400; clean replay, generated type/schema parity and five workflows green",
-    "next_head_checks": "Require five exact-head workflows, OPS native 401/401 including S01 object-owner precedence, agency-89 two direct refusals/actual hold and agency-9 positive, clean replay, generated types/schema parity, full diff/reviews.",
+    "next_head_checks": "Five workflows, OPS 401/401 native and clean replay, generated type SHA256 36e989..., schema fingerprint 3c33545b..., full diff/reviews; no unchanged-head rerun.",
     "local_candidate": "Second forward 20260928235411 skips S01 point precheck only for unowned LOC+175 and retains private object-owner refusal; test clears individual source links before actual S01 nonbilling consumer. Migrations/types, scripts TypeScript/lint, 4 ordinary, spec/diff checks pass; native 401 and replay/type/schema pending new head.",
-    "last_published_head": "0c1825c59cfd9c8faebdda165fde5e668851140e",
-    "first_new_head_failure": "0c1825c5 OPS 36499614678 native 399/401: existing S01 LOC+175 refusal changed to point identity error; new agency-89 test direct SQL refusal/zero writes passed, then invalid individual-link fixture threw before actual nonbilling hold. Five companion workflows and OPS verify/quality green; generated parity not reached.",
-    "candidate": "Second forward 20260928235411 skips S01 point precheck only for unowned LOC+175 and retains private object-owner refusal; test clears individual source links before actual S01 nonbilling consumer. Migrations/types, scripts TypeScript/lint, 4 ordinary, spec/diff checks pass; native 401 and replay/type/schema pending new head."
+    "last_published_head": "b77b3125382290518e32ed08c17393e7a4785766",
+    "first_new_head_failure": "b77b3125 OPS 36500691010 final schema check failed after 401/401 native and matching typegen: committed 08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6 versus exact artifact 3c33545b9eb65f11cacc5f2fcbd947cd173ba44af79106fbf56bd33270efeaaa; only the new S01 SQL function body differs.",
+    "candidate": "Authentic schema.sql/fingerprint copied from b77 clean-replay artifact 11005462235; versioned audit/matrix and type manifest updated. New exact-head CI and full replay parity pending.",
+    "native_on_candidate": "OPS 36500691010 native 401/401, generated types SHA256 byte identical; schema baseline stale after only public function body changed, actual fingerprint 3c33545b9eb65f11cacc5f2fcbd947cd173ba44af79106fbf56bd33270efeaaa"
   },
   "latest_verified_delivery": {
     "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
