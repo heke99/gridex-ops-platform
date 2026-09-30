@@ -151,7 +151,7 @@ function parseActorCsv(textContent: string): ActorImportRecord[] {
   return lines.slice(1).map((line) => {
     const row = splitDelimitedLine(line, delimiter)
     const rawMarket=read(row,['market','marknad'])?.toUpperCase()
-    const market=rawMarket==='EL'||rawMarket==='GAS'?rawMarket:null
+    const market:ActorImportRecord['market']=rawMarket==='EL'||rawMarket==='GAS'?rawMarket:null
     const role = normalizeActorRole(read(row, ['actorrole', 'role', 'roll']) ?? 'other')
     const messageFamily = (read(row, ['messagefamily', 'meddelandefamilj']) ?? '').toUpperCase()
     const route = messageFamily ? [{
@@ -210,10 +210,12 @@ async function findExistingActorId(record: ActorImportRecord, normalizedName: st
       .select('actor_id')
       .eq('identifier_type', identifierType)
       .eq('identifier_value', identifierValue)
-      .limit(1)
-      .maybeSingle()
+      .limit(2)
     if (match.error && match.error.code !== 'PGRST116') throw match.error
-    if (match.data?.actor_id) return { actorId: String(match.data.actor_id), matchMethod: identifierType }
+    const actorIds=Array.from(new Set((match.data??[]).map(row=>String(row.actor_id))))
+    if(actorIds.length>1)throw new Error('actor_registry_identifier_ambiguous')
+    if(actorIds.length===1)return{actorId:actorIds[0],matchMethod:identifierType}
+    if(identifierType==='EdielId')return{actorId:null,matchMethod:'new_ediel_identity'}
   }
 
   const byName = await supabaseService
@@ -452,11 +454,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
         .select('id,match_status,metadata')
         .eq('id', existingActor.actorId)
         .maybeSingle()
-    : await supabaseService
-        .from('platform_market_actors')
-        .select('id,match_status,metadata')
-        .eq('normalized_name', normalizedName)
-        .maybeSingle()
+    : {data:null,error:null}
   if (existing.error && existing.error.code !== 'PGRST116') throw existing.error
 
   const previousMetadata = (existing.data?.metadata ?? {}) as Record<string, unknown>
@@ -507,6 +505,10 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
       .eq('identifier_value', identifierValue)
       .maybeSingle()
     if (existingIdentifier.error && existingIdentifier.error.code !== 'PGRST116') throw existingIdentifier.error
+    if(existingIdentifier.data?.actor_id && existingIdentifier.data.actor_id!==actorId){
+      if(type==='OrgNo')continue // actor org_number/rawsource retain descriptive shared OrgNo
+      throw new Error('actor_registry_identifier_owner_conflict')
+    }
     const identifierPayload = {
       actor_id: actorId,
       identifier_type: type,

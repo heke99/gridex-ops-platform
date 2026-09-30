@@ -72,6 +72,9 @@ async function upsertIdentifier(actorId: string, type: string, value: string | n
 
   if (existing.data?.id) {
     if (existing.data.actor_id !== actorId) {
+      // OrgNo is descriptive and may be shared by distinct legal Ediel actors.
+      // Its exact source value remains on this actor/raw import; never move the indexed identifier.
+      if(type==='OrgNo')return
       await createConflict({
         actorId,
         type: `duplicate_${type.toLowerCase()}`,
@@ -148,6 +151,8 @@ async function matchActor(actor: ParsedActorRegistryActor, importItemId?: string
 
   for (const attempt of attempts) {
     const matches = await attempt.run()
+    // A source-defined Ediel identity cannot be adopted through shared org/name.
+    if (attempt.reason === 'ediel_id' && edielId && matches.length === 0) return {status:'no_match',actorId:null,reason:'new_ediel_identity'}
     if (matches.length === 1) return { status: 'matched', actorId: matches[0] ?? null, reason: attempt.reason }
     if (matches.length > 1) {
       await createConflict({
