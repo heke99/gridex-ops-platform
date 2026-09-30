@@ -1,3 +1,4 @@
+import {parseAiBiTechnicalFile} from '@/lib/ediel/aiListFormat'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceByQualifier } from '@/lib/ediel/prodat/prodatReferenceFields'
@@ -234,32 +235,19 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
 }
 
 export function parseRulebookListPayload(raw: string): ParsedRulebookMessage {
-  const firstLine = raw.split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? ''
-  const delimiter = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ','
-  const headers = firstLine.split(delimiter).map((value) => value.trim())
-  const isBi = headers.some((header) => /nytt|new|changed|ändr/i.test(header))
+  let parsed: ReturnType<typeof parseAiBiTechnicalFile> | null = null
+  const errors: string[] = []
+  try { parsed = parseAiBiTechnicalFile(raw) } catch (error) { errors.push(error instanceof Error ? error.message : 'ai_list_format_invalid') }
+  const listType = parsed?.header.listType ?? null
   return {
-    family: isBi ? ('BI_LIST' as never) : 'AI_LIST',
-    code: isBi ? 'BI' : 'AI',
-    subtype: null,
-    sender: null,
-    receiver: null,
-    senderSubAddress: null,
-    receiverSubAddress: null,
-    applicationReference: null,
-    interchangeReference: null,
-    messageReference: null,
-    transactionReference: null,
-    relatedReference: null,
-    facilityId: null,
-    meteringPointId: null,
-    permissionId: null,
-    period: null,
-    outcome: null,
-    processGroup: 'ai_list',
-    rawSegments: raw.split(/\r?\n/).filter(Boolean),
-    facts: { headers, delimiter, rowCount: Math.max(raw.split(/\r?\n/).filter(Boolean).length - 1, 0), formatVersion: raw.includes('Ver20140401') ? 'Ver20140401' : null },
-    errors: [],
-    warnings: delimiter !== ';' ? ['AI/BI-lista ska normalt vara semikolonseparerad.'] : [],
+    family: listType === 'BI' ? 'BI_LIST' : listType === 'AI' ? 'AI_LIST' : 'UNKNOWN',
+    code: listType, subtype: null, sender: null, receiver: null,
+    senderSubAddress: null, receiverSubAddress: null, applicationReference: null,
+    interchangeReference: null, messageReference: null, transactionReference: null,
+    relatedReference: null, facilityId: null, meteringPointId: null, permissionId: null,
+    period: parsed?.header.fromDate && parsed.header.toDate ? `${parsed.header.fromDate}/${parsed.header.toDate}` : null,
+    outcome: null, processGroup: 'ai_list', rawSegments: raw.split(/\r?\n/).filter(Boolean),
+    facts: {delimiter:';',rowCount:parsed?.rows.length ?? 0,formatVersion:parsed?.header.version ?? null,
+      header:parsed?.header ?? null, rows:parsed?.rows ?? []}, errors, warnings:[],
   }
 }
