@@ -1,5 +1,5 @@
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
-import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { escapeEdifactData, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type SerializeEdifactInput = {
   sender: string
@@ -18,11 +18,7 @@ export type SerializeEdifactInput = {
 }
 
 export function escapeEdifactValue(value: string | number | null | undefined): string {
-  return String(value ?? '')
-    .replace(/\?/g, '??')
-    .replace(/:/g, '?:')
-    .replace(/\+/g, '?+')
-    .replace(/'/g, "?'")
+  return escapeEdifactData(value)
 }
 
 export function serializeEdifact(input: SerializeEdifactInput): string {
