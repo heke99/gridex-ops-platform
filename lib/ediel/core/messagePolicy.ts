@@ -1,3 +1,4 @@
+import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { stockholmBusinessDate, type EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -119,10 +120,12 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
 
   const family = canonical.family
+  const messageCode = canonical.messageCode
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
-  const policy = resolveCanonicalEdielPolicy({
+  const candidate = (selectedGuideRevision?: string): CanonicalEdielPolicy => Object.freeze({ ...resolveCanonicalEdielPolicy({
+    selectedGuideRevision,
     family,
-    messageCode: canonical.messageCode,
+    messageCode,
     subtypeOrReasonCode: canonical.subtype,
     direction: message.direction,
     referenceDate: timeAnchors.admissionDate,
@@ -139,6 +142,20 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
       byCell: readObjectFact(message, 'byCell'),
     } : null,
     mode: 'parse',
-  })
-  return Object.freeze({ ...policy, timeAnchors })
+  }), timeAnchors })
+  const current = candidate()
+  if (family !== 'UTILTS' || message.direction !== 'inbound' || !current.previousGuideGraceActive) return current
+  const passesGuide = (policy: CanonicalEdielPolicy) => {
+    const result = runUtiltsRuntimeForMessage(message, { canonicalPolicy: policy, guideOnly: true })
+    return result.validation.syntaxOk && !result.validation.issues.some(issue => issue.severity === 'error' && issue.kind === 'application')
+  }
+  // Complete syntax/guide passes only. Functional rejection must never cause
+  // a switch to older semantics, and candidates must never blend diagnostics.
+  if (passesGuide(current)) return current
+  for (const guide of current.acceptedInboundGuides) {
+    if (guide.guideRevision === current.guide.guideRevision) continue
+    const previous = candidate(guide.guideRevision)
+    if (passesGuide(previous)) return previous
+  }
+  return current
 }

@@ -1,3 +1,4 @@
+import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { canonicalAdmissionDate, canonicalBusinessDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
@@ -45,5 +46,17 @@ describe('source-owned version admission time', () => {
   it('preserves an explicit assessment instant as an explicit time anchor', () => {
     const message = observationHandoffMessage('2026-09-30')
     expect(resolveEdielMessageTimeAnchors(message, undefined, { admissionAt: '2026-10-01T10:00:00Z' })).toMatchObject({ admissionSource: 'explicit', admissionDate: '2026-10-01' })
+  })
+})
+
+describe('local time context hold', () => {
+  it('does not manufacture an external APERAK code for a missing local admission timestamp', () => {
+    const message = { ...observationHandoffMessage('2026-09-30'), message_received_at: null, created_at: '' }
+    const decision = resolveCanonicalRuntimeDecision(message)
+    expect(decision.syntaxDecision).toBe('accepted')
+    expect(decision.applicationDecision).toBe('manual_review')
+    expect(decision.functionalDecision).toBe('not_applicable')
+    expect(decision.responsePlan.some(item => item.responseType === 'negative_aperak' || item.responseType === 'utilts_err')).toBe(false)
+    expect(decision.issues.some(issue => issue.description.includes('ediel_admission_time_missing'))).toBe(true)
   })
 })

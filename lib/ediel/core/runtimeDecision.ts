@@ -334,6 +334,7 @@ function buildResult(params: {
       code: params.policy.code,
       subtype: params.policy.subtype,
       referenceDate: params.policy.referenceDate,
+      timeAnchors: params.policy.timeAnchors ?? null,
       profileKey: params.policy.profileKey,
       guide: params.policy.guide,
       applicationReference: params.policy.applicationReference,
@@ -417,6 +418,18 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
       description,
       source: 'resolveCanonicalEdielPolicy',
     }))
+    const internalContextFailure = /^ediel_(?:admission_time|business_time|actual_send_time|replay_time|energy_sharing_activation)_/.test(description)
+      || description.startsWith('canonical_ediel_guide_candidate_not_accepted:')
+      || description === 'utilts_runtime_policy_context_mismatch'
+    if (internalContextFailure) {
+      sourceRules.push('GOV-06:LOCAL_TIME_CONTEXT')
+      const prodatProcessingDisposition: ProdatProcessingDisposition | undefined = canonical.family === 'PRODAT'
+        ? { kind: 'internal_review', reasons: [{ code: 'EDIEL_LOCAL_CONTEXT_REVIEW_REQUIRED', sourceRule: 'GOV-06', reason: description }] }
+        : undefined
+      return buildResult({ canonical, policy: null, prodatProcessingDisposition, utiltsBusinessOutcome: null,
+        syntaxDecision: 'accepted', applicationDecision: 'manual_review', functionalDecision: 'not_applicable',
+        responsePlan, issues, sourceRules, decisionTrace: [...decisionTrace, `Lokalt beslutsunderlag kräver granskning (${description}); inget nationellt APERAK-fältfel skapas.`], syntax })
+    }
     // Field 202 is required across the entire frozen P26.A code list. Resolve
     // this one physical header error before code-specific policy selection;
     // an unlisted code is invalid field content, not ERC40/100 "unimplemented".

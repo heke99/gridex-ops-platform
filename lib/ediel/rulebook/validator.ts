@@ -1,4 +1,4 @@
-import { canonicalAdmissionDate, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
+import { canonicalAdmissionDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
 import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
 import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
@@ -86,9 +86,9 @@ function issue(input: Omit<EdielRulebookIssue, 'blocking'> & { blocking?: boolea
 function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
   if (input.parsed) return input.parsed
   if (!input.rawPayload) return null
-  return input.rawPayload.startsWith('UNA') || input.rawPayload.includes("'")
-    ? parseRulebookMessage(input.rawPayload)
-    : parseRulebookListPayload(input.rawPayload)
+  if (input.rawPayload.startsWith('UNA') || input.rawPayload.startsWith('UNB') || input.rawPayload.includes("'")) return parseRulebookMessage(input.rawPayload)
+  if (['AI_LIST', 'BI_LIST'].includes(normalize(input.family)) || /^Ver\d{8};/.test(input.rawPayload)) return parseRulebookListPayload(input.rawPayload)
+  return null
 }
 
 /** A real PRODAT header selects the policy before any row/cached metadata.
@@ -310,6 +310,11 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   const code = canonicalMessageCode(familyValue, normalize(input.code ?? parsed.code))
   const dir = direction(input)
   if (!dir) throw new Error(`canonical_policy_direction_required:${familyValue}:${code}`)
+  if (familyValue === 'UTILTS' && dir === 'inbound' && input.messageRow) {
+    const retained = resolveCanonicalMessagePolicy(input.messageRow, undefined, { admissionAt: input.admissionAt })
+    if (!retained) throw new Error('canonical_policy_family_required:UTILTS')
+    return retained
+  }
   const referenceDate = admissionDate(input)
   const sourceBoundAck = isSourceBoundAckFamily(familyValue)
   const sourceMessageFamily = record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined
