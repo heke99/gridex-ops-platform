@@ -1,3 +1,5 @@
+Current follow-up: bd78 four main workflows/OPSquality SUCCESS, native437/438; technicalCONTRL oracle corrected with application hold preserved. Authentic S02-only snapshot and minimal verified Nodemailer high-advisory fix; new exactSC0443IDE acceptance test approved,439native/finalgates pending. InternalcontractPASSED is distinct from capabilityactivation.
+
 # Ediel v2 — bounded requirements and activation gates
 
 Current S02 correction checkpoint: probe e1b4f897 native414/426 confirmed12 own-field defects with all previous411 and3clean controls PASS. Local minimal correction54/54, type/lint/migrations PASS; corrected native438/final gates pending. Last fully green dc1c9bae ERR/native411/five workflows supersedes older pending E72/ERR text below; no whole-ID or capability activation.

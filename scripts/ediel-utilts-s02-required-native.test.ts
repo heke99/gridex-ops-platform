@@ -249,14 +249,25 @@ it('native direct S02 zero quantity remains an accepted nonbilling forecast on i
 
 const nationalPoints = (raw: string) => raw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')
   .replace('LOC+172+735999888000001014::9', 'LOC+172+735999888000001014::89')
-it('native actual S02 agency89 stays guide-valid, held without market ACK or forecasts, and retries unchanged', async () => {
+it('native actual S02 agency89 stays guide-valid, held with syntax CONTRL only, and retries unchanged', async () => {
   const f = await seed('54374', 'clean', true, nationalPoints)
   expect(runUtiltsRuntimeForMessage(f.source).validation.ok).toBe(true)
   expect((await f.consume()).internalReviewRequired).toBe(true)
   const first = snapshot(f.source.id)
   expect(first.receipts).toHaveLength(1); expect(first.reservations).toHaveLength(2)
   for (const row of first.reservations) expect(row).toMatchObject({ disposition: 'internal_review', planned_response_type: 'none', persisted_series_id: null })
-  expect(first.acks).toEqual([]); expect(first.series).toEqual([]); expect(first.values).toEqual([])
+  // CV-SYNTAX may acknowledge the valid interchange independently of the
+  // unsupported point's business authority. No APERAK/ERR or forecast is allowed.
+  expect(first.acks).toHaveLength(1)
+  const technical = first.acks[0]
+  expect(technical).toMatchObject({ message_family: 'CONTRL', message_code: 'CONTRL',
+    ack_outcome: 'positive', company_id: f.ids.company,
+    source_operation_id: `ediel_ack:${f.source.id}:CONTRL:message` })
+  expect(technical.raw_payload).toContain(`UCI+${f.source.interchange_reference}+91100:ZZ+54374:ZZ+1'`)
+  expect(technical.parsed_payload.relatedTransactionReference).toBeNull()
+  expect(technical.rule_pack_snapshot).toMatchObject({ authority: 'resolveCanonicalEdielPolicy',
+    inheritedFromSourceMessage: true, sourceMessageId: f.source.id })
+  expect(first.series).toEqual([]); expect(first.values).toEqual([])
   expect(first.contracts).toEqual([]); expect(first.outbox).toEqual([])
   await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
 })

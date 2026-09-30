@@ -35107,6 +35107,7 @@ DECLARE
  stored gridex_utilts_binding.contracts%rowtype; series public.meter_reading_series%rowtype;
  tokens jsonb; membership jsonb; expected jsonb; raw_hash text; item jsonb; c jsonb; r jsonb; results jsonb; answer jsonb:='[]';
  v_series_id uuid; identity text; contract_hash text; origin gridex_utilts_binding.receipts%rowtype;
+ own_start integer; own_end integer; sequence_start integer; sequence_end integer; sequence_count integer;
 BEGIN
  IF p_company_id IS NULL OR p_environment NOT IN ('test','production') OR p_message_code IS NULL OR jsonb_typeof(p_transactions) IS DISTINCT FROM 'array' OR jsonb_array_length(p_transactions)=0 THEN
   RAISE EXCEPTION 'utilts_consumption_input_invalid' USING ERRCODE='P0U01';
@@ -35140,11 +35141,29 @@ BEGIN
   c:=item->'consumptionContract';
   IF NOT coalesce(gridex_utilts_binding.validate_contract_v1(c),false) THEN
    RAISE EXCEPTION 'utilts_consumption_contract_invalid' USING ERRCODE='P0U01'; END IF;
-  IF item->>'disposition'='accepted' AND (p_message_code IN ('E30','E66','S07','E72') OR jsonb_array_length(c->'observations')>0
+  IF item->>'disposition'='accepted' AND (p_message_code IN ('E30','E66','S07','E72','S02') OR jsonb_array_length(c->'observations')>0
    OR (p_message_code IN ('S01','E73') AND NOT gridex_utilts_binding.unowned_regulating_object_v1(tokens,item->>'transactionId'))) THEN
    identity:=gridex_utilts_binding.supported_point_v1(tokens,item->>'transactionId');
    IF identity IS NULL OR EXISTS(SELECT FROM jsonb_array_elements(c->'observations') o WHERE o->>'externalPoint' IS DISTINCT FROM identity) THEN
     RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
+  END IF;
+  IF item->>'disposition'='accepted' AND p_message_code='S02' THEN
+   SELECT (t->>'index')::integer INTO STRICT own_start FROM jsonb_array_elements(tokens) t
+    WHERE t->>'tag'='IDE' AND t#>>'{elements,2,0}'=item->>'transactionId';
+   SELECT min((t->>'index')::integer) INTO own_end FROM jsonb_array_elements(tokens) t
+    WHERE (t->>'index')::integer>own_start AND t->>'tag' IN ('IDE','UNT');
+   sequence_count:=0;
+   FOR sequence_start IN SELECT (t->>'index')::integer FROM jsonb_array_elements(tokens) t
+    WHERE t->>'tag'='SEQ' AND (t->>'index')::integer>own_start AND (t->>'index')::integer<own_end ORDER BY 1 LOOP
+    sequence_count:=sequence_count+1;
+    SELECT coalesce(min((t->>'index')::integer),own_end) INTO sequence_end FROM jsonb_array_elements(tokens) t
+     WHERE (t->>'index')::integer>sequence_start AND (t->>'index')::integer<own_end AND t->>'tag'='SEQ';
+    IF NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='QTY'
+     AND (t->>'index')::integer>sequence_start AND (t->>'index')::integer<sequence_end
+     AND t#>>'{elements,1,0}'='135' AND nullif(btrim(t#>>'{elements,1,1}'),'') IS NOT NULL) THEN
+     RAISE EXCEPTION 'utilts_s02_quantity_required' USING ERRCODE='P0U01'; END IF;
+   END LOOP;
+   IF sequence_count=0 THEN RAISE EXCEPTION 'utilts_s02_quantity_required' USING ERRCODE='P0U01'; END IF;
   END IF;
  END LOOP;
  SELECT * INTO receipt FROM gridex_utilts_binding.receipts WHERE source_message_id=p_source_message_id;

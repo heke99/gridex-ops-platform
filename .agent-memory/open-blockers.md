@@ -1,3 +1,7 @@
+## 2026-09-30 — Exact follow-up S02/SC-044 gates pending
+
+Bd78 native437/438 confirms corrected physical controls; only agency89 all-ACKs-empty oracle failed on technicalCONTRL, with retry not reached. Oracle narrowed/strengthened; authentic schema copied. OPS high Nodemailer finding minimally fixed, localauditPASS. Dedicated full SC0443IDE proof is now authored, native439 and finalgates pending. U03 directsyntax/header scope, ACK03 physical/header/DM and U14 manualstorage authority require test-first native proof; broadU02 otherprofile fallback is a candidate, not a newconfirmed durable defect. Externalrecords/LOC175/fullE035 and unknownStorage unchanged.
+
 ## 2026-09-30 — Confirmed S02 durable defect; correction awaiting exact-head native
 
 Probe e1b4f897 native414/426 confirmed six consumer positives and six atomic-refusal bypasses; all previous411/three clean controls passed. Canonical guide/hold and forward SQL correction locally54/54, types/lint/migrations PASS; corrected native438, authentic snapshot and all five final workflows remain pending. This supersedes the native-unproved section below. Wider formal IDs remain unclosed. External issuer/history/retention, positiveLOC175/fullE035 and unknown Storage cause unchanged; no traffic/merge.

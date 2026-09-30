@@ -49,7 +49,7 @@ expect(runtime.transactionDispositions.find(row=>row.transactionId==='S02-OWN'))
 - [x] Extend the existing point guide to S02 under canonical usage rules. Add own scoped planned-quantity presence enforcement without global sibling fallback; preserve other profiles and observed zero quantities.
 - [x] Add the smallest physical prewrite SQL refusal for accepted S02 if evidenced, retaining signature, grants, source locks, tenant/environment/raw checks, membership and existing LOC175 precedence.
 - [x] Run the ordinary test above plus missing QTY/both and both physical orders; require 21/21 and affected guide/ACK/consumption regressions. Stage the actual tests with the correction.
-- [ ] Independent differential review; commit/publish the code/forward migration/evidence and inspect exact-head native positive/negative/atomic/retry results.
+- [x] Independent differential review; commit/publish the code/forward migration/evidence and inspect exact-head native positive/negative/atomic/retry results. bd78 reached437/438; only technical-CONTRL oracle failed.
 
 ### Task 3: Final exact-head evidence and source-derived snapshot
 
@@ -61,3 +61,6 @@ expect(runtime.transactionDispositions.find(row=>row.transactionId==='S02-OWN'))
 - [ ] Review refs/local status/unpushed commits/full relevant diff/review threads; put final receipt in PR description. Keep formal whole-ID and external acceptance blocks explicit.
 
 Execution receipt: test-only e1b4f897 OPS36644820963/replay109665237704 confirmed native414/426, all previous411 and3clean controls PASS; actual consumer positives and raw RPC1receipt/2accepted reservations/2forecastseries/2contracts on both malformed attempts. Local bounded correction54/54 affected ordinary tests, TypeScript/lint/migrations/types PASS; product differential rereview APPROVE; native438/final gates pending. Twelve additional native quantity-placement/zero/agency89/second-SEQ controls cover the corrected boundary.
+
+
+Follow-up: independentreview APPROVED narrow technical-CONTRL oracle/authenticbd78schema/minimalNodemailerhigh-advisory remediation. Add one exact SC0443IDE/storage/value/contract/response/retry test, independently source-reviewed; finalnative expected**439**. Existing438 remains intact. Finaltypegen/parity/fivegatespending. This dedicated contract can close independently when proven; do not add billing/marketactivation as invented gates.

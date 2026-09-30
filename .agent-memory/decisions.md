@@ -1,3 +1,7 @@
+## 2026-09-30 — Contract closure follows exact original clauses
+
+SC044 requires accepted application storage and independent positive/guide-negative/functionalresponses, not downstream billing or marketactivation. Independent originals/wholecontractreviewsagree; addexact3IDE nativevalue/contract/reservation/ACK/retry receipt. Approveeligiblecontracts individuallyincoverage aftercompleteproof; broaderlinkedrulesstaypartial. TechnicalCONTRL syntaxack is permitted forsource-qualified agency89 heldbusinessdata; directfailedSQLattemptsremainzeroeffects. Frozenoriginal acceptance_tests remainimmutable.
+
 ## 2026-09-30 — S02 physical required fields precede durable effects
 
 After authentic native RED, enforce own LOC172 and per-observation QTY135 through retained canonical25-A-4 policy before functional eligibility; preserve guide-negative siblings and real zero. Extend the existing physical identity qualifier to guide-valid agency89 internal hold. Raw service SQL independently checks accepted S02 own physical point and every own SEQ quantity before receipt/ACK/series/contracts, without synthetic actual observations or exposed helper/grants. Quantity-content/tamper/full grammar and prior-guide/history acceptance are not inferred from presence controls.

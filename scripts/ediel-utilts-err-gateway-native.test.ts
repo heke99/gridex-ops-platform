@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture, type UtiltsAckFixtureTransaction } from '../__tests__/helpers/utiltsErrGatewayFixture'
 import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
@@ -165,6 +165,66 @@ it('actual mixed consumer keeps positive, guide-negative and two E87 ERR reserva
   expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
   await f.consume()
   expect(snapshot(f.source.id)).toEqual(first)
+})
+
+it('SC-044 exact three-IDE consumer stores only accepted data and finalizes independent positive, guide-negative and functional responses on stable retry', async () => {
+  const transactions: UtiltsAckFixtureTransaction[] = [
+    { reference: 'SC044-IDE-1', outcome: 'accepted' },
+    { reference: 'SC044-IDE-2', outcome: 'guide_rejected' },
+    { reference: 'SC044-IDE-3', outcome: 'processability_rejected' },
+  ]
+  const f = await seed('54344', transactions), runtime = runUtiltsRuntimeForMessage(f.source)
+  expect(runtime.validation.syntaxOk).toBe(true)
+  expect(runtime.validation.issues.filter(issue => issue.kind === 'application' && !issue.lineItemReference && !issue.referenceNumber)).toEqual([])
+  expect(runtime.transactionDispositions.map(row => ({ transaction: row.transactionId, disposition: row.disposition })))
+    .toEqual(transactions.map(row => ({ transaction: row.reference, disposition: row.outcome })))
+  await f.consume()
+  const first = snapshot(f.source.id)
+  expect(first.receipts).toHaveLength(1); expect(first.reservations).toHaveLength(3)
+  expect(first.receipts[0]).toMatchObject({ company_id: f.ids.company, environment: 'test',
+    source_message_id: f.source.id, message_code: 'E66', raw_hash: createHash('sha256').update(f.source.raw_payload!).digest('hex') })
+  assertErrs(f, first, ['SC044-IDE-3'])
+  const application = first.acks.filter(row => row.family === 'APERAK' || row.family === 'UTILTS_ERR')
+  expect(application).toHaveLength(3); expect(new Set(application.map(row => row.id)).size).toBe(3)
+  expect(application.map(row => row.reference).sort()).toEqual(transactions.map(row => row.reference).sort())
+  expect([...application.find(row => row.family === 'UTILTS_ERR')!.wire.matchAll(/RFF\+TN:([^']+)'/g)].map(match => match[1])).toEqual(['SC044-IDE-3'])
+  for (const [reference, outcome, disposition, bgm] of [
+    ['SC044-IDE-1', 'positive', 'accepted', '312'], ['SC044-IDE-2', 'negative', 'guide_rejected', '313'],
+  ]) {
+    const ack = application.find(row => row.family === 'APERAK' && row.reference === reference)!
+    expect(ack).toBeDefined(); expect(ack.outcome).toBe(outcome)
+    expect(ack.wire).toContain(`BGM+${bgm}`); expect(ack.wire).toContain(`RFF+ACW:${reference}'`)
+    expect([...ack.wire.matchAll(/RFF\+ACW:([^']+)'/g)].map(match => match[1])).toEqual([reference])
+    if (outcome === 'positive') expect(ack.wire).toContain('ERC+100::260')
+    expect(ack.company).toBe(f.ids.company); expect(ack.operation).toBe(`ediel_ack:${f.source.id}:APERAK:${reference}`)
+    expect(ack.policy).toMatchObject({ authority: 'resolveCanonicalEdielPolicy', inheritedFromSourceMessage: true, sourceMessageId: f.source.id })
+    expect(first.reservations.find(row => row.transaction === reference)).toMatchObject({
+      disposition, plan: `${outcome}_aperak`, final: `${outcome}_aperak`, ack: ack.id })
+  }
+  const guide = application.find(row => row.reference === 'SC044-IDE-2')!
+  expect(guide.wire).toContain('ERC+42::260'); expect(guide.wire).toContain('FTX+AAO++209::260')
+  expect(first.reservations.find(row => row.transaction === 'SC044-IDE-2')?.series).toBeNull()
+  expect(first.series).toEqual([{ transaction: 'SC044-IDE-1', kind: 'actual' }])
+  const stored = () => sql<{ series: Record<string, unknown>[]; values: Record<string, unknown>[]; contracts: Record<string, unknown>[]; immutable: boolean }>(`SELECT jsonb_build_object(
+    'series',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.meter_reading_series s WHERE s.source_ediel_message_id=${literal(f.source.id)}),
+    'values',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.source_order),'[]') FROM public.meter_reading_values v JOIN public.meter_reading_series s ON s.id=v.series_id WHERE s.source_ediel_message_id=${literal(f.source.id)}),
+    'contracts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.transaction_id),'[]') FROM gridex_utilts_binding.contracts c WHERE c.source_message_id=${literal(f.source.id)}),
+    'immutable',(SELECT bool_and(s.immutable_hash=encode(extensions.digest(convert_to(s.raw_transaction::text,'UTF8'),'sha256'),'hex')) FROM public.meter_reading_series s WHERE s.source_ediel_message_id=${literal(f.source.id)}))`)
+  const data = stored()
+  expect(data.series).toHaveLength(1); expect(data.values).toHaveLength(1); expect(data.contracts).toHaveLength(1)
+  expect(data.series[0]).toMatchObject({ company_id: f.ids.company, source_ediel_message_id: f.source.id,
+    source_transaction_reference: 'SC044-IDE-1', series_kind: 'actual', external_metering_point_id: '735999260731000007',
+    raw_transaction: { transactionId: 'SC044-IDE-1', disposition: 'accepted', externalMeteringPointId: '735999260731000007' } })
+  expect(data.immutable).toBe(true)
+  expect(data.values[0]).toMatchObject({ series_id: data.series[0].id, qualifier: '136', quantity: 500 })
+  expect(data.contracts[0]).toMatchObject({ series_id: data.series[0].id, company_id: f.ids.company,
+    source_message_id: f.source.id, transaction_id: 'SC044-IDE-1', contract: {
+      companyId: f.ids.company, environment: 'test', messageCode: 'E66', transactionId: 'SC044-IDE-1', seriesKind: 'actual' } })
+  expect(first.reservations.find(row => row.transaction === 'SC044-IDE-1')?.series).toBe(data.series[0].id)
+  // SC-044 requires accepted storage and scoped responses. The existing mixed
+  // functional hold of downstream metering/billing is outside this contract.
+  expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
+  await f.consume(); expect(snapshot(f.source.id)).toEqual(first); expect(stored()).toEqual(data)
 })
 
 it('committed first ERR and reservation survive an interruption before second ACK, then converge without rewriting', async () => {

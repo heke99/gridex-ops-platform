@@ -1,3 +1,7 @@
+## 2026-09-30 — bd78 actual gate failures
+
+Replay437/438 agency89 failed because testexpectedallACKsempty, while legitimate technicalCONTRL persisted. No businessauthority/forecastgiven; laterretryassertionsnotreached. Follow-uprequiresexacttechnicalscopeandzeroapplication/businesseffects. Verifyfailed unchangedhighaudit onNodemailer9.1.1; exact10.0.13pin passeslocally. Older Storage delete/before_witness rootcause remainsUNKNOWN; neither newfailure is classifiedasenvironmentflak.
+
 ## 2026-09-30 — Native-confirmed S02 missing own physical fields
 
 OPS36644820963/e1b4f897 replay109665237704 native414/426: six real consumers created own positive APERAK; six raw service RPC cases accepted both malformed attempts and committed1receipt/2accepted reservations/2forecasts/2contracts with own null point or empty quantities. All previous411 and all3 clean controls passed. Cause: global profile fallbacks, absent S02 own guide/hold, empty observations excluding S02 SQL point check and permissive forecast quantity persistence. Minimal local correction is ordinary45/45 green; native correction/final gates pending. Not a fixture or Storage failure. Earlier native-unproved text is historical; older Storage cause remains unknown.
