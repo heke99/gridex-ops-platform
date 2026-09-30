@@ -1,3 +1,7 @@
+import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
+import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
+import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
+import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
 import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
@@ -61,6 +65,13 @@ export type EdielPayloadPreflightResult = {
 }
 
 const RECOMMENDED_MAX_BYTES = 10 * 1024 * 1024
+const CONSERVATIVE_UTILTS_MAX_BYTES = 1_000_000
+const CONSERVATIVE_UTILTS_MAX_TRANSACTIONS = 999
+export function edielPayloadSizeRecommendation(payloadSizeBytes: number): EdielPayloadPreflightIssue | null {
+  return payloadSizeBytes > RECOMMENDED_MAX_BYTES ? issue({ severity: 'warning', code: 'PAYLOAD_TOO_LARGE',
+    title: 'Payload är för stor', description: 'Rekommenderad maxstorlek är 10 MB. Dela på applikationsnivå före EDI-konvertering.' }) : null
+}
+
 const IDENTIFIER_QUALIFIERS = new Set(['UNB', 'UNH', 'BGM', 'RFF', 'LIN', 'LOC', 'NAD', 'IDE'])
 const IDENTIFIER_FORBIDDEN_CHARS = /[ÅÄÖåäö\s]/
 
@@ -384,7 +395,14 @@ function validateEdifactPayload(params: {
   const bgm = first(segments, 'BGM')
   const unt = first(segments, 'UNT')
   const unz = first(segments, 'UNZ')
-  const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
+  let payloadSizeBytes = 0
+  try {
+    assertEdifactLatin1Representable(rawPayload)
+    payloadSizeBytes = rawPayload.length
+  } catch (error) {
+    issues.push(issue({ severity: 'error', code: 'EDIFACT_LATIN1_ENCODING_HELD', title: 'EDIFACT kan inte kodas utan dataförlust',
+      description: error instanceof Error ? error.message : 'ISO8859-1-kodning misslyckades.' }))
+  }
 
   if (!rawPayload.startsWith('UNA:+.? ')) {
     issues.push(issue({ severity: 'warning', code: 'UNA_NOT_STANDARD', title: 'UNA saknas eller avviker', description: "EDIFACT bör byggas med UNA:+.? '." }))
@@ -403,8 +421,19 @@ function validateEdifactPayload(params: {
   if (/^\uFEFF/.test(rawPayload)) {
     issues.push(issue({ severity: 'error', code: 'BOM_NOT_ALLOWED', title: 'BOM/styrtecken', description: 'Payload får inte börja med BOM eller styrtecken.' }))
   }
-  if (payloadSizeBytes > RECOMMENDED_MAX_BYTES) {
-    issues.push(issue({ severity: 'error', code: 'PAYLOAD_TOO_LARGE', title: 'Payload är för stor', description: 'Rekommenderad maxstorlek är 10 MB. Dela på applikationsnivå före EDI-konvertering.' }))
+  const sizeRecommendation = edielPayloadSizeRecommendation(payloadSizeBytes)
+  if (sizeRecommendation) issues.push(sizeRecommendation)
+
+  if (canonical.family === 'UTILTS' || canonical.family === 'UTILTS_ERR') {
+    for (const failure of utiltsPackagingGuideViolations(rawPayload)) issues.push(issue({
+      severity: 'error', code: failure.code, title: 'UTILTS-paketering följer inte anvisningen', description: failure.description, segment: failure.field,
+    }))
+    const transactionCount = canonicalUtiltsTransactions(tokens.segments.slice(firstTagIndex(tokens.segments, 'UNH') ?? 0), tokens.una, 0).length
+    if (payloadSizeBytes > CONSERVATIVE_UTILTS_MAX_BYTES || transactionCount > CONSERVATIVE_UTILTS_MAX_TRANSACTIONS) {
+      issues.push(issue({ severity: params.mode === 'send' ? 'error' : 'warning', code: 'UTILTS_CONSERVATIVE_PACKING_LIMIT',
+        title: params.mode === 'send' ? 'Utgående UTILTS måste delas före sändning' : 'Kontrollera UTILTS-mottagarkapacitet',
+        description: `Intern paketeringsgräns enligt U-16: högst 1 MB och 999 transaktioner (${payloadSizeBytes} byte, ${transactionCount} transaktioner). Detta är ingen EDIFACT-syntaxfelkod.` }))
+    }
   }
 
   const declaredUntCount = numberOrNull(element(unt, 1, una))
@@ -745,6 +774,13 @@ export function preflightEdielPayload(params: {
       issues: [issue({ severity: 'error', code: 'EMPTY_PAYLOAD', title: 'Payload saknas', description: 'Meddelandet saknar payload.' })],
       markers: {},
     }
+  }
+
+  const formatIdentity = wireFormatIdentityIssue({ rawPayload, messageStandard: params.messageStandard, mimeType: params.mimeType })
+  if (formatIdentity) {
+    const result = validateEdifactPayload({ ...params, rawPayload, mode: params.mode ?? 'parse' })
+    result.issues.push(issue({ ...formatIdentity, severity: 'error' }))
+    return { ...result, ok: false, blocking: true }
   }
 
   // Actual Z10 must reach its EDIFACT send boundary before caller format hints
