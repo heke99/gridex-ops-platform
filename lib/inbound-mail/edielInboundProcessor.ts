@@ -1,6 +1,7 @@
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { isDeliveryStatusNotification } from './dsnClassifier'
 import { parseDeliveryStatusReport } from './dsnDisposition'
+import { projectDsnTransportCandidates } from './dsnTransportCandidates'
 import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
 import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
@@ -80,13 +81,15 @@ export async function processInboundEmailMessage(input: {
     // business processing. Preserve mailbox attribution until attempt matching
     // and recipient verification can be performed by a transport handler.
     const companyId = text(row.company_id)
+    const deliveryStatusReport = parseDeliveryStatusReport(raw)
+    const transportCandidates = await projectDsnTransportCandidates(row, deliveryStatusReport)
     await updateInboundEmailProcessingStatus({
       inboundEmailMessageId: input.inboundEmailMessageId,
       companyId,
       status: 'manual_review',
       matchStatus: 'dsn_transport_review',
       matchPayload: { classification: 'delivery_status_notification', transportCorrelation: 'unverified',
-        deliveryStatusReport: parseDeliveryStatusReport(raw) },
+        deliveryStatusReport, transportCandidates },
       errorMessage: 'Leveransrapport kräver verifierad korrelation till transportförsök och mottagare.',
     })
     return { status: 'manual_review', companyId, parseResultId: null }
