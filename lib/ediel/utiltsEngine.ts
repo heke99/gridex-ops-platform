@@ -1,6 +1,8 @@
 import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
+import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -734,15 +736,34 @@ export function runUtiltsRuntimeForMessage(
   }
   // The selected processability profile is part of the decision. Matching may
   // enrich tenant/object facts, but must not choose a new guide at receipt time.
-  const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   const validationMessage = runtimeValidationMessage(message)
   // Cached persistence status is not physical syntax evidence on replay. Use
   // the existing wire validator before either guide or functional execution.
-  const syntaxIssues: UtiltsValidationIssue[] = validateEdifactSyntax(message).issues
-    .filter(issue => issue.code !== 'syntax_check_failed' && issue.code !== 'message_failed')
-    .map(issue => ({ ...issue, kind: 'syntax', edielErrorCode: '7' }))
+  let syntaxIssues: UtiltsValidationIssue[]
+  try {
+    syntaxIssues = validateEdifactSyntax(message).issues
+      .filter(issue => issue.code !== 'syntax_check_failed' && issue.code !== 'message_failed')
+      .map(issue => ({ ...issue, kind: 'syntax', edielErrorCode: '7' }))
+  } catch (error) {
+    if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+    syntaxIssues = [{severity:'error',kind:'syntax',code:'edifact_dangling_release_character',title:'Ogiltig EDIFACT-release',
+      description:'Den fysiska källan slutar med ett release-tecken utan efterföljande tecken.',edielErrorCode:'7'}]
+  }
   if (syntaxIssues.some(issue => issue.severity === 'error')) {
-    const facts = parseUtiltsRuntimeFacts(message.raw_payload ?? '')
+    let facts: UtiltsRuntimeFacts
+    try {
+      facts = parseUtiltsRuntimeFacts(message.raw_payload ?? '')
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+      // Undecodable input has no AST, IDE, business identity or addressable
+      // envelope evidence. It still has a typed syntax rejection; downstream
+      // response admission must independently resolve the original envelope.
+      facts = {messageFamily:'UTILTS',messageCode:null,transactionReference:null,externalReference:null,applicationReference:null,
+        senderEdielId:null,receiverEdielId:null,rawSegments:[],parsedPayload:{},messageReference:null,messageVersion:null,
+        documentReference:null,interchangeReference:null,market:null,stage:null,senderRole:null,receiverRole:null,subordinateRole:null,
+        meterPointId:null,gridAreaId:null,transactionId:null,deliveryPeriodRaw:null,deliveryPeriodStart:null,deliveryPeriodEnd:null,
+        registrationTime:null,resolution:null,transactionReason:null,unit:null,quantities:[],transactions:[],references:[],isUtiltsErr:false}
+    }
     const validation = rebuildValidation(syntaxIssues)
     return {
       facts,
@@ -754,6 +775,7 @@ export function runUtiltsRuntimeForMessage(
       ackPlan: decideUtiltsRuntimeAckPlan({ message, facts, validation }),
     }
   }
+  const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   // Complete the syntax/application pass before invoking any functional
   // validator. Guide failures cannot enter the functional pass; valid siblings
   // retain their own transaction reference and checks.
@@ -767,7 +789,13 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  const packagingIssues: UtiltsValidationIssue[] = utiltsPackagingGuideViolations(message.raw_payload ?? '').flatMap(violation => guideEffective.facts.transactions.map(transaction => ({
+    severity:'error' as const,kind:'application' as const,code:violation.code,title:'Felaktig UTILTS-paketering',description:violation.description,
+    aperakErcCode:'42',aperakFieldCode:violation.field,aperakText:'INCORRECT DATA',referenceQualifier:transaction.transactionId ? 'ACW' : null,
+    referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId,
+  })))
+  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
+  const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
