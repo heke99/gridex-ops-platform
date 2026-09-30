@@ -9,7 +9,8 @@ import { buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
 import * as database from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -139,6 +140,21 @@ it('actual canonical consumer persists two independent same-code E87 ERRs, no fo
   expect(positiveState.series).toHaveLength(1)
   expect(positiveState.acks.filter(row => row.family === 'UTILTS_ERR')).toEqual([])
   expect(positiveState.acks.filter(row => row.family === 'APERAK')).toMatchObject([{ outcome: 'positive', reference: 'ERR-NATIVE-POSITIVE' }])
+  // U-14/ACK-03: actual committed storage/final reservation + actual renderer
+  // own DM. DOC belongs to source BGM; DM must never be mistaken for source.
+  const positiveAckId = positiveState.acks.find(row => row.family === 'APERAK')!.id
+  const savedAck = await database.getEdielMessageById(positiveAckId)
+  expect(savedAck).not.toBeNull()
+  const sourceWire = tokenizeEdifact(positive.raw_payload!), ackWire = tokenizeEdifact(savedAck!.raw_payload!)
+  const document = segmentComposite(sourceWire.segments.find(t => t.tag === 'BGM'), 2, sourceWire.una)[0]
+  const dm = ackWire.segments.filter(t => t.tag === 'RFF').map(t => segmentComposite(t, 1, ackWire.una)).find(c => c[0] === 'DM')![1]
+  expect(dm).toBeTruthy(); expect(dm).not.toBe(document)
+  expect(segmentComposite(ackWire.segments.find(t => t.tag === 'DOC'), 2, ackWire.una)[0]).toBe(document)
+  await expect(assertUtiltsPositiveAckAuthorityForSend(savedAck!)).resolves.toBeUndefined()
+  // A caller cannot mutate the saved immutable final ACK into another wire.
+  await expect(assertUtiltsPositiveAckAuthorityForSend({ ...savedAck!, raw_payload: savedAck!.raw_payload!.replace(`DM:${dm}`, `DM:${document}`) }))
+    .rejects.toThrow('utilts_positive_ack_storage_unavailable')
+
   expect(sinks.meter).toHaveBeenCalledWith(expect.objectContaining({ companyId: f.ids.company, quantityKwh: 500 }))
 })
 
