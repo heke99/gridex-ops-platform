@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "recorded_date": "2026-09-30",
+  "repository": "heke99/gridex-ops-platform",
+  "scope": "documentation_only_remote_recovery",
+  "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "ops": {
+    "pr": 418,
+    "branch": "codex/tenantservice-api-ops-20260928",
+    "head_sha": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+    "tree_sha": "074d6dad73df47d25e097a5bf523d70c4a3a0946",
+    "parent_sha": "ac57248b5db52d67b71013156cb97e00f7a640d2",
+    "backup_branch": "backup/tenantservice-ops-20260930-ae56ee0a",
+    "run_id": 36737320079,
+    "run_attempt": 1,
+    "jobs_retrieved": [
+      {"name": "verify", "id": 109962310920, "conclusion": "success"},
+      {"name": "quality-release-gates", "id": 109962310464, "conclusion": "success"},
+      {"name": "clean-migration-replay", "id": 109962310742, "conclusion": "success"}
+    ]
+  },
+  "api": {
+    "pr": 422,
+    "branch": "codex/tenantservice-api-structure-20260929",
+    "head_sha": "cc90678d45602d37db7f8edf9713597c66fee28a",
+    "tree_sha": "ae26888d6170c0439bbcaa0a8cad71b8870bb187",
+    "recorded_tested_base_sha": "7afb3dcac62376edc5cab24c83ebcce80cb06e9a",
+    "backup_branch": "backup/tenantservice-api-20260930-cc90678d",
+    "run_id": 36716141163,
+    "check_retrieved": {"name": "clean-migration-replay", "id": 109889422728, "conclusion": "success"},
+    "other_successful_jobs_reported_by_pr": [109889422824, 109889422495]
+  },
+  "evidence_limits": {
+    "previous_agent_worktree_accessible": false,
+    "previous_agent_stopped_by_this_recovery": false,
+    "unpublished_changes_recovered": false,
+    "raw_job_logs_downloaded": false,
+    "artifact_zips_rehashed": false,
+    "new_combined_candidate_tested": false,
+    "runtime_changed": false,
+    "original_branch_heads_changed": false,
+    "manual_ci_rerun_started": false,
+    "production_changed": false,
+    "whole_masterplan_accepted": false
+  },
+  "reported_local_work_requiring_reconciliation": [
+    "Next.js 16.3.8 dependency patch and official advisory provenance",
+    "legacy RPC/session checks",
+    "authorization and owner checks after lock waits including replay",
+    "notification HTTP adapter",
+    "OPS customer-card and navigation UI",
+    "support/portal and billing resolver changes",
+    "OpenAPI finalization and browser/native tests"
+  ],
+  "instructions": "Read README.md and NEXT-AGENT-PROMPT.md here, then the existing masteruppdrag.md and requirements.csv in the parent audit directory. Preserve original T01-T55 and U01-U20. Verify fresh refs before mutation."
+}
