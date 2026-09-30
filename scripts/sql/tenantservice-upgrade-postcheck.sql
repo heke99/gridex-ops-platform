@@ -6,6 +6,16 @@ begin
  select * into strict customer from public.customers where id='e4954930-0000-4000-8000-000000000031';
  select * into strict copied from public.customer_contracts where id='e4954930-0000-4000-8000-000000000051';
  select * into strict inherited from public.customer_contracts where id='e4954930-0000-4000-8000-000000000052';
+ if (select count(*) from information_schema.columns where table_schema='public'
+   and table_name='customers' and is_nullable='YES' and
+   ((column_name='moved_out_at' and data_type='date')
+    or (column_name='lifecycle_closed_at' and data_type='timestamp with time zone')
+    or (column_name='lifecycle_closed_by' and data_type='uuid')
+    or (column_name='lifecycle_status_reason' and data_type='text'))) <> 4
+  or customer.moved_out_at is not null or customer.lifecycle_closed_at is not null
+  or customer.lifecycle_closed_by is not null or customer.lifecycle_status_reason is not null then
+  raise exception 'upgrade_historical_lifecycle_prerequisites_missing_or_closure_fabricated';
+ end if;
  if customer.company_id <> 'e4954930-0000-4000-8000-000000000001'::uuid
   or customer.email is distinct from 'contact-only@example.invalid'
   or customer.invoice_email is not null or customer.billing_profile ? 'email'
@@ -47,3 +57,4 @@ end;
 $upgrade$;
 \echo TENANTSERVICE_UPGRADE_LEGACY_BILLING_COUNTRY_CHANNEL_CONTACT_SEPARATION_PASS
 \echo TENANTSERVICE_UPGRADE_EXPLICIT_EQUAL_COPIES_AND_RELATIONSHIPS_PASS
+\echo TENANTSERVICE_UPGRADE_HISTORICAL_LIFECYCLE_PREREQUISITES_PASS

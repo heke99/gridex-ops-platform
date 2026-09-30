@@ -477,4 +477,94 @@ begin
 end;
 $test$;
 \echo BILLING_NATIVE_SERVICE_ONLY_RPC_PASS
+-- Capture is a financial decision even before sent. No new grant or historical
+-- payload rewrite is needed; status/error projections may still advance.
+set local role service_role;
+do $test$
+declare ca uuid:=current_setting('gridex.billingtest.ca')::uuid;
+  cu uuid:=current_setting('gridex.billingtest.customer')::uuid;
+  agreement uuid:=current_setting('gridex.billingtest.inherit')::uuid;
+  underlay uuid:=current_setting('gridex.billingtest.underlay')::uuid;
+  pricing uuid:=gen_random_uuid(); export_run uuid:=gen_random_uuid(); item uuid:=gen_random_uuid();
+  request_key text; payload jsonb; patch jsonb; before_state jsonb; after_state jsonb;
+  changed integer; denied boolean; provider_guid text;
+begin
+  request_key:='synthetic-provider-request-'||item::text;
+  provider_guid:='synthetic-provider-invoice-'||item::text;
+  insert into public.pricing_runs(id,company_id,billing_underlay_id,customer_id,status,locked_at,
+    total_ex_vat,vat_amount,total_inc_vat)
+  values(pricing,ca,underlay,cu,'locked',clock_timestamp(),100,25,125);
+  insert into public.invoice_export_runs(id,company_id,billing_month,environment,financing_mode)
+  values(export_run,ca,'2026-09','test','invoice_service');
+  insert into public.invoice_export_items(id,company_id,export_run_id,customer_id,customer_contract_id,
+    billing_underlay_id,pricing_run_id,environment,financing_mode,status,idempotency_key,
+    amount_ex_vat,vat_amount,amount_inc_vat,total_kwh)
+  values(item,ca,export_run,cu,agreement,underlay,pricing,'test','invoice_service','pending',request_key,100,25,125,1);
+  payload:=jsonb_build_object('externalReferenceCode',pricing,'invoiceDate','2026-09-01T10:00:00Z',
+    'customer',jsonb_build_object('email','original@example.invalid'),
+    'debts',jsonb_build_array(jsonb_build_object('invoiceDate','2026-09-01T10:00:00Z',
+      'dueDate','2026-09-21T10:00:00Z','originalPrincipal',100,'originalVat',25)));
+  update public.invoice_export_items set request_payload=payload,provider_request_id=request_key,
+    provider_idempotency_key=request_key where id=item and company_id=ca and request_payload='{}'::jsonb;
+  get diagnostics changed=row_count;
+  if changed<>1 then raise exception 'billing_native_provider_first_capture_failed'; end if;
+  update public.invoice_export_items set request_payload=payload||jsonb_build_object('invoiceDate','2026-09-03T10:00:00Z')
+    where id=item and company_id=ca and request_payload='{}'::jsonb;
+  get diagnostics changed=row_count;
+  if changed<>0 then raise exception 'billing_native_provider_capture_cas_overwrite'; end if;
+  update public.invoice_export_items set status='failed_retryable',attempt_count=1,
+    error_code='synthetic_network_failure',provider_invoice_guid=provider_guid,provider_invoice_id=provider_guid,
+    provider_confirmed_at=clock_timestamp() where id=item and company_id=ca;
+  select to_jsonb(i) into before_state from public.invoice_export_items i where id=item;
+  for patch in select value from jsonb_array_elements(jsonb_build_array(
+    jsonb_build_object('request_payload',payload||jsonb_build_object('invoiceDate','2026-09-03T10:00:00Z')),
+    jsonb_build_object('provider_request_id','changed-request-key'),
+    jsonb_build_object('provider_idempotency_key','changed-request-key'),
+    jsonb_build_object('idempotency_key','changed-item-key'),
+    jsonb_build_object('environment','production'),
+    jsonb_build_object('financing_mode','factoring_with_recourse'),
+    jsonb_build_object('amount_inc_vat',999),
+    jsonb_build_object('provider_invoice_guid','changed-provider-invoice'),
+    jsonb_build_object('provider_invoice_id','changed-provider-invoice')))
+  loop
+    denied:=false;
+    begin
+      update public.invoice_export_items set
+        request_payload=coalesce(patch->'request_payload',request_payload),
+        provider_request_id=coalesce(patch->>'provider_request_id',provider_request_id),
+        provider_idempotency_key=coalesce(patch->>'provider_idempotency_key',provider_idempotency_key),
+        idempotency_key=coalesce(patch->>'idempotency_key',idempotency_key),
+        environment=coalesce(patch->>'environment',environment),
+        financing_mode=coalesce(patch->>'financing_mode',financing_mode),
+        amount_inc_vat=coalesce((patch->>'amount_inc_vat')::numeric,amount_inc_vat),
+        provider_invoice_guid=coalesce(patch->>'provider_invoice_guid',provider_invoice_guid),
+        provider_invoice_id=coalesce(patch->>'provider_invoice_id',provider_invoice_id)
+      where id=item and company_id=ca;
+    exception when sqlstate '55000' then
+      denied:=sqlerrm in ('invoice_provider_request_immutable','invoice_provider_identity_immutable');
+    end;
+    select to_jsonb(i) into after_state from public.invoice_export_items i where id=item;
+    if not denied or after_state is distinct from before_state then
+      raise exception 'billing_native_failed_provider_request_mutable:%',patch; end if;
+  end loop;
+  denied:=false;
+  begin delete from public.invoice_export_items where id=item;
+  exception when sqlstate '55000' then denied:=sqlerrm='invoice_provider_request_immutable'; end;
+  if not denied then raise exception 'billing_native_captured_provider_request_deleted'; end if;
+  update public.invoice_export_items set status='sent',sent_at=clock_timestamp(),error_code=null
+    where id=item and company_id=ca;
+  select to_jsonb(i) into before_state from public.invoice_export_items i where id=item;
+  denied:=false;
+  begin update public.invoice_export_items set status='pending',request_payload=payload||jsonb_build_object('invoiceDate','2026-09-03')
+    where id=item and company_id=ca;
+  exception when sqlstate '55000' or raise_exception then denied:=true; end;
+  select to_jsonb(i) into after_state from public.invoice_export_items i where id=item;
+  if not denied or after_state is distinct from before_state
+    or after_state->'request_payload' is distinct from payload
+    or after_state->>'provider_invoice_guid' is distinct from provider_guid then
+    raise exception 'billing_native_sent_provider_request_rewritten_or_redelivered'; end if;
+end;
+$test$;
+\echo BILLING_NATIVE_PROVIDER_CAPTURE_CAS_FAILED_AND_SENT_IMMUTABILITY_PASS
+reset role;
 rollback;

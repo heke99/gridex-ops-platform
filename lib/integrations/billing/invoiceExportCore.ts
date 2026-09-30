@@ -4,6 +4,7 @@ import { evaluateBillingMonthInvoiceReadiness, lockBillingPeriodForInvoiceExport
 import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway/auth'
 import { CapwayApticClient } from '@/lib/integrations/billing/capway/client'
 import { buildCapwayInvoicePayload } from '@/lib/integrations/billing/capway/payloadBuilder'
+import { captureInvoiceProviderRequest } from '@/lib/billing/invoiceProviderRequest'
 import { buildPurchasePayload } from '@/lib/integrations/billing/capway/purchase'
 import { shouldRequestPurchaseAfterCreate } from '@/lib/integrations/billing/capway/statusMapper'
 import type { CapwayEnvironment, CapwayFinancingMode } from '@/lib/integrations/billing/capway/types'
@@ -28,10 +29,6 @@ function numberValue(value: unknown): number {
     return Number.isFinite(parsed) ? parsed : 0
   }
   return 0
-}
-
-function objectValue(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
 }
 
 function missingRelation(error: unknown): boolean {
@@ -406,7 +403,7 @@ async function raiseInvoiceCorrectionTask(input: {
   if (error) console.warn('[invoice-export] kunde inte skapa korrigeringstask', { itemId: input.itemId, error })
 }
 
-async function sendSingleInvoiceExportItem(input: {
+async function sendSingleInvoiceExportItemUnlocked(input: {
   companyId: string
   exportRunId: string
   billingMonth: string
@@ -441,20 +438,23 @@ async function sendSingleInvoiceExportItem(input: {
 
   try {
     const context = await loadItemContext(input.companyId, item)
-    const payload = buildCapwayInvoicePayload({
-      config: input.config,
-      company: context.company,
-      customer: context.customer,
-      pricingRun: context.pricingRun,
-      pricingLines: context.lines,
-      underlay: context.underlay,
-      financingMode: input.financingMode,
+    const captured = await captureInvoiceProviderRequest({ companyId: input.companyId, itemId,
+      exportRunId: input.exportRunId, environment: input.config.environment, financingMode: input.financingMode,
+      build: () => buildCapwayInvoicePayload({
+        config: input.config,
+        company: context.company,
+        customer: context.customer,
+        pricingRun: context.pricingRun,
+        pricingLines: context.lines,
+        underlay: context.underlay,
+        financingMode: input.financingMode,
+      }),
     })
+    const { payload } = captured
     payloadHash = requestHash(payload)
-    const providerRequestId = stringValue(item.provider_request_id) ?? idempotencyKey
-    if (!providerRequestId) throw new Error('Fakturaexportposten saknar provider-idempotensnyckel.')
-    let invoiceGuid = stringValue(item.provider_invoice_guid)
-    let response: Record<string, unknown> = objectValue(item.response_payload)?.create_invoice as Record<string, unknown> ?? {}
+    const providerRequestId = captured.providerKey
+    let invoiceGuid = captured.providerInvoiceGuid
+    let response = captured.response
     if (!invoiceGuid) {
       const createResponse = await input.client.createInvoices([payload], providerRequestId)
       const invoiceGuids = Array.isArray(createResponse.invoiceGuids) ? createResponse.invoiceGuids.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())) : []
@@ -507,9 +507,7 @@ async function sendSingleInvoiceExportItem(input: {
       error_payload: {},
       updated_at: new Date().toISOString(),
     })
-    const issuedAt = new Date().toISOString()
-    const payloadRecord = objectValue(payload) ?? {}
-    const invoicePayload = objectValue(payloadRecord.invoice) ?? payloadRecord
+    const issuedAt = captured.invoiceDate
     const mirrorUpdate = await supabaseService
       .from('customer_invoices')
       .update({
@@ -519,10 +517,7 @@ async function sendSingleInvoiceExportItem(input: {
           ?? stringValue(response.invoice_number)
           ?? null,
         issued_at: issuedAt,
-        due_date:
-          stringValue(invoicePayload.dueDate)
-          ?? stringValue(invoicePayload.due_date)
-          ?? null,
+        due_date: captured.dueDate.slice(0, 10),
         status: 'sent',
         source_system: 'canonical_invoice_export',
         raw_payload: { create_invoice: response, purchase: purchaseResponse },
@@ -577,13 +572,6 @@ async function sendSingleInvoiceExportItem(input: {
     let status: string = classification.outcome
     let errorCode = classification.errorCode
     let nextRetryAt: string | null = null
-
-    // 409 conflict: if a previous attempt already produced a provider invoice
-    // (same idempotency key), the invoice exists at the provider - treat as sent.
-    if (classification.errorCode === 'provider_conflict' && stringValue(item.provider_invoice_guid)) {
-      status = 'sent'
-      errorCode = 'provider_conflict_resolved_as_sent'
-    }
 
     if (status === 'failed_retryable') {
       if (attemptNo >= INVOICE_EXPORT_MAX_ATTEMPTS) {
@@ -644,8 +632,7 @@ async function sendSingleInvoiceExportItem(input: {
       idempotencyKey,
       requestHash: payloadHash,
       httpStatus: classification.httpStatus,
-      // The attempt records the raw classification; the item's final status may
-      // differ (retry exhausted -> failed, resolved 409 -> sent).
+      // The attempt records the raw classification unless retries are exhausted.
       outcome: classification.outcome === 'failed_retryable' && status === 'failed' ? 'failed' : classification.outcome,
       errorCode,
       responseExcerpt: classification.responseExcerpt,
@@ -666,6 +653,18 @@ async function sendSingleInvoiceExportItem(input: {
 
     return { itemId, status, errorCode, error: classification.message }
   }
+}
+
+async function sendSingleInvoiceExportItem(input: Parameters<typeof sendSingleInvoiceExportItemUnlocked>[0]): Promise<SendItemResult> {
+  const itemId = stringValue(input.item.id)
+  if (!itemId) throw new Error('Exportposten saknar id.')
+  return withAutomationLock({
+    lockKey: `invoice-provider:${input.companyId}:${itemId}`,
+    companyId: input.companyId,
+    ttlSeconds: 7_200,
+    metadata: { domain: 'invoice_export', itemId },
+    run: () => sendSingleInvoiceExportItemUnlocked(input),
+  })
 }
 
 async function finalizeExportRunStatus(input: {

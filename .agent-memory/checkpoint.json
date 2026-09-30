@@ -986,16 +986,33 @@
     "status": "IN_PROGRESS",
     "sole_publisher": "root",
     "ownership_comment": 5919901521,
-    "last_checked_api_head": "026f6bab3b261866aecd1015842dd0f3abb4a7b4",
+    "last_checked_api_head": "0d81465617d11f099502832385d976fdedf3cc6d",
     "last_checked_ops_head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
     "last_checked_main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
     "original_worktree_preserved": true,
-    "restore_wrapper_local": "PASS_11_TESTS_NODE22",
+    "restore_wrapper_local": "PASS_2_STUB_WRAPPER_TESTS_NODE22_NOT_NATIVE",
     "legal_parser_native": "PENDING",
-    "candidate_native": "NOT_EXECUTED",
-    "candidate_restore": "NOT_EXECUTED",
+    "candidate_native": "PENDING_NEXT_PUBLISHED_CANDIDATE",
+    "candidate_restore": "PENDING_NEXT_PUBLISHED_CANDIDATE",
     "requirements_count": 75,
     "full_acceptance": false,
-    "secret_scan": "BLOCKED_AUTH"
+    "secret_scan": "BLOCKED_AUTH",
+    "last_published_api_head": "0d81465617d11f099502832385d976fdedf3cc6d",
+    "last_published_tree": "e86c110e64e7fa494a68a7dc6010aea39c2c7394",
+    "local_source_commit_same_tree": "3f0e2c5f231dbe7cdb4ba3653d098da644bcd1bf",
+    "startup_redaction_local": "PASS_2_EXTRACTED_BASH_TESTS_NODE22",
+    "last_actual_ops": {
+      "run": 36780003023,
+      "checkout": "45a09811bbbba42f287c6778de76f27dbe13b9ec",
+      "tree": "e86c110e64e7fa494a68a7dc6010aea39c2c7394",
+      "quality": "PASS_6718_TESTS_AND_COMPLETE_RELEASE_GATES",
+      "verify": "FAILED_STALE_AUTHENTIC_GENERATED_TYPE_TAIL",
+      "clean": "FAILED_SITE_SQL_CASE_GRAMMAR_AFTER_LEGAL_PARSER_PASSED",
+      "upgrade": "FAILED_MISSING_HISTORICAL_LIFECYCLE_COLUMNS_AFTER_WRAPPER_PASSED",
+      "artifact": 11127404106,
+      "generated_artifact_members": 0
+    },
+    "baseline_sql_byte_comparison": "PASS_653_UNCHANGED",
+    "next_work": "Publish reviewed continuation and actual SQL compatibility fixes; genuine replay/HTTP/browser/concurrency/restore, authentic artifacts, all75 original terminal outcomes; no broad acceptance."
   }
 }

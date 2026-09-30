@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
 import { withAutomationLock } from '@/lib/automation/locks'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway/auth'
 import { CapwayApticClient } from '@/lib/integrations/billing/capway/client'
 import { buildCapwayInvoicePayload } from '@/lib/integrations/billing/capway/payloadBuilder'
+import { captureInvoiceProviderRequest } from '@/lib/billing/invoiceProviderRequest'
 import { buildPurchasePayload } from '@/lib/integrations/billing/capway/purchase'
 import { shouldRequestPurchaseAfterCreate } from '@/lib/integrations/billing/capway/statusMapper'
 import { classifyInvoiceExportError, computeNextRetryAt, INVOICE_EXPORT_MAX_ATTEMPTS } from '@/lib/integrations/billing/exportErrorClassification'
@@ -255,7 +257,7 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
   await requireCompanyOperationalForWrites(input.companyId)
   await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
   return withAutomationLock({
-    lockKey: `approved-invoice:${input.companyId}:${input.itemId}`,
+    lockKey: `invoice-provider:${input.companyId}:${input.itemId}`,
     companyId: input.companyId,
     ttlSeconds: 7_200,
     metadata: { domain: 'invoice_approved_dispatch', itemId: input.itemId },
@@ -274,29 +276,44 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       const config = await resolveCapwayConnectionConfig({ companyId: input.companyId, environment })
       const client = new CapwayApticClient(config)
       const paymentDays = configuredPaymentDays(config, context.customer)
-      const invoiceDate = new Date().toISOString()
-      const dueDate = addDays(invoiceDate, paymentDays)
-      const payload = buildCapwayInvoicePayload({
-        config,
-        company: context.company,
-        customer: context.customer,
-        pricingRun: context.pricingRun,
-        pricingLines: context.lines,
-        underlay: context.underlay,
-        financingMode,
-        invoiceDate,
-        dueDate,
-        paymentConditionDays: paymentDays,
-      })
+      const captured = await captureInvoiceProviderRequest({ companyId: input.companyId, itemId: input.itemId,
+        exportRunId: runId, environment, financingMode, build: () => {
+          const invoiceDate = new Date().toISOString()
+          return buildCapwayInvoicePayload({
+            config,
+            company: context.company,
+            customer: context.customer,
+            pricingRun: context.pricingRun,
+            pricingLines: context.lines,
+            underlay: context.underlay,
+            financingMode,
+            invoiceDate,
+            dueDate: addDays(invoiceDate, paymentDays),
+            paymentConditionDays: paymentDays,
+          })
+        } })
+      const { payload, providerKey, invoiceDate, dueDate } = captured
       const payloadHash = sha256(payload)
-      const providerKey = text(context.item.provider_idempotency_key) ?? text(context.item.idempotency_key) ?? `invoice:${input.companyId}:${input.itemId}`
       const attemptNo = (num(context.item.attempt_count) ?? 0) + 1
       const startedAt = new Date().toISOString()
       try {
-        const response = await client.createInvoices([payload], providerKey)
-        const guids = Array.isArray(response.invoiceGuids) ? response.invoiceGuids.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())) : []
-        if (guids.length !== 1) throw new Error('Fakturapartnern returnerade inte exakt ett faktura-ID.')
-        const invoiceGuid = guids[0]
+        let response = captured.response
+        let invoiceGuid = captured.providerInvoiceGuid
+        if (!invoiceGuid) {
+          response = await client.createInvoices([payload], providerKey)
+          const guids = Array.isArray(response.invoiceGuids) ? response.invoiceGuids.filter((value): value is string => typeof value === 'string' && Boolean(value.trim())) : []
+          if (guids.length !== 1) throw new Error('Fakturapartnern returnerade inte exakt ett faktura-ID.')
+          invoiceGuid = guids[0]
+          // Purchase and local projections can fail after provider acceptance.
+          // Save that identity first so the next attempt resumes the same invoice.
+          const acceptedItems = tenantDb(input.companyId).from('invoice_export_items') as ReturnType<typeof supabaseService.from>
+          const accepted = await acceptedItems.update({ provider_invoice_guid: invoiceGuid,
+            provider_invoice_id: invoiceGuid, provider_request_id: providerKey, provider_idempotency_key: providerKey,
+            provider_confirmed_at: new Date().toISOString(), response_payload: { create_invoice: response },
+          }).eq('id', input.itemId).select('id').maybeSingle()
+          if (accepted.error) throw accepted.error
+          if (!accepted.data) throw new Error('Fakturapartnerns bekräftade identitet kunde inte sparas.')
+        }
         let purchaseResponse: Record<string, unknown> | null = null
         if (shouldRequestPurchaseAfterCreate(financingMode)) {
           purchaseResponse = await client.postPurchase(invoiceGuid, buildPurchasePayload({ financingMode }))

@@ -41,6 +41,7 @@ import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance"
 
 
 import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustomer"
+import { currentSupportSession } from "@/lib/customer-operations/supportSession"
 
 
 
@@ -605,9 +606,10 @@ export async function prepareSwitchProdatAction(
 }
 
 export async function createEdielPortalTestCustomerAction(formData: FormData) {
-  const context = await requireAdminActionAccess({
-    allOf: ["masterdata.write", "switching.write", "communication.write"],
-  });
+  // The graph preflight resolves all three write rights for the selected
+  // target company; ambient-company rights must neither grant nor deny them.
+  const context = await requireAdminActionAccess();
+  const actor = await currentSupportSession("ops", context.userId);
   const testSuite = parseEdielTestSuite(formData.get("testSuite"));
   const roleCode = parseEdielTestRoleCode(formData.get("roleCode"));
   const testCaseCode = formString(formData.get("testCaseCode"));
@@ -630,6 +632,7 @@ export async function createEdielPortalTestCustomerAction(formData: FormData) {
   const supabase = await makeServerClient();
   const result = await createEdielPortalTestCustomerGraph(supabase, {
     actorUserId: context.userId,
+    actorSessionId: actor.sessionId,
     companyId,
     testSuite,
     roleCode,

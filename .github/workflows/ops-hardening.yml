@@ -141,15 +141,19 @@ jobs:
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
-          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
+          # Fairness owns an initially empty due queue and cleans its own rows.
+          npx vitest run --config scripts/webhook-fair-claim-continuation-native.config.ts
+          npx vitest run --config scripts/ediel-source-owner-native.config.ts
           # Atomic notifier command faults/concurrency use independent fixtures.
           npx vitest run --config scripts/customer-notification-read-native.config.ts
           npx vitest run --config scripts/customer-notification-read-concurrency-native.config.ts
           npx vitest run --config scripts/customer-profile-commands-native.config.ts
           npx vitest run --config scripts/customer-address-command-native.config.ts
+          npx vitest run --config scripts/ediel-portal-address-command-native.config.ts
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-site-command-native.sql
           npx vitest run --config scripts/customer-site-command-native.config.ts
+          npx vitest run --config scripts/customer-site-continuation-20260930.native.config.ts
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-ops-capabilities-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-authoritative-writer-fences-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-support-command-native.sql
@@ -179,6 +183,16 @@ jobs:
           GRIDEX_CONTACT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           rm -f "$GRIDEX_CONTACT_FIXTURE_PATH"
           unset GRIDEX_CONTACT_TEST_PASSWORD GRIDEX_CONTACT_LOCAL_E2E GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # Company settings use independent disposable Auth/company fixtures.
+          export GRIDEX_SETTINGS_LOCAL_E2E=1
+          export GRIDEX_SETTINGS_FIXTURE_PATH="$RUNNER_TEMP/company-settings-browser-fixture.json"
+          export GRIDEX_SETTINGS_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          npx vitest run --config scripts/company-settings-browser-native.config.ts
+          [[ -s "$GRIDEX_SETTINGS_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/tenantservice-company-settings-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_SETTINGS_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/company-settings-browser-native.config.ts
+          rm -f "$GRIDEX_SETTINGS_FIXTURE_PATH"
+          unset GRIDEX_SETTINGS_TEST_PASSWORD GRIDEX_SETTINGS_LOCAL_E2E GRIDEX_SETTINGS_FIXTURE_PATH
           # Actual customer events HTTP -> v2 RPC on this same disposable stack.
           export GRIDEX_EVENT_V2_LOCAL_E2E=1
           export GRIDEX_EVENT_V2_FIXTURE_PATH="$RUNNER_TEMP/customer-event-v2-fixture.json"

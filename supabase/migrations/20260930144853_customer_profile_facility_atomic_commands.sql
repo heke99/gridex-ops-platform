@@ -7,6 +7,15 @@ alter table public.customers add column profile_revision bigint not null default
 alter table public.customers
   add column legal_profile_revision bigint not null default 0 check(legal_profile_revision>=0),
   add column lifecycle_revision bigint not null default 0 check(lifecycle_revision>=0);
+-- The pinned canonical foundation does not replay the 8-digit legacy
+-- move-out migration. Provision its nullable customer fields before any
+-- revision trigger can evaluate NEW/OLD during a later migration backfill.
+-- Existing live lifecycle values and column definitions remain intact.
+alter table public.customers
+  add column if not exists moved_out_at date,
+  add column if not exists lifecycle_closed_at timestamptz,
+  add column if not exists lifecycle_closed_by uuid references auth.users(id) on delete set null,
+  add column if not exists lifecycle_status_reason text;
 alter table public.customer_sites add column address_revision bigint not null default 0 check(address_revision>=0);
 create index customer_portal_profile_completion_command_idx on public.customer_portal_completions
   (company_id,api_client_id,customer_id,idempotency_key)

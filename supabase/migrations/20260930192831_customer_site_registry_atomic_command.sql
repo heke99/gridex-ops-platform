@@ -150,8 +150,8 @@ begin
     or v_candidate->>'city' is distinct from nullif(regexp_replace(btrim(v_changes->>'city'),'\s+',' ','g'),'')
     or v_candidate->>'care_of' is distinct from nullif(regexp_replace(btrim(v_changes->>'care_of'),'\s+',' ','g'),'')
     or v_candidate->>'country' is distinct from v_changes->>'country'
-    or v_candidate->>'postal_code' is distinct from case when regexp_replace(coalesce(v_changes->>'postal_code',''),'\D','','g') ~ '^[0-9]{5}$'
-      then regexp_replace(v_changes->>'postal_code','\D','','g') else null end
+    or v_candidate->>'postal_code' is distinct from (case when regexp_replace(coalesce(v_changes->>'postal_code',''),'\D','','g') ~ '^[0-9]{5}$'
+      then regexp_replace(v_changes->>'postal_code','\D','','g') else null end)
     or v_candidate->>'apartment_number' is distinct from v_before.apartment_number
     or (v_candidate->>'complete')::boolean is distinct from
       (coalesce(length(v_candidate->>'street'),0)>0 and coalesce(v_candidate->>'postal_code','') ~ '^[0-9]{5}$'

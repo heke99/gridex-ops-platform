@@ -1,0 +1,23 @@
+{
+  "scope": "Every current app/admin page import graph plus ancestor layouts; includes shared controls once per reachable page context.",
+  "pages": 147,
+  "reachedSourceModules": 1102,
+  "contextControlCandidates": 5806,
+  "sourceControlCandidates": 3318,
+  "byControlRole": {
+    "field": 2474,
+    "form_command": 1011,
+    "form_submission": 1042,
+    "local_action": 22,
+    "navigation": 1149,
+    "unresolved_control": 108
+  },
+  "verifiedRuntimeControlContexts": 0,
+  "semanticBusinessActionTotal": null,
+  "limitation": "Static over-approximation. Imports used only for types/re-export or non-rendered functions can overcount; dynamic components, runtime hrefs, alias semantics, conditional controls, actual actor/resource policy and side effects need manual/runtime qualification. plannedTestId identifies an unexecuted required case, not an implemented test.",
+  "sourceHash": "9462d10c73f3b71f5e261016bbf64149682477357c1737fccbf8dd7ef241de67",
+  "controlArtifact": "ops-ui-control-contexts.jsonl.gz",
+  "controlUncompressedSha256": "16027ed5d3c96971140ef49d5ff4ffc42e82ed34af07da195f63f0898802fe05",
+  "controlCompressedSha256": "96eb7d49f71ad236fc55e3fdb6c2177228ba58d6f9a606c4d40634ef12927a69",
+  "compression": "gzip level9; zero mtime; exact JSONL after decompression"
+}

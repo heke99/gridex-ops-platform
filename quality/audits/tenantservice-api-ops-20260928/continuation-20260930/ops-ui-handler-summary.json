@@ -1,0 +1,33 @@
+{
+  "sourceContextControls": 5806,
+  "exactSourceHandlerFamilies": 323,
+  "resolvedNamedOrInlineFamilies": 312,
+  "unresolvedHandlerFamilies": 11,
+  "boundControlContexts": 2047,
+  "navigationAndFieldOrUnboundContexts": 3759,
+  "sourceTraceLimitedFamilies": 148,
+  "guardSourceFamilies": 292,
+  "dbSourceFamilies": 291,
+  "downstreamEffectSourceFamilies": 292,
+  "familiesWithTestSourceReferences": 125,
+  "verifiedRuntimeFamilies": 0,
+  "uniqueSemanticBusinessActions": null,
+  "artifacts": [
+    {
+      "file": "ops-ui-handler-families.jsonl.gz",
+      "rows": 323,
+      "sha256": "dba626d690a13efdd40951f89a63098fee02d23fc2d24d200632658609ee9ea7"
+    },
+    {
+      "file": "ops-ui-control-family-links.jsonl.gz",
+      "rows": 2047,
+      "sha256": "1d77f7cb06b671ece624020bf2e4d92c6af3b66069b889eb3aa64790aa6a4f8b"
+    },
+    {
+      "file": "ops-ui-navigation-fields.jsonl.gz",
+      "rows": 3759,
+      "sha256": "610b348cb8a1d9c187403acb8dc53840d376b80d45d0da53e60a717bbbc0c56a"
+    }
+  ],
+  "limits": "Deterministic source symbol/callsite denominator; caller/page context preserved. Imported/exported aliases resolved where statically identifiable. Fields/navigation listed separately; unresolved prop/dynamic handlers retain stable IDs. No unique-action, role-policy, persisted result or browser acceptance follows."
+}
