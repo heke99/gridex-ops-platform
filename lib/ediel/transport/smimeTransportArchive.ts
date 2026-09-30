@@ -57,7 +57,7 @@ export function smimeArchiveStoragePathFromReference(reference: string | null | 
   return path || null
 }
 
-export async function archiveSmimeRawMime(rawMime: Buffer): Promise<{
+export async function archiveSmimeRawMime(rawMime: Buffer, scope?: { companyId: string; messageId: string }): Promise<{
   storageRef: string
   storagePath: string
   archivedMimeSha256: string
@@ -83,6 +83,7 @@ export async function archiveSmimeRawMime(rawMime: Buffer): Promise<{
   if (rows.length > 1) throw new Error('smime_archive_snapshot_ambiguous')
 
   const snapshot = rows[0]
+  if (scope && (snapshot.company_id !== scope.companyId || snapshot.ediel_message_id !== scope.messageId)) throw new Error('smime_archive_snapshot_scope_mismatch')
   const legacyRef = clean(snapshot.encrypted_payload_ref)
   const match = legacyRef?.match(/^smtp-smime:\/\/([^/]+)\/([a-f0-9]{24})$/i)
   if (!match || match[2].toLowerCase() !== legacyToken.toLowerCase()) {
