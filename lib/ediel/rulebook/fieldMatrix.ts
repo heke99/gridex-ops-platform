@@ -2,7 +2,7 @@ import {prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement} from '@/
 import {isProdatFieldInInapplicableParent} from '@/lib/ediel/prodat/prodatParentApplicability'
 import {prodatEndUserWireSubtype} from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import {prodatProductMarket} from '@/lib/ediel/rulebook/prodatProductScope'
-import { prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { prodatFreeTextField, prodatFreeTextPresent } from '@/lib/ediel/prodat/prodatFreeText'
 import {prodatComponentEvidence,type ProdatFailureEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
 import {prodatFieldDiagnostic, prodatErrorOccurrence, type ProdatErrorOccurrence} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
@@ -61,7 +61,11 @@ export type FieldMatrixEvaluationInput = {
 /** Emit a projection of an existing field decision, never an independent rule. */
 export function recordIgnoredProdatField(input: FieldMatrixEvaluationInput, fieldNumber: string | undefined, scopedSegments: readonly string[], scope?: ProdatErrorOccurrence['scope'], lineIndex?: number): void {
   if (input.direction !== 'inbound' || !fieldNumber || !input.onIgnoredField) return
-  const occurrence = prodatErrorOccurrence(input, scopedSegments, scope ?? (prodatRegisterFieldScope(fieldNumber) === 'header' ? 'header' : prodatRegisterFieldScope(fieldNumber) === 'local' ? 'register' : 'object'), lineIndex)
+  const physical = scopedSegments.length ? scopedSegments : lineIndex === undefined ? scopedSegments
+    : prodatRegisterGroups(input.rawSegments ?? [], input.una, input.code).groups.find(group => group.lineIndex === lineIndex)?.segments.map(segment => segment.raw) ?? []
+  const descriptor = canonicalProdat26AFieldRules(input.code ?? '').find(rule => rule.fieldNumber === fieldNumber)
+  if (!descriptor || !fieldRulePresentInScope({...descriptor, requirement:'forbidden'}, {...input, rawSegments:physical})) return
+  const occurrence = prodatErrorOccurrence(input, physical, scope ?? (prodatRegisterFieldScope(fieldNumber) === 'header' ? 'header' : prodatRegisterFieldScope(fieldNumber) === 'local' ? 'register' : 'object'), lineIndex)
   if (occurrence) input.onIgnoredField({fieldNumber, sourceRule:'PRODAT26A:P119', occurrence})
 }
 

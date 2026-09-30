@@ -82,6 +82,7 @@ describe('PRODAT incoming national exclusions at the field owner', () => {
     expect(decision.responsePlan.some(item => item.family === 'APERAK' && item.outcome === 'negative')).toBe(false)
     expect(decision.prodatIgnoredFields).toContainEqual(expect.objectContaining({ fieldNumber: '224', sourceRule: 'PRODAT26A:P119',
       occurrence: expect.objectContaining({ objectId: '735123456789012345', lineItemReference: 'CASE-A', lineIndex: 0 }) }))
+    expect(decision.prodatIgnoredFields?.map(field=>field.fieldNumber)).toEqual(['224'])
     expect(decision.validationReport.prodatIgnoredFields).toEqual(decision.prodatIgnoredFields)
     expect(message.raw_payload).toContain('IGNORED-METER')
   })
