@@ -17,6 +17,7 @@ function decodeXml(value: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
 }
 
 function stripTags(value: string): string {
@@ -63,7 +64,7 @@ function inferRoles(block: string): ParsedActorRegistryActor['roles'] {
     ...tagBlocks(block, ['Role', 'ActorRole', 'MarketRole', 'role', 'marketRole']).map((item) => firstNonEmpty(tagValue(item, ['Code', 'Name', 'Value']), stripTags(item))),
     attrValue(block, ['role', 'actorRole', 'marketRole']),
   ]
-  const roles = uniqueStrings(roleValues.map(normalizeRole))
+  const roles = uniqueStrings(roleValues.filter(Boolean).map(normalizeRole))
   return roles.length > 0 ? roles : ['other']
 }
 
@@ -78,8 +79,8 @@ function normalizeMessageFamily(value: string | null): string {
   return upper ?? 'PRODAT'
 }
 
-function parseRoutes(block: string, actorEdielId: string | null): ActorRegistryRoute[] {
-  const routeBlocks = tagBlocks(block, ['Route', 'CommunicationRoute', 'Routing', 'Communication'])
+function parseRoutes(block: string, actorEdielId: string | null, market: ParsedActorRegistryActor["market"]): ActorRegistryRoute[] {
+  const routeBlocks = tagBlocks(block, ['Route', 'CommunicationRoute', 'Routing', 'Communication', 'EDIFACTDetails'])
   const routes: ActorRegistryRoute[] = []
 
   for (const routeBlock of routeBlocks) {
@@ -90,6 +91,7 @@ function parseRoutes(block: string, actorEdielId: string | null): ActorRegistryR
     const messageFamily = normalizeMessageFamily(firstNonEmpty(
       tagValue(routeBlock, ['MessageFamily', 'MessageType', 'ApplicationReference', 'Application']),
       attrValue(routeBlock, ['messageFamily', 'messageType', 'applicationReference', 'application']),
+      /^<(?:\w+:)?EDIFACTDetails\b/i.test(routeBlock) ? attrValue(routeBlock.match(/^<[^>]+>/)?.[0] ?? '', ['Type']) : null,
     ))
     const subaddress = normalizeSubaddress(firstNonEmpty(
       tagValue(routeBlock, ['SubAddress', 'Subaddress', 'Subadress']),
@@ -98,6 +100,10 @@ function parseRoutes(block: string, actorEdielId: string | null): ActorRegistryR
     const environment = normalizeEnvironment(firstNonEmpty(tagValue(routeBlock, ['Environment', 'Env']), attrValue(routeBlock, ['environment', 'env'])))
     const partyId = normalizeEdielId(firstNonEmpty(tagValue(routeBlock, ['PartyId', 'EdielId', 'ActorId']), attrValue(routeBlock, ['partyId', 'edielId']))) ?? actorEdielId
 
+    const interchangePartyId = normalizeEdielId(firstNonEmpty(tagValue(routeBlock, ['InterchangePartyId']), attrValue(routeBlock, ['interchangePartyId']))) ?? partyId
+    const represented = Boolean(partyId && interchangePartyId && partyId !== interchangePartyId)
+    const partyTag = routeBlock.match(/<(?:\w+:)?PartyId\b[^>]*>/i)?.[0] ?? ''
+    const interchangeTag = routeBlock.match(/<(?:\w+:)?InterchangePartyId\b[^>]*>/i)?.[0] ?? ''
     if (!communicationAddress && !subaddress && !partyId) continue
     routes.push({
       messageFamily,
@@ -106,9 +112,15 @@ function parseRoutes(block: string, actorEdielId: string | null): ActorRegistryR
       communicationType: communicationAddress ? 'smtp' : null,
       communicationAddress,
       partyId,
-      interchangePartyId: partyId,
-      status: 'active',
-      isVerified: Boolean(partyId && (communicationAddress || subaddress !== null)),
+      interchangePartyId,
+      market,
+      partyIdQualifier: attrValue(partyTag, ['IdCodeQualifier']),
+      partyIdResponsible: attrValue(partyTag, ['IdCodeResponsible']),
+      interchangeIdQualifier: attrValue(interchangeTag, ['IdCodeQualifier']),
+      ediCharset: tagValue(routeBlock, ['EDICharset']),
+      ediSyntax: tagValue(routeBlock, ['EDISyntax']),
+      status: market === 'GAS' ? 'blocked' : represented ? 'needs_review' : 'active',
+      isVerified: market !== 'GAS' && !represented && Boolean(partyId && communicationAddress),
       metadata: {
         source: 'xml_import',
         blankSubaddressImported: subaddress === null,
@@ -126,8 +138,9 @@ function parseRoutes(block: string, actorEdielId: string | null): ActorRegistryR
       communicationAddress: fallbackEmail,
       partyId: actorEdielId,
       interchangePartyId: actorEdielId,
-      status: 'active',
-      isVerified: Boolean(actorEdielId),
+      market,
+      status: market === 'GAS' ? 'blocked' : 'active',
+      isVerified: market !== 'GAS' && Boolean(actorEdielId),
       metadata: { source: 'xml_import_fallback', blankSubaddressImported: true },
     })
   }
@@ -158,35 +171,43 @@ function actorBlocks(xml: string): string[] {
 }
 
 export function parseActorRegistryXml(xml: string): ParsedActorRegistryActor[] {
+  if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(xml)) throw new Error('actor_registry_xml_unsafe_declaration')
   const blocks = actorBlocks(xml)
   const actors: ParsedActorRegistryActor[] = []
 
   for (const block of blocks) {
+    const keys = Object.fromEntries(tagBlocks(block, ['Key']).map(key => [attrValue(key.match(/^<[^>]+>/)?.[0] ?? '', ['Type']), stripTags(key)]))
+    const marketValue = firstNonEmpty(attrValue(block.match(/^<[^>]+>/)?.[0] ?? '', ['Market']), tagValue(block, ['Market']))?.toUpperCase()
+    const market = marketValue === 'EL' || marketValue === 'GAS' ? marketValue : null
     const name = firstNonEmpty(
       tagValue(block, ['Name', 'CompanyName', 'OrganisationName', 'OrganizationName', 'LegalName']),
       attrValue(block, ['name', 'companyName', 'legalName']),
     )
     const edielId = normalizeEdielId(firstNonEmpty(
+      keys.EdielId,
       tagValue(block, ['EdielId', 'EdielID', 'EDIELID', 'Ediel', 'PartyId']),
       attrValue(block, ['edielId', 'edielID', 'partyId']),
     ))
     const orgNumber = normalizeOrgNumber(firstNonEmpty(
+      keys.OrgNo,
       tagValue(block, ['OrgNo', 'OrgNumber', 'OrganizationNumber', 'OrganisationNumber', 'CompanyRegistrationNumber']),
       attrValue(block, ['orgNo', 'orgNumber', 'organizationNumber']),
     ))
-    const eic = normalizeEic(firstNonEmpty(tagValue(block, ['EIC', 'EicCode']), attrValue(block, ['eic', 'eicCode'])))
+    const eic = normalizeEic(firstNonEmpty(keys.EIC, tagValue(block, ['EIC', 'EicCode']), attrValue(block, ['eic', 'eicCode'])))
 
     if (!name && !edielId && !orgNumber && !eic) continue
 
     actors.push({
       name: name ?? edielId ?? orgNumber ?? 'Okänd aktör',
+      market,
+      svkId: cleanString(keys.SvKId),
       legalName: tagValue(block, ['LegalName', 'RegisteredName']),
       edielId,
       orgNumber,
       eic,
       countryCode: cleanString(tagValue(block, ['Country', 'CountryCode'])) ?? 'SE',
       roles: inferRoles(block),
-      routes: parseRoutes(block, edielId),
+      routes: parseRoutes(block, edielId, market),
       certificates: parseCertificates(block),
       raw: {
         sourceFragmentLength: block.length,

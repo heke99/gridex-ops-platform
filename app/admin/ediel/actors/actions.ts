@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
@@ -54,6 +55,7 @@ function values(formData: FormData, key: string): string[] {
 }
 
 type ActorImportRecord = {
+  market?: 'EL' | 'GAS' | null
   name: string
   orgNumber: string | null
   edielId: string | null
@@ -76,24 +78,6 @@ type ActorImportRecord = {
   }>
 }
 
-function decodeXml(value: string): string {
-  return value
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-}
-
-function xmlText(block: string, tag: string): string | null {
-  const match = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`))
-  return match?.[1] ? decodeXml(match[1].trim()) : null
-}
-
-function xmlAttr(tag: string, name: string): string | null {
-  return tag.match(new RegExp(`${name}="([^"]*)"`))?.[1] ?? null
-}
-
 function normalizeActorRole(role: string | null | undefined): string {
   const raw = String(role ?? '').trim()
   const key = raw.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -105,49 +89,30 @@ function normalizeActorRole(role: string | null | undefined): string {
   return raw || 'other'
 }
 
-function parseCompaniesXml(textContent: string): ActorImportRecord[] {
-  return [...textContent.matchAll(/<Company>([\s\S]*?)<\/Company>/g)]
-    .map((match) => {
-      const block = match[1]
-      const name = xmlText(block, 'Name')
-      const identifiers = [...block.matchAll(/<Key\s+Type="([^"]+)">([\s\S]*?)<\/Key>/g)].map((identifier) => ({
-        type: decodeXml(identifier[1].trim()),
-        value: decodeXml(identifier[2].trim()),
-      }))
-      const byType = Object.fromEntries(identifiers.map((identifier) => [identifier.type, identifier.value])) as Record<string, string | undefined>
-      const roles = [...block.matchAll(/<Role>([\s\S]*?)<\/Role>/g)]
-        .map((role) => normalizeActorRole(decodeXml(role[1].trim())))
-        .filter(Boolean)
-      const routes = [...block.matchAll(/<EDIFACTDetails\s+Type="([^"]+)">([\s\S]*?)<\/EDIFACTDetails>/g)].map((routeMatch) => {
-        const detail = routeMatch[2]
-        const communicationTag = detail.match(/<CommunicationAddress\b[^>]*>[\s\S]*?<\/CommunicationAddress>/)?.[0] ?? ''
-        const interchangeTag = detail.match(/<InterchangePartyId\b[^>]*>[\s\S]*?<\/InterchangePartyId>/)?.[0] ?? ''
-        const partyTag = detail.match(/<PartyId\b[^>]*>[\s\S]*?<\/PartyId>/)?.[0] ?? ''
-        return {
-          messageFamily: decodeXml(routeMatch[1].trim()).toUpperCase(),
-          subaddress: xmlText(detail, 'SubAddress'),
-          communicationType: xmlAttr(communicationTag, 'Type'),
-          communicationAddress: xmlText(detail, 'CommunicationAddress'),
-          ediCharset: xmlText(detail, 'EDICharset'),
-          ediSyntax: xmlText(detail, 'EDISyntax'),
-          partyId: xmlText(detail, 'PartyId'),
-          partyIdQualifier: xmlAttr(partyTag, 'IdCodeQualifier'),
-          partyIdResponsible: xmlAttr(partyTag, 'IdCodeResponsible'),
-          interchangePartyId: xmlText(detail, 'InterchangePartyId'),
-          interchangeIdQualifier: xmlAttr(interchangeTag, 'IdCodeQualifier'),
-        }
-      })
-      return name ? {
-        name,
-        orgNumber: byType.OrgNo ?? null,
-        edielId: byType.EdielId ?? null,
-        svkId: byType.SvKId ?? null,
-        eic: byType.EIC ?? null,
-        roles: roles.length ? Array.from(new Set(roles)) : ['other'],
-        routes,
-      } : null
-    })
-    .filter((record): record is ActorImportRecord => Boolean(record?.name))
+function parseCompaniesXml(xml: string): ActorImportRecord[] {
+  return parseActorRegistryXml(xml).map(actor => ({
+    market: actor.market,
+    name: actor.name,
+    orgNumber: actor.orgNumber ?? null,
+    edielId: actor.edielId ?? null,
+    svkId: actor.svkId ?? null,
+    eic: actor.eic ?? null,
+    roles: actor.roles,
+    routes: actor.routes.map(route => ({
+      messageFamily: route.messageFamily,
+      subaddress: route.subaddress ?? null,
+      communicationType: route.communicationType ?? null,
+      communicationAddress: route.communicationAddress ?? null,
+      ediCharset: route.ediCharset ?? null,
+      ediSyntax: route.ediSyntax ?? null,
+      partyId: route.partyId ?? null,
+      partyIdQualifier: route.partyIdQualifier ?? null,
+      partyIdResponsible: route.partyIdResponsible ?? null,
+      interchangePartyId: route.interchangePartyId ?? null,
+      interchangeIdQualifier: route.interchangeIdQualifier ?? null,
+      applicationReference: route.applicationReference,
+    })),
+  }))
 }
 
 function splitDelimitedLine(line: string, delimiter: string): string[] {
@@ -494,6 +459,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
   const previousMetadata = (existing.data?.metadata ?? {}) as Record<string, unknown>
   const metadata = {
     ...previousMetadata,
+    market: record.market ?? null,
     importedBy: userId,
     source,
     edielId: record.edielId,
@@ -511,7 +477,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
     status: 'active',
     match_status: existing.data?.match_status === 'verified' ? 'verified' : (record.edielId || record.orgNumber ? 'strong_suggestion' : 'needs_review'),
     source,
-    visible_to_tenants: actorIsTenantVisible(record.roles),
+    visible_to_tenants: record.market !== 'GAS' && actorIsTenantVisible(record.roles),
     metadata,
     imported_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -556,7 +522,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
   for (const role of record.roles) {
     const roleResult = await supabaseService
       .from('platform_actor_roles')
-      .upsert({ actor_id: actorId, actor_role: role, role_source: source, is_active: true, metadata: { importRunId }, updated_at: new Date().toISOString() }, { onConflict: 'actor_id,actor_role' })
+      .upsert({ actor_id: actorId, actor_role: role, role_source: source, is_active: record.market !== 'GAS', metadata: { importRunId, market: record.market ?? null }, updated_at: new Date().toISOString() }, { onConflict: 'actor_id,actor_role' })
     if (roleResult.error) throw roleResult.error
   }
 
@@ -578,6 +544,8 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
 
     const existingRouteData = existingRoute.data as { id?: string; status?: string | null; is_verified?: boolean | null; auto_send_allowed?: boolean | null; metadata?: Record<string, unknown> | null } | null
     const existingRouteMetadata = existingRouteData?.metadata ?? {}
+    const representationRequiresMandate = Boolean(route.partyId && route.interchangePartyId && route.partyId !== route.interchangePartyId)
+    const routeHeld = record.market === 'GAS' || representationRequiresMandate
     const routePayload = {
       actor_id: actorId,
       message_family: route.messageFamily,
@@ -594,13 +562,15 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
       interchange_party_id: routeValue(route.interchangePartyId),
       interchange_id_qualifier: routeValue(route.interchangeIdQualifier),
       requires_poa: true,
-      is_verified: existingRouteData?.is_verified ?? false,
-      auto_send_allowed: existingRouteData?.auto_send_allowed ?? false,
-      status: existingRouteData?.status && existingRouteData.status !== 'blocked' ? existingRouteData.status : 'needs_review',
+      is_verified: !routeHeld && (existingRouteData?.is_verified ?? false),
+      auto_send_allowed: !routeHeld && (existingRouteData?.auto_send_allowed ?? false),
+      status: routeHeld ? 'blocked' : existingRouteData?.status && existingRouteData.status !== 'blocked' ? existingRouteData.status : 'needs_review',
       source,
       metadata: {
         ...existingRouteMetadata,
         importRunId,
+        market: record.market ?? null,
+        representation_requires_mandate: representationRequiresMandate,
         importedFromUi: true,
         lastXmlUpsertAt: new Date().toISOString(),
         upsertPolicy: 'route_identity_with_subaddress_application_reference',
@@ -835,6 +805,9 @@ export async function verifyPlatformActorForCustomerFlowAction(formData: FormDat
   const context = await requirePlatformAdminActionAccess()
   const actorId = value(formData, 'actorId')
   if (!actorId) throw new Error('actorId saknas.')
+  const registryActor = await supabaseService.from('platform_market_actors').select('metadata').eq('id', actorId).single()
+  if (registryActor.error) throw registryActor.error
+  if ((registryActor.data?.metadata as Record<string, unknown> | null)?.market === 'GAS') throw new Error('gas_actor_not_enabled_for_el_market')
 
   const actorUpdate = await supabaseService
     .from('platform_market_actors')

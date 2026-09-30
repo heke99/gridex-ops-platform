@@ -179,13 +179,13 @@ async function createActor(actor: ParsedActorRegistryActor, sourceReference: str
       match_status: actor.edielId || actor.orgNumber ? 'verified' : 'needs_review',
       source: 'xml_import',
       source_reference: sourceReference,
-      visible_to_tenants: true,
+      visible_to_tenants: actor.market !== 'GAS',
       verified_at: actor.edielId || actor.orgNumber ? now : null,
       imported_at: now,
       not_seen_in_latest_import: false,
       last_seen_in_import_at: now,
       registry_import_status: 'created',
-      metadata: { source: 'actor_registry_xml_import', roles: actor.roles },
+      metadata: { source: 'actor_registry_xml_import', market: actor.market ?? null, roles: actor.roles },
     })
     .select('id')
     .single()
@@ -221,7 +221,7 @@ async function updateActor(actorId: string, actor: ParsedActorRegistryActor, sou
     registry_import_status: 'updated',
     source_reference: sourceReference,
     updated_at: new Date().toISOString(),
-    metadata: { ...(jsonRecord(currentRow.metadata)), lastXmlImportSource: sourceReference, roles: actor.roles },
+    metadata: { ...(jsonRecord(currentRow.metadata)), lastXmlImportSource: sourceReference, market: actor.market ?? null, roles: actor.roles },
   }
   if (actor.name && currentRow.name !== actor.name) payload.name = actor.name
   if ((actor.legalName ?? actor.name) && currentRow.legal_name !== (actor.legalName ?? actor.name)) payload.legal_name = actor.legalName ?? actor.name
@@ -293,7 +293,7 @@ async function upsertRoute(actorId: string, route: ActorRegistryRoute, edielId: 
   if (!existing.error && existing.data?.id) {
     const update = await supabaseService.from('platform_actor_routes').update(payload).eq('id', existing.data.id)
     if (update.error && !isMissingSchema(update.error)) throw update.error
-    await materializePlatformActorRoute({ platformActorRouteId: String(existing.data.id) }).catch((error) => {
+    if (route.market !== 'GAS') await materializePlatformActorRoute({ platformActorRouteId: String(existing.data.id) }).catch((error) => {
       console.warn('[actor-registry] route materialization skipped', error)
     })
     return
@@ -303,7 +303,7 @@ async function upsertRoute(actorId: string, route: ActorRegistryRoute, edielId: 
   const insert = await supabaseService.from('platform_actor_routes').insert(payload).select('id').single()
   if (insert.error && !isMissingSchema(insert.error)) throw insert.error
   const routeId = (insert.data as { id?: string } | null)?.id
-  if (routeId) {
+  if (routeId && route.market !== 'GAS') {
     await materializePlatformActorRoute({ platformActorRouteId: String(routeId) }).catch((error) => {
       console.warn('[actor-registry] route materialization skipped', error)
     })
@@ -478,12 +478,14 @@ async function applyActor(actor: ParsedActorRegistryActor, match: MatchResult, s
   await upsertIdentifier(actorId, 'EdielId', normalizeEdielId(actor.edielId), true)
   await upsertIdentifier(actorId, 'OrgNo', normalizeOrgNumber(actor.orgNumber), true)
   await upsertIdentifier(actorId, 'EIC', normalizeEic(actor.eic), true)
-  for (const role of actor.roles) await upsertRole(actorId, role)
+  if (actor.market !== 'GAS') for (const role of actor.roles) await upsertRole(actorId, role)
   for (const route of actor.routes) await upsertRoute(actorId, route, normalizeEdielId(actor.edielId))
   for (const certificate of actor.certificates) await upsertCertificate(actorId, actor, certificate)
-  await ensureGridOwner(actorId, actor)
-  await ensurePlatformGridOwner(actorId, actor)
-  await ensureSupplier(actorId, actor)
+  if (actor.market !== 'GAS') {
+    await ensureGridOwner(actorId, actor)
+    await ensurePlatformGridOwner(actorId, actor)
+    await ensureSupplier(actorId, actor)
+  }
 
 
   const blankSubaddressConfirmation = await supabaseService
@@ -511,6 +513,7 @@ async function insertImportItem(importRunId: string, actor: ParsedActorRegistryA
     edielId: normalizeEdielId(actor.edielId),
     orgNumber: normalizeOrgNumber(actor.orgNumber),
     eic: normalizeEic(actor.eic),
+    market: actor.market ?? null,
     roles: actor.roles,
     routes: actor.routes,
     certificates: actor.certificates.map((cert) => ({ ...cert, pem: cert.pem ? '[redacted-pem]' : null })),
