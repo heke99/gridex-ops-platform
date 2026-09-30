@@ -1,4 +1,4 @@
-import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
+import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
@@ -80,7 +80,7 @@ function normalizedReferenceDate(
   }
   if (typeof explicit === 'string' && explicit.trim()) return explicit.trim().slice(0, 10)
 
-  return canonicalBusinessDate(message)
+  return canonicalAdmissionDate(message)
 }
 
 function rebuildValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValidation {
@@ -727,7 +727,7 @@ export function runUtiltsRuntimeForMessage(
   message: EdielMessageRow,
   options?: UtiltsRuntimeReferenceOptions,
 ): UtiltsRuntimeResult {
-  const canonicalPolicy = options?.canonicalPolicy
+  let canonicalPolicy = options?.canonicalPolicy
   if (canonicalPolicy && (
     canonicalPolicy.family !== 'UTILTS'
     || (Boolean(message.message_code) && canonicalPolicy.code !== message.message_code)
@@ -777,6 +777,9 @@ export function runUtiltsRuntimeForMessage(
       ackPlan: decideUtiltsRuntimeAckPlan({ message, facts, validation }),
     }
   }
+  // Shared admission selects one complete source guide package. Candidate
+  // passes always carry an explicit policy, so this default path cannot recurse.
+  canonicalPolicy ??= resolveCanonicalMessagePolicy(message,undefined,{admissionAt:options?.referenceDate ?? undefined}) ?? undefined
   const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   // Complete the syntax/application pass before invoking any functional
   // validator. Guide failures cannot enter the functional pass; valid siblings
