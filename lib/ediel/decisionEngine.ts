@@ -33,6 +33,7 @@ export type EdielEngineDecision = {
   outcome: EdielEngineAckOutcome | null
   messageText: string | null
   applicationErrors: EdielAperakApplicationError[]
+  utiltsHeaderRejected?: boolean
   reason: string
   ruleKeys: string[]
   classification: ReturnType<typeof summarizeRuleProfile> | null
@@ -380,12 +381,23 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
 
   const testCase = normalize(input.testCaseCode)
   const runtime = runUtiltsRuntimeForMessage(input.message)
+  if (!runtime.validation.syntaxOk && runtime.ackPlan.contrlOutcome === 'negative') {
+    return {
+      kind: 'ack', ackFamily: 'CONTRL', outcome: 'negative',
+      messageText: runtime.ackPlan.reason, applicationErrors: [], reason: runtime.ackPlan.reason,
+      ruleKeys: ['UTILTS_SYNTAX_REJECTED', classification.ruleProfileId],
+      classification: summarizeRuleProfile(classification),
+      expectedComparison: compareEngineDecisionWithExpected({ actualFamily: 'CONTRL', actualOutcome: 'negative',
+        expectedFamily: input.expectedFamily ?? null, expectedOutcome: input.expectedOutcome ?? null }),
+    }
+  }
   const certificationCase = findCertificationCase(testCase)
   const registryRequiresUtiltsErr = certificationCase?.messageFamily === 'UTILTS'
     && certificationCase.expectedBusinessResponseFamily === 'UTILTS_ERR'
     && certificationCase.expectedBusinessOutcome === 'negative'
 
-  if (registryRequiresUtiltsErr && input.message.message_family === 'UTILTS') {
+  if (registryRequiresUtiltsErr && input.message.message_family === 'UTILTS'
+    && runtime.validation.syntaxOk && !runtime.ackPlan.utiltsHeaderRejection) {
     const ackPlan = applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: testCase })
     const comparison = compareEngineDecisionWithExpected({
       actualFamily: 'UTILTS_ERR',
@@ -428,7 +440,7 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
 
   if (runtime.ackPlan.shouldSendAperak) {
     const outcome = runtime.ackPlan.aperakOutcome
-    const applicationErrors = runtime.ackPlan.aperakApplicationErrors.map((error) => ({
+    const applicationErrors = (runtime.ackPlan.utiltsHeaderRejection?.applicationErrors ?? runtime.ackPlan.aperakApplicationErrors).map((error) => ({
       ercCode: error.ercCode,
       fieldCode: error.fieldCode ?? null,
       text: error.text,
@@ -448,6 +460,7 @@ export function decideUtiltsResponse(input: UtiltsResponseDecisionInput): EdielE
       outcome,
       messageText: runtime.ackPlan.reason ?? (outcome === 'positive' ? null : 'UTILTS anvisnings-/applikationsfel.'),
       applicationErrors: outcome === 'negative' ? applicationErrors : [],
+      utiltsHeaderRejected: Boolean(runtime.ackPlan.utiltsHeaderRejection),
       reason: runtime.ackPlan.reason || `UTILTS runtime selected ${outcome} APERAK.`,
       ruleKeys: [classification.ruleProfileId],
       classification: summarizeRuleProfile(classification),

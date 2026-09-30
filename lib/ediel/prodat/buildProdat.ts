@@ -27,7 +27,7 @@ import { canonicalProdat26AFieldRules, PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSA
 import { renderProdatDocumentHeader } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { serializeEdifact, escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
-import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
+import { generateEdielInterchangeReference, generateEdielTransactionReference } from '@/lib/ediel/core/referenceGenerator'
 import { resolveApplicationReference } from '@/lib/ediel/core/applicationReferenceResolver'
 import { validateProdat } from '@/lib/ediel/prodat/validateProdat'
 import { isSupportedProdatBusinessCode, type SupportedProdatBusinessCode } from '@/lib/ediel/prodat/prodatFieldRules'
@@ -111,7 +111,7 @@ export function buildProdatMessage(input: BuildProdatMessageInput): BuiltProdatM
   const documentReference =
     input.references?.documentReference ??
     input.references?.transactionReference ??
-    `${businessCode}-${generateEdielInterchangeReference('BGM')}`
+    generateEdielTransactionReference(businessCode)
   const interchangeReference = generateEdielInterchangeReference('UNB')
   const applicationReference =
     input.applicationReference ??

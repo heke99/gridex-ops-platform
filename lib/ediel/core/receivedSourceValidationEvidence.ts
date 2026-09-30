@@ -15,12 +15,14 @@ const states = new Set(['accepted','rejected','not_applicable','manual_review'])
  * register chain, party, supersession or temporal comparison baseline. */
 export function buildReceivedSourceValidationEvidence(input: { original: SourceFacts; validated: SourceFacts; resolvedCompanyId: unknown; decision: RuntimeFacts }): SourceValidationInput | null {
   const { original, validated, decision } = input
-  if (original.direction !== 'inbound' || original.message_standard !== 'edifact' || original.message_family !== 'PRODAT'
+  const ack = ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(String(original.message_family))
+  const byteLimit = ack ? 8388608 : 262144
+  if (original.direction !== 'inbound' || original.message_standard !== 'edifact' || (original.message_family !== 'PRODAT' && !ack)
     || !isEvidenceUuid(original.id) || !isEvidenceUuid(original.company_id)
     || (original.environment !== 'test' && original.environment !== 'production') || typeof original.raw_payload !== 'string'
-    || original.raw_payload.length > 262144 || Buffer.byteLength(original.raw_payload,'utf8') > 262144
+    || original.raw_payload.length > byteLimit || Buffer.byteLength(original.raw_payload,'utf8') > byteLimit
     || !isEvidenceRecord(original.execution_context_snapshot)) return null
-  const context = original.execution_context_snapshot.receivedProdatContext
+  const context = original.execution_context_snapshot[ack ? 'receivedAckContext' : 'receivedProdatContext']
   if (!isEvidenceRecord(context) || Object.keys(context).length !== CONTEXT_KEYS.length || !CONTEXT_KEYS.every(key => Object.hasOwn(context,key))
     || context.version !== 1 || context.contextOrigin !== 'database_insert' || context.sourceMessageId !== original.id
     || context.companyId !== original.company_id || context.environment !== original.environment || context.messageCode !== original.message_code
@@ -53,6 +55,7 @@ export function buildReceivedSourceValidationEvidence(input: { original: SourceF
   // Registry-unavailable acceptance is never silently downgraded to evidence
   // with an unknown rule version. Rejection can legitimately precede registry.
   if (decision.applicationDecision === 'accepted' && rulePackEvidence === null) return null
+  if (ack && decision.prodatRegisterValidation !== undefined) return null
   const hasRegisterValidation = decision.prodatRegisterValidation !== undefined
   const registerValidation = hasRegisterValidation ? bindReceivedRegisterValidation(decision.prodatRegisterValidation, original.raw_payload) : null
   if (hasRegisterValidation && (!registerValidation || !rulePackEvidence)) return null

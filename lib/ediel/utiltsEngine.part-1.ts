@@ -3,7 +3,7 @@
 import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
-import { isSingletonE30Reading, validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
+import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
@@ -119,6 +119,8 @@ export type UtiltsRuntimeUtiltsErrDetail = {
 }
 
 export type UtiltsRuntimeAckPlan = {
+  /** Set only by the canonical physical header guide; never by ACK scope. */
+  utiltsHeaderRejection?: { applicationErrors: UtiltsAperakApplicationError[] }
   shouldSendContrl: boolean
   contrlOutcome: EdielAckOutcome | null
   shouldSendAperak: boolean
@@ -322,7 +324,7 @@ function hasMoreSpecificFunctionalIssueForReference(params: {
     if (issue.severity !== 'error' || issue.kind !== 'functional') return false
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code || code === params.ignoredCode) return false
-    const issueReference = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
+    const issueReference = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
     return issueReference === reference
   })
 }
@@ -695,7 +697,7 @@ function sanitizeRuntimeToken(value?: string | null, maxLength = 35): string | n
 }
 
 function transactionIssueReference(group: UtiltsTransactionGroup, fallback: string | null): string | null {
-  return sanitizeRuntimeToken(group.transactionId ?? fallback, 35)
+  return normalizedOptionalId(group.transactionId ?? fallback)
 }
 
 function synthesizedTransactionIssueReference(
@@ -711,11 +713,11 @@ function aperakErrorsFromIssues(issues: readonly UtiltsValidationIssue[]): Utilt
     .filter((issue) => issue.severity === 'error' && issue.kind === 'application')
     .map((issue) => ({
       ercCode: sanitizeRuntimeToken(issue.aperakErcCode ?? '40', 12) ?? '40',
-      fieldCode: sanitizeRuntimeToken(issue.aperakFieldCode ?? null, 12),
+      fieldCode: normalizedOptionalId(issue.aperakFieldCode),
       text: issue.aperakText ?? issue.description ?? issue.title,
       referenceQualifier: sanitizeRuntimeToken(issue.referenceQualifier ?? null, 12),
-      referenceNumber: sanitizeRuntimeToken(issue.referenceNumber ?? null, 35),
-      lineItemReference: sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35),
+      referenceNumber: normalizedOptionalId(issue.referenceNumber),
+      lineItemReference: normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber),
     }))
 
   const seen = new Set<string>()
@@ -1075,45 +1077,9 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     }))
   }
 
-  const needsMeteringPoint = ['S02', 'E30', 'E66'].includes(code)
-  const needsGridArea = ['S02', 'S03', 'E30', 'E31', 'E66'].includes(code)
-  if (needsMeteringPoint && !facts.meterPointId && !(code === 'E66' && facts.transactions.some(transaction => transaction.regulatingObjectPresent))) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_METERING_POINT',
-      title: 'Anläggningsid saknas',
-      description: 'LOC+172 saknas eller saknar anläggningsid.',
-      aperakErcCode: '41',
-      aperakFieldCode: '515',
-    }))
-  }
-
-  if (needsGridArea && !facts.gridAreaId) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_GRID_AREA',
-      title: 'Nätområdesid saknas',
-      description: 'LOC+239 saknas eller saknar nätområdesid.',
-      aperakErcCode: '41',
-      aperakFieldCode: '508',
-    }))
-  }
-
-  if (needsGridArea && !facts.deliveryPeriodRaw && !(
-    code === 'E30' && facts.transactions.length > 0 && facts.transactions.every((_, index) => isSingletonE30Reading(facts, index))
-  )) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_DELIVERY_PERIOD',
-      title: 'Leveransperiod saknas',
-      description: 'DTM+324 saknas för objektmeddelandet.',
-      aperakErcCode: '41',
-      aperakFieldCode: '238',
-    }))
-  }
+  // Own physical requirements are evaluated by validateCanonicalUtiltsProfile.
+  // Global first-IDE summaries cannot impose optional/conditional fields or
+  // supply a missing field to another transaction.
 
   if (!functionalEligible || functionalEligible.size > 0) addObjectProcessabilityIssues({ issues, message, facts, code, functionalEligible })
 
@@ -1214,7 +1180,6 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
       const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
-      const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
       const label = code === 'E31' ? 'E31' : 'S03'
 
 
@@ -1383,8 +1348,8 @@ function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationI
   for (const issue of functionalIssues) {
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code) continue
-    const referenceNumber = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
-    const lineItemReference = sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35)
+    const referenceNumber = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
+    const lineItemReference = normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber)
     const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
     const codes = codesByReference.get(referenceKey) ?? new Set<string>()
     codes.add(code)
@@ -1397,8 +1362,8 @@ function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationI
   for (const issue of functionalIssues) {
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code) continue
-    const referenceNumber = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
-    const lineItemReference = sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35)
+    const referenceNumber = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
+    const lineItemReference = normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber)
     const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
     const codesForReference = codesByReference.get(referenceKey)
 
@@ -1435,7 +1400,7 @@ function serializeUtiltsErrDetails(details: readonly UtiltsRuntimeUtiltsErrDetai
     .map((detail) => {
       const code = sanitizeRuntimeToken(detail.code?.toUpperCase(), 8)
       if (!code) return null
-      const reference = sanitizeRuntimeToken(detail.referenceNumber ?? detail.lineItemReference ?? null, 35)
+      const reference = normalizedOptionalId(detail.referenceNumber ?? detail.lineItemReference)
       return reference ? `${code}@${reference}` : code
     })
     .filter((value): value is string => Boolean(value))
@@ -1468,20 +1433,6 @@ export function decideUtiltsRuntimeAckPlan(params: {
     }
   }
 
-  if (params.facts.isUtiltsErr || String(params.facts.messageCode).toUpperCase() === 'ERR') {
-    return {
-      shouldSendContrl: true,
-      contrlOutcome: 'positive',
-      shouldSendAperak: true,
-      aperakOutcome: 'positive',
-      shouldSendUtiltsErr: false,
-      utiltsErrDetails: [],
-      utiltsErrCodes: [],
-      aperakApplicationErrors: [],
-      reason: 'Inbound UTILTS-ERR syntaxkvitteras med CONTRL och applikationskvitteras med positiv APERAK.',
-    }
-  }
-
   if (params.validation.classification === 'syntax_rejected') {
     return {
       shouldSendContrl: true,
@@ -1493,6 +1444,20 @@ export function decideUtiltsRuntimeAckPlan(params: {
       utiltsErrCodes: [],
       aperakApplicationErrors: [],
       reason: 'EDIFACT-syntaxen kunde inte accepteras.',
+    }
+  }
+
+  if (params.facts.isUtiltsErr || String(params.facts.messageCode).toUpperCase() === 'ERR') {
+    return {
+      shouldSendContrl: true,
+      contrlOutcome: 'positive',
+      shouldSendAperak: true,
+      aperakOutcome: 'positive',
+      shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
+      utiltsErrCodes: [],
+      aperakApplicationErrors: [],
+      reason: 'Inbound UTILTS-ERR syntaxkvitteras med CONTRL och applikationskvitteras med positiv APERAK.',
     }
   }
 

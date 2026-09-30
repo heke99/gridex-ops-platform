@@ -6,6 +6,7 @@ import { isDeliveryStatusNotification } from './dsnClassifier'
 import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProcessor"
 
 import { supabaseService } from "@/lib/supabase/service"
+import {requireAiBiPersonalDataStorage} from '@/lib/ediel/aiBiPersonalDataStorage'
 import { unpackInboundSmimeIfNeeded } from "@/lib/ediel/transport/smime"
 import type { EdielMailboxRow, InboundEngineRunResult, InboundProcessingJobRow, PollMailboxResult, StoreInboundEmailInput } from './edielMailboxPoller.part-1'
 import { bufferToUtf8, diagnosticMessageCode, envInt, extractHeader, findExistingInboundEmail, isPlatformSharedMailbox, isPostgresUniqueViolation, isUnsafeBatch7aTransactionConflict, markMailboxPollFinished, markMailboxPollStarted, metadataBool, normalizeEnvironment, normalizeImapMailboxFolder, nowIso, parseInboundDedupeFacts, postgresErrorMessage, resolveEffectiveMailboxForPolling, resolveMailboxPasswordFromSecretReference, sha256, splitMimeParts, stringOrNull } from './edielMailboxPoller.part-1'
@@ -13,6 +14,11 @@ import { bufferToUtf8, diagnosticMessageCode, envInt, extractHeader, findExistin
 export async function storeInboundEmail(
   input: StoreInboundEmailInput,
 ): Promise<{ id: string; deduped: boolean }> {
+  // Decode actual MIME before the very first raw container write, including
+  // direct callers that did not provide separate body/attachment projections.
+  const mime=input.rawEmail?splitMimeParts(input.rawEmail):null;
+  const aiStorage=await requireAiBiPersonalDataStorage({companyId:input.companyId,actorUserId:input.actorUserId,environment:normalizeEnvironment(input.environment),
+    candidates:[input.rawEdifactPayload,input.bodyText,input.bodyHtml,...(input.attachments??[]).map(attachment=>attachment.rawText),mime?.bodyText,mime?.bodyHtml,...(mime?.attachments??[]).map(attachment=>attachment.rawText),input.rawEmail]});
   const dedupeKey = input.internetMessageId
     ? `${input.mailboxId}:${input.internetMessageId}`
     : null;
@@ -42,6 +48,8 @@ export async function storeInboundEmail(
     .insert({
       mailbox_id: input.mailboxId,
       company_id: input.companyId ?? null,
+      ai_processing_actor_user_id:aiStorage?input.actorUserId:null,
+      ai_processing_decision_id:aiStorage?.processingDecision.id??null,
       environment,
       internet_message_id: input.internetMessageId ?? null,
       from_address: input.fromAddress ?? null,
@@ -49,7 +57,7 @@ export async function storeInboundEmail(
       subject: input.subject ?? null,
       received_at: input.receivedAt ?? nowIso(),
       raw_email: input.rawEmail ?? null,
-      raw_edifact_payload: input.rawEdifactPayload ?? null,
+      raw_edifact_payload: aiStorage?.canonicalPayload??input.rawEdifactPayload ?? null,
       body_text: input.bodyText ?? null,
       body_html: input.bodyHtml ?? null,
       has_attachments:
@@ -114,7 +122,7 @@ export async function storeInboundEmail(
         })),
       );
     if (attachmentError)
-      console.warn("[inbound-mail] Kunde inte spara bilagor", attachmentError);
+      console.warn("[inbound-mail] Kunde inte spara bilagor", {code:attachmentError.code});
   }
 
   const { error: jobError } = await supabaseService
@@ -139,6 +147,7 @@ export async function storeInboundEmail(
 export async function storeMailboxFetchMessage(input: {
   mailbox: EdielMailboxRow;
   message: Record<string, unknown>;
+  actorUserId?:string|null;
 }): Promise<{ id: string; deduped: boolean }> {
   const rawEmail = bufferToUtf8(input.message.source);
   const envelope = input.message.envelope as
@@ -186,6 +195,7 @@ export async function storeMailboxFetchMessage(input: {
 
   const stored = await storeInboundEmail({
     mailboxId: input.mailbox.id,
+    actorUserId:input.actorUserId??null,
     companyId:
       smime.matchedCompanyId ??
       (isPlatformSharedMailbox(input.mailbox)
@@ -235,8 +245,10 @@ export async function storeMailboxFetchMessage(input: {
     const { error: payloadError } = await supabaseService
       .from("ediel_message_payloads")
       .insert({
-        company_id: null,
+        company_id:smime.matchedCompanyId??(isPlatformSharedMailbox(input.mailbox)?null:input.mailbox.company_id),
+        created_by:input.actorUserId??null,
         ediel_message_id: null,
+        inbound_email_message_id:stored.id,
         payload_kind: "inbound_smime",
         raw_payload: smime.decryptedText ?? null,
         raw_payload_hash: smime.decryptedText
@@ -270,7 +282,7 @@ export async function storeMailboxFetchMessage(input: {
     if (payloadError) {
       console.warn(
         "[inbound-mail] Kunde inte spara S/MIME payload-spår",
-        payloadError,
+        {code:payloadError.code},
       );
     }
   }
@@ -280,6 +292,7 @@ export async function storeMailboxFetchMessage(input: {
 
 export async function pollEdielMailbox(input: {
   mailbox: EdielMailboxRow;
+  actorUserId?:string|null;
   workerId?: string;
   maxMessages?: number;
   markSeen?: boolean;
@@ -379,6 +392,7 @@ export async function pollEdielMailbox(input: {
         try {
           stored = await storeMailboxFetchMessage({
             mailbox: input.mailbox,
+            actorUserId:input.actorUserId??null,
             message: message as unknown as Record<string, unknown>,
           });
         } catch (error) {

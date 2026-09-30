@@ -1,5 +1,6 @@
+import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
 import { tokenizeEdifact, segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
-import { DEFAULT_UNA, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { DEFAULT_UNA, escapeEdifactData, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type EdifactEnvironment = 'test' | 'production'
 
@@ -86,6 +87,8 @@ function sanitizeSegment(value: string): string {
   if (tag && ENVELOPE_TAGS.has(tag)) {
     throw new Error(`edifact_business_segment_contains_envelope_tag:${tag}`)
   }
+  const parsed = tokenizeEdifact(`${segment}${DEFAULT_UNA.segmentTerminator}`).segments
+  if (parsed.length !== 1) throw new Error('edifact_business_segment_contains_multiple_segments')
   return segment
 }
 
@@ -112,8 +115,8 @@ function partyComposite(id: string, qualifier: string, subAddress?: string | nul
   const cleanQualifier = trimOrNull(qualifier) ?? 'ZZ'
   const cleanSubAddress = trimOrNull(subAddress)
   return cleanSubAddress
-    ? `${cleanId}:${cleanQualifier}:${cleanSubAddress}`
-    : `${cleanId}:${cleanQualifier}`
+    ? `${escapeEdifactData(cleanId)}:${escapeEdifactData(cleanQualifier)}:${escapeEdifactData(cleanSubAddress)}`
+    : `${escapeEdifactData(cleanId)}:${escapeEdifactData(cleanQualifier)}`
 }
 
 function serializeUnb(input: EdifactEnvelopeEncodeInput): string {
@@ -124,8 +127,8 @@ function serializeUnb(input: EdifactEnvelopeEncodeInput): string {
   elements[UNB.SENDER] = partyComposite(input.sender, input.senderQualifier ?? 'ZZ', input.senderSubAddress)
   elements[UNB.RECEIVER] = partyComposite(input.receiver, input.receiverQualifier ?? 'ZZ', input.receiverSubAddress)
   elements[UNB.DATETIME] = `${local.date}:${local.time}`
-  elements[UNB.INTERCHANGE_REFERENCE] = trimOrNull(input.interchangeReference) ?? ''
-  elements[UNB.APPLICATION_REFERENCE] = trimOrNull(input.applicationReference) ?? ''
+  elements[UNB.INTERCHANGE_REFERENCE] = escapeEdifactData(trimOrNull(input.interchangeReference))
+  elements[UNB.APPLICATION_REFERENCE] = escapeEdifactData(trimOrNull(input.applicationReference))
   elements[UNB.ACK_REQUEST] = input.acknowledgementRequest ? '1' : ''
   // ISO 9735 / Ediel: production omits 0035. Test uses 1.
   elements[UNB.TEST_INDICATOR] = input.environment === 'test' ? '1' : ''
@@ -151,10 +154,21 @@ function encodeMessage(message: EdifactEnvelopeMessageInput): string[] {
   if (!messageTypeToken) throw new Error('edifact_message_type_token_required')
   const businessSegments = message.businessSegments.map(sanitizeSegment)
   return [
-    `UNH+${messageReference}+${messageTypeToken}`,
+    `UNH+${escapeEdifactData(messageReference)}+${messageTypeToken}`,
     ...businessSegments,
-    `UNT+${countMessageSegments({ ...message, businessSegments })}+${messageReference}`,
+    `UNT+${countMessageSegments({ ...message, businessSegments })}+${escapeEdifactData(messageReference)}`,
   ]
+}
+
+/** Builders supply canonical +/:/? segments. Translate structure only after
+ * release-aware decoding so literal separators and empty slots survive. */
+function encodeCanonicalSegment(segment: string, una: EdifactServiceStringAdvice): string {
+  const parsed = tokenizeEdifact(`${segment}${DEFAULT_UNA.segmentTerminator}`).segments
+  if (parsed.length !== 1) throw new Error('edifact_segment_contains_multiple_segments')
+  const token = parsed[0]
+  return token.elements.map((_, index) => segmentComposite(token, index, DEFAULT_UNA)
+    .map(component => escapeEdifactData(component, una)).join(una.componentDataElementSeparator))
+    .join(una.dataElementSeparator)
 }
 
 function parseParty(parts: string[]): {
@@ -175,14 +189,25 @@ export class EdifactEnvelopeCodec {
     if (typeof input.acknowledgementRequest !== 'boolean') {
       throw new Error('edifact_acknowledgement_request_required')
     }
+    const interchangeReference = trimOrNull(input.interchangeReference)
+    if (!interchangeReference) throw new Error('edifact_interchange_reference_required')
+    const references = new Set<string>()
+    for (const message of input.messages) {
+      const reference = trimOrNull(message.messageReference)
+      if (!reference) throw new Error('edifact_message_reference_required')
+      if (references.has(reference)) throw new Error('edifact_message_reference_duplicate')
+      references.add(reference)
+    }
     const una = { ...DEFAULT_UNA, ...(input.una ?? {}) }
     const messageSegments = input.messages.flatMap(encodeMessage)
     const segments = [
       serializeUnb(input),
       ...messageSegments,
-      `UNZ+${input.messages.length}+${trimOrNull(input.interchangeReference) ?? ''}`,
+      `UNZ+${input.messages.length}+${escapeEdifactData(interchangeReference)}`,
     ]
-    return `${serializeUna(una)}${segments.map((segment) => `${segment}${una.segmentTerminator}`).join('')}`
+    const payload = `${serializeUna(una)}${segments.map(segment => `${encodeCanonicalSegment(segment, una)}${una.segmentTerminator}`).join('')}`
+    assertEdifactLatin1Representable(payload)
+    return payload
   }
 
   static decode(rawPayload: string | null | undefined): ParsedEdifactEnvelope {

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 import type { EdielTgtExpectedStep, EdielTgtRunEvaluation, EdielTgtTestCaseDefinition } from '@/lib/ediel/testing/tgtRegistry'
-const io = vi.hoisted(() => ({ from: vi.fn(), runs: vi.fn(), messages: vi.fn(), links: vi.fn(), byIds: vi.fn(),
+const io = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), runs: vi.fn(), messages: vi.fn(), links: vi.fn(), byIds: vi.fn(),
   create: vi.fn(), attach: vi.fn(), evaluate: vi.fn(), next: vi.fn(), runtime: vi.fn(), source: vi.fn(),
   staticSource: vi.fn(), readFacts: vi.fn(), build: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 vi.mock('@/lib/ediel/db', () => ({ listEdielTestRuns: io.runs, listEdielMessages: io.messages,
   listEdielTestRunMessages: io.links, listEdielMessagesByIds: io.byIds,
   createEdielMessage: io.create, attachEdielMessageToTestRun: io.attach }))
@@ -20,7 +20,7 @@ const args = { actorUserId: 'operator', companyId: 'tenant-a', testRunId: 'run-a
 const step: EdielTgtExpectedStep = { stepNo: 4, actor: 'gridex', direction: 'outbound', family: 'PRODAT', code: 'Z04', required: true, title: 'Register exchange', description: 'Synthetic register workflow' }
 let run: EdielTestRunRow
 let evaluation: EdielTgtRunEvaluation
-let draft: { step: EdielTgtExpectedStep; validationIssues: Array<{ severity: string; title: string; description: string }>; messageInput: Record<string, unknown> }
+let draft: { step: EdielTgtExpectedStep; validationIssues: Array<{ code: string; severity: string; title: string; description: string }>; messageInput: Record<string, unknown> }
 let route: { data: Record<string, unknown> | null; error: Error | null }
 let filters: Array<[string, unknown]>
 const incoming = (overrides: Partial<EdielMessageRow> = {}) => ({ id: 'inbound', company_id: 'tenant-a', environment: 'test', test_flag: 1,
@@ -28,6 +28,13 @@ const incoming = (overrides: Partial<EdielMessageRow> = {}) => ({ id: 'inbound',
 
 beforeEach(() => {
   vi.clearAllMocks()
+  io.rpc.mockReset()
+  io.rpc.mockImplementation(async (name: string, rpcArgs: Record<string, unknown>) => {
+    expect(name).toBe('gridex_ediel_negative_fixture_read_v1')
+    expect(rpcArgs).toEqual({ p_context: { companyId: 'tenant-a', runId: 'run-a', stepNo: 4, actorUserId: 'operator',
+      rawPayload: 'synthetic-unqualified-register-draft', diagnosticCodes: ['PRODAT_REGISTER_FACTS_INVALID'] } })
+    return { data: null, error: null }
+  })
   run = { id: 'run-a', company_id: 'tenant-a', test_suite: 'PRODAT', role_code: 'supplier', test_case_code: '1.2.5', status: 'running', notes: 'source-bound' } as EdielTestRunRow
   evaluation = { testRun: run, definition: { suite: 'PRODAT', roleCode: 'supplier', testCaseCode: '1.2.5', expectedSteps: [step] } as EdielTgtTestCaseDefinition,
     matches: [], passedSteps: 0, requiredSteps: 1, missingRequiredSteps: 1, hasMismatch: false, computedStatus: 'in_progress' }
@@ -101,15 +108,21 @@ describe('register autopilot orchestration and transport boundary', () => {
     expect(io.create.mock.calls[0][0].validationReport).toEqual({ preserved: true })
   })
   it('blocks builder errors but retains warnings; uses static source only when no dynamic source exists', async () => {
-    draft.validationIssues = [{ severity: 'error', title: 'Missing register evidence', description: 'Unknown readings' }]
+    draft.messageInput.rawPayload = 'synthetic-unqualified-register-draft'
+    draft.validationIssues = [{ code: 'PRODAT_REGISTER_FACTS_INVALID', severity: 'error', title: 'Missing register evidence', description: 'Unknown readings' }]
     expect(await runTgtAutopilotForRun(args)).toMatchObject({ action: 'blocked', description: expect.stringContaining('Missing register evidence') })
-    expect(io.create).not.toHaveBeenCalled()
+    expect(io.rpc).toHaveBeenCalledExactlyOnceWith('gridex_ediel_negative_fixture_read_v1', { p_context: {
+      companyId: 'tenant-a', runId: 'run-a', stepNo: 4, actorUserId: 'operator', rawPayload: 'synthetic-unqualified-register-draft',
+      diagnosticCodes: ['PRODAT_REGISTER_FACTS_INVALID'],
+    } })
+    expect(io.create).not.toHaveBeenCalled(); expect(io.attach).not.toHaveBeenCalled()
     expect(io.readFacts).toHaveBeenCalledWith(expect.objectContaining({ testData: { sourceNote: 'fixture' } }))
     draft.validationIssues[0].severity = 'warning'
     io.source.mockResolvedValue({ sourceNote: 'imported' }); io.staticSource.mockClear()
     expect((await runTgtAutopilotForRun(args)).action).toBe('created_gridex_draft')
     expect(io.staticSource).not.toHaveBeenCalled()
     expect(io.readFacts).toHaveBeenLastCalledWith(expect.objectContaining({ testData: { sourceNote: 'imported' } }))
+    expect(io.rpc).toHaveBeenCalledTimes(1)
   })
   it.each(['PRODAT_REGISTER_FACTS_INVALID', 'prodat_register_condition_undetermined'])('blocks %s without creating a transport record', async (failure) => {
     io.readFacts.mockImplementation(() => { throw failure })

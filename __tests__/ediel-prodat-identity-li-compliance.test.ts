@@ -43,6 +43,15 @@ describe('PRODAT Swedish end-user identity compliance', () => {
     })
   })
 
+  it('keeps a missing verified name empty and blocks required identity construction', () => {
+    const identity = resolveSwedishProdatCustomerIdentity({personal_number:'199001011234', customer_number:'INTERNAL'})
+    expect(identity).toEqual({id:'199001011234', qualifier:'SE2', name:''})
+    const result = validateProdatProfile({code:'Z03',subtype:'L',version:'26A',context:{code:'Z03',
+      customerId:identity.id,customerIdCodeListQualifier:identity.qualifier,customerName:identity.name,
+      meterPointId:'735123456789012345',startDate:'20261001',reasonForTransaction:'Z22'} as never})
+    expect(result.issues.map(issue=>issue.code)).toContain('prodat_customer_identity_missing')
+  })
+
   it('accepts only explicit PRODAT end-user qualifiers and never infers them from identifier length', () => {
     expect(normalizeProdatEndUserIdQualifier('SE1')).toBe('SE1')
     expect(normalizeProdatEndUserIdQualifier('se2')).toBe('SE2')

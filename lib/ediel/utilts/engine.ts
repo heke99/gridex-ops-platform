@@ -1,7 +1,7 @@
-import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { normalizeMeteringIngest } from '@/lib/ediel/metering/meteringEngine'
+import { createUtiltsPreviewMessage } from '@/lib/ediel/utilts/validateUtilts'
 
 export type UtiltsOperationsEngineResult = UtiltsRuntimeResult & {
   meteringPreview: ReturnType<typeof normalizeMeteringIngest>
@@ -11,16 +11,14 @@ export function runUtiltsOperationsEngine(params: {
   rawPayload: string
   companyId?: string | null
   sourceMessageId?: string | null
+  admissionAt?: string | Date
 }): UtiltsOperationsEngineResult {
-  const runtime = runUtiltsRuntimeForMessage({
+  const message = createUtiltsPreviewMessage({
     id: params.sourceMessageId ?? 'utilts-operations-preview',
-    raw_payload: params.rawPayload,
-    message_family: 'UTILTS',
-    message_code: null,
-    validation_report: null,
-    syntax_check_status: 'not_checked',
-    message_received_at: null,
-  } as unknown as EdielMessageRow)
+    rawPayload: params.rawPayload,
+    admissionAt: params.admissionAt,
+  })
+  const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: message.created_at })
   const firstTransaction = runtime.facts.transactions[0] ?? null
   const meteringPreview = normalizeMeteringIngest({
     companyId: params.companyId ?? null,

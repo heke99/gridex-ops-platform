@@ -107,6 +107,7 @@ async function createAckIfMissing(params: {
   outcome?: "positive" | "negative";
   messageText?: string | null;
   applicationErrors?: readonly EdielAperakApplicationError[] | null;
+  utiltsHeaderRejected?: boolean;
 }) {
   const draft =
     params.ackFamily === "CONTRL"
@@ -123,6 +124,7 @@ async function createAckIfMissing(params: {
             outcome: params.outcome ?? "positive",
             messageText: params.messageText ?? null,
             applicationErrors: params.applicationErrors ?? null,
+            utiltsHeaderRejected: params.utiltsHeaderRejected,
           })
         : buildUtiltsErrDraft({
             actorUserId: params.actorUserId,
@@ -520,6 +522,7 @@ async function createAutomaticPositiveAcks(params: {
         outcome: aperakPlan?.outcome === "negative" ? "negative" : "positive",
         messageText: aperakPlan?.reason ?? "Automatiskt APERAK.",
         applicationErrors: applicationErrors ?? null,
+        utiltsHeaderRejected: aperakPlan?.utiltsHeaderRejected,
       });
       createdIds.push(aperak.id);
     } catch (error) {
@@ -628,6 +631,7 @@ async function processInboundProdatMessage(params: {
         (customerInfoLink as { customerInfoRequestId?: string | null } | null)?.customerInfoRequestId ??
         (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
         null,
+      permissionSourceResult: meteringPermissionLink,
       source: "prodat_without_strong_switch_match",
       onSourceSwitchCommitted: params.onSourceSwitchCommitted,
     });
@@ -698,6 +702,7 @@ async function processInboundProdatMessage(params: {
       (customerInfoLink as { customerInfoRequestId?: string | null } | null)?.customerInfoRequestId ??
       (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
       null,
+    permissionSourceResult: meteringPermissionLink,
     source: "prodat_with_strong_switch_match",
       onSourceSwitchCommitted: params.onSourceSwitchCommitted,
   });

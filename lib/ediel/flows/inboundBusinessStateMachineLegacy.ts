@@ -1,3 +1,4 @@
+import { applySupplyMarketSource, supplyStartAlreadyCancelled } from './supplyMarketTransition'
 import {publishSourceSwitchCommit, type SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
@@ -180,80 +181,6 @@ async function activateCustomerSupplyAtomically(input: {
   return row as Record<string, unknown>
 }
 
-async function endActiveSupplyPeriod(message: EdielMessageRow): Promise<string> {
-  const payload = readPayloadRecord(message)
-  const companyId = message.company_id ?? text(payload.resolved_company_id)
-  const customerId = message.customer_id ?? null
-  const meteringPointId = message.metering_point_id ?? null
-  const endDate = dateOnly(payload.end_date) ?? dateOnly(payload.endDate) ?? dateOnly(payload.supply_end_date) ?? dateOnly(payload.start_date)
-  if (!companyId) throw new Error('supply_period_company_required')
-  if (!customerId) throw new Error('supply_period_customer_required')
-  if (!meteringPointId) throw new Error('supply_period_metering_point_required')
-  if (!endDate) throw new Error('supply_period_end_date_required')
-
-  const { data, error } = await supabaseService
-    .from('customer_supply_periods')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('customer_id', customerId)
-    .eq('metering_point_id', meteringPointId)
-    .is('end_date', null)
-    .order('start_date', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw error
-  const id = text((data as { id?: string } | null)?.id)
-  if (!id) throw new Error('active_supply_period_not_found')
-  await strictUpdate('customer_supply_periods', {
-    status: 'ended',
-    end_date: endDate,
-    source_message_id: message.id,
-    updated_at: new Date().toISOString(),
-  }, { id, company_id: companyId })
-  return id
-}
-
-async function continueSupplyPeriodFromZ05C(message: EdielMessageRow): Promise<{ id: string | null; changed: boolean; review: boolean }> {
-  const payload = readPayloadRecord(message)
-  const companyId = message.company_id ?? text(payload.resolved_company_id)
-  const customerId = message.customer_id ?? null
-  const meteringPointId = message.metering_point_id ?? null
-  if (!companyId || !customerId || !meteringPointId) return { id: null, changed: false, review: true }
-
-  const { data, error } = await supabaseService
-    .from('customer_supply_periods')
-    .select('id,status,start_date,end_date')
-    .eq('company_id', companyId)
-    .eq('customer_id', customerId)
-    .eq('metering_point_id', meteringPointId)
-    .order('start_date', { ascending: false })
-    .limit(3)
-  if (error) throw error
-
-  const rows = (data ?? []) as Array<{ id: string; status?: string | null; start_date?: string | null; end_date?: string | null }>
-  const active = rows.find((row) => !row.end_date && row.status !== 'ended')
-  if (active) return { id: active.id, changed: false, review: false }
-
-  const cancellationDate =
-    dateOnly(payload.end_date)
-    ?? dateOnly(payload.endDate)
-    ?? dateOnly(payload.supply_end_date)
-    ?? dateOnly(payload.start_date)
-    ?? dateOnly(payload.startDate)
-
-  const candidates = rows.filter((row) => row.end_date && (!cancellationDate || row.end_date === cancellationDate))
-  if (candidates.length !== 1) return { id: null, changed: false, review: true }
-
-  const candidate = candidates[0]
-  await strictUpdate('customer_supply_periods', {
-    status: 'active',
-    end_date: null,
-    source_message_id: message.id,
-    updated_at: new Date().toISOString(),
-  }, { id: candidate.id, company_id: companyId })
-  return { id: candidate.id, changed: true, review: false }
-}
-
 async function createReviewCase(input: {
   message: EdielMessageRow
   companyId: string
@@ -341,10 +268,11 @@ export async function applyInboundBusinessStateMachine(input: {
   message: EdielMessageRow
   matchedSwitchRequestId?: string | null
   customerInfoRequestId?: string | null
+  permissionSourceResult?: { applied: boolean; targetId: string | null; reason?: string | null }
   source?: string
   onSourceSwitchCommitted?: SourceSwitchCommitObserver
 }): Promise<InboundBusinessStateResult> {
-  const outcome = outcomeForMessage(input.message)
+  let outcome = outcomeForMessage(input.message)
   const updated: string[] = []
   let reviewRequired = [
     'business_rejection',
@@ -356,13 +284,20 @@ export async function applyInboundBusinessStateMachine(input: {
     'meter_change_received',
     'unexpected_direction_review',
   ].includes(outcome)
-  const tenantMessage = tenantMessageForOutcome(outcome, input.message)
+  let tenantMessage = tenantMessageForOutcome(outcome, input.message)
   const companyId = input.message.company_id ?? text(readPayloadRecord(input.message).resolved_company_id) ?? null
   if (!companyId && outcome !== 'ignored') throw new Error('business_state_company_required')
   const prodatLifecycle = String(input.message.message_family ?? '').toUpperCase() === 'PRODAT'
     ? decideProdatLifecycle(input.message)
     : null
   let supplyActivationCommitted = false
+  if (outcome === 'permission_confirmed' || outcome === 'permission_rejected') {
+    if (!input.permissionSourceResult?.applied) {
+      reviewRequired = true
+      tenantMessage = 'Mottaget tillståndssvar inväntar säker koppling till originalbegäran och berörda objekt.'
+      outcome = 'manual_review_required'
+    } else updated.push('metering_permissions', 'metering_permission_sites')
+  }
 
   if (outcome === 'grid_owner_information_received') {
     const customerInfoRequestId = input.customerInfoRequestId ?? text(readPayloadRecord(input.message).customer_info_request_id) ?? null
@@ -378,103 +313,44 @@ export async function applyInboundBusinessStateMachine(input: {
     }, { id: customerInfoRequestId, company_id: companyId })) updated.push('customer_info_requests')
   }
 
-  if (outcome === 'supplier_switch_cancelled_before_start' && input.matchedSwitchRequestId) {
-    if (await strictUpdate('supplier_switch_requests', {
-      status: 'cancelled_before_start',
-      completed_at: new Date().toISOString(),
-      external_reference: input.message.external_reference ?? undefined,
-      inbound_z04_message_id: input.message.id,
-      updated_at: new Date().toISOString(),
-    }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
-  }
-
   if (outcome === 'supplier_switch_accepted' && input.matchedSwitchRequestId) {
-    const payload = readPayloadRecord(input.message)
-    if (await strictUpdate('supplier_switch_requests', {
-      status: 'accepted',
-      external_reference: input.message.external_reference ?? undefined,
-      inbound_z04_message_id: input.message.id,
-      confirmed_start_date:
-        dateOnly(payload.actual_start_date)
-        ?? dateOnly(payload.start_date)
-        ?? dateOnly(payload.startDate)
-        ?? undefined,
-      updated_at: new Date().toISOString(),
-    }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
-    // Z04 confirms the market change; it does not activate supply before the
-    // effective date. The supply period remains confirmed_by_grid_owner.
-    const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'confirmed_by_grid_owner' })
-    if (supplyPeriodId) updated.push('customer_supply_periods')
-    if (supplyPeriodId) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, {
-      message: input.message, switchRequestId: input.matchedSwitchRequestId, supplyPeriodId,
-    })
-  }
-
-  if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
-    if (!input.matchedSwitchRequestId) throw new Error('regulated_supply_contract_and_switch_required')
-    const confirmed = await strictUpdate('supplier_switch_requests', {
-      status: 'accepted',
-      external_reference: input.message.external_reference ?? undefined,
-      inbound_z04_message_id: input.message.id,
-      confirmed_start_date:
-        dateOnly(readPayloadRecord(input.message).actual_start_date)
-        ?? dateOnly(readPayloadRecord(input.message).start_date)
-        ?? undefined,
-      updated_at: new Date().toISOString(),
-    }, { id: input.matchedSwitchRequestId, company_id: companyId })
-    if (!confirmed) throw new Error('regulated_supply_switch_confirmation_failed')
-    await activateCustomerSupplyAtomically({
-      message: input.message,
-      switchRequestId: input.matchedSwitchRequestId,
-      actorUserId: input.actorUserId,
-    })
-    supplyActivationCommitted = true
-    updated.push(
-      'supplier_switch_requests',
-      'customer_supply_periods',
-      'customer_contracts',
-      'customer_application_workflows',
-      'website_customer_applications',
-      'domain_events',
-      'customer_operation_jobs',
-      'webhook_deliveries',
-    )
-  }
-
-  if (outcome === 'supply_terminated') {
-    const supplyPeriodId = await endActiveSupplyPeriod(input.message)
-    if (supplyPeriodId) updated.push('customer_supply_periods')
-    if (companyId) {
-      const caseId = await createReviewCase({
-        message: input.message,
-        companyId,
-        switchRequestId: input.matchedSwitchRequestId ?? null,
-        caseType: 'other',
-        reviewIntent: 'final_metering_and_billing',
-        title: 'Leveransen upphör – slutför mätvärden och fakturering',
-        description: 'Nätägaren har meddelat att leveransen upphör. Säkerställ slutmätvärden och slutfakturering utan att ändra historiska leveransperioder.',
-        nextAction: 'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
-      })
-      if (caseId) updated.push('customer_cases')
+    if (await supplyStartAlreadyCancelled({ companyId: companyId!, switchRequestId: input.matchedSwitchRequestId })) {
+      outcome = 'manual_review_required'; reviewRequired = true
+      tenantMessage = 'En källbelagd tidigare kancellering spärrar detta startförlopp.'
+    } else {
+      const payload = readPayloadRecord(input.message)
+      if (await strictUpdate('supplier_switch_requests', { status: 'accepted', external_reference: input.message.external_reference ?? undefined, inbound_z04_message_id: input.message.id,
+        confirmed_start_date: dateOnly(payload.actual_start_date) ?? dateOnly(payload.start_date) ?? dateOnly(payload.startDate) ?? undefined, updated_at: new Date().toISOString(),
+      }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
+      const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'confirmed_by_grid_owner' })
+      if (supplyPeriodId) updated.push('customer_supply_periods')
+      if (supplyPeriodId) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, { message: input.message, switchRequestId: input.matchedSwitchRequestId, supplyPeriodId })
     }
   }
 
-  if (outcome === 'supply_continuation_confirmed') {
-    const continuation = await continueSupplyPeriodFromZ05C(input.message)
-    if (continuation.changed) updated.push('customer_supply_periods')
-    if (continuation.review && companyId) {
-      reviewRequired = true
-      const caseId = await createReviewCase({
-        message: input.message,
-        companyId,
-        switchRequestId: input.matchedSwitchRequestId ?? null,
-        caseType: 'other',
-        reviewIntent: 'supply_continuation_review',
-        title: 'Leveransen ska fortsätta – kontroll krävs',
-        description: 'PRODAT Z05C återtar ett tidigare leveransavslut, men systemet kunde inte entydigt identifiera vilken avslutad leveransperiod som ska återöppnas.',
-        nextAction: 'Verifiera leveransperioden och återställ den endast om Z05C refererar till samma avslut.',
-      })
-      if (caseId) updated.push('customer_cases')
+  if (['assigned_supply_started', 'mandatory_purchase_supply_started', 'supplier_switch_cancelled_before_start', 'supply_terminated', 'supply_continuation_confirmed'].includes(outcome)) {
+    const sourceResult = await applySupplyMarketSource({ actorUserId: input.actorUserId, message: input.message })
+    if (!sourceResult.applied) {
+      reviewRequired = true; outcome = 'manual_review_required'
+      tenantMessage = sourceResult.reason === 'regulated_supply_authentic_ground_required'
+        ? 'Anvisning eller mottagningsplikt inväntar dokumenterat mandat, rätt nätområde och verifierad rättslig grund.'
+        : 'Leveranshändelsen inväntar säker koppling till rätt original, objekt och giltighetstid.'
+    } else {
+      updated.push('customer_supply_periods')
+      if (outcome === 'supplier_switch_cancelled_before_start') updated.push('supplier_switch_requests')
+      if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
+        tenantMessage = outcome === 'assigned_supply_started' ? 'Anvisningsprocessen och nätägarens starttid är registrerade.' : 'Den separata produktions- och mottagningsrelationen är registrerad.'
+      }
+      if (outcome === 'supply_terminated' && sourceResult.periods.some(p => p.status === 'ending')) tenantMessage = 'Leveransslutet är registrerat och träder i kraft vid nätägarens giltiga sluttid.'
+      // Final-value/billing follow-up is an operational task, not authority to
+      // delete a customer, close another object or revive a beneficiary grant.
+      if (outcome === 'supply_terminated' && !sourceResult.idempotent && companyId) {
+        const caseId = await createReviewCase({ message: input.message, companyId, switchRequestId: input.matchedSwitchRequestId ?? null,
+          caseType: 'other', reviewIntent: 'final_metering_and_billing', title: 'Leveransen upphör – slutför mätvärden och fakturering',
+          description: 'Ett källbundet leveransslut är registrerat. Säkerställ slutmätvärden och slutfakturering för just de berörda perioderna med bibehållen historik.',
+          nextAction: 'Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.' })
+        if (caseId) updated.push('customer_cases')
+      }
     }
   }
 
@@ -503,7 +379,12 @@ export async function applyInboundBusinessStateMachine(input: {
       message: input.message,
     })
     if (permissionResult.applied) updated.push('metering_permissions')
-    if (!permissionResult.applied) reviewRequired = true
+    if (!permissionResult.applied) {
+      reviewRequired = true; outcome = 'manual_review_required'
+      tenantMessage = 'Tillståndshändelsen inväntar säker original- och objektkoppling.'
+    } else if (permissionResult.status === 'active' && outcome === 'permission_ended') {
+      tenantMessage = 'Tillståndets upphörandetid är registrerad; övriga giltiga objekt och framtida rapporteringstider bevaras.'
+    }
   }
 
   if ((outcome === 'masterdata_update_received' || outcome === 'meter_change_received') && companyId) {
@@ -572,7 +453,7 @@ export async function applyInboundBusinessStateMachine(input: {
 
   const workflowState =
     outcome === 'supplier_switch_accepted' ? 'switch_confirmed'
-      : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'completed'
+      : outcome === 'supplier_switch_completed' ? 'completed'
         : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'switch_rejected'
           : outcome === 'manual_review_required' || outcome === 'unexpected_direction_review' ? 'manual_review'
             : null
@@ -597,7 +478,7 @@ export async function applyInboundBusinessStateMachine(input: {
 
   const notificationEvent =
     outcome === 'supplier_switch_accepted' ? 'supplier_switch.accepted'
-      : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'supply_period.activated'
+      : outcome === 'supplier_switch_completed' ? 'supply_period.activated'
         : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'supplier_switch.rejected'
           : null
   if (!supplyActivationCommitted && notificationEvent && companyId && input.message.customer_id) {

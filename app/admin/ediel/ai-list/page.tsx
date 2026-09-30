@@ -125,7 +125,7 @@ export default async function AdminEdielAiListPage() {
  <div className="min-h-screen bg-slate-50">
  <AdminHeader
  title="AI-/BI-listor"
- subtitle="Operativ vy för export av AI-/BI-listor och historik över skickade listmeddelanden."
+ subtitle="Export av AI-listor och historik för listmeddelanden. BI används endast för mottagen avstämning."
  userEmail={context.email}
  workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
  workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -134,7 +134,7 @@ export default async function AdminEdielAiListPage() {
  <div className="space-y-8 p-8">
  <section className="rounded-3xl border border-slate-200 bg-white p-6">
  <div className="mb-5">
- <h2 className="text-lg font-semibold text-slate-900">Skapa ny AI-/BI-lista</h2>
+ <h2 className="text-lg font-semibold text-slate-900">Skapa ny AI-lista</h2>
  <p className="mt-1 text-sm text-slate-700">
  AI-listan ska användas för kontroll och avvikelsehantering, inte för
  automatisk databassynk.
@@ -152,7 +152,6 @@ export default async function AdminEdielAiListPage() {
  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
  >
  <option value="AI">AI</option>
- <option value="BI">BI</option>
  </select>
  </div>
 
@@ -294,7 +293,7 @@ export default async function AdminEdielAiListPage() {
  type="submit"
  className="w-full rounded-xl bg-white border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900"
  >
- Generera och köa AI-/BI-lista
+ Generera och köa AI-lista
  </button>
  </div>
  </form>

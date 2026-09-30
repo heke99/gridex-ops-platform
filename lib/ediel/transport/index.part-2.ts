@@ -1,4 +1,9 @@
 import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeText'
+import { assertEdifactLatin1Representable, encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
+import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
+import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
+import { assertAiListOutboundMessage } from '@/lib/ediel/aiListFormat'
+import { assertScopedEdielProductionCapability } from '@/lib/ediel/scopedCapabilityReadiness'
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
 import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
@@ -325,6 +330,12 @@ export async function sendEdielMessageViaSmtp(
   messageId: string | null
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
+  const formatIssue = wireFormatIdentityIssue({ rawPayload: message.raw_payload, messageStandard: message.message_standard, mimeType: message.mime_type })
+  if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
+  if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
+  await assertUtiltsPositiveAckAuthorityForSend(message)
+  assertAiListOutboundMessage(message)
+  await assertScopedEdielProductionCapability(message)
   assertProdatFreeTextSendBoundary(message)
   const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message)].filter(Boolean)
   if(sourceHolds.length){
@@ -340,16 +351,14 @@ export async function sendEdielMessageViaSmtp(
   }
   if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message);assertEdielSendLock(message)}
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
-  if(hasReportingPermissionMessage(message)){
-    const reportingContext=await loadTgtReportingValidationContext(message)
-    assertRulebookAllowsSend(message,undefined,reportingContext)
-    assertEdielSendLock(message,undefined,reportingContext)
-  }
-  if(hasProdatDateEventMessage(message)){
-    const dateEventContext=await loadTgtDateEventValidationContext(message)
-    assertRulebookAllowsSend(message,dateEventContext)
-    assertEdielSendLock(message,dateEventContext)
-  }
+  const reportingContext = hasReportingPermissionMessage(message) ? await loadTgtReportingValidationContext(message) : undefined
+  const dateEventContext = hasProdatDateEventMessage(message) ? await loadTgtDateEventValidationContext(message) : undefined
+  const admission = isEdifactMessage(message) ? assertRulebookAllowsSend(message, dateEventContext, reportingContext) : null
+  if (reportingContext || dateEventContext) assertEdielSendLock(message, dateEventContext, reportingContext)
+  const policy = admission?.canonicalPolicy
+  const admissionDecision = policy ? Object.freeze({ version: 1, referenceDate: policy.referenceDate,
+    family: policy.family, code: policy.code, subtype: policy.subtype, profileKey: policy.profileKey,
+    guide: policy.guide, associationAssignedCode: policy.associationAssignedCode, sourceTrace: policy.sourceTrace }) : null
 
   if (!message.receiver_email?.trim()) {
     throw new Error(`Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`)
@@ -415,6 +424,9 @@ export async function sendEdielMessageViaSmtp(
       ? 'application/xml'
       : inferMimeType(message)
   const mimeEncoding: BufferEncoding = isEdifactMessage(message) ? 'latin1' : 'utf8'
+  const payloadBytes = isEdifactMessage(message)
+    ? encodeEdifactLatin1(normalizedPayload)
+    : Buffer.from(normalizedPayload, mimeEncoding)
   const contentTransferEncoding =
     mimeMode === 'nodemailer-attachment'
       ? 'nodemailer-managed'
@@ -481,7 +493,7 @@ export async function sendEdielMessageViaSmtp(
 
   const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
-    payload: Buffer.from(normalizedPayload, mimeEncoding), encoding: mimeEncoding,
+    payload: payloadBytes, encoding: mimeEncoding, admissionDecision,
   })
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
@@ -501,7 +513,7 @@ export async function sendEdielMessageViaSmtp(
       attachments: [
         {
           filename: fileName,
-          content: Buffer.from(normalizedPayload, mimeEncoding),
+          content: payloadBytes,
           contentType,
           contentDisposition: 'attachment',
         },
@@ -587,7 +599,7 @@ export async function sendEdielMessageViaSmtp(
     rawMimePreview = safePreview(rawMime.toString('ascii'), 900)
     innerMimePreview = safePreview(innerMime.toString('ascii'), 900)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
-    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(payloadBytes), 900)
     encryptedPayloadLength = encryptedDer.length
     const encryptedPayloadRef = `smtp-smime://${message.id}/${sha256(encryptedDer).slice(0, 24)}`
 
@@ -668,7 +680,7 @@ export async function sendEdielMessageViaSmtp(
 
     rawMimePreview = safePreview(rawMime.toString('ascii'), 1200)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
-    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(payloadBytes), 900)
 
     await createEdielMessageEvent({
       actorUserId,
@@ -686,7 +698,7 @@ export async function sendEdielMessageViaSmtp(
         decodedPayloadLength: normalizedPayload.length,
         decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
         decodedPayloadPreview,
-        encodedPayloadLength: Buffer.from(normalizedPayload, mimeEncoding).toString('base64').length,
+        encodedPayloadLength: payloadBytes.toString('base64').length,
         encodedPayloadPreview,
         rawMimePreview,
       },
@@ -711,7 +723,7 @@ export async function sendEdielMessageViaSmtp(
 
     rawMimePreview = safePreview(rawMime.toString('ascii'), 900)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
-    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(payloadBytes), 900)
 
     await createEdielMessageEvent({
       actorUserId,
@@ -727,7 +739,7 @@ export async function sendEdielMessageViaSmtp(
         decodedPayloadLength: normalizedPayload.length,
         decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
         decodedPayloadPreview,
-        encodedPayloadLength: Buffer.from(normalizedPayload, mimeEncoding).toString('base64').length,
+        encodedPayloadLength: payloadBytes.toString('base64').length,
         encodedPayloadPreview,
         rawMimePreview,
       },

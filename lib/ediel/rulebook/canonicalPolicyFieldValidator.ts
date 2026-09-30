@@ -1,3 +1,5 @@
+import {validateCanonicalAckGuide} from './ackGuidePolicy'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import { prodatFreeTextField, validateProdatFreeText } from '@/lib/ediel/prodat/prodatFreeText'
 import {evaluateIncomingSelectedProdatAck} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
@@ -28,9 +30,11 @@ import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {
   fieldRulePresent,
+  recordIgnoredProdatField,
   validateFieldMatrixPayload,
   type FieldMatrixEvaluationInput,
   type RulebookFieldRule,
+  type ProdatIgnoredField,
 } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
@@ -46,6 +50,7 @@ function asRulebookFieldRule(value: unknown): RulebookFieldRule {
  * policy conditions for cells not yet migrated. Register overlays stay separate.
  */
 export function validateCanonicalPolicyFields(input: {
+  onIgnoredField?: (field: ProdatIgnoredField) => void
   onRegisterValidation?: (evidence: ProdatRegisterValidationEvidence) => void
   reportingContext?: ExpectedContext
   policy: CanonicalEdielPolicy
@@ -53,10 +58,12 @@ export function validateCanonicalPolicyFields(input: {
   scope?: 'all' | 'dependent_only'
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
+  if (input.policy.family === 'APERAK' || input.policy.family === 'CONTRL') return validateCanonicalAckGuide(input)
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).filter(rule => !(input.policy.family === 'PRODAT' && input.policy.direction === 'inbound' && (['322','324','506'].includes(rule.fieldNumber ?? '') || rule.fieldNumber === '242' && incomingProduct242IsFalse(input.policy.code)))).flatMap((rule): RulebookFieldRule[] => {
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(rule.fieldNumber ?? '')) return [rule]
     // The new UD parent is selected per wire object below, never from a root snapshot.
     if (['Z06', 'Z09'].includes(input.policy.code) && (rule.fieldNumber === '229' || isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? ''))) return [rule]
+    if (input.policy.direction === 'inbound') return [rule]
     if (input.policy.family !== 'PRODAT' || !isProdatFieldInInapplicableParent({
       messageCode: input.policy.code, subtype: input.policy.subtype, fieldNumber: rule.fieldNumber,
     })) return [rule]
@@ -65,6 +72,8 @@ export function validateCanonicalPolicyFields(input: {
   })
   const matrixInput: FieldMatrixEvaluationInput = {
     una: input.una,
+    direction: input.policy.direction as 'inbound' | 'outbound',
+    onIgnoredField: input.onIgnoredField,
     family: input.policy.family,
     code: input.policy.code,
     rawSegments: input.rawSegments ?? null,
@@ -96,7 +105,16 @@ export function validateCanonicalPolicyFields(input: {
   if (input.policy.family !== 'PRODAT') return issues
   if (input.policy.direction === 'outbound') issues.push(...validateProdatFreeText({ code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una }))
   if (input.policy.direction === 'inbound') {
-    issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+    const energy = evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]})
+    issues.push(...energy.issues)
+    for (const object of energy.objects) if (object.applicability === 'false') {
+      recordIgnoredProdatField(matrixInput, '506', [], 'object', object.lineIndex)
+    }
+    if (incomingProduct242IsFalse(input.policy.code)) {
+      for (const group of prodatRegisterGroups(input.rawSegments ?? [],input.una,input.policy.code).groups) {
+        recordIgnoredProdatField(matrixInput, '242', [], 'object', group.lineIndex)
+      }
+    }
     issues.push(...evaluateIncomingSelectedProdatAck({...matrixInput,rawSegments:input.rawSegments??[],facts:input.policy.prodatDependentFacts,selectedFields:input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'')}).issues)
     const permissionFields=input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'').filter(field=>['322','324'].includes(field))
     if(permissionFields.length)issues.push(...evaluateIncomingProdatPermissionAckFields({...matrixInput,rawSegments:input.rawSegments??[],selectedFields:permissionFields}).issues)
@@ -110,6 +128,8 @@ export function validateCanonicalPolicyFields(input: {
     una:input.una,
     facts:input.policy.prodatDependentFacts,
     rules,
+    direction:input.policy.direction as 'inbound'|'outbound',
+    onIgnoredField:input.onIgnoredField,
     requireIndependentInventory:input.policy.direction === 'outbound',
     applicationReference:input.policy.applicationReference,
   })

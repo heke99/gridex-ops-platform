@@ -1,3 +1,5 @@
+import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition';
+import type { EdielMessageRow } from '@/lib/ediel/types';
 import { supabaseService } from "@/lib/supabase/service";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
@@ -1671,7 +1673,7 @@ export async function queueMeteringPermissionForZ13(input: {
   const { data, error } = await supabaseService
     .from("metering_permissions")
     .update({
-      status: "z13_sent",
+      status: "z13_ready",
       case_reference:
         permission.case_reference ?? gridOwnerDataRequest.external_reference,
       last_blocker: null,
@@ -1697,91 +1699,24 @@ export async function applyZ14SnapshotToMeteringPermission(input: {
   companyId: string;
   actorUserId: string;
   permissionId: string;
+  sourceMessageId?: string | null;
   permissionReference?: string | null;
   approvedStartDate?: string | null;
   approvedEndDate?: string | null;
   resolutionCode?: string | null;
   reportFrequency?: string | null;
-  approvedSites?: Array<{
-    siteId?: string | null;
-    meteringPointId?: string | null;
-    facilityId?: string | null;
-    gridAreaCode?: string | null;
-    status?: string | null;
-  }>;
+  approvedSites?: Array<{ siteId?: string | null; meteringPointId?: string | null; facilityId?: string | null; gridAreaCode?: string | null; status?: string | null }>;
 }) {
   await requireCompanyOperationalForWrites(input.companyId);
-
-  const permission = await getMeteringPermissionById({
-    companyId: input.companyId,
-    permissionId: input.permissionId,
-  });
-  if (!permission)
-    throw new Error("Mätvärdestillstånd hittades inte för valt bolag.");
-
-  const approvedSites = input.approvedSites ?? [];
-  const status = approvedSites.some(
-    (site) => (site.status ?? "approved") === "approved",
-  )
-    ? approvedSites.length > 1
-      ? "partially_approved"
-      : "z14_received"
-    : "rejected_active";
-
-  const { data, error } = await supabaseService
-    .from("metering_permissions")
-    .update({
-      status,
-      permission_reference:
-        input.permissionReference ?? permission.permission_reference,
-      approved_start_date:
-        input.approvedStartDate ?? permission.approved_start_date,
-      approved_end_date: input.approvedEndDate ?? permission.approved_end_date,
-      resolution_code: input.resolutionCode ?? permission.resolution_code,
-      report_frequency: input.reportFrequency ?? permission.report_frequency,
-      last_blocker:
-        status === "rejected_active"
-          ? "Z14 markerade begäran som nekad."
-          : null,
-      metadata: {
-        ...((permission as unknown as { metadata?: Record<string, unknown> })
-          .metadata ?? {}),
-        z14: {
-          appliedAt: new Date().toISOString(),
-          approvedSites,
-        },
-      },
-      updated_by: input.actorUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("company_id", input.companyId)
-    .eq("id", permission.id)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-
-  if (approvedSites.length > 0) {
-    const rows = approvedSites.map((site) => ({
-      company_id: input.companyId,
-      metering_permission_id: permission.id,
-      customer_id: permission.customer_id,
-      site_id: site.siteId ?? permission.site_id,
-      metering_point_id: site.meteringPointId ?? permission.metering_point_id,
-      facility_id: site.facilityId ?? null,
-      grid_area_code: site.gridAreaCode ?? null,
-      status: site.status ?? "approved",
-      start_date: input.approvedStartDate ?? permission.approved_start_date,
-      end_date: input.approvedEndDate ?? permission.approved_end_date,
-      metadata: { source: "z14_snapshot" },
-    }));
-
-    const { error: siteError } = await supabaseService
-      .from("metering_permission_sites")
-      .insert(rows);
-
-    if (siteError && !isMissingRelationError(siteError)) throw siteError;
-  }
-
-  return data as MeteringPermissionRow;
+  if (!input.sourceMessageId) throw new Error('z14_received_source_required');
+  const { data: source, error: sourceError } = await supabaseService.from('ediel_messages')
+    .select('*').eq('company_id', input.companyId).eq('id', input.sourceMessageId).maybeSingle();
+  if (sourceError) throw sourceError;
+  if (!source || String(source.message_code ?? '').toUpperCase().slice(0, 3) !== 'Z14') throw new Error('z14_received_source_required');
+  const result = await applyPermissionMarketSource({ actorUserId: input.actorUserId,
+    message: source as EdielMessageRow, expectedPermissionId: input.permissionId });
+  if (!result.applied || result.permissionId !== input.permissionId) throw new Error(result.reason ?? 'z14_source_apply_not_confirmed');
+  const permission = await getMeteringPermissionById({ companyId: input.companyId, permissionId: input.permissionId });
+  if (!permission) throw new Error('z14_permission_unavailable_after_apply');
+  return permission;
 }

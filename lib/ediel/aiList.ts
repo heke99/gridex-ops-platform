@@ -1,5 +1,6 @@
-import type { CreateEdielMessageInput } from '@/lib/ediel/types'
-import { buildDefaultApplicationReference } from '@/lib/ediel/config'
+import {aiListCell,aiListDate,assertAiListOutboundType,AI_LIST_FORMAT_VERSION,parseAiBiTechnicalFile} from '@/lib/ediel/aiListFormat'
+import {resolveSwedishProdatCustomerIdentity} from '@/lib/ediel/prodat/customerIdentity'
+import type { CreateEdielMessageInput, EdielEnvironment } from '@/lib/ediel/types'
 import { inferEdielFileName } from '@/lib/ediel/classify'
 import type {
   CustomerSiteRow,
@@ -10,7 +11,7 @@ import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegi
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
 
-export const AI_LIST_VERSION = 'Ver20140401'
+export const AI_LIST_VERSION = AI_LIST_FORMAT_VERSION
 
 export type AiListType = 'AI' | 'BI'
 
@@ -57,36 +58,31 @@ export type BuildAiListCsvInput = {
 }
 
 function normalizeDate(value?: string | null): string {
-  return (value ?? '').replace(/-/g, '').slice(0, 8).trim()
+  return value ? aiListDate(value) : ''
 }
 
 function normalizeTimestamp(value?: Date | string | null): string {
   const date = value instanceof Date ? value : value ? new Date(value) : new Date()
   if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')
+    throw new Error('ai_list_creation_date_invalid')
   }
   return date.toISOString().slice(0, 16).replace(/[-:T]/g, '')
 }
 
 function safe(value?: string | number | null): string {
-  return String(value ?? '').replace(/[;\r\n]/g, ',').trim()
+  return aiListCell(value)
 }
 
 function onlyAsciiToken(value?: string | null): string {
   return safe(value).replace(/[^A-Za-z0-9_-]/g, '')
 }
 
-function sortKey(row: AiListDetailRow): string {
-  return [
-    safe(row.natavrakningsomrade),
-    safe(row.anlaggningsId),
-    normalizeDate(row.franDatum),
-    normalizeDate(row.tillDatum),
-    safe(row.produktkod),
-    safe(row.matmetod),
-    safe(row.avrakningsmetod),
-    safe(row.rapporteringsfrekvens),
-  ].join('|')
+function compareDetails(a: AiListDetailRow, b: AiListDetailRow): number {
+  const object = [safe(a.anlaggningsId),safe(a.kodlista)].join('|').localeCompare([safe(b.anlaggningsId),safe(b.kodlista)].join('|'),'sv')
+  if(object)return object
+  const from=normalizeDate(a.franDatum).localeCompare(normalizeDate(b.franDatum))
+  if(from)return from
+  return (normalizeDate(a.tillDatum)||'99999999').localeCompare(normalizeDate(b.tillDatum)||'99999999')
 }
 
 function normalizeDetailRow(row: AiListDetailRow): AiListDetailRow {
@@ -123,10 +119,12 @@ function canonicalizeDetails(rows: AiListDetailRow[]): AiListDetailRow[] {
 
   for (const row of rows) {
     const normalized = normalizeDetailRow(row)
-    deduped.set(sortKey(normalized), normalized)
+    // Deduplicate only byte-identical exported rows. Different historical legal
+    // customer/BRP states must never collapse through an incomplete sort key.
+    deduped.set(buildAiDetailRow(normalized), normalized)
   }
 
-  return [...deduped.values()].sort((a, b) => sortKey(a).localeCompare(sortKey(b), 'sv'))
+  return [...deduped.values()].sort(compareDetails)
 }
 
 function buildAiListFileName(params: {
@@ -152,10 +150,10 @@ function buildAiListFileName(params: {
 function buildHeader(input: BuildAiListCsvInput): string {
   const common = [
     input.listType,
-    safe(input.senderEdielId),
-    safe(input.senderName),
     safe(input.receiverEdielId),
     safe(input.receiverName),
+    safe(input.senderEdielId),
+    safe(input.senderName),
     normalizeTimestamp(input.createdAt),
   ]
 
@@ -191,12 +189,12 @@ function buildAiDetailRow(row: AiListDetailRow): string {
     safe(row.postnummer),
     safe(row.ort),
     safe(row.balansansvarsId),
-    safe(row.matarNummer),
-    safe(row.avrakningsmetod),
-    safe(row.arsforbrukningKwh),
-    safe(row.rapporteringsfrekvens),
-    safe(row.matmetod),
-    safe(row.produktkod),
+    '', // Supplier export: six network-only columns, AI14.A.3 pp8–9.
+    '',
+    '',
+    '',
+    '',
+    '',
     safe(row.elanvandarId),
     safe(row.elanvandarNamn),
     normalizeDate(row.franDatum),
@@ -233,12 +231,15 @@ function buildBiDetailRow(row: AiListDetailRow): string {
 }
 
 export function buildAiListCsv(input: BuildAiListCsvInput): string {
+  assertAiListOutboundType(input.listType)
   const canonicalDetails = canonicalizeDetails(input.details)
   const rows = canonicalDetails.map((row) =>
     input.listType === 'BI' ? buildBiDetailRow(row) : buildAiDetailRow(row)
   )
 
-  return [buildHeader(input), ...rows].join('\n')
+  const payload=[buildHeader(input), ...rows].join('\n')
+  parseAiBiTechnicalFile(payload,input.listType)
+  return payload
 }
 
 export function buildAiListDetailFromSite(params: {
@@ -247,14 +248,19 @@ export function buildAiListDetailFromSite(params: {
   gridOwner?: GridOwnerRow | null
   supplierEdielId?: string | null
   balanceResponsibleEdielId?: string | null
+  customer?: Record<string,unknown> | null
+  identityAgency?: '9' | '89'
 }): AiListDetailRow {
+  const customer=resolveSwedishProdatCustomerIdentity(params.customer)
+  if(!customer.id||!customer.qualifier||!customer.name)throw new Error('ai_list_verified_customer_identity_required')
+  const objectId=params.meteringPoint?.meter_point_id ?? params.site.facility_id
+  if(!objectId||(!params.identityAgency&&!/^\d{18}$/.test(objectId)))throw new Error('ai_list_verified_object_identity_required')
   return {
     anlaggningsId:
       params.meteringPoint?.meter_point_id ??
-      params.site.facility_id ??
-      params.site.id,
-    kodlista: '9',
-    natavrakningsomrade: params.gridOwner?.owner_code ?? null,
+      params.site.facility_id!,
+    kodlista: params.identityAgency ?? '9',
+    natavrakningsomrade: params.meteringPoint?.grid_area_code ?? (params.site as unknown as {grid_area_code?:string|null}).grid_area_code ?? null,
     balansansvarsId: params.balanceResponsibleEdielId ?? null,
     elhandelsId: params.supplierEdielId ?? null,
     natforetagsId: params.gridOwner?.ediel_id ?? null,
@@ -263,34 +269,14 @@ export function buildAiListDetailFromSite(params: {
     ort: params.site.city ?? null,
     franDatum: params.site.move_in_date ?? null,
     tillDatum: null,
-    avrakningsmetod:
-      params.meteringPoint?.reading_frequency === 'monthly'
-        ? 'Z31'
-        : params.meteringPoint?.reading_frequency === 'daily'
-          ? 'Z32'
-          : params.meteringPoint?.reading_frequency === 'hourly'
-            ? 'Z32'
-            : null,
-    matmetod:
-      params.meteringPoint?.reading_frequency === 'hourly'
-        ? 'Z02'
-        : params.meteringPoint?.reading_frequency === 'daily'
-          ? 'Z04'
-          : null,
-    rapporteringsfrekvens:
-      params.meteringPoint?.reading_frequency === 'monthly'
-        ? 'M'
-        : params.meteringPoint?.reading_frequency === 'daily'
-          ? 'D'
-          : params.meteringPoint?.reading_frequency === 'hourly'
-            ? 'D'
-            : null,
-    produktkod:
-      params.site.site_type === 'production' ? '8716867000031' : '8716867000030',
-    matarNummer: null,
-    arsforbrukningKwh: params.site.annual_consumption_kwh ?? null,
-    elanvandarId: params.site.customer_id,
-    elanvandarNamn: params.site.site_name ?? null,
+    avrakningsmetod:null,
+    matmetod:null,
+    rapporteringsfrekvens:null,
+    produktkod:null,
+    matarNummer:null,
+    arsforbrukningKwh:null,
+    elanvandarId:customer.id,
+    elanvandarNamn:customer.name,
     serieId: null,
   }
 }
@@ -318,7 +304,9 @@ export async function buildAiListOutboundDraft(input: {
   transactionReference?: string | null
   routeDefaultMessageVersion?: string | null
   validityDate?: string | null
+  environment?: EdielEnvironment
 }): Promise<CreateEdielMessageInput> {
+  assertAiListOutboundType(input.listType)
   const refs = buildCanonicalOutboundReferences({
     family: 'AI_LIST',
     code: input.listType,
@@ -332,11 +320,11 @@ export async function buildAiListOutboundDraft(input: {
     (await resolveCanonicalOutboundVersion({
       family: 'AI_LIST',
       code: input.listType,
-      fallback: AI_LIST_VERSION,
       standard: 'ai_list',
       routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
-      environment: 'test',
-    })) ?? AI_LIST_VERSION
+      environment: input.environment ?? 'test',
+    }))
+  if(version!==AI_LIST_VERSION)throw new Error('ai_list_canonical_version_unavailable')
 
   const createdAt = new Date()
   const canonicalDetails = canonicalizeDetails(input.details)
@@ -367,8 +355,8 @@ export async function buildAiListOutboundDraft(input: {
     messageCode: input.listType,
     messageVersion: version,
     processType: input.listType === 'BI' ? 'bi_list_export' : 'ai_list_export',
-    environment: 'test',
-    testFlag: 1,
+    environment: input.environment ?? 'test',
+    testFlag: input.environment === 'production' ? 0 : 1,
     status: 'draft',
     transportType: 'smtp',
     mailbox: input.mailbox ?? null,
@@ -377,10 +365,7 @@ export async function buildAiListOutboundDraft(input: {
     receiverEdielId: input.receiverEdielId,
     receiverName: input.receiverName ?? null,
     receiverEmail: input.receiverEmail ?? null,
-    applicationReference: buildDefaultApplicationReference({
-      actorSubAddress: 'GRIDEX',
-      process: 'AI_LIST',
-    }),
+    applicationReference: null,
     externalReference: refs.externalReference,
     correlationReference: refs.correlationReference,
     transactionReference: refs.transactionReference,

@@ -44,7 +44,7 @@ export function normalizeRole(value: unknown): ActorRegistryRole {
   const normalized = cleanString(value)?.toLowerCase().replace(/[åä]/g, 'a').replace(/ö/g, 'o').replace(/[\s-]+/g, '_')
   if (!normalized) return 'other'
   if (['grid_owner', 'network_owner', 'netowner', 'dso', 'distribution_system_operator', 'natagare', 'elnatsforetag'].includes(normalized)) return 'grid_owner'
-  if (['electricity_supplier', 'power_supplier', 'supplier', 'elhandelsbolag', 'elleverantor'].includes(normalized)) return 'electricity_supplier'
+  if (['electricity_supplier', 'power_supplier', 'powersupplier', 'supplier', 'elhandelsbolag', 'elleverantor'].includes(normalized)) return 'electricity_supplier'
   if (['balance_responsible', 'balansansvarig', 'brp'].includes(normalized)) return 'balance_responsible'
   if (['energy_service_company', 'esco', 'energitjansteforetag'].includes(normalized)) return 'energy_service_company'
   if (['system_supplier', 'systemleverantor'].includes(normalized)) return 'system_supplier'

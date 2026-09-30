@@ -1,0 +1,20 @@
+-- Minimal synthetic dependencies for isolated execution probes. Not a generated
+-- schema snapshot and not evidence of native migration parity or real mandates.
+CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;
+CREATE SCHEMA gridex_received_sources;
+CREATE TABLE gridex_received_sources.sources(source_message_id uuid PRIMARY KEY,company_id uuid,environment text,message_code text,source_received_at timestamptz,raw_payload text,payload_hash text);
+CREATE TABLE gridex_received_sources.validation_assessments(id uuid PRIMARY KEY,source_message_id uuid,company_id uuid,environment text,source_payload_hash text,facts_text text,previous_assessment_id uuid);
+CREATE FUNCTION gridex_received_sources.reject_mutation() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE='23514';END$$;
+CREATE TABLE public.customers(id uuid PRIMARY KEY,company_id uuid,org_number text,personal_number text);
+CREATE TABLE public.customer_sites(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,is_active boolean DEFAULT true,facility_id text,normalized_facility_id text,street text,postal_code text,city text,address_hash text,grid_owner_id uuid,grid_area_code text,price_area_code text,bidding_zone_code text,annual_consumption_kwh numeric,facility_data_status text,facility_data_verified_at timestamptz,resolution_status text,data_quality_status text,metadata jsonb,updated_at timestamptz,updated_by uuid);
+CREATE TABLE public.metering_points(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,metering_point_id text,meter_point_id text,ediel_reference text,ediel_metering_point_id text,site_facility_id text,grid_owner_id uuid,grid_area_code text,price_area_code text,bidding_zone_code text,estimated_annual_consumption_kwh numeric,status text,measurement_type text,reading_frequency text,is_settlement_relevant boolean,data_quality_status text,verification_status text,facility_data_status text,facility_data_verified_at timestamptz,metadata jsonb,created_at timestamptz,updated_at timestamptz,created_by uuid,updated_by uuid);
+CREATE TABLE public.customer_info_requests(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,site_id uuid,ediel_message_id uuid,operation_id uuid,grid_owner_id uuid,metering_point_id uuid,grid_owner_data_request_id uuid,status text,response_ediel_message_id uuid,received_at timestamptz,blocker_code text,blocker_reason text,blocker_details jsonb,route_resolution_status text,next_required_action text,verified_payload jsonb,updated_at timestamptz,updated_by uuid);
+CREATE TABLE public.ediel_messages(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,customer_id uuid,site_id uuid,grid_owner_id uuid,metering_point_id uuid,operation_id uuid,raw_payload text,immutable_payload_hash text,immutable_rendered_at timestamptz,message_sent_at timestamptz,parsed_payload jsonb,updated_at timestamptz);
+CREATE TABLE public.customer_operation_request_snapshots(company_id uuid,operation_id uuid,customer_id uuid,customer_site_id uuid,request_kind text,request_reference text,site_address_hash text,grid_owner_id uuid,superseded_at timestamptz);
+CREATE TABLE public.ediel_business_references(company_id uuid,source_message_id uuid,message_family text,message_code text,reference_type text,reference_value text);
+CREATE TABLE public.platform_grid_areas(grid_area_code text,price_area text,is_active boolean,valid_from date,valid_to date);
+CREATE TABLE public.grid_owner_data_requests(id uuid PRIMARY KEY,company_id uuid,status text,response_payload jsonb,updated_at timestamptz,updated_by uuid);
+
+-- Minimal synthetic journal shape; not real SMTP acceptance evidence.
+CREATE SCHEMA gridex_ediel_transport;
+CREATE TABLE gridex_ediel_transport.attempts(id uuid PRIMARY KEY,message_id uuid,company_id uuid,environment text,binding jsonb,classification text,entered_at timestamptz,observed_at timestamptz);

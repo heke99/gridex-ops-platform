@@ -411,7 +411,8 @@
       "acceptance_id": "AT-ACK-03",
       "status": "PARTIAL",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/protocol.md",
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
     },
     {
@@ -443,8 +444,10 @@
     {
       "id": "ACK-08",
       "acceptance_id": "AT-ACK-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "ACK-09",
@@ -461,14 +464,18 @@
     {
       "id": "U-02",
       "acceptance_id": "AT-U-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "U-03",
       "acceptance_id": "AT-U-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "U-04",
@@ -533,8 +540,10 @@
     {
       "id": "U-14",
       "acceptance_id": "AT-U-14",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "TR-01",
@@ -963,8 +972,10 @@
     },
     {
       "id": "SC-044",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-sc044-20260930.md"
+      ]
     },
     {
       "id": "SC-045",
@@ -1446,7 +1457,8 @@
       "id": "AT-ACK-03",
       "status": "PARTIAL",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/protocol.md",
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
     },
     {
@@ -1473,8 +1485,10 @@
     },
     {
       "id": "AT-ACK-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "AT-ACK-09",
@@ -1488,13 +1502,17 @@
     },
     {
       "id": "AT-U-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "AT-U-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "AT-U-04",
@@ -1548,8 +1566,10 @@
     },
     {
       "id": "AT-U-14",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "AT-TR-01",

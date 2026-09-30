@@ -1,8 +1,12 @@
-import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
+import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
-import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
+import { utiltsQuantityUnitGuideIssues } from '@/lib/ediel/utilts/quantityUnitScope'
+import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
+import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
+import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
-import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveUtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
@@ -19,6 +23,8 @@ import {
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import {
   decideUtiltsRuntimeAckPlan,
+  normalizeUtiltsRuntimePayload,
+  parseUtiltsRuntimeFacts,
   resolveUtiltsTransactionDispositions,
   runUtiltsRuntimeForMessage as runLegacyUtiltsRuntimeForMessage,
   type UtiltsRuntimeFacts,
@@ -33,6 +39,8 @@ export * from '@/lib/ediel/utiltsEngine.part-1'
 export type UtiltsRuntimeReferenceOptions = {
   referenceDate?: string | Date | null
   canonicalPolicy?: CanonicalEdielPolicy
+  /** Internal whole-guide candidate selection; never authorizes effects/ACKs. */
+  guideOnly?: boolean
 }
 
 const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
@@ -73,7 +81,7 @@ function normalizedReferenceDate(
   }
   if (typeof explicit === 'string' && explicit.trim()) return explicit.trim().slice(0, 10)
 
-  return canonicalBusinessDate(message)
+  return canonicalAdmissionDate(message)
 }
 
 function rebuildValidation(issues: UtiltsValidationIssue[]): UtiltsRuntimeValidation {
@@ -126,6 +134,9 @@ export function rebuildUtiltsRuntimeResult(input: {
     facts: input.result.facts,
     validation,
   })
+  if (validation.syntaxOk && input.result.ackPlan.utiltsHeaderRejection) {
+    ackPlan.utiltsHeaderRejection = input.result.ackPlan.utiltsHeaderRejection
+  }
   return { ...input.result, validation, transactionDispositions, ackPlan }
 }
 
@@ -375,6 +386,17 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
   const issues = input.result.validation.issues.filter((issue) => {
     const utiltsErrCode = String(issue.utiltsErrCode ?? '').trim().toUpperCase()
     if (utiltsErrCode && removedRejectionCodes.has(utiltsErrCode)) return false
+    // U25-A-4 Appendix 2: E90/E97/E98 energy-value controls remain for
+    // E30/aggregates. The E66 legacy branch represents individual point data;
+    // its own LOC+172 scope must not inherit those retired national rejections.
+    if (!policy.validateIndividualMeteringPointEnergyValuesBeyondE30
+      && input.result.facts.messageCode === 'E66'
+      && ['E90', 'E97', 'E98'].includes(utiltsErrCode)) {
+      const reference = issueReference(issue)
+      const transaction = input.result.facts.transactions.find((entry, index) => transactionReference(entry, index) === reference)
+        ?? (input.result.facts.transactions.length === 1 ? input.result.facts.transactions[0] : null)
+      if (transaction?.meterPointId && !transaction.regulatingObjectPresent) return false
+    }
     if (
       !policy.compareMeterReadingsToEnergyVolumes &&
       issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH'
@@ -388,203 +410,19 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
 }
 
 function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
-  const rules = fieldRulesForMessage('UTILTS', result.facts.messageCode)
-  const wire = tokenizeEdifact(message.raw_payload)
-  const nadIssues: UtiltsValidationIssue[] = []
-  const ancillaryRoles = new Set(['DDK', 'DDQ', 'DDX', 'DEA', 'DEC', 'DER', 'DGG', 'DGI', 'EZ', 'MDR', 'PQ'])
-  for (const segment of wire.segments) {
-    if (segment.tag === 'IDE' || segment.tag === 'UNT') break
-    if (segment.tag !== 'NAD') continue
-    const role = segmentComposite(segment, 1, wire.una)[0]?.trim() ?? ''
-    if (role !== 'MS' && role !== 'MR') {
-      if (!ancillaryRoles.has(role)) nadIssues.push({
-        severity: 'error', kind: 'application',
-        code: role ? 'UTILTS_ANCILLARY_ROLE_INVALID' : 'UTILTS_ANCILLARY_ROLE_MISSING',
-        title: role ? 'Ogiltig underordnad roll' : 'Underordnad roll saknas',
-        description: role ? `SG2/NAD/3035 har otillåtet värde ${role}.` : 'SG2/NAD/3035 saknas.',
-        aperakErcCode: role ? '42' : '41', aperakFieldCode: '509',
-        aperakText: role ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
-      })
-      continue
-    }
-    const field = role === 'MS' ? '207' : '208'
-    const parts = segmentComposite(segment, 2, wire.una)
-    const partyId = parts[0]?.trim() ?? ''
-    const qualifier = parts[1]?.trim() ?? ''
-    const agency = parts[2]?.trim() ?? ''
-    const badAgency = !['260', '9', '305'].includes(agency)
-    const badQualifier = agency === '260' && qualifier !== 'SVK'
-    if (badAgency || badQualifier) {
-      const missing = badAgency ? !agency : !qualifier
-      const path = badAgency ? 'C082/3055' : 'C082/1131'
-      nadIssues.push({
-        severity: 'error', kind: 'application',
-        code: badAgency ? (missing ? 'UTILTS_NAD_AGENCY_MISSING' : 'UTILTS_NAD_AGENCY_INVALID')
-          : (missing ? 'UTILTS_NAD_QUALIFIER_MISSING' : 'UTILTS_NAD_QUALIFIER_INVALID'),
-        title: missing ? 'NAD-kod saknas' : 'Ogiltig NAD-kod',
-        description: `NAD+${role}/${path} ${missing ? 'saknas' : 'har otillåtet värde'}.`,
-        aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
-        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
-      })
-    }
-    if (qualifier === 'SVK' && !/^\d{5}$/.test(partyId)) {
-      const missing = !partyId
-      nadIssues.push({
-        severity: 'error', kind: 'application',
-        code: missing ? 'UTILTS_NAD_EDIEL_ID_MISSING' : 'UTILTS_NAD_EDIEL_ID_INVALID',
-        title: missing ? 'Ediel-id saknas' : 'Ogiltigt Ediel-id',
-        description: `NAD+${role}/C082/3039 ska vara fem siffror när 1131=SVK.`,
-        aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
-        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
-      })
-    }
-    // UG-122-24: agencies 9/305 identify GS1 parties. Their GLN is 13
-    // digits, including the final modulo-10 check digit. Keep this separate
-    // from the five-digit national Ediel-id under qualifier SVK.
-    if (['9', '305'].includes(agency) && (!/^\d{13}$/.test(partyId) ||
-      [...partyId].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 1 : 3), 0) % 10 !== 0)) {
-      const missing = !partyId
-      nadIssues.push({
-        severity: 'error', kind: 'application',
-        code: missing ? 'UTILTS_NAD_GS1_ID_MISSING' : 'UTILTS_NAD_GS1_CHECK_DIGIT_INVALID',
-        title: missing ? 'GS1-id saknas' : 'Ogiltigt GS1-id',
-        description: `NAD+${role}/C082/3039 ska vara ett GLN med giltig GS1-kontrollsiffra.`,
-        aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
-        aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
-      })
-    }
-  }
-  const market = wire.segments.find(segment => segment.tag === 'MKS')
-  const mksIssues = (['501', '502'] as const).flatMap(fieldNumber => {
-    const rule = rules.find(item => item.fieldNumber === fieldNumber)
-    if (!rule?.allowedValues?.length) return []
-    const composite = market ? segmentComposite(market, fieldNumber === '501' ? 1 : 2, wire.una) : []
-    const value = composite[0]?.trim() ?? null
-    const allowed = Boolean(value && rule.allowedValues.includes(value))
-    // 25-A-3 annex C UG-122-21 qualifies phase 502 with agency 260.
-    const agency = fieldNumber === '502' ? composite[2]?.trim() : null
-    const invalidAgency = fieldNumber === '502' && allowed && agency !== '260'
-    if (allowed && !invalidAgency) return []
-    const missing = !value || (invalidAgency && !agency)
-    const path = invalidAgency ? 'MKS/C332/3055' : rule.segmentPath
-    return [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: invalidAgency ? (missing ? 'UTILTS_PHASE_AGENCY_MISSING' : 'UTILTS_PHASE_AGENCY_INVALID')
-        : missing ? rule.errorCodeIfMissing ?? 'MKS_MISSING' : rule.errorCodeIfInvalid ?? 'UTILTS_PHASE_INVALID',
-      title: invalidAgency ? (missing ? 'Byråkod för skede saknas' : 'Ogiltig byråkod för skede')
-        : missing ? `${rule.label} saknas` : `Ogiltigt ${rule.label}`,
-      description: missing ? `${path} saknas.` : `${path} har otillåtet värde ${invalidAgency ? agency : value}.`,
-      aperakErcCode: missing ? '41' : '42',
-      aperakFieldCode: fieldNumber,
-      aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
-    }]
-  })
-  const ackRule = rules.find(item => item.fieldNumber === '313')
-  const bgm = wire.segments.find(segment => segment.tag === 'BGM')
-  const documentCodeRule = rules.find(item => item.fieldNumber === '202')
-  const documentParts = bgm ? segmentComposite(bgm, 1, wire.una) : []
-  const documentCode = documentParts[0]?.trim() ?? ''
-  const documentQualifier = documentParts[1]?.trim() ?? ''
-  const documentQualifierIssues = /^S0[1-7]$/.test(documentCode) && documentQualifier !== 'SVK'
-    ? [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: documentQualifier ? 'UTILTS_DOCUMENT_QUALIFIER_INVALID' : 'UTILTS_DOCUMENT_QUALIFIER_MISSING',
-      title: documentQualifier ? 'Ogiltig dokumentkodlistequalifierare' : 'Dokumentkodlistequalifierare saknas',
-      description: documentQualifier ? `BGM/C002/1131 har otillåtet värde ${documentQualifier}.` : 'BGM/C002/1131 saknas.',
-      aperakErcCode: documentQualifier ? '42' : '41',
-      aperakFieldCode: '202',
-      aperakText: documentQualifier ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
-    }] : []
-  const documentAgency = bgm ? segmentComposite(bgm, 1, wire.una)[2]?.trim() : null
-  const documentAgencyIssues = bgm && documentCodeRule?.requirement === 'required' && documentAgency !== '260'
-    ? [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: documentAgency ? 'UTILTS_DOCUMENT_AGENCY_INVALID' : 'UTILTS_DOCUMENT_AGENCY_MISSING',
-      title: documentAgency ? 'Ogiltig byråkod för dokumenttyp' : 'Byråkod för dokumenttyp saknas',
-      description: documentAgency ? `BGM/C002/3055 har otillåtet värde ${documentAgency}.` : 'BGM/C002/3055 saknas.',
-      aperakErcCode: documentAgency ? '42' : '41',
-      aperakFieldCode: '202',
-      aperakText: documentAgency ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
-    }] : []
-  const documentRule = rules.find(item => item.fieldNumber === '203')
-  const documentIdentifier = bgm ? segmentComposite(bgm, 2, wire.una)[0]?.trim() : null
-  const documentIssues = documentRule?.requirement === 'required' && !documentIdentifier
-    ? [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: documentRule.errorCodeIfMissing ?? 'UTILTS_DOCUMENT_IDENTIFIER_MISSING',
-      title: 'Dokumentnummer saknas',
-      description: 'BGM/C106/1004 saknas.',
-      aperakErcCode: '41',
-      aperakFieldCode: '203',
-      aperakText: 'MANDATORY FIELD MISSING',
-    }] : []
-  const functionRule = rules.find(item => item.fieldNumber === '204')
-  const functionCode = bgm ? segmentComposite(bgm, 3, wire.una)[0]?.trim() : null
-  const functionIssues = functionRule?.allowedValues?.length && (!functionCode || !functionRule.allowedValues.includes(functionCode))
-    ? [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: functionCode ? functionRule.errorCodeIfInvalid ?? 'UTILTS_MESSAGE_FUNCTION_INVALID' : functionRule.errorCodeIfMissing ?? 'UTILTS_MESSAGE_FUNCTION_MISSING',
-      title: functionCode ? 'Ogiltig meddelandefunktion' : 'Meddelandefunktion saknas',
-      description: functionCode ? `BGM/1225 har otillåtet värde ${functionCode}.` : 'BGM/1225 saknas.',
-      aperakErcCode: functionCode ? '42' : '41',
-      aperakFieldCode: '204',
-      aperakText: functionCode ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
-    }] : []
-  const request = bgm ? segmentComposite(bgm, 4, wire.una)[0]?.trim() : null
-  const ackIssues = ackRule?.allowedValues?.length && (!request || !ackRule.allowedValues.includes(request))
-    ? [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: request ? ackRule.errorCodeIfInvalid ?? 'UTILTS_ACK_REQUEST_INVALID' : ackRule.errorCodeIfMissing ?? 'UTILTS_ACK_REQUEST_MISSING',
-      title: request ? 'Ogiltig kvittensbegäran' : 'Kvittensbegäran saknas',
-      description: request ? `BGM/4343 har otillåtet värde ${request}.` : 'BGM/4343 saknas.',
-      aperakErcCode: request ? '42' : '41',
-      aperakFieldCode: '313',
-      aperakText: request ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
-    }] : []
-  const timezoneRule = rules.find(item => item.fieldNumber === '206')
-  const timezoneSegment = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '735')
-  const timezoneParts = timezoneSegment ? segmentComposite(timezoneSegment, 1, wire.una) : []
-  const timezoneValue = timezoneParts[1]?.trim() ?? ''
-  const timezone = parseEdifactTimezoneOffsetFromSegments(result.facts.rawSegments)
-  const timezoneValid = Boolean(timezone)
-  const timezoneIssues = timezoneRule?.requirement === 'required' && !timezoneValid
-    ? [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: timezoneValue ? 'UTILTS_TIMEZONE_INVALID' : 'UTILTS_TIMEZONE_MISSING',
-      title: timezoneValue ? 'Ogiltig tidzon' : 'Tidzon saknas',
-      description: timezoneValue ? 'DTM+735 måste ha giltig UTC-offset och format 406.' : 'DTM+735/C507/2380 saknas.',
-      aperakErcCode: timezoneValue ? '42' : '41',
-      aperakFieldCode: '206',
-      aperakText: timezoneValue ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
-    }] : []
-  const dateRule = rules.find(item => item.fieldNumber === '205')
-  const dateSegment = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '137')
-  const dateParts = dateSegment ? segmentComposite(dateSegment, 1, wire.una) : []
-  const dateValue = dateParts[1]?.trim() ?? ''
-  const dateFormat = dateParts[2]?.trim() ?? ''
-  const localDate = /^\d{12}$/.test(dateValue)
-    ? `${dateValue.slice(0, 4)}-${dateValue.slice(4, 6)}-${dateValue.slice(6, 8)}T${dateValue.slice(8, 10)}:${dateValue.slice(10, 12)}:00`
-    : null
-  const dateInstant = localDate ? localEdifactDateTimeToUtc(localDate, timezone ?? { raw: '+0000', offsetMinutes: 0, format: '406' }) : null
-  const receivedAt = Date.parse(message.message_received_at ?? message.created_at ?? '')
-  const futureDate = Boolean(dateInstant && timezone && Number.isFinite(receivedAt) && Date.parse(dateInstant) > receivedAt)
-  const dateInvalid = Boolean(dateValue && (dateFormat !== '203' || !dateInstant || futureDate))
-  const dateIssues = dateRule?.requirement === 'required' && (!dateValue || dateInvalid)
-    ? [{
-      severity: 'error' as const, kind: 'application' as const,
-      code: !dateValue ? 'UTILTS_MESSAGE_DATE_MISSING' : 'UTILTS_MESSAGE_DATE_INVALID',
-      title: !dateValue ? 'Meddelandedatum saknas' : 'Ogiltigt meddelandedatum',
-      description: !dateValue ? 'DTM+137/C507/2380 saknas.' : 'DTM+137 måste vara ett giltigt, icke framtida datum i format 203.',
-      aperakErcCode: !dateValue ? '41' : '42',
-      aperakFieldCode: '205',
-      aperakText: !dateValue ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
-    }] : []
-  const issues = [...nadIssues, ...mksIssues, ...documentQualifierIssues, ...documentAgencyIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
+  const issues = resolveUtiltsHeaderGuideIssues(message, result.facts.messageCode)
   if (issues.length === 0) return result
   // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.
   const retained = result.validation.issues.filter(issue => issue.severity !== 'error' || issue.kind !== 'functional')
-  return rebuildUtiltsRuntimeResult({ message, result, issues: [...retained, ...issues] })
+  const rejected = rebuildUtiltsRuntimeResult({ message, result, issues: [...retained, ...issues] })
+  // Provenance is owned by this physical header guide, not inferred from an
+  // unreferenced error or the generic message ACK scope.
+  if (rejected.ackPlan.shouldSendAperak && rejected.ackPlan.aperakOutcome === 'negative') rejected.ackPlan.utiltsHeaderRejection = {
+    applicationErrors: decideUtiltsRuntimeAckPlan({ message, facts: result.facts,
+      validation: rebuildValidation(issues) }).aperakApplicationErrors,
+  }
+  return rejected
 }
 
 function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
@@ -616,12 +454,16 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
     const pairedAreas = new Set<string>()
+    let areaPresent=false,characteristic:string | null=null,exchange=false
     for (const segment of observed.segments) {
       if (segment.tag === 'SEQ') break
+      if(segment.tag==='CCI') characteristic=segmentComposite(segment,3,wire.una)[0] ?? null
+      if(segment.tag==='CAV' && characteristic==='E12' && segmentComposite(segment,1,wire.una)[0]==='E20') exchange=true
       if (segment.tag !== 'LOC') continue
       const location = segmentComposite(segment, 1, wire.una)[0]
       const fieldCode = fields[location ?? '']
       if (!fieldCode) continue
+      if(location==='239') areaPresent=true
       if (location === '232' || location === '233') pairedAreas.add(location)
       const parts = segmentComposite(segment, 2, wire.una)
       const value = parts[0] ?? ''
@@ -638,6 +480,14 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
+    }
+    const exchangeProfile=['E30','E31','E66','S07','E74'].includes(result.facts.messageCode ?? '')
+    if(!result.facts.isUtiltsErr && exchangeProfile && areaPresent && (exchange || pairedAreas.size>0)) issues.push({severity:'error',kind:'application',
+      code:'UTILTS_EXCHANGE_SINGLE_AREA_NOT_USED',title:'Felaktig nätområdesscope',description:'När eget Exchange använder nätområdesparet260b/260c ska260a inte anges enligt U s55/63.',
+      aperakErcCode:'42',aperakFieldCode:'260a',aperakText:'INCORRECT DATA',referenceQualifier:'ACW',referenceNumber:reference,lineItemReference:reference})
+    if(!result.facts.isUtiltsErr && exchange && ['E31','E66','S07','E74'].includes(result.facts.messageCode ?? '') && pairedAreas.size===0) {
+      for(const field of ['260b','260c']) issues.push({severity:'error',kind:'application',code:'UTILTS_EXCHANGE_AREA_PAIR_REQUIRED',title:'Nätområdespar saknas',
+        description:'Eget Exchange kräver260b och260c enligt U s55/63.',aperakErcCode:'41',aperakFieldCode:field,aperakText:'MANDATORY FIELD MISSING',referenceQualifier:'ACW',referenceNumber:reference,lineItemReference:reference})
     }
     if (!result.facts.isUtiltsErr && pairedAreaProfile.has(result.facts.messageCode ?? '') && pairedAreas.size === 1) {
       const missingField = pairedAreas.has('232') ? '260c' : '260b'
@@ -704,14 +554,21 @@ function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, resu
 
 function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   // Validate supplied LOC+172 in the applicable data/request profiles in
-  // U pp.54,63,123. E66/E73 absence depends on the 172/175 object domain.
-  if (!['E30', 'E66', 'S07', 'E72', 'E73'].includes(result.facts.messageCode ?? '')) return result
+  // U pp.51,54,63,123. E66/E73 absence depends on the 172/175 object domain.
+  if (!['E30', 'E66', 'S07', 'E72', 'E73', 'S02'].includes(result.facts.messageCode ?? '')) return result
   // UG-123-11/12 here is sourced from 25-A-4. A bounded English 25-A-3
   // amendment covers E61/E62, but it has not qualified these identity rows;
   // the shared E5SE5A wire does not project this rule onto the prior guide.
-  const selectedGuide = policy?.guide ?? resolveAuthoritativeEdielGuide({
-    family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
-  })
+  let selectedGuide = policy?.guide
+  if (!selectedGuide) {
+    if (result.facts.messageCode === 'S02') {
+      try {
+        selectedGuide = resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate, associationAssignedCode: result.facts.messageVersion })
+      } catch { return result }
+    } else {
+      selectedGuide = resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version })
+    }
+  }
   if (selectedGuide.guideRevision !== '25-A-4') return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
@@ -752,6 +609,50 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
     }
   }
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
+function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, retained?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+  if (result.facts.messageCode !== 'S02') return result
+  const transactions = result.facts.utiltsObservedTransactions ?? []
+  // Do not replace any blocking legacy issue unless the physical projection
+  // accounts for every transaction. Metadata cannot supply absent ownership.
+  if (!transactions.length || transactions.length !== result.facts.transactions.length || transactions.some((transaction, index) =>
+    resolveUtiltsTransactionId(transaction.transactionId, index) !== resolveUtiltsTransactionId(result.facts.transactions[index]?.transactionId, index))) return result
+  let policy = retained
+  if (!policy) {
+    try {
+      policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'S02', direction: message.direction,
+        referenceDate, associationAssignedCode: result.facts.messageVersion, applicationReference: result.facts.applicationReference, mode: 'parse' })
+    } catch {
+      // Raw validators return structured validation; keep its existing errors
+      // when the physical envelope cannot select this canonical projection.
+      return result
+    }
+  }
+  if (policy.guide.guideRevision !== '25-A-4') return result
+  const required = (field: string) => policy.fieldRules.some(rule => 'fieldNo' in rule && rule.fieldNo === field && rule.requirements.S02 === 'R')
+  if (!required('209') || !required('515')) return result
+  const wire = tokenizeEdifact(message.raw_payload)
+  // Replace only S02 legacy missing-field fallbacks with the canonical own
+  // SG5/SEQ checks. Their global/wrong-field issues must not reject siblings.
+  const legacy = new Set(['UTILTS_MISSING_METERING_POINT', 'UTILTS_PROFILE_METERING_POINT_MISSING', 'UTILTS_PROFILE_QUANTITY_MISSING'])
+  const issues = result.validation.issues.filter(issue => !legacy.has(issue.code))
+  for (const [index, observed] of transactions.entries()) {
+    const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    const boundary = observed.segments.findIndex(segment => segment.tag === 'SEQ')
+    const header = observed.segments.slice(0, boundary < 0 ? observed.segments.length : boundary)
+    const missingPoint = required('209') && !header.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === '172')
+    const missingQuantity = required('515') && (!observed.observations.length || observed.observations.some(observation =>
+      !observation.quantities.some(quantity => quantity.qualifier === '135' && quantity.value !== null && quantity.value.trim() !== '')))
+    for (const field of [...(missingPoint ? ['209'] : []), ...(missingQuantity ? ['515'] : [])]) issues.push({
+      severity: 'error', kind: 'application', code: field === '209' ? 'UTILTS_METERING_POINT_ID_MISSING' : 'UTILTS_S02_PLANNED_QUANTITY_MISSING',
+      title: field === '209' ? 'Anläggningsidentitet saknas' : 'Planerad kvantitet saknas',
+      description: field === '209' ? 'S02 kräver egen SG5/LOC+172.' : 'Varje S02-observation kräver egen SG11/QTY+135.',
+      aperakErcCode: '41', aperakFieldCode: field, aperakText: 'MANDATORY FIELD MISSING',
+      referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+    })
+  }
+  return rebuildUtiltsRuntimeResult({ message, result, issues })
 }
 
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {
@@ -839,7 +740,7 @@ export function runUtiltsRuntimeForMessage(
   message: EdielMessageRow,
   options?: UtiltsRuntimeReferenceOptions,
 ): UtiltsRuntimeResult {
-  const canonicalPolicy = options?.canonicalPolicy
+  let canonicalPolicy = options?.canonicalPolicy
   if (canonicalPolicy && (
     canonicalPolicy.family !== 'UTILTS'
     || (Boolean(message.message_code) && canonicalPolicy.code !== message.message_code)
@@ -850,8 +751,49 @@ export function runUtiltsRuntimeForMessage(
   }
   // The selected processability profile is part of the decision. Matching may
   // enrich tenant/object facts, but must not choose a new guide at receipt time.
-  const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   const validationMessage = runtimeValidationMessage(message)
+  // Cached persistence status is not physical syntax evidence on replay. Use
+  // the existing wire validator before either guide or functional execution.
+  let syntaxIssues: UtiltsValidationIssue[]
+  try {
+    syntaxIssues = validateEdifactSyntax(message).issues
+      .filter(issue => issue.code !== 'syntax_check_failed' && issue.code !== 'message_failed')
+      .map(issue => ({ ...issue, kind: 'syntax', edielErrorCode: '7' }))
+  } catch (error) {
+    if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+    syntaxIssues = [{severity:'error',kind:'syntax',code:'edifact_dangling_release_character',title:'Ogiltig EDIFACT-release',
+      description:'Den fysiska källan slutar med ett release-tecken utan efterföljande tecken.',edielErrorCode:'7'}]
+  }
+  if (syntaxIssues.some(issue => issue.severity === 'error')) {
+    let facts: UtiltsRuntimeFacts
+    try {
+      facts = parseUtiltsRuntimeFacts(message.raw_payload ?? '')
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+      // Undecodable input has no AST, IDE, business identity or addressable
+      // envelope evidence. It still has a typed syntax rejection; downstream
+      // response admission must independently resolve the original envelope.
+      facts = {messageFamily:'UTILTS',messageCode:null,transactionReference:null,externalReference:null,applicationReference:null,
+        senderEdielId:null,receiverEdielId:null,rawSegments:[],parsedPayload:{},messageReference:null,messageVersion:null,
+        documentReference:null,interchangeReference:null,market:null,stage:null,senderRole:null,receiverRole:null,subordinateRole:null,
+        meterPointId:null,gridAreaId:null,transactionId:null,deliveryPeriodRaw:null,deliveryPeriodStart:null,deliveryPeriodEnd:null,
+        registrationTime:null,resolution:null,transactionReason:null,unit:null,quantities:[],transactions:[],references:[],isUtiltsErr:false}
+    }
+    const validation = rebuildValidation(syntaxIssues)
+    return {
+      facts,
+      normalizedPayload: normalizeUtiltsRuntimePayload(facts, message),
+      validation,
+      transactionDispositions: resolveUtiltsTransactionDispositions({
+        syntaxOk: false, transactions: facts.transactions, issues: syntaxIssues,
+      }),
+      ackPlan: decideUtiltsRuntimeAckPlan({ message, facts, validation }),
+    }
+  }
+  // Shared admission selects one complete source guide package. Candidate
+  // passes always carry an explicit policy, so this default path cannot recurse.
+  canonicalPolicy ??= resolveCanonicalMessagePolicy(message,undefined,{admissionAt:options?.referenceDate ?? undefined}) ?? undefined
+  const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   // Complete the syntax/application pass before invoking any functional
   // validator. Guide failures cannot enter the functional pass; valid siblings
   // retain their own transaction reference and checks.
@@ -865,7 +807,14 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  const packagingIssues: UtiltsValidationIssue[] = utiltsPackagingGuideViolations(message.raw_payload ?? '').flatMap(violation => guideEffective.facts.transactions.map(transaction => ({
+    severity:'error' as const,kind:'application' as const,code:violation.code,title:'Felaktig UTILTS-paketering',description:violation.description,
+    aperakErcCode:'42',aperakFieldCode:violation.field,aperakText:'INCORRECT DATA',referenceQualifier:transaction.transactionId ? 'ACW' : null,
+    referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId,
+  })))
+  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
+  const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  if (options?.guideOnly) return guided
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))

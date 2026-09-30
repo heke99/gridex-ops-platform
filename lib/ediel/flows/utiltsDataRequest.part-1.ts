@@ -528,6 +528,7 @@ export async function createAckIfMissing(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
 }) {
   const draft =
     params.ackFamily === 'CONTRL'
@@ -546,6 +547,7 @@ export async function createAckIfMissing(params: {
             applicationErrors: params.applicationErrors ?? null,
             ackScope: params.ackScope ?? null,
             relatedTransactionReference: params.relatedTransactionReference ?? null,
+            utiltsHeaderRejected: params.utiltsHeaderRejected,
           })
         : buildUtiltsErrDraft({
             actorUserId: params.actorUserId,
@@ -682,6 +684,15 @@ export async function createUtiltsRuntimeAcks(params: {
   testCaseCode?: string | null
 }) {
   const createdIds: string[] = []
+  const transactionDispositions = params.transactionDispositions ?? []
+  const hasSyntaxRejection = transactionDispositions.some((item) => item.disposition === 'syntax_rejected')
+  const headerRejection = !hasSyntaxRejection ? params.ackPlan.utiltsHeaderRejection : undefined
+  if (headerRejection && (!params.ackPlan.shouldSendAperak || params.ackPlan.aperakOutcome !== 'negative'
+    || params.ackPlan.shouldSendUtiltsErr || params.ackPlan.contrlOutcome !== 'positive'
+    || headerRejection.applicationErrors.length === 0
+    || transactionDispositions.some(item => item.disposition !== 'guide_rejected' || item.responseType !== 'negative_aperak'))) {
+    throw new Error('utilts_header_ack_plan_inconsistent')
+  }
 
   if (params.ackPlan.shouldSendContrl && params.ackPlan.contrlOutcome) {
     const contrl = await createAckIfMissing({
@@ -694,8 +705,24 @@ export async function createUtiltsRuntimeAcks(params: {
     createdIds.push(contrl.id)
   }
 
-  const transactionDispositions = params.transactionDispositions ?? []
-  const hasSyntaxRejection = transactionDispositions.some((item) => item.disposition === 'syntax_rejected')
+  if (headerRejection) {
+    const companyId = stringOrNull(params.sourceMessage.company_id)
+    if (!companyId) throw new Error('UTILTS huvudkvittens saknar tenantkoppling')
+    const aperak = await createAckIfMissing({
+      actorUserId: params.actorUserId, sourceMessage: params.sourceMessage,
+      ackFamily: 'APERAK', outcome: 'negative', messageText: params.ackPlan.reason,
+      applicationErrors: headerRejection.applicationErrors, ackScope: 'message',
+      relatedTransactionReference: null, utiltsHeaderRejected: true,
+    })
+    createdIds.push(aperak.id)
+    for (const [index, disposition] of transactionDispositions.entries()) {
+      await finalizeUtiltsTransactionAck({ companyId, environment: params.sourceMessage.environment,
+        sourceMessageId: params.sourceMessage.id,
+        transactionId: resolveUtiltsTransactionId(disposition.transactionId, index),
+        responseType: 'negative_aperak', responseMessageId: aperak.id })
+    }
+    return createdIds
+  }
   if (transactionDispositions.length > 0 && !hasSyntaxRejection) {
     const companyId = stringOrNull(params.sourceMessage.company_id)
     if (!companyId) throw new Error('UTILTS transaktionskvittens saknar tenantkoppling')

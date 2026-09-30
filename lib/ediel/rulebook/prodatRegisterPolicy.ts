@@ -1,7 +1,7 @@
 import {prodatFieldDiagnostic,prodatLocalDiagnostic,type ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { isProdatReadingField, prodatRegisterReadingMarket, prodatRegisterReadingState, prodatRegisterReadingSubtype } from '@/lib/ediel/prodat/prodatRegisterReadings'
 import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
-import { validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'
+import { validateFieldMatrixPayload, recordIgnoredProdatField, type ProdatIgnoredField } from '@/lib/ediel/rulebook/fieldMatrix'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { canonicalProdatSubtypeAlias } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -39,6 +39,8 @@ export function reconcileProdatRegisterInventoryStatus(
  * an independent rule store. Structure/base field checks stay in fieldMatrix. */
 export function validateProdatRegisterPolicy(input: {
   code: string
+  direction?: 'inbound'|'outbound'
+  onIgnoredField?: (field: ProdatIgnoredField) => void
   rawSegments: readonly string[]
   una?: EdifactServiceStringAdvice
   facts?: ProdatDependentConditionFacts
@@ -124,6 +126,10 @@ export function validateProdatRegisterPolicy(input: {
         meterReadingsSentInUtilts:readings,market,expectedRegisterCount:fact?.expectedRegisterCount,outboundReadings:requireIndependentInventory})
       if (status === null) continue
       handledFields.add(field)
+      if (status === 'forbidden' && input.direction === 'inbound') {
+        recordIgnoredProdatField(input, field, group.segments.map(token => token.raw), 'register', group.lineIndex)
+        continue
+      }
       if (readingField && requireIndependentInventory) {
         const previous = readingsDecisions.get(field)
         const next = status === 'undetermined' ? 'undetermined' : status === 'required' ? 'required' : 'not_required'

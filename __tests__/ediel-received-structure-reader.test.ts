@@ -99,6 +99,54 @@ it('loads independent sealed Z04 bytes through the real processor, not incoming 
   expect(queryCalls).toContainEqual(['lte', 'message_received_at', incoming.message_received_at])
   expect(queryCalls.find(([name]) => name === 'select')?.[2]).toEqual({ count: 'exact' })
 })
+it.each(['point first', 'object first'])('does not link a point source to a mixed LOC+172/LOC+175 IDE (%s)', async order => {
+  const pointLocation = `LOC+172+${point}::9'`
+  const objectLocation = "LOC+175+735999260731000007::9'"
+  incoming.raw_payload = incoming.raw_payload!.replace(
+    pointLocation,
+    order === 'point first' ? `${pointLocation}\n${objectLocation}` : `${objectLocation}\n${pointLocation}`,
+  )
+  // The match is deliberately plausible. Its existence cannot select the
+  // accounting-point namespace for an IDE that also names a regulating object.
+  const report = await readReceivedStructuralSources({ message: incoming, transactionMatches: [{ ...match(), matchStatus: 'matched' }] })
+  expect(report).toMatchObject({ status: 'not_requested', authorityStatus: 'not_established', sources: [] })
+  expect(io.from).not.toHaveBeenCalled()
+  expect(JSON.stringify(report)).not.toContain('source-1')
+})
+it('still inspects an independent clean point sibling when another IDE mixes object domains', async () => {
+  const secondPoint = '735999260731000014'
+  incoming.raw_payload = incoming.raw_payload!
+    .replace(`LOC+172+${point}::9'`, `LOC+172+${point}::9'\nLOC+175+735999260731000007::9'`)
+    .replace("UNT+35+1'", `IDE+24+TX-2'\nLOC+172+${secondPoint}::9'\nUNT+38+1'`)
+  const secondSource = source('Z04', '202607010000', [
+    line('1', secondPoint, undefined, '9'), ['DTM', ['92', '202607010000', '203']],
+    ['RFF', ['MG', 'SOURCE-METER']], ...characteristic('Z16', '201', 3),
+  ])
+  rows = [{ ...secondSource, id: 'source-2', metering_point_id: 'meter-2' }]
+  const report = await readReceivedStructuralSources({
+    message: incoming,
+    transactionMatches: [
+      { ...match(), matchStatus: 'matched' },
+      { ...match({ transactionReference: 'TX-2', externalMeteringPointId: secondPoint, meteringPointId: 'meter-2' }), matchStatus: 'matched' },
+    ],
+  })
+  expect(report).toMatchObject({ status: 'inspected', authorityStatus: 'not_established' })
+  expect(report.sources.map(item => item.sourceMessageId)).toEqual(['source-2'])
+  expect(queryCalls).toContainEqual(['in', 'metering_point_id', ['meter-2']])
+})
+it('does not link an agency 89 source through an unqualified point-text match in the inbound processor', async () => {
+  incoming.raw_payload = incoming.raw_payload!.replace(`LOC+172+${point}::9'`, `LOC+172+${point}::89'`)
+  rows = [source('Z04', '202607010000', [
+    line('1', point, undefined, '89'), ['DTM', ['92', '202607010000', '203']],
+    ['RFF', ['MG', 'SOURCE-METER']], ...characteristic('Z16', '201', 3),
+  ])]
+  // The legacy matcher supplies the same tenant point and identical text.
+  // It does not identify the distributor that assigned this local namespace.
+  const report = await run()
+  expect(report).toMatchObject({ status: 'not_requested', authorityStatus: 'not_established', sources: [] })
+  expect(io.from).not.toHaveBeenCalled()
+  expect(JSON.stringify(report)).not.toContain('source-1')
+})
 it.each(['Z06', 'Z10'])('uses %s change validity, never later contract start or receipt date', async code => {
   rows = [source(code, '', [line('1', point, undefined, '9'), ['DTM', ['157', '202606080835', '203']], ['DTM', ['92', '202607010000', '203']],
     ['RFF', ['MG', 'NEW']], ['RFF', ['Z02', 'OLD']], ...characteristic('Z16', '202', 3)])]

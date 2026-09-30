@@ -99,6 +99,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     outcome: desiredOutcome ?? undefined,
     messageText: params.decision.messageText,
     applicationErrors: params.decision.applicationErrors,
+    utiltsHeaderRejected: params.decision.utiltsHeaderRejected,
   })
 
   const ack = await createCanonicalAckMessage({

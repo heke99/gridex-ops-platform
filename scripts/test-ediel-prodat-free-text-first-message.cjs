@@ -4,8 +4,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+after(assertNoSourceBoundaryAttempts)
 const root = path.resolve(__dirname, '..')
 const NOW = '2026-09-20T12:00:00.000Z'
 
@@ -38,6 +40,8 @@ async function loadRuntime() {
     export { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator';
   `, { context, identifier: path.join(root, 'lib/ediel/ftx-first-message-test.ts') })
   await entry.link((name, parent) => {
+    const manifest = sourceRuntimeBoundary(name, modules, parent)
+    if (manifest) return manifest
     if (boundaries.has(name)) return boundaries.get(name)
     if (name === 'crypto' || name === 'node:crypto') return crypto
     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
@@ -45,7 +49,7 @@ async function loadRuntime() {
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
     if (!modules.has(file)) modules.set(file, new SourceTextModule(
-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
+      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
       { context, identifier: file }))
     return modules.get(file)
   })

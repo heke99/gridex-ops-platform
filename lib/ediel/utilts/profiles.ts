@@ -1,9 +1,9 @@
-import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import { canonicalUtiltsObservationRequirements, getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 import type { UtiltsRuntimeFacts, UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine'
 import { expectedObservationCountForResolution } from '@/lib/ediel/utilts/resolution'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
-function issue(code: string, title: string, description: string, reference?: string | null): UtiltsValidationIssue {
+function issue(code: string, title: string, description: string, reference?: string | null, field = '512'): UtiltsValidationIssue {
   return {
     severity: 'error',
     kind: 'application',
@@ -11,7 +11,7 @@ function issue(code: string, title: string, description: string, reference?: str
     title,
     description,
     aperakErcCode: '41',
-    aperakFieldCode: '512',
+    aperakFieldCode: field,
     aperakText: 'MANDATORY FIELD MISSING',
     referenceQualifier: reference ? 'ACW' : null,
     referenceNumber: reference ?? null,
@@ -48,7 +48,7 @@ function intervalQuantities(
   messageCode: string | null | undefined,
   quantities: Array<{ qualifier: string | null; value: number | null; raw: string }>,
 ) {
-  if (String(messageCode ?? '').trim().toUpperCase() !== 'E66') return quantities
+  if (!['E30','E66','S07'].includes(String(messageCode ?? '').trim().toUpperCase())) return quantities
 
   // Field 516 in the Swedish 25-A-3 matrix is QTY+136 (periodic energy).
   // Field 517 is QTY+220 (meter reading). Register readings are evidence for
@@ -62,45 +62,38 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts, functi
   if (!profile) return [issue('UTILTS_PROFILE_MISSING', 'UTILTS-profil saknas', `Ingen aktiv profil finns för ${facts.messageCode ?? '(saknas)'}.`)]
   if (profile.messageCode === 'ERR') return []
 
-  const transactions = facts.transactions.length > 0 ? facts.transactions : [{
-    transactionId: facts.transactionId,
-    meterPointId: facts.meterPointId,
-    regulatingObjectId: null,
-    regulatingObjectPresent: false,
-    gridAreaId: facts.gridAreaId,
-    deliveryPeriodStart: facts.deliveryPeriodStart,
-    deliveryPeriodEnd: facts.deliveryPeriodEnd,
-    resolution: facts.resolution,
-    resolutionFormat: null,
-    unit: facts.unit,
-    quantities: facts.quantities,
-  }]
+  // Global facts are a legacy summary of the first/all IDEs. They never fill
+  // an absent field or transaction in the physical source scope (U §2/3.8).
+  const transactions = facts.transactions
   const issues: UtiltsValidationIssue[] = []
-  if (profile.requiresTransaction && transactions.length === 0) issues.push(issue('UTILTS_TRANSACTION_REQUIRED', 'Transaktion saknas', `${profile.profileKey} kräver minst en transaktion.`))
+  if (profile.requiresTransaction && transactions.length === 0) issues.push(issue('UTILTS_TRANSACTION_REQUIRED', 'Transaktion saknas', `${profile.profileKey} kräver minst en transaktion.`, null, '505'))
 
   transactions.forEach((transaction, index) => {
     const reference = resolveUtiltsTransactionId(
-      transaction.transactionId ?? facts.transactionId,
+      transaction.transactionId,
       index,
     )
-    if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 eller TN-referens per transaktion.`, reference))
+    if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 per transaktion.`, reference, '505'))
     if (profile.requiresMeteringPoint && !(facts.messageCode === 'E66'
       ? transaction.meterPointId || transaction.regulatingObjectPresent
-      : transaction.meterPointId || facts.meterPointId)) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver ${facts.messageCode === 'E66' ? 'LOC+172 eller LOC+175' : 'LOC+172'} per transaktion.`, reference))
-    if (profile.requiresGridArea && !transaction.gridAreaId && !facts.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference))
+      : transaction.meterPointId)) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver ${facts.messageCode === 'E66' ? 'LOC+172 eller LOC+175' : 'LOC+172'} per transaktion.`, reference, '209'))
+    if (profile.requiresGridArea && !transaction.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference, '260a'))
     const singletonReading = isSingletonE30Reading(facts, index)
-    if (profile.requiresPeriod && !singletonReading && (!(transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart) || !(transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd))) issues.push(issue('UTILTS_PROFILE_PERIOD_MISSING', 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference))
-    if (profile.requiresResolution && !singletonReading && !(transaction.resolution ?? facts.resolution)) issues.push(issue('UTILTS_PROFILE_RESOLUTION_MISSING', 'Upplösning saknas', `${profile.profileKey} kräver DTM+354.`, reference))
-    if (profile.requiresUnit && !(transaction.unit ?? facts.unit)) issues.push(issue('UTILTS_PROFILE_UNIT_MISSING', 'Enhet saknas', `${profile.profileKey} kräver MEA-enhet.`, reference))
-    const quantities = transaction.quantities?.length ? transaction.quantities : facts.quantities
-    if (profile.requiresQuantities && quantities.length === 0) issues.push(issue('UTILTS_PROFILE_QUANTITY_MISSING', 'Mätvärden saknas', `${profile.profileKey} kräver QTY-värden.`, reference))
+    if (profile.requiresPeriod && !singletonReading && (!transaction.deliveryPeriodStart || !transaction.deliveryPeriodEnd)) issues.push(issue('UTILTS_PROFILE_PERIOD_MISSING', 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference, '245'))
+    if (profile.requiresResolution && !singletonReading && !transaction.resolution) issues.push(issue('UTILTS_PROFILE_RESOLUTION_MISSING', 'Upplösning saknas', `${profile.profileKey} kräver DTM+354.`, reference, '508'))
+    const quantities = transaction.quantities
+    const observations=facts.utiltsObservedTransactions?.[index]?.observations ?? []
+    const requirement=canonicalUtiltsObservationRequirements(profile.messageCode,{quantityCount:quantities.length,
+      hasAmountOrPrice:observations.some(observation=>observation.segments.some(segment=>segment.tag==='MOA' || segment.tag==='PRI'))})
+    if (requirement.unitRequired && !transaction.unit) issues.push(issue('UTILTS_PROFILE_UNIT_MISSING', 'Enhet saknas', `${profile.profileKey} kräver MEA-enhet för denna kvantitetsgren.`, reference, '264'))
+    if (requirement.quantitiesRequired && quantities.length === 0) issues.push(issue('UTILTS_PROFILE_QUANTITY_MISSING', 'Mätvärden saknas', `${profile.profileKey} kräver QTY-värden i denna observationsgren.`, reference, ['S02','S03','S04'].includes(profile.messageCode) ? '515' : 'QTY/6060'))
 
     const countedQuantities = intervalQuantities(facts.messageCode, quantities)
     if (profile.validatesDst && countedQuantities.length > 0 && (!functionalEligible || functionalEligible.has(reference))) {
       const expected = expectedObservationCountForResolution({
-        start: transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart,
-        end: transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd,
-        value: transaction.resolution ?? facts.resolution,
+        start: transaction.deliveryPeriodStart,
+        end: transaction.deliveryPeriodEnd,
+        value: transaction.resolution,
         format: transaction.resolutionFormat ?? null,
       })
       if (expected !== null && countedQuantities.length !== expected) {

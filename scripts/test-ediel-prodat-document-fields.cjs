@@ -5,8 +5,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+after(assertNoSourceBoundaryAttempts)
 const root=path.resolve(__dirname,'..')
 async function runtime(){
  const modules=new Map()
@@ -38,6 +40,8 @@ async function runtime(){
  export { parseInboundProdatBusinessData } from '@/lib/ediel/inboundCases';
  `,{identifier:path.join(root,'lib/ediel/document-test.ts')})
  await entry.link((name,parent)=>{
+    const manifest = sourceRuntimeBoundary(name, modules, parent)
+    if (manifest) return manifest
   if(name==='@/lib/supabase/service') return service
   if(blocked.has(name))return blocked.get(name)
   if(name==='crypto'||name==='node:crypto')return crypto
@@ -45,7 +49,7 @@ async function runtime(){
   const base=name.startsWith('@/')?path.join(root,name.slice(2)):path.resolve(path.dirname(parent.identifier),name)
   const file=['.ts','/index.ts'].map(ext=>base+ext).find(fs.existsSync)
   assert(file&&file.startsWith(path.join(root,'lib/ediel/')),'Only actual Ediel source is loaded')
-  if(!modules.has(file))modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{identifier:file}))
+  if(!modules.has(file))modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode: 'transform',sourceUrl:file}),{identifier:file}))
   return modules.get(file)
  })
  await entry.evaluate();return entry.namespace

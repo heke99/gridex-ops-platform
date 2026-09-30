@@ -2,7 +2,9 @@ import { validateUtiltsPersistenceResults, type persistUtiltsTransactionResults,
 import { createHash } from 'node:crypto'
 
 /** Successful external RPC double for diagnostic-invariance tests. An empty
- * array is an invalid RPC response, not successful persistence of every input. */
+ * array is an invalid RPC response, not successful persistence of every input.
+ * The digest is a synthetic RPC receipt; PostgreSQL owns the actual jsonb
+ * contract digest. Return the prepared contract's own version and content. */
 export async function successfulUtiltsPersistenceIo(
   input: Parameters<typeof persistUtiltsTransactionResults>[0],
 ): Promise<UtiltsTransactionPersistenceResult[]> {
@@ -12,6 +14,6 @@ export async function successfulUtiltsPersistenceIo(
     responseType: item.responseType,
     persistenceStatus: item.disposition === 'accepted' ? 'persisted' : 'not_applicable',
     sourceBinding: { sourceMessageId: input.sourceMessageId, rawHash: createHash('sha256').update(input.rawPayload).digest('hex'), boundAt: '2026-09-23T00:00:00Z' },
-    ...(item.disposition === 'accepted' ? { seriesId: `synthetic-series-${item.transactionId}`, consumptionContract: structuredClone(input.contracts[index]), contractHash: 'a'.repeat(64), contractVersion: 1 } : {}),
+    ...(item.disposition === 'accepted' ? { seriesId: `synthetic-series-${item.transactionId}`, consumptionContract: structuredClone(input.contracts[index]), contractHash: 'a'.repeat(64), contractVersion: input.contracts[index].version } : {}),
   })))
 }

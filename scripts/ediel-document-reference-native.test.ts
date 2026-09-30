@@ -220,6 +220,37 @@ it('missing bytes leave durable attempted/unavailable context',async()=>{
  expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'unavailable'})
  expect(saved(f)).toMatchObject({attempts:[{documentId:f.documentId,outcome:{observation:{status:'unavailable'}}}]})
 })
+it('accepts a millisecond-resolution observation started after a committed attempt',async()=>{
+ const f=await seed()
+ let attempt:Record<string,unknown>|null=null
+ let startedAt=''
+ // PostgreSQL keeps microseconds while the bounded Storage readback reports
+ // JavaScript milliseconds. Its start can be in the attempt's rounded millisecond.
+ for(let i=0;i<5;i++){
+  const opened=await begin(f);expect(opened.error).toBeNull()
+  attempt=opened.data as Record<string,unknown>
+  startedAt=new Date(attempt.recordedAt as string).toISOString()
+  if(sql<boolean>(`SELECT to_jsonb(${literal(startedAt)}::timestamptz<${literal(attempt.recordedAt)}::timestamptz)`))break
+ }
+ expect(attempt).not.toBeNull()
+ expect(sql<boolean>(`SELECT to_jsonb(${literal(startedAt)}::timestamptz<${literal(attempt!.recordedAt)}::timestamptz)`)).toBe(true)
+ const observation={status:'unavailable',reason:'hash_mismatch',startedAt,
+  completedAt:new Date(Date.parse(startedAt)+10).toISOString(),byteCount:13}
+ const outcome=await supabaseService.rpc('gridex_observe_document_reference_v1',{
+  p_company_id:f.companyId,p_environment:f.environment,p_attempt_id:attempt!.attemptId,
+  p_actor_user_id:f.actorUserId,p_observation:observation})
+ expect(outcome.error).toBeNull()
+ expect(outcome.data).toMatchObject({attemptId:attempt!.attemptId,status:'unavailable'})
+ const earlier=await begin(f);expect(earlier.error).toBeNull()
+ const beforeMillisecond=new Date(Date.parse((earlier.data as {recordedAt:string}).recordedAt)-1).toISOString()
+ const rejected=await supabaseService.rpc('gridex_observe_document_reference_v1',{
+  p_company_id:f.companyId,p_environment:f.environment,p_attempt_id:(earlier.data as {attemptId:string}).attemptId,
+  p_actor_user_id:f.actorUserId,p_observation:{...observation,startedAt:beforeMillisecond,
+   completedAt:new Date().toISOString()}})
+ expect(rejected.error?.message).toBe('invalid_document_observation_time')
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.document_reference_outcomes
+  WHERE attempt_id=${literal((earlier.data as {attemptId:string}).attemptId)}`)).toBe(0)
+})
 it('null storage path remains unresolved with no verified observation',async()=>{
  const f=await seed(),id=randomUUID()
  sql(`INSERT INTO public.customer_contract_documents(id,company_id,customer_contract_id,document_type,storage_bucket,storage_path,mime_type,document_sha256,generation_snapshot) VALUES(${literal(id)},${literal(f.companyId)},${literal(f.contract)},'signed_contract_pdf','customer-contract-documents',NULL,'application/pdf',repeat('b',64),'{}')`)
@@ -266,7 +297,11 @@ it('interruption before witness leaves committed unwitnessed outcome',async()=>{
 })
 it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['delete','replace'].map(loss=>({boundary,loss}))))('storage $loss at $boundary preserves old receipt and new reads hold',async({boundary,loss})=>{
  const f=await seed();const original=supabaseService.rpc.bind(supabaseService)
- const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string;observation?:unknown}={}
+ // The previous delete/before_witness failure returned before the witness
+ // hook (trace was empty). Record each RPC boundary without changing the
+ // fail-closed capture result or logging a document body or credentials.
+ const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string;observation?:unknown;
+  rpcStages:{name:string;phase:'start'|'returned'|'threw';error?:string;keys?:string[];eligible?:boolean}[]}={rpcStages:[]}
  const lose=async()=>{
   trace.storage='started'
   try{
@@ -275,14 +310,28 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    expect(result.error).toBeNull()
   }catch(error){trace.storageError=error instanceof Error?error.message:String(error);throw error}
  }
- if(boundary!=='after_witness')vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
-  if(name===(boundary==='before_append'?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1'))return {abortSignal:async()=>{
-   trace.hook=name
-   if(name==='gridex_observe_document_reference_v1')trace.observation=(params as {p_observation?:unknown})?.p_observation
-   await lose();const response=await original(name,params,options)
-   trace.rpcError=response.error?.message;return response
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  const hooked=boundary!=='after_witness'&&name===(boundary==='before_append'
+   ?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1')
+  if(!hooked&&!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   trace.rpcStages.push({name,phase:'start'})
+   if(hooked){
+    trace.hook=name
+    if(name==='gridex_observe_document_reference_v1')trace.observation=(params as {p_observation?:unknown})?.p_observation
+    await lose()
+   }
+   try{
+    const response=await request.abortSignal(signal)
+    const data=response.data
+    trace.rpcStages.push({name,phase:'returned',...(response.error?{error:response.error.message}:{}),
+     ...(data&&typeof data==='object'&&!Array.isArray(data)?{keys:Object.keys(data).sort(),
+      eligible:(data as {eligible?:boolean}).eligible===true}: {})})
+    if(hooked)trace.rpcError=response.error?.message
+    return response
+   }catch(error){trace.rpcStages.push({name,phase:'threw',error:error instanceof Error?error.message:String(error)});throw error}
   }} as unknown as ReturnType<typeof supabaseService.rpc>
-  return original(name,params,options)
  })
  const capture=await captureDocumentReference(args(f))
  if(capture.status==='unconfirmed'){
@@ -296,12 +345,28 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
    WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
   const clock=sql<{recordedAt:string;dbNow:string}>(`SELECT jsonb_build_object('recordedAt',recorded_at,'dbNow',clock_timestamp()) FROM gridex_received_sources.document_reference_attempts WHERE id=${literal(capture.attemptId)}`)
-  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,clock,durable})}`)
+  const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
+  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,clock,durable,readback})}`)
  }
  expect(capture).toMatchObject({status:'recorded',observation:'verified_at_observation'})
  vi.restoreAllMocks();const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'),old=saved(f,cutoff)
  await lose()
+ const revalidationTrace:{name:string;error?:string;recordedAt?:unknown;status?:unknown;
+  observation?:unknown;availableAt?:unknown;returnedAt:string}[]=[]
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  if(!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   const response=await request.abortSignal(signal),data=response.data as Record<string,unknown>|null
+   revalidationTrace.push({name,...(response.error?{error:response.error.message}:{}),
+    ...(name==='gridex_observe_document_reference_v1'?{observation:(params as {p_observation?:unknown}).p_observation}:{}),
+    ...(data?.recordedAt?{recordedAt:data.recordedAt}:{}),...(data?.status?{status:data.status}:{}),
+    ...(data?.availableAt?{availableAt:data.availableAt}:{}),returnedAt:new Date().toISOString()})
+   return response
+  }} as unknown as ReturnType<typeof supabaseService.rpc>
+ })
  const fresh=await readDocumentReferenceContext({...args(f),cutoff})
+ vi.restoreAllMocks()
  if(fresh.revalidation.some(result=>result.status==='unconfirmed')){
   const durable=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
    'attempts',count(DISTINCT a.id),'outcomes',count(DISTINCT o.id),'witnesses',count(DISTINCT w.id))
@@ -313,8 +378,8 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
    WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
   const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
-  throw Error(`document_reference_revalidation_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,
-   object,readback,fresh,trace,durable})}`)
+  throw Error(`document_reference_revalidation_stage ${JSON.stringify({boundary,loss,revalidationTrace,durable,
+   object,readback,revalidation:fresh.revalidation,trace,fresh})}`)
  }
  expect(fresh.revalidation).toMatchObject([{status:'recorded',observation:'unavailable'}]);expect(fresh.contentStatus).toBe('document_reference_unavailable');expect(saved(f,cutoff)).toEqual({...old,visibilitySnapshot:expect.any(String)})
 })
@@ -363,7 +428,29 @@ it('wrong-company actor has no document capture authority',async()=>{
  expect(saved(f)).toMatchObject({attempts:[]})
 })
 it('append-only outcome and witness reject service DML and privileged mutation',async()=>{
- const f=await seed(),capture=await captureDocumentReference(args(f))
+ const f=await seed(),original=supabaseService.rpc.bind(supabaseService)
+ // Capture can deliberately return unconfirmed after a committed attempt. Retain
+ // only synthetic RPC boundaries and clocks on failure so an absent outcome is
+ // attributable to begin validation, the byte observation, or the observe RPC.
+ const rpcStages:{name:string;phase:'start'|'returned'|'threw';code?:string;error?:string;
+  recordedAt?:string;eligible?:boolean;observation?:unknown;dataKeys?:string[]}[]=[]
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  if(!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   const observation=name==='gridex_observe_document_reference_v1'?(params as {p_observation?:unknown})?.p_observation:undefined
+   rpcStages.push({name,phase:'start',...(observation?{observation}:{})})
+   try{
+    const response=await request.abortSignal(signal),data=response.data
+    rpcStages.push({name,phase:'returned',...(response.error?{code:response.error.code,error:response.error.message}:{}),
+     ...(data&&typeof data==='object'&&!Array.isArray(data)?{
+      dataKeys:Object.keys(data).sort(),recordedAt:(data as {recordedAt?:string}).recordedAt,
+      eligible:(data as {eligible?:boolean}).eligible===true}: {})})
+    return response
+   }catch(error){rpcStages.push({name,phase:'threw',error:error instanceof Error?error.message:String(error)});throw error}
+  }} as unknown as ReturnType<typeof supabaseService.rpc>
+ })
+ const capture=await captureDocumentReference(args(f))
  const stage=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
   'attempts',(SELECT count(*) FROM gridex_received_sources.document_reference_attempts
    WHERE source_message_id=${literal(f.sourceMessageId)}),
@@ -374,7 +461,14 @@ it('append-only outcome and witness reject service DML and privileged mutation',
    JOIN gridex_received_sources.document_reference_outcomes o ON o.id=w.outcome_id
    JOIN gridex_received_sources.document_reference_attempts a ON a.id=o.attempt_id
    WHERE a.source_message_id=${literal(f.sourceMessageId)}))`)
- expect(capture,JSON.stringify({capture,stage})).toMatchObject({status:'recorded'})
+ if(capture.status!=='recorded'){
+  const attemptId='attemptId' in capture?capture.attemptId:undefined
+  const clock=attemptId?sql<{recordedAt:string;dbNow:string}|null>(`SELECT jsonb_build_object('recordedAt',recorded_at,'dbNow',clock_timestamp())
+   FROM gridex_received_sources.document_reference_attempts WHERE id=${literal(attemptId)}`):null
+  const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
+  throw Error(`document_reference_baseline_capture_stage ${JSON.stringify({capture,stage,rpcStages,clock,readback})}`)
+ }
+ vi.restoreAllMocks()
  for(const table of ['document_reference_outcomes','document_reference_witnesses']){
   expect(()=>sql(`SET ROLE service_role; DELETE FROM gridex_received_sources.${table};`)).toThrow()
   expect(()=>sql(`DELETE FROM gridex_received_sources.${table};`)).toThrow()

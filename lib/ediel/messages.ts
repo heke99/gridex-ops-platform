@@ -4,8 +4,10 @@ import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 
 type BuildEdifactEnvelopeInput = {
   senderEdielId: string
+  senderQualifier?: string | null
   senderSubAddress?: string | null
   receiverEdielId: string
+  receiverQualifier?: string | null
   receiverSubAddress?: string | null
   applicationReference?: string | null
   acknowledgementRequest: boolean
@@ -32,8 +34,10 @@ export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdi
   const messageReference = '1'
   const raw = EdifactEnvelopeCodec.encode({
     sender: input.senderEdielId,
+    senderQualifier: input.senderQualifier,
     senderSubAddress: input.senderSubAddress,
     receiver: input.receiverEdielId,
+    receiverQualifier: input.receiverQualifier,
     receiverSubAddress: input.receiverSubAddress,
     applicationReference: input.applicationReference,
     acknowledgementRequest: input.acknowledgementRequest,

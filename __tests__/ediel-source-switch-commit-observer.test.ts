@@ -1,7 +1,7 @@
 import {beforeEach, expect, it, vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-const io=vi.hoisted(()=>({writes:[] as string[], failSupply:false, supplyExists:true}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
+const io=vi.hoisted(()=>({writes:[] as string[],rpc:vi.fn(),failSupply:false,supplyExists:true,cancelled:false,failCancellation:false}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc,from:(table:string)=>{
  let write=false
  const q={select:()=>q,eq:()=>q,lte:()=>q,or:()=>q,limit:()=>q,
  update:()=>{write=true;io.writes.push(table);return q},insert:()=>{write=true;io.writes.push(table);return q},
@@ -15,15 +15,35 @@ vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCus
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 const message=()=>({id:'source',company_id:'company',customer_id:'customer',metering_point_id:'point',site_id:'site',message_family:'PRODAT',message_code:'Z04',direction:'inbound',parsed_payload:{subtype:'L',start_date:'2026-10-01'},raw_payload:null} as unknown as EdielMessageRow)
-beforeEach(()=>{io.writes=[];io.failSupply=false;io.supplyExists=true})
+beforeEach(()=>{
+ io.writes=[];io.failSupply=false;io.supplyExists=true;io.cancelled=false;io.failCancellation=false;io.rpc.mockReset()
+ io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
+  expect(name).toBe('ediel_supply_start_is_cancelled_v1')
+  expect(args).toEqual({p_company_id:'company',p_switch_request_id:'switch'})
+  return {data:io.cancelled,error:io.failCancellation?new Error('cancellation lookup failed'):null}
+ })
+})
 it.each([true,false])('observes actual successful Z04 confirmation and supply persistence (existing=%s)',async existing=>{
  io.supplyExists=existing
  const observed=vi.fn(async()=>{expect(io.writes).toEqual(['supplier_switch_requests','customer_supply_periods'])})
  const input={actorUserId:'actor',message:message(),matchedSwitchRequestId:'switch',onSourceSwitchCommitted:observed}
  const result=await applyInboundBusinessStateMachine(input)
  expect(result.outcome).toBe('supplier_switch_accepted')
+ expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_supply_start_is_cancelled_v1',{p_company_id:'company',p_switch_request_id:'switch'})
  expect(observed).toHaveBeenCalledTimes(1)
  expect(observed).toHaveBeenCalledWith({message:input.message,switchRequestId:'switch',supplyPeriodId:'supply'})
+})
+it('does not observe or write a start cancelled by the scoped source ledger',async()=>{
+ io.cancelled=true;const observer=vi.fn()
+ const result=await applyInboundBusinessStateMachine({actorUserId:'actor',message:message(),matchedSwitchRequestId:'switch',onSourceSwitchCommitted:observer})
+ expect(result).toMatchObject({outcome:'manual_review_required',reviewRequired:true,updated:[]})
+ expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_supply_start_is_cancelled_v1',{p_company_id:'company',p_switch_request_id:'switch'})
+ expect(io.writes).toEqual([]);expect(observer).not.toHaveBeenCalled()
+})
+it('propagates a failed cancellation lookup before any write or commit observation',async()=>{
+ io.failCancellation=true;const observer=vi.fn()
+ await expect(applyInboundBusinessStateMachine({actorUserId:'actor',message:message(),matchedSwitchRequestId:'switch',onSourceSwitchCommitted:observer})).rejects.toThrow('cancellation lookup failed')
+ expect(io.writes).toEqual([]);expect(observer).not.toHaveBeenCalled()
 })
 it('never observes a partially failed business operation',async()=>{
  io.failSupply=true;const observer=vi.fn()

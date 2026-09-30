@@ -3,6 +3,7 @@ import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import * as dates from '@/lib/ediel/prodat/render/dates'
 import { createHash } from 'node:crypto'
 import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
@@ -102,6 +103,39 @@ it('uses production as the trusted query environment without consulting a defaul
   await execute(); expect(report().sources).toHaveLength(1)
   expect(predicates).toContainEqual(['eq', 'environment', 'production'])
 })
+it.each(['before', 'after'] as const)('the actual inbound processor cannot read point history for LOC+175 %s LOC+172', async order => {
+  const pointLocation = `LOC+172+${point}::9'`
+  const objectLocation = "LOC+175+735999260731000007::9'"
+  incoming.raw_payload = incoming.raw_payload!.replace(
+    pointLocation,
+    order === 'before' ? `${objectLocation}\n${pointLocation}` : `${pointLocation}\n${objectLocation}`,
+  )
+  await execute()
+  expect(report().status).toBe('not_requested')
+  expect(io.scoped).not.toHaveBeenCalled()
+  expect(io.from).not.toHaveBeenCalled()
+  expect(io.ingest).not.toHaveBeenCalled()
+})
+it('the actual inbound processor cannot link point history when LOC+175 occurs after SEQ in the same physical IDE', async () => {
+  incoming.raw_payload = incoming.raw_payload!
+    .replace("SEQ++1'", "SEQ++1'\nLOC+175+735999260731000007::9'")
+    .replace("UNT+35+1'", "UNT+36+1'")
+  await execute()
+  expect(report().status).toBe('not_requested')
+  expect(io.scoped).not.toHaveBeenCalled()
+  expect(io.from).not.toHaveBeenCalled()
+  expect(io.ingest).not.toHaveBeenCalled()
+})
+it('the actual inbound processor cannot link point history when another LOC+172 occurs after SEQ', async () => {
+  incoming.raw_payload = incoming.raw_payload!
+    .replace("SEQ++1'", `SEQ++1'\nLOC+172+${secondPoint}::9'`)
+    .replace("UNT+35+1'", "UNT+36+1'")
+  await execute()
+  expect(report().status).toBe('not_requested')
+  expect(io.scoped).not.toHaveBeenCalled()
+  expect(io.from).not.toHaveBeenCalled()
+  expect(io.ingest).not.toHaveBeenCalled()
+})
 it('rejects uppercase encoding of an otherwise correct source seal', async () => {
   sourceRows[0].immutable_payload_hash = sourceRows[0].immutable_payload_hash.toUpperCase()
   await execute(); expect(report().sources).toEqual([])
@@ -196,8 +230,33 @@ it('keeps exact market-minute to UTC conversion in the existing PRODAT date owne
     }
   } finally { if (oldTimezone === undefined) delete process.env.TZ; else process.env.TZ = oldTimezone }
 })
-it('retains upstream rejection of the original repeated-UNA fixture without any source query or side effects', async () => {
+it('retains syntax rejection of the original repeated-UNA fixture without any source query or business effects', async () => {
   incoming.raw_payload = incoming.raw_payload! + incoming.raw_payload!
-  await expect(execute()).rejects.toThrow('edifact_dangling_release_character')
-  for (const mock of [io.scoped, io.from, io.update, io.event, io.persist, io.ack, io.ingest]) expect(mock).not.toHaveBeenCalled()
+  const wire = incoming.raw_payload
+  expect(() => tokenizeEdifact(wire)).toThrow('edifact_dangling_release_character')
+  // The canonical runtime records a typed syntax rejection even when no AST
+  // can be decoded. This ACK double observes the plan, not a persisted wire.
+  const result = await execute()
+  expect(result).toMatchObject({ ingestedMeterValueId: null, ingestedMeterValueIds: [], billingUnderlayId: null, outboundRequestId: null })
+  expect(incoming.raw_payload).toBe(wire)
+  expect(report().status).toBe('not_requested')
+  for (const mock of [io.scoped, io.from, io.persist, io.ingest]) expect(mock).not.toHaveBeenCalled()
+  expect(io.update.mock.calls.map(([call]) => call.status)).toEqual(['parsed', 'failed'])
+  for (const [call] of io.update.mock.calls) {
+    expect(call.parsedPayload.utiltsRuntimeFacts.transactions).toEqual([])
+    expect(call.validationReport.utiltsRuntime.validation).toMatchObject({
+      classification: 'syntax_rejected', syntaxOk: false,
+      issues: [{ code: 'syntax_tokenization_failed', kind: 'syntax', severity: 'error' }],
+    })
+  }
+  expect(io.ack).toHaveBeenCalledOnce()
+  expect(io.ack.mock.calls[0][0]).toMatchObject({
+    sourceMessage: { id: incoming.id, company_id: incoming.company_id, environment: incoming.environment, raw_payload: wire },
+    transactionDispositions: [],
+    ackPlan: { shouldSendContrl: true, contrlOutcome: 'negative', shouldSendAperak: false, shouldSendUtiltsErr: false,
+      utiltsErrCodes: [], aperakApplicationErrors: [] },
+  })
+  expect(io.event).toHaveBeenCalledOnce()
+  expect(io.event.mock.calls[0][0]).toMatchObject({ eventType: 'validated', eventStatus: 'warning',
+    payload: { validation: { classification: 'syntax_rejected', syntaxOk: false } } })
 })

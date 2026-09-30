@@ -4,8 +4,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+after(assertNoSourceBoundaryAttempts)
 
 const root = path.resolve(__dirname, '..')
 async function resolver(row, error = null) {
@@ -21,13 +23,15 @@ async function resolver(row, error = null) {
     if (modules.has(file)) return modules.get(file)
     assert(file.startsWith(path.join(root, 'lib/ediel') + path.sep), 'Only real local Ediel modules are loaded')
     const module = new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), {
-      mode: 'strip', sourceUrl: file,
+      mode: 'transform', sourceUrl: file,
     }), { identifier: file })
     modules.set(file, module)
     return module
   }
   const entry = load(path.join(root, 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'))
   await entry.link((specifier, parent) => {
+    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
+    if (manifest) return manifest
     if (specifier === '@/lib/supabase/service') return service
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency: ${specifier}`)
     const filename = specifier.startsWith('@/')

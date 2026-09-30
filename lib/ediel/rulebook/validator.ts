@@ -1,3 +1,8 @@
+import {readSourceBoundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import {validateCanonicalAckGuide} from './ackGuidePolicy'
+import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
+import { canonicalAdmissionDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
+import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
 import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from './prodatGasApplicabilityPolicy'
@@ -40,6 +45,9 @@ import {
 import type { ProdatDependentConditionEvaluation } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 
 export type RulebookValidationInput = LegacyRulebookValidationInput & {
+  /** Explicit local assessment time; sender DTM137 never admits a guide. */
+  admissionAt?: string | Date
+  messageRow?: EdielMessageRow
   /** Explicit pure receiver knowledge, never incoming parsed metadata. */
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
@@ -52,7 +60,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   parsedPayload?: Record<string, unknown> | null
 }
 
-export type RulebookValidationResult = LegacyRulebookValidationResult
+export type RulebookValidationResult = LegacyRulebookValidationResult & { canonicalPolicy?: CanonicalEdielPolicy }
 
 type ActiveCanonicalFamily = 'PRODAT' | 'UTILTS' | 'UTILTS_ERR' | 'APERAK' | 'CONTRL'
 type BusinessRulePackFamily = 'PRODAT' | 'UTILTS'
@@ -81,9 +89,9 @@ function issue(input: Omit<EdielRulebookIssue, 'blocking'> & { blocking?: boolea
 function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
   if (input.parsed) return input.parsed
   if (!input.rawPayload) return null
-  return input.rawPayload.startsWith('UNA') || input.rawPayload.includes("'")
-    ? parseRulebookMessage(input.rawPayload)
-    : parseRulebookListPayload(input.rawPayload)
+  if (input.rawPayload.startsWith('UNA') || input.rawPayload.startsWith('UNB') || input.rawPayload.includes("'")) return parseRulebookMessage(input.rawPayload)
+  if (['AI_LIST', 'BI_LIST'].includes(normalize(input.family)) || /^Ver\d{8};/.test(input.rawPayload)) return parseRulebookListPayload(input.rawPayload)
+  return null
 }
 
 /** A real PRODAT header selects the policy before any row/cached metadata.
@@ -105,17 +113,21 @@ function sourceBoundProdatInput(input: RulebookValidationInput): { input: Rulebo
   return { input: { ...input, family: 'PRODAT', code: parsed.code, parsed } }
 }
 
-function businessDate(input: RulebookValidationInput, parsed: ParsedRulebookMessage | null): string {
-  const explicit = String(input.businessDate ?? '').trim().slice(0, 10)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(explicit)) return explicit
-  const una = parsed?.una ?? parseUna(input.rawPayload)
-  const tokens = tokenizeEdifact(`${una.raw}${(parsed?.rawSegments ?? []).join(una.segmentTerminator)}${una.segmentTerminator}`)
-  const segment = tokens.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, una)[0] === '137')
-  const raw = segmentComposite(segment, 1, una)[1] ?? ''
-  if (raw.length >= 8) return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(new Date())
+function admissionDate(input: RulebookValidationInput): string {
+  if (input.messageRow) return canonicalAdmissionDate(input.messageRow, { admissionAt: input.admissionAt })
+  // Detached validation has no physical receipt. Its local assessment instant
+  // is captured once, independently from the sender's document/business date.
+  const value = input.admissionAt ?? new Date()
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) throw new Error('ediel_admission_time_invalid')
+  return stockholmBusinessDate(date)
+}
+
+function captureAdmission(input: RulebookValidationInput): RulebookValidationInput {
+  if (input.admissionAt) return input
+  return { ...input, admissionAt: input.messageRow
+    ? resolveEdielMessageTimeAnchors(input.messageRow).admissionAt
+    : new Date().toISOString() }
 }
 
 function isActiveCanonicalFamily(family: string): family is ActiveCanonicalFamily {
@@ -301,7 +313,12 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   const code = canonicalMessageCode(familyValue, normalize(input.code ?? parsed.code))
   const dir = direction(input)
   if (!dir) throw new Error(`canonical_policy_direction_required:${familyValue}:${code}`)
-  const referenceDate = businessDate(input, parsed)
+  if (familyValue === 'UTILTS' && dir === 'inbound' && input.messageRow) {
+    const retained = resolveCanonicalMessagePolicy(input.messageRow, undefined, { admissionAt: input.admissionAt })
+    if (!retained) throw new Error('canonical_policy_family_required:UTILTS')
+    return retained
+  }
+  const referenceDate = admissionDate(input)
   const sourceBoundAck = isSourceBoundAckFamily(familyValue)
   const sourceMessageFamily = record(input.parsedPayload)?.canonicalSourceMessageFamily as string | null | undefined
   const providedVersion = input.version ?? (familyValue === 'APERAK' ? parsedAssociationAssignedCode(parsed) : null)
@@ -316,6 +333,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
 
   const policy = resolveCanonicalEdielPolicy({
     family: familyValue,
+    requestedCapability: requestedEdielCapability({ message_intent: input.messageRow?.message_intent ?? null, parsed_payload: input.parsedPayload ?? {} }),
     messageCode: code,
     subtypeOrReasonCode: parsed.subtype,
     prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
@@ -402,6 +420,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       code: policy.code,
       processGroup: policy.processGroup ?? 'unknown',
       expectedApplicationReference: policy.applicationReference,
+      canonicalPolicy: policy,
       parsed,
       issues,
       fieldRuleSource: 'static',
@@ -448,6 +467,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
 }
 
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
+  input = captureAdmission(input)
   const freeText = input.mode === 'send' && input.direction !== 'inbound' ? prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }) : []
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
   const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
@@ -464,6 +484,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
+  input = captureAdmission(input)
   if (input.mode === 'send' && input.direction !== 'inbound' && prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }).length) return validateRulebookMessage(input)
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
   const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
@@ -487,7 +508,19 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     // ACKs inherit the exact activation/evidence snapshot from the source
     // business message. Inbound parsing is fully source-controlled and does not
     // require a mutable DB row to define protocol meaning.
-    if (input.mode !== 'send') return result
+    if (input.mode !== 'send') {
+      if (!input.messageRow || familyValue === 'UTILTS_ERR') return result
+      try {
+        const {sourceMessage,evidence}=await readSourceBoundAckRulePackEvidence(input.messageRow)
+        const policy=result.canonicalPolicy!
+        const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+        const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+        return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+      }catch(error){
+        const issues=[...result.issues,issue({severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description:error instanceof Error?error.message:String(error)})]
+        return {...result,ok:false,blocking:true,issues,fieldRuleSource:'static',rulePackSnapshot:null}
+      }
+    }
     const inherited = inheritedSourceRulePackSnapshot(input)
     if (!inherited) {
       const issues = [...result.issues, issue({
@@ -506,7 +539,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   }
 
   try {
-    const policy = policyForValidation({ ...input, parsed }, parsed)
+    const policy = result.canonicalPolicy ?? policyForValidation({ ...input, parsed }, parsed)
     const evidence = await resolveCanonicalRulePack({
       family: familyValue,
       messageCode: policy.code,
@@ -548,7 +581,7 @@ export function validateEdielMessageRowWithRulebook(
   reportingContext?:ExpectedContext,
 ): RulebookValidationResult {
   return validateRulebookMessage({
-    dateEventRow:message,dateEventContext,reportingContext,
+    messageRow:message,dateEventRow:message,dateEventContext,reportingContext,
     family: message.message_family,
     code: String(message.message_code ?? ''),
     processGroup: message.process_type ?? message.route_scope ?? null,

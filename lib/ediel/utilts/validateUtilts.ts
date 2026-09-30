@@ -1,13 +1,31 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { runUtiltsRuntimeForMessage, type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 
-export function validateUtilts(rawPayload: string): UtiltsRuntimeResult['validation'] {
-  const runtime = runUtiltsRuntimeForMessage({
-    id: 'utilts-validation',
+export function createUtiltsPreviewMessage(params: {
+  rawPayload: string
+  id: string
+  admissionAt?: string | Date
+}): EdielMessageRow {
+  const admission = params.admissionAt === undefined ? new Date()
+    : params.admissionAt instanceof Date ? params.admissionAt : new Date(params.admissionAt)
+  if (Number.isNaN(admission.getTime())) throw new Error('ediel_admission_time_invalid')
+  const admissionAt = admission.toISOString()
+  let messageCode = ''
+  try {
+    const wire = tokenizeEdifact(params.rawPayload)
+    const bgm = wire.segments.find(segment => segment.tag === 'BGM')
+    messageCode = bgm ? segmentComposite(bgm, 1, wire.una)[0]?.trim() ?? '' : ''
+  } catch (error) {
+    // The runtime owns the typed syntax refusal for an undecodable source.
+    if (!(error instanceof Error) || error.message !== 'edifact_dangling_release_character') throw error
+  }
+  return {
+    id: params.id,
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: 'UTILTS',
-    message_code: 'E66',
+    message_code: messageCode,
     message_version: null,
     process_type: null,
     environment: 'test',
@@ -45,7 +63,7 @@ export function validateUtilts(rawPayload: string): UtiltsRuntimeResult['validat
     site_id: null,
     metering_point_id: null,
     grid_owner_id: null,
-    raw_payload: rawPayload,
+    raw_payload: params.rawPayload,
     parsed_payload: {},
     validation_report: {},
     requires_contrl: true,
@@ -65,11 +83,18 @@ export function validateUtilts(rawPayload: string): UtiltsRuntimeResult['validat
     acknowledged_at: null,
     failed_at: null,
     ack_due_at: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    // This is the preview action's clock; no historical ingress is asserted.
+    created_at: admissionAt,
+    updated_at: admissionAt,
     created_by: null,
     updated_by: null,
-  } satisfies EdielMessageRow).validation
+  } satisfies EdielMessageRow
+}
 
-  return runtime
+export function validateUtilts(
+  rawPayload: string,
+  options: { admissionAt?: string | Date } = {},
+): UtiltsRuntimeResult['validation'] {
+  const message = createUtiltsPreviewMessage({ rawPayload, id: 'utilts-validation', admissionAt: options.admissionAt })
+  return runUtiltsRuntimeForMessage(message, { referenceDate: message.created_at }).validation
 }
