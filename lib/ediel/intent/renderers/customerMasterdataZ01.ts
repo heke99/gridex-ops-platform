@@ -4,7 +4,7 @@ import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { inferEdielFileName } from '@/lib/ediel/classify'
-import { resolveSwedishProdatCustomerIdentity } from '@/lib/ediel/prodat/customerIdentity'
+import { resolveSwedishProdatCustomerIdentity, prodatAddressFactsFromExportContext } from '@/lib/ediel/prodat/customerIdentity'
 import { renderProdat } from '@/lib/ediel/prodatEngine'
 import { computeOutboundAckDueAt, deriveEdielAckDefaults } from '@/lib/ediel/references'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
@@ -95,16 +95,18 @@ export async function buildCustomerMasterdataZ01Draft(input: {
   const customer = resolveSwedishProdatCustomerIdentity(
     (context.customer ?? null) as unknown as JsonRecord | null,
   )
-  if (!customer.id || !customer.qualifier) {
+  if (!customer.id || !customer.qualifier || !customer.name) {
     throw new Error('z01_customer_legal_identity_required')
   }
 
   const meterPointId = meterPointIdentifier(context)
-  if (!meterPointId) {
+  if (!meterPointId || !/^\d{18}$/.test(meterPointId)) {
     throw new Error('PRODAT Z01 kan inte byggas utan anläggnings-id/mätpunkt.')
   }
 
-  const endUserAddressAvailable = Boolean(clean(context.site?.street))
+  const addressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.dataRequest.customer_id}/${input.dataRequest.site_id}`,
+    meterPointId,identityAgency:'9',customer,addressLines:[clean(context.site?.street) ?? '']})
+  const endUserAddressAvailable = addressObjects[0].availability==='available'
   const installationAddressAvailable = Boolean(clean(context.site?.street))
 
   const isTgt = isEdielPortalParty(input.routeContext.receiverEdielId)
@@ -167,6 +169,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
       // when present the production validator can deterministically require it.
       dependentConditionFacts: {
         endUserAddressAvailable,
+        endUserAddressObjects:addressObjects,
         byCell: {
           'Z01:233': Boolean(meterPointId),
           'Z01:234': installationAddressAvailable,
