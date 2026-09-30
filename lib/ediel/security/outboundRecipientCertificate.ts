@@ -1,4 +1,6 @@
-import { certificateSubaddressScopeBlocker } from '@/lib/ediel/certificateScope'
+import { X509Certificate } from 'node:crypto'
+import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
+import { certificateMessageScopeBlocker, certificateSubaddressScopeBlocker } from '@/lib/ediel/certificateScope'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import type { EdielRouteProfileRow } from '@/lib/ediel/types'
@@ -172,6 +174,44 @@ export function describeCertificate(row: CertificateRow | null | undefined): Rec
   }
 }
 
+/** One scope guard shared by explicit-id and candidate selection. */
+export function outboundRecipientCertificateScopeBlocker(row: CertificateRow, input: {
+  receiverEdielId: string; receiverSubaddress?: string | null; messageFamily?: string | null;
+  businessCode?: string | null; certificateEnvironment?: string | null;
+}): string | null {
+  if (inferUsage(row) !== 'outbound_recipient') return 'receiver_certificate_usage_mismatch'
+  if (!['encryption', 'both'].includes(inferPurpose(row) ?? '')) return 'receiver_certificate_purpose_mismatch'
+  if (!inferOwnerEdielId(row) || normalize(inferOwnerEdielId(row)) !== normalize(input.receiverEdielId)) return 'receiver_certificate_owner_mismatch'
+  const subaddress = certificateSubaddressScopeBlocker(inferOwnerSubaddress(row), input.receiverSubaddress)
+  if (subaddress) return subaddress
+  const family = certificateMessageScopeBlocker({
+    message_family: textFrom(row, 'message_family', 'messageFamily'),
+    message_type: textFrom(row, 'message_type', 'messageType'),
+  }, { message_family: input.messageFamily, message_code: input.businessCode })
+  if (family) return family
+  const businessCode = normalize(textFrom(row, 'business_code', 'businessCode'))
+  if (businessCode && businessCode !== '*' && businessCode !== normalize(input.businessCode)) return 'receiver_certificate_message_code_mismatch'
+  const environment = inferEnvironment(row)
+  if (input.certificateEnvironment && environment !== input.certificateEnvironment) return 'receiver_certificate_environment_mismatch'
+  return null
+}
+
+/** Read the real X.509 time bounds; mutable row dates cannot extend them. */
+export function recipientCertificatePemValidityBlocker(pem: string, now = new Date()): string | null {
+  try {
+    const certificate = new X509Certificate(pem)
+    const status = evaluateCertificateStatus({ valid_from: certificate.validFrom, valid_to: certificate.validTo, status: 'active' }, now)
+    return status.isUsableForSmime ? null : 'receiver_certificate_x509_time_invalid'
+  } catch { return 'receiver_certificate_x509_invalid' }
+}
+
+/** The repository has no source-owned versioned trust-anchor/CRL verifier.
+ * Row metadata cannot manufacture that evidence. Keep live transport held until
+ * that owner exists; validity parsing above remains an independent hard guard. */
+export function recipientCertificateTrustBlocker(): string {
+  return 'receiver_certificate_trust_and_revocation_evidence_missing'
+}
+
 export async function resolveOutboundRecipientCertificate(input: {
   certificateId?: string | null
   receiverEdielId?: string | null
@@ -217,6 +257,8 @@ export async function resolveOutboundRecipientCertificate(input: {
     ownEdielId = ownEdielId || text(route.own_ediel_id) || text(route.sender_ediel_id) || ''
   }
 
+  const now = new Date()
+  const scope = { receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment }
   let data: CertificateRow | null = null
   if (certificateId) {
     const byId = await supabaseService
@@ -250,15 +292,10 @@ export async function resolveOutboundRecipientCertificate(input: {
     if (lookupError) throw lookupError
 
     const usable = ((candidates ?? []) as CertificateRow[]).find((candidate) => {
-      const family = normalize(textFrom(candidate, 'message_family', 'messageFamily') ?? textFrom(candidate, 'message_type', 'messageType'))
-      const code = normalize(textFrom(candidate, 'business_code', 'businessCode'))
-      const candidateSubaddress = inferOwnerSubaddress(candidate)
-      if (family && messageFamily && family !== normalize(messageFamily)) return false
-      if (code && businessCode && code !== normalize(businessCode) && code !== '*') return false
-      if (certificateSubaddressScopeBlocker(candidateSubaddress, receiverSubaddress)) return false
-      if (!textFrom(candidate, 'public_certificate_pem', 'publicCertificatePem')?.includes('BEGIN CERTIFICATE')) return false
-      const status = evaluateCertificateStatus(candidate)
-      return status.isUsableForSmime
+      if (outboundRecipientCertificateScopeBlocker(candidate, scope)) return false
+      const pem = textFrom(candidate, 'public_certificate_pem', 'publicCertificatePem')
+      if (!pem || recipientCertificatePemValidityBlocker(pem, now)) return false
+      return evaluateCertificateStatus(candidate, now).isUsableForSmime
     }) ?? null
 
     data = usable
@@ -279,12 +316,13 @@ export async function resolveOutboundRecipientCertificate(input: {
   const certEnvironment = inferEnvironment(row)
   const publicCertificatePem = textFrom(row, 'public_certificate_pem', 'publicCertificatePem')
   const subject = textFrom(row, 'subject', 'subject')
-  const issuer = textFrom(row, 'issuer', 'issuer')
-  const serialNumber = textFrom(row, 'serial_number', 'serialNumber')
-  const fingerprintSha256 = textFrom(row, 'fingerprint_sha256', 'fingerprintSha256', 'certificate_fingerprint')
   const privateMaterial = hasPrivateMaterial(row)
 
-  const status = evaluateCertificateStatus(row)
+  const scopeBlocker = outboundRecipientCertificateScopeBlocker(row, scope)
+  if (scopeBlocker) throw new Error(`Sändning stoppad: ${scopeBlocker}.`)
+  const pemBlocker = recipientCertificatePemValidityBlocker(publicCertificatePem ?? '', now)
+  if (pemBlocker) throw new Error(`Sändning stoppad: ${pemBlocker}.`)
+  const status = evaluateCertificateStatus(row, now)
   if (!status.isUsableForSmime) {
     throw new Error(`Sändning stoppad: mottagarcertifikatet är inte användbart för S/MIME: ${status.message}`)
   }
@@ -357,18 +395,6 @@ export async function resolveOutboundRecipientCertificate(input: {
     }
   }
 
-  return {
-    id: certificateId,
-    publicCertificatePem,
-    subject,
-    issuer,
-    serialNumber,
-    fingerprintSha256,
-    ownerEdielId,
-    ownerSubaddress,
-    usage,
-    purpose,
-    environment: certEnvironment,
-    raw: row,
-  }
+  const trustBlocker = recipientCertificateTrustBlocker()
+  throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_HELD' }, `Sändning stoppad: ${trustBlocker}.`)
 }
