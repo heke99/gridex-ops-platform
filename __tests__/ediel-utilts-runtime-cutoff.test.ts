@@ -672,4 +672,16 @@ describe('UTILTS runtime effective-date cutoff', () => {
     ).toBe(false)
     expect(afterCutoff.ackPlan.utiltsErrCodes).not.toContain('E19')
   })
+  it.each([
+    ['negative', "QTY+136:500'", "QTY+136:-500'", 'E98'],
+    ['missing-status', "STS+7++21::260'", "STS+7++46::260'", 'E90'],
+  ])('removes October individual E66 %s rejection while preserving the prior rule', (_kind, before, after, error) => {
+    const source = energyHandoffMessage('2026-09-30')
+    const message = {...source, raw_payload:source.raw_payload!.replace(before, after)}
+    const prior = runUtiltsRuntimeForMessage(message, {referenceDate:'2026-09-30'})
+    const current = runUtiltsRuntimeForMessage(message, {referenceDate:'2026-10-01'})
+    expect(prior.ackPlan.utiltsErrCodes).toContain(error)
+    expect(current.ackPlan.utiltsErrCodes).not.toContain(error)
+  })
+
 })

@@ -381,6 +381,17 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
   const issues = input.result.validation.issues.filter((issue) => {
     const utiltsErrCode = String(issue.utiltsErrCode ?? '').trim().toUpperCase()
     if (utiltsErrCode && removedRejectionCodes.has(utiltsErrCode)) return false
+    // U25-A-4 Appendix 2: E90/E97/E98 energy-value controls remain for
+    // E30/aggregates. The E66 legacy branch represents individual point data;
+    // its own LOC+172 scope must not inherit those retired national rejections.
+    if (!policy.validateIndividualMeteringPointEnergyValuesBeyondE30
+      && input.result.facts.messageCode === 'E66'
+      && ['E90', 'E97', 'E98'].includes(utiltsErrCode)) {
+      const reference = issueReference(issue)
+      const transaction = input.result.facts.transactions.find((entry, index) => transactionReference(entry, index) === reference)
+        ?? (input.result.facts.transactions.length === 1 ? input.result.facts.transactions[0] : null)
+      if (transaction?.meterPointId && !transaction.regulatingObjectPresent) return false
+    }
     if (
       !policy.compareMeterReadingsToEnergyVolumes &&
       issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH'
