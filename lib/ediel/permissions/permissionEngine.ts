@@ -22,6 +22,14 @@ export function applyPermissionEvent(params: {
     | 'z15_e37'
     | 'z15_c_continues'
 }): EnergyServicePermissionState {
+  // ACKs are recorded in their own ledger by the live consumer. They cannot
+  // overwrite an already established market decision (including a denial).
+  const awaitingStates: readonly EnergyServicePermissionState[] = [
+    'z13_sent', 'contrl_positive', 'aperak_positive', 'awaiting_customer_approval_21d',
+    'contrl_negative', 'aperak_negative', 'failed_syntax', 'rejected_by_grid_owner',
+  ]
+  if (['contrl_positive', 'contrl_negative', 'aperak_positive', 'aperak_negative'].includes(params.event)
+    && !awaitingStates.includes(params.currentState)) return params.currentState
   const targetByEvent: Record<typeof params.event, EnergyServicePermissionState> = {
     z13_prepared: 'z13_prepared',
     z13_sent: 'z13_sent',
