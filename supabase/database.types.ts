@@ -22485,6 +22485,7 @@ export type Database = {
           id: string
           message: string | null
           metadata: Json
+          notification_reference: string
           read_at: string | null
           status: string
           title: string
@@ -22501,6 +22502,7 @@ export type Database = {
           id?: string
           message?: string | null
           metadata?: Json
+          notification_reference?: string
           read_at?: string | null
           status?: string
           title: string
@@ -22517,6 +22519,7 @@ export type Database = {
           id?: string
           message?: string | null
           metadata?: Json
+          notification_reference?: string
           read_at?: string | null
           status?: string
           title?: string
@@ -89901,6 +89904,10 @@ export type Database = {
       gridex_mark_customer_contract_signature_request_sent_v1: {
         Args: { p_company_id: string; p_request_id: string }
         Returns: undefined
+      }
+      gridex_mark_customer_notifications_read_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_mask_sensitive_payload: { Args: { payload: Json }; Returns: Json }
       gridex_match_actor_registry_item: {
