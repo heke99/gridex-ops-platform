@@ -143,6 +143,9 @@ jobs:
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
           GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
+          # Shared atomic notification command: real rollback, legacy replay and concurrent sessions.
+          npx vitest run --config scripts/customer-notification-read-native.config.ts
+          npx vitest run --config scripts/customer-notification-read-concurrency-native.config.ts
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
