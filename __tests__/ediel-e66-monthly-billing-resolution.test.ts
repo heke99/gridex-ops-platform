@@ -138,7 +138,7 @@ describe('UTILTS E66 monthly billing resolution', () => {
 
   it('does not report a functional rejection for a guide-invalid transaction with a reading mismatch', () => {
     const invalid = recountEdifactUnt(MONTHLY_E66_BILLING_PAYLOAD
-      .replace("LOC+239+TES:SVK:260'", '')
+      .replace("MEA+AAZ++KWH'", '')
       .replace("QTY+220:11000'", "QTY+220:11001'"))
     const result = runUtiltsRuntimeForMessage(runtimeMessage(invalid), { referenceDate: '2026-08-31' })
 

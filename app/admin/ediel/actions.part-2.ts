@@ -16,7 +16,7 @@ import { pollAndIngestEdielMailbox, sendQueuedEdielMessage } from "@/lib/ediel/o
 
 
 
-import { attachEdielMessageToTestRun, createEdielMessage, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listAckMessagesForSource, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
+import { attachEdielMessageToTestRun, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listAckMessagesForSource, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
 
 
 
@@ -30,6 +30,10 @@ import { registerEdielFile } from "@/lib/ediel/fileEngine"
 import { getEdielTgtTestCaseByCode } from "@/lib/ediel/testing/tgtRegistry"
 
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact"
+import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority'
+import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority'
+import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
+import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
 import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from "@/lib/ediel/testing/tgtTestDataStore"
 
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight"
@@ -875,16 +879,26 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     (issue) => issue.severity === "error",
   );
   if (blockingIssues.length > 0) {
-    throw new Error(
+    const qualification=run ? await resolveSourceQualifiedNegativeFixtureDraft({companyId,runId:run.id,stepNo,actorUserId:context.userId,
+      rawPayload:draft.messageInput.rawPayload ?? '',diagnosticCodes:blockingIssues.map(issue=>issue.code)}) : null;
+    if (!qualification) throw new Error(
       `TGT-utkastet är blockerat: ${blockingIssues
         .map((issue) => `${issue.title}: ${issue.description}`)
         .join(" | ")}`,
     );
+    bindSourceQualifiedNegativeFixtureDraft(draft.messageInput,qualification);
+    draft.messageInput.status='prepared';
+    draft.messageInput.parsedPayload={...draft.messageInput.parsedPayload,readyForDownload:true,negativeFixtureEvidence:{registrationId:qualification.registrationId,originalFileSha256:qualification.originalFileSha256,expectedOutcome:'negative'}};
+  } else if (draft.messageInput.messageFamily==='PRODAT'||draft.messageInput.messageFamily==='UTILTS') {
+    const qualification=run?await resolveSourceQualifiedPositiveFixtureDraft({companyId,runId:run.id,stepNo,actorUserId:context.userId,
+      rawPayload:draft.messageInput.rawPayload??'',diagnosticCodes:[]}):null;
+    if(!qualification)throw new Error('ediel_positive_fixture_original_required');
+    bindSourceQualifiedPositiveFixtureDraft(draft.messageInput,qualification);
   }
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createEdielMessage(draft.messageInput);
+  const message = await createCanonicalOutboundMessage({actorUserId:context.userId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context});
 
   if (testRunId) {
     await attachEdielMessageToTestRun({

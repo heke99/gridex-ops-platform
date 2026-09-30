@@ -11,6 +11,7 @@ import {
   requireEdielProfileWriteActionAccess,
 } from '@/lib/ediel/actionAccess'
 import { supabaseService } from '@/lib/supabase/service'
+import { getEdielMessageById } from '@/lib/ediel/db'
 import {
   buildActorTestResultEvidence,
   getActorTestCase,
@@ -512,9 +513,15 @@ export async function runProductionReadinessAction(formData: FormData) {
 
 export async function runProductionDryRunAction(formData: FormData) {
   const companyId = readRequiredString(formData, 'company_id')
+  const messageId = readRequiredString(formData, 'message_id')
   const admin = await requirePlatformAdminActionAccess()
+  await assertActorTestingCompanyAccess(admin, companyId)
   const returnPath = readReturnPath(formData, companyId)
-  const result = await runProductionDryRun(companyId, admin.userId)
+  const message = await getEdielMessageById(messageId, { companyId })
+  if (!message || message.company_id !== companyId || message.environment !== 'production' || message.direction !== 'outbound') {
+    throw new Error('Välj ett sparat utgående produktionsmeddelande för detta bolag.')
+  }
+  const result = await runProductionDryRun(companyId, admin.userId, message)
   revalidateActorTestingViews(companyId)
   goLiveRedirect(companyId, result.success ? 'prepared' : 'blocked', result.success ? 'Production dry run kördes utan blockerande fel. Inget skick gjordes.' : 'Production dry run blockerades. Inget skick gjordes.', returnPath)
 }

@@ -6,11 +6,14 @@ import { createUtiltsRuntimeAcks } from '@/lib/ediel/flows/utiltsDataRequest.par
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { buildAperakDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 type Row = Record<string, unknown>
 const database = vi.hoisted(() => ({ tables: new Map<string, Row[]>(), failErrReference: null as string | null,
-  raceErrReference: null as string | null, raceCommitted: false }))
+  raceErrReference: null as string | null, raceCommitted: false,
+  sourceBasisMode:'valid' as 'valid'|'missing'|'changed_raw', sourceBasisReads:[] as Row[] }))
+vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'technical@synthetic.example',host:'smtp.synthetic.example',port:587})}))
 vi.mock('@/lib/supabase/service', () => {
   const value = (row: Row, key: string) => {
     const [base, member] = key.split('->>')
@@ -27,9 +30,10 @@ vi.mock('@/lib/supabase/service', () => {
     eq(key: string, expected: unknown) { this.filters.push(row => value(row, key) === expected); return this }
     is(key: string, expected: unknown) { this.filters.push(row => (value(row, key) ?? null) === expected); return this }
     in(key: string, expected: unknown[]) { this.filters.push(row => expected.includes(value(row, key))); return this }
-    not(key: string, operation: string, expected: string) {
+    not(key: string, operation: string, expected: string | null) {
+      if(operation==='is' && expected===null){this.filters.push(row=>value(row,key)!==null&&value(row,key)!==undefined);return this}
       if (operation !== 'in') throw Error(`unexpected_filter:${operation}`)
-      const excluded = expected.replace(/^\(|\)$/g, '').split(',')
+      const excluded = String(expected).replace(/^\(|\)$/g, '').split(',')
       this.filters.push(row => !excluded.includes(String(value(row, key))))
       return this
     }
@@ -69,8 +73,60 @@ vi.mock('@/lib/supabase/service', () => {
     }
   }
   return { supabaseService: { from: (table: string) => new Query(table), rpc: async (name: string, args: Row) => {
-      if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error('unexpected_rpc')
-      // ACK-only harness: model an already committed consumer reservation.
+      if(name==='ediel_read_outbound_ack_replay_v1') {
+        const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_source_message_id&&row.company_id===args.p_company_id&&row.environment===args.p_environment&&row.direction==='inbound')
+        expect(source).toBeDefined()
+        expect(database.tables.get('company_memberships')!.some(row=>row.company_id===args.p_company_id&&row.user_id===args.p_actor_user_id)).toBe(true)
+        const ack=database.tables.get('ediel_messages')!.find(row=>row.company_id===args.p_company_id&&row.environment===args.p_environment&&row.direction==='outbound'&&row.related_message_id===source!.id&&row.message_family===args.p_ack_family&&(!args.p_sequence_field||(row.parsed_payload as Row)?.[String(args.p_sequence_field)]===args.p_sequence_value))
+        // Model the protected read of the own immutable ACK only. Native
+        // owner receipts, coverage and concurrent journals remain native proof.
+        return {data:ack?{version:1,sourceMessage:source,ackMessage:ack}:null,error:null}
+      }
+      if(name==='gridex_actor_has_company_permission') {
+        const membership=database.tables.get('company_memberships')!.find(row=>row.company_id===args.p_company_id&&row.user_id===args.p_actor_user_id&&row.status==='active'&&row.is_active===true&&row.accepted_at)
+        return {data:Boolean(membership && ['communication.write','ediel_testing.write'].includes(String(args.p_permission))),error:null}
+      }
+      if(name==='ediel_prepare_outbound_owner_witness_v1') {
+        const input=args.p_input as Row
+        const source=database.tables.get('ediel_messages')!.find(row=>row.id===input.relatedMessageId&&row.company_id===input.companyId&&row.environment===input.environment&&row.direction==='inbound')
+        const membership=database.tables.get('company_memberships')!.find(row=>row.company_id===input.companyId&&row.user_id===input.actorUserId&&row.status==='active')
+        const evidence=input.rulePackEvidence as Row
+        expect(source).toBeDefined();expect(membership).toBeDefined()
+        expect(evidence).toMatchObject({rulePackId:source!.canonical_rule_pack_id,messageProfileId:source!.rule_profile_version_id,sourceHash:source!.rule_pack_checksum})
+        expect(typeof input.rawPayload).toBe('string')
+        return {data:{version:1,witnessId:randomUUID(),evidence},error:null}
+      }
+      if(name==='ediel_require_technical_syntax_ack_basis_v1'||name==='ediel_read_technical_syntax_ack_route_v1') {
+        const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_message_id || row.id===args.p_source_message_id)
+        expect(source?.company_id).toBe(args.p_company_id)
+        const parsed=tokenizeEdifact(String(source!.raw_payload)),unb=parsed.segments.find(row=>row.tag==='UNB')!
+        const originalUNB={sender:segmentComposite(unb,2,parsed.una),receiver:segmentComposite(unb,3,parsed.una),interchangeReference:unb.elements[5],uciReference:unb.elements[5].slice(0,14),applicationReference:unb.elements[7]??'',testIndicator:unb.elements[11]??''}
+        const sourceHash=createHash('sha256').update(String(source!.raw_payload)).digest('hex')
+        // Synthetic syntax facet/route DTO model only; this is not native evidence.
+        if(name==='ediel_require_technical_syntax_ack_basis_v1')return {data:{kind:'technical_syntax_ack',version:1,companyId:source!.company_id,environment:source!.environment,sourceMessageId:source!.id,sourceHash,observedAt:source!.message_received_at,syntaxAssessmentId:`synthetic-syntax-${source!.id}`,syntaxDecision:runUtiltsRuntimeForMessage(source as unknown as EdielMessageRow).validation.issues.some(issue=>issue.kind==='syntax'&&issue.severity==='error')?'rejected':'accepted',transportActorId:database.tables.get('ediel_actor_settings')![0].id,transportEdielId:originalUNB.receiver[0],originalUNB},error:null}
+        const route=database.tables.get('communication_routes')![0],routeRuntime=database.tables.get('ediel_route_runtime_v')![0]
+        expect(args).toMatchObject({p_smtp_from:'technical@synthetic.example',p_smtp_host:'smtp.synthetic.example',p_smtp_port:587})
+        expect(database.tables.get('company_memberships')!.some(row=>row.user_id===args.p_actor_user_id&&row.company_id===args.p_company_id)).toBe(true)
+        return {data:{kind:'technical_syntax_ack_route',companyId:source!.company_id,environment:source!.environment,sourceMessageId:source!.id,sourceHash,route,routeRuntime,
+          senderEdielId:originalUNB.receiver[0],senderQualifier:originalUNB.receiver[1]||null,senderSubAddress:originalUNB.receiver[2]||null,
+          receiverEdielId:originalUNB.sender[0],receiverQualifier:originalUNB.sender[1]||null,receiverSubAddress:originalUNB.sender[2]||null,receiverMessageSubAddress:originalUNB.sender[2]||null,
+          applicationReference:originalUNB.applicationReference,senderEmail:'technical@synthetic.example',mailbox:'technical@synthetic.example',receiverEmail:'source@synthetic.example',routeKey:'synthetic-own-route',authorizesBusinessEffect:false},error:null}
+      }
+      if (name === 'ediel_read_source_rule_pack_basis_v1') {
+        database.sourceBasisReads.push({...args,outboundCount:database.tables.get('ediel_messages')!.filter(row=>row.direction==='outbound').length})
+        if(database.sourceBasisMode==='missing')return {data:null,error:{message:'synthetic_frozen_basis_unavailable'}}
+        const source = database.tables.get('ediel_messages')!.find(row =>
+          row.id === args.p_message_id && row.company_id === args.p_company_id && row.direction === 'inbound')
+        if (!source) return { data: null, error: { message: 'ack_actual_original_unavailable' } }
+        return { data: { version: 1, sourceMessage: database.sourceBasisMode==='changed_raw'?{...source,raw_payload:String(source.raw_payload)+'\n'}:source, sourceRulePackEvidence: {
+          rulePackId: source.canonical_rule_pack_id, messageProfileId: source.rule_profile_version_id,
+          profileKey: source.rule_profile_key, version: source.rule_profile_version, sourceHash: source.rule_pack_checksum,
+          snapshot: { profileKey: source.rule_profile_key, profileVersionId: source.rule_profile_version_id,
+            version: source.rule_profile_version, checksum: source.rule_pack_checksum },
+        } }, error: null }
+      }
+      if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error(`unexpected_rpc:${name}`)
+      // Adapter-only harness: model an already committed consumer reservation.
       // Actual receipt/series/contract proof stays in the native suite.
       const source = database.tables.get('ediel_messages')!.find(row => row.id === args.p_source_message_id &&
         row.company_id === args.p_company_id && row.environment === args.p_environment)
@@ -89,6 +145,8 @@ beforeEach(() => {
   database.failErrReference = null
   database.raceErrReference = null
   database.raceCommitted = false
+  database.sourceBasisMode = 'valid'
+  database.sourceBasisReads = []
   vi.stubGlobal('fetch', () => { throw Error('external_network_forbidden') })
 })
 afterEach(() => {
@@ -104,20 +162,23 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
     rule_profile_version_id: randomUUID(), rule_profile_version: 'E5SE5A-r3', rule_pack_checksum: 'a'.repeat(64),
   } as EdielMessageRow
   if (transform) source.raw_payload = transform(source.raw_payload!)
-  const runtime = runUtiltsRuntimeForMessage(source)
+  const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:source.message_code!,direction:'inbound',referenceDate:date,applicationReference:source.application_reference,mode:'parse'})
+  const runtime = runUtiltsRuntimeForMessage(source,{referenceDate:date,canonicalPolicy})
   const reservations: Row[] = runtime.transactionDispositions.map(row => ({
     id: randomUUID(), company_id: company, environment: 'test', source_message_id: source.id,
     source_transaction_id: row.transactionId, planned_response_type: row.responseType, finalized_at: null,
   }))
   for (const [table, rows] of Object.entries({
     ediel_messages: [source], ediel_message_events: [], ediel_ack_transaction_results: reservations,
+    company_memberships:[{company_id:company,user_id:actor,status:'active',is_active:true,accepted_at:'2026-09-01T00:00:00Z'}],
+    user_profiles:[{id:actor,user_status:'active'}],
     ediel_actor_settings: [{ id: actor, company_id: company, environment: 'test', is_active: true, ediel_id: '21660', sender_subaddress: 'DDQ' }],
     tenant_ediel_profiles: [{ id: randomUUID(), company_id: company, environment: 'test', market: 'electricity', is_enabled: true }],
     tenant_actor_identifiers: [{ id: randomUUID(), company_id: company, environment: 'test', actor_id: actor, identifier_type: 'EdielId', identifier_value: '21660' }],
     tenant_actor_roles: [{ id: randomUUID(), company_id: company, environment: 'test', actor_id: actor, role_code: 'DDQ' }],
     tenant_counterparty_relations: [],
     communication_routes: [{ id: route, company_id: company, route_name: 'Synthetic local route', is_active: true, route_scope: 'ediel_ack', environment_type: 'bilateral_test', grid_owner_id: null, target_system: 'synthetic-local-only' }],
-    ediel_route_runtime_v: [{ communication_route_id: route, company_id: company, route_profile_id: profile, environment: 'test' }],
+    ediel_route_runtime_v: [{ communication_route_id: route, company_id: company, route_profile_id: profile, environment: 'test',is_enabled:true }],
   })) database.tables.set(table, rows as Row[])
   const finalize = () => createUtiltsRuntimeAcks({ actorUserId: actor, sourceMessage: source,
     ackPlan: runtime.ackPlan, transactionDispositions: runtime.transactionDispositions })
@@ -180,27 +241,56 @@ it('cannot forge header scope from an unreferenced transaction error on a valid 
     .toThrow('utilts_header_aperak_scope_invalid')
 })
 
-it('serializes a canonical deduplicated NAD header double fault', async () => {
+it('retains distinct own NAD component faults while holding an invalid legal ACK party', async () => {
   const f = seed([{ reference: 'HEADER-NAD-FAULT', outcome: 'accepted' }], '2026-10-01',
     raw => raw.replace('NAD+MS+91100:SVK:260', 'NAD+MS+ABC:SVK:XXX'))
-  expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toMatchObject([{ ercCode: '42', fieldCode: '207' }])
+  expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toEqual([
+    expect.objectContaining({ ercCode:'42',fieldCode:'207',text:'INCORRECT DATA XXX',referenceNumber:null,lineItemReference:null }),
+    expect.objectContaining({ ercCode:'42',fieldCode:'207',text:'INCORRECT DATA ABC',referenceNumber:null,lineItemReference:null }),
+  ])
+  const before = structuredClone(f.reservations)
+  await expect(f.finalize()).rejects.toThrow('ACK_APERAK_LEGAL_PARTY_INVALID')
+  expect(f.acks().filter(row => row.message_family !== 'CONTRL')).toEqual([])
+  const controls = f.acks().filter(row => row.message_family === 'CONTRL')
+  expect(controls).toHaveLength(1)
+  expect(controls[0]).toMatchObject({company_id:f.source.company_id,environment:'test',related_message_id:f.source.id,
+    source_operation_id:`ediel_ack:${f.source.id}:CONTRL:message`})
+  expect(controls[0].raw_payload).toContain('UCI+260831181101+91100:ZZ+21660:ZZ+1')
+  expect(f.reservations).toEqual(before)
+})
+
+it('deduplicates one own NAD component fault and renders its exact rejected content', async () => {
+  const f = seed([{ reference:'HEADER-NAD-ID-FAULT',outcome:'accepted' }], '2026-10-01',
+    raw => raw.replace('NAD+MS+91100:SVK:260', 'NAD+MS+ABC:SVK:260'))
+  expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toMatchObject([
+    {ercCode:'42',fieldCode:'207',text:'INCORRECT DATA ABC',referenceNumber:null,lineItemReference:null},
+  ])
   expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toHaveLength(1)
   await f.finalize()
   const aperaks = f.acks().filter(row => row.message_family === 'APERAK')
   expect(aperaks).toHaveLength(1)
-  expect(aperaks[0].raw_payload).toContain('FTX+AAO++207::260+INCORRECT DATA')
+  expect(aperaks[0].raw_payload).toContain('FTX+AAO++207::260+INCORRECT DATA ABC')
   expect(aperaks[0].raw_payload).not.toContain('RFF+ACW:')
 })
 
 it.each([
   ['2026-09-30', 'E19'], ['2026-10-01', 'E87'],
-] as const)('real %s functional rejection reaches the canonical ERR gateway and finalizes its own IDE', async (date, code) => {
+] as const)('real %s functional rejection obeys the canonical ERR gateway for its own IDE', async (date, code) => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(`${date}T12:00:00Z`))
   const reference = 'ERR-OWN-IDE-1'
   const f = seed([{ reference, outcome: 'processability_rejected' }], date)
   expect(f.runtime.transactionDispositions.map(row => row.disposition)).toEqual(['processability_rejected'])
   expect(f.runtime.ackPlan.utiltsErrDetails.map(row => row.code)).toEqual([code])
+  if(date==='2026-09-30') {
+    // E19 is a retained diagnostic, not an authenticated allowed national
+    // ERR reason. The actual gateway must hold it instead of minting traffic.
+    const before=structuredClone(f.reservations)
+    await expect(f.finalize()).rejects.toThrow('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID')
+    expect(f.acks().filter(row=>row.message_family==='UTILTS_ERR')).toEqual([])
+    expect(f.reservations).toEqual(before)
+    return
+  }
   await f.finalize()
   const errs = f.acks().filter(row => row.message_family === 'UTILTS_ERR')
   expect(errs).toHaveLength(1)
@@ -297,4 +387,20 @@ it.each([true, false])('a unique insert failure recovers only the same IDE ERR w
     await expect(create(references[1])).rejects.toMatchObject({ code: '23505' })
     expect(f.acks()).toEqual([first])
   }
+})
+
+it.each(['missing','changed_raw'] as const)('the actual canonical gateway refuses %s protected source despite parsed snapshot JSON',async mode=>{
+ const f=seed([{reference:'PROTECTED-ERR-IDE',outcome:'processability_rejected'}])
+ const draft=buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E87',relatedTransactionReference:'PROTECTED-ERR-IDE'})
+ draft.parsedPayload={...draft.parsedPayload,canonicalSourceRulePackSnapshot:{profileKey:f.source.rule_profile_key,
+  profileVersionId:f.source.rule_profile_version_id,version:f.source.rule_profile_version,checksum:f.source.rule_pack_checksum,
+  inheritedFromSourceMessage:true,sourceMessageId:f.source.id}}
+ database.sourceBasisMode=mode
+ const reservations=structuredClone(f.reservations)
+ const result=createCanonicalAckMessage({actorUserId:f.actor,sourceMessage:f.source,ackFamily:'UTILTS_ERR',outcome:'negative',draft})
+ if(mode==='missing')await expect(result).rejects.toMatchObject({message:'synthetic_frozen_basis_unavailable'})
+ else await expect(result).rejects.toThrow('canonical_ack_actual_original_mismatch')
+ expect(database.sourceBasisReads).toEqual([{p_company_id:f.source.company_id,p_message_id:f.source.id,outboundCount:0}])
+ expect(f.acks()).toEqual([])
+ expect(f.reservations).toEqual(reservations)
 })

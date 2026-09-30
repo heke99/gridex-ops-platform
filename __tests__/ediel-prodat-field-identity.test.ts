@@ -19,12 +19,18 @@ for(const [n,alphabet] of alphabets.entries())describe(`source-owned errors alph
  })
  it('reports header207 without C082 extraction or borrowed object references',async()=>{
  const msg=source(raw([...head(true),...own('1','735123456789012345','CASE-A')],'Z01',alphabet)),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(x=>x.family==='APERAK')!
- expect(p.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'207'}]);const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})
- expect(draft.rawPayload).toContain('FTX+AAO++207::260');expect(draft.rawPayload).not.toContain('RFF+Z07:');expect(draft.rawPayload).not.toContain('RFF+LI:')
+ expect(p.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'207',referenceNumber:null,lineItemReference:null}])
+ // The invalid own country cannot become a legal ACK party. Hold rendering
+ // rather than borrowing an object NAD or repairing the original identity.
+ expect(() => buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors}))
+  .toThrow(expect.objectContaining({disposition:expect.objectContaining({code:'EDIEL_ACK_ORIGINAL_LEGAL_PARTIES_UNQUALIFIED'})}))
  })
- it('preserves exact decoded escaped LI through the actual draft',()=>{
- const msg=source(raw([...head(),...own('1','735123456789012345','CASE:A+B?C')],'Z01',alphabet))
- const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'260',text:'invalid',referenceQualifier:'Z07',referenceNumber:'735123456789012345',lineItemReference:'CASE:A+B?C'}]})
+ it('preserves exact decoded escaped LI through the actual draft',async()=>{
+ const body=[...head(),...own('1','735123456789012345','CASE:A+B?C').filter(parts=>parts[0]!=='DTM')]
+ const msg=source(raw(body,'Z01',alphabet)),decision=await resolveCanonicalRuntimeDecisionWithRegistry(msg)
+ const applicationErrors=decision.responsePlan.find(plan=>plan.family==='APERAK')!.applicationErrors!
+ expect(applicationErrors,JSON.stringify(applicationErrors)).toMatchObject([{ercCode:'41',fieldCode:'210',lineItemReference:'CASE:A+B?C'}])
+ const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors})
  expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C');expect(draft.validationReport?.applicationErrors).toMatchObject([{lineItemReference:'CASE:A+B?C'}])
  })
 })

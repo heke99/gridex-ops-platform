@@ -1,13 +1,24 @@
 import { describe, expect, it } from 'vitest'
 
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage as runActualUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { buildAperakDraft } from '@/lib/ediel/ack'
+import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 
-describe('UTILTS runtime effective-date cutoff', () => {
+// These assertions concern one explicitly selected source guide. Shared
+// admission's complete previous-guide grace is proved separately below.
+const runUtiltsRuntimeForMessage: typeof runActualUtiltsRuntimeForMessage = (message, options) => {
+  if (!options?.referenceDate || options.canonicalPolicy) return runActualUtiltsRuntimeForMessage(message, options)
+  const canonical=parseCanonicalMessageRow(message)
+  const referenceDate=options.referenceDate instanceof Date ? options.referenceDate.toISOString().slice(0,10) : options.referenceDate
+  const canonicalPolicy = resolveCanonicalEdielPolicy({family:'UTILTS', messageCode:canonical.messageCode!, direction:message.direction, referenceDate, applicationReference:canonical.applicationReference, mode:'parse'})
+  return runActualUtiltsRuntimeForMessage(message, {...options,canonicalPolicy})
+}
+
+describe('UTILTS runtime selected-guide effective-date cutoff', () => {
   it('does not borrow SG11 meter-reading DTM+597 when SG5 field 512 is absent', () => {
     const source = energyHandoffMessage('2026-10-01', 'tenant-missing-512')
     const raw_payload = recountEdifactUnt(source.raw_payload!.replace("DTM+597:202607010020:203'\n", ''))
@@ -152,6 +163,7 @@ describe('UTILTS runtime effective-date cutoff', () => {
     const source = observationHandoffMessage('2026-10-01', `tenant-${code}-missing209`)
     const raw = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
       .replace('23-DDQ-E66-S', code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S')
+      .replace("MEA+AAZ++KWH'\n",code==='E30'?'':"MEA+AAZ++KWH'\n")
     const lines = raw.split('\n'), start = lines.findIndex(line => line.startsWith('IDE+24+')),
       end = lines.findIndex(line => line.startsWith('UNT+'))
     const first = lines.slice(start, end).filter(line => !line.startsWith('LOC+172'))
@@ -203,10 +215,10 @@ describe('UTILTS runtime effective-date cutoff', () => {
       ]))
       expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
     }
-    const paired = withAreas("LOC+232+ABC:SVK:260'", "LOC+233+DEF:SVK:260'")
+    const paired = recountEdifactUnt(withAreas("LOC+232+ABC:SVK:260'", "LOC+233+DEF:SVK:260'").replace("LOC+239+TES:SVK:260'\n",''))
     const valid = runUtiltsRuntimeForMessage({ ...control, raw_payload: paired }, { referenceDate: '2026-09-30' })
     expect(valid.ackPlan.aperakApplicationErrors.some(issue => issue.fieldCode === '260b' || issue.fieldCode === '260c')).toBe(false)
-    expect(valid.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(valid.ackPlan.utiltsErrCodes,JSON.stringify(valid.validation.issues)).toContain('E19')
 
     const lines = withAreas("LOC+232+ABC:SVK:260'").split('\n')
     const firstIde = lines.findIndex(line => line.startsWith('IDE+24+'))
@@ -346,8 +358,10 @@ describe('UTILTS runtime effective-date cutoff', () => {
       ]))
       expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
       const plan = resolveCanonicalRuntimeDecision(message).responsePlan.find(item => item.family === 'APERAK')!
-      expect(buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }).rawPayload)
-        .toContain(`FTX+AAO++${fieldCode}::260`)
+      // The national field rejection is retained, but its malformed legal
+      // qualifiers cannot be copied into a valid ACK or replaced by UNB IDs.
+      expect(() => buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }))
+        .toThrow('ACK_APERAK_LEGAL_PARTY_INVALID')
     }
   })
   it('requires BGM document qualifier SVK for S07 at field 202', () => {
@@ -547,7 +561,7 @@ describe('UTILTS runtime effective-date cutoff', () => {
   it('requires agency 260 for phase field 502 before a real E19 mismatch', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-phase-agency')
     const valid = runUtiltsRuntimeForMessage(control, { referenceDate: '2026-09-30' })
-    expect(valid.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(valid.ackPlan.utiltsErrCodes,JSON.stringify(valid.validation.issues)).toContain('E19')
     for (const [agency, ercCode] of [['999', '42'], ['', '41']] as const) {
       const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
         raw_payload: control.raw_payload!.replace('MKS+23+E02::260', `MKS+23+E02::${agency}`) }
@@ -684,4 +698,13 @@ describe('UTILTS runtime effective-date cutoff', () => {
     expect(current.ackPlan.utiltsErrCodes).not.toContain(error)
   })
 
+})
+
+it('shared October grace admits a complete prior guide without blending new identity diagnostics', () => {
+ const source=observationHandoffMessage('2026-10-01','tenant-guide-grace')
+ const raw_payload=source.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+172+735999260731000008::9')
+ const runtime=runActualUtiltsRuntimeForMessage({...source,raw_payload},{referenceDate:'2026-10-01'})
+ expect(runtime.validation.issues.some(issue=>issue.code==='UTILTS_METERING_POINT_GS1_CHECK_DIGIT_INVALID')).toBe(false)
+ expect(runtime.ackPlan.aperakApplicationErrors).toEqual([])
+ expect(runtime.ackPlan.utiltsErrCodes).toContain('E19')
 })

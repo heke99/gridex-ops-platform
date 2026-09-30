@@ -1,0 +1,81 @@
+// Focused real SQL owner checks with synthetic boundary records. Not authentic
+// source approvals, full Supabase replay/RLS or market traffic evidence.
+import {readFileSync} from 'node:fs'
+import {pathToFileURL} from 'node:url'
+import assert from 'node:assert/strict'
+if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
+const{PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite(),uid=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`
+const fn=(file,name)=>{const s=readFileSync(new URL(file,import.meta.url),'utf8'),start=s.indexOf(`CREATE FUNCTION ${name}`),end=s.indexOf('$$;',start);if(start<0||end<0)throw Error(name);return s.slice(start,end+3)}
+const service=async(sql)=>{await db.exec('set role service_role');try{return await db.query(sql)}finally{await db.exec('reset role')}}
+const quote=v=>`'${String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")}'`
+try{
+ await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key);create schema gridex_received_sources;
+ create table companies(id uuid primary key);create table customers(id uuid primary key,company_id uuid);create table user_profiles(id uuid primary key,user_status text);create table company_memberships(company_id uuid,user_id uuid,status text,is_active bool,accepted_at timestamptz);create table permissions(actor uuid,company uuid,permission text,allowed bool);
+ create function gridex_actor_has_company_permission(a uuid,c uuid,p text) returns bool language sql as $$select coalesce((select allowed from public.permissions where actor=a and company=c and permission=p),false)$$;
+ create table customer_contracts(id uuid primary key,company_id uuid,customer_id uuid,metering_point_id uuid,status text,contract_version text,signed_version text,signed_at timestamptz,version_snapshot jsonb);
+ create table metering_points(id uuid primary key,company_id uuid,customer_id uuid,product_direction text,ediel_metering_point_id text,grid_owner_ediel_id text,grid_area_code text);
+ create table customer_supply_periods(id uuid primary key,company_id uuid,customer_id uuid,metering_point_id uuid,status text);
+ create table tenant_ediel_profiles(id uuid primary key,company_id uuid,environment text,market text,is_enabled bool,valid_from timestamptz,valid_to timestamptz);create table tenant_actor_identifiers(id uuid primary key,company_id uuid,environment text,actor_id uuid,identifier_type text,identifier_value text,valid_from timestamptz,valid_to timestamptz);create table tenant_actor_roles(id uuid primary key,company_id uuid,environment text,actor_id uuid,role_code text,valid_from timestamptz,valid_to timestamptz);
+ create table ediel_route_profiles(id uuid primary key,company_id uuid,environment text,is_enabled bool,is_active bool,sender_ediel_id text,receiver_ediel_id text,sender_sub_address text,receiver_sub_address text);
+ create table communication_routes(id uuid primary key,company_id uuid,is_active bool);
+ create table ediel_message_intents(id uuid primary key default gen_random_uuid(),company_id uuid,environment text,market text,message_family text,message_code text,business_process text,direction text,sender_ediel_id text,sender_subaddress text,receiver_ediel_id text,receiver_subaddress text,application_reference text,route_profile_id uuid,communication_route_id uuid,customer_id uuid,operation_id uuid,metering_point_id text,facility_id text,grid_area_code text,interchange_reference text,message_reference text,transaction_reference text,payload jsonb,idempotency_key text,created_by uuid,updated_by uuid,validation_status text,render_status text,outbox_status text,ediel_message_id uuid,outbound_request_id uuid);
+ create table outbound_requests(id uuid primary key default gen_random_uuid(),company_id uuid,customer_id uuid,metering_point_id uuid,communication_route_id uuid,request_type text,source_type text,source_id uuid,environment text,status text,channel_type text,payload jsonb,created_by uuid,updated_by uuid,operation_id uuid);
+ create table ediel_messages(id uuid primary key,intent_id uuid,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,source_operation_id text,outbound_request_id uuid,customer_id uuid,metering_point_id uuid,raw_payload text,immutable_payload_hash text,status text,sender_ediel_id text,receiver_ediel_id text,sender_sub_address text,receiver_sub_address text,application_reference text,route_profile_id uuid,communication_route_id uuid);
+ create table boundary_supply(id uuid primary key,company_id uuid,start_at timestamptz,end_at timestamptz,basis jsonb);
+ create function gridex_received_sources.supply_period_source_basis_v1(c uuid,p uuid,s timestamptz,e timestamptz) returns jsonb language sql as $$select basis from public.boundary_supply where id=p and company_id=c and start_at<=s and (end_at is null or e<=end_at)$$;
+ create schema gridex_ediel_transport;create schema gridex_outbound_dispatch;grant usage on schema gridex_ediel_transport,gridex_outbound_dispatch to service_role;create table provider_effects(lane text);
+ create function gridex_ediel_transport.mutate_v1(i jsonb) returns jsonb language plpgsql security definer as $$begin if i->>'action' in('prepare','enter') then insert into public.provider_effects values('transport');return '{"proceed":true}';end if;return '{"proceed":false}';end$$;
+ create function gridex_outbound_dispatch.mutate_v1(i jsonb) returns jsonb language plpgsql security definer as $$begin if i->>'action' in('prepare','enter') then insert into public.provider_effects values('dispatch');return '{"proceed":true,"scoped":true}';end if;return '{"proceed":false,"scoped":true}';end$$;`)
+ await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.wire_tokens_bounded_v1'))
+ await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.closure_wire_tokens_v2'))
+ await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.permission_transition_immutable_v1'))
+ await db.exec(fn('../supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql','gridex_received_sources.production_contract_hash_v1'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930224540_ediel_source_bound_requested_changes.sql',import.meta.url),'utf8'))
+ const read=(event=uid(8),company=uid(1),actor=uid(2))=>service(`select public.ediel_requested_change_source_v1('${company}','${event}','${actor}') b`)
+ assert.equal((await read()).rows[0].b.status,'held')
+ const identity={id:'199001019999',qualifier:'SE1',agency:'260'},address={lines:['TEST ROAD 1','',''],city:'TEST',postalCode:'12345',country:'SE',representation:{convention:'SOURCE',reference:'SYNTHETIC',mode:1}}
+ const party={...identity,name:'SYNTHETIC CUSTOMER',addressLines:['TEST ROAD 1'],city:'TEST',postalCode:'12345',country:'SE'},invoicee={meteringPointId:'735999123456789012',identityAgency:'9',endUser:{identity,address},invoicee:{identity,nameLines:['SYNTHETIC CUSTOMER'],address,availability:'available'},event:{state:'none',reference:'SYNTHETIC'},source:{kind:'caller_selection',companyId:uid(1),reference:'SYNTHETIC'}}
+ await db.exec(`insert into companies values('${uid(1)}');insert into auth.users values('${uid(2)}');insert into user_profiles values('${uid(2)}','active');insert into company_memberships values('${uid(1)}','${uid(2)}','active',true,now());insert into permissions values('${uid(2)}','${uid(1)}','communication.write',true),('${uid(2)}','${uid(1)}','communication.send',true);
+ insert into customers values('${uid(3)}','${uid(1)}');insert into metering_points values('${uid(4)}','${uid(1)}','${uid(3)}','consumption','735999123456789012','54321','TES');insert into customer_contracts values('${uid(5)}','${uid(1)}','${uid(3)}','${uid(4)}','signed','1','1',now(),'{}');insert into customer_supply_periods values('${uid(6)}','${uid(1)}','${uid(3)}','${uid(4)}','active');
+ insert into ediel_messages(id,company_id,environment,raw_payload) values('${uid(7)}','${uid(1)}','production',${quote("UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z04+SOURCE'LIN+1++735999123456789012:::9'NAD+Z02+99999:160:SVK'")});
+ insert into boundary_supply values('${uid(6)}','${uid(1)}','2026-01-01',null,${quote({qualified:true,sourceMessageId:uid(7),initialSourceMessageId:uid(7),marketStateVersion:1,customerId:uid(3),meteringPointId:uid(4),legalActorId:uid(9),dsoEdielId:'54321',sourceObjects:[{point:'735999123456789012',identityAgency:'9'}]})});
+ insert into tenant_ediel_profiles values('${uid(10)}','${uid(1)}','production','electricity',true,'2026-01-01',null);insert into tenant_actor_identifiers values('${uid(11)}','${uid(1)}','production','${uid(9)}','EdielId','12345','2026-01-01',null);insert into tenant_actor_roles values('${uid(12)}','${uid(1)}','production','${uid(9)}','electricity_supplier','2026-01-01',null);insert into communication_routes values('${uid(13)}','${uid(1)}',true);insert into ediel_route_profiles values('${uid(14)}','${uid(1)}','production',true,true,'12345','54321',null,null);`)
+ const route={routeProfileId:uid(14),communicationRouteId:uid(13),senderEdielId:'12345',receiverEdielId:'54321',senderSubaddress:null,receiverSubaddress:null,applicationReference:'23-DDQ-PRODAT'}
+ const originate=(event,r=route)=>service(`select public.ediel_originate_requested_change_v1('${uid(1)}','${event}','${uid(2)}',${quote(r)}) b`)
+ const bound=[]
+ for(const [n,variant,kind,reason,method] of [[20,'E','death','E34',null],[21,'F','quarter_contract','E64','Z04'],[22,'G','method_contract','E32','Z03']]){
+  await db.exec(`insert into gridex_requested_changes.events(id,company_id,environment,supply_period_id,supply_source_message_id,supply_state_version,contract_id,protected_contract_hash,customer_id,metering_point_id,customer_snapshot_hash,legal_actor_id,legal_sender_id,legal_receiver_id,point_id,identity_agency,grid_area_code,brp_ediel_id,variant,event_kind,effective_at,customer_identity,invoicee_profile,source_reference,source_sha256,source_version,approved_by,approved_at)
+  select '${uid(n)}','${uid(1)}','production','${uid(6)}','${uid(7)}',1,c.id,gridex_received_sources.production_contract_hash_v1(c),'${uid(3)}','${uid(4)}',encode(sha256(convert_to(to_jsonb(u)::text,'UTF8')),'hex'),'${uid(9)}','12345','54321','735999123456789012','9','TES','99999','${variant}','${kind}','2026-10-01T12:00Z',${quote(party)},${quote(invoicee)},'SYNTHETIC-${variant}','${'a'.repeat(64)}','1','${uid(2)}',now() from customer_contracts c cross join customers u where c.id='${uid(5)}' and u.id='${uid(3)}';`)
+  assert.equal((await read(uid(n))).rows[0].b.status,'authorized')
+  assert.equal((await read(uid(n),uid(99))).rows[0].b.status,'held')
+  assert.equal((await originate(uid(n),{...route,receiverEdielId:'OTHER'})).rows[0].b.status,'held')
+  const o=(await originate(uid(n))).rows[0].b
+  assert.deepEqual((await originate(uid(n))).rows[0].b,o)
+  const intent=(await db.query(`select * from ediel_message_intents where id='${o.intentId}'`)).rows[0],mid=uid(n+100)
+  const wire=`UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z09+${intent.interchange_reference}'NAD+FR+12345:160:SVK'NAD+DO+54321:160:SVK'LIN+1++735999123456789012:::9'DTM+157:202610011300:203'CCI++Z13'CAV+${reason}'${variant==='E'?"CCI++Z17'CAV+Z41'":`CCI++Z04'CAV+${method}'`}RFF+LI:${intent.transaction_reference}'${variant==='E'?"NAD+UD+199001019999:SE1:260++SYNTHETIC CUSTOMER+TEST ROAD 1+TEST++12345+SE'":''}`
+  await db.exec(`insert into ediel_messages(id,intent_id,company_id,environment,direction,message_standard,message_family,message_code,source_operation_id,outbound_request_id,customer_id,metering_point_id,raw_payload,sender_ediel_id,receiver_ediel_id,application_reference,route_profile_id,communication_route_id) values('${mid}','${o.intentId}','${uid(1)}','production','outbound','edifact','PRODAT','Z09','${uid(n)}','${o.outboundRequestId}','${uid(3)}','${uid(4)}',${quote(wire)},'12345','54321','23-DDQ-PRODAT','${uid(14)}','${uid(13)}')`)
+  await service(`select public.ediel_require_requested_change_source_current_v1('${uid(1)}','${mid}')`)
+  const actual=(await service(`select public.ediel_requested_change_message_basis_v1('${uid(1)}','${mid}','${uid(2)}') b`)).rows[0].b
+  assert.equal(actual.basis.variant,variant);assert.equal(actual.messageId,mid)
+  const count=(await db.query('select count(*)::int n from customer_supply_periods')).rows[0].n;assert.equal(count,1)
+  await db.exec(`update ediel_messages set raw_payload=${quote(wire.replace('202610011300','202610021300'))} where id='${mid}'`)
+  await assert.rejects(()=>service(`select public.ediel_require_requested_change_source_current_v1('${uid(1)}','${mid}')`),/effective_boundary_changed/)
+  await db.exec(`update ediel_messages set raw_payload=${quote(wire)} where id='${mid}'`)
+  bound.push({event:uid(n),mid})
+ }
+ assert.equal((await db.query('select count(*)::int n from ediel_message_intents')).rows[0].n,3)
+ assert.equal((await db.query('select count(*)::int n from outbound_requests')).rows[0].n,3)
+ for(const role of ['anon','authenticated','service_role']){
+  await db.exec(`set role ${role}`)
+  for(const statement of ["select * from gridex_requested_changes.events",`insert into gridex_requested_changes.revocations(event_id,source_reference,source_sha256,actor_user_id) values('${bound[0].event}','FORGED','${'b'.repeat(64)}','${uid(2)}')`])await assert.rejects(()=>db.exec(statement),/permission denied/)
+  await db.exec('reset role')
+ }
+ await assert.rejects(()=>db.exec(`update gridex_requested_changes.events set source_version='2' where id='${bound[0].event}'`),/immutable/)
+ await db.exec(`update permissions set allowed=false where permission='communication.send'`)
+ await assert.rejects(()=>service(`select public.ediel_requested_change_message_basis_v1('${uid(1)}','${bound[0].mid}','${uid(2)}')`),/current_source_required/)
+ await db.exec(`update permissions set allowed=true where permission='communication.send';insert into gridex_requested_changes.revocations(event_id,source_reference,source_sha256,actor_user_id) values('${bound[0].event}','SYNTHETIC-REVOCATION','${'b'.repeat(64)}','${uid(2)}')`)
+ assert.equal((await read(bound[0].event)).rows[0].b.status,'held')
+ for(const schema of ['gridex_ediel_transport','gridex_outbound_dispatch'])await assert.rejects(()=>service(`select ${schema}.mutate_v1(${quote({action:'enter',companyId:uid(1),messageId:bound[0].mid})})`),/current_source_required/)
+ assert.equal((await db.query('select count(*)::int n from provider_effects')).rows[0].n,0)
+ console.log('PASS focused SQL E/F/G originate+bind, idempotence, source/tenant/route/date/hash/permission/revocation, immutable private rows, both provider rollback boundaries (synthetic predecessor/supply records; not native replay)')
+}finally{await db.close()}

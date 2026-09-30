@@ -5,7 +5,7 @@ import {parseSourceReceiptInstant} from './receivedSourceInventory'
 import {inspectCombinedCorrectionReadset} from '@/lib/ediel/sources/combinedCorrectionReadset'
 import type {StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {compareUtiltsStructure,type StructuralComparison} from './structuralComparison'
-import {rebuildUtiltsRuntimeResult,type UtiltsRuntimeResult,type UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine'
+import {rebuildUtiltsRuntimeResult,takeUtiltsRuntimeOwner,utiltsRuntimeOwnerFingerprint,type UtiltsRuntimeResult,type UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine'
 import {resolveUtiltsProcessabilityPolicy} from '@/lib/ediel/rulebook/utilts25A4'
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -20,7 +20,7 @@ export type ReceivedStructureQualification={
  * snapshot and immediately applies the result to the current invocation. There
  * is no parameter for cached/serialized approvals or caller-supplied readsets.
  * Expected values never come from current metering masterdata or the UTILTS. */
-export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy}):Promise<ReceivedStructureQualification>{
+async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy}):Promise<ReceivedStructureQualification>{
   const {message,runtime,canonicalPolicy}=input
   const result:ReceivedStructureQualification={runtime,hasInternalReview:false,hasNationalMismatch:false,
     evidence:{version:1,owner:'received-structure-comparison-v1',status:'not_applicable',cutoffAt:null,snapshotId:null,readsetHash:null,comparisons:[]}}
@@ -136,5 +136,24 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
         reason:'Godkänt och tidsmässigt fullständigt strukturunderlag saknas för en eller flera transaktioner.'}}
   }
   result.runtime=qualified
+  return result
+}
+
+const qualifiedOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy}>()
+export function takeQualifiedUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy):UtiltsRuntimeResult|null {
+  const owner=qualifiedOwners.get(runtime)
+  qualifiedOwners.delete(runtime)
+  if(!owner) return null
+  const scope=utiltsRuntimeOwnerFingerprint(message,runtime)
+  return owner.policy===policy && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
+}
+/** This seal is minted only after this module obtained its own immutable
+ * structural readset and restricted the actual engine invocation. */
+export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy}):Promise<ReceivedStructureQualification>{
+  const before=utiltsRuntimeOwnerFingerprint(input.message,input.runtime)
+  const owner=takeUtiltsRuntimeOwner(input.runtime,input.message,input.canonicalPolicy)
+  const result=await qualifyReceivedUtiltsStructureCore(input)
+  const after=utiltsRuntimeOwnerFingerprint(input.message,input.runtime)
+  if(owner && before.sourceHash===after.sourceHash && before.resultHash===after.resultHash) qualifiedOwners.set(result.runtime,{...utiltsRuntimeOwnerFingerprint(input.message,result.runtime),policy:input.canonicalPolicy})
   return result
 }

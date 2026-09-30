@@ -4,6 +4,20 @@ import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 export const ownerId = (n:number) => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 export const OWNER = {source:ownerId(1),company:ownerId(2),customer:ownerId(3),point:ownerId(4),site:ownerId(5),grid:ownerId(6),switch:ownerId(7),supply:ownerId(8),actor:ownerId(9),external:'735123456789012345'}
+/** Synthetic activation rows returned by the external registry RPC. The real
+ * registry decoder and named original witness remain the evidence owners. */
+export function ownerRulePack() {
+  const profileKey='PRODAT:Z04:L:26.A:r3',sourceHash='a'.repeat(64),packId=ownerId(12),profileId=ownerId(11)
+  const profile={guideVersion:'26.A',guideRevision:'3',family:'PRODAT',messageCode:'Z04',transactionSubtype:'L',canonicalDirection:'inbound',reasonForTransaction:'Z22'}
+  return {
+    rule_pack_id:packId,message_profile_id:profileId,market:'electricity',family:'PRODAT',guide_version:'26.A',guide_revision:'3',
+    unh_association_code:'E2SE6A',valid_from:'2026-04-01',valid_to:null,source_document:'Synthetic PRODAT 26.A revision 3 activation',
+    source_hash:sourceHash,field_matrix_version:'26A-r3',profile_key:profileKey,business_process:'supplier_switch_confirmation',phase:null,profile,
+    parser_ready:true,builder_ready:true,validator_ready:true,ack_ready:true,state_machine_ready:true,original_version:'26.A:r3',
+    original_snapshot:{rulePack:{id:packId,source_hash:sourceHash,guide_version:'26.A',guide_revision:'3'},
+      messageProfile:{id:profileId,rule_pack_id:packId,profile_key:profileKey,profile},guideSources:[]},
+  }
+}
 /** Fixed synthetic wire. The real canonical engine must accept it, not a stub
  * of its output. Receiver-local reading facts are explicit fixture input. */
 export function ownerSource():EdielMessageRow {

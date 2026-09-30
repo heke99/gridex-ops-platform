@@ -11,12 +11,16 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run db:migrations:check
+      - run: python3 scripts/gridex-ediel-upgrade-inputs-selftest.py
+      - run: python3 scripts/gridex-redact-native-evidence-selftest.py
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
       # isolation on its own. The count may fall but never rise; new tenant-scoped
       # queries use tenantDb(companyId) from lib/supabase/tenantDb.
@@ -55,6 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -81,6 +86,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -123,36 +130,8 @@ jobs:
           # native fixture fails. The stack remains alive in this sourced step.
           SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
-          # Originals stay in HOLD until the sourced replay's EXIT trap. Keep
-          # the verified original input available to both native case passes.
-          export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"
-          [[ -f "$GRIDEX_EDIEL_CASE_RESTORATION_SQL" ]] || exit 1
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
-          # Exercise the actual canonical registry, business writes and owner
-          # RPCs over the local Data API. No keys enter uploaded evidence.
-          supabase status --help
-          supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
-          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
-          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
-          export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
-          [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
-          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
-          export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
-          [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
-          unset GRIDEX_E2E_BROWSER_BASE_URL
-          export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
-          export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
-          export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
-          npx vitest run --config scripts/ediel-case-view-native.config.ts
-          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
-          npx playwright install --with-deps chromium
-          npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
-          GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts
-          rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
-          unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
-          rm -f "$RUNNER_TEMP/e035-native-status.json"
+          # Materialize authentic artifacts before any fixture/browser can
+          # fail. These comparators remain blocking and use the replay DB.
           supabase gen types typescript --local > rem002-database.types.ts
           # Typegen emits non-null Returns for nullable SQL columns on the
           # field-511 resolver; apply the same durable override used on tip.
@@ -168,6 +147,40 @@ jobs:
             echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
             exit 1
           fi
+
+          python3 scripts/ediel-received-context-upgrade-regression.py
+          # Originals stay in HOLD until the sourced replay's EXIT trap. Keep
+          # the verified original input available to both native case passes.
+          export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"
+          [[ -f "$GRIDEX_EDIEL_CASE_RESTORATION_SQL" ]] || exit 1
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          # Exercise the actual canonical registry, business writes and owner
+          # RPCs over the local Data API. No keys enter uploaded evidence.
+          supabase status --help
+          supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
+          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-native-junit.xml
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
+          export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
+          [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
+          export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
+          [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
+          unset GRIDEX_E2E_BROWSER_BASE_URL
+          export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
+          export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
+          export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          # Only generated disposable credentials enter this unuploaded file.
+          node -e 'const fs=require("node:fs");const s=JSON.parse(fs.readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8"));fs.writeFileSync(process.env.RUNNER_TEMP+"/e035-native-sensitive.json",JSON.stringify({...s,password:process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD}),{mode:0o600})'
+          npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-native-junit.xml
+          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
+          npx playwright install --with-deps chromium
+          npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-after-browser-junit.xml
+          rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
+          unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
+          rm -f "$RUNNER_TEMP/e035-native-status.json"
 
           # Everything below runs in THIS step on purpose. The replay script is
           # sourced, so its EXIT trap stops the local Supabase stack when this
@@ -192,6 +205,16 @@ jobs:
           else
             echo "no committed canonical schema baseline yet; snapshot uploaded as evidence"
           fi
+      - name: Redact disposable credentials from native and browser evidence
+        if: always()
+        shell: bash
+        run: |
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$RUNNER_TEMP/e035-native-sensitive.json" \
+            --root e2e-artifacts --root rem002-clean-replay.log \
+            --root rem002-native-junit.xml --root rem002-case-native-junit.xml \
+            --root rem002-case-after-browser-junit.xml
+          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json"
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -201,4 +224,63 @@ jobs:
             rem002-clean-replay.log
             rem002-database.types.ts
             rem002-schema-snapshot/
+            rem002-native-junit.xml
+            rem002-case-native-junit.xml
+            rem002-case-after-browser-junit.xml
+            e2e-artifacts/
+          if-no-files-found: error
+
+  upgrade-migration-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install a PostgreSQL client matching the replay server
+        shell: bash
+        run: |
+          set -euo pipefail
+          # supabase/config.toml pins major_version 17, and pg_dump refuses to
+          # dump a server newer than itself. The runner ships an older client,
+          # so the schema snapshot aborts on a version mismatch.
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          echo "replay server major version: $server_major"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          # Name the matching binary explicitly. pg_wrapper does not reliably
+          # resolve to the newest installed major, so relying on PATH here can
+          # still pick an older pg_dump and abort on a version mismatch.
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          psql --version
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Genuine ancestor upgrade and independent clean parity
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -o pipefail
+          bash scripts/gridex-ediel-upgrade-replay.sh 2>&1 | tee rem002-upgrade-replay.log
+      - name: Upload authentic upgrade evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-rem-002-upgrade-replay
+          path: |
+            rem002-upgrade-replay.log
+            rem002-upgrade/
           if-no-files-found: error

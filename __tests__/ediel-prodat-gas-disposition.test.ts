@@ -6,12 +6,17 @@ import {compareInboundPayloadToTgtTestData} from '@/lib/ediel/testing/tgtAutoMat
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-const io=vi.hoisted(()=>({from:vi.fn<ReturnType<typeof registryDatabase>>(()=>{throw new Error('UNEXPECTED_DB')}),provider:vi.fn(()=>{throw new Error('UNEXPECTED_PROVIDER')}),route:vi.fn(),event:vi.fn(),update:vi.fn()}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from}}))
+import {OWNER,ownerSource} from './helpers/sourceOwnerFixtures'
+import {createProdatRegisterEvidence} from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {selectedAddressFact,selectedInvoiceeFact} from './fixtures/prodat-ud'
+const io=vi.hoisted(()=>({from:vi.fn<ReturnType<typeof registryDatabase>>(()=>{throw new Error('UNEXPECTED_DB')}),rpc:vi.fn(),provider:vi.fn(()=>{throw new Error('UNEXPECTED_PROVIDER')}),route:vi.fn(),event:vi.fn(),update:vi.fn()}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from,rpc:io.rpc}}))
 vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:io.provider}))
 vi.mock('@/lib/ediel/db',()=>({getEdielRouteProfileByCommunicationRouteId:io.route,createEdielMessageEvent:io.event,updateEdielMessageStatus:io.update}))
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
-beforeEach(()=>vi.clearAllMocks())
+beforeEach(()=>{vi.clearAllMocks();io.rpc.mockImplementation(async(name:string)=>{expect(name).toBe('gridex_ediel_accepted_transport_projection_v1');return{data:null,error:null}})})
+const expectNoTransportWork=()=>{for(const mock of [io.from,io.provider,io.route,io.event,io.update])expect(mock).not.toHaveBeenCalled()}
 const row=(wire:string,direction:'inbound'|'outbound'='inbound')=>({id:'00000000-0000-4000-8000-000000000001',company_id:'00000000-0000-4000-8000-000000000002',direction,environment:'test',message_family:'PRODAT',message_code:'Z04',message_standard:'edifact',raw_payload:wire,parsed_payload:{rulebookAllowInvalidSend:true},application_reference:'23-DDQ-PRODAT'} as unknown as EdielMessageRow)
 function source(){
  const columns=[{name:'Z04L',index:1,sourceOrder:1,testCase:'SYNTHETIC'}]
@@ -49,18 +54,29 @@ it('malformed receiver evidence leaves ordinary diagnostics intact on normal and
 })
 it('actual SMTP holds GAS before route/storage/provider work',async()=>{
  await expect(sendEdielMessageViaSmtp({...row(payload('Z04','Z70',[],'gas'),'outbound'),communication_route_id:'route'},{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
- for(const mock of Object.values(io))expect(mock).not.toHaveBeenCalled()
+ expectNoTransportWork()
 })
 it('actual loaded route mismatch holds coherent EL before provider/storage work',async()=>{
  io.route.mockResolvedValue({application_reference:'27-DDQ-PRODAT'})
- await expect(sendEdielMessageViaSmtp({...row(payload(),'outbound'),receiver_email:'synthetic@example.test',communication_route_id:'route'},{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
+ // Complete independent EL source, so an unrelated national field failure
+ // cannot prevent this route-source mismatch from reaching its real owner.
+ // Keep required field242 (first7110) and omit forbidden field506
+ // (second7110); the historical inbound owner fixture intentionally has both.
+ const source=ownerSource();source.raw_payload=source.raw_payload!.replace('L917:8716867000030','L917')
+ const tokens=tokenizeEdifact(source.raw_payload)
+ const registerEvidence=createProdatRegisterEvidence({code:'Z04',rawSegments:tokens.segments.map(s=>s.raw),una:tokens.una,facts:{market:'electricity',
+  registerObjects:[{meteringPointId:OWNER.external,identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false}],
+  endUserAddressObjects:[selectedAddressFact(OWNER.external,OWNER.company,'9','CUSTOMER-1',['Street'])],
+  invoiceeObjects:[selectedInvoiceeFact(OWNER.external,OWNER.company,'9','CUSTOMER-1',['Street'],'','12345','City')],
+ }})
+ await expect(sendEdielMessageViaSmtp({...source,direction:'outbound',parsed_payload:{prodatEngine:{registerEvidence}},receiver_email:'synthetic@example.test',communication_route_id:'route'},{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
  expect(io.route).toHaveBeenCalledOnce();for(const mock of [io.from,io.provider,io.event,io.update])expect(mock).not.toHaveBeenCalled()
 })
 for(const alphabet of alphabets)it(`direct SMTP enforces each EL Z04 exclusion before all external work ${alphabet}`,async()=>{
  for(const [qualifier,field] of [['Z08','320'],['Z06','240']]){
   const message={...row(payload('Z04','Z22',[['NAD','UD'],['RFF',[qualifier,'']]],'electricity',alphabet),'outbound'),receiver_email:'synthetic@example.test',communication_route_id:'route'}
   await expect(sendEdielMessageViaSmtp(message,{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow(`PRODAT_GAS_${field}_FORBIDDEN`)
-  for(const mock of Object.values(io))expect(mock).not.toHaveBeenCalled()
+  expectNoTransportWork()
  }
 })
 it('SMTP field exclusion preserves the existing protected date-event diagnostic',async()=>{
@@ -68,5 +84,5 @@ it('SMTP field exclusion preserves the existing protected date-event diagnostic'
  const result=sendEdielMessageViaSmtp(message,{actorUserId:'00000000-0000-4000-8000-000000000003'})
  await expect(result).rejects.toThrow('PRODAT_GAS_320_FORBIDDEN')
  await expect(result).rejects.toThrow('PRODAT_DATE_EVENT_FORMAT_INVALID')
- for(const mock of Object.values(io))expect(mock).not.toHaveBeenCalled()
+ expectNoTransportWork()
 })

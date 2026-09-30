@@ -1,3 +1,8 @@
+import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import {commonHeaderOriginalSource,prodatCommonHeaderRejectionQualification,readPersistedProdatCommonHeaderNegativeAckBasis,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {readSourceBoundAckRulePackEvidence,readPersistedOutboundAckRulePackEvidence,sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
 import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
@@ -16,7 +21,7 @@ import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermission
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import {prodatDateEventAuthorityIssue} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatDateEvents} from './prodatDateEventPolicy'
-import type {ProdatDateEventRow,TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {ProdatDateEventRow,ProdatDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from './prodatEndUserAddressPolicy'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -25,10 +30,12 @@ import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtype
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
-import type { EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
-import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import type { CreateEdielMessageInput, EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
+import {isRequestedChangeBasisQualified,requestedChangeRegisterFacts,type RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
+import { parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { parseRulebookWirePayload } from './messageFormatParser'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
-import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { resolveCanonicalEdielPolicy, isCanonicalProdatOwnWireDependentCondition, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
@@ -46,6 +53,15 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit local assessment time; sender DTM137 never admits a guide. */
   admissionAt?: string | Date
   messageRow?: EdielMessageRow
+  /** Actual private source RPC capability; caller JSON supplies no authority. */
+  requestedChangeBasis?:RequestedChangeBasis
+  requestedChangeRow?:CreateEdielMessageInput|EdielMessageRow
+  /** Protected actual-original port for a pre-persistence reverse ACK draft. */
+  ackSourceQualification?:SourceQualifiedOutboundAck
+  /** Protected syntax-only endpoint authority; never a business rule pack. */
+  technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence
+  /** Source-only common-header national rejection, never a code profile. */
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
   /** Explicit pure receiver knowledge, never incoming parsed metadata. */
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
@@ -53,12 +69,12 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Draft metadata from the canonical renderer. Used to verify that production
    * PRODAT D-conditions were already resolved with the original business facts. */
   dateEventRow?:ProdatDateEventRow
-  dateEventContext?:TgtDateEventValidationContext
+  dateEventContext?:ProdatDateEventValidationContext
   reportingContext?:ExpectedContext
   parsedPayload?: Record<string, unknown> | null
 }
 
-export type RulebookValidationResult = LegacyRulebookValidationResult
+export type RulebookValidationResult = Omit<LegacyRulebookValidationResult,'fieldRuleSource'> & { canonicalPolicy?: CanonicalEdielPolicy; fieldRuleSource:'static'|'registry'|'technical_source'|'common_header_source';technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence;prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence }
 
 type ActiveCanonicalFamily = 'PRODAT' | 'UTILTS' | 'UTILTS_ERR' | 'APERAK' | 'CONTRL'
 type BusinessRulePackFamily = 'PRODAT' | 'UTILTS'
@@ -85,11 +101,8 @@ function issue(input: Omit<EdielRulebookIssue, 'blocking'> & { blocking?: boolea
 }
 
 function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
-  if (input.parsed) return input.parsed
-  if (!input.rawPayload) return null
-  if (input.rawPayload.startsWith('UNA') || input.rawPayload.startsWith('UNB') || input.rawPayload.includes("'")) return parseRulebookMessage(input.rawPayload)
-  if (['AI_LIST', 'BI_LIST'].includes(normalize(input.family)) || /^Ver\d{8};/.test(input.rawPayload)) return parseRulebookListPayload(input.rawPayload)
-  return null
+  if (!input.rawPayload) return input.parsed ?? null
+  return parseRulebookWirePayload({rawPayload:input.rawPayload,family:input.family})
 }
 
 /** A real PRODAT header selects the policy before any row/cached metadata.
@@ -154,6 +167,20 @@ function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null
+}
+
+function requestedChangeRow(input:RulebookValidationInput) {
+ const row=input.messageRow??input.requestedChangeRow
+ return row?{...row,raw_payload:input.rawPayload,message_code:input.code,message_family:input.family}:{raw_payload:input.rawPayload,message_code:input.code,message_family:input.family,parsed_payload:input.parsedPayload}
+}
+
+function protectedRegisterFacts(input:RulebookValidationInput,code:string,parsed:ParsedRulebookMessage) {
+ const facts=readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+ if(input.requestedChangeBasis){
+  if(!isRequestedChangeBasisQualified(input.requestedChangeBasis,requestedChangeRow(input)))throw Error('requested_change_protected_basis_scope_invalid')
+  return {...facts,...requestedChangeRegisterFacts(input.requestedChangeBasis)}
+ }
+ return facts
 }
 
 function renderedDependentSnapshot(input: RulebookValidationInput): unknown[] | null {
@@ -288,21 +315,6 @@ function assertAckFamilyRuntimeVersion(input: {
   }
 }
 
-function inheritedSourceRulePackSnapshot(input: RulebookValidationInput): RegistryRulePackSnapshot | null {
-  const payload = record(input.parsedPayload)
-  const snapshot = record(payload?.canonicalSourceRulePackSnapshot)
-  if (!snapshot) return null
-
-  const profileKey = String(snapshot.profileKey ?? '').trim()
-  const profileVersionId = String(snapshot.profileVersionId ?? '').trim()
-  const version = String(snapshot.version ?? '').trim()
-  const checksum = String(snapshot.checksum ?? '').trim()
-  const inherited = snapshot.inheritedFromSourceMessage === true
-  const sourceMessageId = String(snapshot.sourceMessageId ?? '').trim()
-  if (!profileKey || !profileVersionId || !version || !checksum || !inherited || !sourceMessageId) return null
-  return { profileKey, profileVersionId, version, checksum }
-}
-
 function policyForValidation(input: RulebookValidationInput, parsed: ParsedRulebookMessage): CanonicalEdielPolicy {
   const familyValue = normalize(input.family ?? parsed.family)
   if (!isActiveCanonicalFamily(familyValue)) {
@@ -335,7 +347,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     messageCode: code,
     subtypeOrReasonCode: parsed.subtype,
     prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
-      ? readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+      ? protectedRegisterFacts(input,code,parsed)
       : {meterChange:input.meterChange,deathStatus:input.deathStatus,gasSerialChange:input.gasSerialChange},
     direction: dir,
     referenceDate,
@@ -367,8 +379,8 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     if (production) throw new Error(`prodat_canonical_policy_snapshot_missing:${code}`)
     return policy
   }
-  if (production && snapshot.some((condition) => condition.status === 'undetermined')) {
-    const ids = snapshot.filter((condition) => condition.status === 'undetermined').map((condition) => condition.id)
+  if (production && snapshot.some((condition) => condition.status === 'undetermined'&&!isCanonicalProdatOwnWireDependentCondition(condition))) {
+    const ids = snapshot.filter((condition) => condition.status === 'undetermined'&&!isCanonicalProdatOwnWireDependentCondition(condition)).map((condition) => condition.id)
     throw new Error(`prodat_dependent_condition_undetermined:${ids.join(',')}`)
   }
   return { ...policy, prodatDependentConditions: snapshot }
@@ -418,6 +430,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       code: policy.code,
       processGroup: policy.processGroup ?? 'unknown',
       expectedApplicationReference: policy.applicationReference,
+      canonicalPolicy: policy,
       parsed,
       issues,
       fieldRuleSource: 'static',
@@ -463,11 +476,48 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
   }
 }
 
+/** One shared guide path for safely prescribed technical responses. This
+ * authority grants only the protected syntax reply; legal/business approval
+ * and a business pack are deliberately absent. Native provider-entry repeats
+ * the exact immutable original/global-correlation/current-endpoint checks. */
+function qualifyTechnicalContrl(input:RulebookValidationInput,result:RulebookValidationResult):RulebookValidationResult {
+  const evidence=input.environment==='test'||input.environment==='production' ? technicalSyntaxAckQualification({evidence:input.technicalSyntaxAckEvidence,companyId:input.companyId ?? '',environment:input.environment}) : null
+  const unavailable=()=>({...result,ok:false,blocking:true,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:'CONTRL kräver den faktiska oföränderliga syntaxauktoriteten för samma företag och miljö.'})],rulePackSnapshot:null})
+  if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='CONTRL'||!result.canonicalPolicy||!input.rawPayload||!result.parsed)return unavailable()
+  const envelope=validateEdifactEnvelope(input.rawPayload)
+  const syntaxIssues=envelope.issues.map(entry=>issue({severity:entry.severity,code:entry.code,title:'EDIFACT-kuvert',description:entry.message}))
+  const own=validateCanonicalAckGuide({policy:result.canonicalPolicy,rawSegments:result.parsed.rawSegments,una:result.parsed.una,technicalOriginal:evidence})
+  const issues=[...result.issues,...syntaxIssues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+  return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'technical_source',rulePackSnapshot:null,technicalSyntaxAckEvidence:evidence}
+}
+
+function qualifyCommonHeaderNegativeAck(input:RulebookValidationInput,result:RulebookValidationResult):RulebookValidationResult {
+  const evidence=input.environment==='test'||input.environment==='production'?prodatCommonHeaderRejectionQualification({evidence:input.prodatCommonHeaderRejectionEvidence,companyId:input.companyId??'',environment:input.environment}):null
+  const unavailable=()=>({...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_COMMON_HEADER_SOURCE_REQUIRED',title:'Skyddat nationellt meddelandehuvud saknas',description:'En fält202-kvittens kräver den prospektivt frysta originalauktoriteten och faktiskt fastställd syntax.'})]})
+  if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='APERAK'||!input.rawPayload||!result.parsed)return unavailable()
+  const source=commonHeaderOriginalSource(evidence)
+  if(!source?.raw_payload)return unavailable()
+  const template=resolveCanonicalEdielPolicy({family:'APERAK',messageCode:'APERAK',direction:'outbound',referenceDate:stockholmBusinessDate(new Date(evidence.sourceReceivedAt)),associationAssignedCode:evidence.guide.associationAssignedCode,applicationReference:evidence.identities.applicationReference,mode:'parse'})
+  const policy=Object.freeze({...template,guide:evidence.guide})
+  const expectedGuide={...template.guide,family:'PRODAT'}
+  if(JSON.stringify(Object.keys(expectedGuide).sort())!==JSON.stringify(Object.keys(evidence.guide).sort())||Object.entries(expectedGuide).some(([key,value])=>JSON.stringify(value)!==JSON.stringify(evidence.guide[key as keyof typeof evidence.guide])))return unavailable()
+  const wire=tokenizeEdifact(input.rawPayload),errors=wire.segments.filter(t=>t.tag==='ERC'),texts=wire.segments.filter(t=>t.tag==='FTX'),bgms=wire.segments.filter(t=>t.tag==='BGM')
+  const exact=errors.length===1&&texts.length===1&&bgms.length===1&&segmentComposite(bgms[0],3,wire.una)[0]==='27'
+    &&JSON.stringify(segmentComposite(errors[0],1,wire.una))===JSON.stringify([evidence.field202.ercCode,'','260'])
+    &&JSON.stringify(segmentComposite(texts[0],3,wire.una))===JSON.stringify(['202','','260'])
+    &&JSON.stringify(segmentComposite(texts[0],4,wire.una))===JSON.stringify([evidence.field202.text])
+  const syntax=validateEdifactEnvelope(input.rawPayload).issues.map(entry=>issue({severity:entry.severity,code:entry.code,title:'EDIFACT-kuvert',description:entry.message}))
+  const guide=validateCanonicalAckGuide({policy,rawSegments:result.parsed.rawSegments,una:result.parsed.una,sourceRawPayload:source.raw_payload})
+  const issues=[...result.issues,...syntax,...guide,...(exact?[]:[issue({severity:'error',code:'CANONICAL_COMMON_HEADER_NEGATIVE_SCOPE_INVALID',title:'Nationellt fält202-utfall avviker',description:'Den enda ERC/FTX-gruppen måste återge originalets fastställda header202-fel i en helt avvisande APERAK.'})])]
+  const blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+  return {...result,ok:!blocking,blocking,issues,canonicalPolicy:policy,fieldRuleSource:'common_header_source',rulePackSnapshot:null,prodatCommonHeaderRejectionEvidence:evidence}
+}
+
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
   input = captureAdmission(input)
   const freeText = input.mode === 'send' && input.direction !== 'inbound' ? prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }) : []
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
-  const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
+  const deathBoundary=input.mode==='send'?deathStatusSendIssue(requestedChangeRow(input),input.requestedChangeBasis):null
   const protect=(result:RulebookValidationResult):RulebookValidationResult=>deathBoundary||gasBoundary||freeText.length?{...result,ok:false,blocking:true,issues:[...result.issues,...freeText.filter(entry => !result.issues.some(old => old.code === entry.code && old.description === entry.description)),...(deathBoundary?[deathBoundary]:[]),...(gasBoundary?[gasBoundary]:[])]}:result
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return protect({ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null})
@@ -477,14 +527,15 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
   const parsed = parse(input)
   const family = normalize(input.family ?? parsed?.family)
   if (!isActiveCanonicalFamily(family)) return protect(validateLegacyRulebookMessage(input))
-  return protect(canonicalValidation({ ...input, parsed }))
+  const result=canonicalValidation({ ...input, parsed })
+  return protect(input.prodatCommonHeaderRejectionEvidence?qualifyCommonHeaderNegativeAck(input,result):input.technicalSyntaxAckEvidence ? qualifyTechnicalContrl(input,result) : result)
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
   input = captureAdmission(input)
   if (input.mode === 'send' && input.direction !== 'inbound' && prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }).length) return validateRulebookMessage(input)
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
-  const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
+  const deathBoundary=input.mode==='send'?deathStatusSendIssue(requestedChangeRow(input),input.requestedChangeBasis):null
   if(deathBoundary||gasBoundary)return validateRulebookMessage(input) // Preserve existing protected diagnostics without registry I/O.
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return {ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null}
@@ -496,27 +547,69 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   if (!isActiveCanonicalFamily(familyValue)) return validateLegacyRulebookMessageWithRegistry(input)
 
   const result = canonicalValidation({ ...input, parsed })
+  if(input.prodatCommonHeaderRejectionEvidence)return qualifyCommonHeaderNegativeAck(input,result)
+  if(input.technicalSyntaxAckEvidence)return qualifyTechnicalContrl(input,result)
   if (!parsed || result.blocking) return result
   const dir = direction(input)
   if (!dir) return { ...result, ok: false, blocking: true, issues: [...result.issues, issue({ severity: 'error', code: 'CANONICAL_EVIDENCE_DIRECTION_REQUIRED', title: 'Riktning saknas', description: 'Rule-pack evidence kräver explicit inbound/outbound-riktning.' })] }
+
+  if(familyValue==='CONTRL'&&input.mode==='send'&&input.messageRow){
+    try{
+      if(!input.companyId||(input.environment!=='test'&&input.environment!=='production')||!input.rawPayload)throw new Error('ediel_technical_ack_basis_required')
+      const {evidence}=await readPersistedEdielTechnicalContrlBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload})
+      return qualifyTechnicalContrl({...input,technicalSyntaxAckEvidence:evidence},result)
+    }catch(error){
+      return {...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:error instanceof Error?error.message:String(error)})]}
+    }
+  }
+
+  const executionSnapshot=input.messageRow?.execution_context_snapshot
+  const commonHeaderWitness=executionSnapshot&&typeof executionSnapshot==='object'&&!Array.isArray(executionSnapshot)
+    ? (executionSnapshot as Record<string,unknown>).prodatCommonHeaderNegativeWitnessId : null
+  if(familyValue==='APERAK'&&input.mode==='send'&&input.messageRow&&commonHeaderWitness){
+    try{
+      if(!input.companyId||(input.environment!=='test'&&input.environment!=='production')||!input.rawPayload)throw Error('ediel_common_header_negative_witness_required')
+      const {evidence}=await readPersistedProdatCommonHeaderNegativeAckBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload})
+      return qualifyCommonHeaderNegativeAck({...input,prodatCommonHeaderRejectionEvidence:evidence},result)
+    }catch(error){return {...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_COMMON_HEADER_SOURCE_REQUIRED',title:'Skyddat nationellt meddelandehuvud saknas',description:error instanceof Error?error.message:String(error)})]}}
+  }
 
   if (isSourceBoundAckFamily(familyValue)) {
     // ACK/error messages do not choose a second business rule pack. Outbound
     // ACKs inherit the exact activation/evidence snapshot from the source
     // business message. Inbound parsing is fully source-controlled and does not
     // require a mutable DB row to define protocol meaning.
-    if (input.mode !== 'send') return result
-    const inherited = inheritedSourceRulePackSnapshot(input)
-    if (!inherited) {
+    if (input.mode !== 'send') {
+      if (!input.messageRow || familyValue === 'UTILTS_ERR') return result
+      try {
+        const {sourceMessage,evidence}=await readSourceBoundAckRulePackEvidence(input.messageRow)
+        const policy=result.canonicalPolicy!
+        const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+        const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+        return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+      }catch(error){
+        const issues=[...result.issues,issue({severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description:error instanceof Error?error.message:String(error)})]
+        return {...result,ok:false,blocking:true,issues,fieldRuleSource:'static',rulePackSnapshot:null}
+      }
+    }
+    try {
+      const qualification=input.messageRow
+        ? await readPersistedOutboundAckRulePackEvidence(input.messageRow)
+        : sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
+      if(!qualification)throw new Error('ack_source_qualification_required')
+      const {sourceMessage,evidence}=qualification
+      const own=validateCanonicalAckGuide({policy:result.canonicalPolicy!,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+      const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+      return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+    }catch(error){
       const issues = [...result.issues, issue({
         severity: 'error',
         code: 'CANONICAL_ACK_SOURCE_RULE_PACK_EVIDENCE_REQUIRED',
         title: 'Källmeddelandets canonical rule-pack saknas',
-        description: `${familyValue} ska ärva exakt rule-pack evidence från meddelandet som kvitteras; ett separat ACK-regelpaket får inte väljas.`,
+        description: error instanceof Error?error.message:String(error),
       })]
       return { ...result, ok: false, blocking: true, issues, fieldRuleSource: 'static', rulePackSnapshot: null }
     }
-    return { ...result, fieldRuleSource: 'registry', rulePackSnapshot: inherited }
   }
 
   if (!isBusinessRulePackFamily(familyValue)) {
@@ -524,7 +617,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   }
 
   try {
-    const policy = policyForValidation({ ...input, parsed }, parsed)
+    const policy = result.canonicalPolicy ?? policyForValidation({ ...input, parsed }, parsed)
     const evidence = await resolveCanonicalRulePack({
       family: familyValue,
       messageCode: policy.code,
@@ -532,13 +625,15 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       applicationReference: policy.applicationReference,
       direction: dir,
       businessDate: policy.referenceDate,
+      canonicalPolicy: policy,
       requireBuilder: dir === 'outbound' && input.mode === 'send',
       requireStateMachine: true,
     })
     const snapshot: RegistryRulePackSnapshot = {
-      profileKey: evidence.profileKey,
+      profileKey: evidence.databaseProfileKey ?? evidence.profileKey,
       profileVersionId: evidence.messageProfileId,
-      version: `${evidence.guideVersion}:r${evidence.guideRevision}`,
+      version: evidence.originalVersion,
+      originalWitness: evidence.originalSnapshot,
       checksum: evidence.sourceHash,
     }
     return { ...result, fieldRuleSource: 'registry', rulePackSnapshot: snapshot }
@@ -562,11 +657,12 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
 export function validateEdielMessageRowWithRulebook(
   message: EdielMessageRow,
   mode: 'send' | 'parse' | 'test' = 'send',
-  dateEventContext?:TgtDateEventValidationContext,
+  dateEventContext?:ProdatDateEventValidationContext,
   reportingContext?:ExpectedContext,
+  requestedChangeBasis?:RequestedChangeBasis,
 ): RulebookValidationResult {
   return validateRulebookMessage({
-    messageRow:message,dateEventRow:message,dateEventContext,reportingContext,
+    messageRow:message,dateEventRow:message,dateEventContext,reportingContext,requestedChangeBasis,
     family: message.message_family,
     code: String(message.message_code ?? ''),
     processGroup: message.process_type ?? message.route_scope ?? null,

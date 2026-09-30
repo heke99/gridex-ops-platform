@@ -6,7 +6,6 @@ import type { EdielMessageRow } from "@/lib/ediel/types"
 
 
 
-import { EdifactEnvelopeCodec } from "@/lib/ediel/core/edifactEnvelopeCodec"
 import { requireTenantOperationAllowed } from '@/lib/tenant/operationPolicy'
 import type { ProductionDryRunResult } from './productionReadiness.part-1'
 import { assertScopedEdielProductionCapability, getScopedEdielProductionReadiness } from './scopedCapabilityReadiness'
@@ -60,31 +59,14 @@ export async function runProductionDryRun(
       productionUtiltsRouteProfileId:
         readiness.summary.activeProductionUtiltsRouteProfileId,
       productionMailboxId: readiness.summary.productionMailboxId,
-      receiverResolution: "dynamic_grid_owner_from_selected_customer_context",
+      receiverResolution: message ? "saved_message_route" : "scope_unavailable",
       wouldResolveReceiverFrom:
         "kundprocess -> anläggning/mätpunkt -> verifierad nätägare -> Ediel route/certifikat",
       wouldSend: false,
       wouldBeBlocked: !allowed,
     },
-    edifactPreview:
-      readiness.summary.edielId &&
-      readiness.summary.activeProductionRouteProfileId
-        ? EdifactEnvelopeCodec.encode({
-            acknowledgementRequest: true,
-            sender: readiness.summary.edielId,
-            receiver: "DYNAMIC_GRID_OWNER",
-            senderSubAddress: readiness.summary.senderSubAddress,
-            receiverSubAddress: readiness.summary.receiverSubAddress,
-            interchangeReference: "DRYRUN",
-            applicationReference: "DDQ",
-            environment: "production",
-            messages: [{
-              messageReference: "DRYRUN-1",
-              messageTypeToken: "PRODAT:D:97A:UN:E2SE6A",
-              businessSegments: ["BGM+Z01+DRYRUN+9"],
-            }],
-          })
-        : null,
+    edifactPreview: message?.company_id === companyId && message.environment === 'production' && message.direction === 'outbound'
+      ? message.raw_payload : null,
   };
 
   const { data: readinessRow, error: readinessRowError } = await supabaseService

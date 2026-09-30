@@ -6,6 +6,8 @@ import {projectAiListHistory,type AiListHistoryScope,type AiListSupplyPeriod} fr
 import type {StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import type {StructuralVersion} from '@/lib/ediel/sources/structuralSourceSelection'
 import {emptySourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
+import {parseProdatMessage,parsedProdatObjects} from '@/lib/ediel/prodat/parser'
+import {aiListCell} from '@/lib/ediel/aiListFormat'
 import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
 const at=(day:string)=>prodatMarketMinuteToUtc(`${day}0000`)!
 const scope:AiListHistoryScope={companyId:'company',environment:'test',customerId:'customer',siteId:'site',legalSupplier:'12345',legalNetwork:'54321',fromDate:'20261001',toDate:'20261101',cutoffAt:'2026-11-02T12:00:00.000000Z'}
@@ -18,6 +20,14 @@ function readset(versions=[source('baseline','20261001')]):StructuralReadset{ret
   sources:versions.map(version=>({sourceMessageId:version.sourceMessageId,payloadHash:version.payloadHash,asOf:null,assessments:[],rawPayload:`UNB+UNOC:3+54321:14+12345:14+261001:1200+I+23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+${version.wire.messageCode}+${version.sourceMessageId}+9'LIN+1++735123456789012345:::9'RFF+Z05:NET'RFF+MG:${version.wire.meterNumber}'NAD+UD+199001011234:SE2:260++Dated Person'NAD+IT+SITE+++Street ${version.sourceMessageId}+City++12345+SE'NAD+Z02+BRP:160:SVK'UNT+10+M'UNZ+1+I'`,
     objects:[{object,disposition:'accepted',reasons:[],party:null,business:{companyId:'company',environment:'test',customerId:'customer',meteringPointId:'point',siteId:'site'}}]}))}}
 describe('AI dated supply/source projection',()=>{
+  it('preserves source two-line names and three-line addresses without inventing CSV whitespace',()=>{
+    const raw=readset().sources[0].rawPayload.replace('++Dated Person','++ Dated Person : Second Name ').replace('+++Street baseline','+++ First Street : : Third Street ')
+    const parsed=parsedProdatObjects(parseProdatMessage(raw))[0].registers[0]
+    expect(parsed.endUserName).toBe('Dated Person\nSecond Name')
+    expect(parsed.installationAddress).toBe('First Street\n\nThird Street')
+    expect(()=>aiListCell(parsed.endUserName)).toThrow('ai_list_cell_separator_invalid')
+    expect(()=>aiListCell(parsed.installationAddress)).toThrow('ai_list_cell_separator_invalid')
+  })
   it('uses dated original legal identity and blanks detail bounds at head edges',()=>{
     const result=projectAiListHistory(scope,[period],readset())
     expect(result.details).toMatchObject([{elanvandarId:'199001011234',elanvandarNamn:'Dated Person',franDatum:null,tillDatum:null}])
@@ -37,6 +47,13 @@ describe('AI dated supply/source projection',()=>{
     const ended={...period,end_date:'2026-10-25'},data=readset();data.versions[0].coverage!.validTo=at('20261025')
     expect(projectAiListHistory(scope,[ended],data).details[0].tillDatum).toBe('20261025')
     expect(()=>projectAiListHistory(scope,[ended],readset())).toThrow('dated_supply_end_owner_missing')
+  })
+  it('uses confirmed actual delivery boundaries ahead of scheduled dates and still proves the original source',()=>{
+    const actual={...period,start_date:'2026-09-30',end_date:'2026-10-20',actual_start_date:'2026-10-01',actual_end_date:'2026-10-25'}
+    const data=readset();data.versions[0].coverage!.validTo=at('20261025')
+    expect(projectAiListHistory(scope,[actual],data).details[0]).toMatchObject({franDatum:null,tillDatum:'20261025'})
+    expect(()=>projectAiListHistory(scope,[{...actual,actual_start_date:'2026-10-02'}],data)).toThrow('ai_list_history_unavailable')
+    expect(()=>projectAiListHistory(scope,[actual],readset())).toThrow('dated_supply_end_owner_missing')
   })
   it('does not manufacture pre-ledger, unqualified customer, foreign tenant or date-only histories',()=>{
     const before=readset();before.timeline.ledgerStartedAt=at('20261002')

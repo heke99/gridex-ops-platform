@@ -1,3 +1,31 @@
+## Active — 2026-10-01 isolated whole-masterplan integration
+
+# Isolated integration ownership and bounded core receipt
+
+The active implementation is isolated from `852b03dcb1e4ff384543a0d31aeb18b086745bf7` on `codex/ediel-master-v2-integration-20261001`. Existing #421/#423 publishers remain owners of their refs; source kernelLegacy changed after the first preservation snapshot. No other root, branch, worktree or PR was modified. #418/#422 and paused #310 remain separate.
+
+A byte-preserved 15-file owner snapshot and later kernelLegacy snapshot are held outside the working tree. Root imports scoped dedupe/kernelLegacy, transportRetry, free-text fixture and the original FINAL_TEST_PHASE; other files have explicit isolated transport/mixed owners. Recovery ed3f5159 is undergoing semantic integration against later source authority. Its historic results are not fresh evidence.
+
+Skills routed: using-git-worktrees (isolation already authorized), dispatching-parallel-agents (six named disjoint workstreams), systematic-debugging and TDD (confirmed runtime faults), verification-before-completion (receipt claims), Supabase (forward SQL/replay), and source-contract compliance (literal per-ID review). Full audit orchestration, unrelated performance refactoring, skill creation, hook installation and external deployment do not apply to this implementation continuation.
+
+Current bounded checks: original inbound dedupe 9/9 tests FAIL, current scoped lookup 9/9 PASS; switch reuse regression original 1 FAIL/7 PASS, corrected 8/8 PASS; combined core targeted 33/33 PASS; scoped2-file check17/17 PASS; changed core lint and browser spec syntax/discovery PASS. Initial app TypeScript default 2GiB stopped with OOM; 4GiB reached a genuine missing OutboundRequestRow.environment field. The actual model persists payload.environment; the corrected own operation read is covered by the regression. Whole app TypeScript awaits the integrated package rerun.
+
+Browser spec now tests keyboard activation of the real form, exact once event, persisted reload, own read-only mobile and 200% CSS layout zoom with screenshot attachments. The three tests are discovered, not executed here; genuine browser qualification remains pending disposable native CI. Layout zoom is not a claim of desktop browser-chrome zoom.
+
+Next action: integrate protected ACK replay, fresh generic/sealed source evidence, full-own mixed PRODAT facet/consumer and genuine E/F/G producers; authenticate clean+upgrade replay and generated schema/types on the frozen candidate, then independently review every literal contract. No main merge, hosted migration, real communication or Ediel/TGT/AGT traffic.
+
+## Previous owner checkpoint — historical; original refs remain under that owner
+
+## Active — 2026-09-30 full Ediel masterplan v2 code phase
+
+Root is sole integrator/publisher for draft #421; six isolated package owners work in parallel with explicit file scopes. Current integrated local `fc2e2311`; published checkpoint `0b8c1c37c0806f99e18c36d8ccd576bbda117442` has the exact tree of local `0c39065f`. Current WIP is preserved and still incomplete. Baseline `885137de838481be6cda58f9af45df6c1655edfe` and all earlier commits remain intact. #418/#422 are read-only coordination contracts; #310 is untouched.
+
+Continue through actual source-qualified outbound/ACK consumers, AI native origin and exact export bytes, normal/P11/CALL03 producers, UTILTS own-IDE/header facets and the shared generated native ACK guide. Integrate all independent feasible packets, clear Critical/Important findings, run serial typecheck, changed-file lint and targeted risky regressions, then publish a meaningful exact-tree checkpoint without force. Full final-candidate unit/native/replay/schema/types/security/browser/manual verification remains separate and unrun. Do not mark formal acceptances PASSED or activate traffic.
+
+Working matrix and packet receipts: `quality/audits/ediel-masterplan-v2/codephase-20260930/`. New DSN source packet passed 49 bounded TypeScript assertions and 23 explicitly synthetic embedded SQL checks with independent source/tenant review; it is unverified sender trust and cannot authorize delivery, resend or business effects. Serialized application typecheck passed after scoped BRP query typing; no generated schemas/types fabricated.
+
+Earlier checkpoint sections below are historical and superseded for the active next action. Their exact-SHA verification remains scoped to those original candidates.
+
 ## Current — 2026-09-30 #421 coherent syntax/header code package; final-head CI pending
 
 Supersedes earlier not-executed/probe-only next-action text. Test-only head e0bd3641f617edb92e508bd62c2767730e20fca1 actually ran OPS36702357516/replay109844514929: 439/442, three confirmed mismatches (UNT999 accepted series+contract; OTHER positive CONTRL but no accepted storage; SC045 two APERAKs). Last all-green d30/native439 retained.

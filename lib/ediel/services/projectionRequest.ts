@@ -7,7 +7,13 @@ const allowed = new Set(['grantId', 'grantVersion', 'purpose', 'fields', 'start'
 export class EdielProjectionQueryError extends Error {}
 function invalid(): never { throw new EdielProjectionQueryError('Ogiltig projekteringsförfrågan.') }
 function timestamp(value: unknown): string {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) || !Number.isFinite(Date.parse(value))) return invalid()
+  if (typeof value !== 'string') return invalid()
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(?:Z|[+-](\d{2}):(\d{2}))$/.exec(value)
+  if (!parts) return invalid()
+  const [year, month, day, hour, minute, second, offsetHour, offsetMinute] = parts.slice(1).map(part => part === undefined ? 0 : Number(part))
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  if (month < 1 || month > 12 || day < 1 || day > days[month - 1] || hour > 23 || minute > 59 || second > 59 || offsetHour > 23 || offsetMinute > 59 || !Number.isFinite(Date.parse(value))) return invalid()
   return new Date(value).toISOString()
 }
 function scopeHash(input: EdielProjectionRequest): string {

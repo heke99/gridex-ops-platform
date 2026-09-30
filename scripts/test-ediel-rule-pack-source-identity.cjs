@@ -14,14 +14,14 @@ async function resolver(row, error = null) {
   const service = new SyntheticModule(['supabaseService'], function () {
     this.setExport('supabaseService', { rpc: async (...args) => {
       calls.push(args)
-      return { data: row === null ? [] : [row], error }
+      return { data: row === null ? [] : [witness(row)], error }
     } })
   })
   function load(file) {
     if (modules.has(file)) return modules.get(file)
     assert(file.startsWith(path.join(root, 'lib/ediel') + path.sep), 'Only real local Ediel modules are loaded')
     const module = new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), {
-      mode: 'strip', sourceUrl: file,
+      mode: 'transform', sourceUrl: file,
     }), { identifier: file })
     modules.set(file, module)
     return module
@@ -38,8 +38,11 @@ async function resolver(row, error = null) {
     throw new Error(`Missing local Ediel module: ${filename}`)
   })
   await entry.evaluate()
-  return { resolve: entry.namespace.resolveCanonicalRulePack, calls }
+  return { resolve: entry.namespace.resolveCanonicalRulePack, policy: modules.get(path.join(root,'lib/ediel/rulebook/canonicalEdielPolicy.ts')).namespace.resolveCanonicalEdielPolicy, calls }
 }
+// Explicit synthetic named-row witness at the mocked DB boundary. Production
+// obtains this only from the locked native wrapper, never inferred metadata.
+function witness(row){return {...row,original_version:`${row.guide_version}:r${row.guide_revision}`,original_snapshot:{rulePack:{id:row.rule_pack_id,source_hash:row.source_hash,guide_version:row.guide_version,guide_revision:row.guide_revision},messageProfile:{id:row.message_profile_id,rule_pack_id:row.rule_pack_id,profile_key:row.profile_key,profile:row.profile},guideSources:[]}}}
 function evidence(code = 'E66', revision = '3', overrides = {}, profileOverrides = {}) {
   const version = `25-A-${revision}`
   return {
@@ -66,11 +69,11 @@ for (const [date, revision] of [['2026-09-30', '3'], ['2026-10-01', '4']]) {
     assert.equal(result.guideVersion, `25-A-${revision}`)
     assert.equal(result.profile.applicationReference, input.applicationReference)
     assert.equal(calls.length, 1)
-    assert.equal(calls[0][0], 'resolve_canonical_ediel_rule_pack')
+    assert.equal(calls[0][0], 'resolve_canonical_ediel_rule_pack_with_witness_v1')
     assert.equal(calls[0][1].p_business_date, date)
     assert.deepEqual(Object.keys(calls[0][1]).sort(), [
       'p_market', 'p_family', 'p_message_code', 'p_transaction_subtype', 'p_direction', 'p_business_date',
-    ].sort(), 'The existing RPC contract stays unchanged')
+    ].sort(), 'The wrapper delegates the existing selector contract unchanged')
   })
 }
 for (const target of ['E66', 'S02']) {
@@ -194,4 +197,12 @@ test('real leap dates remain usable with matching source and activation', async 
   const { resolve, calls } = await resolver(evidence('S02', '4'))
   assert.equal((await resolve({ ...s02, businessDate: '2028-02-29' })).guideVersion, '25-A-4')
   assert.equal(calls.length, 1)
+})
+
+for(const date of ['2026-10-01','2026-10-14'])test(`complete prior guide remains selected in registry grace ${date}`,async()=>{
+ const {resolve,policy,calls}=await resolver(evidence('S02','3'))
+ const selected=policy({family:'UTILTS',messageCode:'S02',direction:'inbound',referenceDate:date,applicationReference:'23-DDQ-S02-S',associationAssignedCode:'E5SE5A',selectedGuideRevision:'25-A-3',mode:'catalog_evidence'})
+ const result=await resolve({...s02,businessDate:date,canonicalPolicy:selected})
+ assert.equal(result.guideVersion,'25-A-3');assert.equal(result.originalVersion,'25-A-3:r3')
+ assert.equal(selected.referenceDate,date);assert.equal(calls[0][1].p_business_date,'2026-09-30')
 })

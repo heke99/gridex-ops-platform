@@ -3,8 +3,11 @@
 import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
-import { isSingletonE30Reading, validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
+import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
+import {utiltsRuntimeProjectionSegments} from '@/lib/ediel/utilts/runtimeProjectionSegments'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {utiltsApplicationErrorText,locateUtiltsSourceOccurrence} from '@/lib/ediel/utilts/aperakSourceText'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
 
@@ -42,6 +45,7 @@ export type UtiltsValidationIssue = {
   aperakErcCode?: string | null
   aperakFieldCode?: string | null
   aperakText?: string | null
+  aperakInvalidOccurrence?: {segmentIndex:number;elementIndex:number;componentIndex:number}|null
   referenceQualifier?: string | null
   referenceNumber?: string | null
   lineItemReference?: string | null
@@ -121,6 +125,7 @@ export type UtiltsRuntimeUtiltsErrDetail = {
 export type UtiltsRuntimeAckPlan = {
   /** Set only by the canonical physical header guide; never by ACK scope. */
   utiltsHeaderRejection?: { applicationErrors: UtiltsAperakApplicationError[] }
+  aperakSourceTextUnavailable?: true
   shouldSendContrl: boolean
   contrlOutcome: EdielAckOutcome | null
   shouldSendAperak: boolean
@@ -578,7 +583,7 @@ function splitTransactionGroups(segments: readonly string[]): UtiltsTransactionG
     if (segment.toUpperCase().startsWith('IDE+')) {
       if (current) groups.push(current)
       current = {
-        transactionId: firstComponent(element(segment, 2)),
+        transactionId: segmentComposite(tokenizeEdifact(segment).segments[0],2)[0] || null,
         segments: [segment],
       }
       continue
@@ -708,13 +713,13 @@ function synthesizedTransactionIssueReference(
   return resolveUtiltsTransactionId(transactionIssueReference(group, fallback), index)
 }
 
-function aperakErrorsFromIssues(issues: readonly UtiltsValidationIssue[]): UtiltsAperakApplicationError[] {
+function aperakErrorsFromIssues(message:EdielMessageRow,issues: readonly UtiltsValidationIssue[]): UtiltsAperakApplicationError[] {
   const errors = issues
     .filter((issue) => issue.severity === 'error' && issue.kind === 'application')
     .map((issue) => ({
       ercCode: sanitizeRuntimeToken(issue.aperakErcCode ?? '40', 12) ?? '40',
       fieldCode: normalizedOptionalId(issue.aperakFieldCode),
-      text: issue.aperakText ?? issue.description ?? issue.title,
+      text: utiltsApplicationErrorText({raw:message.raw_payload ?? '',issue}) ?? '',
       referenceQualifier: sanitizeRuntimeToken(issue.referenceQualifier ?? null, 12),
       referenceNumber: normalizedOptionalId(issue.referenceNumber),
       lineItemReference: normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber),
@@ -1077,45 +1082,9 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     }))
   }
 
-  const needsMeteringPoint = ['S02', 'E30', 'E66'].includes(code)
-  const needsGridArea = ['S02', 'S03', 'E30', 'E31', 'E66'].includes(code)
-  if (needsMeteringPoint && !facts.meterPointId && !(code === 'E66' && facts.transactions.some(transaction => transaction.regulatingObjectPresent))) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_METERING_POINT',
-      title: 'Anläggningsid saknas',
-      description: 'LOC+172 saknas eller saknar anläggningsid.',
-      aperakErcCode: '41',
-      aperakFieldCode: '515',
-    }))
-  }
-
-  if (needsGridArea && !facts.gridAreaId) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_GRID_AREA',
-      title: 'Nätområdesid saknas',
-      description: 'LOC+239 saknas eller saknar nätområdesid.',
-      aperakErcCode: '41',
-      aperakFieldCode: '508',
-    }))
-  }
-
-  if (needsGridArea && !facts.deliveryPeriodRaw && !(
-    code === 'E30' && facts.transactions.length > 0 && facts.transactions.every((_, index) => isSingletonE30Reading(facts, index))
-  )) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_DELIVERY_PERIOD',
-      title: 'Leveransperiod saknas',
-      description: 'DTM+324 saknas för objektmeddelandet.',
-      aperakErcCode: '41',
-      aperakFieldCode: '238',
-    }))
-  }
+  // Own physical requirements are evaluated by validateCanonicalUtiltsProfile.
+  // Global first-IDE summaries cannot impose optional/conditional fields or
+  // supply a missing field to another transaction.
 
   if (!functionalEligible || functionalEligible.size > 0) addObjectProcessabilityIssues({ issues, message, facts, code, functionalEligible })
 
@@ -1164,6 +1133,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
           aperakErcCode: '42',
           aperakFieldCode: '508',
           aperakText: 'INCORRECT DATA',
+          aperakInvalidOccurrence:locateUtiltsSourceOccurrence({raw:message?.raw_payload ?? '',transactionReference,tag:'DTM',qualifier:'354',elementIndex:1,componentIndex:resolution.value!=='1' ? 1 : 2}),
           referenceQualifier: 'ACW',
           referenceNumber: transactionReference,
           lineItemReference: transactionReference,
@@ -1181,6 +1151,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
           aperakErcCode: '42',
           aperakFieldCode: '245',
           aperakText: 'INCORRECT DATA',
+          aperakInvalidOccurrence:locateUtiltsSourceOccurrence({raw:message?.raw_payload ?? '',transactionReference,tag:'DTM',qualifier:'324',elementIndex:1,componentIndex:deliveryPeriod.format!=='719' ? 2 : 1}),
           referenceQualifier: 'ACW',
           referenceNumber: transactionReference,
           lineItemReference: transactionReference,
@@ -1216,7 +1187,6 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
       const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
-      const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
       const label = code === 'E31' ? 'E31' : 'S03'
 
 
@@ -1368,10 +1338,10 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   }
 }
 
-function shouldPositiveAperakBeSent(message: EdielMessageRow, facts: UtiltsRuntimeFacts): boolean {
+function shouldPositiveAperakBeSent(message: EdielMessageRow): boolean {
   if (message.environment === 'test') return true
-  const bgm = segmentValue(facts.rawSegments, 'BGM+')
-  const requestAck = element(bgm, 4)
+  const wire = tokenizeEdifact(message.raw_payload), bgm = wire.segments.find(segment=>segment.tag==='BGM')
+  const requestAck = segmentComposite(bgm,4,wire.una)[0]
   return requestAck === 'AB'
 }
 
@@ -1499,7 +1469,9 @@ export function decideUtiltsRuntimeAckPlan(params: {
   }
 
   if (params.validation.classification === 'application_rejected') {
+    const applicationErrors=aperakErrorsFromIssues(params.message,params.validation.issues)
     return {
+      ...(applicationErrors.some(error=>!error.text) ? {aperakSourceTextUnavailable:true as const} : {}),
       shouldSendContrl: true,
       contrlOutcome: 'positive',
       shouldSendAperak: true,
@@ -1507,7 +1479,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendUtiltsErr: false,
       utiltsErrDetails: [],
       utiltsErrCodes: [],
-      aperakApplicationErrors: aperakErrorsFromIssues(params.validation.issues),
+      aperakApplicationErrors: applicationErrors,
       reason: 'Meddelandet är syntaktiskt läsbart men bryter mot UTILTS-anvisningen.',
     }
   }
@@ -1528,7 +1500,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendUtiltsErr: true,
       utiltsErrDetails,
       utiltsErrCodes: utiltsErrCodes.length > 0 ? utiltsErrCodes : ['E14'],
-      aperakApplicationErrors: aperakErrorsFromIssues(params.validation.issues),
+      aperakApplicationErrors: aperakErrorsFromIssues(params.message,params.validation.issues),
       reason: 'Meddelandet är syntaktiskt/anvisningsmässigt läsbart men innehållet kunde inte behandlas.',
     }
   }
@@ -1536,7 +1508,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
   return {
     shouldSendContrl: true,
     contrlOutcome: 'positive',
-    shouldSendAperak: shouldPositiveAperakBeSent(params.message, params.facts),
+    shouldSendAperak: shouldPositiveAperakBeSent(params.message),
     aperakOutcome: 'positive',
     shouldSendUtiltsErr: false,
     utiltsErrDetails: [],
@@ -1548,7 +1520,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
 
 export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts {
   const parsed = parseInboundUtilts(rawPayload)
-  const segments = parsed.rawSegments
+  const segments = utiltsRuntimeProjectionSegments(rawPayload)
   const unb = segmentValue(segments, 'UNB+')
   const unh = segmentValue(segments, 'UNH+')
   const bgm = segmentValue(segments, 'BGM+')
@@ -1565,6 +1537,7 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
 
   return {
     ...parsed,
+    rawSegments: parsed.rawSegments,
     messageCode: (normalizedCode || parsed.messageCode) as UtiltsRuntimeMessageCode,
     messageReference: parseUnhMessageReference(unh),
     messageVersion: parseUnhVersion(unh),
@@ -1580,7 +1553,7 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
     }),
     meterPointId: firstComponent(element(loc172, 2)),
     gridAreaId: firstComponent(element(loc239, 2)),
-    transactionId: firstComponent(element(segmentValue(segments, 'IDE+24'), 2)) ?? referenceValue(references, 'TN'),
+    transactionId: (segmentComposite(tokenizeEdifact(segmentValue(segments, 'IDE+24') ?? '').segments[0],2)[0] || null) ?? referenceValue(references, 'TN'),
     deliveryPeriodRaw: period.raw,
     deliveryPeriodStart: period.start,
     deliveryPeriodEnd: period.end,
@@ -1641,7 +1614,10 @@ export function runUtiltsRuntimeForMessage(message: EdielMessageRow, options?: {
   const rawPayload = message.raw_payload ?? ''
   const facts = parseUtiltsRuntimeFacts(rawPayload)
   const normalizedPayload = normalizeUtiltsRuntimePayload(facts, message)
-  const baseValidation = validateUtiltsFacts(facts, message, options?.functionalEligible)
+  // Legacy checks read their canonical service alphabet, while returned facts
+  // retain the immutable original segments/physical occurrence indexes.
+  const legacyFacts = {...facts,rawSegments:utiltsRuntimeProjectionSegments(rawPayload)}
+  const baseValidation = validateUtiltsFacts(legacyFacts, message, options?.functionalEligible)
   const validation = applyUtiltsProcessabilityClassification({ message, validation: baseValidation, functionalEligible: options?.functionalEligible })
   const transactionDispositions = resolveUtiltsTransactionDispositions({
     syntaxOk: validation.syntaxOk,

@@ -2,12 +2,12 @@ import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeT
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {assertMeterChangeSendBoundary} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
-import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {ProdatDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder'
 import { evaluateEdielProductionSendLock } from '@/lib/ediel/core/productionGuards'
 
-export function assertEdielSendLock(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): void {
+export function assertEdielSendLock(message: EdielMessageRow,dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext): void {
   assertProdatFreeTextSendBoundary(message)
   if(!gasApplicabilitySendIssue(message))assertMeterChangeSendBoundary(message)
   const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext)

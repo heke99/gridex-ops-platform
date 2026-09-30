@@ -55,6 +55,7 @@ it('keeps a generic company dry-run explicitly blocked without actual message-sc
   expect(dryRun.success).toBe(false); expect(dryRun.status).toBe('blocked')
   expect(dryRun.previewMetadata).toMatchObject({ capabilityScopeReady: false, capabilityEvidenceId: null, wouldBeBlocked: true, wouldSend: false })
   expect(dryRun.blockingIssues.map(issue => issue.code)).toContain('capability_scope_evidence_required')
+  expect(dryRun.edifactPreview).toBeNull()
   expect(io.rpc).not.toHaveBeenCalled()
 })
 
@@ -62,6 +63,7 @@ it('projects a dry-run against the actual scoped immutable capability evidence',
   const dryRun = await runProductionDryRun(company, 'operator', message())
   expect(dryRun.success).toBe(true)
   expect(dryRun.previewMetadata).toMatchObject({ capabilityScopeReady: true, capabilityEvidenceId: 'proof', capabilityDependencyHash: hash, messageId: 'm', wouldSend: false })
+  expect(dryRun.edifactPreview).toBe(message().raw_payload)
 })
 it('rejects cross-tenant scoped projections even if ready is true', async () => {
   io.rpc.mockResolvedValue({ data: { ...result(), scope: { ...result().scope, companyId: 'foreign' } }, error: null })

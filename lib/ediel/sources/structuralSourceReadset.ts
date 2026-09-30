@@ -1,6 +1,6 @@
 import {isDeepStrictEqual} from 'node:util'
 import {inspectReceivedSourceDecisionTimeline, type SourceDecisionTimeline, type RecordedSourceAssessment} from './receivedSourceDecisionTimeline'
-import {readStructuralSourceWire} from './structuralSourceWire'
+import {readStructuralSourceWire,readStructuralMeasurementProjection} from './structuralSourceWire'
 import {isReviewedStructuralBusiness, type ReviewedStructuralBusiness} from './reviewedStructuralSource'
 import {projectProdatRegisterValidation} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
@@ -74,9 +74,10 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
         if(!wire){if(entry?.disposition!=='rejected')result.unresolvedSources=true;continue}
         const business=entry?.business
         const reviewed=isReviewedStructuralBusiness(business,source.rawPayload,object)?business:null
+        const measurements=readStructuralMeasurementProjection(source.rawPayload,object)
         result.versions.push({sourceMessageId:source.sourceMessageId,payloadHash:source.payloadHash,assessmentId:asOf?.assessmentId??null,
           factsHash:asOf?.factsHash??null,availableAt:asOf?.availableAt??null,wire,disposition:entry?.disposition??'unavailable',
-          coverage:reviewed?.coverageWindow??null,replaces:reviewed?.replaces??null})
+          coverage:reviewed?.coverageWindow??null,replaces:reviewed?.replaces??null,...(measurements?{measurements}:{})})
       }
     }
     return result

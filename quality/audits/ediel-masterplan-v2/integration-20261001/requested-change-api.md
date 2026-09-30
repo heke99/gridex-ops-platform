@@ -1,0 +1,7 @@
+# Requested-change API consumer receipt
+
+`POST /api/ediel/requested-changes` is a real application adapter for the source-bound Z09E/F/G gateway. Its strict command accepts only an immutable event ID and optional route selector. The acting company and user come from current authenticated tenant context; execution remains subject to the private source/contract/grant checks inside the gateway. Caller-selected tenant/environment/user/verified fields are rejected before producer work.
+
+The response distinguishes source hold (409), newly queued durable intent (202) and an existing result (200). It projects only message/intent/request identifiers, with private/no-store caching. No raw original or customer facts are returned through the write-only operation. Missing access/company stops all producer calls; authorization-read failure returns a safe 503 and execution-time revocation returns a sanitized 403.
+
+The 11-case adapter suite initially failed because the consumer did not exist, then passed 11/11; combined API/wire/transport tests passed 22/22 in three files. Scoped ESLint and API error-boundary check (129 routes) pass. These are unit adapter and pure consumer proofs, with explicit mocked guard/gateway boundaries. Genuine authenticated HTTP over disposable native source events, browser/UI, source intake/approval and same-candidate replay/build/CI remain pending. No whole P-09/SC-030/Z09E/F/G acceptance or external issuer approval follows from this receipt.

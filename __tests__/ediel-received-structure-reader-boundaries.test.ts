@@ -1,15 +1,17 @@
+import { recountEdifactUnt } from './helpers/recountEdifactUnt'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsFinalValidationFixture'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import * as dates from '@/lib/ediel/prodat/render/dates'
 import { createHash } from 'node:crypto'
 import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, type Parts } from './fixtures/prodat-register'
 
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), scoped: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ get: vi.fn(), rpc: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), scoped: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 vi.mock('@/lib/supabase/tenantDb', async original => {
   const real = await original<typeof import('@/lib/supabase/tenantDb')>()
   return { ...real, tenantDb: (company: string) => { io.scoped(company); return real.tenantDb(company) } }
@@ -27,6 +29,7 @@ vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
   stringOrNull: (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : null,
   ensureJson: (v: unknown) => v && typeof v === 'object' ? v : {},
 }))
+const COMPANY = '11111111-1111-4111-8111-111111111111'
 const point = '735999260731000007'
 const secondPoint = '735999260731000014'
 const sha = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex')
@@ -36,7 +39,7 @@ function row(id = 'source-1', meter = 'meter-tenant-a', objectId = point) {
     line('1', objectId, undefined, '9'), ['DTM', ['92', '202607010000', '203']], ['RFF', ['MG', 'M']], ...characteristic('Z16', '201', 3),
   ]
   const wire = raw(body)
-  return { id, company_id: 'tenant-a', environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04',
+  return { id, company_id: COMPANY, environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04',
     metering_point_id: meter, raw_payload: wire, immutable_payload_hash: sha(wire), message_received_at: '2026-06-20T09:00:00Z' }
 }
 const matched = (transactionReference = 'GRIDEX2607E66001', externalMeteringPointId = point, meteringPointId = 'meter-tenant-a') => ({ transactionReference, externalMeteringPointId, meteringPointId, externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null })
@@ -62,15 +65,15 @@ function query() {
   return q
 }
 beforeEach(() => {
-  vi.clearAllMocks(); predicates.length = 0; incoming = observationHandoffMessage(); sourceRows = [row()]; count = 1; dbError = null; neverResolve = false
+  vi.clearAllMocks(); io.rpc.mockImplementation(createUtiltsFinalValidationIo()); predicates.length = 0; incoming = observationHandoffMessage('2026-09-30', COMPANY); sourceRows = [row()]; count = 1; dbError = null; neverResolve = false
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([matched()]); io.from.mockImplementation(query)
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
 })
 afterEach(() => { vi.useRealTimers() })
 async function execute() {
-  const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: incoming.created_at, applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-  return processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy: policy })
+  qualifyUtiltsFixtureSource(incoming)
+  return processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id })
 }
 function report(): { status: string; sources: Array<{ sourceMessageId: string }> } {
   const value = io.update.mock.calls[0][0].parsedPayload.normalizedMeteringPayload.receivedStructuralSources
@@ -80,9 +83,14 @@ function report(): { status: string; sources: Array<{ sourceMessageId: string }>
 }
 it('uses the actual tenantDb wrapper and a hard bounded exact-count query before transaction persistence', async () => {
   await execute(); expect(report().status).toBe('inspected')
-  expect(io.scoped).toHaveBeenCalledExactlyOnceWith('tenant-a')
+  expect(io.scoped).toHaveBeenCalledExactlyOnceWith(COMPANY)
   expect(io.from).toHaveBeenCalledExactlyOnceWith('ediel_messages')
   expect(predicates).toContainEqual(['limit', 101])
+  const finalCall = io.rpc.mock.calls.findIndex(([name]) => name === 'gridex_record_utilts_source_validation_v4')
+  expect(finalCall).toBeGreaterThanOrEqual(0)
+  expect(io.rpc.mock.calls[finalCall][1]).toMatchObject({ p_company_id: COMPANY, p_environment: incoming.environment,
+    p_source_message_id: incoming.id, p_source_payload_hash: sha(incoming.raw_payload!) })
+  expect(io.rpc.mock.invocationCallOrder[finalCall]).toBeLessThan(io.from.mock.invocationCallOrder[0])
   expect(io.from.mock.invocationCallOrder[0]).toBeLessThan(io.persist.mock.invocationCallOrder[0])
 })
 it('batches two independently matched wire transactions into one tenant-scoped source query', async () => {
@@ -109,6 +117,7 @@ it.each(['before', 'after'] as const)('the actual inbound processor cannot read 
     pointLocation,
     order === 'before' ? `${objectLocation}\n${pointLocation}` : `${pointLocation}\n${objectLocation}`,
   )
+  incoming.raw_payload = recountEdifactUnt(incoming.raw_payload!)
   await execute()
   expect(report().status).toBe('not_requested')
   expect(io.scoped).not.toHaveBeenCalled()
@@ -163,6 +172,7 @@ for (const [name, mutate] of [
     expect(evidence).toMatchObject({ authorityStatus: 'not_established', selection: 'not_performed' })
     expect(evidence.status).toBe('not_requested')
   } else {
+    incoming.raw_payload = recountEdifactUnt(incoming.raw_payload!)
     await execute(); expect(report().status).toBe('not_requested')
   }
   expect(io.scoped).not.toHaveBeenCalled(); expect(io.from).not.toHaveBeenCalled()
@@ -189,7 +199,7 @@ async function capture() {
 }
 for (const path of ['rejected', 'accepted'] as const) for (const outcome of ['candidate', 'read-error', 'truncated'] as const) {
   it(`preserves all pre-existing ${path} outcomes for ${outcome} diagnostics`, async () => {
-    if (path === 'accepted') { incoming = energyHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
+    if (path === 'accepted') { incoming = energyHandoffMessage('2026-10-01', COMPANY); io.allMatched.mockReturnValue(true) }
     sourceRows = []; count = 0
     const baseline = await capture()
     expect(io.persist).toHaveBeenCalledOnce()
@@ -231,6 +241,7 @@ it('keeps exact market-minute to UTC conversion in the existing PRODAT date owne
 })
 it('retains upstream rejection of the original repeated-UNA fixture without any source query or side effects', async () => {
   incoming.raw_payload = incoming.raw_payload! + incoming.raw_payload!
-  await expect(execute()).rejects.toThrow('edifact_dangling_release_character')
+  expect(() => tokenizeEdifact(incoming.raw_payload)).toThrow('edifact_dangling_release_character')
+  await expect(execute()).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
   for (const mock of [io.scoped, io.from, io.update, io.event, io.persist, io.ack, io.ingest]) expect(mock).not.toHaveBeenCalled()
 })

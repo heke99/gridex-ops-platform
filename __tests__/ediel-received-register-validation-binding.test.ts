@@ -1,4 +1,5 @@
 import {test, expect} from 'vitest'
+import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
 import {buildReceivedSourceValidationEvidence as build} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {COMPANY, OTHER, row} from './helpers/receivedSourceInventoryFixtures'
 
@@ -7,7 +8,7 @@ function fixture() {
   const original = {id:source.sourceMessageId,company_id:COMPANY,environment:'test',direction:'inbound',message_family:'PRODAT',message_standard:'edifact',
     raw_payload:source.rawPayload,message_code:source.messageCode,message_received_at:source.sourceReceivedAt,execution_context_snapshot:{receivedProdatContext:source.receivedContext}}
   return {original,validated:structuredClone(original),resolvedCompanyId:COMPANY,decision:{syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',
-    canonical:{messageReference:'MSG1'},issues:[],validationReport:{rulePackEvidence:{profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}},
+    canonical:{messageReference:'MSG1'},issues:[],validationReport:{rulePackEvidence:originalRuleWitnessFixture({profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)})},
     prodatRegisterValidation:{version:1,owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',objects:[
       {messageIndex:0,messageReference:'MSG1',objectId:'MP-A',identityAgency:'9',disposition:'accepted',reasons:[],registers:[{lineIndex:0,lineNumber:'1',registerIndex:null,registerPosition:1,segmentIndex:3}]},
       {messageIndex:0,messageReference:'MSG1',objectId:'MP-B',identityAgency:'89',disposition:'rejected',reasons:['PRODAT_REGISTER_INVALID'],registers:[{lineIndex:1,lineNumber:'2',registerIndex:null,registerPosition:1,segmentIndex:4}]},
@@ -51,4 +52,29 @@ test('operational report register JSON is never used as actual validator output'
   Object.assign(decision.validationReport,{prodatRegisterValidation})
   const result=build({...input,decision})
   expect(result).not.toBeNull();expect(JSON.parse(result!.factsText)).not.toHaveProperty('registerValidation')
+})
+
+import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
+test('retains an exact physical invalid agency only in a rejected or unavailable register facet',()=>{
+ const input=fixture(),raw=input.original.raw_payload.replace('MP-B:::89','MP-B:::999')
+ expect(raw).not.toBe(input.original.raw_payload)
+ const value=structuredClone(input.decision.prodatRegisterValidation);value.objects[1].identityAgency='999'
+ expect(bindReceivedRegisterValidation(value,raw)?.objects[1]).toMatchObject({identityAgency:'999',disposition:'rejected',reasons:['PRODAT_REGISTER_INVALID']})
+ expect(bindReceivedRegisterValidation(value,input.original.raw_payload)).toBeNull()
+ value.objects[1].disposition='accepted';value.objects[1].reasons=[]
+ expect(bindReceivedRegisterValidation(value,raw)).toBeNull()
+ value.objects[1].disposition='unavailable';value.objects[1].reasons=['REGISTER_SCOPE_UNAVAILABLE']
+ expect(bindReceivedRegisterValidation(value,raw)?.objects[1].disposition).toBe('unavailable')
+})
+
+test('the same actual runtime ignored-field facet remains outside frozen canonical facts',()=>{
+ const input=fixture(),before=build(input)
+ Object.assign(input.decision,{prodatIgnoredFields:[]})
+ const result=build(input)
+ expect(result).not.toBeNull();expect(result!.prodatIgnoredFields).toEqual([])
+ expect(result!.factsText).toBe(before!.factsText)
+ Object.assign(input.decision.validationReport,{prodatIgnoredFields:[{claimed:true}]})
+ expect(build(input)!.prodatIgnoredFields).toEqual([],'editable report cannot replace the actual runtime decision')
+ Object.assign(input.decision,{prodatIgnoredFields:[{claimed:true}]})
+ expect(build(input)).toBeNull()
 })

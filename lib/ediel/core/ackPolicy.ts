@@ -11,9 +11,39 @@ import {
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { supabaseService } from '@/lib/supabase/service'
 
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+
+/** Read-only private authority: current authorization and namespace plus the
+ * actual immutable original/response are checked together under native locks.
+ * Never qualify an ACK using the global compatibility duplicate selectors. */
+export async function readProtectedOutboundAckReplay(input:{
+ companyId:string;environment:string;actorUserId:string;sourceMessage:EdielMessageRow;ackFamily:AckFamily;
+ sequenceField:'relatedTransactionReference'|'utiltsErrSequenceToken'|null;sequenceValue:string|null
+}):Promise<EdielMessageRow|null> {
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:'ediel_read_outbound_ack_replay_v1',args:{
+  p_company_id:string;p_environment:string;p_source_message_id:string;p_actor_user_id:string;p_ack_family:AckFamily;
+  p_sequence_field:string|null;p_sequence_value:string|null
+ })=>PromiseLike<{data:unknown;error:unknown}>
+ const {data,error}=await rpc('ediel_read_outbound_ack_replay_v1',{p_company_id:input.companyId,p_environment:input.environment,
+  p_source_message_id:input.sourceMessage.id,p_actor_user_id:input.actorUserId,p_ack_family:input.ackFamily,
+  p_sequence_field:input.sequenceField,p_sequence_value:input.sequenceValue})
+ if(error)throw error
+ if(data===null)return null
+ const result=record(data),source=record(result?.sourceMessage),ack=record(result?.ackMessage)
+ if(result?.version!==1||!source||source.id!==input.sourceMessage.id||source.environment!==input.environment||source.direction!=='inbound'
+  ||source.message_standard!=='edifact'||source.company_id!==input.sourceMessage.company_id
+  ||source.company_id!==null&&source.company_id!==input.companyId||!source.raw_payload
+  ||source.raw_payload!==input.sourceMessage.raw_payload||source.message_family!==input.sourceMessage.message_family
+  ||source.message_code!==input.sourceMessage.message_code)throw new Error('canonical_ack_actual_original_mismatch')
+ if(!ack||typeof ack.id!=='string'||!ack.id||ack.company_id!==input.companyId||ack.environment!==input.environment
+  ||ack.direction!=='outbound'||ack.message_standard!=='edifact'||ack.message_family!==input.ackFamily
+  ||ack.related_message_id!==source.id||typeof ack.raw_payload!=='string'||!ack.raw_payload
+  ||input.sequenceField&&record(ack.parsed_payload)?.[input.sequenceField]!==input.sequenceValue)throw new Error('canonical_ack_duplicate_scope_mismatch')
+ return ack as unknown as EdielMessageRow
+}
 
 export type EdielCanonicalAckState =
   | 'awaiting_contrl'

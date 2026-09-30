@@ -1,11 +1,15 @@
 import {describe,expect,it} from 'vitest'
 import {buildAiListCsv,buildAiListDetailFromSite} from '@/lib/ediel/aiList'
-import {assertAiListOutboundMessage} from '@/lib/ediel/aiListFormat'
+import {assertAiListOutboundMessage,isAiListCsvMediaType} from '@/lib/ediel/aiListFormat'
 import {parseAiBiListCsv} from '@/lib/ediel/aiBiImportParser'
 import type {CustomerSiteRow,MeteringPointRow} from '@/lib/masterdata/types'
 const detail={anlaggningsId:'735123456789012345',kodlista:'9',natavrakningsomrade:'NET',balansansvarsId:'BRP',elanvandarId:'199001011234',elanvandarNamn:'Test Person',matarNummer:'METER',avrakningsmetod:'Z32',arsforbrukningKwh:3000,rapporteringsfrekvens:'D',matmetod:'Z04',produktkod:'AGG',franDatum:'2026-10-02',tillDatum:'2026-10-25'}
 const input={listType:'AI' as const,senderEdielId:'12345',senderName:'Supplier',receiverEdielId:'54321',receiverName:'Network',fromDate:'2026-10-01',toDate:'2026-11-01',createdAt:'2026-09-30T12:00:00Z',details:[detail]}
 describe('AI14.A.3 positional supplier adapter',()=>{
+  it('accepts the actual UTF-8 CSV transport media type and rejects other encodings/parameters',()=>{
+    for(const type of ['text/csv','text/csv; charset=utf-8','TEXT/CSV; CHARSET="UTF-8"'])expect(isAiListCsvMediaType(type)).toBe(true)
+    for(const type of ['text/csv; charset=latin1','text/csv;foo=bar','text/plain','text/csv; charset=utf-8;foo=bar',null])expect(isAiListCsvMediaType(type)).toBe(false)
+  })
   it('puts network first in the header and blanks six network-only columns with the final delimiter',()=>{
     const [header,line]=buildAiListCsv(input).split('\n')
     expect(header).toBe('AI;54321;Network;12345;Supplier;202609301200;;20261001;20261101;Ver20140401')
@@ -39,6 +43,13 @@ describe('AI14.A.3 positional supplier adapter',()=>{
   it('keeps different historical identities and sorts empty-to after dated-to',()=>{
     const parsed=parseAiBiListCsv({listType:'AI',raw:buildAiListCsv({...input,details:[{...detail,franDatum:null,tillDatum:null,elanvandarNamn:'First'},{...detail,franDatum:null,tillDatum:'20261020',elanvandarNamn:'Second'}]})})
     expect(parsed.rows.map(row=>row.customerName)).toEqual(['Second','First'])
+  })
+  it('keeps one object chronological when its grid area changes',()=>{
+    const parsed=parseAiBiListCsv({listType:'AI',raw:buildAiListCsv({...input,details:[
+      {...detail,natavrakningsomrade:'AAA',franDatum:'20261015',tillDatum:null},
+      {...detail,natavrakningsomrade:'ZZZ',franDatum:null,tillDatum:'20261015'},
+    ]})})
+    expect(parsed.rows.map(row=>row.gridAreaCode)).toEqual(['ZZZ','AAA'])
   })
   it('blocks internal/site labels when verified legal customer information is unavailable',()=>{
     const site={id:'INTERNAL-SITE',customer_id:'INTERNAL-CUSTOMER',facility_id:'735123456789012345',site_name:'Site Label'} as unknown as CustomerSiteRow

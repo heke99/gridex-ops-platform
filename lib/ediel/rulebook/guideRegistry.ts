@@ -1,3 +1,15 @@
+/** P26.A §2.3 p35 defines future constraints, not operational authorization. */
+export const EDIEL_ENERGY_SHARING_CAPABILITY = Object.freeze({
+  id: 'energy_sharing', effectiveFrom: '2027-01-01', activation: 'held',
+  messageCodes: Object.freeze(['Z13', 'Z14', 'Z15', 'Z18']),
+  forbiddenTransactionReasons: Object.freeze(['S18']),
+  measurementResolution: '15_minutes', measurementMethod: '15_minutes', installationType: 'production',
+  source: Object.freeze({ document: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B',
+    sha256: '83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95', section: '2.3', page: 35 }),
+  requiredActivationEvidence: Object.freeze(['legal_authority_decision', 'process_authority_decision', 'versioned_capability_owner_register']),
+} as const)
+
+
 export type EdielGuideFamily = 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL'
 
 export type AuthoritativeEdielGuide = {
@@ -272,3 +284,13 @@ export function assertGuideFieldMatrixCertified(guide: AuthoritativeEdielGuide):
     throw new Error(`ediel_guide_field_matrix_not_certified:${guide.family}:${guide.guideRevision}`)
   }
 }
+
+import aiListSourceManifest from '@/docs/ediel/masterplan-v2/registers/source_manifest.json'
+/** AI14.A.3 is a separate technical list source, not an UNH guide family.
+ * Frozen annex/register source controls its format switch and identifiers;
+ * transport/readiness codecs expose this profile without choosing other dates. */
+export const AUTHORITATIVE_AI_LIST_PROFILE = Object.freeze({
+  sourceId:'AI',guideRevision:'14.A.3',technicalVersion:'Ver20140401',
+  sourceSha256:aiListSourceManifest.find(source=>source.id==='AI')!.sha256,
+  validFrom:'2025-10-01',format:'CSV',supplierOutboundType:'AI',
+} as const)

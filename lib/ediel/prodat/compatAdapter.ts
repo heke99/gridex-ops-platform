@@ -25,9 +25,13 @@ import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
+import {buildEdielInterchangeReference,buildEdielTransactionReference} from '@/lib/ediel/core/referenceRegistry'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
-import { renderProdat26A } from '@/lib/ediel/prodatEngine'
+import { renderProdat, renderProdat26A } from '@/lib/ediel/prodatEngine'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import { getCustomerExportContext, requireContextCompanyId, type CustomerExportContext } from '@/lib/cis/db-shared'
+import { resolveSwedishProdatCustomerIdentity, prodatAddressFactsFromExportContext } from '@/lib/ediel/prodat/customerIdentity'
 import { isProdatCodeSendable } from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
 import {
   PRODAT_CANONICAL_PROFILES,
@@ -66,7 +70,13 @@ export type ProdatSwitchValidationResult = {
   issues: ProdatSwitchValidationIssue[]
 }
 
+export type ProdatSwitchWireReferences=Readonly<{documentReference:string;transactionReference:string;interchangeReference:string;messageReference:string}>
+export function allocateProdatSwitchWireReferences(code:ProdatSwitchCode,contextId:string,senderEdielId:string,receiverEdielId:string):ProdatSwitchWireReferences{
+ return Object.freeze({documentReference:buildEdielTransactionReference({family:'PRODAT',code,relatedMessageId:contextId}),transactionReference:buildEdielTransactionReference({family:'PRODAT',code:'LI',relatedMessageId:contextId}),interchangeReference:buildEdielInterchangeReference({senderEdielId,receiverEdielId}),messageReference:'1'})
+}
+
 type BaseSwitchOutboundInput = {
+  wireReferences?: ProdatSwitchWireReferences
   actorUserId?: string | null
   senderEdielId: string
   senderName?: string | null
@@ -131,9 +141,6 @@ function inferMeterPointIdentifier(meteringPoint: MeteringPointRow): string {
   return String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim()
 }
 
-function inferGridArea(gridOwner?: GridOwnerRow | null): string | null {
-  return sanitize(gridOwner?.owner_code || gridOwner?.ediel_id || '') || null
-}
 
 function prodatCodeLabel(code: ProdatSwitchCode): string {
   if (code === 'Z03') return 'Leverantörsbyte / leveransstart'
@@ -441,6 +448,9 @@ function validationErrorMessage(result: ProdatSwitchValidationResult): string {
 }
 
 function renderProdatSegments(params: {
+  sourceContext: CustomerExportContext
+  selectedVersion: string
+  applicationReference: string
   code: ProdatSwitchCode
   bgmReference: string
   transactionReference: string
@@ -456,20 +466,31 @@ function renderProdatSegments(params: {
   issues: ProdatSwitchValidationIssue[]
   ackExpectation?: ReturnType<typeof renderProdat26A>['ackExpectation']
 } {
-  const portalData = portalSnapshot(params.switchRequest)
-  // A site label or previous supplier is not the legal end-user name.
-  const customerName = portalPartyText(portalData, 'customerName') ?? ''
-  // No-placeholder: never fabricate 'UNKNOWN'. An empty id makes the generic
-  // builder omit the LIN object identifier; codes that require LIN (e.g. Z03) are
-  // then blocked by validation instead of silently sending a fake identifier.
-  const meterPointId = portalPartyText(portalData, 'facilityId') ?? (inferMeterPointIdentifier(params.meteringPoint) || '')
-  const gridAreaId = portalString(portalData, 'gridAreaId') ?? inferGridArea(params.gridOwner)
+  const savedPortalData = portalSnapshot(params.switchRequest)
+  const sourceContext=params.sourceContext
+  const companyId=requireContextCompanyId(sourceContext,'Bygg PRODAT från vald kund/anläggning')
+  const customer=resolveSwedishProdatCustomerIdentity(sourceContext.customer as unknown as Record<string,unknown>|null)
+  if(!customer.id||!customer.qualifier||!customer.name)throw new Error('prodat_customer_legal_identity_required')
+  const meterPointId=inferMeterPointIdentifier(sourceContext.meteringPoint!)
+  if(!/^\d{18}$/.test(meterPointId))throw new Error('prodat_source_object_identity_required')
+  const addressLines=[sourceContext.site?.street?.trim()??'']
+  const endUserAddressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${params.switchRequest.customer_id}/${params.switchRequest.site_id}/${params.switchRequest.metering_point_id}`,meterPointId,identityAgency:'9',customer,addressLines})
+  // A saved protocol preview cannot replace the selected server-owned legal
+  // customer, object, address or its dependent-condition source.
+  const portalData={...(savedPortalData??{}),customerId:customer.id,customerIdCodeListQualifier:customer.qualifier,customerIdAgency:'260',customerName:customer.name,customerNameLines:undefined,
+    customerAddress:addressLines[0],customerAddressLines:addressLines,customerPostalCode:sourceContext.site?.postal_code??null,customerCity:sourceContext.site?.city??null,customerCountry:sourceContext.site?.country??null,
+    facilityId:meterPointId,facilityIdAgency:'9',siteAddress:sourceContext.site?.street??null,sitePostalCode:sourceContext.site?.postal_code??null,siteCity:sourceContext.site?.city??null,siteCountry:sourceContext.site?.country??null,
+    dependentConditionFacts:{...(objectValue(savedPortalData?.dependentConditionFacts)??{}),endUserAddressObjects}}
+  const customerName=customer.name
+  const gridAreaId=sourceContext.meteringPoint?.grid_area_code??sourceContext.site?.grid_area_code??null
   const startDate =
     portalPartyText(portalData, 'agreementStartDateTime') ??
     params.switchRequest.requested_start_date ??
     params.site.move_in_date
 
-  const rendered = renderProdat26A({
+  const rendered = renderProdat({
+    code:params.code,mode:'production',actor:{senderEdielId:params.senderEdielId,receiverEdielId:params.receiverEdielId},
+    route:{applicationReference:params.applicationReference},version:{selectedVersion:params.selectedVersion,messageTypeToken:`PRODAT:D:97A:UN:${params.selectedVersion}`,acceptedVersions:[params.selectedVersion]},
     portalSnapshot: portalData,
     context: {
       code: params.code,
@@ -488,11 +509,11 @@ function renderProdatSegments(params: {
       customerAddress: portalPartyText(portalData, 'customerAddress'),
       customerPostalCode: portalPartyText(portalData, 'customerPostalCode'),
       customerCity: portalPartyText(portalData, 'customerCity'),
-      customerCountry: portalPartyText(portalData, 'customerCountry') ?? 'SE',
+      customerCountry:sourceContext.site?.country??null,
       siteAddress: portalPartyText(portalData, 'siteAddress') ?? params.site.street?.trim() ?? null,
       sitePostalCode: portalPartyText(portalData, 'sitePostalCode') ?? params.site.postal_code?.trim() ?? null,
       siteCity: portalPartyText(portalData, 'siteCity') ?? params.site.city?.trim() ?? null,
-      siteCountry: portalPartyText(portalData, 'siteCountry') ?? 'SE',
+      siteCountry:sourceContext.site?.country??null,
       reasonForTransaction: portalString(portalData, 'reasonForTransaction'),
       meteringMethod: resolveProdatMeteringMethod(portalData),
       permissionStatus: portalString(portalData, 'permissionStatus'),
@@ -558,6 +579,15 @@ function buildProdatSwitchOutboundDraft(
       throw new Error(validationErrorMessage(validation))
     }
 
+    if(!input.switchRequest.company_id||!input.switchRequest.site_id||!input.switchRequest.metering_point_id)throw new Error('prodat_selected_tenant_object_context_required')
+    if(!input.actorUserId)throw new Error('ediel_tenant_actor_required')
+    await assertEdielTenantActor({companyId:input.switchRequest.company_id,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
+    const sourceContext=await getCustomerExportContext({customerId:input.switchRequest.customer_id,siteId:input.switchRequest.site_id,meteringPointId:input.switchRequest.metering_point_id})
+    const sourceCompanyId=requireContextCompanyId(sourceContext,'Bygg PRODAT från vald kund/anläggning')
+    if(sourceCompanyId!==input.switchRequest.company_id||sourceContext.customer?.id!==input.switchRequest.customer_id||sourceContext.site?.id!==input.switchRequest.site_id||sourceContext.site.customer_id!==input.switchRequest.customer_id
+      ||sourceContext.meteringPoint?.id!==input.switchRequest.metering_point_id||sourceContext.meteringPoint.customer_id!==input.switchRequest.customer_id||(sourceContext.meteringPoint.customer_site_id??sourceContext.meteringPoint.site_id)!==input.switchRequest.site_id
+      ||input.site.id!==sourceContext.site.id||input.meteringPoint.id!==sourceContext.meteringPoint.id)throw new Error('prodat_selected_customer_site_point_scope_mismatch')
+
     const refs = buildCanonicalOutboundReferences({
       family: 'PRODAT',
       code,
@@ -567,11 +597,11 @@ function buildProdatSwitchOutboundDraft(
       correlationReference: input.correlationReference ?? null,
     })
 
-    const externalReference = buildProdatDocumentReference(
+    const externalReference = input.wireReferences?.documentReference ?? buildProdatDocumentReference(
       code,
       refs.externalReference ?? input.switchRequest.external_reference ?? input.switchRequest.id
     )
-    const transactionReference = buildProdatCaseReference(
+    const transactionReference = input.wireReferences?.transactionReference ?? buildProdatCaseReference(
       code,
       refs.transactionReference ?? input.transactionReference ?? input.switchRequest.id
     )
@@ -600,6 +630,7 @@ function buildProdatSwitchOutboundDraft(
       })
 
     const prodatRendered = renderProdatSegments({
+      sourceContext,selectedVersion:messageVersion,applicationReference,
       code,
       bgmReference: externalReference,
       transactionReference,
@@ -617,6 +648,7 @@ function buildProdatSwitchOutboundDraft(
     })
 
     const envelope = buildEdifactEnvelope({
+      ...(input.wireReferences?{interchangeReference:input.wireReferences.interchangeReference,messageReference:input.wireReferences.messageReference}:{}),
       acknowledgementRequest: ack.requiresContrl,
       senderEdielId: input.senderEdielId,
       senderSubAddress,
@@ -665,7 +697,8 @@ function buildProdatSwitchOutboundDraft(
     }
 
     return {
-      actorUserId: input.actorUserId ?? 'system',
+      actorUserId: input.actorUserId,
+      companyId:sourceCompanyId,
       direction: 'outbound',
       messageStandard: 'edifact',
       messageFamily: 'PRODAT',

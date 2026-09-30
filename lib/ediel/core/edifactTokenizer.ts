@@ -47,7 +47,7 @@ export function segmentOriginalRaw(segment: EdifactTokenizedSegment): string | n
   return source?.raw === segment.raw ? source.originalRaw : null
 }
 
-function originalSegmentSlices(raw: string, una: EdifactServiceStringAdvice): Array<{ source: string; startOffset: number; endOffset: number }> {
+function originalSegmentSlices(raw: string, una: EdifactServiceStringAdvice, completedOnly=false): Array<{ source: string; startOffset: number; endOffset: number }> {
   const slices: Array<{ source: string; startOffset: number; endOffset: number }> = []
   let startOffset = raw.toUpperCase().startsWith('UNA') ? 9 : 0
   let current = ''
@@ -67,8 +67,8 @@ function originalSegmentSlices(raw: string, una: EdifactServiceStringAdvice): Ar
     }
     current += char
   }
-  if (released) throw new Error('edifact_dangling_release_character')
-  if (current.trim()) slices.push({ source: current, startOffset, endOffset: raw.length })
+  if (released && !completedOnly) throw new Error('edifact_dangling_release_character')
+  if (!completedOnly && current.trim()) slices.push({ source: current, startOffset, endOffset: raw.length })
   return slices
 }
 
@@ -110,10 +110,10 @@ function splitReleased(
   return result
 }
 
-export function tokenizeEdifact(rawPayload: string | null | undefined): EdifactTokenizeResult {
+function tokenizeSegments(rawPayload:string|null|undefined,completedOnly:boolean):EdifactTokenizeResult {
   const una = parseUna(rawPayload)
   const original = String(rawPayload ?? '')
-  const rawSegments = originalSegmentSlices(original, una)
+  const rawSegments = originalSegmentSlices(original, una, completedOnly)
 
   return {
     una,
@@ -133,6 +133,12 @@ export function tokenizeEdifact(rawPayload: string | null | undefined): EdifactT
     }),
   }
 }
+
+export function tokenizeEdifact(rawPayload:string|null|undefined):EdifactTokenizeResult{return tokenizeSegments(rawPayload,false)}
+/** Technical-header observation only. Uses the same framing and decoding, but
+ * returns exclusively complete terminated segments. An incomplete tail is not
+ * business syntax, a national guide result or permission to apply any data. */
+export function observeCompletedEdifactSegments(rawPayload:string|null|undefined):EdifactTokenizeResult{return tokenizeSegments(rawPayload,true)}
 
 export function splitComposite(value: string | null | undefined, una: EdifactServiceStringAdvice = parseUna(null)): string[] {
   return splitReleased(String(value ?? ''), una.componentDataElementSeparator, una.releaseCharacter)

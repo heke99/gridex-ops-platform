@@ -95,7 +95,7 @@ function source(family = 'PRODAT', testFlag = 1, alphabet = alphabets[0]) {
   const rows = family === 'PRODAT' ? [
     ['UNH', 'SOURCE-M', ['PRODAT','D','97A','UN','E2SE6A']], ['BGM',code,'SOURCE-DOC','9','AB'],
     ['DTM',['137','202609201200','203']], ['DTM',['ZZZ','1','805']],
-    ['NAD','FR',['12345','160','SVK']], ['NAD','DO',['54321','160','SVK']],
+    ['NAD','FR',['12345','160','SVK'],'','','','','','','SE'], ['NAD','DO',['54321','160','SVK'],'','','','','','','SE'],
     ['LIN','1','',['735999888000000017','','','9']], ['RFF',['LI','SOURCE-LI']],
   ] : [
     ['UNH','SOURCE-M',['UTILTS','D','02B','UN','E5SE5A']], ['BGM',code,'SOURCE-DOC','9','AB'],
@@ -116,6 +116,8 @@ function source(family = 'PRODAT', testFlag = 1, alphabet = alphabets[0]) {
     interchange_reference: 'SOURCE-I', raw_payload: raw, parsed_payload: {}, created_at: NOW,
     syntax_check_status: 'ok', status: 'received' }
 }
+const ackErrors = family => [{ercCode:'42',fieldCode:'207',text:family === 'PRODAT'
+  ? 'Felaktigt Avsändare (Ediel-ID) 12345' : 'INCORRECT DATA 12345'}]
 function stateRow(draft) {
   return { requires_contrl: draft.requiresContrl, requires_aperak: draft.requiresAperak,
     contrl_status: draft.contrlStatus, aperak_status: draft.aperakStatus,
@@ -154,20 +156,20 @@ for (const family of ['PRODAT','UTILTS','UTILTS_ERR']) for (const outcome of ['p
     const a = await api, original = source(family), before = JSON.stringify(original)
     assert.equal(a.validateEdifactSyntax(original).ok, true, 'source has a coherent envelope')
     const draft = a.buildAperakDraft({ sourceMessage: original, outcome, applicationErrors: outcome === 'negative'
-      ? [{ ercCode:'42', fieldCode:'207', text:'INVALID' }] : null })
+      ? ackErrors(family) : null })
     assert.equal(finalWire(draft.rawPayload).unb[9], '1')
     assert.equal(JSON.stringify(original), before)
   })
   test(`${family}-origin ${outcome} APERAK monitoring uses outgoing APERAK not source family`, async () => {
     const a = await api
     assertPending(a, a.buildAperakDraft({ sourceMessage:source(family), outcome, applicationErrors: outcome === 'negative'
-      ? [{ ercCode:'42', fieldCode:'207', text:'INVALID' }] : null }), false)
+      ? ackErrors(family) : null }), false)
   })
 }
 for (const flag of [0,1]) for (const ack of ['APERAK','CONTRL','UTILTS_ERR']) {
   test(`${ack} passes source test_flag=${flag} to the actual UNB0035`, async () => {
     const a = await api, s = source(ack === 'UTILTS_ERR' ? 'UTILTS' : 'PRODAT', flag)
-    const draft = ack === 'APERAK' ? a.buildAperakDraft({ sourceMessage:s, outcome:'negative' })
+    const draft = ack === 'APERAK' ? a.buildAperakDraft({ sourceMessage:s, outcome:'negative', applicationErrors:ackErrors('PRODAT') })
       : ack === 'CONTRL' ? a.buildContrlDraft({ sourceMessage:s, outcome:'negative' })
         : a.buildUtiltsErrDraft({ sourceMessage:s, messageText:'E14' })
     assert.equal(draft.testFlag, flag)

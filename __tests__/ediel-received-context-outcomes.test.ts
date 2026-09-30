@@ -1,3 +1,4 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsFinalValidationFixture'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
@@ -6,8 +7,8 @@ import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdiel
 import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, type Parts } from './fixtures/prodat-register'
 
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn(), rpc: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -28,7 +29,7 @@ function source() {
     line('1', point, undefined, '9'), ['DTM', ['92', '202607010000', '203']], ['RFF', ['MG', 'M']], ...characteristic('Z16', '201', 3),
   ]
   const wire = raw(body)
-  return { id: 'source-1', company_id: 'tenant-a', environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04',
+  return { id: 'source-1', company_id: incoming.company_id, environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04',
     metering_point_id: 'meter-tenant-a', raw_payload: wire, immutable_payload_hash: createHash('sha256').update(wire, 'utf8').digest('hex'),
     message_received_at: '2026-06-20T09:00:00Z', received_prodat_context: undefined as Record<string, unknown> | undefined }
 }
@@ -47,6 +48,7 @@ beforeEach(() => {
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(query)
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, meteringPointId: 'meter-tenant-a', externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
+  io.rpc.mockImplementation(createUtiltsFinalValidationIo())
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
 })
 // Remove ONLY the intended diagnostic field on its normalized-payload surfaces.
@@ -60,6 +62,7 @@ function withoutDiagnostic(value: unknown, parent = ''): unknown {
     .map(([key, item]) => [key, withoutDiagnostic(item, key)]))
 }
 async function capture(accepted: boolean) {
+  qualifyUtiltsFixtureSource(incoming)
   for (const mock of [io.update, io.event, io.ack, io.persist, io.ingest, io.from]) mock.mockClear()
   const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: incoming.created_at, applicationReference: '23-DDQ-E66-S', mode: 'parse' })
   const result = await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy: policy })

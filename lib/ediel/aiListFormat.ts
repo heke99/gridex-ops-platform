@@ -1,8 +1,8 @@
-import sourceManifest from '@/docs/ediel/masterplan-v2/registers/source_manifest.json'
-/** AI14.A.3 §2–3 pp8–10. Technical semicolon adapter; no EDIFACT envelope. */
-export const AI_LIST_FORMAT_VERSION = 'Ver20140401'
-export const AI_LIST_SOURCE_SHA256 = sourceManifest.find(source=>source.id==='AI')!.sha256
-export const AI_LIST_SOURCE_PROFILE = Object.freeze({sourceId:'AI',guideRevision:'14.A.3',technicalVersion:AI_LIST_FORMAT_VERSION,sourceSha256:AI_LIST_SOURCE_SHA256,validFrom:'2025-10-01',format:'CSV',supplierOutboundType:'AI'} as const)
+import {canonicalAiListProfile} from '@/lib/ediel/rulebook/canonicalEdielFacade'
+/** Shared positional technical list adapter; no EDIFACT envelope. */
+export const AI_LIST_SOURCE_PROFILE = canonicalAiListProfile()
+export const AI_LIST_FORMAT_VERSION = AI_LIST_SOURCE_PROFILE.technicalVersion
+export const AI_LIST_SOURCE_SHA256 = AI_LIST_SOURCE_PROFILE.sourceSha256
 export type AiBiTechnicalListType = 'AI' | 'BI'
 export const AI_BI_DETAIL_COLUMNS = ['grid_area','metering_point_id','identity_agency','new_grid_area','new_metering_point_id','new_identity_agency','new_network_ediel_id','address','postal_code','city','balance_responsible_ediel_id','meter_number','settlement_method','annual_consumption','reporting_frequency','measurement_method','aggregate_product','customer_identity','customer_name','valid_from','valid_to'] as const
 export type AiBiTechnicalHeader={listType:AiBiTechnicalListType;networkEdielId:string;networkName:string;supplierEdielId:string;supplierName:string;createdAt:string;validityDate:string|null;fromDate:string|null;toDate:string|null;version:typeof AI_LIST_FORMAT_VERSION}
@@ -61,5 +61,11 @@ export function assertAiListOutboundMessage(message:{message_standard?:string|nu
   assertAiListOutboundType(parsed.header.listType)
   if(parsed.header.supplierEdielId!==message.sender_ediel_id||parsed.header.networkEdielId!==message.receiver_ediel_id)throw new Error('ai_list_outbound_party_scope_mismatch')
   if(parsed.rows.some(row=>row.columns.slice(11,17).some(Boolean)))throw new Error('ai_list_supplier_network_fields_present')
-  if(!message.file_name?.toLowerCase().endsWith('.csv')||message.mime_type!=='text/csv')throw new Error('ai_list_csv_file_type_required')
+  if(!message.file_name?.toLowerCase().endsWith('.csv')||!isAiListCsvMediaType(message.mime_type))throw new Error('ai_list_csv_file_type_required')
+}
+
+/** The file encoder emits UTF-8. Accept the actual media type and an explicit
+ * matching charset; no permissive other charset/parameter interpretation. */
+export function isAiListCsvMediaType(value:string|null|undefined):boolean {
+  return typeof value==='string'&&/^text\/csv(?:[ \t]*;[ \t]*charset[ \t]*=[ \t]*(?:utf-8|"utf-8"))?[ \t]*$/i.test(value)
 }

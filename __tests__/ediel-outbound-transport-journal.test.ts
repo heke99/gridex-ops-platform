@@ -12,13 +12,20 @@ import { SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 import { sendGenericFencedEdielEmail } from '@/lib/ediel/transport/outboundAttempt'
 const context={message:{id:'message',company_id:'company',environment:'test',raw_payload:'fixture',communication_route_id:'route'} as EdielMessageRow,actorUserId:'actor',mimeMode:'attachment',payload:Buffer.from('fixture'),encoding:'latin1'}
 const input={to:'dso@example.invalid',subject:'fixture'}
+const observedAt='2026-09-30T12:34:56.789Z'
 describe('all-family durable outbound journal',()=>{
- beforeEach(()=>{vi.clearAllMocks();mocks.providerCalls=0;mocks.failProvider=false;mocks.skipCallback=false;mocks.rpc.mockImplementation(async(_name,{p_input})=>({error:null,data:p_input.action==='observe'?{classification:'accepted'}:{proceed:true}}))})
+ beforeEach(()=>{vi.clearAllMocks();mocks.providerCalls=0;mocks.failProvider=false;mocks.skipCallback=false;mocks.rpc.mockImplementation(async(_name,{p_input})=>({error:null,data:p_input.action==='observe'?{classification:'accepted',observedAt}:{proceed:true}}))})
  it('commits prepare and entry before provider, then captures outcome',async()=>{
   const actions:string[]=[]
-  mocks.rpc.mockImplementation(async(_name,{p_input})=>{actions.push(p_input.action);if(p_input.action==='enter')expect(mocks.providerCalls).toBe(0);return{error:null,data:p_input.action==='observe'?{classification:'accepted'}:{proceed:true}}})
-  expect((await sendGenericFencedEdielEmail(input,context)).accepted).toEqual(['dso@example.invalid'])
+  mocks.rpc.mockImplementation(async(_name,{p_input})=>{actions.push(p_input.action);if(p_input.action==='enter')expect(mocks.providerCalls).toBe(0);return{error:null,data:p_input.action==='observe'?{classification:'accepted',observedAt}:{proceed:true}}})
+  expect(await sendGenericFencedEdielEmail(input,context)).toMatchObject({accepted:['dso@example.invalid'],dispatchObservedAt:observedAt})
   expect(actions).toEqual(['prepare','enter','observe']);expect(mocks.providerCalls).toBe(1)
+ })
+ it('holds accepted classification without an authentic observation clock for reconciliation',async()=>{
+  mocks.rpc.mockImplementation(async(_name,{p_input})=>({error:null,data:p_input.action==='observe'?{classification:'accepted'}:{proceed:true}}))
+  await expect(sendGenericFencedEdielEmail(input,context)).rejects.toMatchObject({code:'ediel_delivery_uncertain',smtpMessageId:'<fixture>'})
+  expect(mocks.providerCalls).toBe(1)
+  expect(mocks.rpc.mock.calls.map(c=>c[1].p_input.action)).toEqual(['prepare','enter','observe'])
  })
  it('suppresses entered unknown without provider retry',async()=>{
   mocks.rpc.mockResolvedValue({error:null,data:{proceed:false,state:'entered',classification:null}})

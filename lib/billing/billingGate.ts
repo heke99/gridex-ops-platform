@@ -1,4 +1,6 @@
 import { stockholmLocalToUtc } from "@/lib/time/stockholm";
+import { isCanonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal';
+import type { BillingSourceBasis } from './sourceBasis';
 
 export type BillingGateStatus =
   "eligible" | "pending_match" | "blocked" | "conflict";
@@ -12,6 +14,9 @@ export type BillingGateReasonCode =
   | "source_message_tenant_mismatch"
   | "source_message_not_validated"
   | "source_message_family_not_metering"
+  | "source_basis_unqualified"
+  | "quality_not_established"
+  | "quality_not_final"
   | "revision_not_current"
   | "replacement_link_inconsistent"
   | "correction_lineage_missing"
@@ -143,6 +148,7 @@ export function evaluateBillingGate(input: {
   const supply = input.supplyPeriod ?? {};
   const contract = input.contract ?? {};
   const source = input.sourceMessage ?? {};
+  const basis = value.billing_source_basis as BillingSourceBasis | undefined;
   const reasons: BillingGateReason[] = [];
 
   const companyId = text(value.company_id);
@@ -179,7 +185,9 @@ export function evaluateBillingGate(input: {
         "Normaliserat värde saknar Ediel-källmeddelande.",
       ),
     );
-  } else if (text(source.company_id) && text(source.company_id) !== companyId) {
+  } else if (!text(source.id) || text(source.id) !== text(value.source_message_id)) {
+    reasons.push(reason('source_message_missing', 'Ediel-källmeddelandet kunde inte kvalificeras.'));
+  } else if (text(source.company_id) !== companyId) {
     reasons.push(
       reason(
         "source_message_tenant_mismatch",
@@ -190,7 +198,7 @@ export function evaluateBillingGate(input: {
   if (text(value.source_message_id)) {
     const sourceFamily = text(source.message_family)?.toUpperCase();
     const sourceStatus = text(source.status)?.toLowerCase();
-    if (sourceFamily && sourceFamily !== "UTILTS") {
+    if (sourceFamily !== "UTILTS") {
       reasons.push(
         reason(
           "source_message_family_not_metering",
@@ -198,7 +206,7 @@ export function evaluateBillingGate(input: {
         ),
       );
     }
-    if (sourceStatus && !ACCEPTED_SOURCE_MESSAGE_STATES.has(sourceStatus)) {
+    if (!basis?.qualified && (!sourceStatus || !ACCEPTED_SOURCE_MESSAGE_STATES.has(sourceStatus))) {
       reasons.push(
         reason(
           "source_message_not_validated",
@@ -206,6 +214,9 @@ export function evaluateBillingGate(input: {
         ),
       );
     }
+  }
+  if (!basis || basis.version !== 1 || !basis.qualified || basis.normalizedValueId !== text(value.id) || basis.sourceMessageId !== text(value.source_message_id) || basis.quantityType !== '136' || basis.quantityKwh !== value.quantity_kwh || basis.productCode !== (text(value.product_code) ?? null)) {
+    reasons.push(reason('source_basis_unqualified', 'Kvantitet, produkt, period och version saknar gemensamt kvalificerat Ediel-underlag.'));
   }
 
   if ((text(value.revision_status) ?? "current").toLowerCase() !== "current") {
@@ -338,6 +349,8 @@ export function evaluateBillingGate(input: {
   const quality = (
     text(value.quality_status ?? value.quality_code) ?? ""
   ).toLowerCase();
+  if (!basis?.qualityEstablished) reasons.push(reason('quality_not_established', 'Mätvärdets kvalitet har inte fastställts från egen källobservation.'));
+  else if (basis.quality !== null) reasons.push(reason('quality_not_final', 'Källobservationen är inte avläst/exakt och kräver ett särskilt beslut före slutfakturering.'));
   if (!input.allowEstimatedValues && ESTIMATED_QUALITY.has(quality)) {
     reasons.push(
       reason(
@@ -372,7 +385,7 @@ export function evaluateBillingGate(input: {
         "Mätenheten stöds inte av faktureringsmotorn.",
       ),
     );
-  if (number(value.quantity_kwh ?? value.value_kwh) === null)
+  if (!isCanonicalUtiltsDecimal(value.quantity_kwh))
     reasons.push(
       reason("quantity_invalid", "Mätvärdets kvantitet är ogiltig."),
     );
@@ -404,7 +417,7 @@ export function evaluateBillingGate(input: {
     reasons,
     snapshot: {
       evaluated_at: evaluatedAt,
-      gate_version: "2026-07-canonical-v1",
+      gate_version: "2026-09-qualified-source-v2",
       status,
       normalized_metering_value_id: text(value.id),
       source_metering_value_id: text(value.source_metering_value_id),
@@ -417,6 +430,7 @@ export function evaluateBillingGate(input: {
       period_end: text(value.period_end),
       revision_number: revisionNumber,
       quality_status: quality || null,
+      source_basis: basis ?? null,
       reason_codes: reasons.map((entry) => entry.code),
     },
   };

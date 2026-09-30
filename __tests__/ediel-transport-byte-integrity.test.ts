@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
-const io = vi.hoisted(() => ({ effects: [] as string[] }))
+const io = vi.hoisted(() => ({ effects: [] as string[], acceptedReads:vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: () => { io.effects.push('db'); throw new Error('UNEXPECTED_DATABASE_BOUNDARY') },
-  rpc: () => { io.effects.push('rpc'); throw new Error('UNEXPECTED_RPC_BOUNDARY') },
+  rpc: async (name:string,args:unknown) => {
+    if(name!=='gridex_ediel_accepted_transport_projection_v1'){io.effects.push('rpc');throw new Error('UNEXPECTED_RPC_BOUNDARY')}
+    expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_environment:'test',p_actor_user_id:'synthetic-operator',p_message_id:'00000000-0000-4000-8000-000000000001'})
+    io.acceptedReads(name,args)
+    return {data:null,error:null}
+  },
 } }))
 vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: () => {
   io.effects.push('provider'); throw new Error('UNEXPECTED_PROVIDER_BOUNDARY')
@@ -29,7 +34,7 @@ const mimeBuilders = [
 ]
 
 describe('ENV-01 lossless bytes at every SMTP packaging boundary', () => {
-  beforeEach(() => { io.effects = [] })
+  beforeEach(() => { io.effects = [];io.acceptedReads.mockClear() })
 
   for (const [index, build] of mimeBuilders.entries()) {
     for (const character of ['€', '\uD800', '😀']) {
@@ -57,6 +62,7 @@ describe('ENV-01 lossless bytes at every SMTP packaging boundary', () => {
     const before = message.raw_payload
     await expect(sendEdielMessageViaSmtp(message, { actorUserId: 'synthetic-operator' }))
       .rejects.toThrow('edifact_character_not_iso8859_1')
+    expect(io.acceptedReads).toHaveBeenCalledExactlyOnceWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:message.company_id,p_environment:'test',p_actor_user_id:'synthetic-operator',p_message_id:message.id})
     expect(io.effects).toEqual([])
     expect(message.raw_payload).toBe(before)
   })
@@ -73,7 +79,10 @@ describe('ENV-01 lossless bytes at every SMTP packaging boundary', () => {
       message_family: family, message_code: family === 'PRODAT' ? 'Z01' : 'E66', receiver_email: headers.to,
       raw_payload: `UNB+UNOC:3+S+R+260930:1200+I'UNH+1+${family}:D:96A:UN:GUIDE'FTX+AAO+++€'UNT+3+1'UNZ+1+I'`,
       parsed_payload: {}, } as unknown as EdielMessageRow
+    const before=structuredClone(message)
     await expect(sendEdielMessageViaSmtp(message, { actorUserId: 'synthetic-operator' })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+    expect(io.acceptedReads).toHaveBeenCalledExactlyOnceWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:message.company_id,p_environment:'test',p_actor_user_id:'synthetic-operator',p_message_id:message.id})
     expect(io.effects).toEqual([])
+    expect(message).toEqual(before)
   })
 })

@@ -483,6 +483,7 @@ export async function createEdielMessage(
     rule_profile_version: input.ruleProfileVersion ?? null,
     rule_pack_checksum: input.rulePackChecksum ?? null,
     rule_pack_snapshot: ensureJson(input.rulePackSnapshot),
+    execution_context_snapshot: ensureJson(input.executionContextSnapshot),
     intent_id: input.intentId ?? null,
     party_id: input.partyId ?? null,
     party_address_id: input.partyAddressId ?? null,

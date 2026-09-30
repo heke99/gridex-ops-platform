@@ -1,3 +1,7 @@
+import {validateCanonicalAckGuide} from './ackGuidePolicy'
+import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import { prodatFreeTextField, validateProdatFreeText } from '@/lib/ediel/prodat/prodatFreeText'
@@ -57,6 +61,7 @@ export function validateCanonicalPolicyFields(input: {
   scope?: 'all' | 'dependent_only'
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
+  if (input.policy.family === 'APERAK' || input.policy.family === 'CONTRL') return validateCanonicalAckGuide(input)
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).filter(rule => !(input.policy.family === 'PRODAT' && input.policy.direction === 'inbound' && (['322','324','506'].includes(rule.fieldNumber ?? '') || rule.fieldNumber === '242' && incomingProduct242IsFalse(input.policy.code)))).flatMap((rule): RulebookFieldRule[] => {
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(rule.fieldNumber ?? '')) return [rule]
     // The new UD parent is selected per wire object below, never from a root snapshot.
@@ -100,6 +105,11 @@ export function validateCanonicalPolicyFields(input: {
       ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
+  if(input.policy.family==='UTILTS' && input.scope!=='dependent_only' && input.rawSegments?.length) {
+    const una=input.una ?? DEFAULT_UNA
+    const wire=tokenizeEdifact(serializeUna(una)+input.rawSegments.join(una.segmentTerminator)+una.segmentTerminator)
+    issues.push(...utiltsDecimalGuideViolations(wire.segments,wire.una).map(violation=>({severity:'error' as const,code:violation.code,title:'Felaktigt numeriskt fält',description:violation.description,fieldPath:violation.field,blocking:true})))
+  }
   if (input.policy.family !== 'PRODAT') return issues
   if (input.policy.direction === 'outbound') issues.push(...validateProdatFreeText({ code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una }))
   if (input.policy.direction === 'inbound') {

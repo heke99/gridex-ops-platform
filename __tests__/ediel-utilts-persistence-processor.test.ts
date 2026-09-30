@@ -1,3 +1,4 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsFinalValidationFixture'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -30,7 +31,10 @@ beforeEach(() => {
   io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'meter-value' } }); io.bill.mockResolvedValue({ id: 'underlay' })
   io.ack.mockImplementation(async ({ ackFamily }) => ({ id: `ack-${ackFamily}` }))
+  const finalValidationIo = createUtiltsFinalValidationIo()
   io.rpc.mockImplementation((name, args) => {
+    const canonical = finalValidationIo(name, args)
+    if (canonical) return canonical
     const input = name === 'gridex_persist_utilts_consumption_v1' ? { companyId: args.p_company_id, environment: args.p_environment, sourceMessageId: args.p_source_message_id, messageCode: args.p_message_code, rawPayload: args.p_raw_payload, transactions: args.p_transactions, contracts: args.p_transactions.map((t: { consumptionContract: unknown }) => t.consumptionContract) } as UtiltsBoundPersistenceInput : null
     const response = input ? { data: bindingRpcRows(input, results), error: null } : { data: null, error: { message: 'unavailable' } }
     return Object.assign(Promise.resolve(response), { abortSignal: () => Promise.resolve(response) })
@@ -71,7 +75,7 @@ const failed = { transactionId: 'GRIDEX2607E66001', disposition: 'processability
 it('persists an own observation unit guide rejection before drafting its negative ACK',async()=>{
   const message=incoming()
   message.raw_payload=recountEdifactUnt(message.raw_payload!.replace("SEQ++1'","SEQ++1'\nMEA+AAZ++MWH'"))
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results=[{transactionId:'GRIDEX2607E66001',disposition:'guide_rejected',responseType:'negative_aperak',persistenceStatus:'not_applicable'}]
   await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
   expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1',expect.objectContaining({p_transactions:expect.arrayContaining([expect.objectContaining({disposition:'guide_rejected',responseType:'negative_aperak'})])}))
@@ -84,7 +88,7 @@ it('holds an S07 without BGM code-list qualifier SVK before business persistence
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('BGM+E66::260', 'BGM+S07::260')
     .replace('23-DDQ-E66-S', '23-DDQ-S07-S')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -100,7 +104,7 @@ it('rejects a wrong E66 BGM document agency as field 202 before business persist
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('BGM+E66::260', 'BGM+E66::999')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -113,27 +117,32 @@ it('rejects a wrong E66 BGM document agency as field 202 before business persist
   const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
   expect(JSON.stringify(negative.draft)).toContain('202')
 })
-it('routes wrong receiver NAD agency 208 to negative APERAK and persists guide rejection without business effects', async () => {
+it('keeps own field208 rejection but refuses an application ACK with unqualified physical legal agency', async () => {
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('NAD+MR+21660:SVK:260', 'NAD+MR+21660:SVK:999')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
-  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
+  const runtime = runUtiltsRuntimeForMessage(message)
+  expect(runtime.validation.issues).toContainEqual(expect.objectContaining({aperakErcCode:'42', aperakFieldCode:'208', aperakText:'INCORRECT DATA 999'}))
+  expect(runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('ACK_APERAK_LEGAL_PARTY_INVALID')
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
   expect(persisted?.p_company_id).toBe(message.company_id)
   expect(persisted?.p_transactions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+  expect(io.ack.mock.calls).toHaveLength(1)
+  expect(io.ack.mock.calls[0][0]).toMatchObject({ackFamily:'CONTRL',outcome:'positive',sourceMessage:{id:message.id,company_id:message.company_id,raw_payload:message.raw_payload}})
+  expect(io.ack.mock.calls.some(([call]) => ['APERAK','UTILTS_ERR'].includes(call.ackFamily))).toBe(false)
+  expect(io.from.mock.calls.some(([table]) => table === 'ediel_ack_transaction_results')).toBe(false)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
-  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
-  expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
-  expect(JSON.stringify(io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('208')
 })
+
 it('routes six-digit receiver SVK identifier at 208 to negative APERAK without business effects', async () => {
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('NAD+MR+21660:SVK:260', 'NAD+MR+216600:SVK:260')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
@@ -148,7 +157,7 @@ it('routes a bad agency-305 receiver GLN at 208 to negative APERAK without busin
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('NAD+MR+21660:SVK:260', 'NAD+MR+7359990000014::305')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
@@ -163,7 +172,7 @@ it('routes unknown subordinate header NAD role 509 to negative APERAK without bu
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace("NAD+DDQ'", "NAD+BAD'")
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
@@ -178,7 +187,7 @@ it('rejects a blank E66 BGM document identifier as field 203 before business per
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', '+9+AB')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -195,7 +204,7 @@ it('rejects an invalid E66 message function as field 204 before business persist
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', 'GRIDEX2607E66MSG001+XX+AB')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -212,7 +221,7 @@ it('rejects an impossible E66 message date as field 205 before business persiste
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('DTM+137:202609301811:203', 'DTM+137:202602301811:203')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -229,7 +238,7 @@ it('keeps an E66 without timezone out of meter and billing effects and emits onl
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace("DTM+735:?+0200:406'\n", '').replace('UNT+35+1', 'UNT+34+1')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -246,7 +255,7 @@ it('saves no E66 business effect and emits only field 313 negative APERAK for a 
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('GRIDEX2607E66MSG001+9+AB', 'GRIDEX2607E66MSG001+9+XX')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
 
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -261,15 +270,15 @@ it('saves no E66 business effect and emits only field 313 negative APERAK for a 
   expect(JSON.stringify(negative.draft)).toContain('313')
 })
 for (const mixed of [false, true]) it(`processor holds internal persistence failure${mixed ? ' with accepted sibling' : ''} before ACK or sinks`, async () => {
-  const message = incoming(false, mixed); io.get.mockResolvedValue(message)
+  const message = incoming(false, mixed); io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = mixed ? [failed, accepted('GRIDEX2607E66002')] : [failed]
   await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('utilts_consumption_binding_conflict:persistence_failed')
-  expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1', expect.objectContaining({ p_company_id: 'tenant-a', p_source_message_id: message.id }))
+  expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1', expect.objectContaining({ p_company_id: message.company_id, p_source_message_id: message.id }))
   expect(io.ack).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
   expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 for (const invalid of ['missing', 'duplicate', 'unrelated', 'contradictory']) it(`real processor rejects ${invalid} persistence evidence before ACK or completion`, async () => {
-  const message = incoming(); io.get.mockResolvedValue(message)
+  const message = incoming(); io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   if (invalid === 'duplicate') results = [accepted('GRIDEX2607E66001'), accepted('GRIDEX2607E66001')]
   if (invalid === 'unrelated') results = [accepted('OTHER')]
   if (invalid === 'contradictory') results = [{ ...accepted('GRIDEX2607E66001'), disposition: 'internal_review' }]
@@ -278,7 +287,7 @@ for (const invalid of ['missing', 'duplicate', 'unrelated', 'contradictory']) it
   expect(io.ack).not.toHaveBeenCalled(); expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it('held sibling keeps its empty persisted quantities and no positive ACK while accepted sibling persists', async () => {
-  const message = incoming(true, true); io.get.mockResolvedValue(message)
+  const message = incoming(true, true); io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'internal_review', responseType: 'none', persistenceStatus: 'not_applicable' }, accepted('GRIDEX2607E66002')]
   const result = await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   expect(result.internalReviewRequired).toBe(true)
@@ -293,7 +302,7 @@ it('held sibling keeps its empty persisted quantities and no positive ACK while 
 it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling through persistence and ACK', async () => {
   const message = incoming(true, true)
   message.raw_payload = message.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::260')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [
     { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
     accepted('GRIDEX2607E66002'),
@@ -313,7 +322,7 @@ it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling thr
 it('routes a supplied invalid E66 LOC+172 identity to 209 without consuming its IDE', async () => {
   const message = incoming(true, true, '2026-10-15')
   message.raw_payload = message.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [
     { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
     accepted('GRIDEX2607E66002'),
@@ -343,7 +352,7 @@ it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'mi
     .replace('23-DDQ-E66-S', message.application_reference)
     .replace('LOC+172+735999260731000007::9', defect === 'invalid' ? 'LOC+172+735999260731000008::9' : '')
   message.raw_payload = recountEdifactUnt(message.raw_payload)
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1]
@@ -362,7 +371,7 @@ it('routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK witho
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
     .replace('23-DDQ-E66-S', '23-DDK-S01-S')
     .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
@@ -378,7 +387,7 @@ it('holds a guide-valid E72 agency-89 request before positive point authority, p
   const runtime = runUtiltsRuntimeForMessage(message)
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted' }])
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   expect(result.internalReviewRequired).toBe(true)
@@ -387,22 +396,17 @@ it('holds a guide-valid E72 agency-89 request before positive point authority, p
     consumptionContract: { observations: [] } }])
   expect(io.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
-  io.get.mockResolvedValue(e72PointRequestMessage())
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(e72PointRequestMessage()))
   await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   const point = io.rpc.mock.calls.filter(([name]) => name === 'gridex_persist_utilts_consumption_v1').at(-1)?.[1]
   expect(point?.p_transactions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', quantities: [] }])
   expect(io.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK' && call.outcome === 'positive')).toBe(true)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
-it('holds an E73 point request with unowned physical agency 89 before a positive ACK', async () => {
-  const message = incoming(false, false, '2026-10-01')
-  message.message_code = 'E73'; message.application_reference = '23-DDQ-E66-S'
-  message.raw_payload = message.raw_payload!
-    .replace('BGM+E66::260', 'BGM+E73::260')
-    .replace('23-DDQ-E66-T', '23-DDQ-E66-S')
-    .replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')
+it('holds a permitted inbound E72 request with unowned physical agency 89 before a positive ACK', async () => {
+  const message = e72PointRequestMessage('tenant-a', '89')
   expect(runUtiltsRuntimeForMessage(message).transactionDispositions).toMatchObject([{ disposition: 'accepted' }])
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
@@ -411,6 +415,21 @@ it('holds an E73 point request with unowned physical agency 89 before a positive
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
+it('the real supplier-side admission refuses outbound-only E73 as an inbound fixture before effects', async () => {
+  const message = qualifyUtiltsFixtureSource(e72PointRequestMessage())
+  message.message_code = 'E73'; message.application_reference = '23-DDQ-E66-S'
+  message.raw_payload = message.raw_payload!.replace('BGM+E72::260', 'BGM+E73::260')
+    .replace('23-MDR-E30-S', '23-DDQ-E66-S').replace("NAD+MDR'", "NAD+DDQ'").replace("RFF+E30'", "RFF+E66'")
+  qualifyUtiltsFixtureSource(message)
+  const { resolveCanonicalRuntimeDecisionWithRegistry } = await import('@/lib/ediel/core/runtimeDecision')
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  expect(decision.applicationDecision).toBe('manual_review')
+  expect(decision.issues).toContainEqual(expect.objectContaining({code:'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE',
+    description:'canonical_source_direction_not_allowed:E73:inbound:outbound'}))
+  expect(decision.responsePlan.some(item => item.family === 'APERAK' && item.outcome === 'positive')).toBe(false)
+  expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
+  expect(io.ack).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
 })
 it('holds a valid S01 LOC+175 without an owned regulating object and never reserves a positive point ACK', async () => {
   const message = incoming(false, false, '2026-10-01')
@@ -421,7 +440,7 @@ it('holds a valid S01 LOC+175 without an owned regulating object and never reser
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
     .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
   expect(runUtiltsRuntimeForMessage(message).transactionDispositions).toMatchObject([{ disposition: 'accepted' }])
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = undefined // The RPC fixture echoes the actual prepared disposition.
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
@@ -440,7 +459,7 @@ it('holds E66 point consumption when a LOC+175 appears after SEQ in the same phy
   const runtime = runUtiltsRuntimeForMessage(message)
   expect(runtime.facts.transactions[0].regulatingObjectPresent).toBe(true)
   expect(runtime.transactionDispositions[0].disposition).toBe('accepted')
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
   expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
@@ -452,7 +471,7 @@ it('holds E66 point consumption when a second LOC+172 appears after SEQ in the s
   message.raw_payload = message.raw_payload!
     .replace("SEQ++1'", "SEQ++1'\nLOC+172+735999260731000014::9'")
     .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
   expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
@@ -468,7 +487,7 @@ it('holds an S01 point IDE with a second LOC+172 after SEQ before a market ACK',
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
     .replace("SEQ++1'", "SEQ++1'\nLOC+172+735999260731000014::9'")
     .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
@@ -497,7 +516,7 @@ it.each(['object-first', 'point-first'] as const)('holds both S01 %s object and 
   lines[unt] = `UNT+${unt - unh + 1}+1'`
   message.raw_payload = lines.join('\n')
   expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition)).toEqual(['accepted', 'accepted'])
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   expect(result.internalReviewRequired).toBe(true)
@@ -520,7 +539,7 @@ it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling e
   const at = order === 'object-first' ? raw.indexOf(point) : raw.lastIndexOf(point)
   message.raw_payload = raw.slice(0, at) + raw.slice(at).replace(point, 'LOC+175+735999260731000007::9')
   expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition)).toEqual(['accepted', 'accepted'])
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   expect(result.internalReviewRequired).toBe(true)
@@ -552,7 +571,7 @@ it.each(['object-first', 'point-first'] as const)('keeps a valid S01 %s object h
   message.raw_payload = withObject.slice(0, badAt) + withObject.slice(badAt).replace(badGridArea, 'LOC+239+ABCD:SVK:260')
   expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition))
     .toEqual(order === 'object-first' ? ['accepted', 'guide_rejected'] : ['guide_rejected', 'accepted'])
-  io.get.mockResolvedValue(message); results = undefined
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const processed = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
   expect(processed.internalReviewRequired).toBe(true)
@@ -584,7 +603,7 @@ it.each([
     .replace('23-DDQ-E66-S', applicationReference)
     .replace('LOC+172+735999260731000007::9', defect === 'missing' ? '' : `${location}+735999260731000008::9`)
   message.raw_payload = recountEdifactUnt(message.raw_payload)
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
@@ -598,7 +617,7 @@ it.each([
 it('routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
   message.raw_payload = message.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [
     { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
     accepted('GRIDEX2607E66002'),
@@ -619,7 +638,7 @@ it('routes an invalid IDE qualifier to field 505 APERAK while preserving its val
 it('routes a malformed supplied grid-area composite to 260a without rejecting its valid IDE sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
   message.raw_payload = message.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [
     { transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' },
     accepted('GRIDEX2607E66002'),
@@ -643,7 +662,7 @@ for (const [present, missing] of [['232', '260c'], ['233', '260b']] as const) it
   const lines = message.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${present}+ABC:SVK:260'`).split('\n')
   lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
   message.raw_payload = lines.join('\n')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   expect(io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1].p_transactions)
@@ -655,7 +674,7 @@ for (const [present, missing] of [['232', '260c'], ['233', '260b']] as const) it
 it('holds a positive sibling before ACK when its bound point and customer differ from the linked request', async () => {
   const message = incoming(true, true, '2026-09-30')
   message.raw_payload = message.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260')
-  io.get.mockResolvedValue(message)
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   vi.mocked(findMatchingGridOwnerDataRequest).mockResolvedValueOnce({
     id: 'request-a', request_scope: 'billing_underlay', response_payload: {},
     customer_id: 'other-customer', metering_point_id: 'other-point',
@@ -670,7 +689,7 @@ it('holds a positive sibling before ACK when its bound point and customer differ
   expect(io.ack).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it('prior applicable reading is held while an eligible 15-minute energy sibling stays independent in the actual processor',async()=>{
- const message=incoming(true,true,'2026-09-30');io.get.mockResolvedValue(message)
+ const message=incoming(true,true,'2026-09-30');io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
  results=[{transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none',persistenceStatus:'not_applicable'},accepted('GRIDEX2607E66002')]
  const result=await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
  expect(result.internalReviewRequired).toBe(true)
@@ -689,7 +708,7 @@ it('prior held reading, exempt energy and E19-rejected sibling retain three inde
   end=lines.findIndex(line=>line.startsWith('UNT+'))
  const rejected=lines.slice(first,second).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66003').replace('QTY+220:10500','QTY+220:11000'))
  lines.splice(end,0,...rejected);lines[end+rejected.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
- message.raw_payload=lines.join('\n');io.get.mockResolvedValue(message)
+ message.raw_payload=lines.join('\n');io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
  results=[{transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none',persistenceStatus:'not_applicable'},
   accepted('GRIDEX2607E66002'),{transactionId:'GRIDEX2607E66003',disposition:'processability_rejected',responseType:'utilts_err',persistenceStatus:'not_applicable'}]
  await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
@@ -704,18 +723,23 @@ it('prior held reading, exempt energy and E19-rejected sibling retain three inde
 for (const invalid of ['missing tenant', 'duplicate physical identities']) it(`processor stops ${invalid} before ACK, sinks or completion`, async () => {
   const message = incoming()
   if (invalid === 'missing tenant') message.company_id = null
-  else message.raw_payload = message.raw_payload! + message.raw_payload!.slice(9)
-  io.get.mockResolvedValue(message)
+  else {
+    const lines = message.raw_payload!.split('\n')
+    const own = lines.slice(lines.findIndex(line => line.startsWith('IDE+')), lines.findIndex(line => line.startsWith('UNT+')))
+    lines.splice(lines.findIndex(line => line.startsWith('UNT+')), 0, ...own)
+    message.raw_payload = recountEdifactUnt(lines.join('\n'))
+  }
+  io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results = [accepted('GRIDEX2607E66001'), accepted('GRIDEX2607E66001')]
   await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow(
-    invalid === 'missing tenant' ? 'saknar tenantkoppling' : invalid === 'duplicate physical identities' ? 'physical_quantity_membership' : 'utilts_transaction_persistence_invalid_result',
+    invalid === 'missing tenant' ? 'saknar tenantkoppling' : invalid === 'duplicate physical identities' ? 'utilts_transaction_persistence_invalid_result:utilts_consumption_binding_conflict:physical_membership' : 'utilts_transaction_persistence_invalid_result',
   )
   expect(io.ack).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
   expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 
 it('internal persistence failure holds even the certified forced-positive ACK plan', async () => {
-  const message = incoming(); io.get.mockResolvedValue(message); results = [failed]
+  const message = incoming(); io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = [failed]
   await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id, testCaseCode: 'U3.1.1' })).rejects.toThrow('utilts_consumption_binding_conflict:persistence_failed')
   expect(io.ack).not.toHaveBeenCalled()
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()

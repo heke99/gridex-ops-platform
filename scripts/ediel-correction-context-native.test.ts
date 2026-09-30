@@ -424,7 +424,7 @@ async function outboundParsed(wire:string,companyId:string){
  }})}}
 }
 async function outboundSeed(){
- const f=await seed(),messageId=randomUUID(),routeId=randomUUID(),profileId=randomUUID(),gridId=randomUUID(),marketActor=randomUUID()
+ const f=await seed(),routeId=randomUUID(),profileId=randomUUID(),gridId=randomUUID(),marketActor=randomUUID()
  // Actors are global and the disposable suite retains earlier fixture rows.
  // Own a distinct normalized name even when one test seeds two tenants.
  const marketActorName=`Dispatch electricity grid ${marketActor}`
@@ -449,23 +449,58 @@ async function outboundSeed(){
  ) SELECT to_jsonb(identifier_value) FROM allocated; COMMIT;`)
  expect(receiver).toMatch(/^[6-8][0-9]{4}$/)
  expect(sql(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(receiver)}`)).toBe(marketActor)
- const wire=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08').replaceAll('54321',receiver).replace('Synthetic','Ångström')
+ const sender=sql<string>(`BEGIN;
+ SELECT pg_advisory_xact_lock(hashtextextended('native_outbound_legal_actor_identifier',0));
+ WITH available AS (SELECT candidate::text AS value FROM generate_series(40000,49999) candidate
+  WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text)
+  AND NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text) ORDER BY candidate LIMIT 1),
+ allocated AS (INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from)
+  SELECT ${literal(f.companyId)},'test',${literal(f.actorUserId)},'EdielId',value,clock_timestamp()-interval '1 day' FROM available RETURNING identifier_value)
+ SELECT to_jsonb(identifier_value) FROM allocated; COMMIT;`)
+ sql(`INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from)
+  VALUES(${literal(f.companyId)},'test','electricity',true,clock_timestamp()-interval '1 day');
+ INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
+  VALUES(${literal(f.companyId)},'test',${literal(f.actorUserId)},'electricity_supplier',clock_timestamp()-interval '1 day');
+ INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
+  VALUES(${literal(f.companyId)},'test','Synthetic native supplier',${literal(sender)},${literal(sender)});`)
+ const wire=closureFixture({reason:'Z25',document:`D${randomUUID().replaceAll('-','').slice(0,13)}`,li:`L${randomUUID().replaceAll('-','').slice(0,13)}`}).wire
+  .replace('BGM+Z05','BGM+Z08').replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++++1'").replaceAll('54321',receiver).replaceAll('12345:14',`${sender}:14`).replaceAll('12345:160:SVK',`${sender}:160:SVK`).replace('Synthetic','Ångström')
  const parsed=await outboundParsed(wire,f.companyId)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id WHERE p.profile_key='PRODAT:Z08:H:26.A:r3' AND p.is_enabled AND r.status='active' AND r.valid_from<=current_date AND (r.valid_to IS NULL OR r.valid_to>=current_date) AND r.source_hash ~ '^[a-f0-9]{64}$'`)).toBe(1)
  sql(`INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${literal(gridId)},${literal(f.companyId)},'Dispatch native grid',${literal(receiver)},'test',true,'active');
  INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active,target_email) VALUES(${literal(routeId)},${literal(f.companyId)},'Dispatch native route',${literal(gridId)},'bilateral_test',true,'recipient@example.invalid');
  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code)
- VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Dispatch native profile','test','edifact','12345',${literal(receiver)},'23-DDQ-PRODAT',true,'unencrypted','recipient@example.invalid','recipient@example.invalid','PRODAT','Z08');
+ VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Dispatch native profile','test','edifact',${literal(sender)},${literal(receiver)},'23-DDQ-PRODAT',true,'unencrypted','recipient@example.invalid','recipient@example.invalid','PRODAT','Z08');
  INSERT INTO public.platform_actor_roles(actor_id,actor_role,is_active) VALUES(${literal(marketActor)},'grid_owner',true);
  INSERT INTO public.platform_actor_routes(actor_id,message_family,environment,status,is_verified,application_reference,communication_type,communication_address,metadata) VALUES(${literal(marketActor)},'PRODAT','production','active',true,'23-DDQ-PRODAT','email','recipient@example.invalid','{"subaddress_status":"not_required_confirmed"}');
  INSERT INTO public.platform_actor_certificates(actor_id,environment,purpose,status,fingerprint_sha256,ediel_id,valid_to,raw_certificate_pem) VALUES(${literal(marketActor)},'production','encryption','valid','synthetic',${literal(receiver)},'2099-01-01','synthetic-readiness-only');
- INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,receiver_email,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
- SELECT ${literal(messageId)},${literal(f.companyId)},'test','outbound','edifact','PRODAT','Z08','queued',${literal(wire)},${literal(parsed)},'23-DDQ-PRODAT','12345',${literal(receiver)},'recipient@example.invalid',${literal(routeId)},${literal(profileId)},${literal(randomUUID())},r.id,p.profile_key,p.id,r.guide_version||':r'||r.guide_revision,r.source_hash,p.profile
- FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id WHERE p.profile_key='PRODAT:Z08:H:26.A:r3' AND p.is_enabled;`)
+ `)
+ // Prepare the source through the actual intent validator and canonical
+ // original owner. No caller-written ready status, witness ID or rule pack
+ // receipt can replace the private native producer/consumer handoff.
+ const {parseInboundEmailContent}=await import('@/lib/inbound-mail/edielEmailParser')
+ const {createEdielMessageIntent,updateIntentLifecycle}=await import('@/lib/ediel/intent/intentEngine')
+ const {createCanonicalOutboundMessage}=await import('@/lib/ediel/core/kernel')
+ const envelope=parseInboundEmailContent({attachmentText:wire})!,operationId=randomUUID()
+ const intent=await createEdielMessageIntent({companyId:f.companyId,environment:'test',market:'electricity',
+  messageFamily:'PRODAT',messageCode:'Z08',businessProcess:'supplier_switch',direction:'outbound',actorUserId:f.actorUserId,
+  senderEdielId:sender,receiverEdielId:receiver,applicationReference:'23-DDQ-PRODAT',routeProfileId:profileId,
+  communicationRouteId:routeId,facilityId:'735123456789012345',interchangeReference:envelope.interchangeReference!,
+  messageReference:envelope.transactionReference!,transactionReference:envelope.references.LI?.[0] ?? null,
+  payload:{transactionSubtype:'H'},idempotencyKey:operationId})
+ expect(intent.validationStatus).toBe('validated')
+ const message=await createCanonicalOutboundMessage({actorUserId:f.actorUserId,requestType:'supplier_switch',baseInput:{
+  actorUserId:f.actorUserId,companyId:f.companyId,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z08',
+  status:'queued',rawPayload:wire,parsedPayload:parsed,applicationReference:'23-DDQ-PRODAT',senderEdielId:sender,
+  receiverEdielId:receiver,receiverEmail:'recipient@example.invalid',communicationRouteId:routeId,routeProfileId:profileId,
+  sourceOperationId:operationId,intentId:intent.id,interchangeReference:envelope.interchangeReference!,transactionReference:envelope.references.LI?.[0] ?? null}})
+ const messageId=message.id
+ await updateIntentLifecycle(intent.id,{edielMessageId:messageId,renderStatus:'rendered',actorUserId:f.actorUserId})
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_outbound_owner.consumptions WHERE source_message_id=${literal(messageId)}`)).toBe(1)
  expect(sql(`SELECT jsonb_build_object('id',id,'name',name,'normalizedName',normalized_name) FROM public.platform_market_actors WHERE normalized_name=${literal(marketActorName.toLowerCase())}`))
   .toEqual({id:marketActor,name:marketActorName,normalizedName:marketActorName.toLowerCase()})
  expect(sql(`SELECT to_jsonb(can_use_for_prodat) FROM public.actor_readiness_status WHERE platform_market_actor_id=${literal(marketActor)}`)).toBe(true)
- return {...f,messageId,routeId,wire,marketActor,marketActorName,receiver}
+ return {...f,messageId,routeId,wire,marketActor,marketActorName,receiver,sender}
 }
 function smtpFixture(){
  vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid');vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false');vi.stubEnv('EMAIL_PROVIDER','resend')
@@ -567,14 +602,45 @@ it('outbound independently claimed worker retains acceptance despite later mutab
 })
 
 const dispatchCall=async(input:Record<string,unknown>)=>supabaseService.rpc('gridex_outbound_dispatch_v1',{p_input:input})
+async function outboundBinding(f:Awaited<ReturnType<typeof outboundSeed>>){
+ const {getEdielMessageById}=await import('@/lib/ediel/db')
+ const {assertRegistryRulebookAllowsSend}=await import('@/lib/ediel/rulebook/sendGuards')
+ const {captureEdielSourceRulePackEvidence}=await import('@/lib/ediel/core/sourceRulePackEvidence')
+ const message=await getEdielMessageById(f.messageId,{companyId:f.companyId})
+ expect(message).not.toBeNull()
+ const admission=await assertRegistryRulebookAllowsSend(message!)
+ const policy=admission!.canonicalPolicy!
+ const sourceRulePackEvidence=await captureEdielSourceRulePackEvidence(f.companyId,f.messageId)
+ expect(sourceRulePackEvidence.profileKey).toBe(admission!.rulePackSnapshot!.profileKey)
+ const payload=Buffer.from(f.wire,'latin1')
+ return {originalHash:createHash('sha256').update(f.wire).digest('hex'),routeId:f.routeId,to:'recipient@example.invalid',from:'synthetic@example.invalid',
+  encoding:'latin1',mimeMode:'ediel-singlepart-compact',payloadBase64:payload.toString('base64'),payloadHash:createHash('sha256').update(payload).digest('hex'),payloadLength:payload.length,
+  sourceRulePackEvidence,technicalSyntaxAckEvidence:null,admissionDecision:{version:1,referenceDate:policy.referenceDate,family:policy.family,code:policy.code,
+   subtype:policy.subtype,profileKey:policy.profileKey,guide:policy.guide,associationAssignedCode:policy.associationAssignedCode,sourceTrace:policy.sourceTrace}}
+}
 async function preparedOutbound(f:Awaited<ReturnType<typeof outboundSeed>>,owner:Record<string,unknown>={kind:'direct'}){
- const attemptId=randomUUID(),payload=Buffer.from(f.wire,'latin1')
+ const attemptId=randomUUID()
  const identity={companyId:f.companyId,environment:'test',messageId:f.messageId,actorUserId:f.actorUserId,attemptId}
- const binding={originalHash:createHash('sha256').update(f.wire).digest('hex'),routeId:f.routeId,to:'recipient@example.invalid',from:'synthetic@example.invalid',encoding:'latin1',mimeMode:'ediel-singlepart-compact',payloadBase64:payload.toString('base64'),payloadHash:createHash('sha256').update(payload).digest('hex'),payloadLength:payload.length}
+ const binding=await outboundBinding(f)
  const prepared=await dispatchCall({...identity,action:'prepare',owner,binding})
  expect(prepared.error).toBeNull();expect(prepared.data).toMatchObject({scoped:true,proceed:true})
  return {identity,binding,prepared:prepared.data as {eventId:string}}
 }
+it.each(['missing','altered'] as const)('native fresh sealed Z08 %s protected basis rolls back every transport journal effect',async variant=>{
+ const f=await outboundSeed(),binding=await outboundBinding(f)
+ // Deliberate caller forgery is a negative oracle, never provenance.
+ const sourceRulePackEvidence=variant==='altered'?{...binding.sourceRulePackEvidence,sourceHash:'0'.repeat(64)}:null
+ const before=()=>sql(`SELECT jsonb_build_object(
+  'originals',(SELECT count(*) FROM gridex_outbound_dispatch.originals WHERE message_id=${literal(f.messageId)}),
+  'attempts',(SELECT count(*) FROM gridex_outbound_dispatch.attempts WHERE message_id=${literal(f.messageId)}),
+  'reservations',(SELECT count(*) FROM gridex_outbound_dispatch.reservations WHERE message_id=${literal(f.messageId)}),
+  'events',(SELECT count(*) FROM gridex_outbound_dispatch.events WHERE message_id=${literal(f.messageId)}))`)
+ expect(before()).toEqual({originals:0,attempts:0,reservations:0,events:0})
+ const result=await dispatchCall({companyId:f.companyId,environment:'test',messageId:f.messageId,actorUserId:f.actorUserId,
+  attemptId:randomUUID(),action:'prepare',owner:{kind:'direct'},binding:{...binding,sourceRulePackEvidence}})
+ expect(result.error?.message).toContain('outbound_dispatch_original_basis_binding_required')
+ expect(before()).toEqual({originals:0,attempts:0,reservations:0,events:0})
+})
 it('outbound duplicate attempt and stale owner after safe release cannot enter',async()=>{
  const f=await outboundSeed(),first=await preparedOutbound(f)
  const duplicate=await dispatchCall({...first.identity,action:'prepare',owner:{kind:'direct'},binding:first.binding})
@@ -630,6 +696,9 @@ it.each(['nodemailer-attachment','ediel-multipart-validation-base64','ediel-sing
   expect(provider).toHaveBeenCalledTimes(1)
   const binding=sql<Record<string,unknown>>(`SELECT binding FROM gridex_outbound_dispatch.attempts WHERE message_id=${literal(f.messageId)}`)
   expect(binding).toMatchObject({to:'recipient@example.invalid',from:'synthetic@example.invalid',mimeMode,encoding:'latin1'})
+  const {requireEdielSourceRulePackEvidence}=await import('@/lib/ediel/core/sourceRulePackEvidence')
+  expect(binding.sourceRulePackEvidence).toEqual(await requireEdielSourceRulePackEvidence(f.companyId,f.messageId))
+  expect(binding.technicalSyntaxAckEvidence).toBeNull()
   const bytes=Buffer.from(String(binding.payloadBase64),'base64')
   expect(bytes.includes(Buffer.from('Ångström','latin1'))).toBe(true)
   expect(binding.payloadHash).toBe(createHash('sha256').update(bytes).digest('hex'))
@@ -639,6 +708,86 @@ it.each(['nodemailer-attachment','ediel-multipart-validation-base64','ediel-sing
   if(mimeMode==='nodemailer-attachment'){expect(options.attachments[0].content.equals(bytes)).toBe(true);expect(binding).not.toHaveProperty('rawBase64')}
   else expect(Buffer.from(String(binding.rawBase64),'base64').equals(options.raw)).toBe(true)
  }finally{vi.unstubAllEnvs()}
+})
+async function nativeTechnicalAck(){
+ const f=await outboundSeed(),sourceId=randomUUID(),route=randomUUID(),profile=randomUUID()
+ smtpFixture()
+ const {utiltsNativeSourceFixture}=await import('../__tests__/helpers/utiltsNativeSourceFixture')
+ const incoming=closureFixture({reason:'Z24',document:`D${sourceId.replaceAll('-','').slice(0,13)}`}).wire
+  .replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++++1'")
+  .replaceAll('12345:14',`${f.receiver}:14`).replaceAll('12345:160:SVK',`${f.receiver}:160:SVK`)
+  .replaceAll('54321:14',`${f.sender}:14`).replaceAll('54321:160:SVK',`${f.sender}:160:SVK`)
+ const wire=utiltsNativeSourceFixture(incoming,sourceId).raw
+ const {assertEdielSmtpReadiness}=await import('@/lib/ediel/mailReadiness'),smtp=assertEdielSmtpReadiness()
+ sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key IN('communication.write','communication.read') ON CONFLICT DO NOTHING;
+ INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+  VALUES(${literal(route)},${literal(f.companyId)},'Native technical response route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
+ INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,
+  sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,smtp_to,receiver_email,message_family,business_code,mailbox,smtp_host,smtp_port)
+  VALUES(${literal(profile)},${literal(f.companyId)},${literal(route)},'Native technical response profile','test','edifact','edifact',
+   ${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid','CONTRL','CONTRL',
+   ${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});
+ INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,
+  message_received_at,application_reference,sender_ediel_id,receiver_ediel_id)
+  VALUES(${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z05','received',${literal(wire)},'{}',clock_timestamp(),
+   '23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)});`)
+ const {getEdielMessageById}=await import('@/lib/ediel/db')
+ const {resolveCanonicalRuntimeDecisionWithRegistry}=await import('@/lib/ediel/core/runtimeDecision')
+ const {recordEdielTechnicalSyntaxDecision,captureEdielTechnicalSyntaxAckEvidence}=await import('@/lib/ediel/ack/technicalSyntaxAuthority')
+ const source=(await getEdielMessageById(sourceId,{companyId:f.companyId}))!
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+ expect(decision.syntaxDecision).toBe('accepted')
+ await recordEdielTechnicalSyntaxDecision({companyId:f.companyId,sourceMessageId:sourceId,
+  sourceHash:createHash('sha256').update(wire).digest('hex'),syntaxDecision:'accepted',reasonCodes:[]})
+ const evidence=await captureEdielTechnicalSyntaxAckEvidence(f.companyId,sourceId)
+ expect(evidence.sourceHash).toBe(createHash('sha256').update(wire).digest('hex'))
+ const {buildContrlDraft}=await import('@/lib/ediel/ack')
+ const {createCanonicalAckMessage}=await import('@/lib/ediel/core/kernel')
+ const ack=await createCanonicalAckMessage({actorUserId:f.actorUserId,sourceMessage:source,ackFamily:'CONTRL',outcome:'positive',
+  draft:buildContrlDraft({actorUserId:f.actorUserId,sourceMessage:source,outcome:'positive'})})
+ return {f,source,ack,evidence}
+}
+it('native actual fresh CONTRL binds protected syntax before generic entry, observes once and repairs retry without SMTP',async()=>{
+ const {f,source,ack,evidence}=await nativeTechnicalAck()
+ const {sendEdielMessageViaSmtp}=await import('@/lib/ediel/transport')
+ provider.mockImplementation(async()=>{
+  const binding=sql<Record<string,unknown>>(`SELECT binding FROM gridex_ediel_transport.attempts WHERE message_id=${literal(ack.id)} AND entered_at IS NOT NULL`)
+  expect(binding.technicalSyntaxAckEvidence).toEqual(evidence)
+  expect(binding.sourceRulePackEvidence).toBeNull()
+  return {accepted:['recipient@example.invalid'],rejected:[],messageId:'native-technical-id',response:'250 accepted'}
+ })
+ try{
+  await sendEdielMessageViaSmtp(ack,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
+  expect(provider).toHaveBeenCalledTimes(1)
+  const snapshot=()=>sql(`SELECT jsonb_build_object('attempts',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(ack.id)}),
+   'sourceFacet',(SELECT jsonb_agg(to_jsonb(s) ORDER BY s.id) FROM gridex_ediel_technical_ack.syntax_facets s WHERE source_message_id=${literal(source.id)}))`)
+  const first=snapshot()
+  const result=await sendEdielMessageViaSmtp(ack,{actorUserId:f.actorUserId,smtpMimeMode:'ediel-singlepart-base64'})
+  expect(result.messageId).toBe('native-technical-id');expect(provider).toHaveBeenCalledTimes(1);expect(snapshot()).toEqual(first)
+ }finally{vi.unstubAllEnvs()}
+})
+it('native fresh CONTRL cannot enter SMTP when the actual prepare request loses its protected syntax binding',async()=>{
+ const {f,ack,evidence}=await nativeTechnicalAck()
+ const {sendEdielMessageViaSmtp}=await import('@/lib/ediel/transport')
+ const original=supabaseService.rpc.bind(supabaseService)
+ // Intercept an actual consumer request only to submit the adversarial NULL.
+ // Every native response and source witness still comes from real PostgreSQL.
+ const spy=vi.spyOn(supabaseService,'rpc').mockImplementation(((name:string,args:Record<string,unknown>)=>{
+  const request=args.p_input as Record<string,unknown>|undefined
+  if(name==='gridex_ediel_transport_attempt_v1'&&request?.messageId===ack.id&&request.action==='prepare'){
+   const binding=request.binding as Record<string,unknown>
+   expect(binding.technicalSyntaxAckEvidence).toEqual(evidence)
+   return original(name,{...args,p_input:{...request,binding:{...binding,technicalSyntaxAckEvidence:null}}})
+  }
+  return original(name,args)
+ }) as typeof supabaseService.rpc)
+ try{
+  await expect(sendEdielMessageViaSmtp(ack,{actorUserId:f.actorUserId})).rejects.toThrow('ediel_technical_ack_basis_required')
+  expect(provider).not.toHaveBeenCalled()
+  expect(sql(`SELECT jsonb_build_object('attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(ack.id)}),
+   'reservations',(SELECT count(*) FROM gridex_ediel_transport.reservations WHERE message_id=${literal(ack.id)}))`)).toEqual({attempts:0,reservations:0})
+ }finally{spy.mockRestore();vi.unstubAllEnvs()}
 })
 it('outbound helper archive preparation failure never reaches callback or provider',async()=>{
  smtpFixture();const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail');let entered=false

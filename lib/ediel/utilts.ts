@@ -17,9 +17,7 @@ import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistr
 import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
 import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {
-  firstCompositeComponent,
-  splitComposite,
-  tokenizeEdifact,
+  tokenizeEdifact, segmentComposite,
   type EdifactTokenizedSegment,
 } from '@/lib/ediel/core/edifactTokenizer'
 
@@ -135,12 +133,9 @@ function extractUnbEdielIds(
     return { senderEdielId: null, receiverEdielId: null }
   }
 
-  const senderRaw = unb.elements[2] ?? ''
-  const receiverRaw = unb.elements[3] ?? ''
-
   return {
-    senderEdielId: firstCompositeComponent(senderRaw, una),
-    receiverEdielId: firstCompositeComponent(receiverRaw, una),
+    senderEdielId: segmentComposite(unb,2,una)[0] || null,
+    receiverEdielId: segmentComposite(unb,3,una)[0] || null,
   }
 }
 
@@ -152,7 +147,7 @@ function extractReference(
   const normalized = qualifier.toUpperCase()
   for (const segment of segments) {
     if (segment.tag !== 'RFF') continue
-    const components = splitComposite(segment.elements[1], una)
+    const components = segmentComposite(segment, 1, una)
     if (String(components[0] ?? '').toUpperCase() !== normalized) continue
     const value = components.slice(1).join(una.componentDataElementSeparator).trim()
     if (value) return value
@@ -165,7 +160,7 @@ function extractDateFromDtm(
   una: ReturnType<typeof tokenizeEdifact>['una'],
 ): string | null {
   if (!segment || segment.tag !== 'DTM') return null
-  const components = splitComposite(segment.elements[1], una)
+  const components = segmentComposite(segment, 1, una)
   const raw = String(components[1] ?? '').trim()
   if (!/^\d{8,12}$/.test(raw)) return null
   return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
@@ -176,7 +171,7 @@ function extractQty(
   una: ReturnType<typeof tokenizeEdifact>['una'],
 ): number | null {
   if (!segment || segment.tag !== 'QTY') return null
-  const components = splitComposite(segment.elements[1], una)
+  const components = segmentComposite(segment, 1, una)
   const raw = String(components[1] ?? '').trim()
   if (!raw) return null
   const normalized = una.decimalMark && una.decimalMark !== '.'
@@ -269,25 +264,25 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
   const unhSegment = byTag('UNH')
   const bgmSegment = byTag('BGM')
   const loc172Segment = tokenized.segments.find(
-    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '172',
+    (segment) => segment.tag === 'LOC' && segmentComposite(segment, 1, tokenized.una)[0] === '172',
   ) ?? null
   const loc239Segment = tokenized.segments.find(
-    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '239',
+    (segment) => segment.tag === 'LOC' && segmentComposite(segment, 1, tokenized.una)[0] === '239',
   ) ?? null
   const dtmSegment = (qualifier: string) => tokenized.segments.find(
-    (segment) => segment.tag === 'DTM' && firstCompositeComponent(segment.elements[1], tokenized.una) === qualifier,
+    (segment) => segment.tag === 'DTM' && segmentComposite(segment, 1, tokenized.una)[0] === qualifier,
   ) ?? null
   const qtySegment = byTag('QTY')
   const cciSegment = byTag('CCI')
   const ids = extractUnbEdielIds(unbSegment, tokenized.una)
 
-  const bgmCode = (firstCompositeComponent(bgmSegment?.elements[1], tokenized.una) || inferred.messageCode || null) as
+  const bgmCode = (segmentComposite(bgmSegment, 1, tokenized.una)[0] || inferred.messageCode || null) as
     | UtiltsMessageCode
     | EdielKnownMessageCode
     | null
 
-  const meterPointId = firstCompositeComponent(loc172Segment?.elements[2], tokenized.una)
-  const gridAreaId = firstCompositeComponent(loc239Segment?.elements[2], tokenized.una)
+  const meterPointId = segmentComposite(loc172Segment,2,tokenized.una)[0] || null
+  const gridAreaId = segmentComposite(loc239Segment,2,tokenized.una)[0] || null
   const quantity = extractQty(qtySegment, tokenized.una)
   const unb = unbSegment?.raw ?? null
   const unh = unhSegment?.raw ?? null

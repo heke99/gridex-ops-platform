@@ -5,6 +5,8 @@ import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { buildUtiltsTransactionPersistencePayload } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
+import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateUtilts } from '@/lib/ediel/utilts/validateUtilts'
 
 it.each([true, false])('clean S02 owns two distinct forecast points/quantities and no billing contract, own first=%s', async ownFirst => {
@@ -103,6 +105,39 @@ it('unsupported physical association remains a structured guide refusal', () => 
   const runtime = runUtiltsRuntimeForMessage(source)
   expect(runtime.validation.ok).toBe(false)
   expect(runtime.transactionDispositions.every(row => row.disposition === 'guide_rejected')).toBe(true)
+  expect(runtime.ackPlan.shouldSendUtiltsErr).toBe(false)
+  expect(runtime.ackPlan.aperakOutcome).toBe('negative')
+})
+
+it.each(['missing', 'foreign-only'] as const)('S02 %s MKS cannot use transaction content to fill its own message header', defect => {
+  const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
+  const wire = source.raw_payload!.replace("MKS+23+E04::260'\n", '')
+  source.raw_payload = defect === 'missing' ? wire : wire.replace("IDE+24+S02-SIBLING'", "IDE+24+S02-SIBLING'\nMKS+23+E04::260'")
+  const tokens = source.raw_payload.split('\n'), first = tokens.findIndex(line => line.startsWith('UNH+')),
+    last = tokens.findIndex(line => line.startsWith('UNT+'))
+  tokens[last] = `UNT+${last - first + 1}+1'`
+  source.raw_payload = tokens.join('\n')
+  const runtime = runUtiltsRuntimeForMessage(source)
+  expect(runtime.validation.syntaxOk).toBe(true)
+  expect(runtime.validation.issues).toContainEqual(expect.objectContaining({ aperakErcCode: '41', aperakFieldCode: '501' }))
+  expect(runtime.transactionDispositions.every(row => row.disposition === 'guide_rejected')).toBe(true)
+  expect(runtime.ackPlan.shouldSendUtiltsErr).toBe(false)
+  expect(runtime.ackPlan.aperakOutcome).toBe('negative')
+  expect(runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toContainEqual(expect.objectContaining({ fieldCode: '501' }))
+})
+
+it('S02 diagnostic validation preserves unrelated admission failures', () => {
+  const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
+  source.raw_payload = source.raw_payload!.replace('E5SE5A', 'E5SE9X')
+  expect(() => runUtiltsRuntimeForMessage(source, { referenceDate: 'invalid' })).toThrow('ediel_admission_time_invalid')
+})
+
+it.each(['clean', 'wrong-association', 'wrong-family'] as const)('S02 $0 header cannot bypass a held capability request', defect => {
+  const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
+  if (defect === 'wrong-association') source.raw_payload = source.raw_payload!.replace('E5SE5A', 'E5SE9X')
+  if (defect === 'wrong-family') source.raw_payload = source.raw_payload!.replace('UNH+1+UTILTS:', 'UNH+1+PRODAT:')
+  source.parsed_payload = { requestedCapability: 'energy_sharing' }
+  expect(() => runUtiltsRuntimeForMessage(source)).toThrow('ediel_energy_sharing_activation_held:before_effective_date')
 })
 
 it.each([null, 333])('own second monthly SEQ requires its own QTY135=%s, independent of first quantity and sibling', quantity => {
@@ -116,4 +151,18 @@ it.each([null, 333])('own second monthly SEQ requires its own QTY135=%s, indepen
   if (quantity === null) expect(runtime.validation.issues).toContainEqual(expect.objectContaining({ aperakFieldCode: '515', referenceNumber: 'S02-OWN' }))
   else expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+})
+
+it('raw validation selects the actual E66 wire and still rejects an explicit conflicting row policy', () => {
+ vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-01T20:00:00Z'))
+ try {
+  const e66=observationHandoffMessage('2026-10-01','tenant-raw-validator')
+  const validation=validateUtilts(e66.raw_payload!)
+  expect(validation,JSON.stringify(validation)).toMatchObject({ok:true,classification:'accepted'})
+  const priorGuideWire=e66.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+172+735999260731000008::9')
+  expect(validateUtilts(priorGuideWire).issues.some(issue=>issue.utiltsErrCode==='E19')).toBe(true)
+  const s02=s02PlanningFixture({company:'s02-synthetic',transactions:s02PlanningPair('clean',true)})
+  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'S02',direction:'inbound',referenceDate:'2026-10-01',applicationReference:'23-DDQ-S02-S',mode:'parse'})
+  expect(()=>runUtiltsRuntimeForMessage({...s02,message_code:'E66'},{canonicalPolicy:policy})).toThrow('utilts_runtime_policy_context_mismatch')
+ } finally {vi.useRealTimers()}
 })

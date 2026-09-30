@@ -8,7 +8,8 @@
 
 import { getGridOwnerById, getMeteringPointById, getCustomerSiteById } from '@/lib/masterdata/db'
 import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/operations/db'
-import { buildProdatZ03FromSwitch } from '@/lib/ediel/prodat'
+import { allocateProdatSwitchWireReferences } from '@/lib/ediel/prodat'
+import { renderAndQueueNormalSwitch } from '@/lib/ediel/intent/switchRenderGateway'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from '@/lib/legal/authorizationChain'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
@@ -18,10 +19,8 @@ import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePack
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import {
   ensureActorUserId,
-  finalizeOutboundDraft,
   findOrCreateSwitchOutbound,
   makeServerClient,
-  queuePreparedEdielMessage,
 } from '@/lib/ediel/flows/shared'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -189,6 +188,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     communicationRouteId: routeContext.route.id,
     externalReference,
     forceCreateNewAttempt,
+    environment:routeContext.environment,failOnMissingEnvironment:true,
     payload: {
       edielCode: 'Z03',
       transactionSubtype: subtype,
@@ -206,7 +206,65 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     },
   })
 
-  const draft = await buildProdatZ03FromSwitch({
+  const wireReferences=allocateProdatSwitchWireReferences('Z03',switchRequest.id,routeContext.senderEdielId,routeContext.receiverEdielId)
+  const meteringPointIdentifier = String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim() || null
+  const siteRecord = site as unknown as Record<string, unknown>
+  const facilityIdentifier = String(siteRecord.normalized_facility_id ?? siteRecord.facility_id ?? '').trim() || null
+
+  const intent = await createEdielMessageIntent({
+    actorUserId,
+    companyId,
+    environment: routeContext.environment,
+    market: 'electricity',
+    messageFamily: 'PRODAT',
+    messageCode: 'Z03',
+    businessProcess: 'supplier_switch',
+    operationId: switchRequest.id,
+    direction: 'outbound',
+    senderEdielId: routeContext.senderEdielId,
+    senderSubaddress: routeContext.senderSubAddress ?? null,
+    receiverEdielId: routeContext.receiverEdielId,
+    receiverSubaddress: routeContext.receiverSubAddress ?? null,
+    applicationReference: routeContext.applicationReference ?? '',
+    routeProfileId: routeContext.routeDecision.edielRouteProfileId ?? '',
+    communicationRouteId: routeContext.route.id,
+    customerId: switchRequest.customer_id,
+    customerSiteId: switchRequest.site_id,
+    supplierSwitchRequestId: switchRequest.id,
+    facilityId: facilityIdentifier,
+    meteringPointId: meteringPointIdentifier,
+    gridAreaCode: String(site.grid_area_code ?? gridOwner?.owner_code ?? '').trim() || null,
+    requestedEffectiveDate: switchRequest.requested_start_date ?? null,
+    interchangeReference: wireReferences.interchangeReference,
+    messageReference: wireReferences.messageReference,
+    transactionReference: wireReferences.transactionReference,
+    expectedRuleVersion: `${canonicalRule.guideVersion}:r${canonicalRule.guideRevision}`,
+    expectedFieldMatrixVersion: canonicalRule.fieldMatrixVersion,
+    idempotencyKey: `prodat-Z03:${subtype}:${switchRequest.id}:${externalReference}`,
+    payload: {
+      edielCode: 'Z03',
+      documentReference: wireReferences.documentReference,
+      transactionSubtype: subtype,
+      reasonForTransaction,
+      requestType: switchRequest.request_type,
+      actorRole: 'supplier',
+      authorization_document_id: authorizationDocumentId,
+      power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
+      canonical_rule_pack_id: canonicalRule.rulePackId,
+      canonical_message_profile_id: canonicalRule.messageProfileId,
+      canonical_profile_key: canonicalRule.profileKey,
+      forceRegenerate: Boolean(params.forceRegenerate),
+    },
+  })
+
+  if (intent.validationStatus === 'blocked') {
+    const firstBlocker = intent.blockingReasons?.[0]
+    throw new Error(
+      `Ediel-intent för Z03 blockerades före rendering: ${firstBlocker?.message ?? firstBlocker?.code ?? 'intent-validering misslyckades'}`,
+    )
+  }
+
+  const message = await renderAndQueueNormalSwitch({intentId:intent.id,actorUserId,outboundRequestId:outbound.id,routeContext,source:{
     actorUserId,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,
@@ -225,90 +283,9 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     meteringPoint,
     gridOwner,
     externalReference,
-  })
+  }})
 
-  draft.parsedPayload = {
-    ...(draft.parsedPayload ?? {}),
-    prodatVariant: subtype,
-    reasonForTransaction,
-    authorization_document_id: authorizationDocumentId,
-    power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
-    canonical_rule_pack_id: canonicalRule.rulePackId,
-    canonical_message_profile_id: canonicalRule.messageProfileId,
-    canonical_profile_key: canonicalRule.profileKey,
-  }
-
-  const meteringPointIdentifier = String(meteringPoint.ediel_reference || meteringPoint.meter_point_id || '').trim() || null
-  const siteRecord = site as unknown as Record<string, unknown>
-  const facilityIdentifier = String(siteRecord.normalized_facility_id ?? siteRecord.facility_id ?? '').trim() || null
-
-  const intent = await createEdielMessageIntent({
-    actorUserId,
-    companyId,
-    environment: routeContext.environment,
-    market: 'electricity',
-    messageFamily: 'PRODAT',
-    messageCode: 'Z03',
-    businessProcess: 'supplier_switch',
-    direction: 'outbound',
-    senderEdielId: routeContext.senderEdielId,
-    senderSubaddress: routeContext.senderSubAddress ?? null,
-    receiverEdielId: routeContext.receiverEdielId,
-    receiverSubaddress: routeContext.receiverSubAddress ?? null,
-    applicationReference: routeContext.applicationReference ?? '',
-    routeProfileId: routeContext.routeDecision.edielRouteProfileId ?? '',
-    communicationRouteId: routeContext.route.id,
-    customerId: switchRequest.customer_id,
-    customerSiteId: switchRequest.site_id,
-    supplierSwitchRequestId: switchRequest.id,
-    facilityId: facilityIdentifier,
-    meteringPointId: meteringPointIdentifier,
-    gridAreaCode: String(site.grid_area_code ?? gridOwner?.owner_code ?? '').trim() || null,
-    requestedEffectiveDate: switchRequest.requested_start_date ?? null,
-    interchangeReference: externalReference,
-    messageReference: externalReference,
-    transactionReference: draft.transactionReference ?? externalReference,
-    expectedRuleVersion: `${canonicalRule.guideVersion}:r${canonicalRule.guideRevision}`,
-    expectedFieldMatrixVersion: canonicalRule.fieldMatrixVersion,
-    idempotencyKey: `prodat-Z03:${subtype}:${switchRequest.id}:${externalReference}`,
-    payload: {
-      edielCode: 'Z03',
-      transactionSubtype: subtype,
-      reasonForTransaction,
-      requestType: switchRequest.request_type,
-      actorRole: 'supplier',
-      authorization_document_id: authorizationDocumentId,
-      power_of_attorney_id: switchRequest.power_of_attorney_id ?? null,
-      canonical_rule_pack_id: canonicalRule.rulePackId,
-      canonical_message_profile_id: canonicalRule.messageProfileId,
-      canonical_profile_key: canonicalRule.profileKey,
-      forceRegenerate: Boolean(params.forceRegenerate),
-    },
-  })
-  draft.intentId = intent.id
-
-  if (intent.validationStatus === 'blocked') {
-    const firstBlocker = intent.blockingReasons?.[0]
-    throw new Error(
-      `Ediel-intent för Z03 blockerades före rendering: ${firstBlocker?.message ?? firstBlocker?.code ?? 'intent-validering misslyckades'}`,
-    )
-  }
-
-  const message = await finalizeOutboundDraft({
-    actorUserId,
-    requestType: 'supplier_switch',
-    routeContext,
-    draft,
-    outboundRequestId: outbound.id,
-    duplicateCheck: {
-      sourceType: 'supplier_switch_request',
-      sourceId: switchRequest.id,
-      receiverEdielId: routeContext.receiverEdielId,
-      messageFamily: draft.messageFamily,
-      messageCode: String(draft.messageCode),
-      messageVersion: draft.messageVersion ?? null,
-    },
-  })
+  if(message.status!=='draft')return message
 
   await linkEdielMessage({
     actorUserId,
@@ -320,26 +297,6 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     meteringPointId: switchRequest.metering_point_id,
     gridOwnerId: switchRequest.grid_owner_id,
     communicationRouteId: routeContext.route.id,
-  })
-
-  await queuePreparedEdielMessage({
-    actorUserId,
-    messageId: message.id,
-    outboundRequestId: outbound.id,
-    externalReference,
-    intentId: intent.id,
-    payload: {
-      edielCode: 'Z03',
-      transactionSubtype: subtype,
-      reasonForTransaction,
-      routeId: routeContext.route.id,
-      intentId: intent.id,
-      messageFamily: draft.messageFamily,
-      messageCode: draft.messageCode,
-      messageVersion: draft.messageVersion ?? null,
-      canonical_rule_pack_id: canonicalRule.rulePackId,
-      canonical_message_profile_id: canonicalRule.messageProfileId,
-    },
   })
 
   await createSupplierSwitchEvent(supabase, {
@@ -354,7 +311,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
       edielCode: 'Z03',
       transactionSubtype: subtype,
       reasonForTransaction,
-      messageVersion: draft.messageVersion ?? null,
+      messageVersion: message.message_version ?? null,
       canonicalRulePackId: canonicalRule.rulePackId,
       canonicalMessageProfileId: canonicalRule.messageProfileId,
     },

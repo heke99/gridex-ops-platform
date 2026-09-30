@@ -1,6 +1,7 @@
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
-import { canonicalUtiltsTransactions } from './canonicalObservationScope'
-import { utiltsPhysicalQuantityUnit } from './quantityUnitScope'
+import { canonicalUtiltsTransactions, utiltsPhysicalQuantityQuality } from './canonicalObservationScope'
+import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
 import { canonicalUtiltsDecimal, utiltsEnergyQuantityKwh } from './exactDecimal'
 import { supportedUtiltsConsumptionIdentity } from './consumptionIdentity'
 import { flattenUtiltsTransactionSeries, matchForSeriesItem, stringOrNull, toMeteringReadingType, type UtiltsTransactionMatch } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
@@ -39,10 +40,22 @@ export async function prepareUtiltsConsumptionContracts(input: {
   const projected = sourceTransactions.flatMap((value, index) => {
     const tx = value as Record<string, unknown>
     if (!input.allowConsumption || !acceptedIds.has(resolveUtiltsTransactionId(stringOrNull(tx.transactionId), index))) return []
-    if (policy.code === 'E30') {
+    if (policy.code === 'E30' || policy.code === 'E66') {
       const resolution = normalizeEdifactResolution({ value: stringOrNull(tx.resolution), format: stringOrNull(tx.resolutionFormat) })
       const quantities = Array.isArray(tx.quantities) ? tx.quantities.filter(quantity => (quantity as Record<string,unknown>).qualifier === '136') : []
-      return quantities.map((quantity, ordinal) => {
+      const physical = sourceTransactionsPhysical[index]
+      const physicalQuantities = physical?.observations.flatMap(observation => observation.quantities) ?? []
+      const seriesOrdinals = new Map<string | null, number>()
+      let cursor = 0
+      return quantities.map(quantity => {
+        const source = quantity as Record<string, unknown>
+        const at = physicalQuantities.findIndex((candidate, position) => position >= cursor && candidate.raw === source.raw && candidate.qualifier === '136')
+        if (at < 0) consumptionConflict('physical_quantity_membership')
+        cursor = at + 1
+        const observation = physical.observations.find(observation => observation.quantities.includes(physicalQuantities[at]))!
+        const register = observation.references.find(reference => reference.qualifier === 'AES' && reference.directReferenceSlot)?.value ?? null
+        const ordinal = seriesOrdinals.get(register) ?? 0
+        seriesOrdinals.set(register, ordinal + 1)
         const start = resolution ? addNormalizedResolution(stringOrNull(tx.deliveryPeriodStart), resolution, ordinal) : stringOrNull(tx.deliveryPeriodStart)
         const end = resolution ? addNormalizedResolution(start, resolution) : stringOrNull(tx.deliveryPeriodEnd)
         if ((!resolution && quantities.length > 1) || !start || !end || absolute(end) > absolute(tx.deliveryPeriodEnd)) consumptionConflict('observation_interval_unresolved')
@@ -82,21 +95,27 @@ export async function prepareUtiltsConsumptionContracts(input: {
     const observations = items.map((item, ordinal) => {
       const tx = item.rawItem.transaction as Record<string, unknown>
       const qty = item.rawItem.quantity as Record<string, unknown>
-      const readingType = toMeteringReadingType(item.readingType)
+      let readingType = toMeteringReadingType(item.readingType)
       const sourceQuantity = physicalQuantities.findIndex((quantity, position) => position >= sourceCursor && quantity.raw === qty.raw && quantity.qualifier === qty.qualifier)
       if (sourceQuantity < 0 || physicalQuantities[sourceQuantity].value === null) consumptionConflict('physical_quantity_membership')
       sourceCursor = sourceQuantity + 1
       const original = physicalQuantities[sourceQuantity]
       const observation = physical.observations.find(observation=>observation.quantities.includes(original)) ?? null
-      const unit = utiltsPhysicalQuantityUnit(physical,observation,original,wire.una)
+      const quality = utiltsPhysicalQuantityQuality(observation, original, wire.una)
+      if (quality === '56') readingType = 'estimated'
+      const headerEnd = physical.observations[0]?.segmentIndex ?? Infinity
+      const product = physical.segments.filter(segment => segment.index < headerEnd && segment.tag === 'LIN')
+      if (product.length > 1) consumptionConflict('physical_product_ambiguous')
+      const productCode = product.length ? segmentComposite(product[0], 3, wire.una)[0] || null : null
+      const unit = policy.code==='E30' ? utiltsE30StandardEnergyUnit(physical,original,wire.una) : utiltsPhysicalQuantityUnit(physical,observation,original,wire.una)
       if (!unit) consumptionConflict('physical_quantity_unit')
       const quantity = utiltsEnergyQuantityKwh(canonicalUtiltsDecimal(original.value!,wire.una.decimalMark),unit)
       if (quantity === null) consumptionConflict('non_active_energy_consumption')
       return { ordinal, sourceOrdinal: sourceQuantity, quantity,
         periodStart: absolute(item.periodStart), periodEnd: absolute(item.periodEnd), readAt: absolute(item.readAt),
         resolution: stringOrNull(tx.resolution) ?? stringOrNull(runtime.normalizedPayload.resolution), unit: 'kWh' as const,
-        quality: item.qualityCode, readingType, direction: readingType === 'production' ? 'production' as const : 'consumption' as const,
-        registerCode: stringOrNull(tx.registerCode) ?? stringOrNull(tx.register_code), productCode: stringOrNull(tx.productCode) ?? stringOrNull(tx.product_code),
+        quality, readingType, direction: readingType === 'production' ? 'production' as const : 'consumption' as const,
+        registerCode: observation?.references.find(reference => reference.qualifier === 'AES' && reference.directReferenceSlot)?.value ?? null, productCode,
         sourceLineReference: item.externalMeteringPointId ?? stringOrNull(qty.lineReference), externalPoint: item.externalMeteringPointId, gridArea: item.externalGridAreaId }
     })
     const billingAllowed = consume && observations.length > 0 && input.dataRequest?.request_scope === 'billing_underlay' && Boolean(input.fallback.customerId)

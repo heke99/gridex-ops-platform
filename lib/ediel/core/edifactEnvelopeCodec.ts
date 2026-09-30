@@ -1,5 +1,5 @@
 import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
-import { tokenizeEdifact, segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { DEFAULT_UNA, escapeEdifactData, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type EdifactEnvironment = 'test' | 'production'
@@ -73,23 +73,19 @@ function trimOrNull(value: unknown): string | null {
 }
 
 function sanitizeSegment(value: string): string {
-  let segment = String(value ?? '').replace(/\r?\n/g, '').trim()
-  // Business input uses the canonical alphabet. An odd release run protects
-  // the final apostrophe as data; strip only actual supplied terminators.
-  while (segment.endsWith("'")) {
-    let releases = 0
-    for (let index = segment.length - 2; index >= 0 && segment[index] === '?'; index--) releases++
-    if (releases % 2 === 1) break
-    segment = segment.slice(0, -1)
-  }
+  const segment = String(value ?? '').replace(/\r?\n/g, '').trimStart()
   if (!segment) throw new Error('edifact_empty_business_segment')
   const tag = segment.split('+', 1)[0]?.toUpperCase()
   if (tag && ENVELOPE_TAGS.has(tag)) {
     throw new Error(`edifact_business_segment_contains_envelope_tag:${tag}`)
   }
   const parsed = tokenizeEdifact(`${segment}${DEFAULT_UNA.segmentTerminator}`).segments
+  if (parsed.length === 0) throw new Error('edifact_empty_business_segment')
   if (parsed.length !== 1) throw new Error('edifact_business_segment_contains_multiple_segments')
-  return segment
+  // The tokenizer strips actual terminators, while its retained token text
+  // preserves final data spaces and a released apostrophe. A blanket trim
+  // would change an original RFF/TN or FTX logical value.
+  return segmentUntrimmedRaw(parsed[0])
 }
 
 function localDateTimeParts(date: Date, timeZone: string): { date: string; time: string } {
@@ -165,7 +161,7 @@ function encodeMessage(message: EdifactEnvelopeMessageInput): string[] {
 function encodeCanonicalSegment(segment: string, una: EdifactServiceStringAdvice): string {
   const parsed = tokenizeEdifact(`${segment}${DEFAULT_UNA.segmentTerminator}`).segments
   if (parsed.length !== 1) throw new Error('edifact_segment_contains_multiple_segments')
-  const token = parsed[0]
+  const token = {...parsed[0],raw:segmentUntrimmedRaw(parsed[0])}
   return token.elements.map((_, index) => segmentComposite(token, index, DEFAULT_UNA)
     .map(component => escapeEdifactData(component, una)).join(una.componentDataElementSeparator))
     .join(una.dataElementSeparator)

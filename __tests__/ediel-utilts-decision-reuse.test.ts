@@ -1,7 +1,8 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsFinalValidationFixture'
+import { s02PlanningFixture, s02PlanningPair } from './helpers/utiltsS02PlanningFixture'
 import { describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import * as utiltsRuntime from '@/lib/ediel/utiltsEngine'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalRuntimeDecision, resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { processInboundUtiltsMessageByCanonicalPolicy } from '@/lib/ediel/flows/utiltsInboundPolicyProcessor'
@@ -69,17 +70,17 @@ function message(documentDate: string, receivedDate: string): EdielMessageRow {
 
 describe('UTILTS decision reuse across document and receipt dates', () => {
   it.each([
-    ['2026-09-30', '2026-10-01', true],
+    ['2026-09-30', '2026-10-01', false],
     ['2026-10-01', '2026-09-30', false],
-  ])('keeps policy date %s when receipt date is %s', (documentDate, receivedDate, expectsE19) => {
+  ])('keeps admission date when document date is %s and receipt date is %s', (documentDate, receivedDate, expectsE19) => {
     const decision = resolveCanonicalRuntimeDecision(message(documentDate, receivedDate))
     expect(decision.syntaxDecision).toBe('accepted')
-    expect(decision.policy?.referenceDate).toBe(documentDate)
+    expect(decision.policy?.referenceDate).toBe(receivedDate)
     expect(decision.issues.some(issue => issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH')).toBe(expectsE19)
   })
 
   it.each([
-    ['2026-09-30', '2026-10-01', true],
+    ['2026-09-30', '2026-10-01', false],
     ['2026-10-01', '2026-09-30', false],
   ])('uses the canonical date for direct runtime calls: document %s, receipt %s', (documentDate, receivedDate, expectsE19) => {
     const runtime = utiltsRuntime.runUtiltsRuntimeForMessage(message(documentDate, receivedDate))
@@ -94,27 +95,32 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
 
   it('passes the already selected policy to actual metering processing', async () => {
     const source = message('2026-09-30', '2026-10-01')
-    const decision = resolveCanonicalRuntimeDecision(source)
+    qualifyUtiltsFixtureSource(source)
+    mocks.rpc.mockImplementation(createUtiltsFinalValidationIo())
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
     mocks.getMessage.mockResolvedValue(source)
     mocks.processActual.mockResolvedValue({ message: source })
-    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: decision.policy! })
+    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: decision.policy!, canonicalDecision: decision })
     expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy).toBe(decision.policy)
   })
 
-  it('derives a direct call from the same document-date authority', async () => {
+  it('derives a direct call from the same admission authority', async () => {
     const source = message('2026-09-30', '2026-10-01')
+    qualifyUtiltsFixtureSource(source)
+    mocks.rpc.mockImplementation(createUtiltsFinalValidationIo())
     mocks.getMessage.mockResolvedValue(source)
     await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id })
-    expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy.referenceDate).toBe('2026-09-30')
+    expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy.referenceDate).toBe('2026-10-01')
   })
 
   it('retains the selected policy on the non-billing branch', async () => {
-    const source = { ...message('2026-09-30', '2026-10-01'), message_code: 'S02', metering_point_id: null }
-    const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'S02', direction: 'inbound', referenceDate: '2026-09-30', applicationReference: '23-DDQ-S02-S', mode: 'parse' })
+    const source = qualifyUtiltsFixtureSource(s02PlanningFixture({ company: 'tenant-a', transactions: s02PlanningPair('clean', true) }))
+    mocks.rpc.mockImplementation(createUtiltsFinalValidationIo())
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source), policy = decision.policy!
     mocks.getMessage.mockResolvedValue(source)
     const runtimeSpy = vi.spyOn(utiltsRuntime, 'runUtiltsRuntimeForMessage').mockImplementationOnce(() => { throw new Error('test-stop-before-non-billing-persistence') })
     try {
-      await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy })).rejects.toThrow('test-stop-before-non-billing-persistence')
+      await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy, canonicalDecision: decision })).rejects.toThrow('test-stop-before-non-billing-persistence')
       expect(runtimeSpy.mock.lastCall?.[1]?.canonicalPolicy).toBe(policy)
     } finally {
       runtimeSpy.mockRestore()
@@ -135,25 +141,31 @@ function activationEvidence(revision: '3' | '4') {
     field_matrix_version: version, profile_key: `UTILTS:E66:E5SE5A:${revision}`,
     business_process: 'metering_values', phase: null,
     profile: { family: 'UTILTS', messageCode: 'E66', guideVersion: version, guideRevision: revision },
+    original_version: `${version}:r${revision}`,
+    original_snapshot: {
+      rulePack: { id: '11111111-1111-4111-8111-111111111111', source_hash: 'a'.repeat(64), guide_version: version, guide_revision: revision },
+      messageProfile: { id: '22222222-2222-4222-8222-222222222222', rule_pack_id: '11111111-1111-4111-8111-111111111111', profile_key: `UTILTS:E66:E5SE5A:${revision}` },
+      guideSources: [{ id: '33333333-3333-4333-8333-333333333333', rule_pack_id: '11111111-1111-4111-8111-111111111111' }],
+    },
     parser_ready: true, builder_ready: true, validator_ready: true, ack_ready: true, state_machine_ready: true,
   }
 }
 
 describe('UTILTS selected reference survives registry verification', () => {
   it.each([
-    ['2026-09-30', '2026-10-01', '3'],
-    ['2026-10-01', '2026-09-30', '4'],
+    ['2026-09-30', '2026-10-01', '4'],
+    ['2026-10-01', '2026-09-30', '3'],
   ] as const)('runtime preserves document date %s and selected reference when receipt is %s', async (date, received, revision) => {
     mocks.rpc.mockReset().mockResolvedValue({ data: [activationEvidence(revision)], error: null })
     const source = message(date, received)
     const result = await resolveCanonicalRuntimeDecisionWithRegistry(source)
     expect(result.syntaxDecision).toBe('accepted')
-    expect(result.policy?.referenceDate).toBe(date)
+    expect(result.policy?.referenceDate).toBe(received)
     expect(result.policy?.applicationReference).toBe('23-DDQ-E66-S')
     expect(result.issues.some(issue => issue.code === 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')).toBe(false)
     expect(result.validationReport).toHaveProperty('rulePackEvidence.rulePackId', activationEvidence(revision).rule_pack_id)
     expect(mocks.rpc).toHaveBeenCalledOnce()
-    expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack', expect.objectContaining({ p_business_date: date, p_family: 'UTILTS' }))
+    expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack_with_witness_v1', expect.objectContaining({ p_business_date: received, p_family: 'UTILTS' }))
   })
 
   it.each([['2026-09-30', '3'], ['2026-10-01', '4']] as const)('public validator retains E66 reference on %s', async (date, revision) => {
@@ -161,7 +173,7 @@ describe('UTILTS selected reference survives registry verification', () => {
     const source = message(date, date)
     const result = await validateRulebookMessageWithRegistry({
       family: 'UTILTS', code: 'E66', direction: 'inbound', mode: 'parse',
-      businessDate: date, applicationReference: source.application_reference,
+      businessDate: date, admissionAt: `${date}T12:00:00Z`, applicationReference: source.application_reference,
       rawPayload: source.raw_payload?.replace('QTY+136:500', 'QTY+136:1000'), version: 'E5SE5A',
     })
     expect(result.blocking).toBe(false)

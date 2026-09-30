@@ -6,7 +6,9 @@ import {
 } from '@/lib/ediel/prodat/compatAdapter'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 
-const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('unexpected database access')})}))
+const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('unexpected database access')}),getCustomerExportContext:vi.fn(),assertEdielTenantActor:vi.fn()}))
+vi.mock('@/lib/cis/db-shared',async importOriginal=>({...await importOriginal<typeof import('@/lib/cis/db-shared')>(),getCustomerExportContext:io.getCustomerExportContext}))
+vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.assertEdielTenantActor}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from}}))
 type Input=Parameters<typeof buildProdatZ04FromSwitch>[0]
 const id='735999888000000017'
@@ -19,7 +21,7 @@ const input=():Input=>({actorUserId:'actor',senderEdielId:'12345',receiverEdielI
  meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'},
 // Synthetic partial database rows: fields unused by this adapter are omitted.
 } as unknown as Input)
-beforeEach(()=>{vi.clearAllMocks()})
+beforeEach(()=>{vi.clearAllMocks();io.assertEdielTenantActor.mockResolvedValue(undefined);const p=input();io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null})})
 
 // Saved switch context is a distinct real caller of the shared renderer. Only
 // external database access is disabled; engine, envelope and preflight are real.
@@ -29,16 +31,42 @@ describe('saved switch compatibility respects operational direction',()=>{
   expect(io.from).not.toHaveBeenCalled()
  })
  it('retains the supported single-object Z03 flow while the shared renderer handles registers elsewhere',async()=>{
-  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity',endUserAddressObjects:[selectedAddressFact(id,'company','9','USER',['Street'])],invoiceeObjects:[selectedInvoiceeFact(id,'company','9','USER',['Street'],'','12345','Town')]}}}
+  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity',endUserAddressObjects:[selectedAddressFact(id,'company','9','USER',['Street'])],invoiceeObjects:[{...selectedInvoiceeFact(id,'company','9','199001011234',['Street'],'','12345','Town'),endUser:{identity:{id:'199001011234',qualifier:'SE2',agency:'260'},address:selectedInvoiceeFact(id,'company','9','199001011234',['Street'],'','12345','Town').endUser.address}}]}}}
   const draft=await buildProdatZ03FromSwitch(p)
   const parsed=parseProdatMessage(draft.rawPayload!)
   expect(parsed.lineItems.map(line=>[line.meteringPointId,line.lineSequenceNumber,line.registerIndex])).toEqual([[id,'1',null]])
   expect(draft).toMatchObject({direction:'outbound',messageCode:'Z03',environment:'test',status:'draft',testFlag:1,switchRequestId:'switch',customerId:'customer',siteId:'site',meteringPointId:'meter'})
+  expect(io.getCustomerExportContext).toHaveBeenCalledWith({customerId:'customer',siteId:'site',meteringPointId:'meter'})
+  expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Source Customer')
+  expect(draft.rawPayload).not.toContain('USER:')
+  expect(io.assertEdielTenantActor).toHaveBeenCalledWith({companyId:'company',actorUserId:'actor',permissionAnyOf:['communication.write','ediel_testing.write']})
+  const own=(draft.parsedPayload?.prodatEngine as {registerEvidence?:{facts?:{endUserAddressObjects?:unknown[]}}})?.registerEvidence?.facts?.endUserAddressObjects
+  expect(own).toEqual([expect.objectContaining({meteringPointId:id,endUser:{id:'199001011234',qualifier:'SE2',agency:'260'},source:expect.objectContaining({companyId:'company',kind:'caller_selection'})})])
   expect(io.from).not.toHaveBeenCalled()
  })
  it('does not permit a multi-register snapshot on the supplier Z03 path',async()=>{
   await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow(/register/)
+  expect(io.getCustomerExportContext).toHaveBeenCalledTimes(1)
   expect(io.from).not.toHaveBeenCalled()
+ })
+ it('defers own-wire phase but holds missing invoicee source facts before draft persistence',async()=>{
+  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity',invoiceeAddressDiffersFromEndUser:false}}}
+  await expect(buildProdatZ03FromSwitch(p)).rejects.toMatchObject({issues:expect.arrayContaining([expect.objectContaining({code:'PRODAT_DEPENDENT_CONDITION_UNDETERMINED',description:expect.stringContaining('oberoende valt underlag saknas')})])})
+  expect(io.from).not.toHaveBeenCalled()
+ })
+ it('denies the actual tenant actor before any source read',async()=>{
+  io.assertEdielTenantActor.mockRejectedValue(new Error('ediel_tenant_actor_forbidden'))
+  await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow('ediel_tenant_actor_forbidden')
+  expect(io.getCustomerExportContext).not.toHaveBeenCalled()
+ })
+ it('holds a foreign or unrelated selected source before rendering',async()=>{
+  io.getCustomerExportContext.mockResolvedValue({companyId:'other',tenantIssues:[],customer:{id:'customer'},site:input().site,meteringPoint:input().meteringPoint})
+  await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow('prodat_selected_customer_site_point_scope_mismatch')
+ })
+ it('holds an actual customer with no legal identity despite a plausible saved preview',async()=>{
+  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),registers:[]}}
+  io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',customer_number:'INTERNAL',full_name:'Customer'},site:{...p.site,country:'SE'},meteringPoint:p.meteringPoint})
+  await expect(buildProdatZ03FromSwitch(p)).rejects.toThrow('prodat_customer_legal_identity_required')
  })
 })
 

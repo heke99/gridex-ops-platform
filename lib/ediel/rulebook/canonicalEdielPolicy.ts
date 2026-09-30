@@ -1,5 +1,7 @@
 import { assertEdielFutureCapabilityHeld, type EdielRequestedCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import type { EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
+import {INVOICEE_CODES,INVOICEE_FIELDS} from '@/lib/ediel/prodat/prodatInvoicee'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import {copyGasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {copyDeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import { resolveCanonicalAckMatrixRule, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
@@ -79,6 +81,19 @@ export type CanonicalEdielPolicy = {
   customerStatusRequired: boolean
   businessResponses: readonly string[]
   sourceTrace: readonly CanonicalEdielSourceTrace[]
+}
+
+/** These source-defined D families require the selected physical UD/IV tuple.
+ * Admission keeps their unresolved state visible. Every actual candidate must
+ * pass validateCanonicalPolicyFields against its own wire before persistence or
+ * dispatch; absence of qualified own-object facts still blocks that phase. */
+export function isCanonicalProdatOwnWireDependentCondition(condition:ProdatDependentConditionEvaluation):boolean {
+  return condition.fieldNumber==='229' && END_USER_ADDRESS_CODES.includes(condition.messageCode)
+    || INVOICEE_CODES.includes(condition.messageCode) && INVOICEE_FIELDS.includes(condition.fieldNumber)
+    // The dedicated physical date owner retains required/forbidden/unknown
+    // decisions per actual object; the aggregate deliberately returns unknown.
+    || condition.fieldNumber==='210' && ['Z06','Z09','Z10'].includes(condition.messageCode)
+    || condition.fieldNumber==='211' && condition.messageCode==='Z09'
 }
 
 export type ResolveCanonicalEdielPolicyInput = {
@@ -254,7 +269,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       },
     })
     if (mode === 'send') {
-      assertProdatDependentConditionsDetermined(prodatDependentConditions)
+      assertProdatDependentConditionsDetermined(prodatDependentConditions.filter(condition=>!isCanonicalProdatOwnWireDependentCondition(condition)))
     }
 
     return deepFreeze({

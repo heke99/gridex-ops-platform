@@ -7,10 +7,8 @@ import type {
   EdielMessageStandard,
 } from '@/lib/ediel/types'
 import {
-  createCanonicalAckConflictEvent,
   createCanonicalDuplicateBlockEvent,
   createEdielMessage,
-  findSequencedAckForSource,
 } from '@/lib/ediel/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import {
@@ -18,29 +16,23 @@ import {
   resolveCanonicalRouteContext,
 } from '@/lib/ediel/core/routeRegistry'
 import {
-  buildCanonicalAckReferences,
   buildCanonicalOutboundReferences,
 } from '@/lib/ediel/core/referenceRegistry'
 import {
   buildInboundCanonicalIdentity,
   findInboundDuplicateByCanonicalIdentity,
   findOutboundEdielMessageDuplicate,
-  hasCanonicalAckDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import {
   resolveCanonicalInboundAcceptedVersions,
   resolveCanonicalOutboundVersion,
 } from '@/lib/ediel/core/versionRegistry'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
+import { prepareAiBiInboundReconciliation, processAiBiInboundReconciliation } from '@/lib/ediel/aiBiInboundReconciliation'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 
 function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
-}
-
-function isCanonicalAckFamily(
-  family: string | null | undefined
-): family is 'CONTRL' | 'APERAK' | 'UTILTS_ERR' {
-  return family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
 }
 
 function isPostgresUniqueViolation(error: unknown): boolean {
@@ -51,29 +43,6 @@ function isPostgresUniqueViolation(error: unknown): boolean {
     (typeof candidate.message === 'string' &&
       candidate.message.includes('duplicate key value violates unique constraint'))
   )
-}
-
-function postgresErrorMessage(error: unknown): string {
-  if (!error || typeof error !== 'object') return ''
-  const candidate = error as { message?: unknown; details?: unknown }
-  return [candidate.message, candidate.details]
-    .filter((item): item is string => typeof item === 'string')
-    .join(' ')
-}
-
-function isLegacyAckPerSourceConstraint(error: unknown): boolean {
-  const text = postgresErrorMessage(error)
-  return text.includes('uq_ediel_messages_outbound_ack_per_source')
-}
-
-function sequenceString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-const FINAL_CANONICAL_ACK_STATUSES = new Set(['sent', 'acknowledged', 'validated'])
-
-function isFinalCanonicalAckStatus(value: unknown): boolean {
-  return FINAL_CANONICAL_ACK_STATUSES.has(String(value ?? '').toLowerCase())
 }
 
 export async function resolveCanonicalOutboundContext(params: {
@@ -133,114 +102,50 @@ export async function resolveInboundAcceptedVersions(params: {
   return resolveCanonicalInboundAcceptedVersions(params)
 }
 
+function assertInboundDuplicateScope(duplicate:EdielMessageRow,input:CreateEdielMessageInput) {
+  if(duplicate.direction!=='inbound' || duplicate.company_id!==(input.companyId??null)
+    || duplicate.environment!==input.environment || duplicate.message_standard!==(input.messageStandard??'edifact')
+    || duplicate.message_family!==input.messageFamily || duplicate.message_code!==String(input.messageCode)
+    || (duplicate.receiver_ediel_id??null)!==(input.receiverEdielId??null)
+    || (duplicate.application_reference??null)!==(input.applicationReference??null)
+    || duplicate.raw_payload!==input.rawPayload)
+    throw new Error('canonical_inbound_duplicate_scope_or_original_conflict')
+}
+
 export async function registerInboundCanonicalMessage(params: {
   actorUserId?: string | null
   input: CreateEdielMessageInput
 }) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-  const identity = buildInboundCanonicalIdentity({
-    mailbox: params.input.mailbox,
-    mailboxMessageId: params.input.mailboxMessageId,
-    senderEdielId: params.input.senderEdielId,
-    interchangeReference: params.input.interchangeReference,
-    transactionReference: params.input.transactionReference,
-    externalReference: params.input.externalReference,
-  })
-
-  const duplicate = await findInboundDuplicateByCanonicalIdentity(identity)
-  if (duplicate) {
-    await createCanonicalDuplicateBlockEvent({
-      actorUserId,
-      edielMessageId: duplicate.id,
-      layer: 'canonical_inbound',
-      message: 'Inbound dublett blockerad i canonical kernel.',
-      payload: {
-        mailbox: identity.mailbox,
-        mailboxMessageId: identity.mailboxMessageId,
-        senderEdielId: identity.senderEdielId,
-        interchangeReference: identity.interchangeReference,
-        transactionReference: identity.transactionReference,
-        externalReference: identity.externalReference,
-      },
-    })
+  const actorUserId=ensureActorUserId(params.actorUserId),input=params.input
+  if(input.direction!=='inbound' || !['test','production'].includes(input.environment??''))
+    throw new Error('canonical_inbound_scope_required')
+  if(input.companyId)await assertEdielTenantActor({companyId:input.companyId,actorUserId,permission:'communication.write'})
+  const isAiBiSource=input.messageStandard==='ai_list'||input.messageFamily==='AI_LIST'||/^\uFEFF?(AI|BI);/.test(input.rawPayload??'')
+  if(isAiBiSource&&!input.companyId)throw new Error('ai_bi_reconciliation_tenant_source_required')
+  const identity=buildInboundCanonicalIdentity({...input,senderEdielId:input.senderEdielId,
+    receiverEdielId:input.receiverEdielId,applicationReference:input.applicationReference})
+  const reuse=async(duplicate:EdielMessageRow)=>{
+    assertInboundDuplicateScope(duplicate,input)
+    if(isAiBiSource)await processAiBiInboundReconciliation({actorUserId,message:duplicate})
+    await createCanonicalDuplicateBlockEvent({actorUserId,edielMessageId:duplicate.id,layer:'canonical_inbound',
+      message:'Inbound dublett blockerad i canonical kernel.',payload:{...identity}})
     return duplicate
   }
-
-  const inboundAckFamily = isCanonicalAckFamily(params.input.messageFamily)
-    ? params.input.messageFamily
-    : null
-
-  if (
-    params.input.direction === 'inbound' &&
-    inboundAckFamily &&
-    params.input.relatedMessageId
-  ) {
-    const duplicateAck = await hasCanonicalAckDuplicate({
-      sourceMessageId: params.input.relatedMessageId,
-      ackFamily: inboundAckFamily,
-    })
-
-    if (duplicateAck) {
-      await createCanonicalDuplicateBlockEvent({
-        actorUserId,
-        edielMessageId: duplicateAck.id,
-        layer: 'canonical_inbound',
-        message: 'Inbound ACK-dublett blockerad i canonical kernel.',
-        payload: {
-          mailbox: identity.mailbox,
-          mailboxMessageId: identity.mailboxMessageId,
-          senderEdielId: identity.senderEdielId,
-          interchangeReference: identity.interchangeReference,
-          transactionReference: identity.transactionReference,
-          externalReference: identity.externalReference,
-          relatedMessageId: params.input.relatedMessageId,
-          ackFamily: inboundAckFamily,
-          existingAckMessageId: duplicateAck.id,
-        },
-      })
-      return duplicateAck
-    }
-  }
-
+  const duplicate=await findInboundDuplicateByCanonicalIdentity(identity)
+  if(duplicate)return reuse(duplicate)
+  if(isAiBiSource)await prepareAiBiInboundReconciliation({companyId:input.companyId!,
+    environment:input.environment as 'test'|'production',actorUserId,rawPayload:input.rawPayload??''})
   try {
-    return await createEdielMessage({
-      ...params.input,
-      actorUserId,
-    })
-  } catch (error) {
-    if (
-      isPostgresUniqueViolation(error) &&
-      params.input.direction === 'inbound' &&
-      inboundAckFamily &&
-      params.input.relatedMessageId
-    ) {
-      const duplicateAck = await hasCanonicalAckDuplicate({
-        sourceMessageId: params.input.relatedMessageId,
-        ackFamily: inboundAckFamily,
-      })
-
-      if (duplicateAck) {
-        await createCanonicalDuplicateBlockEvent({
-          actorUserId,
-          edielMessageId: duplicateAck.id,
-          layer: 'canonical_inbound',
-          message: 'Inbound ACK-dublett blockerad av databasens unikhetsregel och återanvändes.',
-          payload: {
-            mailbox: identity.mailbox,
-            mailboxMessageId: identity.mailboxMessageId,
-            senderEdielId: identity.senderEdielId,
-            interchangeReference: identity.interchangeReference,
-            transactionReference: identity.transactionReference,
-            externalReference: identity.externalReference,
-            relatedMessageId: params.input.relatedMessageId,
-            ackFamily: inboundAckFamily,
-            existingAckMessageId: duplicateAck.id,
-          },
-        })
-        return duplicateAck
-      }
+    const message=await createEdielMessage({...input,actorUserId})
+    if(isAiBiSource)await processAiBiInboundReconciliation({actorUserId,message})
+    return message
+  } catch(error) {
+    // Only the same whole original in the same actual scope may satisfy a
+    // uniqueness race. ACK family/source alone merges distinct IDE responses.
+    if(isPostgresUniqueViolation(error)){
+      const raced=await findInboundDuplicateByCanonicalIdentity(identity)
+      if(raced)return reuse(raced)
     }
-
     throw error
   }
 }
@@ -263,20 +168,31 @@ export async function createCanonicalOutboundMessage(params: {
   }
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
+  const operationId = params.baseInput.sourceOperationId
+    ?? params.baseInput.parsedPayload?.operation_id ?? params.baseInput.parsedPayload?.operationId
 
   if (params.duplicateCheck) {
     const duplicate = await findOutboundEdielMessageDuplicate({
+      companyId: params.baseInput.companyId, environment: params.baseInput.environment,
+      sourceOperationId: typeof operationId === 'string' ? operationId : null,
       outboundRequestId: params.duplicateCheck.outboundRequestId ?? null,
       sourceType: params.duplicateCheck.sourceType ?? null,
       sourceId: params.duplicateCheck.sourceId ?? null,
       requestType: params.requestType,
       receiverEdielId: params.duplicateCheck.receiverEdielId ?? null,
-      messageFamily: params.duplicateCheck.messageFamily,
-      messageCode: params.duplicateCheck.messageCode,
-      messageVersion: params.duplicateCheck.messageVersion ?? null,
+      messageFamily: params.baseInput.messageFamily,
+      messageCode: String(params.baseInput.messageCode),
+      messageVersion: null,
     })
 
     if (duplicate) {
+      if (duplicate.company_id !== params.baseInput.companyId || duplicate.environment !== params.baseInput.environment
+        || duplicate.direction !== 'outbound' || duplicate.message_family !== params.baseInput.messageFamily
+        || duplicate.message_code !== String(params.baseInput.messageCode)
+        || typeof operationId === 'string' && duplicate.source_operation_id !== operationId
+        || params.duplicateCheck.outboundRequestId && duplicate.outbound_request_id !== params.duplicateCheck.outboundRequestId)
+        throw new Error('canonical_outbound_existing_operation_scope_conflict')
+      if (duplicate.raw_payload !== params.baseInput.rawPayload) throw new Error('canonical_outbound_existing_operation_wire_conflict')
       await createCanonicalDuplicateBlockEvent({
         actorUserId,
         edielMessageId: duplicate.id,
@@ -452,6 +368,8 @@ export async function finalizeCanonicalOutboundDraft(params: {
   })
 }
 
+/** Keep the compatibility entry on the same protected source/replay gateway.
+ * Lazy import avoids the route/outbound facade's static module dependency. */
 export async function createCanonicalAckMessage(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
@@ -459,180 +377,8 @@ export async function createCanonicalAckMessage(params: {
   outcome?: 'positive' | 'negative'
   draft: CreateEdielMessageInput
 }) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-
-  const allowSequencedUtiltsErr =
-    params.ackFamily === 'UTILTS_ERR' &&
-    typeof params.draft.parsedPayload?.utiltsErrSequenceToken === 'string' &&
-    params.draft.parsedPayload.utiltsErrSequenceToken.trim().length > 0
-
-  const allowSequencedAperak =
-    params.ackFamily === 'APERAK' &&
-    params.draft.parsedPayload?.ackScope === 'transaction' &&
-    typeof params.draft.parsedPayload?.relatedTransactionReference === 'string' &&
-    params.draft.parsedPayload.relatedTransactionReference.trim().length > 0
-
-  const sequenceToken = allowSequencedAperak
-    ? sequenceString(params.draft.parsedPayload?.relatedTransactionReference)
-    : allowSequencedUtiltsErr
-      ? sequenceString(params.draft.parsedPayload?.utiltsErrSequenceToken)
-      : null
-
-  const sequencedDuplicate =
-    allowSequencedAperak && sequenceToken
-      ? await findSequencedAckForSource({
-          sourceMessageId: params.sourceMessage.id,
-          ackFamily: 'APERAK',
-          outcome: params.outcome ?? null,
-          sequenceField: 'relatedTransactionReference',
-          sequenceValue: sequenceToken,
-        })
-      : allowSequencedUtiltsErr && sequenceToken
-        ? await findSequencedAckForSource({
-            sourceMessageId: params.sourceMessage.id,
-            ackFamily: 'UTILTS_ERR',
-            outcome: params.outcome ?? null,
-            sequenceField: 'utiltsErrSequenceToken',
-            sequenceValue: sequenceToken,
-          })
-        : null
-
-  const duplicate = sequencedDuplicate ?? (allowSequencedUtiltsErr || allowSequencedAperak
-    ? null
-    : await hasCanonicalAckDuplicate({
-        sourceMessageId: params.sourceMessage.id,
-        ackFamily: params.ackFamily,
-        outcome: params.outcome,
-      }))
-
-  if (duplicate) {
-    const attemptedOutcome = params.outcome ?? null
-    const parsedPayload = duplicate.parsed_payload ?? {}
-    const existingOutcome =
-      duplicate.ack_outcome === 'positive' || duplicate.ack_outcome === 'negative'
-        ? duplicate.ack_outcome
-        : parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
-          ? parsedPayload.ackOutcome
-          : null
-
-    const conflictingOutcome = Boolean(
-      attemptedOutcome &&
-        existingOutcome &&
-        attemptedOutcome !== existingOutcome
-    )
-    const finalDuplicate = isFinalCanonicalAckStatus(duplicate.status)
-
-    await createCanonicalAckConflictEvent({
-      actorUserId,
-      edielMessageId: params.sourceMessage.id,
-      ackFamily: params.ackFamily,
-      sourceMessageId: params.sourceMessage.id,
-      attemptedOutcome,
-      existingAckMessageId: duplicate.id,
-      existingOutcome,
-      reason: conflictingOutcome
-        ? 'conflicting_outcome'
-        : attemptedOutcome
-          ? 'duplicate_same_outcome'
-          : 'duplicate_same_family',
-      payload: {
-        duplicateBlockedIn: 'kernel',
-        existingAckStatus: duplicate.status,
-        finalDuplicate,
-        blockReason: finalDuplicate && conflictingOutcome ? 'blocked_final_ack_exists' : null,
-      },
-    })
-
-    if (conflictingOutcome) {
-      throw new Error(
-        finalDuplicate
-          ? `blocked_final_ack_exists: Final ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras.`
-          : `conflicting_ack_draft_exists: ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras tills den gamla draften ersätts.`
-      )
-    }
-
-    return duplicate
-  }
-
-  const baseRefs = buildCanonicalAckReferences({
-    sourceMessage: params.sourceMessage,
-    ackFamily: params.ackFamily,
-  })
-
-  const refs = allowSequencedUtiltsErr || allowSequencedAperak
-    ? {
-        ...baseRefs,
-        externalReference: params.draft.externalReference ?? baseRefs.externalReference,
-        transactionReference: params.draft.transactionReference ?? baseRefs.transactionReference,
-        correlationReference: params.draft.correlationReference ?? baseRefs.correlationReference,
-      }
-    : baseRefs
-
-  const input: CreateEdielMessageInput = {
-    ...params.draft,
-    actorUserId,
-    companyId: params.draft.companyId ?? params.sourceMessage.company_id ?? null,
-    externalReference: refs.externalReference,
-    transactionReference: refs.transactionReference,
-    correlationReference: refs.correlationReference,
-    originalMessageId: refs.originalMessageId,
-    originalTransactionId: refs.originalTransactionId,
-    originalMessageCode: refs.originalMessageCode,
-    relatedMessageId: params.sourceMessage.id,
-    ackOutcome: params.outcome ?? params.draft.ackOutcome ?? null,
-  }
-
-  const rulePackSnapshot = await assertOutboundDraftAllowedByFieldRules({
-    draft: input,
-    messageVersion: input.messageVersion ?? null,
-  })
-  const canonicalAckInput: CreateEdielMessageInput = {
-    ...input,
-    ruleProfileKey: rulePackSnapshot.profileKey,
-    ruleProfileVersionId: rulePackSnapshot.profileVersionId,
-    ruleProfileVersion: rulePackSnapshot.version,
-    rulePackChecksum: rulePackSnapshot.checksum,
-    rulePackSnapshot: {
-      ...rulePackSnapshot,
-      resolvedAt: new Date().toISOString(),
-      family: params.ackFamily,
-      code: String(input.messageCode),
-    },
-  }
-
-  try {
-    return await createEdielMessage(canonicalAckInput)
-  } catch (error) {
-    if (isPostgresUniqueViolation(error) && sequenceToken) {
-      const existing = allowSequencedAperak
-        ? await findSequencedAckForSource({
-            sourceMessageId: params.sourceMessage.id,
-            ackFamily: 'APERAK',
-            outcome: params.outcome ?? null,
-            sequenceField: 'relatedTransactionReference',
-            sequenceValue: sequenceToken,
-          })
-        : allowSequencedUtiltsErr
-          ? await findSequencedAckForSource({
-              sourceMessageId: params.sourceMessage.id,
-              ackFamily: 'UTILTS_ERR',
-              outcome: params.outcome ?? null,
-              sequenceField: 'utiltsErrSequenceToken',
-              sequenceValue: sequenceToken,
-            })
-          : null
-
-      if (existing) return existing
-    }
-
-    if (isPostgresUniqueViolation(error) && isLegacyAckPerSourceConstraint(error) && allowSequencedAperak) {
-      throw new Error(
-        'Databasen blockerar fortfarande flera APERAK per källmeddelande via uq_ediel_messages_outbound_ack_per_source. Kör SQL-migrationen ediel_ack_transaction_scope.sql i Supabase och kör sedan engine igen.'
-      )
-    }
-
-    throw error
-  }
+  const gateway = await import('./kernel')
+  return gateway.createCanonicalAckMessage(params)
 }
 
 export function buildCanonicalReferencesForOutbound(params: {

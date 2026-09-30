@@ -1,11 +1,13 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsFinalValidationFixture'
+import { createHash } from 'node:crypto'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { describe, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
-const io = vi.hoisted(() => ({ getMessage: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ getMessage: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), rpc: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc } }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.getMessage, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -37,9 +39,16 @@ describe('actual inbound processor forwards fresh observation diagnostics', () =
         normalizedMeteringPayload: { utiltsObservedTransactions: [{ transactionId: 'WRONG-COMPANY' }] },
         utiltsRuntimeFacts: { utiltsObservedTransactions: [{ transactionId: 'STALE' }] },
       } }
+      qualifyUtiltsFixtureSource(source)
       io.getMessage.mockResolvedValue(source)
+      io.rpc.mockReset().mockImplementation(createUtiltsFinalValidationIo())
       const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: date, applicationReference: '23-DDQ-E66-S', mode: 'parse' })
       await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy })
+      const validation = io.rpc.mock.calls.find(([name]) => name === 'gridex_record_utilts_source_validation_v4')
+      expect(validation?.[1]).toMatchObject({p_company_id:source.company_id, p_environment:'test', p_source_message_id:source.id,
+        p_source_payload_hash:createHash('sha256').update(source.raw_payload!).digest('hex')})
+      expect(JSON.parse(validation![1].p_transaction_facts_text).transactions.map((item: {transactionId:string}) => item.transactionId)).toEqual(['GRIDEX2607E66001'])
+      expect(io.rpc.mock.invocationCallOrder[io.rpc.mock.calls.indexOf(validation!)]).toBeLessThan(io.persist.mock.invocationCallOrder[0])
       expect(io.update).toHaveBeenCalled()
       for (const [call] of io.update.mock.calls) {
         expect(call.edielMessageId).toBe(source.id)
@@ -51,7 +60,7 @@ describe('actual inbound processor forwards fresh observation diagnostics', () =
         expect(payload.normalizedMeteringPayload.utiltsObservedTransactions).toBe(tx)
         expect(tx[0].observations[1].references).toHaveLength(1)
       }
-      expect(io.persist).toHaveBeenCalledWith(expect.objectContaining({ companyId: company, sourceMessageId: source.id, environment: 'test' }))
+      expect(io.persist).toHaveBeenCalledWith(expect.objectContaining({ companyId: source.company_id, sourceMessageId: source.id, environment: 'test' }))
       expect(io.event).toHaveBeenCalledOnce()
       expect(io.event.mock.calls[0][0].payload.normalizedMeteringPayload.utiltsObservedTransactions).toEqual(io.update.mock.calls[0][0].parsedPayload.utiltsRuntimeFacts.utiltsObservedTransactions)
       expect(io.ack.mock.calls[0][0].ackPlan.utiltsErrCodes.includes('E19')).toBe(date === '2026-09-30')

@@ -1,0 +1,34 @@
+[
+  {
+    "ids": [
+      "TR-11",
+      "AT-TR-11"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/transport/copy.ts",
+      "lib/ediel/transport/verifiedCopy.ts",
+      "lib/ediel/transport/rawMimeArchive.ts",
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx",
+      "app/admin/ediel/messages/[id]/page.tsx",
+      "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql"
+    ],
+    "confirmed_code_gap": "TR11 journal lacked an independent actual operations copy consumer. Corrected by tenant/member/communication.read service-only private entered-attempt projection, selected server-tenant API, private exact-byte/hash/length/RFC readback before .eml download, and operations UI. Historical missing/unqualified archive is held or unavailable; no reconstructed copy, resend/status/retry/business write.",
+    "blockers": [
+      "Native replay/storage policy/live private object integrity/concurrency and full browser/manual empty-Sent observations remain deferred. Authentic provider/mailbox trust for delivery truth remains external; copy explicitly proves neither delivery nor resend authorization."
+    ],
+    "planned_tests": [
+      "AT-TR-11 literal expected: En Skickat-kopia är en separat IMAP-/arkivfunktion. → Använd transportjournalen som beviskälla; erbjud kopia som driftfunktion.",
+      "AT-TR-11 literal prohibited: En tom mapp ska inte utlösa omsändning eller betraktas som bevis på förlust.",
+      "Own criteria: actual generic and sealed Z08 entered witness only; foreign company/actor/data denial; immutable selected attempt archive ref/hash/bytes/RFC and payload snapshot matching; download refuses absent, changed, oversized or ambiguous objects; empty/held copy causes zero provider calls and no old journal/ACK/retry mutation; selected tenant remains server-owned."
+    ],
+    "assessment": "Fresh current copy RPC/API/verified private readback/operations panel reviewed; readback checks bytes immediately before response and remains a distinct operations read. Own helper-fixture checks and root narrow API/copy regressions executed earlier; broad native/E2E/manual deferred. No acceptance PASSED assertion.",
+    "commits": [
+      "b4acd663",
+      "01024ec",
+      "14281279"
+    ]
+  }
+]

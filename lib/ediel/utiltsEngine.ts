@@ -2,6 +2,9 @@ import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/edi
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { utiltsQuantityUnitGuideIssues } from '@/lib/ediel/utilts/quantityUnitScope'
+import {utiltsDecimalGuideIssues,utiltsPrecisionFunctionalIssues} from '@/lib/ediel/utilts/quantityPrecision'
+import {takeQualifiedUtiltsRuntimeOwner} from '@/lib/ediel/utilts/qualifyReceivedStructure'
+import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
 import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
@@ -44,6 +47,20 @@ export type UtiltsRuntimeReferenceOptions = {
 }
 
 const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
+
+const runtimeOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy}>()
+export function utiltsRuntimeOwnerFingerprint(message:EdielMessageRow,runtime:UtiltsRuntimeResult):{sourceHash:string;resultHash:string} {
+  return {sourceHash:evidenceHash(JSON.stringify(message)),resultHash:evidenceHash(JSON.stringify(runtime))}
+}
+/** One-use actual engine/structural-owner handoff. A copied or mutated runtime,
+ * a different source context/policy, or a guide-only candidate has no owner. */
+export function takeUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy):UtiltsRuntimeResult|null {
+  const owner=runtimeOwners.get(runtime)
+  runtimeOwners.delete(runtime)
+  if(!owner) return takeQualifiedUtiltsRuntimeOwner(runtime,message,policy)
+  const scope=utiltsRuntimeOwnerFingerprint(message,runtime)
+  return owner.policy===policy && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
+}
 
 function runtimeValidationMessage(message: EdielMessageRow): EdielMessageRow {
   const companyId = String(message.company_id ?? '').trim()
@@ -409,8 +426,30 @@ export function applyUtiltsEffectiveDatePolicyToRuntimeResult(input: {
   return rebuildUtiltsRuntimeResult({ message: input.message, result: input.result, issues })
 }
 
-function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
-  const issues = resolveUtiltsHeaderGuideIssues(message, result.facts.messageCode)
+/** Both original guide packages require supplied UNH/0065=UTILTS and
+ * field312=E5SE5A (A3 appendix1 pp126–127; U pp121–122). Diagnose these
+ * source errors before trying to select a policy from the invalid header.
+ * This does not retain a replacement policy or authorize any effects. */
+function s02SourceGuideHeaderIssues(message: EdielMessageRow, policy?: CanonicalEdielPolicy, options?: UtiltsRuntimeReferenceOptions): UtiltsValidationIssue[] {
+  const wire = tokenizeEdifact(message.raw_payload)
+  if (segmentComposite(wire.segments.find(segment => segment.tag === 'BGM'), 1, wire.una)[0] !== 'S02') return []
+  const parts = segmentComposite(wire.segments.find(segment => segment.tag === 'UNH'), 2, wire.una)
+  const referenceDate = policy?.referenceDate ?? canonicalAdmissionDate(message, { admissionAt: options?.referenceDate ?? undefined })
+  const expectedAssociation = (policy?.guide ?? resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate })).associationAssignedCode
+  const issues: UtiltsValidationIssue[] = []
+  const report = (code: string, field: string, value: string | undefined) => issues.push({
+    severity: 'error', kind: 'application', code, title: 'Ogiltig UTILTS-header',
+    description: `${field} följer inte den ursprungliga S02-anvisningen.`,
+    aperakErcCode: value ? '42' : '41', aperakFieldCode: field,
+    aperakText: value ? `INCORRECT DATA ${value}` : 'MANDATORY FIELD MISSING',
+  })
+  if (parts[0] && parts[0] !== 'UTILTS') report('UTILTS_MESSAGE_TYPE_INVALID', 'UNH/0065', parts[0])
+  if (parts[4] !== expectedAssociation) report(parts[4] ? 'UTILTS_ASSOCIATION_INVALID' : 'UTILTS_ASSOCIATION_MISSING', '312', parts[4])
+  return issues
+}
+
+function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, sourceGuideIssues: UtiltsValidationIssue[] = []): UtiltsRuntimeResult {
+  const issues = [...resolveUtiltsHeaderGuideIssues(message, result.facts.messageCode), ...sourceGuideIssues]
   if (issues.length === 0) return result
   // These fields are in the message header: every IDE fails the guide gate, even
   // when no transaction identity was parsed. No functional finding is eligible.
@@ -438,6 +477,7 @@ function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResu
       description: `IDE/7495 ${missing ? 'saknas' : 'måste vara 24'}.`,
       aperakErcCode: missing ? '41' : '42', aperakFieldCode: '505',
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      aperakInvalidOccurrence:{segmentIndex:observed.segmentIndex,elementIndex:1,componentIndex:0},
       referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
     })
   }
@@ -454,15 +494,22 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
     const pairedAreas = new Set<string>()
+    let areaPresent=false,areaContent:string | null=null,characteristic:string | null=null,exchange=false
     for (const segment of observed.segments) {
       if (segment.tag === 'SEQ') break
+      if(segment.tag==='CCI') characteristic=segmentComposite(segment,3,wire.una)[0] ?? null
+      if(segment.tag==='CAV' && characteristic==='E12' && segmentComposite(segment,1,wire.una)[0]==='E20') exchange=true
       if (segment.tag !== 'LOC') continue
       const location = segmentComposite(segment, 1, wire.una)[0]
       const fieldCode = fields[location ?? '']
       if (!fieldCode) continue
+      if(location==='239') areaPresent=true
       if (location === '232' || location === '233') pairedAreas.add(location)
       const parts = segmentComposite(segment, 2, wire.una)
       const value = parts[0] ?? ''
+      // An empty own identifier already has ERC41 below; ERC42 must carry
+      // erroneous received content (A3 p123 / U p118), never a borrowed value.
+      if(location==='239' && value.trim()) areaContent=parts.join(':')
       const codeList = parts[1] ?? ''
       const agency = parts[2] ?? ''
       const missing = !value.trim() || !codeList || !agency
@@ -474,8 +521,17 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
         description: `LOC+${location}/C517 måste innehålla tre tecken, SVK och 260.`,
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: fieldCode,
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:codeList!=='SVK' ? 1 : agency!=='260' ? 2 : 0},
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
+    }
+    const exchangeProfile=['E30','E31','E66','S07','E74'].includes(result.facts.messageCode ?? '')
+    if(!result.facts.isUtiltsErr && exchangeProfile && areaPresent && areaContent !== null && (exchange || pairedAreas.size>0)) issues.push({severity:'error',kind:'application',
+      code:'UTILTS_EXCHANGE_SINGLE_AREA_NOT_USED',title:'Felaktig nätområdesscope',description:'När eget Exchange använder nätområdesparet260b/260c ska260a inte anges enligt U s55/63.',
+      aperakErcCode:'42',aperakFieldCode:'260a',aperakText:`INCORRECT DATA ${areaContent}`,referenceQualifier:'ACW',referenceNumber:reference,lineItemReference:reference})
+    if(!result.facts.isUtiltsErr && exchange && ['E31','E66','S07','E74'].includes(result.facts.messageCode ?? '') && pairedAreas.size===0) {
+      for(const field of ['260b','260c']) issues.push({severity:'error',kind:'application',code:'UTILTS_EXCHANGE_AREA_PAIR_REQUIRED',title:'Nätområdespar saknas',
+        description:'Eget Exchange kräver260b och260c enligt U s55/63.',aperakErcCode:'41',aperakFieldCode:field,aperakText:'MANDATORY FIELD MISSING',referenceQualifier:'ACW',referenceNumber:reference,lineItemReference:reference})
     }
     if (!result.facts.isUtiltsErr && pairedAreaProfile.has(result.facts.messageCode ?? '') && pairedAreas.size === 1) {
       const missingField = pairedAreas.has('232') ? '260c' : '260b'
@@ -534,6 +590,7 @@ function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, resu
       description: !value ? 'LOC+175/C517/3225 saknas.' : missing ? 'LOC+175/C517/3055 saknas.' : invalid ? 'LOC+175/C517/3055 måste vara 9 eller 89.' : 'LOC+175/C517/3225 har ogiltig GS1-kontrollsiffra.',
       aperakErcCode: missing ? '41' : '42', aperakFieldCode: '533',
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:invalid ? 2 : 0},
       referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
     })
   }
@@ -584,6 +641,7 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
         description: 'LOC+172/C517 kräver anläggningsid med byråkod 9 eller 89 och giltig GS1-kontrollsiffra när 9 används.',
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: '209',
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:invalidAgency ? 2 : 0},
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }
@@ -617,7 +675,9 @@ function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRun
       return result
     }
   }
-  if (policy.guide.guideRevision !== '25-A-4') return result
+  // Both hash-qualified 25-A-3 (pp52/53/98) and 25-A-4 (pp51/52/95)
+  // require own point209 and each observation's own planned quantity515.
+  // Keep selection of the complete guide package and its identity rules.
   const required = (field: string) => policy.fieldRules.some(rule => 'fieldNo' in rule && rule.fieldNo === field && rule.requirements.S02 === 'R')
   if (!required('209') || !required('515')) return result
   const wire = tokenizeEdifact(message.raw_payload)
@@ -629,7 +689,9 @@ function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRun
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
     const boundary = observed.segments.findIndex(segment => segment.tag === 'SEQ')
     const header = observed.segments.slice(0, boundary < 0 ? observed.segments.length : boundary)
-    const missingPoint = required('209') && !header.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === '172')
+    const missingPoint = required('209') && !header.some(segment => segment.tag === 'LOC'
+      && segmentComposite(segment, 1, wire.una)[0] === '172'
+      && Boolean(segmentComposite(segment, 2, wire.una)[0]?.trim()))
     const missingQuantity = required('515') && (!observed.observations.length || observed.observations.some(observation =>
       !observation.quantities.some(quantity => quantity.qualifier === '135' && quantity.value !== null && quantity.value.trim() !== '')))
     for (const field of [...(missingPoint ? ['209'] : []), ...(missingQuantity ? ['515'] : [])]) issues.push({
@@ -724,7 +786,7 @@ function applyCanonicalE66PersistencePayload(result: UtiltsRuntimeResult): Utilt
   }
 }
 
-export function runUtiltsRuntimeForMessage(
+function runUtiltsRuntimeForMessageCore(
   message: EdielMessageRow,
   options?: UtiltsRuntimeReferenceOptions,
 ): UtiltsRuntimeResult {
@@ -780,7 +842,17 @@ export function runUtiltsRuntimeForMessage(
   }
   // Shared admission selects one complete source guide package. Candidate
   // passes always carry an explicit policy, so this default path cannot recurse.
-  canonicalPolicy ??= resolveCanonicalMessagePolicy(message,undefined,{admissionAt:options?.referenceDate ?? undefined}) ?? undefined
+  const sourceGuideIssues = s02SourceGuideHeaderIssues(message, canonicalPolicy, options)
+  if (!canonicalPolicy) {
+    try {
+      canonicalPolicy = resolveCanonicalMessagePolicy(message,undefined,{admissionAt:options?.referenceDate ?? undefined}) ?? undefined
+    } catch (error) {
+      // The physical S02 header already proves this guide lookup unavailable.
+      // Preserve its typed refusal; capability, time, ambiguous-guide and all
+      // other internal failures still propagate without a replacement policy.
+      if (!sourceGuideIssues.length || !(error instanceof Error) || !error.message.startsWith('ediel_guide_resolution_missing:')) throw error
+    }
+  }
   const referenceDate = canonicalPolicy?.referenceDate ?? normalizedReferenceDate(message, options)
   // Complete the syntax/application pass before invoking any functional
   // validator. Guide failures cannot enter the functional pass; valid siblings
@@ -795,13 +867,28 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const packagingIssues: UtiltsValidationIssue[] = utiltsPackagingGuideViolations(message.raw_payload ?? '').flatMap(violation => guideEffective.facts.transactions.map(transaction => ({
-    severity:'error' as const,kind:'application' as const,code:violation.code,title:'Felaktig UTILTS-paketering',description:violation.description,
-    aperakErcCode:'42',aperakFieldCode:violation.field,aperakText:'INCORRECT DATA',referenceQualifier:transaction.transactionId ? 'ACW' : null,
-    referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId,
-  })))
-  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
-  const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  const packagingWire = tokenizeEdifact(message.raw_payload)
+  const packagingIssues: UtiltsValidationIssue[] = utiltsPackagingGuideViolations(message.raw_payload ?? '').flatMap(violation => guideEffective.facts.transactions.map((transaction,index) => {
+    const observed = guideEffective.facts.utiltsObservedTransactions?.[index]
+    const ownHeader = observed?.segments.filter(segment => segment.index < (observed.observations[0]?.segmentIndex ?? Infinity)) ?? []
+    const messageHeaderStart = observed ? packagingWire.segments.filter(segment => segment.tag === 'UNH' && segment.index < observed.segmentIndex).at(-1)?.index : undefined
+    const messageHeaderEnd = messageHeaderStart === undefined ? undefined : packagingWire.segments.find(segment => segment.index > messageHeaderStart && ['IDE','UNT','UNH'].includes(segment.tag))?.index
+    const messageHeader = messageHeaderStart === undefined ? [] : packagingWire.segments.filter(segment => segment.index >= messageHeaderStart && segment.index < (messageHeaderEnd ?? Infinity))
+    // ERC42 retains this physical IDE/message's received field, never a
+    // batch summary or another IDE's reason/resolution (U p118, prior p123).
+    const received = violation.field === '223' ? segmentComposite(ownHeader.find(segment => segment.tag === 'STS' && segmentComposite(segment,1,packagingWire.una)[0] === '7'),3,packagingWire.una)[0]
+      : violation.field === '508' ? segmentComposite(ownHeader.find(segment => segment.tag === 'DTM' && segmentComposite(segment,1,packagingWire.una)[0] === '354'),1,packagingWire.una)[1]
+      : violation.field === 'UNH/0062' ? segmentComposite(messageHeader.find(segment => segment.tag === 'UNH'),1,packagingWire.una)[0]
+      : violation.field === 'NAD/3039' ? segmentComposite(messageHeader.find(segment => segment.tag === 'NAD' && segmentComposite(segment,1,packagingWire.una)[0] === 'MR'),2,packagingWire.una)[0] : undefined
+    return {
+      severity:'error' as const,kind:'application' as const,code:violation.code,title:'Felaktig UTILTS-paketering',description:violation.description,
+      aperakErcCode:received ? '42' : '41',aperakFieldCode:violation.field,aperakText:received ? `INCORRECT DATA ${received}` : 'MANDATORY FIELD MISSING',
+      ...(received && ['223','508'].includes(violation.field) ? {aperakInvalidOccurrence:(()=>{const own=ownHeader.find(segment=>segment.tag===(violation.field==='223'?'STS':'DTM')&&segmentComposite(segment,1,packagingWire.una)[0]===(violation.field==='223'?'7':'354'));return own?{segmentIndex:own.index,elementIndex:violation.field==='223'?3:1,componentIndex:violation.field==='223'?0:1}:null})()} : {}),referenceQualifier:transaction.transactionId ? 'ACW' : null,
+      referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId,
+    }
+  }))
+  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
+  const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered, sourceGuideIssues))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   if (options?.guideOnly) return guided
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
@@ -817,6 +904,14 @@ export function runUtiltsRuntimeForMessage(
   const functionalEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: functionalCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional')]
+  const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional'),...utiltsPrecisionFunctionalIssues(message.raw_payload ?? '',eligible)]
   return applyCanonicalE66PersistencePayload(rebuildUtiltsRuntimeResult({ message, result: guided, issues }))
+}
+
+export function runUtiltsRuntimeForMessage(message:EdielMessageRow,options?:UtiltsRuntimeReferenceOptions):UtiltsRuntimeResult {
+  const runtime=runUtiltsRuntimeForMessageCore(message,options)
+  // Final effect paths always provide their retained policy. Guide candidates
+  // and diagnostic calls with no source-qualified retained policy cannot seal.
+  if(options?.canonicalPolicy && !options.guideOnly) runtimeOwners.set(runtime,{...utiltsRuntimeOwnerFingerprint(message,runtime),policy:options.canonicalPolicy})
+  return runtime
 }

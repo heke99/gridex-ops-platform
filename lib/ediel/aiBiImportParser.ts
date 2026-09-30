@@ -2,6 +2,19 @@ import {AI_BI_DETAIL_COLUMNS,parseAiBiTechnicalFile,type AiBiTechnicalHeader} fr
 export type AiBiListType = 'AI' | 'BI'
 export type AiBiParsedRow={rowNumber:number;rawColumns:Record<string,string>;meteringPointExternalId:string|null;customerIdentity:string|null;customerName:string|null;gridAreaCode:string|null;gridOwnerEdielId:string|null}
 export type AiBiParseResult={listType:AiBiListType;delimiter:';';headers:string[];header:AiBiTechnicalHeader;rows:AiBiParsedRow[]}
+/** Read-only naming projection for native source-owned physical import rows.
+ * The shared adapter alone owns the positional names; this is never a write or
+ * rule-decision authority. Historic named projections remain readable. */
+export function projectAiBiStoredRawColumns(value:unknown):Record<string,string>{
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('ai_bi_stored_columns_invalid')
+  const record=value as Record<string,unknown>
+  if(record.physical_columns!==undefined){
+    if(!Array.isArray(record.physical_columns)||record.physical_columns.length!==AI_BI_DETAIL_COLUMNS.length||record.physical_columns.some(cell=>typeof cell!=='string'))throw new Error('ai_bi_stored_columns_invalid')
+    const columns=record.physical_columns as string[]
+    return Object.fromEntries(AI_BI_DETAIL_COLUMNS.map((key,index)=>[key,columns[index]]))
+  }
+  return Object.fromEntries(Object.entries(record).filter((item):item is [string,string]=>typeof item[1]==='string'))
+}
 function normaliseAiBiGridAreaCode(value:unknown):string|null{return typeof value==='string'&&value.trim()?value.trim().replace(/\s+/g,'').toUpperCase():null}
 export function parseAiBiListCsv(input:{raw:string;listType:AiBiListType}):AiBiParseResult{
   const parsed=parseAiBiTechnicalFile(input.raw,input.listType)

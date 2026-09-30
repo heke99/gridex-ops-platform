@@ -2,6 +2,7 @@ import {it,expect,vi} from 'vitest'
 import {raw,characteristic,type Parts} from './fixtures/prodat-register'
 import {source,z10} from './fixtures/prodat-identity'
 import {buildAperakDraft} from '@/lib/ediel/ack'
+import {isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>({select:()=>({limit:async()=>({error:{message:'SYNTHETIC_ABSENT_TABLE'}})})})}}))
 import {deriveProdatAperakValidationIssues,resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
@@ -14,9 +15,26 @@ it('actual legacy TGT registry preserves valid control and exact224 negative wit
   if(!same){expect(issues).toEqual([]);expect(resolved.errors).toEqual([]);continue}
   expect(issues.some(i=>i.ruleKey==='meter_number_invalid')).toBe(true)
   const error=resolved.errors.find(e=>e.fieldCode==='224')!
-  expect(error).toMatchObject({ercCode:'42',fieldCode:'224',text:'Felaktigt mätarnummer NEW',referenceNumber:'735123456789012345',lineItemReference:'EVENT'})
-  expect(error.prodatAperakText).toBeUndefined()
+  expect(error).toMatchObject({ercCode:'42',fieldCode:'224',text:'Felaktigt Mätarnummer NEW',referenceNumber:'735123456789012345',lineItemReference:'EVENT'})
+  expect(error.prodatAperakText).toMatchObject({kind:'ready',text:'Felaktigt Mätarnummer NEW'})
+  expect(isQualifiedProdatApplicationError(error)).toBe(true)
   const wire=tokenizeEdifact(buildAperakDraft({sourceMessage:message,outcome:'negative',applicationErrors:resolved.errors}).rawPayload!)
-  expect(wire.segments.filter(s=>s.tag==='FTX').map(s=>segmentComposite(s,4,wire.una))).toContainEqual(['Felaktigt mätarnummer NEW'])
+  expect(wire.segments.filter(s=>s.tag==='FTX').map(s=>segmentComposite(s,4,wire.una))).toContainEqual(['Felaktigt Mätarnummer NEW'])
  }
+})
+
+it('holds a legacy meter fault when its cached first-object selection cannot prove the own physical failure',async()=>{
+ const first=z10()
+ const second=z10().slice(2).map(p=>{
+  if(p[0]==='LIN')return ['LIN','2','',['735123456789012352','','','9']] as Parts
+  if(p[0]==='RFF'&&(p[1] as string[])[0]==='LI')return ['RFF',['LI','SECOND-EVENT']] as Parts
+  if(p[0]==='RFF'&&['MG','Z02'].includes((p[1] as string[])[0]))return ['RFF',[(p[1] as string[])[0],'SECOND-METER']] as Parts
+  return p
+ })
+ const message=source(raw([...first,...second],'Z10'),'Z10')
+ const testData={suite:'PRODAT',roleCode:'supplier',testCaseCode:'AUTO',title:'Synthetic source control',sourceNote:'No live data',groups:[]} as const
+ // The old scenario selector picks the first object. It must not turn the
+ // second object's same-meter fault into a source-qualified first-object ACK.
+ await expect(resolveAndStoreProdatAperakErrors({message,testData})).rejects.toThrow(
+  expect.objectContaining({disposition:expect.objectContaining({code:'PRODAT_LEGACY_METER_ERROR_SOURCE_UNAVAILABLE'})}))
 })

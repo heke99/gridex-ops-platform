@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-30",
+  "updated_at": "2026-10-01",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-identity-e035-owner-20260928",
-  "active_pr": 421,
+  "branch": "codex/ediel-master-v2-integration-20261001",
+  "active_pr": null,
   "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR #421 coherent U-03/ACK-03/SC045 syntax-header remediation; final-head CI pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-syntax-header-remediation-20260930.md",
+  "active_item": "Isolated integration of whole Ediel masterplan v2 F0\u2013F7 and all 352 literal IDs",
+  "current_audit": "quality/audits/ediel-masterplan-v2/integration-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
     "baseline_ops": 36702357516,
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "After remote/comment recheck, publish coherent syntax-header product package exact-tree fast-forward frome0 to draft421 and verify remote tree. Inspect auto-triggered exactnewheadfivegates/native442/case/browser/types/schema; only approve affectedcontracts after actualproof. No unchangedgreenrerun or externalrecords invention; no traffic/merge.",
+  "next_action": "Integrate independently owned recovery/runtime/native packages, freeze exact tree, qualify authentic replay and CI; preserve active original PR refs.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1284,5 +1284,37 @@
     "product_changed": false,
     "refutation": "UNH/UNT-ref currentlyinternal-held byexistingidentityguard; notasecondacceptedstorageclaim",
     "next": "Actualnativefirstfailure beforeminimalproductfix"
+  },
+  "ediel_full_code_phase_20260930": {
+    "status": "IN_PROGRESS",
+    "baseline_local_and_remote": "885137de838481be6cda58f9af45df6c1655edfe",
+    "current_integrated_local": "fc2e2311",
+    "last_published_remote": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+    "last_published_local_equivalent": "0c39065f",
+    "formal_acceptance_statuses": "unchanged",
+    "latest_code_packets": [
+      "d6bd145f DSN actual source observations and current API/UI",
+      "43fde3d5 shared immutable accepted transport receipt",
+      "fdaf43bb P15 current supply continuity",
+      "5d25da6e/fbbe4cda normal atomic switch and actual initial source scope",
+      "61856b69/fc2e2311 source-approved physical BRP change"
+    ],
+    "latest_quick_checks": {
+      "dsn_typescript": "49 passing assertions, five files",
+      "dsn_embedded_sql": "23 passing explicitly synthetic checks",
+      "dsn_lint": "zero errors/warnings",
+      "full_application_typecheck": "PASS serialized Node22, 4096MB after BRP typed query fix; baseline default2048MB attempt OOM is not a code result"
+    },
+    "external_state": "draft, no merge or production/counterparty traffic; #418/#422 contracts read only and #310 untouched",
+    "final_test_phase": "NOT_RUN fixed final candidate: full unit/native clean+upgrade replay/type-schema parity/security/browser/manual; mandatory CI preserved",
+    "historic_checkpoint_scope": "all older accepted/native/CI entries retain their original exact SHA and narrower scope; never imply final-candidate verification"
+  },
+  "integration_20261001": {
+    "base_head": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
+    "ref_owner": "root owns only isolated branch; previous #421 root still writing observed kernelLegacy",
+    "original_prs": "421/423/418/422/310 preserved",
+    "whole_contract_acceptance": "NOT_APPROVED",
+    "traffic": "HELD",
+    "replay": "PENDING_AUTHENTIC_CI"
   }
 }

@@ -117,7 +117,7 @@ function readStringFact(message: EdielMessageRow, key: string): string | undefin
 }
 
 export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions = {}): CanonicalEdielPolicy | null {
-  if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR') return null
+  if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR' && canonical.family !== 'APERAK' && canonical.family !== 'CONTRL') return null
   if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
 
   const family = canonical.family
@@ -131,7 +131,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     subtypeOrReasonCode: canonical.subtype,
     direction: message.direction,
     referenceDate: timeAnchors.admissionDate,
-    associationAssignedCode: canonical.version,
+    associationAssignedCode: family === 'CONTRL' ? null : canonical.version,
     applicationReference: canonical.applicationReference,
     bilateralCapabilityVerified: readBooleanFact(message, 'bilateralCapabilityVerified'),
     prodatDependentFacts: family === 'PRODAT' ? {

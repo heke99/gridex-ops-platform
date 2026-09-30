@@ -11,6 +11,9 @@ import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
+import {isUtiltsAperakSourceText} from '@/lib/ediel/utilts/aperakSourceText'
+import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/dates'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -39,6 +42,9 @@ export type AperakEngineSource = {
   messageCode?: string | null
   senderEdielId?: string | null
   receiverEdielId?: string | null
+  /** Original own-header NAD actors, distinct from technical UNB endpoints. */
+  legalSenderEdielId?: string | null
+  legalReceiverEdielId?: string | null
   externalReference?: string | null
   messageReceivedAt?: string | null
   createdAt?: string | null
@@ -156,7 +162,10 @@ function normalizeAperakErrors(
         if (field !== null && (!field || field.length > 17 || !/^[A-Za-z0-9_./-]+$/.test(field))) throw new Error('utilts_aperak_field_reference_invalid')
         return field
       })() : sanitizeEdifactToken(error.fieldCode ?? null, 12),
-      text: error.prodatFieldDiagnostic || error.prodatAperakText
+      text: utilts ? (()=>{
+        if(!isUtiltsAperakSourceText(error.ercCode,error.text)) throw new Error('utilts_aperak_source_text_unavailable')
+        return escapeEdifactValue(error.text)
+      })() : error.prodatFieldDiagnostic || error.prodatAperakText
         ? (()=>{if(!isQualifiedProdatApplicationError(error))throw new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED');return escapeEdifactValue(error.text)})()
         : escapeEdifactValue(error.text.trim().slice(0,140)),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
@@ -321,14 +330,20 @@ export function renderAperakEdiel(params: {
     sanitizeEdifactToken(params.transactionReference) ??
     'UNKNOWN'
 
+  const utiltsParties = isUtiltsSource ? originalAckPartyIdentities({rawPayload:params.source.rawPayload,expectedFamily:'UTILTS'}) : null
+  if (utiltsParties && ((params.source.legalSenderEdielId && params.source.legalSenderEdielId !== utiltsParties.legalSender.id)
+    || (params.source.legalReceiverEdielId && params.source.legalReceiverEdielId !== utiltsParties.legalReceiver.id))) {
+    throw new Error('aperak_original_legal_party_projection_conflict')
+  }
   const segments = isUtiltsSource
     ? [
         `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
-        `DTM+137:${swedishDateTime()}:203`,
+        // U p114: +0100 is the offset for every date/time in this APERAK.
+        `DTM+137:${standardTimeMinute()}:203`,
         'DTM+735:?+0100:406',
         `DOC+${sanitizeEdifactToken(sourceWireCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
-        `NAD+MS+${sanitizeEdifactToken(params.source.receiverEdielId) ?? 'UNKNOWN'}:SVK:260`,
-        `NAD+MR+${sanitizeEdifactToken(params.source.senderEdielId) ?? 'UNKNOWN'}:SVK:260`,
+        originalAckLegalNadSegment('MS', utiltsParties!.legalReceiver),
+        originalAckLegalNadSegment('MR', utiltsParties!.legalSender),
         'NAD+DDQ',
       ]
     : [
@@ -350,10 +365,15 @@ export function renderAperakEdiel(params: {
   }
 
   if (!isUtiltsSource) {
+    const originalParties = originalAckPartyIdentities({ rawPayload: params.source.rawPayload, expectedFamily: 'PRODAT' })
+    if ((params.source.legalSenderEdielId && params.source.legalSenderEdielId !== originalParties.legalSender.id)
+      || (params.source.legalReceiverEdielId && params.source.legalReceiverEdielId !== originalParties.legalReceiver.id)) {
+      throw new Error('aperak_original_legal_party_projection_conflict')
+    }
     segments.push(
       `RFF+ACW:${hasProdatWire ? escapeEdifactValue(previousMessageReference) : previousMessageReference}`,
-      `NAD+FR+${sanitizeEdifactToken(params.source.receiverEdielId) ?? 'UNKNOWN'}:160:SVK+++++++SE`,
-      `NAD+DO+${sanitizeEdifactToken(params.source.senderEdielId) ?? 'UNKNOWN'}:160:SVK+++++++SE`
+      originalAckLegalNadSegment('FR', originalParties.legalReceiver),
+      originalAckLegalNadSegment('DO', originalParties.legalSender)
     )
   }
 
@@ -363,12 +383,29 @@ export function renderAperakEdiel(params: {
     )
   }
 
-  const errors: AperakEngineApplicationError[] = params.outcome === 'positive'
-    ? (isUtiltsSource ? positiveIds : [null]).map(reference => ({
-        ercCode:'100', fieldCode:null, text:'OK', referenceQualifier:null,
-        referenceNumber:reference, lineItemReference:reference,
-      }))
-    : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null, isUtiltsSource)
+  const errors: AperakEngineApplicationError[] =
+    params.outcome === 'positive'
+      ? isUtiltsSource
+        ? positiveIds.map(reference => ({ ercCode:'100', fieldCode:null, text:'OK', referenceQualifier:null,
+          referenceNumber:reference, lineItemReference:reference }))
+        : sourceWire
+        ? prodatRegisterGroups(sourceWire.segments, sourceWire.una).groups.filter(group => group.registerPosition === 1).map(group => {
+          const lines = group.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, sourceWire.una)[0] === 'LI')
+          const li = lines.length === 1 ? segmentComposite(lines[0], 1, sourceWire.una)[1] : null
+          if (!li) throw new Error('aperak_prodat_own_line_reference_required')
+          return { ercCode: '100', fieldCode: null, text: 'OK', referenceQualifier: group.itemId ? 'Z07' : null, referenceNumber: group.itemId, lineItemReference: li }
+        })
+        : [
+          {
+            ercCode: '100',
+            fieldCode: null,
+            text: 'OK',
+            referenceQualifier: null,
+            referenceNumber: null,
+            lineItemReference: null,
+          },
+        ]
+      : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null, isUtiltsSource)
 
   for (const [errorIndex, error] of errors.entries()) {
     segments.push(`ERC+${error.ercCode}::260`)
@@ -402,7 +439,7 @@ export function renderAperakEdiel(params: {
     }
   }
 
-  const hasPerErrorReference = errors.some((error) => error.prodatOccurrence || error.referenceNumber)
+  const hasPerErrorReference = errors.some((error) => error.prodatOccurrence || error.referenceNumber || error.lineItemReference)
 
   if (!isUtiltsSource && !hasPerErrorReference && params.refs.meteringPointId) {
     segments.push(`RFF+Z07:${params.refs.meteringPointId}`)
