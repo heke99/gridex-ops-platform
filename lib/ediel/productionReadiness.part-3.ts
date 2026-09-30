@@ -9,6 +9,7 @@ import type { EdielMessageRow } from "@/lib/ediel/types"
 import { EdifactEnvelopeCodec } from "@/lib/ediel/core/edifactEnvelopeCodec"
 import { requireTenantOperationAllowed } from '@/lib/tenant/operationPolicy'
 import type { ProductionDryRunResult } from './productionReadiness.part-1'
+import { assertScopedEdielProductionCapability } from './scopedCapabilityReadiness'
 import { evaluateProductionSendGuardSnapshot, safeCount, upper } from './productionReadiness.part-1'
 import { getCompanyProductionReadiness } from './productionReadiness.part-2'
 
@@ -101,6 +102,21 @@ export async function runProductionDryRun(
 }
 
 export async function assertCompanyCanSendProductionEdiel(params: {
+  companyId: string;
+  actorUserId?: string | null;
+  message: EdielMessageRow;
+}): Promise<void> {
+  if (params.message.environment !== "production") return;
+  if (params.companyId !== params.message.company_id) throw new Error('ediel_scoped_capability_evidence_required')
+  if (['PRODAT', 'UTILTS', 'CONTRL', 'APERAK', 'UTILTS_ERR', 'AI_LIST'].includes(params.message.message_family)) {
+    await assertScopedEdielProductionCapability(params.message)
+    return
+  }
+  // NBS/other platform tracks retain their separately owned existing contract.
+  await assertExternalTrackProductionSend(params)
+}
+
+async function assertExternalTrackProductionSend(params: {
   companyId: string;
   actorUserId?: string | null;
   message: EdielMessageRow;
