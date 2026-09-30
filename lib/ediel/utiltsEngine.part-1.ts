@@ -324,7 +324,7 @@ function hasMoreSpecificFunctionalIssueForReference(params: {
     if (issue.severity !== 'error' || issue.kind !== 'functional') return false
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code || code === params.ignoredCode) return false
-    const issueReference = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
+    const issueReference = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
     return issueReference === reference
   })
 }
@@ -697,7 +697,7 @@ function sanitizeRuntimeToken(value?: string | null, maxLength = 35): string | n
 }
 
 function transactionIssueReference(group: UtiltsTransactionGroup, fallback: string | null): string | null {
-  return sanitizeRuntimeToken(group.transactionId ?? fallback, 35)
+  return normalizedOptionalId(group.transactionId ?? fallback)
 }
 
 function synthesizedTransactionIssueReference(
@@ -713,11 +713,11 @@ function aperakErrorsFromIssues(issues: readonly UtiltsValidationIssue[]): Utilt
     .filter((issue) => issue.severity === 'error' && issue.kind === 'application')
     .map((issue) => ({
       ercCode: sanitizeRuntimeToken(issue.aperakErcCode ?? '40', 12) ?? '40',
-      fieldCode: sanitizeRuntimeToken(issue.aperakFieldCode ?? null, 12),
+      fieldCode: normalizedOptionalId(issue.aperakFieldCode),
       text: issue.aperakText ?? issue.description ?? issue.title,
       referenceQualifier: sanitizeRuntimeToken(issue.referenceQualifier ?? null, 12),
-      referenceNumber: sanitizeRuntimeToken(issue.referenceNumber ?? null, 35),
-      lineItemReference: sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35),
+      referenceNumber: normalizedOptionalId(issue.referenceNumber),
+      lineItemReference: normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber),
     }))
 
   const seen = new Set<string>()
@@ -1385,8 +1385,8 @@ function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationI
   for (const issue of functionalIssues) {
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code) continue
-    const referenceNumber = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
-    const lineItemReference = sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35)
+    const referenceNumber = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
+    const lineItemReference = normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber)
     const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
     const codes = codesByReference.get(referenceKey) ?? new Set<string>()
     codes.add(code)
@@ -1399,8 +1399,8 @@ function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationI
   for (const issue of functionalIssues) {
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code) continue
-    const referenceNumber = sanitizeRuntimeToken(issue.referenceNumber ?? issue.lineItemReference ?? null, 35)
-    const lineItemReference = sanitizeRuntimeToken(issue.lineItemReference ?? issue.referenceNumber ?? null, 35)
+    const referenceNumber = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
+    const lineItemReference = normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber)
     const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
     const codesForReference = codesByReference.get(referenceKey)
 
@@ -1437,7 +1437,7 @@ function serializeUtiltsErrDetails(details: readonly UtiltsRuntimeUtiltsErrDetai
     .map((detail) => {
       const code = sanitizeRuntimeToken(detail.code?.toUpperCase(), 8)
       if (!code) return null
-      const reference = sanitizeRuntimeToken(detail.referenceNumber ?? detail.lineItemReference ?? null, 35)
+      const reference = normalizedOptionalId(detail.referenceNumber ?? detail.lineItemReference)
       return reference ? `${code}@${reference}` : code
     })
     .filter((value): value is string => Boolean(value))

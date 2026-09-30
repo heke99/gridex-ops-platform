@@ -8,6 +8,7 @@ import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRej
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
+import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 // lib/ediel/aperakEngine.ts
@@ -144,12 +145,17 @@ function swedishDateTimeFromEdifactUnb(rawPayload?: string | null): string | nul
 
 function normalizeAperakErrors(
   errors?: readonly AperakEngineApplicationError[] | null,
-  fallbackText?: string | null
+  fallbackText?: string | null,
+  utilts = false,
 ): AperakEngineApplicationError[] {
   const normalized = (errors ?? [])
     .map((error) => ({
       ercCode: sanitizeEdifactToken(error.ercCode, 12) ?? '',
-      fieldCode: sanitizeEdifactToken(error.fieldCode ?? null, 12),
+      fieldCode: utilts ? (() => {
+        const field = error.fieldCode ?? null
+        if (field !== null && (!field || field.length > 17 || !/^[A-Za-z0-9_./-]+$/.test(field))) throw new Error('utilts_aperak_field_reference_invalid')
+        return field
+      })() : sanitizeEdifactToken(error.fieldCode ?? null, 12),
       text: error.prodatFieldDiagnostic || error.prodatAperakText
         ? (()=>{if(!isQualifiedProdatApplicationError(error))throw new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED');return escapeEdifactValue(error.text)})()
         : escapeEdifactValue(error.text.trim().slice(0,140)),
@@ -192,13 +198,26 @@ export function renderAperakEdiel(params: {
   utiltsHeaderRejected?: boolean
 }): AperakEngineResult {
   const isUtiltsSource = usesUtiltsAperakProfile(params.source.messageFamily)
+  let headerRejected = Boolean(params.utiltsHeaderRejected)
+  if (!headerRejected && isUtiltsSource && params.outcome === 'negative'
+    && params.applicationErrors?.length && params.applicationErrors.every(error => !error.referenceNumber && !error.lineItemReference)) {
+    const wire = tokenizeEdifact(params.source.rawPayload)
+    const bgm = wire.segments.find(segment => segment.tag === 'BGM')
+    const messageCode = bgm ? segmentComposite(bgm,1,wire.una)[0] : ''
+    const source = {raw_payload:params.source.rawPayload ?? null,message_family:'UTILTS',message_code:messageCode,
+      message_received_at:params.source.messageReceivedAt ?? null,created_at:params.source.createdAt ?? null} as EdielMessageRow
+    const derived = [...new Set(resolveUtiltsHeaderGuideIssues(source,messageCode)
+      .map(issue => JSON.stringify([issue.aperakErcCode,issue.aperakFieldCode,issue.aperakText])))].sort()
+    const supplied = params.applicationErrors.map(error => JSON.stringify([error.ercCode,error.fieldCode,error.text])).sort()
+    headerRejected = derived.length > 0 && JSON.stringify(derived) === JSON.stringify(supplied)
+  }
   if (params.utiltsHeaderRejected && (!isUtiltsSource || params.outcome !== 'negative'
     || params.utiltsAcknowledgementReference
     || !params.applicationErrors?.length
     || params.applicationErrors.some(error => error.referenceNumber || error.lineItemReference))) {
     throw new Error('utilts_header_aperak_scope_invalid')
   }
-  if (params.utiltsHeaderRejected) {
+  if (headerRejected) {
     const wire = tokenizeEdifact(params.source.rawPayload)
     const unh = wire.segments.find(segment => segment.tag === 'UNH')
     const bgm = wire.segments.find(segment => segment.tag === 'BGM')
@@ -215,6 +234,20 @@ export function renderAperakEdiel(params: {
       || derived.length === 0 || JSON.stringify(derived) !== JSON.stringify(supplied)) {
       throw new Error('utilts_header_aperak_scope_invalid')
     }
+  }
+  const utiltsWire = isUtiltsSource && params.source.rawPayload ? tokenizeEdifact(params.source.rawPayload) : null
+  const physicalIds = utiltsWire ? canonicalUtiltsTransactions(utiltsWire.segments.slice(utiltsWire.segments.findIndex(segment => segment.tag === 'UNH')), utiltsWire.una, 0)
+    .map(transaction => transaction.transactionId).filter((id): id is string => id !== null && id.length > 0) : []
+  const physicalReference = (reference: string | null | undefined): string => {
+    if (!reference) throw new Error('utilts_aperak_transaction_reference_required')
+    if (reference.length > 35 || /[\r\n]/.test(reference)) throw new Error('utilts_aperak_transaction_reference_invalid')
+    if (utiltsWire && !physicalIds.includes(reference)) throw new Error('utilts_aperak_transaction_reference_not_in_source')
+    return reference
+  }
+  const positiveIds = isUtiltsSource && params.outcome === 'positive'
+    ? (params.utiltsAcknowledgementReference ? [physicalReference(params.utiltsAcknowledgementReference)] : physicalIds.map(physicalReference)) : []
+  if (isUtiltsSource && params.outcome === 'positive' && (!positiveIds.length || new Set(positiveIds).size !== positiveIds.length)) {
+    throw new Error('utilts_aperak_transaction_reference_required')
   }
   const sourceWireCode = params.source.messageCode === 'UTILTS_ERR' ? 'ERR' : params.source.messageCode
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
@@ -330,21 +363,14 @@ export function renderAperakEdiel(params: {
     )
   }
 
-  const errors: AperakEngineApplicationError[] =
-    params.outcome === 'positive'
-      ? [
-          {
-            ercCode: '100',
-            fieldCode: null,
-            text: 'OK',
-            referenceQualifier: null,
-            referenceNumber: null,
-            lineItemReference: null,
-          },
-        ]
-      : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null)
+  const errors: AperakEngineApplicationError[] = params.outcome === 'positive'
+    ? (isUtiltsSource ? positiveIds : [null]).map(reference => ({
+        ercCode:'100', fieldCode:null, text:'OK', referenceQualifier:null,
+        referenceNumber:reference, lineItemReference:reference,
+      }))
+    : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null, isUtiltsSource)
 
-  for (const error of errors) {
+  for (const [errorIndex, error] of errors.entries()) {
     segments.push(`ERC+${error.ercCode}::260`)
     segments.push(
       error.fieldCode
@@ -353,12 +379,16 @@ export function renderAperakEdiel(params: {
     )
 
     if (isUtiltsSource) {
-      segments.push(`RFF+DM:${sanitizeEdifactToken(params.transactionReference) ?? 'APE'}`)
-      if (params.utiltsHeaderRejected) continue
-      const utiltsReference = params.outcome === 'positive'
-        ? (sanitizeEdifactToken(params.utiltsAcknowledgementReference) ?? previousMessageReference)
-        : (error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference ?? previousMessageReference)
-      segments.push(`RFF+ACW:${sanitizeEdifactToken(utiltsReference) ?? previousMessageReference}`)
+      // Each APERAK error/confirmation group has its own transaction number.
+      // Keep the old single-group ID, and reserve suffix space before truncating
+      // the generated own ID only. Original IDE identities are never normalized.
+      const suffix = errors.length > 1 ? `-${errorIndex + 1}` : ''
+      const ownId = (sanitizeEdifactToken(params.transactionReference, 35 - suffix.length) ?? 'APE') + suffix
+      segments.push(`RFF+DM:${ownId}`)
+      if (headerRejected) continue
+      const reference = physicalReference(error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference
+        ?? (physicalIds.length === 1 ? physicalIds[0] : null))
+      segments.push(`RFF+ACW:${escapeEdifactValue(reference)}`)
       continue
     }
 
