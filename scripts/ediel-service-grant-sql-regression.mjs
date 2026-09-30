@@ -18,10 +18,11 @@ try{
  create table public.customers(id uuid primary key,company_id uuid not null);
  create table public.platform_market_actors(id uuid primary key);
  create table public.tenant_ediel_profiles(id uuid primary key,company_id uuid not null,environment text,market text,is_enabled boolean,valid_from timestamptz,valid_to timestamptz);
+ create table public.tenant_counterparty_relations(id uuid primary key,company_id uuid,environment text,counterparty_actor_id uuid,relation_type text,is_enabled boolean,valid_from timestamptz,valid_to timestamptz);
  create table public.tenant_actor_roles(company_id uuid,actor_id uuid,environment text,role_code text,valid_from timestamptz,valid_to timestamptz);
  create table public.tenant_actor_identifiers(company_id uuid,actor_id uuid,environment text,identifier_type text,identifier_value text,valid_from timestamptz,valid_to timestamptz);
  create table public.metering_permissions(id uuid primary key default gen_random_uuid(),company_id uuid not null,customer_id uuid not null,status text,purpose_code text,permission_scope text,requested_start_date date,requested_end_date date,source_z14_message_id uuid,inbound_z14_message_id uuid,product_code text,metadata jsonb);
- create table public.metering_permission_sites(company_id uuid,metering_permission_id uuid,customer_id uuid,facility_id text,status text,start_date date,end_date date);
+ create table public.metering_permission_sites(company_id uuid,metering_permission_id uuid,customer_id uuid,facility_id text,status text,start_date date,end_date date,metadata jsonb);
  create table public.company_memberships(company_id uuid,user_id uuid,status text,is_active boolean);
  create function public.gridex_actor_has_company_permission(uuid,uuid,text) returns boolean language sql as 'select true';
  create table public.ediel_messages(id uuid,company_id uuid,environment text,direction text,message_family text,message_code text,execution_context_snapshot jsonb);
@@ -41,18 +42,26 @@ try{
  let result=await db.query(`select ediel_service_assignment_assessment_v1('${uid(1)}','${uid(50)}') as assessment`)
  assert.equal(result.rows[0].assessment.status,'held');assert.equal(result.rows[0].assessment.missing.length,5);checks++
  await rejected(`select ediel_coordinate_service_permission_v1('${uid(3)}','${uid(50)}','${uid(20)}',1,'request_access')`,/ediel_service_command_forbidden/)
- await db.exec(`insert into ediel_service_evidence(company_id,assignment_id,kind,source_reference,source_sha256,source_version,valid_from,status,approved_by,approved_at) select '${uid(1)}','${uid(50)}',kind,'SYNTHETIC FIXTURE ONLY',repeat('a',64),'test','2000-01-01','verified','${uid(20)}','2000-01-01' from unnest(array['end_user_contract','dso_contract','service_contract','downstream_use','privacy_roles']) kind`)
+ await db.exec(`insert into ediel_service_evidence(company_id,assignment_id,kind,source_reference,source_sha256,source_version,valid_from,status,approved_by,approved_at,approved_assignment_version) select '${uid(1)}','${uid(50)}',kind,'SYNTHETIC FIXTURE ONLY',repeat('a',64),'test','2000-01-01','verified','${uid(20)}','2000-01-01',1 from unnest(array['end_user_contract','dso_contract','service_contract','downstream_use','privacy_roles']) kind`)
  result=await db.query(`select ediel_coordinate_service_permission_v1('${uid(1)}','${uid(50)}','${uid(20)}',1,'request_access') as command`)
  assert.equal(result.rows[0].command.status,'permission_required');const permission=result.rows[0].command.permissionId;checks++
+ await rejected(`select ediel_coordinate_service_permission_v1('${uid(1)}','${uid(50)}','${uid(20)}',null,'request_access')`,/ediel_assignment_version_stale/)
+ await rejected(`select ediel_coordinate_service_permission_v1('${uid(1)}','${uid(50)}','${uid(20)}',1,null)`,/ediel_service_command_invalid/)
  result=await db.query(`select ediel_coordinate_service_permission_v1('${uid(1)}','${uid(50)}','${uid(20)}',1,'request_access') as command`)
  assert.equal(result.rows[0].command.status,'reuse_permission');assert.equal(result.rows[0].command.permissionId,permission);checks++
- await db.exec(`update metering_permissions set status='active',source_z14_message_id='${uid(60)}',product_code='8716867000030' where id='${permission}';insert into metering_permission_sites values('${uid(1)}','${permission}','${uid(10)}','point-a','approved','2026-01-01','2026-12-31');
+ await db.exec(`update metering_permissions set status='active',source_z14_message_id='${uid(60)}',product_code='8716867000030' where id='${permission}';insert into metering_permission_sites(company_id,metering_permission_id,customer_id,facility_id,status,start_date,end_date,metadata,start_at,end_at) values('${uid(1)}','${permission}','${uid(10)}','point-a','approved','2026-01-01','2026-12-31','{"source":"inbound_prodat_z14","edielMessageId":"${uid(60)}","mode":"S17","product":"8716867000030"}','2026-01-01','2027-01-01');
  insert into ediel_data_access_grants(id,company_id,beneficiary_company_id,assignment_id,permission_link_id,object_ids,product_ids,fields,purpose,data_start,data_end,valid_from,status) select '${uid(70)}','${uid(1)}','${uid(2)}','${uid(50)}',id,array['point-a'],array['8716867000030'],array['quantity','reading_at'],'analysis','2026-01-01','2027-01-01','2000-01-01','active' from ediel_assignment_permission_links where assignment_id='${uid(50)}';
  insert into ediel_messages values('${uid(60)}','${uid(1)}','test','inbound','PRODAT','Z14','{}'),('${uid(61)}','${uid(1)}','test','inbound','UTILTS','E66','{"receiverActorId":"${uid(30)}","senderActorId":"${uid(31)}","receiverRole":"esco"}');insert into meter_reading_series values('${uid(61)}','${uid(80)}','${uid(1)}','E66','actual','point-a','8716867000030','2026-01-01','2027-01-01','2026-01-03','PT15M');insert into meter_reading_values values('${uid(90)}','${uid(1)}','${uid(80)}','2026-01-02',1.234,'KWH','actual','136');`)
  const project=(fields="array['quantity']",version=1)=>`select ediel_beneficiary_series_page_v1('${uid(2)}','${uid(20)}','${uid(70)}',${version},'analysis','${uid(80)}',${fields},'2026-01-01','2026-01-03') as projection`
+ await rejected(project("array['quantity']",'null'),/ediel_grant_not_current/)
  result=await db.query(project());assert.deepEqual(result.rows[0].projection.rows,[{quantity:1.234}]);checks++
  await rejected(project("array['raw_transaction']"),/ediel_projection_outside_grant/)
  await rejected(project('null'),/ediel_projection_request_invalid/)
+ await db.exec(`update ediel_service_assignments set field_sets=array['reading_at'] where id='${uid(50)}'`)
+ await rejected(project(),/ediel_grant_basis_changed/)
+ await db.exec(`update ediel_service_assignments set field_sets=array['quantity','reading_at'] where id='${uid(50)}'`)
+ await rejected(project(),/ediel_assignment_not_authorized/)
+ await db.exec(`update ediel_service_evidence set approved_assignment_version=3 where assignment_id='${uid(50)}'`) 
  await db.exec(`update meter_reading_series set product_id=null where id='${uid(80)}'`)
  await rejected(project(),/ediel_series_outside_grant/)
  await db.exec(`update meter_reading_series set product_id='8716867000030' where id='${uid(80)}';update ediel_data_access_grants set status='revoked',revoked_at=now() where id='${uid(70)}'`)
