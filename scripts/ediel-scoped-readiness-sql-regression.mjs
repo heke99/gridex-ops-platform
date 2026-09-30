@@ -27,11 +27,15 @@ try {
    create table public.metering_permissions(id uuid,company_id uuid);
    create table public.ediel_data_access_grants(id uuid,company_id uuid,permission_link_id uuid);
    create function public.ediel_service_assignment_assessment_v1(uuid,uuid) returns jsonb language sql as $$select '{"status":"held"}'::jsonb$$;
+   create table public.ediel_rule_packs(id uuid,family text,market text,status text,source_hash text);
+   create table public.ediel_message_profiles(id uuid,rule_pack_id uuid,profile_key text,transaction_subtype text,profile jsonb,is_enabled boolean,message_code text,direction text);
+   create table public.ediel_rule_profile_versions(id uuid,company_id uuid,version text,status text,checksum text,source_revision text);
    create table public.platform_runtime_readiness(id boolean,is_ready boolean);
    create table public.ediel_certification_evidence(id uuid,company_id uuid,environment text,status text,external_reference text,evidence_document_reference text,approved_by uuid,approved_at timestamptz,tested_at timestamptz,valid_until timestamptz,metadata jsonb,evidence_type text);`)
   const inherited = readFileSync(new URL('../supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql', import.meta.url), 'utf8')
   await db.exec(inherited.slice(inherited.indexOf('CREATE FUNCTION gridex_utilts_binding.wire_tokens_v1'), inherited.indexOf('REVOKE ALL ON FUNCTION gridex_utilts_binding.wire_tokens_v1')))
   await db.exec(readFileSync(new URL('../supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql', import.meta.url), 'utf8')); checks++
+  await db.exec(readFileSync(new URL('../supabase/migrations/20260930154424_ediel_readiness_current_rule_dependencies.sql', import.meta.url), 'utf8')); checks++
   const args = [uid(1), uid(2), uid(3), 'electricity_supplier', 'PRODAT', 'Z01', 'L', null, 'f'.repeat(40), 'a'.repeat(64)]
   const placeholders = args.map((_, n) => `$${n + 1}`).join(',')
   const readiness = async () => (await db.query(`select public.ediel_scoped_capability_readiness_v1(${placeholders}) result`, args)).rows[0].result
@@ -46,7 +50,9 @@ try {
   await db.exec(`update tenant_actor_roles set valid_to='2001-01-01' where id='${uid(9)}';update tenant_message_capabilities set is_enabled=false where id='${uid(11)}'`)
   assert.equal((await readiness()).dependencyHash, first.dependencyHash); checks++
   await db.exec(`update ediel_route_profiles set receiver_subaddress='changed' where id='${uid(4)}'`)
-  const changed = await readiness(); assert.notEqual(changed.dependencyHash, first.dependencyHash); checks++
+  const routeChanged = await readiness(); assert.notEqual(routeChanged.dependencyHash, first.dependencyHash); checks++
+  await db.exec(`insert into ediel_rule_packs values('${uid(100)}','PRODAT','electricity','active',repeat('c',64));insert into ediel_message_profiles values('${uid(101)}','${uid(100)}','scoped-z01','L','{}',true,'Z01','outbound')`)
+  const changed = await readiness(); assert.notEqual(changed.dependencyHash, routeChanged.dependencyHash); checks++
   await assert.rejects(db.query(`select public.ediel_record_scoped_capability_evidence_v1(${placeholders},$11,$12::uuid[],$13::timestamptz)`, [...args, changed.dependencyHash, [], '2099-01-01']), /ediel_scoped_capability_evidence_required/); checks++
   const evidenceIds = ['TGT', 'AGT', 'SHADOW_PRODUCTION', 'LIVE_TENANT_INTEGRITY', 'RESTORE_REPLAY'].map((type, index) => ({ type, id: uid(20 + index) }))
   for (const evidence of evidenceIds) {

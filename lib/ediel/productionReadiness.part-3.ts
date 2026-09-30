@@ -9,19 +9,29 @@ import type { EdielMessageRow } from "@/lib/ediel/types"
 import { EdifactEnvelopeCodec } from "@/lib/ediel/core/edifactEnvelopeCodec"
 import { requireTenantOperationAllowed } from '@/lib/tenant/operationPolicy'
 import type { ProductionDryRunResult } from './productionReadiness.part-1'
-import { assertScopedEdielProductionCapability } from './scopedCapabilityReadiness'
+import { assertScopedEdielProductionCapability, getScopedEdielProductionReadiness } from './scopedCapabilityReadiness'
 import { evaluateProductionSendGuardSnapshot, safeCount, upper } from './productionReadiness.part-1'
 import { getCompanyProductionReadiness } from './productionReadiness.part-2'
 
 export async function runProductionDryRun(
   companyId: string,
   actorUserId: string,
+  message?: EdielMessageRow,
 ): Promise<ProductionDryRunResult> {
   const readiness = await getCompanyProductionReadiness(companyId, {
     checkedBy: actorUserId,
     persist: true,
   });
-  const allowed = readiness.blockingIssues.length === 0;
+  let scopeEvidence: Awaited<ReturnType<typeof getScopedEdielProductionReadiness>> | null = null
+  if (message?.company_id === companyId && message.environment === 'production' && message.direction === 'outbound') {
+    try { scopeEvidence = await getScopedEdielProductionReadiness(message) } catch { /* explicit held projection below */ }
+  }
+  const scopeReady = scopeEvidence?.ready === true && Boolean(scopeEvidence.evidenceId) &&
+    Number.isFinite(Date.parse(scopeEvidence.expiresAt ?? '')) && Date.parse(scopeEvidence.expiresAt!) > Date.now()
+  const scopeIssue = { code: 'capability_scope_evidence_required', label: 'Kapabilitetsbevis saknas',
+    message: 'Välj ett faktiskt produktionsmeddelande med aktuellt bevis för juridisk aktör, roll och kapabilitet.', severity: 'blocking' as const, area: 'tests' as const }
+  const blockingIssues = scopeReady ? readiness.blockingIssues : [...readiness.blockingIssues, scopeIssue]
+  const allowed = blockingIssues.length === 0;
   const result: ProductionDryRunResult = {
     success: allowed,
     status: allowed
@@ -29,10 +39,15 @@ export async function runProductionDryRun(
         ? "warning"
         : "allowed"
       : "blocked",
-    blockingIssues: readiness.blockingIssues,
+    blockingIssues,
     warnings: readiness.warnings,
     previewMetadata: {
       dryRunOnly: true,
+      capabilityScope: scopeEvidence?.scope ?? null,
+      capabilityEvidenceId: scopeEvidence?.evidenceId ?? null,
+      capabilityDependencyHash: scopeEvidence?.dependencyHash ?? null,
+      capabilityScopeReady: scopeReady,
+      messageId: message?.id ?? null,
       companyId,
       environment: "production",
       edielId: readiness.summary.edielId,

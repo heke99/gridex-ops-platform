@@ -1,13 +1,14 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { assertScopedEdielProductionCapability, getScopedEdielProductionReadiness, recordScopedEdielProductionEvidence } from '@/lib/ediel/scopedCapabilityReadiness'
-import { assertCompanyCanSendProductionEdiel } from '@/lib/ediel/productionReadiness.part-3'
+import { assertCompanyCanSendProductionEdiel, runProductionDryRun } from '@/lib/ediel/productionReadiness.part-3'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { AI_LIST_SOURCE_PROFILE } from '@/lib/ediel/aiListFormat'
 
-const io = vi.hoisted(() => ({ rpc: vi.fn(), identity: vi.fn(), tenant: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc } }))
+const io = vi.hoisted(() => ({ rpc: vi.fn(), identity: vi.fn(), tenant: vi.fn(), readiness: vi.fn(), from: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc, from: io.from } }))
 vi.mock('@/lib/ediel/tenant/tenantEdielIdentity', () => ({ resolveCanonicalTenantEdielIdentity: io.identity }))
 vi.mock('@/lib/tenant/operationPolicy', () => ({ requireTenantOperationAllowed: io.tenant }))
+vi.mock('@/lib/ediel/productionReadiness.part-2', () => ({ getCompanyProductionReadiness: io.readiness }))
 
 const company = 'c1c11111-1111-1111-1111-111111111111'
 const actor = 'a1a11111-1111-1111-1111-111111111111'
@@ -24,6 +25,9 @@ beforeEach(() => {
   io.rpc.mockReset(); io.identity.mockReset(); io.tenant.mockReset()
   io.identity.mockResolvedValue({ companyId: company, legalActorId: actor, legalEdielId: '54321', transportEdielId: '54321', roleCodes: ['electricity_supplier'] })
   io.rpc.mockResolvedValue({ data: result(), error: null }); io.tenant.mockResolvedValue({ allowed: true })
+  io.readiness.mockResolvedValue({ blockingIssues: [], warnings: [], summary: { productionStatus: 'live', edielId: null }, latestCheck: { id: 'aggregate' } })
+  const chain = { select: () => chain, eq: () => chain, single: async () => ({ data: { configuration_snapshot_id: 'snapshot', configuration_hash: hash }, error: null }), insert: async () => ({ error: null }) }
+  io.from.mockReturnValue(chain)
   vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'f'.repeat(40))
 })
 
@@ -44,6 +48,20 @@ it('retains explicit tenant lifecycle policy for production business traffic', a
   io.tenant.mockRejectedValue(new Error('tenant_operation_blocked'))
   await expect(assertCompanyCanSendProductionEdiel({ companyId: company, message: message() })).rejects.toThrow('tenant_operation_blocked')
   expect(io.rpc).not.toHaveBeenCalled()
+})
+
+it('keeps a generic company dry-run explicitly blocked without actual message-scope evidence', async () => {
+  const dryRun = await runProductionDryRun(company, 'operator')
+  expect(dryRun.success).toBe(false); expect(dryRun.status).toBe('blocked')
+  expect(dryRun.previewMetadata).toMatchObject({ capabilityScopeReady: false, capabilityEvidenceId: null, wouldBeBlocked: true, wouldSend: false })
+  expect(dryRun.blockingIssues.map(issue => issue.code)).toContain('capability_scope_evidence_required')
+  expect(io.rpc).not.toHaveBeenCalled()
+})
+
+it('projects a dry-run against the actual scoped immutable capability evidence', async () => {
+  const dryRun = await runProductionDryRun(company, 'operator', message())
+  expect(dryRun.success).toBe(true)
+  expect(dryRun.previewMetadata).toMatchObject({ capabilityScopeReady: true, capabilityEvidenceId: 'proof', capabilityDependencyHash: hash, messageId: 'm', wouldSend: false })
 })
 it('rejects cross-tenant scoped projections even if ready is true', async () => {
   io.rpc.mockResolvedValue({ data: { ...result(), scope: { ...result().scope, companyId: 'foreign' } }, error: null })
