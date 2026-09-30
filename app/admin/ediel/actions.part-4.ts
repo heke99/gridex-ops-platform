@@ -959,8 +959,11 @@ export async function prepareAiListAction(formData: FormData) {
   if (!receiverEdielId) throw new Error("receiverEdielId saknas");
   if (!fromDate || !toDate) throw new Error("fromDate/toDate saknas");
 
+  if (!context.companyId) throw new Error("AI export kräver verifierat valt företag");
+
   const message = await prepareAndQueueAiList({
     actorUserId: context.userId,
+    companyId: context.companyId,
     listType,
     customerId,
     siteId,
