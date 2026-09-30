@@ -1,6 +1,7 @@
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { utiltsQuantityUnitGuideIssues } from '@/lib/ediel/utilts/quantityUnitScope'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
 import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
@@ -799,7 +800,7 @@ export function runUtiltsRuntimeForMessage(
     aperakErcCode:'42',aperakFieldCode:violation.field,aperakText:'INCORRECT DATA',referenceQualifier:transaction.transactionId ? 'ACW' : null,
     referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId,
   })))
-  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
+  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
   const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   if (options?.guideOnly) return guided
   const eligible = new Set(guided.transactionDispositions

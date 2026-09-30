@@ -46,6 +46,16 @@ function incoming(held = false, mixed = false, date = '2026-10-01') {
   if(date<'2026-10-01')message.raw_payload=message.raw_payload!.replace('QTY+220:11000','QTY+220:10500')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   if (mixed) {
+    if (held) {
+      // U15 requires a compatible quarter batch. The reading-bearing IDE still
+      // requires authentic structural inventory; equal resolution never grants it.
+      message.application_reference = '23-DDQ-E66-T'
+      message.raw_payload = message.raw_payload!.replace('23-DDQ-E66-S','23-DDQ-E66-T')
+        .replace('DTM+354:1:802','DTM+354:15:806')
+        .replace('202607010000202608010000:719','202607010000202607010015:719')
+        .replace('DTM+597:202608010000:203','DTM+597:202607010020:203')
+        .replace('DTM+597:202608010000:203','DTM+597:202607010015:203')
+    }
     const lines = message.raw_payload!.split('\n')
     const energy = energyHandoffMessage().raw_payload!.split('\n')
     const second = energy.slice(energy.findIndex(line => line.startsWith('IDE+24')), energy.findIndex(line => line.startsWith('UNT+')))
@@ -58,6 +68,16 @@ function incoming(held = false, mixed = false, date = '2026-10-01') {
 }
 const accepted = (id: string) => ({ transactionId: id, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' })
 const failed = { transactionId: 'GRIDEX2607E66001', disposition: 'processability_rejected', responseType: 'utilts_err', persistenceStatus: 'failed', issueCodes: ['UTILTS_PERSISTENCE_FAILED'] }
+it('persists an own observation unit guide rejection before drafting its negative ACK',async()=>{
+  const message=incoming()
+  message.raw_payload=recountEdifactUnt(message.raw_payload!.replace("SEQ++1'","SEQ++1'\nMEA+AAZ++MWH'"))
+  io.get.mockResolvedValue(message)
+  results=[{transactionId:'GRIDEX2607E66001',disposition:'guide_rejected',responseType:'negative_aperak',persistenceStatus:'not_applicable'}]
+  await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
+  expect(io.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1',expect.objectContaining({p_transactions:expect.arrayContaining([expect.objectContaining({disposition:'guide_rejected',responseType:'negative_aperak'})])}))
+  expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='APERAK')).toHaveLength(1)
+  expect(io.meter).not.toHaveBeenCalled();expect(io.bill).not.toHaveBeenCalled()
+})
 it('holds an S07 without BGM code-list qualifier SVK before business persistence', async () => {
   const message = observationHandoffMessage('2026-09-30')
   message.message_code = 'S07'; message.application_reference = '23-DDQ-S07-S'
@@ -263,7 +283,7 @@ it('held sibling keeps its empty persisted quantities and no positive ACK while 
   const result = await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
   expect(result.internalReviewRequired).toBe(true)
   const call = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')!
-  expect(call[1].p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'internal_review', quantities: [] }, { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', quantities: [{ value: 7 }] }])
+  expect(call[1].p_transactions).toMatchObject([{ transactionId: 'GRIDEX2607E66001', disposition: 'internal_review', quantities: [] }, { transactionId: 'GRIDEX2607E66002', disposition: 'accepted', quantities: [{ value: '7' }] }])
   const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
   expect(aperaks).toHaveLength(1)
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('GRIDEX2607E66002')
@@ -287,11 +307,11 @@ it('real inbound keeps a guide-invalid E66 IDE separate from a valid sibling thr
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(2)
   expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1)
-  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: '7' }))
   expect(io.complete).not.toHaveBeenCalled()
 })
 it('routes a supplied invalid E66 LOC+172 identity to 209 without consuming its IDE', async () => {
-  const message = incoming(true, true, '2026-10-01')
+  const message = incoming(true, true, '2026-10-15')
   message.raw_payload = message.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')
   io.get.mockResolvedValue(message)
   results = [
@@ -310,12 +330,12 @@ it('routes a supplied invalid E66 LOC+172 identity to 209 without consuming its 
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('209')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1)
-  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: '7' }))
   expect(io.complete).not.toHaveBeenCalled()
 })
 it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'missing']] as const)(
   'routes %s LOC+172 %s to 209 with no business effects', async (code, defect) => {
-  const message = incoming(true, false, '2026-10-01')
+  const message = incoming(true, false, '2026-10-15')
   message.message_code = code
   message.application_reference = code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S'
   message.raw_payload = message.raw_payload!
@@ -335,7 +355,7 @@ it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'mi
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
   })
 it('routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK without business effects', async () => {
-  const message = incoming(true, false, '2026-10-01')
+  const message = incoming(true, false, '2026-10-15')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
   message.customer_id = null; message.site_id = null; message.metering_point_id = null
   message.raw_payload = message.raw_payload!
@@ -556,7 +576,7 @@ it.each([
   ['E73', '23-DDQ-E66-S', 'LOC+175', '533', 'invalid'],
   ['S06', '23-DDK-S01-S', 'LOC+175', '533', 'invalid'],
 ] as const)('persists %s request identity defect as tenant-bound negative APERAK', async (code, applicationReference, location, fieldCode, defect) => {
-  const message = incoming(true, false, '2026-10-01')
+  const message = incoming(true, false, '2026-10-15')
   message.message_code = code; message.application_reference = applicationReference
   message.customer_id = null; message.site_id = null; message.metering_point_id = null
   message.raw_payload = message.raw_payload!
@@ -594,7 +614,7 @@ it('routes an invalid IDE qualifier to field 505 APERAK while preserving its val
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('505')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1); expect(io.complete).not.toHaveBeenCalled()
-  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: '7' }))
 })
 it('routes a malformed supplied grid-area composite to 260a without rejecting its valid IDE sibling', async () => {
   const message = incoming(true, true, '2026-09-30')
@@ -615,7 +635,7 @@ it('routes a malformed supplied grid-area composite to 260a without rejecting it
   expect(JSON.stringify(aperaks[0][0].draft)).toContain('260a')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1); expect(io.complete).not.toHaveBeenCalled()
-  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: 7 }))
+  expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'GRIDEX2607E66002', quantityKwh: '7' }))
   expect(io.meter.mock.invocationCallOrder[0]).toBeLessThan(io.ack.mock.invocationCallOrder[0])
 })
 for (const [present, missing] of [['232', '260c'], ['233', '260b']] as const) it(`routes orphan LOC+${present} to missing ${missing} before E66 function and business writes`, async () => {
@@ -656,7 +676,7 @@ it('prior applicable reading is held while an eligible 15-minute energy sibling 
  expect(result.internalReviewRequired).toBe(true)
  const persisted=io.rpc.mock.calls.find(([name])=>name==='gridex_persist_utilts_consumption_v1')![1]
  expect(persisted.p_transactions).toMatchObject([{disposition:'internal_review',responseType:'none',quantities:[]},
-  {disposition:'accepted',responseType:'positive_aperak',quantities:[{value:7}]}])
+  {disposition:'accepted',responseType:'positive_aperak',quantities:[{value:'7'}]}])
  const aperaks=io.ack.mock.calls.filter(([call])=>call.ackFamily==='APERAK')
  expect(aperaks).toHaveLength(1)
  expect(JSON.stringify(aperaks[0][0].draft)).not.toContain('GRIDEX2607E66001')
@@ -675,7 +695,7 @@ it('prior held reading, exempt energy and E19-rejected sibling retain three inde
  await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
  const persisted=io.rpc.mock.calls.find(([name])=>name==='gridex_persist_utilts_consumption_v1')![1].p_transactions
  expect(persisted).toMatchObject([{disposition:'internal_review',quantities:[]},
-  {disposition:'accepted',quantities:[{value:7}]},{disposition:'processability_rejected',responseType:'utilts_err'}])
+  {disposition:'accepted',quantities:[{value:'7'}]},{disposition:'processability_rejected',responseType:'utilts_err'}])
  expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='APERAK')).toHaveLength(1)
  expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='UTILTS_ERR')).toHaveLength(1)
  expect(io.meter).not.toHaveBeenCalled();expect(io.bill).not.toHaveBeenCalled()
@@ -688,7 +708,7 @@ for (const invalid of ['missing tenant', 'duplicate physical identities']) it(`p
   io.get.mockResolvedValue(message)
   results = [accepted('GRIDEX2607E66001'), accepted('GRIDEX2607E66001')]
   await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow(
-    invalid === 'missing tenant' ? 'saknar tenantkoppling' : 'utilts_transaction_persistence_invalid_result',
+    invalid === 'missing tenant' ? 'saknar tenantkoppling' : invalid === 'duplicate physical identities' ? 'physical_quantity_membership' : 'utilts_transaction_persistence_invalid_result',
   )
   expect(io.ack).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
   expect(io.findOutbound).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
