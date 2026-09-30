@@ -1,4 +1,5 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 import {observationHandoffMessage,energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {ownerId} from './helpers/sourceOwnerFixtures'
 import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
@@ -56,7 +57,7 @@ it.each(['second-reading','energy'] as const)('prior E30 %s without period/resol
   :["SEQ++2'","QTY+136:1'","DTM+597:202610150000:203'"]
  const lines=priorE30PointWire('E24','METER-1','735999260731000007').split('\n')
  const end=lines.findIndex(line=>line.startsWith('UNT+'))
- lines.splice(end,0,...extra);lines[end+extra.length]=`UNT+${lines.length-2}+1'`
+ lines.splice(end,0,...extra);lines[end+extra.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  message.raw_payload=lines.join('\n')
  const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E30',direction:'inbound',referenceDate:'2026-09-30',
   applicationReference:message.application_reference,mode:'parse'})
@@ -137,7 +138,7 @@ it('isolates LOC+175 and LOC+172 sibling IDEs through disposition, ACK and persi
  const sibling=lines.slice(start,end).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002'))
  lines[start+1]=lines[start+1].replace('LOC+172','LOC+175')
  lines.splice(end,0,...sibling)
- lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ lines[end+sibling.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.facts.transactions).toMatchObject([
@@ -164,7 +165,7 @@ it('does not borrow a sibling LOC+172 when an E66 IDE lacks both identities',()=
  const start=lines.findIndex(line=>line.startsWith('IDE+24+'))
  const end=lines.findIndex(line=>line.startsWith('UNT+'))
  lines.splice(end,0,...lines.slice(start,end).filter(line=>!line.startsWith('LOC+172')).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002')))
- lines[lines.findIndex(line=>line.startsWith('UNT+'))]=`UNT+${lines.length-2}+1'`
+ lines[lines.findIndex(line=>line.startsWith('UNT+'))]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  const runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(runtime.transactionDispositions).toMatchObject([{disposition:'accepted'},{disposition:'guide_rejected'}])
@@ -173,7 +174,7 @@ it('does not borrow a sibling LOC+172 when an E66 IDE lacks both identities',()=
 })
 it('holds an ambiguous E66 IDE with both object domains instead of consuming it as LOC+172',async()=>{
  const args=input(true)
- args.message.raw_payload=args.message.raw_payload!.replace("LOC+239+TES:SVK:260'", "LOC+175+735999260731000007::9'\nLOC+239+TES:SVK:260'")
+ args.message.raw_payload=recountEdifactUnt(args.message.raw_payload!.replace("LOC+239+TES:SVK:260'", "LOC+175+735999260731000007::9'\nLOC+239+TES:SVK:260'"))
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  const result=await qualifyReceivedUtiltsStructure(args)
  expect(result.runtime.transactionDispositions).toMatchObject([{disposition:'internal_review',responseType:'none'}])
@@ -204,7 +205,7 @@ it('checks a GS1 LOC+175 check digit per IDE and keeps distributor IDs outside G
  lines[start+1]=lines[start+1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000006::9')
  sibling[1]=sibling[1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')
  lines.splice(end,0,...sibling)
- lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ lines[end+sibling.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  const runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(runtime.validation.issues.filter(issue=>issue.aperakFieldCode==='533')).toMatchObject([
@@ -228,7 +229,7 @@ it('keeps a valid LOC+172 sibling while LOC+175 agency fails field 533',async()=
  const sibling=lines.slice(start,end).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002'))
  lines[start+1]=lines[start+1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::260')
  lines.splice(end,0,...sibling)
- lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ lines[end+sibling.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions).toMatchObject([
@@ -254,7 +255,7 @@ it('holds an unproved reading while preserving an exempt energy sibling in the s
   "SEQ++1'", "QTY+136:500'", "DTM+597:202607010000:203'", "STS+7++21::260'",
  ]
  lines.splice(close,0,...second)
- lines[close+second.length]=`UNT+${lines.length-2}+1'`
+ lines[close+second.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([

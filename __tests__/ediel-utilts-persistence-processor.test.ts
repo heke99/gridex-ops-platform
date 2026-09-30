@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 import { e72PointRequestMessage } from './helpers/utiltsE72PointRequest'
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
 import { findMatchingGridOwnerDataRequest } from '@/lib/ediel/matching'
@@ -50,7 +51,7 @@ function incoming(held = false, mixed = false, date = '2026-10-01') {
     const second = energy.slice(energy.findIndex(line => line.startsWith('IDE+24')), energy.findIndex(line => line.startsWith('UNT+')))
       .map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002').replace('QTY+136:500', 'QTY+136:7'))
     const close = lines.findIndex(line => line.startsWith('UNT+'))
-    lines.splice(close, 0, ...second); lines[close + second.length] = `UNT+${lines.length - 2}+1'`
+    lines.splice(close, 0, ...second); lines[close + second.length] = `UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
     message.raw_payload = lines.join('\n')
   }
   return message
@@ -321,6 +322,7 @@ it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'mi
     .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
     .replace('23-DDQ-E66-S', message.application_reference)
     .replace('LOC+172+735999260731000007::9', defect === 'invalid' ? 'LOC+172+735999260731000008::9' : '')
+  message.raw_payload = recountEdifactUnt(message.raw_payload)
   io.get.mockResolvedValue(message)
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
@@ -561,6 +563,7 @@ it.each([
     .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
     .replace('23-DDQ-E66-S', applicationReference)
     .replace('LOC+172+735999260731000007::9', defect === 'missing' ? '' : `${location}+735999260731000008::9`)
+  message.raw_payload = recountEdifactUnt(message.raw_payload)
   io.get.mockResolvedValue(message)
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
@@ -618,7 +621,7 @@ it('routes a malformed supplied grid-area composite to 260a without rejecting it
 for (const [present, missing] of [['232', '260c'], ['233', '260b']] as const) it(`routes orphan LOC+${present} to missing ${missing} before E66 function and business writes`, async () => {
   const message = incoming(true, false, '2026-09-30')
   const lines = message.raw_payload!.replace("LOC+239+TES:SVK:260'", `LOC+239+TES:SVK:260'\nLOC+${present}+ABC:SVK:260'`).split('\n')
-  lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
+  lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
   message.raw_payload = lines.join('\n')
   io.get.mockResolvedValue(message)
   results = [{ transactionId: 'GRIDEX2607E66001', disposition: 'guide_rejected', responseType: 'negative_aperak', persistenceStatus: 'not_applicable' }]
@@ -665,7 +668,7 @@ it('prior held reading, exempt energy and E19-rejected sibling retain three inde
   second=lines.findIndex((line,index)=>index>first&&line.startsWith('IDE+24+')),
   end=lines.findIndex(line=>line.startsWith('UNT+'))
  const rejected=lines.slice(first,second).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66003').replace('QTY+220:10500','QTY+220:11000'))
- lines.splice(end,0,...rejected);lines[end+rejected.length]=`UNT+${lines.length-2}+1'`
+ lines.splice(end,0,...rejected);lines[end+rejected.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  message.raw_payload=lines.join('\n');io.get.mockResolvedValue(message)
  results=[{transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none',persistenceStatus:'not_applicable'},
   accepted('GRIDEX2607E66002'),{transactionId:'GRIDEX2607E66003',disposition:'processability_rejected',responseType:'utilts_err',persistenceStatus:'not_applicable'}]

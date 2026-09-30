@@ -119,6 +119,8 @@ export type UtiltsRuntimeUtiltsErrDetail = {
 }
 
 export type UtiltsRuntimeAckPlan = {
+  /** Set only by the canonical physical header guide; never by ACK scope. */
+  utiltsHeaderRejection?: { applicationErrors: UtiltsAperakApplicationError[] }
   shouldSendContrl: boolean
   contrlOutcome: EdielAckOutcome | null
   shouldSendAperak: boolean
@@ -1468,20 +1470,6 @@ export function decideUtiltsRuntimeAckPlan(params: {
     }
   }
 
-  if (params.facts.isUtiltsErr || String(params.facts.messageCode).toUpperCase() === 'ERR') {
-    return {
-      shouldSendContrl: true,
-      contrlOutcome: 'positive',
-      shouldSendAperak: true,
-      aperakOutcome: 'positive',
-      shouldSendUtiltsErr: false,
-      utiltsErrDetails: [],
-      utiltsErrCodes: [],
-      aperakApplicationErrors: [],
-      reason: 'Inbound UTILTS-ERR syntaxkvitteras med CONTRL och applikationskvitteras med positiv APERAK.',
-    }
-  }
-
   if (params.validation.classification === 'syntax_rejected') {
     return {
       shouldSendContrl: true,
@@ -1493,6 +1481,20 @@ export function decideUtiltsRuntimeAckPlan(params: {
       utiltsErrCodes: [],
       aperakApplicationErrors: [],
       reason: 'EDIFACT-syntaxen kunde inte accepteras.',
+    }
+  }
+
+  if (params.facts.isUtiltsErr || String(params.facts.messageCode).toUpperCase() === 'ERR') {
+    return {
+      shouldSendContrl: true,
+      contrlOutcome: 'positive',
+      shouldSendAperak: true,
+      aperakOutcome: 'positive',
+      shouldSendUtiltsErr: false,
+      utiltsErrDetails: [],
+      utiltsErrCodes: [],
+      aperakApplicationErrors: [],
+      reason: 'Inbound UTILTS-ERR syntaxkvitteras med CONTRL och applikationskvitteras med positiv APERAK.',
     }
   }
 

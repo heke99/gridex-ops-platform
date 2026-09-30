@@ -10,8 +10,24 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR #421 U-03/ACK-03 native syntax/header scope test-first package",
-  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-syntax-header-scope-20260930.md",
+  "active_item": "PR #421 coherent U-03/ACK-03/SC045 syntax-header remediation; final-head CI pending",
+  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-syntax-header-remediation-20260930.md",
+  "pr421_syntax_header_remediation_20260930": {
+    "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
+    "baseline_ops": 36702357516,
+    "baseline_replay_job": 109844514929,
+    "baseline_native": "439/442; UNT999 accepted series+contract, OTHER positive CONTRL with no accepted storage, SC045 two APERAKs",
+    "product_scope": "canonical syntax early, physically qualified header ACK, every affected projection/override/draft path; unchanged tenant finalizer; no SQL or frozen register change",
+    "ordinary_tests": "6296/6296 PASS, 388 files, Node22.23.3",
+    "quality_tests": "45/45 PASS",
+    "static_checks": "app/tests/scripts TypeScript PASS4096MB; lint0errors; mechanical/register/migration/service-role/large-file PASS",
+    "extra_baseline_failures": "Z14N script263 and stale UTILTS environment-facade assertion fail identically at e0 and candidate; ACK regression passes both",
+    "independent_review": "APPROVE bounded corrected scope;68/68targeted; no Critical/Important",
+    "publication": "exact future head/tree in PR comment; not self-referential source-tree assertion",
+    "native_final_head": "PENDING; local Docker/PostgreSQL unavailable",
+    "acceptance": "SC045 and widerU03/ACK03 NOT_APPROVED; retain previousSC044 only",
+    "external_state": "draft/no force/no merge/no traffic; #418/#422/#310 untouched"
+  },
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Fast-forward publish SC044PASSED receipt + full352ID current owner/gap/gate map +3native syntax/header probes fromd30. Require actual442native; inspect first actualfailure before any product correction, then minimal source-backed fix and exactnewheadfivegates. Reuse green E72/E73/ERR/S02. External authentic records remainBLOCKED; no traffic/merge.",
+  "next_action": "After remote/comment recheck, publish coherent syntax-header product package exact-tree fast-forward frome0 to draft421 and verify remote tree. Inspect auto-triggered exactnewheadfivegates/native442/case/browser/types/schema; only approve affectedcontracts after actualproof. No unchangedgreenrerun or externalrecords invention; no traffic/merge.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,

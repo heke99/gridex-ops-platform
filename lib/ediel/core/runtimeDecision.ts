@@ -36,6 +36,7 @@ export type CanonicalResponsePlanItem = {
   ftx?: string | null
   reason: string
   applicationErrors?: EdielAperakApplicationError[]
+  utiltsHeaderRejected?: boolean
 }
 
 export type CanonicalDecisionIssue = {
@@ -268,7 +269,8 @@ function resolveUtiltsDecision(params: {
       erc: runtime.ackPlan.aperakApplicationErrors[0]?.ercCode ?? '41',
       ftx: runtime.ackPlan.aperakApplicationErrors[0]?.text ?? runtime.ackPlan.reason,
       reason: runtime.ackPlan.reason || 'UTILTS anvisnings-/applikationsfel ska besvaras med negativ APERAK.',
-      applicationErrors: runtime.ackPlan.aperakApplicationErrors.map((item) => ({
+      utiltsHeaderRejected: Boolean(runtime.ackPlan.utiltsHeaderRejection),
+      applicationErrors: (runtime.ackPlan.utiltsHeaderRejection?.applicationErrors ?? runtime.ackPlan.aperakApplicationErrors).map((item) => ({
         ercCode: item.ercCode,
         fieldCode: item.fieldCode ?? null,
         text: item.text,

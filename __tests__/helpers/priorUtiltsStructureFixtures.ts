@@ -1,4 +1,5 @@
 import {observationHandoffMessage} from './utiltsObservationHandoff'
+import { recountEdifactUnt } from './recountEdifactUnt'
 
 /** Own observed bytes only; expected meter and registers must come from a
  * separately reviewed PRODAT source. Keep the singleton without a period. */
@@ -11,10 +12,10 @@ export function priorE30PointWire(reason:'E20'|'E77'|'E24'|'E25'|'E67'|'E64',met
   "SEQ++1'","RFF+AES:101'",`RFF+MG:${meter}'`,"QTY+220:10000'","DTM+597:202610150000:203'")
  const remove=(prefix:string)=>{const index=lines.findIndex(line=>line.startsWith(prefix));if(index>=0)lines.splice(index,1)}
  remove('DTM+324:');remove('DTM+354:')
- return lines.join('\n').replace('BGM+E66','BGM+E30').replaceAll('23-DDQ-E66-S','23-MDR-E30-T')
+ return recountEdifactUnt(lines.join('\n').replace('BGM+E66','BGM+E30').replaceAll('23-DDQ-E66-S','23-MDR-E30-T')
   .replaceAll('735999260731000007',point).replace('STS+7++E88',`STS+7++${reason}`)
   .replace('?+0200','?+0100').replaceAll('202608010000','202610150000')
-  .replaceAll('UNT+35+1',`UNT+${lines.length-2}+1`)
+ )
 }
 
 export function priorE66MembershipWire(raw:string,kind:'missing'|'excess'){
@@ -27,7 +28,5 @@ export function priorE66MembershipWire(raw:string,kind:'missing'|'excess'){
  else {lines.splice(energy,0,"SEQ++3'","RFF+AES:901'","RFF+MG:METER-1'","QTY+220:10500'",`DTM+597:${period[1]}:203'`,
   "SEQ++4'","RFF+AES:901'","QTY+220:10500'",`DTM+597:${period[2]}:203'`)
   lines[energy+9]="SEQ++5'"}
- const end=lines.findIndex(line=>line.startsWith('UNT+'))
- lines[end]=`UNT+${lines.length-2}+1'`
- return lines.join('\n')
+ return recountEdifactUnt(lines.join('\n'))
 }

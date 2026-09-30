@@ -107,6 +107,7 @@ async function createAckIfMissing(params: {
   outcome?: "positive" | "negative";
   messageText?: string | null;
   applicationErrors?: readonly EdielAperakApplicationError[] | null;
+  utiltsHeaderRejected?: boolean;
 }) {
   const draft =
     params.ackFamily === "CONTRL"
@@ -123,6 +124,7 @@ async function createAckIfMissing(params: {
             outcome: params.outcome ?? "positive",
             messageText: params.messageText ?? null,
             applicationErrors: params.applicationErrors ?? null,
+            utiltsHeaderRejected: params.utiltsHeaderRejected,
           })
         : buildUtiltsErrDraft({
             actorUserId: params.actorUserId,
@@ -520,6 +522,7 @@ async function createAutomaticPositiveAcks(params: {
         outcome: aperakPlan?.outcome === "negative" ? "negative" : "positive",
         messageText: aperakPlan?.reason ?? "Automatiskt APERAK.",
         applicationErrors: applicationErrors ?? null,
+        utiltsHeaderRejected: aperakPlan?.utiltsHeaderRejected,
       });
       createdIds.push(aperak.id);
     } catch (error) {

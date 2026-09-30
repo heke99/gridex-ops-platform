@@ -401,6 +401,7 @@ function buildAperakSegments(params: {
   messageText?: string | null
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
   const rendered = renderAperakEdiel({
@@ -413,6 +414,7 @@ function buildAperakSegments(params: {
       receiverEdielId: params.sourceMessage.receiver_ediel_id,
       externalReference: params.sourceMessage.external_reference,
       messageReceivedAt: params.sourceMessage.message_received_at,
+      createdAt: params.sourceMessage.created_at,
     },
     refs,
     externalReference: params.externalReference,
@@ -421,6 +423,7 @@ function buildAperakSegments(params: {
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
     utiltsAcknowledgementReference: params.relatedTransactionReference ?? null,
+    utiltsHeaderRejected: params.utiltsHeaderRejected,
   })
 
   return rendered.segments.filter((segment) => !segment.toUpperCase().startsWith('UNH+'))
@@ -901,6 +904,7 @@ function buildAckDraft(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
 }): CreateEdielMessageInput {
   ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
 
@@ -967,6 +971,7 @@ function buildAckDraft(params: {
             messageText: params.messageText ?? null,
             applicationErrors: params.applicationErrors ?? null,
             relatedTransactionReference: params.relatedTransactionReference ?? null,
+            utiltsHeaderRejected: params.utiltsHeaderRejected,
           })
         : buildUtiltsErrSegments({
             sourceMessage: params.sourceMessage,
@@ -1162,6 +1167,7 @@ export function buildAperakDraft(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
@@ -1172,6 +1178,7 @@ export function buildAperakDraft(params: {
     applicationErrors: params.applicationErrors ?? null,
     ackScope: params.ackScope ?? null,
     relatedTransactionReference: params.relatedTransactionReference ?? null,
+    utiltsHeaderRejected: params.utiltsHeaderRejected,
   })
 }
 
@@ -1200,6 +1207,7 @@ export function buildAckDraftForSource(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
+  utiltsHeaderRejected?: boolean
 }): CreateEdielMessageInput {
   if (params.ackFamily === 'CONTRL') {
     return buildContrlDraft({
@@ -1219,6 +1227,7 @@ export function buildAckDraftForSource(params: {
       applicationErrors: params.applicationErrors ?? null,
       ackScope: params.ackScope ?? null,
       relatedTransactionReference: params.relatedTransactionReference ?? null,
+      utiltsHeaderRejected: params.utiltsHeaderRejected,
     })
   }
 

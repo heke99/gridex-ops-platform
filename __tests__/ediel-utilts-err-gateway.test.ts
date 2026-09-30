@@ -4,7 +4,7 @@ import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { createUtiltsRuntimeAcks } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
-import { buildUtiltsErrDraft } from '@/lib/ediel/ack'
+import { buildAperakDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
@@ -83,13 +83,14 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['transactions'], date: '2026-09-30' | '2026-10-01' = '2026-10-01') {
+function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['transactions'], date: '2026-09-30' | '2026-10-01' = '2026-10-01', transform?: (raw: string) => string) {
   const company = randomUUID(), actor = randomUUID(), route = randomUUID(), profile = randomUUID()
   const source = {
     ...utiltsErrGatewayFixture({ company, transactions, date }), id: randomUUID(),
     canonical_rule_pack_id: randomUUID(), rule_profile_key: 'synthetic-utilts-e66',
     rule_profile_version_id: randomUUID(), rule_profile_version: 'E5SE5A-r3', rule_pack_checksum: 'a'.repeat(64),
   } as EdielMessageRow
+  if (transform) source.raw_payload = transform(source.raw_payload!)
   const runtime = runUtiltsRuntimeForMessage(source)
   const reservations: Row[] = runtime.transactionDispositions.map(row => ({
     id: randomUUID(), company_id: company, environment: 'test', source_message_id: source.id,
@@ -110,6 +111,73 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
   const acks = () => database.tables.get('ediel_messages')!.filter(row => row.direction === 'outbound')
   return { source, runtime, actor, finalize, acks, reservations }
 }
+
+it('SC-045 finalizes one header-negative APERAK without inventing an original IDE reference', async () => {
+  const f = seed([
+    { reference: 'HEADER-OK', outcome: 'accepted' },
+    { reference: 'HEADER-LOWER-E87', outcome: 'processability_rejected' },
+  ], '2026-10-01', raw => {
+    const lines = raw.split('\n').filter(line => !line.startsWith('DTM+735:'))
+    const unt = lines.findIndex(line => line.startsWith('UNT+'))
+    const unh = lines.findIndex(line => line.startsWith('UNH+'))
+    lines[unt] = `UNT+${unt - unh + 1}+1'`
+    return lines.join('\n')
+  })
+  expect(f.runtime.transactionDispositions.map(row => row.disposition)).toEqual(['guide_rejected', 'guide_rejected'])
+  expect(f.runtime.validation.issues.filter(issue => issue.kind === 'functional')).toEqual([])
+  await f.finalize()
+  const aperaks = f.acks().filter(row => row.message_family === 'APERAK')
+  expect(aperaks).toHaveLength(1)
+  expect(aperaks[0].parsed_payload).toMatchObject({ ackScope: 'message', relatedTransactionReference: null })
+  expect(aperaks[0].raw_payload).toContain('BGM+313+')
+  expect(aperaks[0].raw_payload).toContain('ERC+41::260')
+  expect(aperaks[0].raw_payload).toContain('206')
+  expect(aperaks[0].raw_payload).not.toContain('RFF+ACW:')
+  expect(aperaks[0].raw_payload).toContain('RFF+DM:')
+  expect(f.acks().filter(row => row.message_family === 'UTILTS_ERR')).toEqual([])
+  expect(f.reservations).toEqual(expect.arrayContaining(f.reservations.map(row => expect.objectContaining({
+    source_transaction_id: row.source_transaction_id, final_response_type: 'negative_aperak', response_message_id: aperaks[0].id,
+  }))))
+  const before = structuredClone({ acks: f.acks(), reservations: f.reservations })
+  await f.finalize()
+  expect({ acks: f.acks(), reservations: f.reservations }).toEqual(before)
+})
+
+it('does not infer header serialization from generic message scope', () => {
+  const f = seed([{ reference: 'TRANSACTION-GUIDE', outcome: 'guide_rejected' }])
+  expect(f.runtime.ackPlan.utiltsHeaderRejection).toBeUndefined()
+  const draft = buildAperakDraft({ sourceMessage: f.source, outcome: 'negative', ackScope: 'message',
+    applicationErrors: f.runtime.ackPlan.aperakApplicationErrors })
+  expect(draft.rawPayload).toContain('RFF+ACW:TRANSACTION-GUIDE')
+})
+
+it.each(['positive', 'transaction'] as const)('refuses inconsistent %s header provenance', kind => {
+  const f = seed([{ reference: 'HEADER-SCOPE', outcome: 'accepted' }])
+  expect(() => buildAperakDraft({ sourceMessage: f.source,
+    outcome: kind === 'positive' ? 'positive' : 'negative', utiltsHeaderRejected: true,
+    relatedTransactionReference: kind === 'transaction' ? 'HEADER-SCOPE' : null,
+    applicationErrors: [{ ercCode: '41', fieldCode: '206', text: 'MANDATORY FIELD MISSING' }] }))
+    .toThrow('utilts_header_aperak_scope_invalid')
+})
+
+it('cannot forge header scope from an unreferenced transaction error on a valid wire', () => {
+  const f = seed([{ reference: 'NO-HEADER-FAULT', outcome: 'accepted' }])
+  expect(() => buildAperakDraft({ sourceMessage: f.source, outcome: 'negative', utiltsHeaderRejected: true,
+    applicationErrors: [{ ercCode: '41', fieldCode: '512', text: 'MANDATORY FIELD MISSING' }] }))
+    .toThrow('utilts_header_aperak_scope_invalid')
+})
+
+it('serializes a canonical deduplicated NAD header double fault', async () => {
+  const f = seed([{ reference: 'HEADER-NAD-FAULT', outcome: 'accepted' }], '2026-10-01',
+    raw => raw.replace('NAD+MS+91100:SVK:260', 'NAD+MS+ABC:SVK:XXX'))
+  expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toMatchObject([{ ercCode: '42', fieldCode: '207' }])
+  expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toHaveLength(1)
+  await f.finalize()
+  const aperaks = f.acks().filter(row => row.message_family === 'APERAK')
+  expect(aperaks).toHaveLength(1)
+  expect(aperaks[0].raw_payload).toContain('FTX+AAO++207::260+INCORRECT DATA')
+  expect(aperaks[0].raw_payload).not.toContain('RFF+ACW:')
+})
 
 it.each([
   ['2026-09-30', 'E19'], ['2026-10-01', 'E87'],

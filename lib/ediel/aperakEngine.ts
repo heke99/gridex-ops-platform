@@ -7,6 +7,9 @@ import {validProdatWireDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnosti
 import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRejection'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
+import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
+import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -37,6 +40,7 @@ export type AperakEngineSource = {
   receiverEdielId?: string | null
   externalReference?: string | null
   messageReceivedAt?: string | null
+  createdAt?: string | null
 }
 
 export type AperakEngineRefs = {
@@ -184,8 +188,34 @@ export function renderAperakEdiel(params: {
    * acknowledge the individual inbound transaction instead of only BGM/1004.
    */
   utiltsAcknowledgementReference?: string | null
+  /** Canonical header-guide provenance; message scope alone grants nothing. */
+  utiltsHeaderRejected?: boolean
 }): AperakEngineResult {
   const isUtiltsSource = usesUtiltsAperakProfile(params.source.messageFamily)
+  if (params.utiltsHeaderRejected && (!isUtiltsSource || params.outcome !== 'negative'
+    || params.utiltsAcknowledgementReference
+    || !params.applicationErrors?.length
+    || params.applicationErrors.some(error => error.referenceNumber || error.lineItemReference))) {
+    throw new Error('utilts_header_aperak_scope_invalid')
+  }
+  if (params.utiltsHeaderRejected) {
+    const wire = tokenizeEdifact(params.source.rawPayload)
+    const unh = wire.segments.find(segment => segment.tag === 'UNH')
+    const bgm = wire.segments.find(segment => segment.tag === 'BGM')
+    const messageCode = bgm ? segmentComposite(bgm, 1, wire.una)[0] : ''
+    // Only wire fields are consumed by syntax validation; cached status/report
+    // is deliberately absent. Neither a flag nor an arbitrary error grants scope.
+    const source = { raw_payload: params.source.rawPayload ?? null, message_family: 'UTILTS', message_code: messageCode,
+      message_received_at: params.source.messageReceivedAt ?? null, created_at: params.source.createdAt ?? null } as EdielMessageRow
+    const derived = [...new Set(resolveUtiltsHeaderGuideIssues(source, messageCode)
+      .map(issue => [issue.aperakErcCode, issue.aperakFieldCode, issue.aperakText])
+      .map(error => JSON.stringify(error)))].sort()
+    const supplied = (params.applicationErrors ?? []).map(error => JSON.stringify([error.ercCode, error.fieldCode, error.text])).sort()
+    if (!unh || segmentComposite(unh, 2, wire.una)[0] !== 'UTILTS' || !validateEdifactSyntax(source).ok
+      || derived.length === 0 || JSON.stringify(derived) !== JSON.stringify(supplied)) {
+      throw new Error('utilts_header_aperak_scope_invalid')
+    }
+  }
   const sourceWireCode = params.source.messageCode === 'UTILTS_ERR' ? 'ERR' : params.source.messageCode
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
   const sourceWire = params.source.messageFamily === 'PRODAT' ? tokenizeEdifact(params.source.rawPayload) : null
@@ -324,6 +354,7 @@ export function renderAperakEdiel(params: {
 
     if (isUtiltsSource) {
       segments.push(`RFF+DM:${sanitizeEdifactToken(params.transactionReference) ?? 'APE'}`)
+      if (params.utiltsHeaderRejected) continue
       const utiltsReference = params.outcome === 'positive'
         ? (sanitizeEdifactToken(params.utiltsAcknowledgementReference) ?? previousMessageReference)
         : (error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference ?? previousMessageReference)
