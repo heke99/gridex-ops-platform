@@ -12,6 +12,7 @@ import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/website
 import { canonicalApiError, normalizeApiBlockers } from '@/lib/api/apiError'
 import { ApiInputError } from '@/lib/api/strictRequest'
 import { PortalCursorError } from '@/lib/customer-portal/keysetPagination'
+import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import { verifyCustomerDelegationAssertion } from '@/lib/customer-portal/delegationAssertion'
 
@@ -343,6 +344,24 @@ export function handleCustomerPortalRouteError(input: {
   startedAt: number
   error: unknown
 }) {
+  if (input.error instanceof PlatformSchemaNotReadyError) {
+    void logIntegrationApiRequest({
+      client: input.client ?? null,
+      request: input.request,
+      statusCode: input.error.status,
+      startedAt: input.startedAt,
+      errorCode: input.error.code,
+    })
+    return customerPortalJson(
+      canonicalApiError({
+        code: input.error.code,
+        message: 'Kundportal-API är tillfälligt otillgängligt medan datamodellen verifieras.',
+        requestId: randomUUID(),
+        retryable: true,
+      }),
+      { status: input.error.status },
+    )
+  }
   if (input.error instanceof ApiInputError || input.error instanceof PortalCursorError) {
     void logIntegrationApiRequest({
       client: input.client ?? null,

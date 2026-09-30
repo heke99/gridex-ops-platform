@@ -135,6 +135,7 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-revocation-native-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-event-v2-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-contact-command-native.sql
           # Exercise the actual canonical registry, business writes and owner
           # RPCs over the local Data API. No keys enter uploaded evidence.
@@ -162,6 +163,16 @@ jobs:
           GRIDEX_CONTACT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           rm -f "$GRIDEX_CONTACT_FIXTURE_PATH"
           unset GRIDEX_CONTACT_TEST_PASSWORD GRIDEX_CONTACT_LOCAL_E2E GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # Actual customer events HTTP -> v2 RPC on this same disposable stack.
+          export GRIDEX_EVENT_V2_LOCAL_E2E=1
+          export GRIDEX_EVENT_V2_FIXTURE_PATH="$RUNNER_TEMP/customer-event-v2-fixture.json"
+          npx vitest run --config scripts/customer-event-v2-native.config.ts
+          [[ -s "$GRIDEX_EVENT_V2_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_EVENT_V2_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-event-v2-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_EVENT_V2_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-event-v2-native.config.ts
+          rm -f "$GRIDEX_EVENT_V2_FIXTURE_PATH"
+          unset GRIDEX_EVENT_V2_LOCAL_E2E GRIDEX_EVENT_V2_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
           unset GRIDEX_E2E_BROWSER_BASE_URL
           export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
           export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"

@@ -230,7 +230,7 @@ async function syntheticServer(publicKey) {
       }
       reply(200, {
         data: [{ event_reference: `event_${(cursor ? 'm' : 'l').repeat(32)}`,
-          event_type: cursor ? 'invoice.issued' : 'contact.updated', event_version: null,
+          event_type: cursor ? 'invoice.issued' : 'contact.updated', event_version: cursor ? 7 : 1,
           occurred_at: '2026-09-29T00:00:00Z', source: 'tenant' }],
         page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
           next_cursor: cursor ? null : 'synthetic-next-event' },
@@ -471,11 +471,12 @@ export async function runSyntheticCustomerJourney() {
     const events = await call('GET', '/api/v1/customer/events?limit=1')
     assert.equal(events.status, 200)
     assert.match(events.body.data[0].event_reference, /^event_[A-Za-z0-9_-]{32}$/)
-    assert.equal(events.body.data[0].event_version, null)
+    assert.equal(events.body.data[0].event_version, 1)
     assert.equal(events.body.page.has_more, true)
     const nextEvents = await call('GET', `/api/v1/customer/events?limit=1&cursor=${events.body.page.next_cursor}`)
     assert.equal(nextEvents.status, 200)
     assert.equal(nextEvents.body.data[0].event_type, 'invoice.issued')
+    assert.equal(nextEvents.body.data[0].event_version, 7)
     assert.equal(nextEvents.body.page.has_more, false)
     const authorities = await call('GET', '/api/v1/customer/powers-of-attorney?limit=1')
     assert.equal(authorities.status, 200)

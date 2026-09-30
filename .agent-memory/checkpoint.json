@@ -885,5 +885,16 @@
     "published_review_head": "9da23117818df74c842c6c0c77db3aedae6ac93c",
     "first_ci_failure": "Ediel 36352375005: eight document-consumer synthetic complete P wires missing mandatory header206",
     "local_fixture_correction": "DTM+ZZZ:1:805, computed UNT; affected34/34, test TS/lint PASS, unpublished"
+  },
+  "api_422_continuation": {
+    "status": "IN_PROGRESS",
+    "branch": "codex/tenantservice-api-structure-20260929",
+    "published_start_sha": "a826b5886e7b946ea10164d8f736eac07e8c6ac1",
+    "preserved_original_local_sha": "9ed10d8cb1d43effa819fb33111adf5461e71c9f",
+    "integrated_ops_sha": "7afb3dcac62376edc5cab24c83ebcce80cb06e9a",
+    "source_candidate_sha": "56e7a5429273061043b3a652b2f496a3e419f74f",
+    "candidate_version": "2026-09-30.1",
+    "current_audit": "quality/audits/tenantservice-api-ops-20260928/api-event-v2-evidence-20260930.md",
+    "next_action": "Freeze reviewed fixes and verify/publish exact candidate; obtain actual new HTTP/native CI proof. Final published SHA and receipt are in PR422. No main/production/full-phase acceptance."
   }
 }

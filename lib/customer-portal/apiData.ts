@@ -811,7 +811,7 @@ export async function listPortalEventsPage(
   const cursor = decodePortalCursor({
     cursor: page.cursor, companyId: context.companyId, customerId: context.customerId, resource: 'events',
   })
-  const { data, error } = await supabaseService.rpc('portal_customer_events_page_v1', {
+  const { data, error } = await supabaseService.rpc('portal_customer_events_page_v2', {
     p_company_id: context.companyId,
     p_customer_id: context.customerId,
     p_cursor_occurred_at: cursor?.orderValue ?? null,

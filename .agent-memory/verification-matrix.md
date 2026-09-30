@@ -511,3 +511,7 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | Lowercase `BGM/4343=ab` | RED complete Z04 application accepted; GREEN ERC42/313, BGM27, no mocked business. | Native new-head result pending. |
 | Related tests and static | Five files 48/48, consumer20/20, app/tests/scripts TypeScript and scoped lint/diff PASS. | Prior-head CI not transferable. |
 | Independent read-only review | One important mismatch identified and corrected; no other concrete blocker in full diff. | Must recheck final SHA and CI. |
+
+## API #422 event-v2 final local checkpoint — 2026-09-30
+
+Parallel source/native-fixture/release reviews completed; safe schema-readiness503, matching unpublished contract, manifest instant and transport-log sanitation corrected. Final local6376/424, types, focused regressions and release gates PASS. Publish exact candidate and read PR422 for actual HTTP/native and exact-head CI; those results remain pending here. No production or full-phase acceptance.

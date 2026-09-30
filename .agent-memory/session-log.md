@@ -367,3 +367,7 @@ PR407 final `c9b92fb0` four ordinary CI SUCCESS/native351/351; squash main `6732
 Fetched unchanged remote main `bd3e131e` and PR `9d76377a`, read frozen P/APERAK source, plan and actual renderer/consumer. Found field313 whole-message failure with RED on real inbound, implemented source/evidence qualification and business stop, GREEN targeted/adjacent/type/source checks, added native DB tests and audit. Direct `git push --dry-run` had no CLI credentials; publish through authorized GitHub connector, then inspect new-head CI. No staging/market traffic or PR310 action.
 ## 2026-09-27 — Review correction on #416
 Independent reviewer traced lowercase BGM/4343 across canonical field matrix and source-bound ACK guard; found accepted/invalid split. Added real inbound RED (accepted), field313-only literal allowed-value fix and third native variant, local GREEN 48/48. Final corrected head must be published and requalified; no rerun of unchanged head or market action.
+
+## API #422 event-v2 final local checkpoint — 2026-09-30
+
+Parallel source/native-fixture/release reviews completed; safe schema-readiness503, matching unpublished contract, manifest instant and transport-log sanitation corrected. Final local6376/424, types, focused regressions and release gates PASS. Publish exact candidate and read PR422 for actual HTTP/native and exact-head CI; those results remain pending here. No production or full-phase acceptance.

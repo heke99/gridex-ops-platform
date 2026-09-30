@@ -1,3 +1,9 @@
+## Current API #422 — event-v2 publication candidate, 2026-09-30
+
+The active item in this isolated API checkout is the bounded `2026-09-30.1` event-v2 package on draft #422. Original API `a826b588` and local `9ed10d8c` are preserved; exact SQL/native prerequisite #418 `7afb3dca` is integrated. Original checkouts are untouched. Root owns one non-force publisher; source, native-fixture and release reviews ran in parallel. All historical notes below refer to their original Ediel task and do not restart that work here.
+
+Next: finish the reviewed 503 contract and test-transport sanitation, freeze the complete candidate, run final local checks, verify both remote heads/ownership, publish the exact tree with API/OPS ancestry, then require actual new HTTP/native markers and fresh applicable CI. Final SHA and CI receipts belong in #422; no production/main merge or full T/U/phase acceptance.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 

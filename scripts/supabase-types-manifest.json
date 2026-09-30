@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-28T16:48:28Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-run36453296814-artifact10984720807",
+  "generated_at": "2026-09-29T22:07:10Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-run36636567043-artifact11065526805",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "011f8f80fa51ad46140598bae366fc29616bd6d8e7767f05135622ef6247afc3",
-  "latest_migration": "20260928213000_secondary_contact_atomic_command.sql",
-  "latest_migration_schema_effect": "Secondary OPS contacts use the existing jsonb contact RPC and customer contact_revision. Authentic empty replay on candidate 0dcec790c79d4ef1fb05aec42ff24413b4621188 (OPS 36487682200, artifact 11000520569) regenerated identical TypeScript bytes (sha256 011f8f80fa51ad46140598bae366fc29616bd6d8e7767f05135622ef6247afc3) and supplied schema.sql plus fingerprint d18b1862bb276bcc22ed6568c34e549ccc144e91d19a6b7aa4210443a8a1fd9b. Its native contact fixture passed; the later browser fixture failed after an immediate reload, so this candidate has no complete clean-replay pass."
+  "sha256": "301fcaf283405cf7c9ef71f74363c276bb91269354f678a7c8baffe895bd7664",
+  "latest_migration": "20260929214729_portal_event_version_read_model_v2.sql",
+  "latest_migration_schema_effect": "Additive service-only portal_customer_events_page_v2 projects stored domain event versions and explicit customer event version 1. Authentic clean replay of PR head 16aa90e59e1770addd2a1095897ab9cb790359a8 on synthetic merge bd02380921fcad54d1e906c4997bd870987d01e3 (OPS 36636567043, job 109638534974, artifact 11065526805) passed all event native checks: versions 7/3/2/4, two sources, tenant/customer isolation, 116 events in 58 pages, 59 cursor replays, anon/authenticated denial and source immutability. Exact generated type/schema bytes were adopted; schema fingerprint dbeb4ba40bffcaf6c0e49b83ffa32417a9429baec3357ee37e8b388887564f86. That diagnostic job ended only on the deliberately stale generated-types manifest. Final-head parity and CI are reported on PR #418 and handed to #422, without phase or production acceptance."
 }

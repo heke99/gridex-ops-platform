@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import portal from '@/docs/openapi/customer-portal-v1.json'
+import portalRelease from '@/docs/openapi/releases/2026-09-30.1/customer-portal-v1.json'
 import { publicPortalEvent, publicPortalPowerOfAttorney } from '@/lib/customer-portal/publicDto'
 
 type Schema = { $ref?: string; type?: string | string[]; pattern?: string; properties?: Record<string, Schema>; required?: string[]; items?: Schema }
@@ -14,6 +15,20 @@ const spec = portal as unknown as {
 }
 
 describe('delegated event and power-of-attorney contract', () => {
+  it('documents a retryable schema-readiness 503 with the canonical error envelope in the current release', () => {
+    for (const document of [portal, portalRelease]) {
+      const operation = (document as unknown as typeof spec).paths['/api/v1/customer/events'].get
+      const response = operation.responses['503']
+      expect(response).toBeDefined()
+      expect(response.content['application/json'].schema.$ref).toBe('#/components/schemas/ErrorEnvelope')
+      const envelope = document.components.schemas.ErrorEnvelope
+      expect(envelope.required).toEqual(expect.arrayContaining([
+        'error', 'request_id', 'correlation_id', 'contract_schema_version',
+      ]))
+      expect(envelope.properties.error.properties.retryable.type).toBe('boolean')
+    }
+  })
+
   for (const [path, operationId, scope, item] of [
     ['/api/v1/customer/events', 'getApiV1CustomerEvents', 'customer_events.read', 'CustomerEvent'],
     ['/api/v1/customer/powers-of-attorney', 'getApiV1CustomerPowersOfAttorney', 'customer_power_of_attorney.read', 'CustomerPowerOfAttorney'],

@@ -50257,6 +50257,60 @@ CREATE FUNCTION public.portal_customer_events_page_v1(p_company_id uuid, p_custo
 $$;
 
 --
+-- Name: portal_customer_events_page_v2(uuid, uuid, timestamp with time zone, integer, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_cursor_source_rank integer DEFAULT NULL::integer, p_cursor_id uuid DEFAULT NULL::uuid, p_limit integer DEFAULT 51) RETURNS TABLE(id uuid, source_table text, source_rank integer, event_type text, event_version integer, source text, occurred_at timestamp with time zone, created_at timestamp with time zone)
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_catalog'
+    AS $$
+  with all_events as (
+    select
+      e.id,
+      'customer_events'::text as source_table,
+      2::integer as source_rank,
+      e.event_type,
+      1::integer as event_version,
+      e.source,
+      coalesce(e.occurred_at, e.created_at) as occurred_at,
+      e.created_at
+    from public.customer_events e
+    where e.company_id = p_company_id
+      and e.customer_id = p_customer_id
+
+    union all
+
+    select
+      d.id,
+      'domain_events'::text as source_table,
+      1::integer as source_rank,
+      d.event_type,
+      d.event_version,
+      d.source,
+      coalesce(d.occurred_at, d.created_at) as occurred_at,
+      d.created_at
+    from public.domain_events d
+    where d.company_id = p_company_id
+      and d.subject_customer_id = p_customer_id
+  )
+  select
+    e.id,
+    e.source_table,
+    e.source_rank,
+    e.event_type,
+    e.event_version,
+    e.source,
+    e.occurred_at,
+    e.created_at
+  from all_events e
+  where p_cursor_occurred_at is null
+     or (e.occurred_at, e.source_rank, e.id)
+        < (p_cursor_occurred_at, coalesce(p_cursor_source_rank, 0), p_cursor_id)
+  order by e.occurred_at desc, e.source_rank desc, e.id desc
+  limit greatest(1, least(coalesce(p_limit, 51), 101));
+$$;
+
+--
 -- Name: prevent_actor_test_evidence_mutation(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -117990,6 +118044,13 @@ GRANT ALL ON FUNCTION public.portal_customer_documents_page_v1(p_company_id uuid
 
 REVOKE ALL ON FUNCTION public.portal_customer_events_page_v1(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.portal_customer_events_page_v1(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) TO service_role;
 
 --
 -- Name: FUNCTION prevent_actor_test_evidence_mutation(); Type: ACL; Schema: public; Owner: -

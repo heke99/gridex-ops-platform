@@ -289,8 +289,12 @@ export function publicPortalEvent(
 ): JsonRecord {
   const row = record(value)
   const version = numberOrNull(row.event_version)
+  const id = text(row.id)
+  const sourceTable = text(row.source_table)
+  const referenceId = id && (sourceTable === 'customer_events' || sourceTable === 'domain_events')
+    ? `${sourceTable}:${id}` : id
   return {
-    event_reference: publicReference('event', companyId, row.id),
+    event_reference: publicReference('event', companyId, referenceId),
     event_type: text(row.event_type),
     event_version: version !== null && Number.isInteger(version) && version > 0 ? version : null,
     occurred_at: text(row.occurred_at) ?? text(row.created_at),

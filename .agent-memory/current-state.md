@@ -1,3 +1,9 @@
+## Current API #422 — event-v2 publication candidate, 2026-09-30
+
+The active item in this isolated API checkout is the bounded `2026-09-30.1` event-v2 package on draft #422. Original API `a826b588` and local `9ed10d8c` are preserved; exact SQL/native prerequisite #418 `7afb3dca` is integrated. Original checkouts are untouched. Root owns one non-force publisher; source, native-fixture and release reviews ran in parallel. All historical notes below refer to their original Ediel task and do not restart that work here.
+
+Next: finish the reviewed 503 contract and test-transport sanitation, freeze the complete candidate, run final local checks, verify both remote heads/ownership, publish the exact tree with API/OPS ancestry, then require actual new HTTP/native markers and fresh applicable CI. Final SHA and CI receipts belong in #422; no production/main merge or full T/U/phase acceptance.
+
 ## Current — 2026-09-27 F3 header206 candidate after #415
 #415 exact head `eee4a3fe` four workflows and native371/371/schema/types passed, merged main `bd3e131e`, Vercel READY same SHA. Branch `codex/ediel-v2-f3-prodat-header-206-20260927` locally reproduces missing/invalid required offset206 BGM34 despite ERC41/42; shared source qualification now yields BGM27 and stops before business. Local six files269/269, three TS projects, scoped lint pass. Native two SQL/ACK/retry cases added but unpublished/unverified. Market held; #310 untouched.
 

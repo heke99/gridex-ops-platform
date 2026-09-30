@@ -988,6 +988,13 @@ module.exports = function finalizeCustomerPortalRelease({
   ensureVersionedOpenApiRoutes()
   movePublicationWebhookToTopLevel()
 
+  portal.paths['/api/v1/customer/events'].get.responses['503'] = {
+    description: 'The event read model is unavailable. Returns the canonical error envelope with code platform_schema_not_ready and retryable true; no database diagnostics are exposed.',
+    content: {
+      'application/json': { schema: { $ref: '#/components/schemas/ErrorEnvelope' } },
+    },
+  }
+
   for (const document of [website, portal]) {
     dedupeOperationParameters(document)
     ensureSecurityFromScopeExtensions(document)
@@ -1159,9 +1166,9 @@ module.exports = function finalizeCustomerPortalRelease({
     setResponse(portal, path, listEnvelope)
   }
   const eventProperties = {
-    event_reference: { type: 'string', pattern: '^event_[A-Za-z0-9_-]{32}$' },
+    event_reference: { type: 'string', pattern: '^event_[A-Za-z0-9_-]{32}$', description: 'Stable organization-scoped reference identifying one event across both feeds. References from earlier draft releases can change; refresh the list when adopting this release.' },
     event_type: nullableString,
-    event_version: { type: ['integer', 'null'], minimum: 1 },
+    event_version: { type: ['integer', 'null'], minimum: 1, description: 'Stored positive domain-event version, or version 1 for a customer event. Null indicates an unavailable or invalid version; no version is invented.' },
     occurred_at: nullableString,
     source: nullableString,
   }

@@ -1,3 +1,7 @@
+## Current API #422 — event-v2 publication candidate, 2026-09-30
+
+HTTP/native event-v2 has not yet executed for this new API candidate. Formal GitGuardian scanning is unavailable: ggshield is not installed/configured; no scanner success is claimed. Deployed issuer/customer integration, previous transactional notification concerns and full T/U acceptance remain outside this package. Previous #418 browser/audit blockers are resolved by the verified prerequisite.
+
 ## Current — header206 verification and wider gates
 206 missing/invalid local ACK/consumer is a code candidate; actual native stored ACK/outbox/retry, clean replay, schema/type parity and PR review remain pending. 203/505 historical issuer uniqueness, positive LOC175 registry/mandate/sink, E035 history/retention, G06 grammar and E66/DDQ live activation gate remain open. PR310 paused.
 

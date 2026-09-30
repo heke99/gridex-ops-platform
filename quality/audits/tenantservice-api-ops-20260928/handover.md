@@ -1,5 +1,11 @@
 # Tenantservice/API/OPS — överlämning, checkpoint 2026-09-28
 
+## Aktiv avgränsad event-v2-checkpoint — 2026-09-30
+
+Utgångspunkt #418 `750510b81bb4ff98e20723ae3f97a0e1bbb6d34f`; #422:s senare `a826b5886e7b946ea10164d8f736eac07e8c6ac1` och lokala opushade API-commits bevaras. [Paketets exakta kontrakt och prov](event-v2-evidence-20260929.md) är aktuellt; äldre kontakt-/Ediel-tidslinjer nedan avser sina egna kandidater. Service-RPC/native/typer/schema finns på `e50b23fbbdfe6dc6bc51ca538a8abf0c93c31209`. Dess OPS `36638655466` passerade verify, quality och samtliga native event-v2-prov (versioner >1, båda källor, kund-/tenantgräns, 116 event/58 sidor/59 replays och nekade klientroller), men clean-jobb `109645401892` föll senare i browserns portal-lokator; post-browser och automatisk slutparitet kördes inte. Autentiska artefaktbytes matchade ändå e50, utan att detta påstås vara en grön replay.
+
+Användarens nästa-steg-instruktion omfattar nu bara denna browserfixtur: invänta den renderade ärendevyn med exakt h1 och återanvänd inte en ändrad databasfixtur efter fel. [Ägarskap återtaget före push](https://github.com/heke99/gridex-ops-platform/pull/418#issuecomment-5907030915); RPC/API/applikationsbeteende och senare API-arbete ändras inte. Syntax, riktad lint och upptäckt av alla fyra tester passerade lokalt; den nya kandidatens native/browser/helhetsreplay är ännu väntande och redovisas med exakt SHA i #418/#422 efter faktisk körning. Ingen API-aktivering, merge, produktion eller hel T/U-/fasacceptans.
+
 ## Senaste P2a browser/API-replay och nästa kandidat
 
 På `d74e23d8` passerade OPS `36474772294` verify och quality; clean replay `109105589330` passerade äldre native kontakt-/samtidighetsfall och Ediel-browser, skapade en syntetisk GoTrue-fixtur men föll i nya Playwright på en otillåten Next route-återexport (`dynamic`). Ingen primärkontakt via browser/API eller native efterläsning passerade. På `cc023771` (OPS `36476015972`, clean `109109811066`) passerade det syntetiska API-klientens nya native autentiseringspreflight med matchande lokalt kvitto och kapabilitet, men browsern hade samma route-fel.

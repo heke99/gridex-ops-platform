@@ -6,7 +6,7 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-09-29.8' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-09-30.1' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const

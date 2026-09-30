@@ -1,3 +1,7 @@
+## Current API #422 — event-v2 publication candidate, 2026-09-30
+
+Current candidate version `2026-09-30.1`; immutable historical artifacts retain exact bytes/modes. Events use v2 stored versions and source-qualified opaque references, with safe schema-readiness 503. Refresh the list when migrating from earlier draft references. See `quality/audits/tenantservice-api-ops-20260928/api-event-v2-evidence-20260930.md` and #422 for exact final receipts.
+
 # API contracts
 
 Local specifications:

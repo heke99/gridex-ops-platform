@@ -200,3 +200,7 @@ UG-123-2/3 NAD MS/MR agency 260/9/305 and conditional SVK guide checks merged vi
 Reproduced missing and invalid BGM/4343 on complete Z04 through the actual inbound consumer: ERC41/42 but BGM34 and forbidden business adapter calls. Added source-bound 313 whole-message qualification with Z01 optional and NA valid safeguards. Local 19/19 consumer tests, 47/47 related tests, 64/64 source script and three TS projects passed. Native DB cases added but not yet executed in CI; this is no formal acceptance or market activation.
 ## 2026-09-27 — Local independent-review correction (CI pending)
 One read-only reviewer found field313 lowercase validator/ACK split in published `63244be9`. Actual consumer RED application accepted, scoped literal AB/NA comparison GREEN 20/20 direct and 48/48 five related tests; native third variant added but not run yet. No formal acceptance claim.
+
+## API #422 event-v2 final local checkpoint — 2026-09-30
+
+Parallel source/native-fixture/release reviews completed; safe schema-readiness503, matching unpublished contract, manifest instant and transport-log sanitation corrected. Final local6376/424, types, focused regressions and release gates PASS. Publish exact candidate and read PR422 for actual HTTP/native and exact-head CI; those results remain pending here. No production or full-phase acceptance.

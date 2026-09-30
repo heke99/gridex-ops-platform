@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-29.8** (release candidate on the API draft branch)
+Current contract: **2026-09-30.1** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -175,9 +175,17 @@ The event list combines customer events and customer-bound domain events in a
 stable keyset page, exposing only an opaque `event_reference`, type, version,
 occurrence time and source. It does not return an event payload or prove that
 every event type is suitable for a customer-facing notification. The current
-page RPC does not project the stored domain `event_version`, so the response
-reports JSON null until the read model can supply a verified positive version.
-Treat this field as unavailable until the read model is corrected.
+page returns the stored positive domain-event version; customer events use
+version 1. JSON null remains the defensive representation for an unavailable
+or invalid version, rather than inventing a version. Each event reference now
+identifies one item across both feeds, including items sharing an internal ID.
+References from earlier draft releases can change; refresh the event list when
+adopting this contract. Occurrence times retain the stored precision, and
+equal-time items retain a deterministic order across page boundaries.
+If the event read model is unavailable, the route returns HTTP 503 with the
+canonical error envelope: `error.code` is `platform_schema_not_ready` and
+`error.retryable` is `true`. Retry later; the response exposes no database
+diagnostics and does not substitute an earlier event read model.
 
 Powers of attorney return an opaque authority reference, nullable public
 contract/facility references, scope, status and the available date fields.
