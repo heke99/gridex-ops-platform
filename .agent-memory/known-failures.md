@@ -1,3 +1,7 @@
+## 2026-09-30 — Native-confirmed S02 missing own physical fields
+
+OPS36644820963/e1b4f897 replay109665237704 native414/426: six real consumers created own positive APERAK; six raw service RPC cases accepted both malformed attempts and committed1receipt/2accepted reservations/2forecasts/2contracts with own null point or empty quantities. All previous411 and all3 clean controls passed. Cause: global profile fallbacks, absent S02 own guide/hold, empty observations excluding S02 SQL point check and permissive forecast quantity persistence. Minimal local correction is ordinary45/45 green; native correction/final gates pending. Not a fixture or Storage failure. Earlier native-unproved text is historical; older Storage cause remains unknown.
+
 ## 2026-09-30 — S02 ordinary RED; native unproved
 
 Unchangeddc1c9bae ordinary2/8PASS,6FAIL: missing own LOC172/QTY135/both still accepted/positive_aperak with clean sibling in either order. Qualifier does not hold S02; own persistence payload retains null/empty. Native15 cases pending; no product correction before native stage proof. Prepublication review corrected FTX+AAO field oracle (not RFF+AGO) and calls raw service RPC instead of an application adapter. ERR authority failure below is RESOLVED on finaldc1c9bae five green/native411; older Storage cause remains unknown.

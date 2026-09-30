@@ -1,3 +1,7 @@
+## 2026-09-30 — Confirmed S02 durable defect; correction awaiting exact-head native
+
+Probe e1b4f897 native414/426 confirmed six consumer positives and six atomic-refusal bypasses; all previous411/three clean controls passed. Canonical guide/hold and forward SQL correction locally54/54, types/lint/migrations PASS; corrected native438, authentic snapshot and all five final workflows remain pending. This supersedes the native-unproved section below. Wider formal IDs remain unclosed. External issuer/history/retention, positiveLOC175/fullE035 and unknown Storage cause unchanged; no traffic/merge.
+
 ## 2026-09-30 — S02 native confirmation pending
 
 ERR exactdc1c9bae native411/five gates VERIFIED. S02 mandatory own LOC172/QTY135 ordinary6RED/2cleanPASS; actual native forecasts/ACK/SQL atomicity UNPROVED. Test-only15-case native probe precedes product changes. Whole U-02/U-03/U-14/ACK-03/08 and AT contracts remain unclosed, as does concurrent ERR same-IDE deduplication. External issuer/history/retention, positiveLOC175/fullE035 and unknown older Storage cause remain open. No traffic or merge.

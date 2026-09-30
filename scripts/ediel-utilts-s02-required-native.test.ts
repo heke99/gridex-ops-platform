@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { s02PlanningFixture, s02PlanningPair, type S02PlanningDefect } from '../__tests__/helpers/utiltsS02PlanningFixture'
+import { s02PlanningFixture, s02PlanningPair, s02PlanningSecondSequence, type S02PlanningDefect } from '../__tests__/helpers/utiltsS02PlanningFixture'
 import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -29,7 +29,7 @@ function sql<T>(statement: string): T {
 }
 beforeEach(() => { vi.restoreAllMocks(); vi.clearAllMocks() })
 
-async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: boolean) {
+async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: boolean, transform: (raw: string) => string = raw => raw) {
   const ids = { company: randomUUID(), actor: randomUUID(), route: randomUUID(), profile: randomUUID() }
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(ids.company)},'Synthetic native S02 required fields','active');
     INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
@@ -49,7 +49,7 @@ async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: b
       VALUES(${lit(ids.profile)},${lit(ids.company)},${lit(ids.route)},'Native S02 ACK profile','test','edifact',${lit(actorEdielId)},'91100','23-DDQ-S02-S',true);`)
   const fixture = s02PlanningFixture({ company: ids.company, receiver: actorEdielId, transactions: s02PlanningPair(defect, ownFirst) })
   const sourceId = randomUUID()
-  const { id, raw, parsed } = utiltsNativeSourceFixture(fixture.raw_payload!.replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
+  const { id, raw, parsed } = utiltsNativeSourceFixture(transform(fixture.raw_payload!).replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
   // No prefilled profile/rule-pack authority: the actual family/date capture
   // trigger must qualify this source. No individual customer graph is needed.
   sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
@@ -197,4 +197,106 @@ it.each(cases)('native direct accepted S02 $defect refuses the whole batch twice
   ])
   for (const state of states) expect(state).toEqual({ acks: [], reservations: [], receipts: [], series: [], values: [], contracts: [], outbox: [] })
   noConsumption()
+})
+
+const quantityPlacements = [
+  { defect: 'wrong-qualifier', transform: (raw: string) => raw.replace("SEQ++1'\nQTY+135:111'", "SEQ++1'\nQTY+136:111'") },
+  { defect: 'before-sequence', transform: (raw: string) => raw.replace("SEQ++1'\nQTY+135:111'", "QTY+135:111'\nSEQ++1'") },
+]
+it.each(quantityPlacements)('native actual S02 $defect cannot supply own observation QTY135; sibling and retry remain independent', async ({ defect, transform }) => {
+  const f = await seed(defect === 'wrong-qualifier' ? '54368' : '54369', 'clean', true, transform)
+  expect((await f.consume()).internalReviewRequired).toBe(false)
+  const first = snapshot(f.source.id), ack = assertAck(f, first, 'S02-OWN', 'negative')
+  expect(ack.raw_payload).toContain('ERC+41'); expect(ack.raw_payload).toContain('FTX+AAO++515::260')
+  expect(first.series).toHaveLength(1); expect(first.contracts).toHaveLength(1)
+  assertForecast(first, 'S02-SIBLING', '735999888000001014', 222); assertAck(f, first, 'S02-SIBLING', 'positive')
+  expect(first.reservations.find(row => row.source_transaction_id === 'S02-OWN')?.persisted_series_id).toBeNull()
+  await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
+})
+
+async function assertTwoAtomicRefusals(f: Awaited<ReturnType<typeof seed>>, errorCode: string) {
+  const input = await f.prepare(true), observed = []
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const result = await directRpc(input)
+    observed.push({ error: result.error?.message ?? null, state: snapshot(f.source.id) })
+  }
+  for (const attempt of observed) {
+    expect(attempt.error, JSON.stringify(observed)).toContain(errorCode)
+    expect(attempt.state).toEqual({ acks: [], reservations: [], receipts: [], series: [], values: [], contracts: [], outbox: [] })
+  }
+  noConsumption()
+}
+it.each(quantityPlacements)('native direct S02 $defect refuses both attempts atomically despite sibling QTY135', async ({ defect, transform }) => {
+  await assertTwoAtomicRefusals(await seed(defect === 'wrong-qualifier' ? '54370' : '54371', 'clean', true, transform), 'utilts_s02_quantity_required')
+})
+
+const zeroQuantity = (raw: string) => raw.replace('QTY+135:111', 'QTY+135:0')
+it('native actual S02 zero quantity has its own positive ACK and immutable nonbilling forecast retry', async () => {
+  const f = await seed('54372', 'clean', true, zeroQuantity)
+  expect((await f.consume()).internalReviewRequired).toBe(false)
+  const first = snapshot(f.source.id)
+  assertForecast(first, 'S02-OWN', '735999260731000007', 0); assertAck(f, first, 'S02-OWN', 'positive')
+  assertForecast(first, 'S02-SIBLING', '735999888000001014', 222); assertAck(f, first, 'S02-SIBLING', 'positive')
+  await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
+})
+it('native direct S02 zero quantity remains an accepted nonbilling forecast on immutable retry', async () => {
+  const f = await seed('54373', 'clean', true, zeroQuantity), input = await f.prepare(true)
+  expect((await directRpc(input)).error).toBeNull()
+  const first = snapshot(f.source.id)
+  assertForecast(first, 'S02-OWN', '735999260731000007', 0); assertForecast(first, 'S02-SIBLING', '735999888000001014', 222)
+  expect((await directRpc(input)).error).toBeNull(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
+})
+
+const nationalPoints = (raw: string) => raw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')
+  .replace('LOC+172+735999888000001014::9', 'LOC+172+735999888000001014::89')
+it('native actual S02 agency89 stays guide-valid, held without market ACK or forecasts, and retries unchanged', async () => {
+  const f = await seed('54374', 'clean', true, nationalPoints)
+  expect(runUtiltsRuntimeForMessage(f.source).validation.ok).toBe(true)
+  expect((await f.consume()).internalReviewRequired).toBe(true)
+  const first = snapshot(f.source.id)
+  expect(first.receipts).toHaveLength(1); expect(first.reservations).toHaveLength(2)
+  for (const row of first.reservations) expect(row).toMatchObject({ disposition: 'internal_review', planned_response_type: 'none', persisted_series_id: null })
+  expect(first.acks).toEqual([]); expect(first.series).toEqual([]); expect(first.values).toEqual([])
+  expect(first.contracts).toEqual([]); expect(first.outbox).toEqual([])
+  await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
+})
+it('native direct S02 agency89 refuses a positive override twice with zero durable effects', async () => {
+  await assertTwoAtomicRefusals(await seed('54375', 'clean', true, nationalPoints), 'utilts_consumption_identity_unsupported')
+})
+
+it('native actual S02 first observation cannot fill missing QTY135 in own second SEQ; sibling and retry remain independent', async () => {
+  const f = await seed('54376', 'clean', true, raw => s02PlanningSecondSequence(raw, null))
+  expect((await f.consume()).internalReviewRequired).toBe(false)
+  const first = snapshot(f.source.id), ack = assertAck(f, first, 'S02-OWN', 'negative')
+  expect(ack.raw_payload).toContain('ERC+41'); expect(ack.raw_payload).toContain('FTX+AAO++515::260')
+  expect(first.series).toHaveLength(1); expect(first.contracts).toHaveLength(1)
+  assertForecast(first, 'S02-SIBLING', '735999888000001014', 222); assertAck(f, first, 'S02-SIBLING', 'positive')
+  await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
+})
+it('native direct S02 own second SEQ missing QTY135 refuses both whole batches atomically', async () => {
+  await assertTwoAtomicRefusals(await seed('54377', 'clean', true, raw => s02PlanningSecondSequence(raw, null)), 'utilts_s02_quantity_required')
+})
+
+function assertTwoForecastObservations(state: Snapshot) {
+  const own = state.series.find(row => row.source_transaction_reference === 'S02-OWN')!
+  expect(own).toMatchObject({ series_kind: 'forecast', external_metering_point_id: '735999260731000007' })
+  const values = state.values.filter(row => row.series_id === own.id)
+  expect(values).toHaveLength(2); expect(values).toMatchObject([{ qualifier: '135', quantity: 111 }, { qualifier: '135', quantity: 333 }])
+  expect(state.contracts.find(row => row.transaction_id === 'S02-OWN')).toMatchObject({ contract: {
+    observations: [], metering: { capability: 'skip' }, billing: { capability: 'skip' } } })
+  assertForecast(state, 'S02-SIBLING', '735999888000001014', 222)
+}
+it('native actual S02 two own monthly observations stay distinct with positive ACKs and immutable retry', async () => {
+  const f = await seed('54378', 'clean', true, raw => s02PlanningSecondSequence(raw, 333))
+  expect((await f.consume()).internalReviewRequired).toBe(false)
+  const first = snapshot(f.source.id)
+  assertTwoForecastObservations(first); assertAck(f, first, 'S02-OWN', 'positive'); assertAck(f, first, 'S02-SIBLING', 'positive')
+  await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
+})
+it('native direct S02 two own monthly observations persist independently and retry unchanged', async () => {
+  const f = await seed('54379', 'clean', true, raw => s02PlanningSecondSequence(raw, 333)), input = await f.prepare(true)
+  expect((await directRpc(input)).error).toBeNull()
+  const first = snapshot(f.source.id)
+  assertTwoForecastObservations(first)
+  expect((await directRpc(input)).error).toBeNull(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
 })

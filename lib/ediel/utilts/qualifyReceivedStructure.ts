@@ -26,12 +26,13 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
     evidence:{version:1,owner:'received-structure-comparison-v1',status:'not_applicable',cutoffAt:null,snapshotId:null,readsetHash:null,comparisons:[]}}
   if(canonicalPolicy.family!=='UTILTS'||canonicalPolicy.direction!=='inbound'||canonicalPolicy.code!==message.message_code
     ||message.direction!=='inbound')return result
-  // U 25-A-4 requires LOC+172 for E72 (UF-request-209-63). Other
+  // U 25-A-4 requires LOC+172 for E72 (UF-request-209-63) and
+  // S02 (UF-planning-209-51), including empty nonbilling observations. Other
   // profiles below permit LOC+175, but a valid field
   // is not a tenant/actor mandate or a durable regulating-object identity.
   // The point comparison owner below is limited to E30/E66/S07. Hold only the
   // accepted physical IDE here, preserving genuine guide-negative siblings.
-  if(['S01','E72','E73','S06'].includes(message.message_code??'')){
+  if(['S01','E72','E73','S06','S02'].includes(message.message_code??'')){
     const unowned=runtime.transactionDispositions.flatMap((disposition,index)=>
       disposition.disposition==='accepted'&&runtime.facts.transactions[index]?.regulatingObjectPresent
         ?[disposition.transactionId]:[])

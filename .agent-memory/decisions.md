@@ -1,3 +1,7 @@
+## 2026-09-30 — S02 physical required fields precede durable effects
+
+After authentic native RED, enforce own LOC172 and per-observation QTY135 through retained canonical25-A-4 policy before functional eligibility; preserve guide-negative siblings and real zero. Extend the existing physical identity qualifier to guide-valid agency89 internal hold. Raw service SQL independently checks accepted S02 own physical point and every own SEQ quantity before receipt/ACK/series/contracts, without synthetic actual observations or exposed helper/grants. Quantity-content/tamper/full grammar and prior-guide/history acceptance are not inferred from presence controls.
+
 ## 2026-09-30 — S02 native oracle preserves forecast semantics
 
 Empty consumption observations are correct for nonbilling forecasts, not a waiver of physical required LOC172/QTY135. Use the public canonical dispatcher, real evidence trigger and ACK writer/finalizer. Direct atomicity tests call raw supabaseService.rpc, so an application guard cannot mask database acceptance. Source-required omissions must be per-IDE guide-negative fields209/515; do not invent E87/internal national codes. Forecast quantities remain QTY135; no actual consumption observations or assumed mandates. Product changes require authentic native RED first.

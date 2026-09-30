@@ -36,8 +36,8 @@ expect(runtime.transactionDispositions.find(row=>row.transactionId==='S02-OWN'))
 
 - [x] Add native real consumer and two direct atomic-refusal attempts; clean positive consumer/RPC controls and full retry snapshots.
 - [x] Review test setup and run scripts/tests TypeScript, lint, memory/integrity/diff checks: PASS/APPROVE.
-- [ ] Commit test-only fixture/native/evidence; retain ordinary RED locally for the eventual correction.
-- [ ] Fast-forward publish; read first actual native failure. Existing 411 tests must remain green; the new source trigger/clean controls must succeed before calling the durable risk confirmed.
+- [x] Commit test-only fixture/native/evidence; retain ordinary RED locally for the eventual correction.
+- [x] Fast-forward publish; read first actual native failure. Existing 411 tests must remain green; the new source trigger/clean controls must succeed before calling the durable risk confirmed.
 
 ### Task 2: Correct only the native-confirmed boundary
 
@@ -45,17 +45,19 @@ expect(runtime.transactionDispositions.find(row=>row.transactionId==='S02-OWN'))
 
 **Interfaces:** Retain canonicalEdielPolicy context and field projection. Required own LOC172 produces field209 guide-negative; missing own QTY135 produces field515 guide-negative. Functional validation must not overwrite either guide outcome. The SQL owner must independently refuse attempted accepted S02 with unsupported physical point or absent own planned quantity before receipt/reservation/series/contract insertion.
 
-- [ ] Diagnose native RED and verify its source/actor/context independently. Stop product work if a fixture or different boundary caused it.
-- [ ] Extend the existing point guide to S02 under canonical usage rules. Add own scoped planned-quantity presence enforcement without global sibling fallback; preserve other profiles and observed zero quantities.
-- [ ] Add the smallest physical prewrite SQL refusal for accepted S02 if evidenced, retaining signature, grants, source locks, tenant/environment/raw checks, membership and existing LOC175 precedence.
-- [ ] Run the ordinary test above plus missing QTY/both and both physical orders; require 8/8 and affected guide/ACK/consumption regressions. Stage the actual tests with the correction.
+- [x] Diagnose native RED and verify its source/actor/context independently. Stop product work if a fixture or different boundary caused it.
+- [x] Extend the existing point guide to S02 under canonical usage rules. Add own scoped planned-quantity presence enforcement without global sibling fallback; preserve other profiles and observed zero quantities.
+- [x] Add the smallest physical prewrite SQL refusal for accepted S02 if evidenced, retaining signature, grants, source locks, tenant/environment/raw checks, membership and existing LOC175 precedence.
+- [x] Run the ordinary test above plus missing QTY/both and both physical orders; require 21/21 and affected guide/ACK/consumption regressions. Stage the actual tests with the correction.
 - [ ] Independent differential review; commit/publish the code/forward migration/evidence and inspect exact-head native positive/negative/atomic/retry results.
 
 ### Task 3: Final exact-head evidence and source-derived snapshot
 
 **Files:** Replay-produced schema snapshot/fingerprint only if changed, audit, activation matrix and canonical memory. No generated types are hand-edited.
 
-- [ ] Require native426/426 for the currently defined 15 new cases plus existing411, actual case/browser, tenant invariants, parity and public generated types.
+- [ ] Require native438/438 for the currently defined 27 new cases plus existing411, actual case/browser, tenant invariants, parity and public generated types.
 - [ ] If schema snapshot is the first remaining failure, obtain authentic exact-head replay artifact, verify its ZIP/source provenance and copy only the new function-body evidence. Publish a substantive snapshot/evidence commit.
 - [ ] Require all five mandatory workflows on the final exact head. No reruns of green unchanged heads.
 - [ ] Review refs/local status/unpushed commits/full relevant diff/review threads; put final receipt in PR description. Keep formal whole-ID and external acceptance blocks explicit.
+
+Execution receipt: test-only e1b4f897 OPS36644820963/replay109665237704 confirmed native414/426, all previous411 and3clean controls PASS; actual consumer positives and raw RPC1receipt/2accepted reservations/2forecastseries/2contracts on both malformed attempts. Local bounded correction54/54 affected ordinary tests, TypeScript/lint/migrations/types PASS; product differential rereview APPROVE; native438/final gates pending. Twelve additional native quantity-placement/zero/agency89/second-SEQ controls cover the corrected boundary.

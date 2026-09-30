@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run36260469365-artifact10912276132",
   "generated_types": "supabase/database.types.ts",
   "sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-  "latest_migration": "20260929202207_utilts_e72_empty_request_point_identity.sql",
-  "latest_migration_schema_effect": "E72 physical mandatory LOC172 prewrite guard, preserving existing signature/grants/tenant/raw locks and LOC175 owner split. Test-only ab8e12c6 native406/407 confirmed gap; corrected00045ba5 OPS36626528727 native407/407, case native/browser, tenant invariants and parity selftest passed. Generated public types byte-identical SHA25636e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d. Sole replay failure old function snapshot; exact artifact11061282485 ZIP SHA256c5487784b90b04c4dfcfee11ef149f8a6b73cd57185ba6afcd76a98b731bc738 supplies copied schema/fingerprint c66e9457de217943904622927f60618c5fa0af1546376906df52bf7e360a7924. One predicate/functions hash differs. Final new-head gates pending."
+  "latest_migration": "20260929234037_utilts_s02_required_physical_scope.sql",
+  "latest_migration_schema_effect": "S02 own physical mandatory LOC172 and per-SEQ QTY135 prewrite guard; public signature/grants, tenant/raw locks, nonbilling forecast contracts and LOC175 owner refusal preserved. Test-only e1b4f897 OPS36644820963 native414/426 confirmed six consumer and six raw RPC failures; all previous411 plus three clean controls passed. Corrected exact-head native/type/schema/five gates pending; no regenerated-type claim on this local candidate."
 }

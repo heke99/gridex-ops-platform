@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-29T23:18:56.279806+00:00",
+  "updated_at": "2026-09-30T00:04:44.989042+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR421 U-02 S02 own mandatory LOC172/QTY135 ordinary confirmed; test-only native probe",
+  "active_item": "PR421 S02 native-confirmed own mandatory fields; bounded correction exact-head verification",
   "current_audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Fast-forward publish substantive S02 helper/native/config/evidence from exact dc1c9bae on draft PR421. Read first actual native result; require clean controls and all previous411 native tests before confirming durable risk. Ordinary RED file remains local until correction. Only then minimal canonical guide/prewrite forward fix and exact-head positive/negative/atomic/retry/five gates. Keep all issuer/history/retention/LOC175/fullE035/market holds.",
+  "next_action": "Independent rereview APPROVED; fast-forward publish S02 canonical guide/hold + forward20260929234037 with tests/evidence from e1b4f897. Require corrected native438, case/browser/tenant/parity/types; copy authentic exact-head schema if first remaining failure, final five workflows and PR receipt. No unchanged-head rerun; external/whole-ID/traffic holds retained.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -983,7 +983,7 @@
     "market_activated": false
   },
   "active_pr_head_before_pending_commit": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
-  "active_candidate_evidence": "S02 ordinary2cleanPASS/6guideRED; 15-case native test-only probe, durable effect UNPROVED",
+  "active_candidate_evidence": "S02 probe e1b4f897 native414/426: twelve real consumer/rawRPC omissions confirmed; all prior411+three clean PASS. Local bounded correction54/54; corrected native/final gates pending.",
   "active_pr_latest_ci": {
     "head": "2c4d65e095349761511943c42840c451bacaaeda",
     "ediel": 36480846526,
@@ -1165,7 +1165,7 @@
     "final_receipt": "PR421 body updated; zero threads/reviews; actual logs verify case/browser/tenant/parity/types/schema"
   },
   "pr421_s02_required_20260930": {
-    "status": "ORDINARY_CONFIRMED_NATIVE_PROBE_PENDING",
+    "status": "NATIVE_CONFIRMED_CORRECTION_LOCAL_GREEN_NEW_HEAD_PENDING",
     "baseline_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
     "source_ids": [
       "UF-planning-209-51",
@@ -1189,13 +1189,23 @@
       "CALL-12",
       "CALL-13"
     ],
-    "ordinary": "2cleanPASS/6guideRED on unchanged product, both orders; unpublished RED test retained for fix",
-    "native": "15 new cases NOT EXECUTED locally; eventual426/426 required",
-    "product": "UNCHANGED",
-    "local": "scripts/tests TypeScript, lint, frozen integrity and diff PASS",
-    "review": "APPROVE bounded test-only setup, no remaining Critical/Important; corrected FTX field oracle and direct raw RPC",
+    "ordinary": "Original2PASS/6FAIL/8; extended3PASS/9FAIL/12 before product; review4FAIL/13PASS/17 and stale-version2FAIL/19PASS/21 before respective corrections; final S0221/21 and affected7files54/54 PASS",
+    "native": "Probe414/426: prior411+3cleanPASS,6consumer positives+6rawRPC atomic bypasses; correction438 planned NOT EXECUTED",
+    "product": "Canonical ownLOC172/per-observationQTY13525-A-4 guide, S02 internal point hold, CLI forward20260929234037 prewrite identity/ownSEQ135; signature/grants/tenant/raw locks/175 owner retained",
+    "local": "App/tests/scripts TypeScript, scoped lint, migrations/public contract/hardening/types PASS",
+    "review": "APPROVE bounded correction; all reproduced metadata/empty-AST/version blockers corrected, no remaining introduced Critical/Important/Minor. Exact-head native438/final gates pending.",
     "formal_closure": "No whole-ID promotion",
     "traffic": "HELD",
-    "audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md"
+    "audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md",
+    "test_first_head": "e1b4f897ec7f3d42183f8097fc7bdd34c1b29833",
+    "probe_ops": 36644820963,
+    "probe_replay_job": 109665237704,
+    "probe_workflows": [
+      36644820924,
+      36644820926,
+      36644820952,
+      36644820896
+    ],
+    "migration": "20260929234037_utilts_s02_required_physical_scope.sql"
   }
 }

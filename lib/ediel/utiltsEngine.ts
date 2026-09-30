@@ -2,7 +2,7 @@ import { canonicalBusinessDate } from '@/lib/ediel/core/messagePolicy'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
-import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveUtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
@@ -704,14 +704,21 @@ function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, resu
 
 function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   // Validate supplied LOC+172 in the applicable data/request profiles in
-  // U pp.54,63,123. E66/E73 absence depends on the 172/175 object domain.
-  if (!['E30', 'E66', 'S07', 'E72', 'E73'].includes(result.facts.messageCode ?? '')) return result
+  // U pp.51,54,63,123. E66/E73 absence depends on the 172/175 object domain.
+  if (!['E30', 'E66', 'S07', 'E72', 'E73', 'S02'].includes(result.facts.messageCode ?? '')) return result
   // UG-123-11/12 here is sourced from 25-A-4. A bounded English 25-A-3
   // amendment covers E61/E62, but it has not qualified these identity rows;
   // the shared E5SE5A wire does not project this rule onto the prior guide.
-  const selectedGuide = policy?.guide ?? resolveAuthoritativeEdielGuide({
-    family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
-  })
+  let selectedGuide = policy?.guide
+  if (!selectedGuide) {
+    if (result.facts.messageCode === 'S02') {
+      try {
+        selectedGuide = resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate, associationAssignedCode: result.facts.messageVersion })
+      } catch { return result }
+    } else {
+      selectedGuide = resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version })
+    }
+  }
   if (selectedGuide.guideRevision !== '25-A-4') return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
@@ -752,6 +759,50 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
     }
   }
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
+}
+
+function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, retained?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+  if (result.facts.messageCode !== 'S02') return result
+  const transactions = result.facts.utiltsObservedTransactions ?? []
+  // Do not replace any blocking legacy issue unless the physical projection
+  // accounts for every transaction. Metadata cannot supply absent ownership.
+  if (!transactions.length || transactions.length !== result.facts.transactions.length || transactions.some((transaction, index) =>
+    resolveUtiltsTransactionId(transaction.transactionId, index) !== resolveUtiltsTransactionId(result.facts.transactions[index]?.transactionId, index))) return result
+  let policy = retained
+  if (!policy) {
+    try {
+      policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'S02', direction: message.direction,
+        referenceDate, associationAssignedCode: result.facts.messageVersion, applicationReference: result.facts.applicationReference, mode: 'parse' })
+    } catch {
+      // Raw validators return structured validation; keep its existing errors
+      // when the physical envelope cannot select this canonical projection.
+      return result
+    }
+  }
+  if (policy.guide.guideRevision !== '25-A-4') return result
+  const required = (field: string) => policy.fieldRules.some(rule => 'fieldNo' in rule && rule.fieldNo === field && rule.requirements.S02 === 'R')
+  if (!required('209') || !required('515')) return result
+  const wire = tokenizeEdifact(message.raw_payload)
+  // Replace only S02 legacy missing-field fallbacks with the canonical own
+  // SG5/SEQ checks. Their global/wrong-field issues must not reject siblings.
+  const legacy = new Set(['UTILTS_MISSING_METERING_POINT', 'UTILTS_PROFILE_METERING_POINT_MISSING', 'UTILTS_PROFILE_QUANTITY_MISSING'])
+  const issues = result.validation.issues.filter(issue => !legacy.has(issue.code))
+  for (const [index, observed] of transactions.entries()) {
+    const reference = resolveUtiltsTransactionId(observed.transactionId, index)
+    const boundary = observed.segments.findIndex(segment => segment.tag === 'SEQ')
+    const header = observed.segments.slice(0, boundary < 0 ? observed.segments.length : boundary)
+    const missingPoint = required('209') && !header.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === '172')
+    const missingQuantity = required('515') && (!observed.observations.length || observed.observations.some(observation =>
+      !observation.quantities.some(quantity => quantity.qualifier === '135' && quantity.value !== null && quantity.value.trim() !== '')))
+    for (const field of [...(missingPoint ? ['209'] : []), ...(missingQuantity ? ['515'] : [])]) issues.push({
+      severity: 'error', kind: 'application', code: field === '209' ? 'UTILTS_METERING_POINT_ID_MISSING' : 'UTILTS_S02_PLANNED_QUANTITY_MISSING',
+      title: field === '209' ? 'Anläggningsidentitet saknas' : 'Planerad kvantitet saknas',
+      description: field === '209' ? 'S02 kräver egen SG5/LOC+172.' : 'Varje S02-observation kräver egen SG11/QTY+135.',
+      aperakErcCode: '41', aperakFieldCode: field, aperakText: 'MANDATORY FIELD MISSING',
+      referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+    })
+  }
+  return rebuildUtiltsRuntimeResult({ message, result, issues })
 }
 
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {
@@ -865,7 +916,7 @@ export function runUtiltsRuntimeForMessage(
   const guideEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: guideCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const guided = applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, guideEffective))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))

@@ -1,3 +1,7 @@
+## 2026-09-30 — S02 durable reproduction verified; correction locally verified only
+
+Test-first e1b4f897 native414/426 provides authentic proof of six consumer and six direct-RPC defects, while all previous411 and three clean controls pass. Local canonical guide/hold + forward prewrite correction and12 new ordinary tests pass45/45 affected suite, app/tests/scripts TypeScript/lint/migrations/types. Corrected native438, final schema and five gates are NOT complete. Last fully green ERR dc1c9bae remains the verified baseline.
+
 ## 2026-09-30 — ERR final exact-head gate verified
 
 Finaldc1c9baef6b9146a38d3c3aefddb66949fd7ee92 has five SUCCESS workflows and OPS verify/quality/replay SUCCESS, native411/411, case/browser/tenant/parity/generated types/schema PASS. Canonical facade retains authority guard, ERR own DTM137 policy date and full IDE scope; E72/E73 remain green. Final receipt posted in #421 body, zero review threads/reviews. No whole-ID/market/merge acceptance. New S02 source/hash and ordinary divergence established (2cleanPASS/6guideRED); native still unproved.

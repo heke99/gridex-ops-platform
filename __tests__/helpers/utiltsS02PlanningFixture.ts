@@ -47,3 +47,16 @@ export function s02PlanningPair(defect: S02PlanningDefect, ownFirst: boolean): S
   const sibling = { reference: 'S02-SIBLING', point: '735999888000001014', quantity: 222 }
   return ownFirst ? [own, sibling] : [sibling, own]
 }
+
+/** Two monthly observations in OWN only; retain a separate one-month sibling. */
+export function s02PlanningSecondSequence(raw: string, quantity: number | null): string {
+  const lines = raw.split('\n'), start = lines.indexOf("IDE+24+S02-OWN'")
+  const end = lines.findIndex((line, index) => index > start && /^(IDE|UNT)\+/.test(line))
+  if (start < 0 || end < 0) throw new Error('synthetic_s02_own_scope_missing')
+  const own = lines.slice(start, end).map(line => line.replace('202610010000202611010000:719', '202610010000202612010000:719'))
+  own.push("SEQ++2'", ...(quantity === null ? [] : [`QTY+135:${quantity}'`]))
+  lines.splice(start, end - start, ...own)
+  const unH = lines.findIndex(line => line.startsWith('UNH+')), unt = lines.findIndex(line => line.startsWith('UNT+'))
+  lines[unt] = `UNT+${unt - unH + 1}+1'`
+  return lines.join('\n')
+}

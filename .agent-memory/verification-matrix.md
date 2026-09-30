@@ -1,3 +1,7 @@
+## 2026-09-30 — S02 probe RED and local correction
+
+Exact e1b4f897: Ediel36644820924/browser36644820926/FullE2E36644820952/tenant36644820896 SUCCESS; OPS36644820963 verify109665237539/quality109665237768 SUCCESS, replay109665237704 expected native414PASS/12FAIL/426. Actual own positive ACK and two raw atomicity bypasses per omission/order; all previous411 +3clean PASS. Final parity not reached. Extended ordinary unchanged product3PASS/9FAIL/12; correction21/21 and affected7files54/54 PASS. App/tests/scripts TypeScript, scoped lint0errors, db:migrations:check PASS after new checksum registration; public types unchanged SHA36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d. ACK chain/ACK engine/normative-authority PASS. Optional legacy utilts-completion has one unchanged facade file-placement heuristic FAIL; actual environment is threaded in utiltsSupplierRequest, all static inputs unchanged. See S02 audit; do not claim that script PASS. Corrected native438 and final authentic schema/five workflows PENDING.
+
 ## 2026-09-30 — Final ERR receipt and S02 test-first boundary
 
 ERR dc1c9bae: Ediel36641978972/browser36641978974/FullE2E36641978957/tenant36641979472/OPS36641978949 SUCCESS; verify109656114876/quality109656115294/replay109656115263 SUCCESS. Native411/411, all4 ERR cases, case/browser/tenant/parity/types/schema PASS; unchanged types36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d/schema c66e9457de217943904622927f60618c5fa0af1546376906df52bf7e360a7924. Zero reviews/threads; full relevant delta and diff-check passed.

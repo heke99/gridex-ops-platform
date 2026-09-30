@@ -1,3 +1,7 @@
+## 2026-09-30 — S02 authentic native RED followed by bounded correction
+
+Read first actual e1b4f897 OPS native414/426 and complete final logs: all12 expected S02 negative/atomic refusals fail with actual committed positives, earlier411/three clean controls pass. No unchanged-head rerun. Root adds canonical own-field guide and supported-point hold plus CLI-created forward20260929234037 prewrite S02 physical quantity/identity checks. Preserve public grants/signature/source locks, forecast observations[] and existing175 refusal. Add zero/wrongqualifier/headerplacement/agency89 native controls. Local54/54/type/lint/migrations PASS; reviewer read-only, root sole writer. Publish and exact-new-head native/replay/schema/five gates remain next; external and traffic holds unchanged.
+
 ## 2026-09-30 — Continue #421 from final ERR into bounded S02
 
 Rechecked clean localdc1c9bae/remote/main53bf989b, all five exact-head SUCCESS and authentic final native411/schema/types logs; PR final receipt updated, zero reviews/threads. Recovered exact U/UE originals through Library, matched frozen hashes and inspected required-field PDF columns. Read-only independent source/module refutation; ordinary S02 two clean controls PASS and six own-field guide refusals RED. Root added test-only mandatory native15-case public-consumer/raw-service-RPC/atomic/retry probe; no product edits. Review caught and corrected FTX field wire oracle and adapter-vs-direct SQL masking risk before publication. Continued owner/external/market holds preserved.
