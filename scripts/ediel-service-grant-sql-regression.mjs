@@ -25,6 +25,9 @@ try{
  create table public.metering_permission_sites(company_id uuid,metering_permission_id uuid,customer_id uuid,facility_id text,status text,start_date date,end_date date,metadata jsonb);
  create table public.company_memberships(company_id uuid,user_id uuid,status text,is_active boolean);
  create function public.gridex_actor_has_company_permission(uuid,uuid,text) returns boolean language sql as 'select true';
+ -- Only grant/projection guards tested here: private source authority is independently exercised by process owner.
+ create table public.source_authority_fixture(allowed boolean);insert into public.source_authority_fixture values(true);
+ create function public.ediel_permission_source_is_current_v1(uuid,uuid,uuid) returns boolean language sql as 'select allowed from public.source_authority_fixture';
  create table public.ediel_messages(id uuid,company_id uuid,environment text,direction text,message_family text,message_code text,execution_context_snapshot jsonb);
  create table public.meter_reading_series(source_ediel_message_id uuid,id uuid primary key,company_id uuid,message_code text,series_kind text,external_metering_point_id text,product_id text,period_start timestamptz,period_end timestamptz,registration_date timestamptz,resolution text);
  create table public.meter_reading_values(id uuid primary key,company_id uuid,series_id uuid,reading_at timestamptz,quantity numeric,unit text,quality text,qualifier text);
@@ -55,6 +58,9 @@ try{
  const project=(fields="array['quantity']",version=1)=>`select ediel_beneficiary_series_page_v1('${uid(2)}','${uid(20)}','${uid(70)}',${version},'analysis','${uid(80)}',${fields},'2026-01-01','2026-01-03') as projection`
  await rejected(project("array['quantity']",'null'),/ediel_grant_not_current/)
  result=await db.query(project());assert.deepEqual(result.rows[0].projection.rows,[{quantity:'1.234'}]);checks++
+ await db.exec('update source_authority_fixture set allowed=false')
+ await rejected(project(),/ediel_permission_source_not_current/)
+ await db.exec('update source_authority_fixture set allowed=true')
  await rejected(project("array['raw_transaction']"),/ediel_projection_outside_grant/)
  await rejected(project('null'),/ediel_projection_request_invalid/)
  await db.exec(`update ediel_service_assignments set field_sets=array['reading_at'] where id='${uid(50)}'`)
