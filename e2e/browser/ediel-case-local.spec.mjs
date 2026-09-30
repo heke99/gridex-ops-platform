@@ -7,6 +7,10 @@ const enabled = process.env.GRIDEX_EDIEL_CASE_LOCAL_E2E === '1'
   && Boolean(process.env.GRIDEX_EDIEL_CASE_FIXTURE_PATH && process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD)
 test.skip(!enabled, 'Requires the disposable local Supabase replay and writer-created fixture.')
 
+// These tests share an externally provisioned, mutable database fixture.
+// A failed attempt must start a fresh clean replay, not inherit committed writes.
+test.describe.configure({ mode: 'serial', retries: 0 })
+
 const fixture = enabled ? JSON.parse(readFileSync(process.env.GRIDEX_EDIEL_CASE_FIXTURE_PATH, 'utf8')) : null
 const detail = (id) => `/admin/ediel/operational-cases?caseId=${encodeURIComponent(id)}`
 
@@ -138,9 +142,14 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await login(page, fixture.writerEmail)
   await login(customer, fixture.portalEmail)
   await customer.goto('/portal/arenden')
-  await expect(customer.getByRole('heading', { name: 'Mina ärenden' })).toBeVisible()
-  await expect(customer.locator('main')).toContainText('Inga ärenden har publicerats')
-  await expect(customer.locator('main')).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
+  // The loading fallback nests another main inside the portal layout. Require
+  // the rendered cases heading so neither loading nor an arbitrary first main qualifies.
+  const portalCases = customer.locator('main').filter({
+    has: customer.getByRole('heading', { name: 'Mina ärenden', level: 1, exact: true }),
+  })
+  await expect(portalCases).toHaveCount(1)
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
+  await expect(portalCases).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
 
   await page.goto('/admin/customer-cases')
   const support = await adminContent(page)
@@ -163,7 +172,7 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   }, { actionName, caseId: fixture.supportId })
   expect(denied).toBeGreaterThanOrEqual(400)
   await customer.reload()
-  await expect(customer.locator('main')).toContainText('Inga ärenden har publicerats')
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
   await reader.close()
   await caseArticle.locator('input[name="public_title"]').fill('Customer visible browser subject')
   await caseArticle.locator('textarea[name="public_body"]').fill('A message authored for the customer.')
@@ -179,9 +188,9 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
   await customer.reload()
   await expect(customer.getByRole('heading', { name: 'Customer visible browser subject' })).toBeVisible()
-  await expect(customer.locator('main')).toContainText('A message authored for the customer.')
-  await expect(customer.locator('main')).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
-  await expect(customer.locator('main')).not.toContainText(fixture.recent.title)
+  await expect(portalCases).toContainText('A message authored for the customer.')
+  await expect(portalCases).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
+  await expect(portalCases).not.toContainText(fixture.recent.title)
   await customer.goto('/portal/status')
   const portalStatus = customer.locator('main').first()
   await expect(portalStatus).toContainText('Customer visible browser subject')
@@ -189,8 +198,8 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
   await expect(caseArticle).toContainText('Inte publicerat till kunden.')
   await customer.goto('/portal/arenden')
-  await expect(customer.locator('main')).toContainText('Inga ärenden har publicerats')
-  await expect(customer.locator('main')).not.toContainText('Customer visible browser subject')
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
+  await expect(portalCases).not.toContainText('Customer visible browser subject')
   await page.reload()
   await expect(caseArticle.locator('input[name="expected_revision"]')).toHaveValue('1')
   await caseArticle.locator('input[name="public_title"]').fill('New public subject after withdrawal')
@@ -202,7 +211,8 @@ test('tenant writer publishes and withdraws; customer portal sees only authored 
   await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
   await expect(caseArticle).toContainText('Inte publicerat till kunden.')
   await customer.reload()
-  await expect(customer.locator('main')).not.toContainText('New public subject after withdrawal')
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
+  await expect(portalCases).not.toContainText('New public subject after withdrawal')
   await customer.close()
   await page.close()
 })

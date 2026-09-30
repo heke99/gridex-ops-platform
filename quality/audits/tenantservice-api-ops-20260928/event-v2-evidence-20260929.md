@@ -113,9 +113,53 @@ Typecheck/test kördes på lokal Node 24; CI använder projektets Node 22.
 Oberoende läsande granskning fann inga konkreta fel; den ersätter inte
 native-provet. `ggshield` saknas, så automatisk hemlighetsskanning påstås inte.
 
-Den efterföljande artefakt-/evidenskandidatens exakta SHA och dess egna CI-
-resultat publiceras i #418 och överlämnas till #422 efter körning. Ingen
-fasacceptans eller produktionsbehörighet följer av detta avgränsade paket.
+Den efterföljande artefakt-/evidenskandidaten publicerades som
+`e50b23fbbdfe6dc6bc51ca538a8abf0c93c31209`. Dess egna resultat och exakta
+RPC-signatur överlämnades i
+[#422:s handoff](https://github.com/heke99/gridex-ops-platform/pull/422#issuecomment-5900584626).
+Ingen fasacceptans eller produktionsbehörighet följer av paketet.
+
+## Nästa avgränsade steg — browserfixtur 2026-09-30
+
+Användaren har begärt nästa steg på samma draft #418. Basen är exakt e50
+ovan; #422-head `a826b5886e7b946ea10164d8f736eac07e8c6ac1` och dess separata
+API-arbetskopia bevaras. Endast browserfixtur och befintlig initiativ-evidens
+ändras under
+[ny ägarskapskommentar](https://github.com/heke99/gridex-ops-platform/pull/418#issuecomment-5907030915).
+Heads och konkurrerande ägarskap kontrolleras igen före icke-forcerad push.
+
+**Faktiskt RED:** [OPS 36638655466](https://github.com/heke99/gridex-ops-platform/actions/runs/36638655466),
+clean-jobb `109645401892`, körde på merge-checkout
+`8180ae6e429c3d819f5668dc77447e74e76c0599` med main
+`53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Paketfilerna matchade e50;
+hela merge-trädet skiljde sig genom senare main-arbete. Samtliga elva
+event-v2-markörer och tidigare kontaktprov passerade. Det första browserfelet
+var `ediel-case-local.spec.mjs:192`: efter återkallelse matchade `main` både
+portal-layout och dess nästlade laddningsvy. Två automatiska Playwright-
+återförsök ärvde sedan redan sparad revision/publicering och gav följdfel.
+Browserresultat: 3/4 passerade; native efter browser och automatiska slutgrindar
+för typ/schema nåddes inte. Separat bytejämförelse med artefakt `11065902053`
+matchade de införda typerna/schema/fingerprint, men kvalificerar inte den
+avbrutna automatiska slutgrinden. Arkivets SHA-256:
+`235ef17755c572ba12fc0668d4e1bf7cb990029a6773c3b0882070cf8b7f0f86`.
+
+**Rättning:** `app/portal/layout.tsx` behåller sitt `main` medan
+`app/portal/loading.tsx` har ett eget `main`. Den verkliga ärendesidan har exakt
+h1 `Mina ärenden`. Browserfixturen filtrerar därför dynamiskt portalens `main`
+på denna synliga h1, kräver exakt en renderad ärendevy och använder samma
+lokator efter varje omladdning. Sista återkallelsen kräver även positivt tomt
+läge före kontroll av frånvarande publicering. Alla fyra befintliga tester och
+affärs-/behörighetsassertioner finns kvar. Samma serial/retries=0 som den
+befintliga kontaktfixturen hindrar återförsök mot ändrade externa DB-rader;
+ett misslyckande kräver en helt ny clean replay. Inga timeoutökningar,
+workflow-/RPC-/SQL-/applikationsändringar eller nya skip-markörer införs.
+
+Lokal syntaxkontroll, riktad ESLint, Playwright-testupptäckt (4/4) och
+`git diff --check` passerade. Lokal miljö saknar native databas och installerad
+browser; faktisk browser/native och automatisk slutparitet ska köras i den
+nya headens ordinarie CI. Det är väntande evidens, inte ett påstått GREEN.
+Exakt slut-SHA, run/jobb, provresultat och handoff uppdateras i #418/#422 efter
+den körningen utan att äldre releasebytes eller kravens acceptans ändras.
 
 ## API-handoff och återställning
 
