@@ -22,6 +22,16 @@ describe('U18 physical observation blocks',()=>{
   it('rejects the same numeric reading and time even when its lexical precision differs',()=>{
     expect(utiltsObservationOrderGuideIssues(tx(observation('reading','202607010000','10.0')+observation('reading','202607010000','010.00')))).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_METER_READING_DUPLICATED'})]))
   })
+  it('keeps time order and duplicate readings in the actual own register scope',()=>{
+    const reading=(register:string,time:string)=>`SEQ++1'RFF+AES:${register}'RFF+MG:METER'QTY+220:10'DTM+597:${time}:203'`
+    expect(utiltsObservationOrderGuideIssues(tx(reading('A','202607010000')+reading('A','202608010000')+reading('B','202607010000')+reading('B','202608010000')))).toEqual([])
+    expect(utiltsObservationOrderGuideIssues(tx(reading('A','202608010000')+reading('A','202607010000')))).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_OBSERVATION_TIME_ORDER'})]))
+  })
+  it('compares equivalent supported timestamps and retains NULL as an absent reading',()=>{
+    const repeated=observation('reading','202607010000')+observation('reading','202607010000').replace(':203',':204').replace('202607010000','20260701000000')
+    expect(utiltsObservationOrderGuideIssues(tx(repeated))).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_METER_READING_DUPLICATED'})]))
+    expect(utiltsObservationOrderGuideIssues(tx(observation('reading','202607010000','NULL')+observation('reading','202607010000','NULL')))).toEqual([])
+  })
   it('retains typed syntax rejection when no AST can be decoded',()=>{
     const message=energyHandoffMessage()
     message.raw_payload += '?'
