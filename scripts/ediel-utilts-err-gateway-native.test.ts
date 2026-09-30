@@ -8,6 +8,8 @@ import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import * as database from '@/lib/ediel/db'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -66,9 +68,9 @@ async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransact
       VALUES(${literal(ids.point)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.site)},'735999260731000007','735999260731000007',${literal(ids.grid)});
     INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope)
       VALUES(${literal(ids.request)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'billing_underlay');`)
-  const insertSource = async (ownTransactions: UtiltsAckFixtureTransaction[]) => {
+  const insertSource = async (ownTransactions: UtiltsAckFixtureTransaction[], transformRaw?: (raw: string) => string) => {
     const fixture = utiltsErrGatewayFixture({ company: ids.company, receiver: actorEdielId, transactions: ownTransactions })
-    const { id, raw, parsed } = utiltsNativeSourceFixture(fixture.raw_payload!, randomUUID())
+    const { id, raw, parsed } = utiltsNativeSourceFixture(transformRaw ? transformRaw(fixture.raw_payload!) : fixture.raw_payload!, randomUUID())
     // Let the real trigger capture the unique family/date-qualified source
     // evidence; prefilled rule-pack columns would bypass that boundary.
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
@@ -84,7 +86,7 @@ async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransact
 }
 
 type Snapshot = {
-  acks: { id: string; family: string; outcome: string; reference: string; wire: string; process: string; company: string; operation: string; policy: Record<string, unknown>; createdAt: string; updatedAt: string }[]
+  acks: { id: string; family: string; outcome: string; scope: string; reference: string; wire: string; process: string; company: string; operation: string; policy: Record<string, unknown>; createdAt: string; updatedAt: string }[]
   reservations: { transaction: string; disposition: string; plan: string; final: string | null; ack: string | null; series: string | null; row: Record<string, unknown> }[]
   receipts: unknown[]
   series: { transaction: string; kind: string }[]
@@ -93,7 +95,7 @@ type Snapshot = {
 }
 function snapshot(source: string): Snapshot {
   return sql(`SELECT jsonb_build_object(
-    'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'outcome',ack_outcome,'reference',parsed_payload->>'relatedTransactionReference','wire',raw_payload,'process',process_type,'company',company_id,'operation',source_operation_id,'policy',rule_pack_snapshot,'createdAt',created_at,'updatedAt',updated_at) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(source)}),
+    'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'outcome',ack_outcome,'scope',parsed_payload->>'ackScope','reference',parsed_payload->>'relatedTransactionReference','wire',raw_payload,'process',process_type,'company',company_id,'operation',source_operation_id,'policy',rule_pack_snapshot,'createdAt',created_at,'updatedAt',updated_at) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(source)}),
     'reservations',(SELECT coalesce(jsonb_agg(jsonb_build_object('transaction',source_transaction_id,'disposition',disposition,'plan',planned_response_type,'final',final_response_type,'ack',response_message_id,'series',persisted_series_id,'row',to_jsonb(a)) ORDER BY source_transaction_id),'[]') FROM public.ediel_ack_transaction_results a WHERE source_message_id=${literal(source)}),
     'receipts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_message_id),'[]') FROM gridex_utilts_binding.receipts r WHERE source_message_id=${literal(source)}),
     'series',(SELECT coalesce(jsonb_agg(jsonb_build_object('transaction',source_transaction_reference,'kind',series_kind) ORDER BY source_transaction_reference),'[]') FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source)}),
@@ -225,6 +227,93 @@ it('SC-044 exact three-IDE consumer stores only accepted data and finalizes inde
   // functional hold of downstream metering/billing is outside this contract.
   expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
   await f.consume(); expect(snapshot(f.source.id)).toEqual(first); expect(stored()).toEqual(data)
+})
+
+for (const [actor, fault, transform] of [
+  ['54345', 'UNT count', (raw: string) => raw.replace(/UNT\+\d+\+1'/, "UNT+999+1'")],
+  ['54346', 'UNH/UNT reference', (raw: string) => raw.replace(/(UNT\+\d+\+)1'/, "$1OTHER'")],
+] as const) it(`actual direct consumer refuses ${fault} before application responses or accepted storage on stable retry`, async () => {
+  const transactions: UtiltsAckFixtureTransaction[] = [{ reference: `SYNTAX-${actor}-IDE`, outcome: 'accepted' }]
+  const f = await seed(actor, transactions)
+  expect(validateEdifactSyntax(f.source).ok).toBe(true)
+  await f.consume()
+  const control = snapshot(f.source.id)
+  expect(control.series).toHaveLength(1)
+  expect(control.acks.filter(row => row.family === 'APERAK')).toMatchObject([{ outcome: 'positive', reference: transactions[0].reference }])
+  sinks.meter.mockClear(); sinks.bill.mockClear(); sinks.complete.mockClear()
+
+  // Alter only the trailer after the valid fixture calculated its count. The
+  // native helper changes UNB/UNZ references only; it does not repair this fault.
+  // Give the new source its own physical IDE so the previously committed
+  // control series cannot satisfy or obscure this syntax-refusal oracle.
+  const ownTransactions: UtiltsAckFixtureTransaction[] = [{ reference: `SYNTAX-${actor}-NEW`, outcome: 'accepted' }]
+  const unprocessedControl = await f.insertSource(ownTransactions)
+  expect(validateEdifactSyntax(unprocessedControl).ok).toBe(true)
+  expect(snapshot(unprocessedControl.id)).toMatchObject({ series: [], contracts: [], reservations: [] })
+  const malformed = await f.insertSource(ownTransactions, transform)
+  expect(validateEdifactSyntax(malformed).ok).toBe(false)
+  expect(snapshot(malformed.id).series).toEqual([])
+  await f.consume(malformed)
+  const first = snapshot(malformed.id)
+  await f.consume(malformed)
+  expect(snapshot(malformed.id)).toEqual(first)
+  expect(first, 'direct syntax rejection must precede persistent accepted effects').toMatchObject({ series: [], contracts: [], outbox: [] })
+  expect(first.reservations.filter(row => row.disposition === 'accepted')).toEqual([])
+  expect(first.acks.filter(row => row.family === 'APERAK' || row.family === 'UTILTS_ERR')).toEqual([])
+  expect(first.acks.filter(row => row.family === 'CONTRL')).toMatchObject([{ outcome: 'negative', company: f.ids.company }])
+  expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
+})
+
+it('SC-045 actual header rejection emits one message-scope U-APERAK without invented ACW or later functional effects and retries stably', async () => {
+  const transactions: UtiltsAckFixtureTransaction[] = [
+    { reference: 'SC045-IDE-1', outcome: 'accepted' },
+    { reference: 'SC045-IDE-2', outcome: 'processability_rejected' },
+  ]
+  const f = await seed('54347', transactions)
+  const controlRuntime = runUtiltsRuntimeForMessage(f.source)
+  expect(controlRuntime.transactionDispositions.map(row => row.disposition)).toEqual(['accepted', 'processability_rejected'])
+  await f.consume()
+  const control = snapshot(f.source.id)
+  expect(control.series).toEqual([{ transaction: 'SC045-IDE-1', kind: 'actual' }])
+  assertErrs(f, control, ['SC045-IDE-2'])
+
+  const missingTimezone = await f.insertSource(transactions, raw => {
+    const headerRemoved = raw.replace(/^DTM\+735:[^\n]*\n/m, '')
+    expect(headerRemoved).not.toBe(raw)
+    const segments = tokenizeEdifact(headerRemoved).segments
+    const count = segments.findIndex(row => row.tag === 'UNT') - segments.findIndex(row => row.tag === 'UNH') + 1
+    return headerRemoved.replace(/UNT\+\d+\+1'/, `UNT+${count}+1'`)
+  })
+  expect(validateEdifactSyntax(missingTimezone).ok).toBe(true)
+  const runtime = runUtiltsRuntimeForMessage(missingTimezone)
+  expect(runtime.validation.issues.filter(issue => issue.kind === 'functional')).toEqual([])
+  expect(runtime.ackPlan.aperakApplicationErrors).toMatchObject([{ ercCode: '41', fieldCode: '206' }])
+  sinks.meter.mockClear(); sinks.bill.mockClear(); sinks.complete.mockClear()
+  await f.consume(missingTimezone)
+  const first = snapshot(missingTimezone.id)
+  await f.consume(missingTimezone)
+  expect(snapshot(missingTimezone.id)).toEqual(first)
+  expect(first).toMatchObject({ series: [], contracts: [], outbox: [] })
+  expect(first.reservations.filter(row => row.disposition === 'accepted')).toEqual([])
+  expect(first.acks.filter(row => row.family === 'UTILTS_ERR')).toEqual([])
+  const application = first.acks.filter(row => row.family === 'APERAK')
+  expect(application, 'one header outcome must not become per-IDE negative APERAKs').toHaveLength(1)
+  expect(application[0]).toMatchObject({ outcome: 'negative', scope: 'message', reference: null, company: f.ids.company,
+    policy: { authority: 'resolveCanonicalEdielPolicy', inheritedFromSourceMessage: true, sourceMessageId: missingTimezone.id } })
+  expect(application[0].wire).toContain('BGM+313'); expect(application[0].wire).toContain('ERC+41::260')
+  expect(application[0].wire).toContain('FTX+AAO++206::260'); expect(application[0].wire).not.toContain('RFF+ACW:')
+  expect(application[0].wire).toContain('APERAK:D:04A:UN:E5SE5A')
+  expect(application[0].wire).toContain("DOC+E66:SVK:260+GRIDEX2607E66MSG001'")
+  const currentReferences = [...application[0].wire.matchAll(/RFF\+DM:([^']+)'/g)].map(match => match[1])
+  expect(currentReferences).toHaveLength(1); expect(currentReferences[0]).toBeTruthy()
+  // Internal finalization is an implementation requirement for the same source
+  // header outcome; it does not invent an original physical ACW on the wire.
+  expect(first.reservations).toHaveLength(transactions.length)
+  for (const reservation of first.reservations) {
+    expect(reservation).toMatchObject({ disposition: 'guide_rejected', final: 'negative_aperak', ack: application[0].id, series: null })
+    expect(reservation.row.finalized_at).toBeTruthy()
+  }
+  expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
 })
 
 it('committed first ERR and reservation survive an interruption before second ACK, then converge without rewriting', async () => {

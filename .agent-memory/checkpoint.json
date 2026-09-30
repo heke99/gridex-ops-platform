@@ -10,8 +10,8 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR #421 S02 final delivery and individual SC-044 acceptance proof",
-  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md",
+  "active_item": "PR #421 U-03/ACK-03 native syntax/header scope test-first package",
+  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-syntax-header-scope-20260930.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Fast-forward publish coherent authentic S02 snapshot + narrow technical CONTRL oracle + Nodemailer10.0.13 high-advisory fix + dedicated SC0443IDE native proof frombd78fb30. Require actualnative439 andfiveexact-headgates/types/schema; then close eligibleSC044 with full per-ID evidence and fresh352-ID owner/gap/gate reconciliation. No unchanged-head rerun, no invented broader acceptance/external prerequisites, no traffic/merge.",
+  "next_action": "Fast-forward publish SC044PASSED receipt + full352ID current owner/gap/gate map +3native syntax/header probes fromd30. Require actual442native; inspect first actualfailure before any product correction, then minimal source-backed fix and exactnewheadfivegates. Reuse green E72/E73/ERR/S02. External authentic records remainBLOCKED; no traffic/merge.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -268,7 +268,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
+  "last_verified_pr_head": "d30fa0203f0499a8e15faeddda7676af81296c86",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -1165,7 +1165,7 @@
     "final_receipt": "PR421 body updated; zero threads/reviews; actual logs verify case/browser/tenant/parity/types/schema"
   },
   "pr421_s02_required_20260930": {
-    "status": "NATIVE_CONFIRMED_CORRECTION_LOCAL_GREEN_NEW_HEAD_PENDING",
+    "status": "VERIFIED_BOUNDED_D30_FINAL_NATIVE_FIVE_GATES",
     "baseline_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
     "source_ids": [
       "UF-planning-209-51",
@@ -1190,11 +1190,11 @@
       "CALL-13"
     ],
     "ordinary": "Original2PASS/6FAIL/8; extended3PASS/9FAIL/12 before product; review4FAIL/13PASS/17 and stale-version2FAIL/19PASS/21 before respective corrections; final S0221/21 and affected7files54/54 PASS",
-    "native": "Probe414/426: prior411+3cleanPASS,6consumer positives+6rawRPC atomic bypasses; correction438 planned NOT EXECUTED",
+    "native": "439/439 PASS including all27S02 and exactSC044; case/browser/tenant/parity/types/schema PASS",
     "product": "Canonical ownLOC172/per-observationQTY13525-A-4 guide, S02 internal point hold, CLI forward20260929234037 prewrite identity/ownSEQ135; signature/grants/tenant/raw locks/175 owner retained",
     "local": "App/tests/scripts TypeScript, scoped lint, migrations/public contract/hardening/types PASS",
-    "review": "APPROVE bounded correction; all reproduced metadata/empty-AST/version blockers corrected, no remaining introduced Critical/Important/Minor. Exact-head native438/final gates pending.",
-    "formal_closure": "No whole-ID promotion",
+    "review": "APPROVE final bounded followup; exact d30 five mandatory workflows SUCCESS",
+    "formal_closure": "SC044PASSED only; widerU02/U03/U14/ACK03/08PARTIAL",
     "traffic": "HELD",
     "audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md",
     "test_first_head": "e1b4f897ec7f3d42183f8097fc7bdd34c1b29833",
@@ -1218,6 +1218,55 @@
       "new_native_expected": 439,
       "SC_044": "dedicatedfullclause3IDEtestAPPROVED, nativepending; downstreambilling/activationnotcontractgate",
       "formal_closure": "PENDING executed complete evidence; frozen231originalsimmutable"
+    },
+    "final_receipt": {
+      "head": "d30fa0203f0499a8e15faeddda7676af81296c86",
+      "workflows": [
+        36695341379,
+        36695341358,
+        36695341472,
+        36695341489,
+        36695341457
+      ],
+      "ops_jobs": [
+        109821852569,
+        109821852531,
+        109821852700
+      ],
+      "artifact": 11087503506,
+      "zip_sha256": "4dc9bd72b854a57e2d2c2d80d206a01d0c1184767f4b7bd80fe3fe5bb93a75d6",
+      "types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+      "schema_fingerprint": "8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93",
+      "SC044": "PASSED independent fullclause review; originalregisterimmutable"
     }
+  },
+  "pr421_acceptance_reconciliation_20260930": {
+    "review_head": "d30fa0203f0499a8e15faeddda7676af81296c86",
+    "ids": 352,
+    "references": 354,
+    "fresh_priority_rules": 5,
+    "whole_contracts_passed": [
+      "SC-044"
+    ],
+    "rules": {
+      "NOT_VERIFIED": 110,
+      "PARTIAL": 11
+    },
+    "acceptance": {
+      "NOT_EXECUTED": 219,
+      "PARTIAL": 11,
+      "PASSED": 1
+    },
+    "scope": "All IDs literalcriteria/componentowner/gap/gate; others semantic findings remaininherited20260927/notcertifiedcurrent",
+    "report": "quality/audits/ediel-masterplan-v2/masterplan-v2-reconciliation-20260930.json"
+  },
+  "pr421_syntax_header_probe_20260930": {
+    "status": "TEST_ONLY_NATIVE_PENDING",
+    "baseline": "d30fa0203f0499a8e15faeddda7676af81296c86",
+    "new_native_cases": 3,
+    "expected_native_total": 442,
+    "product_changed": false,
+    "refutation": "UNH/UNT-ref currentlyinternal-held byexistingidentityguard; notasecondacceptedstorageclaim",
+    "next": "Actualnativefirstfailure beforeminimalproductfix"
   }
 }
