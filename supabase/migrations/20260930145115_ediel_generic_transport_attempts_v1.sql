@@ -49,6 +49,7 @@ begin
  select * into strict m from public.ediel_messages where id=mid and company_id=c and environment=env for update;
  if m.direction is distinct from 'outbound' or m.message_standard is distinct from 'edifact' or m.raw_payload is null or m.immutable_rendered_at is null or m.immutable_payload_hash is distinct from encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
  then raise exception 'ediel_transport_sealed_message_required'; end if;
+ if action in ('prepare','enter') then perform public.ediel_require_scoped_capability_for_message_v1(c,mid); end if;
  if action='prepare' then
   -- Ask the existing source owner with an intentionally non-sendable probe.
   -- H, malformed/inconsistent Z08 and existing closure originals remain in that lane.

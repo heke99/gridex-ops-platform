@@ -19,6 +19,7 @@ try {
  create table ediel_message_payloads(company_id uuid,ediel_message_id uuid,encrypted_payload_ref text,payload_kind text,metadata jsonb);
  create table ediel_outbox(id uuid,ediel_message_id uuid,company_id uuid,environment text,status text,current_send_attempt_id uuid,locked_by text);
  create table ediel_mailboxes(id uuid,company_id uuid,environment text,is_active boolean,is_shared_platform_mailbox boolean);
+ create function public.ediel_require_scoped_capability_for_message_v1(uuid,uuid) returns void language sql as 'select null::void';
  create schema gridex_outbound_dispatch;
  -- Existing source owner's probe is isolated here: real H authority is separately tested.
  create function gridex_outbound_dispatch.mutate_v1(p jsonb) returns jsonb language plpgsql as $$begin

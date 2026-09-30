@@ -152,6 +152,7 @@
     "20260904100000_z01_sla_late_response_resolution.sql": "9c6b1b95f7fa88f69cd71adbe0a9770de58964775c4d78593db486d9b3ecae30",
     "20260904103000_z01_sla_watchdog_candidate_convergence.sql": "9f25c7243dc708f954facf07fa2610c13157d6416330f9196eb7389a1c689c24",
     "20260930143025_ediel_service_assignment_grants_v1.sql": "fdc622ee10f2d42b664bd1f5d78f32d61fa21eab159b0d09e6077cd44feb0de3",
-    "20260930145115_ediel_generic_transport_attempts_v1.sql": "608f7c02cf97ce179c1d00d3629a23e7408ba194d1ab813836e65209ba66f1a2"
+    "20260930145115_ediel_generic_transport_attempts_v1.sql": "1298e08dd0d2aff2ba51c9741a3dd32d653cfab9abf416f7258bc1461ad55404",
+    "20260930153118_ediel_actor_legal_identity_name_search_v1.sql": "4d4289746b256fab93c4523f13eb1b7ecd388525e26e36045fdc4c316b41cc08"
   }
 }
