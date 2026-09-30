@@ -119,8 +119,8 @@ function parseRoutes(block: string, actorEdielId: string | null, market: ParsedA
       interchangeIdQualifier: attrValue(interchangeTag, ['IdCodeQualifier']),
       ediCharset: tagValue(routeBlock, ['EDICharset']),
       ediSyntax: tagValue(routeBlock, ['EDISyntax']),
-      status: market === 'GAS' ? 'blocked' : represented ? 'needs_review' : 'active',
-      isVerified: market !== 'GAS' && !represented && Boolean(partyId && communicationAddress),
+      status: market === 'GAS' ? 'blocked' : market !== 'EL' ? 'needs_review' : represented ? 'needs_review' : 'active',
+      isVerified: market === 'EL' && !represented && Boolean(partyId && communicationAddress),
       metadata: {
         source: 'xml_import',
         blankSubaddressImported: subaddress === null,
@@ -139,8 +139,8 @@ function parseRoutes(block: string, actorEdielId: string | null, market: ParsedA
       partyId: actorEdielId,
       interchangePartyId: actorEdielId,
       market,
-      status: market === 'GAS' ? 'blocked' : 'active',
-      isVerified: market !== 'GAS' && Boolean(actorEdielId),
+      status: market === 'GAS' ? 'blocked' : market === 'EL' ? 'active' : 'needs_review',
+      isVerified: market === 'EL' && Boolean(actorEdielId),
       metadata: { source: 'xml_import_fallback', blankSubaddressImported: true },
     })
   }

@@ -179,7 +179,7 @@ async function createActor(actor: ParsedActorRegistryActor, sourceReference: str
       match_status: actor.edielId || actor.orgNumber ? 'verified' : 'needs_review',
       source: 'xml_import',
       source_reference: sourceReference,
-      visible_to_tenants: actor.market !== 'GAS',
+      visible_to_tenants: actor.market === 'EL',
       verified_at: actor.edielId || actor.orgNumber ? now : null,
       imported_at: now,
       not_seen_in_latest_import: false,
@@ -293,7 +293,7 @@ async function upsertRoute(actorId: string, route: ActorRegistryRoute, edielId: 
   if (!existing.error && existing.data?.id) {
     const update = await supabaseService.from('platform_actor_routes').update(payload).eq('id', existing.data.id)
     if (update.error && !isMissingSchema(update.error)) throw update.error
-    if (route.market !== 'GAS') await materializePlatformActorRoute({ platformActorRouteId: String(existing.data.id) }).catch((error) => {
+    if (route.market === 'EL') await materializePlatformActorRoute({ platformActorRouteId: String(existing.data.id) }).catch((error) => {
       console.warn('[actor-registry] route materialization skipped', error)
     })
     return
@@ -303,7 +303,7 @@ async function upsertRoute(actorId: string, route: ActorRegistryRoute, edielId: 
   const insert = await supabaseService.from('platform_actor_routes').insert(payload).select('id').single()
   if (insert.error && !isMissingSchema(insert.error)) throw insert.error
   const routeId = (insert.data as { id?: string } | null)?.id
-  if (routeId && route.market !== 'GAS') {
+  if (routeId && route.market === 'EL') {
     await materializePlatformActorRoute({ platformActorRouteId: String(routeId) }).catch((error) => {
       console.warn('[actor-registry] route materialization skipped', error)
     })
@@ -478,10 +478,10 @@ async function applyActor(actor: ParsedActorRegistryActor, match: MatchResult, s
   await upsertIdentifier(actorId, 'EdielId', normalizeEdielId(actor.edielId), true)
   await upsertIdentifier(actorId, 'OrgNo', normalizeOrgNumber(actor.orgNumber), true)
   await upsertIdentifier(actorId, 'EIC', normalizeEic(actor.eic), true)
-  if (actor.market !== 'GAS') for (const role of actor.roles) await upsertRole(actorId, role)
+  if (actor.market === 'EL') for (const role of actor.roles) await upsertRole(actorId, role)
   for (const route of actor.routes) await upsertRoute(actorId, route, normalizeEdielId(actor.edielId))
   for (const certificate of actor.certificates) await upsertCertificate(actorId, actor, certificate)
-  if (actor.market !== 'GAS') {
+  if (actor.market === 'EL') {
     await ensureGridOwner(actorId, actor)
     await ensurePlatformGridOwner(actorId, actor)
     await ensureSupplier(actorId, actor)

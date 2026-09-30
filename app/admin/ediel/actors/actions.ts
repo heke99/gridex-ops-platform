@@ -150,6 +150,8 @@ function parseActorCsv(textContent: string): ActorImportRecord[] {
   }
   return lines.slice(1).map((line) => {
     const row = splitDelimitedLine(line, delimiter)
+    const rawMarket=read(row,['market','marknad'])?.toUpperCase()
+    const market=rawMarket==='EL'||rawMarket==='GAS'?rawMarket:null
     const role = normalizeActorRole(read(row, ['actorrole', 'role', 'roll']) ?? 'other')
     const messageFamily = (read(row, ['messagefamily', 'meddelandefamilj']) ?? '').toUpperCase()
     const route = messageFamily ? [{
@@ -167,6 +169,7 @@ function parseActorCsv(textContent: string): ActorImportRecord[] {
       applicationReference: read(row, ['applicationreference']),
     }] : []
     return {
+      market,
       name: read(row, ['actorname', 'name', 'namn']) ?? '',
       orgNumber: read(row, ['orgnumber', 'orgno', 'organisationsnummer']),
       edielId: read(row, ['edielid']),
@@ -477,7 +480,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
     status: 'active',
     match_status: existing.data?.match_status === 'verified' ? 'verified' : (record.edielId || record.orgNumber ? 'strong_suggestion' : 'needs_review'),
     source,
-    visible_to_tenants: record.market !== 'GAS' && actorIsTenantVisible(record.roles),
+    visible_to_tenants: record.market === 'EL' && actorIsTenantVisible(record.roles),
     metadata,
     imported_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -522,7 +525,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
   for (const role of record.roles) {
     const roleResult = await supabaseService
       .from('platform_actor_roles')
-      .upsert({ actor_id: actorId, actor_role: role, role_source: source, is_active: record.market !== 'GAS', metadata: { importRunId, market: record.market ?? null }, updated_at: new Date().toISOString() }, { onConflict: 'actor_id,actor_role' })
+      .upsert({ actor_id: actorId, actor_role: role, role_source: source, is_active: record.market === 'EL', metadata: { importRunId, market: record.market ?? null }, updated_at: new Date().toISOString() }, { onConflict: 'actor_id,actor_role' })
     if (roleResult.error) throw roleResult.error
   }
 
@@ -545,7 +548,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
     const existingRouteData = existingRoute.data as { id?: string; status?: string | null; is_verified?: boolean | null; auto_send_allowed?: boolean | null; metadata?: Record<string, unknown> | null } | null
     const existingRouteMetadata = existingRouteData?.metadata ?? {}
     const representationRequiresMandate = Boolean(route.partyId && route.interchangePartyId && route.partyId !== route.interchangePartyId)
-    const routeHeld = record.market === 'GAS' || representationRequiresMandate
+    const routeHeld = record.market !== 'EL' || representationRequiresMandate
     const routePayload = {
       actor_id: actorId,
       message_family: route.messageFamily,

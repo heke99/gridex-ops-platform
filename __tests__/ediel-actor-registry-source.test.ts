@@ -15,6 +15,7 @@ describe('actor source identities', () => {
   it('preserves a generic explicitly different transport party', () => {
     const actors = parseActorRegistryXml('<Actors><Actor><Name>X</Name><EdielId>1</EdielId><Route><MessageFamily>PRODAT</MessageFamily><PartyId>1</PartyId><InterchangePartyId>2</InterchangePartyId><Email>x@example.se</Email></Route></Actor></Actors>')
     expect(actors[0].routes[0].interchangePartyId).toBe('2')
+    expect(actors[0].routes[0]).toMatchObject({isVerified:false,status:'needs_review'})
   })
   it('rejects DTD/entity sources before import creates records', () => {
     expect(() => parseActorRegistryXml('<!DOCTYPE companies [<!ENTITY x SYSTEM "file:///etc/passwd">]><Companies/>')).toThrow('actor_registry_xml_unsafe_declaration')
