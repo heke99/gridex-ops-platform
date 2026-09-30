@@ -66,4 +66,14 @@ describe('ENV-01 lossless bytes at every SMTP packaging boundary', () => {
       .rejects.toThrow('edifact_character_not_iso8859_1')
     expect(io.effects).toEqual([])
   })
+
+  it.each(['PRODAT', 'UTILTS'])('cannot bypass the byte boundary by marking physical %s as XML', async (family) => {
+    const message = { id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
+      direction: 'outbound', environment: 'test', message_standard: 'xml', mime_type: 'application/xml',
+      message_family: family, message_code: family === 'PRODAT' ? 'Z01' : 'E66', receiver_email: headers.to,
+      raw_payload: `UNB+UNOC:3+S+R+260930:1200+I'UNH+1+${family}:D:96A:UN:GUIDE'FTX+AAO+++€'UNT+3+1'UNZ+1+I'`,
+      parsed_payload: {}, } as unknown as EdielMessageRow
+    await expect(sendEdielMessageViaSmtp(message, { actorUserId: 'synthetic-operator' })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+    expect(io.effects).toEqual([])
+  })
 })
