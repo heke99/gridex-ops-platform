@@ -34,3 +34,15 @@ describe('U18 physical observation blocks',()=>{
 it('keeps U15 national one-message packaging distinct from syntax',()=>{
   expect(utiltsPackagingGuideViolations(tx('')+tx(''))).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_PACKAGING_MESSAGE_COUNT'})]))
 })
+it('groups own transaction reasons without treating observation quality as a reason',()=>{
+  const mixed=tx("STS+7++E23::260'SEQ++1'QTY+136:1'IDE+24+OTHER'STS+7++E88::260'SEQ++1'QTY+136:2'")
+  expect(utiltsPackagingGuideViolations(mixed)).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_PACKAGING_MIXED_REASONS',field:'223'})]))
+  const quality=tx("STS+7++E88::260'SEQ++1'QTY+136:1'STS+7++21::260'IDE+24+OTHER'STS+7++E88::260'SEQ++1'QTY+136:2'")
+  expect(utiltsPackagingGuideViolations(quality)).toEqual([])
+})
+it('holds quarter/month mixes from each own SG5 resolution',()=>{
+  const mixed=tx("DTM+354:15:806'SEQ++1'QTY+136:1'IDE+24+OTHER'DTM+354:1:802'SEQ++1'QTY+136:2'")
+  expect(utiltsPackagingGuideViolations(mixed)).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_PACKAGING_MIXED_RESOLUTIONS',field:'508'})]))
+  const local=tx("DTM+354:15:806'SEQ++1'QTY+136:1'DTM+354:1:802'IDE+24+OTHER'DTM+354:15:806'SEQ++1'QTY+136:2'")
+  expect(utiltsPackagingGuideViolations(local)).toEqual([])
+})
