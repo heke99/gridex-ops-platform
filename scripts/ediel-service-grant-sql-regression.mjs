@@ -54,7 +54,7 @@ try{
  insert into ediel_messages values('${uid(60)}','${uid(1)}','test','inbound','PRODAT','Z14','{}'),('${uid(61)}','${uid(1)}','test','inbound','UTILTS','E66','{"receiverActorId":"${uid(30)}","senderActorId":"${uid(31)}","receiverRole":"esco"}');insert into meter_reading_series values('${uid(61)}','${uid(80)}','${uid(1)}','E66','actual','point-a','8716867000030','2026-01-01','2027-01-01','2026-01-03','PT15M');insert into meter_reading_values values('${uid(90)}','${uid(1)}','${uid(80)}','2026-01-02',1.234,'KWH','actual','136');`)
  const project=(fields="array['quantity']",version=1)=>`select ediel_beneficiary_series_page_v1('${uid(2)}','${uid(20)}','${uid(70)}',${version},'analysis','${uid(80)}',${fields},'2026-01-01','2026-01-03') as projection`
  await rejected(project("array['quantity']",'null'),/ediel_grant_not_current/)
- result=await db.query(project());assert.deepEqual(result.rows[0].projection.rows,[{quantity:1.234}]);checks++
+ result=await db.query(project());assert.deepEqual(result.rows[0].projection.rows,[{quantity:'1.234'}]);checks++
  await rejected(project("array['raw_transaction']"),/ediel_projection_outside_grant/)
  await rejected(project('null'),/ediel_projection_request_invalid/)
  await db.exec(`update ediel_service_assignments set field_sets=array['reading_at'] where id='${uid(50)}'`)
