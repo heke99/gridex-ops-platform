@@ -24,6 +24,15 @@ describe('actor source identities', () => {
     expect(actors[0].raw.sourceFragment).toContain('<Identifiers>')
     expect(actors[0]).toMatchObject({countryCode:'SE',edielId:'21660'})
   })
+  it('rejects malformed XML and custom entities before producing source records',()=>{
+    expect(()=>parseActorRegistryXml('<Company><Name>X</Company>')).toThrow('actor_registry_xml_invalid')
+    expect(()=>parseActorRegistryXml('<Company><Name>&custom;</Name></Company>')).toThrow('actor_registry_xml_unresolved_entity')
+  })
+  it('uses AST records so comments and CDATA cannot inject actors or legal identities',()=>{
+    const actors=parseActorRegistryXml('<Registry><!--<Company Market="EL"><Name>Fake</Name><EdielId>99888</EdielId></Company>--><Market Code="EL"><Company><Name><![CDATA[Real <Company>]]></Name><Key Type="EdielId">21660</Key><Role>ESCO</Role></Company></Market></Registry>')
+    expect(actors).toHaveLength(1);expect(actors[0]).toMatchObject({name:'Real <Company>',edielId:'21660'})
+    expect(actors[0].raw.sourceFragment).toContain('<![CDATA[Real <Company>]]>')
+  })
   it('rejects DTD/entity sources before import creates records', () => {
     expect(() => parseActorRegistryXml('<!DOCTYPE companies [<!ENTITY x SYSTEM "file:///etc/passwd">]><Companies/>')).toThrow('actor_registry_xml_unsafe_declaration')
   })

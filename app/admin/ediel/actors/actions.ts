@@ -631,6 +631,7 @@ export async function importPlatformActorsAction(formData: FormData) {
 
   const textContent = await file.text()
   const fileName = file.name || 'actor-import'
+  if(fileName.toLowerCase().endsWith('.txt')||format==='txt')throw new Error('actor_registry_txt_authentic_source_adapter_required')
   const importType = fileName.toLowerCase().endsWith('.xml') ? 'companies_xml' : 'csv'
   const parsed = format === 'csv' || fileName.toLowerCase().endsWith('.csv')
     ? parseActorCsv(textContent)
