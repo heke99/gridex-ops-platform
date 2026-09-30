@@ -75,10 +75,19 @@ function deriveSeverity(status: CustomerOperationEventStatus): CustomerOperation
   return 'info'
 }
 
+function requiredLifecycleTemplate(eventType: string): string | null {
+  if (eventType === 'supplier_switch.requested') return 'switch.started'
+  if (eventType === 'supplier_switch.accepted' || eventType === 'supplier_switch.confirmed') return 'switch.confirmed'
+  if (eventType === 'supplier_switch.rejected' || eventType === 'supplier_switch.manual_review_required') return 'switch.action_required'
+  if (eventType === 'supply_period.activated' || eventType === 'supply_period.active') return 'customer.welcome_active'
+  return null
+}
+
 /**
  * Writes the tenant operational timeline. This is deliberately separate from
  * customer_events, which is reserved for customer portal / website events.
- * Timeline writes are best-effort so telemetry can never fail an automation job.
+ * Unmapped telemetry remains best-effort. Mapped lifecycle transitions require
+ * one atomic operation/domain/outbox/unsent-notification receipt.
  */
 export async function emitCustomerOperationEvent(input: OperationEventInput): Promise<void> {
   const payload = input.payload ?? {}
@@ -88,6 +97,30 @@ export async function emitCustomerOperationEvent(input: OperationEventInput): Pr
   const operationId = input.operationId ?? uuidOrNull(payload.operation_id)
   const status = input.status ?? deriveStatus(input.eventType)
   const actionRequired = input.actionRequired ?? ['needs_review', 'failed', 'blocked'].includes(status)
+  const notificationTemplate = requiredLifecycleTemplate(input.eventType)
+  if (notificationTemplate) {
+    const { data, error } = await supabaseService.rpc('gridex_record_customer_operation_event_v1', { p_event: {
+      company_id: input.companyId, customer_id: input.customerId,
+      customer_site_id: customerSiteId, metering_point_id: meteringPointId,
+      customer_operation_job_id: customerOperationJobId, operation_id: operationId,
+      actor_user_id: input.actorUserId ?? null,
+      aggregate_type: input.aggregateType ?? (customerSiteId ? 'customer_site' : 'customer'),
+      aggregate_id: input.aggregateId ?? customerSiteId ?? input.customerId,
+      event_code: input.eventType, title: input.title, message: input.message,
+      status, severity: input.severity ?? deriveSeverity(status), action_required: actionRequired,
+      action_url: input.actionUrl ?? null, source: input.source ?? 'customer_operations',
+      visibility: input.visibility ?? 'tenant', payload,
+      idempotency_key: input.idempotencyKey ?? null,
+      source_event_id: input.idempotencyKey ?? `${input.eventType}:${operationId ?? customerSiteId ?? input.customerId}`,
+      notification_template: notificationTemplate, contract_id: uuidOrNull(payload.contract_id),
+    } })
+    if (error) throw error
+    if (!data || typeof data !== 'object' || Array.isArray(data) ||
+        !data.operationEventId || !data.domainEventId || !data.notificationJobId) {
+      throw new Error('customer_lifecycle_atomic_receipt_missing')
+    }
+    return
+  }
 
   await emitDomainEvent({
     companyId: input.companyId,

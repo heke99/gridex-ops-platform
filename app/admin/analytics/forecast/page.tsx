@@ -67,7 +67,7 @@ export default async function AnalyticsForecastPage({ searchParams }: PageProps)
           Prognosen baseras på historisk förbrukning där den finns. Om historik saknas används uppskattad årsförbrukning och säsongsprofil.
         </section>
         <div className="flex justify-end">
-          <Link href={`/admin/analytics/export?report=forecast_run_items&month=${month.slice(0, 7)}`} className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
+          <Link download href={`/admin/analytics/export?report=forecast_run_items&month=${month.slice(0, 7)}`} className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
             Exportera CSV
           </Link>
         </div>

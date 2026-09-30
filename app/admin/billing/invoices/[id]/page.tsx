@@ -42,7 +42,7 @@ function customerName(row: Row) {
 }
 
 export default async function InvoiceReviewDetailPage({ params }: Props) {
-  await requirePermissionServer('billing_underlay.read')
+  const guard = await requirePermissionServer('billing_underlay.read')
   const { id } = await params
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -75,6 +75,13 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
             {awaitingProjection ? 'Faktura projiceras' : detail.lifecycleStage === 'dispatched' ? 'Skickad' : approvalStatus === 'approved' ? 'Godkänd' : 'Väntar på granskning'}
           </span>
         </div>
+
+        {detail.lifecycleStage === 'dispatched' && guard.userId === user?.id
+          && (guard.isPlatformAdmin || (guard.companyId === companyId && guard.permissions.includes('billing_underlay.export'))) ? (
+          <Link href={`/admin/billing/invoices/${id}/redelivery`} className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800">
+            Separat beslut om omleverans
+          </Link>
+        ) : null}
 
         {awaitingProjection ? (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950 shadow-sm">

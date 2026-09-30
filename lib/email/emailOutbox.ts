@@ -210,43 +210,17 @@ export async function enqueueTenantEmail(
   return data as TenantEmailOutboxRow;
 }
 
-async function moveStaleProcessingToUncertain(input: ProcessTenantEmailOutboxInput) {
-  const staleBefore = new Date(Date.now() - 15 * 60_000).toISOString();
-  let query = supabaseService
-    .from("tenant_email_outbox")
-    .update({
-      status: "delivery_uncertain",
-      last_error: "Utskicket avbröts efter att det hade tagits av en worker. Leveransen är osäker och måste granskas innan omsändning.",
-      failure_reason: "delivery_uncertain_after_stale_processing_lock",
-      locked_at: null,
-      locked_by: null,
-      lock_token: null,
-      delivery_uncertain_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("status", "processing")
-    .lt("locked_at", staleBefore)
-  if (input.companyId) query = query.eq("company_id", input.companyId)
-  const { error } = await query
-  if (error && !["42P01", "42703", "PGRST205"].includes(error.code ?? "")) throw error
-}
-
-async function loadDueRows(input: ProcessTenantEmailOutboxInput) {
-  const now = new Date().toISOString();
-  let query = supabaseService
-    .from("tenant_email_outbox")
-    .select("*")
-    .eq("status", "queued")
-    .is("dead_letter_at", null)
-    .or(`next_attempt_at.is.null,next_attempt_at.lte.${now}`)
-    .order("created_at", { ascending: true })
-    .limit(parseLimit(input.limit));
-
-  if (input.companyId) query = query.eq("company_id", input.companyId);
-
-  const { data, error } = await query;
+async function claimDueRows(input: ProcessTenantEmailOutboxInput) {
+  const token = randomUUID();
+  const limit = parseLimit(input.limit);
+  const { data, error } = await supabaseService.rpc('gridex_claim_tenant_email_outbox_fair_v1', {
+    p_company_id: input.companyId ?? null, p_limit: limit, p_claim_token: token,
+  });
   if (error) throw error;
-  return (data ?? []) as TenantEmailOutboxRow[];
+  if (!Array.isArray(data) || data.length > limit || new Set(data.map(row => row.id)).size !== data.length || data.some(row =>
+    !row.id || !row.company_id || row.status !== 'processing' || row.lock_token !== token ||
+    (input.companyId && row.company_id !== input.companyId))) throw new Error('tenant_email_claim_result_invalid');
+  return data as TenantEmailOutboxRow[];
 }
 
 async function markOutboxBlockedByTenantState(
@@ -255,7 +229,7 @@ async function markOutboxBlockedByTenantState(
   companyStatus: string | null
 ) {
   const now = new Date().toISOString();
-  const { error } = await supabaseService
+  let query = supabaseService
     .from("tenant_email_outbox")
     .update({
       status: "blocked_tenant_state",
@@ -269,6 +243,9 @@ async function markOutboxBlockedByTenantState(
     })
     .eq("id", row.id)
     .eq("company_id", row.company_id);
+  query = query.eq('status', row.status);
+  if (row.status === 'processing') query = query.eq('lock_token', row.lock_token ?? '');
+  const { error } = await query;
   if (error) throw error;
 }
 
@@ -446,8 +423,7 @@ export async function sendTenantEmailOutboxRow(row: TenantEmailOutboxRow) {
 export async function processTenantEmailOutbox(
   input: ProcessTenantEmailOutboxInput = {},
 ) {
-  await moveStaleProcessingToUncertain(input);
-  const rows = await loadDueRows(input);
+  const rows = await claimDueRows(input);
   const result = {
     scanned: rows.length,
     claimed: 0,
@@ -459,12 +435,7 @@ export async function processTenantEmailOutbox(
   };
 
   for (const row of rows) {
-    const claimed = await claimRow(row);
-    if (!claimed) {
-      result.skipped += 1;
-      continue;
-    }
-
+    const claimed = row;
     result.claimed += 1;
     try {
       const providerMessageId = await sendTenantEmailOutboxRow(claimed);
@@ -473,7 +444,9 @@ export async function processTenantEmailOutbox(
         result.sent += 1;
       } catch (statusError) {
         const message = safeError(statusError);
-        await markOutboxDeliveryUncertain(claimed, providerMessageId, message);
+        await markOutboxDeliveryUncertain(claimed, providerMessageId, message).catch(() => {
+          result.errors.push({ id: claimed.id, error: 'tenant_email_uncertain_status_unavailable' });
+        });
         result.errors.push({ id: claimed.id, error: `delivery_uncertain_after_provider_send: ${message}` });
         continue;
       }
@@ -484,7 +457,12 @@ export async function processTenantEmailOutbox(
         result.errors.push({ id: claimed.id, error: message });
         continue;
       }
-      await markOutboxFailed(claimed, message);
+      try { await markOutboxFailed(claimed, message); }
+      catch {
+        result.failed += 1;
+        result.errors.push({ id: claimed.id,error: 'tenant_email_failure_status_unavailable' });
+        continue;
+      }
       const attempts = Number(claimed.attempts ?? 0) + 1;
       const maxAttempts = Number(claimed.max_attempts ?? 5);
       if (attempts >= maxAttempts) result.failed += 1;

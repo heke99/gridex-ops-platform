@@ -224,6 +224,10 @@ const reviewedServiceClientFiles = new Set([
   // likewise resolve the operational company and assert entity tenant scope
   // before any service-role read/write; mutations have their own write guard.
   "app/admin/billing/integrations/actions.ts",
+  // Reviewed 2026-09-30: canonical billing read guard and matched selected
+  // company precede invoice-derived customer owner reads; the command has
+  // separate current session/export permission/proof checks.
+  "app/admin/billing/invoices/[id]/redelivery/page.tsx",
   "app/admin/customers/[id]/contracts/[contractId]/signature/actions.ts",
   "app/admin/customers/[id]/contracts/[contractId]/signature/page.tsx",
   "app/admin/customers/[id]/layout.tsx",
@@ -294,6 +298,14 @@ const reviewedServiceClientFiles = new Set([
 ]);
 
 const serviceClientFiles = [];
+const redeliveryPage = "app/admin/billing/invoices/[id]/redelivery/page.tsx";
+mustContain(redeliveryPage, "requireAdminPageKeyAccess('billing.workspace')");
+mustContain(redeliveryPage, "getOperationalCompanyScope(guard.userId)");
+mustContain(redeliveryPage, "guard.companyId !== scope.companyId");
+mustContain(redeliveryPage, "invoiceExportItemId: id");
+mustContain(redeliveryPage, ".eq('company_id', scope.companyId).eq('customer_id', customerId)");
+mustContain(redeliveryPage, ".eq('role', 'owner').eq('status', 'active').eq('is_active', true)");
+mustContain(redeliveryPage, ".eq('id', scope.companyId)");
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (

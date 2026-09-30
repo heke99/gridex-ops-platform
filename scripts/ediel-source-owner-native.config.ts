@@ -14,6 +14,10 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = status.API_URL
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = status.ANON_KEY
 process.env.SUPABASE_SERVICE_ROLE_KEY = status.SERVICE_ROLE_KEY
 export default defineConfig({
-  resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},
+  // Native Vitest is an actual server runner without Next's bundler. Resolve
+  // only its marker to Next's shipped react-server export; production's import
+  // and client-component rejection remain unchanged. No DB/auth code is mocked.
+  resolve:{alias:[{find:/^server-only$/,replacement:resolve(__dirname,'../node_modules/next/dist/compiled/server-only/empty.js')},
+    {find:'@',replacement:resolve(__dirname,'..')}]},
   test:{environment:'node',include:['scripts/ediel-source-owner-native.test.ts','scripts/ediel-closure-wire-native.test.ts','scripts/ediel-utilts-consumption-native.test.ts','scripts/ediel-correction-context-native.test.ts','scripts/ediel-document-reference-native.test.ts','scripts/ediel-z04-ack-native.test.ts'],testTimeout:30000,hookTimeout:30000,fileParallelism:false},
 })

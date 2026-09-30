@@ -253,7 +253,7 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     customerOperationJobId: job.id,
     operationId,
     actionUrl: `/admin/customers/${job.customer_id}?tab=supplier-switch`,
-    payload: { supplier_switch_request_id: request.id, duplicate: Boolean(started.duplicate), operation_id: operationId },
+    payload: { supplier_switch_request_id: request.id, operation_id: operationId },
     idempotencyKey: `supplier-switch-requested:${request.id}`,
   })
 

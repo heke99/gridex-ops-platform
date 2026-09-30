@@ -144,6 +144,10 @@ jobs:
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
           # Fairness owns an initially empty due queue and cleans its own rows.
           npx vitest run --config scripts/webhook-fair-claim-continuation-native.config.ts
+          npx vitest run --config scripts/residual-tenant-queues-20260930-native.config.ts
+          npx vitest run --config scripts/partner-queue-continuation-20260930-native.config.ts
+          npx vitest run --config scripts/contract-authority-continuation-native.config.ts
+          npx vitest run --config scripts/customer-operation-lifecycle-atomic-20260930.native.config.ts
           npx vitest run --config scripts/ediel-source-owner-native.config.ts
           # Atomic notifier command faults/concurrency use independent fixtures.
           npx vitest run --config scripts/customer-notification-read-native.config.ts
@@ -158,8 +162,11 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-authoritative-writer-fences-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-support-command-native.sql
           npx vitest run --config scripts/customer-support-continuation-20260930-native.config.ts
+          npx vitest run --config scripts/support-sensitive-contact-20260930-native.config.ts
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-billing-command-native.sql
           npx vitest run --config scripts/customer-billing-concurrency-native.config.ts
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/invoice-redelivery-decision-20260930-native.sql
+          npx vitest run --config scripts/invoice-redelivery-concurrency-20260930-native.config.ts
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
@@ -185,6 +192,18 @@ jobs:
           GRIDEX_CONTACT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           rm -f "$GRIDEX_CONTACT_FIXTURE_PATH"
           unset GRIDEX_CONTACT_TEST_PASSWORD GRIDEX_CONTACT_LOCAL_E2E GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # Independent real reference client, current credentials, and a
+          # downstream response loss after an observed committed mutation.
+          # Each Playwright invocation starts a new server in CI with this trust.
+          export GRIDEX_REFERENCE_RUNTIME_LOCAL_E2E=1
+          export GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH="$RUNNER_TEMP/customer-reference-runtime-fixture.json"
+          npx vitest run --config scripts/customer-reference-runtime-20260930.native.config.ts
+          [[ -s "$GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-reference-runtime-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_REFERENCE_RUNTIME_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-reference-runtime-20260930.native.config.ts
+          rm -f "$GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH"
+          unset GRIDEX_REFERENCE_RUNTIME_LOCAL_E2E GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
           # Company settings use independent disposable Auth/company fixtures.
           export GRIDEX_SETTINGS_LOCAL_E2E=1
           export GRIDEX_SETTINGS_FIXTURE_PATH="$RUNNER_TEMP/company-settings-browser-fixture.json"
@@ -195,6 +214,18 @@ jobs:
           GRIDEX_SETTINGS_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/company-settings-browser-native.config.ts
           rm -f "$GRIDEX_SETTINGS_FIXTURE_PATH"
           unset GRIDEX_SETTINGS_TEST_PASSWORD GRIDEX_SETTINGS_LOCAL_E2E GRIDEX_SETTINGS_FIXTURE_PATH
+          # Actual OPS integration outcomes and attachment download bytes use
+          # isolated local Auth/tenant rows. Missing mandatory connection
+          # configuration rejects before any provider network operation.
+          export GRIDEX_OPS_EFFECT_LOCAL_E2E=1
+          export GRIDEX_OPS_EFFECT_FIXTURE_PATH="$RUNNER_TEMP/ops-effect-browser-fixture.json"
+          export GRIDEX_OPS_EFFECT_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          npx vitest run --config scripts/ops-effect-browser-native.config.ts
+          [[ -s "$GRIDEX_OPS_EFFECT_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/ops-effect-download-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_OPS_EFFECT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ops-effect-browser-native.config.ts
+          rm -f "$GRIDEX_OPS_EFFECT_FIXTURE_PATH"
+          unset GRIDEX_OPS_EFFECT_LOCAL_E2E GRIDEX_OPS_EFFECT_FIXTURE_PATH GRIDEX_OPS_EFFECT_PASSWORD
           # Actual customer events HTTP -> v2 RPC on this same disposable stack.
           export GRIDEX_EVENT_V2_LOCAL_E2E=1
           export GRIDEX_EVENT_V2_FIXTURE_PATH="$RUNNER_TEMP/customer-event-v2-fixture.json"

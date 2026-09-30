@@ -253,9 +253,12 @@ PY
   TENANTSERVICE_RESTORE_URL="postgresql://postgres:postgres@127.0.0.1:54322/$TENANTSERVICE_RESTORE_DATABASE"
   psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -c \
     "create database \"$TENANTSERVICE_RESTORE_DATABASE\" with template template0;"
-  # template0 has the standard public schema, but no application objects.
-  # Drop that empty schema so CREATE SCHEMA in the actual archive executes.
-  psql "$TENANTSERVICE_RESTORE_URL" -X -q -v ON_ERROR_STOP=1 -c 'drop schema public;'
+  # Keep template0's initdb public namespace. The matching PostgreSQL 17
+  # archive relies on it for public ownership/ACL and application objects.
+  # An empty application database has no non-system relations; the namespace
+  # itself does not weaken that check. All original archive records remain.
+  [[ "$(psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 -c \
+    "select exists(select 1 from pg_namespace where nspname='public');")" == t ]]
   [[ "$(psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 -c \
     "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname not like 'pg_%' and n.nspname <> 'information_schema';")" == 0 ]]
   echo 'TENANTSERVICE_RESTORE_EMPTY_TEMPLATE0_DATABASE_PASS'

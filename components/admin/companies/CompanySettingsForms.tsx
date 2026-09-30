@@ -9,12 +9,16 @@ type SettingsAction = (state: CompanySettingsActionState, formData: FormData) =>
 
 export default function CompanySettingsForm({
   action, id, className, children, disabled = false,
+  disabledMessage = 'Läsläge – du saknar behörighet att ändra bolagsuppgifter och användare.',
+  pendingLabel = 'Sparar…',
 }: {
   action: SettingsAction
   id?: string
   className?: string
   children?: ReactNode
   disabled?: boolean
+  disabledMessage?: string
+  pendingLabel?: string
 }) {
   const formRef = useRef<HTMLFormElement>(null)
   const inFlight = useRef(false)
@@ -55,8 +59,8 @@ export default function CompanySettingsForm({
           {dirty ? <span role="status" className="text-sm text-amber-800">Osparade ändringar</span> : null}
         </div>
       </fieldset>
-      {disabled ? <p className="col-span-full text-sm text-amber-800">Läsläge – du saknar behörighet att ändra bolagsuppgifter och användare.</p> : null}
-      {pending ? <p role="status" className="col-span-full text-sm text-slate-700">Sparar…</p> : null}
+      {disabled ? <p className="col-span-full text-sm text-amber-800">{disabledMessage}</p> : null}
+      {pending ? <p role="status" className="col-span-full text-sm text-slate-700">{pendingLabel}</p> : null}
       {state.message && (!dirty || !state.ok) ? <p role={state.ok ? 'status' : 'alert'} className={`col-span-full rounded-2xl border px-4 py-3 text-sm ${state.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>{state.message}</p> : null}
     </form>
   )

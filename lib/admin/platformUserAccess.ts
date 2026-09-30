@@ -46,8 +46,8 @@ function required(value: string, field: string): string {
 export async function runCanonicalPlatformAccessCommand(
   command: CanonicalPlatformAccessCommand,
 ): Promise<CanonicalPlatformAccessResult> {
-  const actorUserId = required(command.actorUserId, 'Aktör')
-  const targetUserId = required(command.targetUserId, 'Användare')
+  const actorUserId = required(command.actorUserId, 'Aktör').toLowerCase()
+  const targetUserId = required(command.targetUserId, 'Användare').toLowerCase()
   const idempotencyKey = command.idempotencyKey?.trim()
     || `platform-user-access:${command.action}:${targetUserId}:${randomUUID()}`
 
@@ -72,9 +72,12 @@ export async function runCanonicalPlatformAccessCommand(
   )
 
   if (error) throw error
-  if (!data || typeof data !== 'object') {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('Canonical platform access returnerade inget giltigt resultat.')
   }
-
-  return data as unknown as CanonicalPlatformAccessResult
+  const result = data as unknown as Record<string, unknown>
+  if (typeof result.changed !== 'boolean' || result.target_user_id !== targetUserId || result.action !== command.action) {
+    throw new Error('Canonical platform access kunde inte verifiera åtgärden för den begärda användaren.')
+  }
+  return result as CanonicalPlatformAccessResult
 }

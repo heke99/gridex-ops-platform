@@ -8,6 +8,7 @@ import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway
 import { CapwayApticClient } from '@/lib/integrations/billing/capway/client'
 import { buildCapwayInvoicePayload } from '@/lib/integrations/billing/capway/payloadBuilder'
 import { captureInvoiceProviderRequest } from '@/lib/billing/invoiceProviderRequest'
+import { processApprovedInvoiceRetryQueue } from '@/lib/billing/approvedInvoiceRetryQueue'
 import { buildPurchasePayload } from '@/lib/integrations/billing/capway/purchase'
 import { shouldRequestPurchaseAfterCreate } from '@/lib/integrations/billing/capway/statusMapper'
 import { classifyInvoiceExportError, computeNextRetryAt, INVOICE_EXPORT_MAX_ATTEMPTS } from '@/lib/integrations/billing/exportErrorClassification'
@@ -449,22 +450,5 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
 }
 
 export async function processDueApprovedInvoiceRetries(input: { companyId?: string | null; limit?: number } = {}) {
-  const limit = Math.min(Math.max(input.limit ?? 50, 1), 200)
-  let query = supabaseService.from('invoice_export_items').select('id,company_id,metadata').eq('status', 'failed_retryable').lte('next_retry_at', new Date().toISOString()).order('next_retry_at', { ascending: true }).limit(limit)
-  if (input.companyId) query = query.eq('company_id', input.companyId)
-  const result = await query
-  if (result.error) throw result.error
-  let sent = 0
-  let failed = 0
-  for (const item of (result.data ?? []) as Row[]) {
-    const companyId = text(item.company_id)
-    const itemId = text(item.id)
-    if (!companyId || !itemId || approval(item.metadata).status !== 'approved') continue
-    const actor = text(approval(item.metadata).approved_by)
-    if (!actor) continue
-    const outcome = await sendApprovedItem({ companyId, itemId, actorUserId: actor })
-    if (outcome.status === 'sent') sent += 1
-    else failed += 1
-  }
-  return { processed: sent + failed, sent, failed }
+  return processApprovedInvoiceRetryQueue(input,sendApprovedItem)
 }

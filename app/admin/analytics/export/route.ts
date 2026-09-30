@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { ANALYTICS_REPORTS, getReportRows } from '@/lib/analytics/db'
 import { buildCsv, monthStart } from '@/lib/analytics/utils'
@@ -8,9 +9,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== admin.userId) return new NextResponse('Saknar behörighet.', { status: 403 })
+  const scope = await getOperationalCompanyScope(user.id)
   const companyId = scope.companyId
   if (!companyId) return new NextResponse('Bolag saknas.', { status: 403 })
+  if (!isPlatformAdminContext(admin) && companyId !== admin.companyId) return new NextResponse('Saknar behörighet.', { status: 403 })
 
   const report = request.nextUrl.searchParams.get('report') ?? 'company_monthly_metrics'
   const month = monthStart(request.nextUrl.searchParams.get('month'))
