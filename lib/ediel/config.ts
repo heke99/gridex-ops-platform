@@ -152,7 +152,11 @@ export function hasActiveUnencryptedProductionOverride(
   if (!expiresAt) return false
   const parsed = new Date(expiresAt)
   if (Number.isNaN(parsed.getTime())) return false
-  return parsed.getTime() > now.getTime()
+  if (parsed.getTime() <= now.getTime()) return false
+  // These legacy administrative fields do not identify a source-qualified T
+  // exception, its authorized decision or the required transport evidence.
+  // Keep the stored request visible, but never activate plaintext from it.
+  return false
 }
 
 export function evaluateProductionTransportSecurity(params: {
@@ -199,7 +203,7 @@ export function evaluateProductionTransportSecurity(params: {
       key: 'production_prodat_smime_required',
       severity: 'error',
       label: 'Produktion PRODAT kräver S/MIME',
-      resolution: 'Koppla ett giltigt certifikat och sätt encryption_mode=smime, eller använd tidsbegränsad superadmin-override med orsak.',
+      resolution: 'Koppla ett giltigt mottagarcertifikat och sätt encryption_mode=smime. Ett klartextundantag kräver styrkt normativ grund och behörigt beslut.',
     })
   }
 

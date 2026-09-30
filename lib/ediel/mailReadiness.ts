@@ -189,7 +189,7 @@ export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; ev
 
   const edielStatuses: MailLaneReadiness['statuses'] = [
     status('mx', mxValues.some((value) => value === 'smtpin.rzone.de'), 'MX pekar mot Strato.', 'MX saknar smtpin.rzone.de.', mx),
-    status('spf', spfRecords.includes('v=spf1 redirect=_spf.strato.com'), 'SPF matchar Strato redirect.', spfRecords.length > 1 ? 'Flera SPF-records finns; detta bryter SPF.' : 'SPF matchar inte Strato-värdet.', spfRecords),
+    status('spf', spfRecords.length === 1 && spfRecords[0] === 'v=spf1 redirect=_spf.strato.com', 'SPF matchar Strato redirect.', spfRecords.length > 1 ? 'Flera SPF-records finns; detta bryter SPF.' : 'SPF matchar inte Strato-värdet.', spfRecords),
     status('dkim_0002', dkim2Values.includes('strato-dkim-0002._domainkey.rzone.com'), 'Strato DKIM 0002 finns.', 'Strato DKIM 0002 saknas/fel.', dkim2),
     status('dkim_0003', dkim3Values.includes('strato-dkim-0003._domainkey.rzone.com'), 'Strato DKIM 0003 finns.', 'Strato DKIM 0003 saknas/fel.', dkim3),
     status('dmarc', dmarcValues.some((value) => value.toLowerCase().startsWith('v=dmarc1')), 'DMARC finns.', 'DMARC saknas.', dmarcTxt),

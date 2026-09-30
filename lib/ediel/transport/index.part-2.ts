@@ -2,6 +2,8 @@ import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeT
 import { assertEdifactLatin1Representable, encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
 import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
 import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
+import { assertAiListOutboundMessage } from '@/lib/ediel/aiListFormat'
+import { assertScopedEdielProductionCapability } from '@/lib/ediel/scopedCapabilityReadiness'
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
 import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
@@ -332,6 +334,8 @@ export async function sendEdielMessageViaSmtp(
   if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
   if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
   await assertUtiltsPositiveAckAuthorityForSend(message)
+  assertAiListOutboundMessage(message)
+  await assertScopedEdielProductionCapability(message)
   assertProdatFreeTextSendBoundary(message)
   const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message)].filter(Boolean)
   if(sourceHolds.length){

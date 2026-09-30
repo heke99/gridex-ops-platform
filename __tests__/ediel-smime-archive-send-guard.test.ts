@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   sendMail: vi.fn(),
   archive: vi.fn(),
+  transport: vi.fn(),
 }))
 
 vi.mock('nodemailer', () => ({
   default: {
-    createTransport: () => ({ sendMail: mocks.sendMail }),
+    createTransport: (options: unknown) => { mocks.transport(options); return { sendMail: mocks.sendMail } },
   },
 }))
 
@@ -97,5 +98,19 @@ describe('Exact MIME archive pre-send guard', () => {
     await expect(sendEdielEmail({ raw: rawSmime, to: 'receiver@example.test' })).rejects.toThrow('ediel_transport_archive_context_required')
     expect(mocks.archive).not.toHaveBeenCalled()
     expect(mocks.sendMail).not.toHaveBeenCalled()
+  })
+  it('keeps archived provider bytes private across a mutating entry callback', async () => {
+    const callerRaw = Buffer.from(rawSmime)
+    const original = Buffer.from(callerRaw)
+    const beforeProviderCall = vi.fn(async (binding: Record<string, unknown>) => { expect(binding.mode).toBe('raw'); callerRaw.fill(88) })
+    await sendEdielEmail({ raw: callerRaw, to: 'receiver@example.test' }, { ...entry, beforeProviderCall })
+    expect(mocks.archive.mock.calls[0][0].equals(original)).toBe(true)
+    expect(mocks.sendMail.mock.calls[0][0].raw.equals(original)).toBe(true)
+    expect(mocks.sendMail.mock.calls[0][0].raw).not.toBe(callerRaw)
+    expect(beforeProviderCall.mock.calls[0]).toEqual([expect.objectContaining({ rawBase64: original.toString('base64') })])
+  })
+  it('requires TLS and certificate validation for the provider hop', async () => {
+    await sendEdielEmail({ raw: rawSmime, to: 'receiver@example.test' }, entry)
+    expect(mocks.transport).toHaveBeenCalledWith(expect.objectContaining({ requireTLS: true, tls: { rejectUnauthorized: true } }))
   })
 })

@@ -38,6 +38,7 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
     host: config.host,
     port: config.port,
     secure: config.secure,
+    requireTLS: true,
     auth: {
       user: config.user ?? '',
       pass: config.password,
@@ -48,14 +49,16 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
 
   if (!entry?.archiveContext) throw new Error('ediel_transport_archive_context_required')
   if ('raw' in input) {
-    const archive = await archiveTransportRawMime(input.raw, entry.archiveContext)
-    await entry.beforeProviderCall({mode:'raw',from:input.envelopeFrom ?? config.from,to:input.to,rawBase64:input.raw.toString('base64'),...archive})
+    // Caller-owned bytes may change while archive/provider gates await I/O.
+    const raw = Buffer.from(input.raw)
+    const archive = await archiveTransportRawMime(raw, entry.archiveContext)
+    await entry.beforeProviderCall({mode:'raw',from:input.envelopeFrom ?? config.from,to:input.to,rawBase64:raw.toString('base64'),...archive})
     const result = await transporter.sendMail({
       envelope: {
         from: input.envelopeFrom ?? config.from,
         to: [input.to],
       },
-      raw: input.raw,
+      raw,
     })
     return {
       accepted: Array.isArray(result.accepted) ? result.accepted : [],
