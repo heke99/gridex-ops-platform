@@ -56,6 +56,8 @@ function values(formData: FormData, key: string): string[] {
 
 type ActorImportRecord = {
   market?: 'EL' | 'GAS' | null
+  countryCode?:string|null
+  sourceRecord?:Record<string,unknown>
   name: string
   orgNumber: string | null
   edielId: string | null
@@ -92,6 +94,8 @@ function normalizeActorRole(role: string | null | undefined): string {
 function parseCompaniesXml(xml: string): ActorImportRecord[] {
   return parseActorRegistryXml(xml).map(actor => ({
     market: actor.market,
+    countryCode:actor.countryCode,
+    sourceRecord:actor.raw,
     name: actor.name,
     orgNumber: actor.orgNumber ?? null,
     edielId: actor.edielId ?? null,
@@ -461,6 +465,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
   const metadata = {
     ...previousMetadata,
     market: record.market ?? null,
+    sourceRecord:record.sourceRecord??null,
     importedBy: userId,
     source,
     edielId: record.edielId,
@@ -473,6 +478,7 @@ async function upsertImportedActor(record: ActorImportRecord, importRunId: strin
   }
   const payload = {
     name: record.name,
+    ...(record.countryCode?{country_code:record.countryCode}:{}),
     org_number: record.orgNumber,
     legal_name: record.name,
     status: 'active',

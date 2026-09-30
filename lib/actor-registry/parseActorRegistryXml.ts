@@ -172,12 +172,18 @@ function actorBlocks(xml: string): string[] {
 
 export function parseActorRegistryXml(xml: string): ParsedActorRegistryActor[] {
   if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(xml)) throw new Error('actor_registry_xml_unsafe_declaration')
-  const blocks = actorBlocks(xml)
+  const marketGroups=tagBlocks(xml,['Market']).filter(group=>tagBlocks(group,['Company']).length>0)
+  const entries=marketGroups.length>0?marketGroups.flatMap(group=>{
+    const header=group.match(/^<[^>]+>/)?.[0]??''
+    const marketContext=firstNonEmpty(attrValue(header,['Code']),tagValue(group,['Code']))
+    const countryContext=firstNonEmpty(attrValue(header,['CountryCode','Country']),tagValue(group,['CountryCode']))
+    return tagBlocks(group,['Company']).map(block=>({block,marketContext,countryContext}))
+  }):actorBlocks(xml).map(block=>({block,marketContext:null,countryContext:null}))
   const actors: ParsedActorRegistryActor[] = []
 
-  for (const block of blocks) {
+  for (const {block,marketContext,countryContext} of entries) {
     const keys = Object.fromEntries(tagBlocks(block, ['Key']).map(key => [attrValue(key.match(/^<[^>]+>/)?.[0] ?? '', ['Type']), stripTags(key)]))
-    const marketValue = firstNonEmpty(attrValue(block.match(/^<[^>]+>/)?.[0] ?? '', ['Market']), tagValue(block, ['Market']))?.toUpperCase()
+    const marketValue = firstNonEmpty(marketContext,attrValue(block.match(/^<[^>]+>/)?.[0] ?? '', ['Market']), tagValue(block, ['Market']))?.toUpperCase()
     const market = marketValue === 'EL' || marketValue === 'GAS' ? marketValue : null
     const name = firstNonEmpty(
       tagValue(block, ['Name', 'CompanyName', 'OrganisationName', 'OrganizationName', 'LegalName']),
@@ -205,12 +211,16 @@ export function parseActorRegistryXml(xml: string): ParsedActorRegistryActor[] {
       edielId,
       orgNumber,
       eic,
-      countryCode: cleanString(tagValue(block, ['Country', 'CountryCode'])) ?? 'SE',
+      countryCode: firstNonEmpty(countryContext,attrValue(block.match(/^<[^>]+>/)?.[0]??'',['CountryCode','Country']),tagValue(block,['Country','CountryCode'])) ?? 'SE',
       roles: inferRoles(block),
       routes: parseRoutes(block, edielId, market),
       certificates: parseCertificates(block),
       raw: {
         sourceFragmentLength: block.length,
+        sourceFragment: block,
+        originalMarket: marketValue??null,
+        originalCountry: countryContext??tagValue(block,['Country','CountryCode']),
+        originalRoles:tagBlocks(block,['Role','ActorRole','MarketRole']).map(stripTags),
         extractedWith: 'regex_xml_parser_v1',
       },
     })

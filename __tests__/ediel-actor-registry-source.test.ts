@@ -17,6 +17,13 @@ describe('actor source identities', () => {
     expect(actors[0].routes[0].interchangePartyId).toBe('2')
     expect(actors[0].routes[0]).toMatchObject({isVerified:false,status:'needs_review'})
   })
+  it('inherits the official Market/Company context and preserves original source values',()=>{
+    const actors=parseActorRegistryXml('<Registry><Market Code="EL" CountryCode="SE"><Company><Name>Legalactor</Name><Identifiers><Key Type="EdielId">21660</Key></Identifiers><Role>ESCO</Role><EDIFACTDetails Type="UTILTS"><PartyId>21660</PartyId><InterchangePartyId>21660</InterchangePartyId><CommunicationAddress Type="SMTP">edi@example.se</CommunicationAddress></EDIFACTDetails></Company></Market><Market Code="GAS" CountryCode="SE"><Company><Name>Gasactor</Name><Key Type="EdielId">99900</Key><Role>Netowner</Role></Company></Market></Registry>')
+    expect(actors.map(actor=>actor.market)).toEqual(['EL','GAS'])
+    expect(actors[0].raw.originalRoles).toEqual(['ESCO'])
+    expect(actors[0].raw.sourceFragment).toContain('<Identifiers>')
+    expect(actors[0]).toMatchObject({countryCode:'SE',edielId:'21660'})
+  })
   it('rejects DTD/entity sources before import creates records', () => {
     expect(() => parseActorRegistryXml('<!DOCTYPE companies [<!ENTITY x SYSTEM "file:///etc/passwd">]><Companies/>')).toThrow('actor_registry_xml_unsafe_declaration')
   })
