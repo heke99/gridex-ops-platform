@@ -1,3 +1,5 @@
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { stockholmBusinessDate, type EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseCanonicalMessageRow, type CanonicalEdielMessage } from '@/lib/ediel/core/canonicalMessage'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -14,15 +16,69 @@ function normalizeDate(value: unknown): string | null {
   return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day ? date : null
 }
 
+export type EdielMessageTimeOptions = Readonly<{ admissionAt?: string | Date; replayAt?: string | Date }>
+
+function instant(value: unknown, label: string): string | null {
+  if (value === null || value === undefined || value === '') return null
+  const date = value instanceof Date ? value : new Date(String(value))
+  if (Number.isNaN(date.getTime())) throw new Error(`ediel_${label}_invalid`)
+  return date.toISOString()
+}
+
+function documentAndMeasurementTimes(canonical: CanonicalEdielMessage) {
+  const una = canonical.una
+  const tokens = tokenizeEdifact(`${una?.raw ?? ''}${canonical.rawSegments.join(una?.segmentTerminator ?? "'")}${una?.segmentTerminator ?? "'"}`)
+  const values = tokens.segments.filter(segment => segment.tag === 'DTM')
+    .map(segment => segmentComposite(segment, 1, tokens.una))
+  const offset = values.find(parts => parts[0] === '735')?.[1] ?? null
+  const fixedCetDeclared = offset === '+0100' || values.some(parts => parts[0] === 'ZZZ' && parts[1] === '1' && parts[2] === '805')
+  const timeBasis = fixedCetDeclared ? 'fixed_UTC_plus_1' as const : 'source_declared' as const
+  const document = values.find(parts => parts[0] === '137')
+  const documentDate = normalizeDate(document?.[1])
+  const documentTimestamp = document?.[1] ? Object.freeze({ value: document[1], format: document[2] ?? null, originalOffset: offset, timeBasis }) : null
+  // Carry original period values independently. Conversion/validation belongs
+  // to the family time codec, never to guide admission.
+  const measurementPeriods = Object.freeze(values.filter(parts => ['163', '164', '194', '206', '324'].includes(parts[0] ?? '') && parts[1])
+    .map(parts => Object.freeze({ qualifier: parts[0]!, value: parts[1]!, format: parts[2] ?? null, originalOffset: offset, timeBasis })))
+  return { documentDate, documentTimestamp, measurementPeriods }
+}
+
 export function canonicalBusinessDate(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message)): string {
-  const documentDate = canonical.rawSegments
-    .find((segment) => /^DTM\+137:/i.test(segment))
-    ?.replace(/^DTM\+137:/i, '')
-    .split(':')[0]
-  return normalizeDate(documentDate)
+  return documentAndMeasurementTimes(canonical).documentDate
+    ?? normalizeDate(message.message_created_at)
     ?? normalizeDate(message.message_received_at)
     ?? normalizeDate(message.created_at)
-    ?? new Date().toISOString().slice(0, 10)
+    ?? (() => { throw new Error('ediel_business_time_missing') })()
+}
+
+export function resolveEdielMessageTimeAnchors(
+  message: EdielMessageRow,
+  canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message),
+  options: EdielMessageTimeOptions = {},
+): EdielMessageTimeAnchors {
+  const wireTimes = documentAndMeasurementTimes(canonical)
+  const localIngressAt = instant(message.message_received_at, 'admission_time')
+  const actualSendAt = instant(message.message_sent_at, 'actual_send_time')
+  const explicit = instant(options.admissionAt, 'admission_time')
+  const admissionSource = explicit ? 'explicit' : message.direction === 'outbound' ? 'pre_send' : localIngressAt ? 'local_ingress' : 'message_persisted'
+  const admissionAt = explicit ?? (message.direction === 'outbound'
+    ? new Date().toISOString()
+    : localIngressAt ?? instant(message.created_at, 'admission_time'))
+  if (!admissionAt) throw new Error('ediel_admission_time_missing')
+  return Object.freeze({
+    ...wireTimes,
+    localIngressAt,
+    actualSendAt,
+    admissionAt,
+    admissionDate: stockholmBusinessDate(new Date(admissionAt)),
+    admissionSource,
+    businessEffectiveDate: canonicalBusinessDate(message, canonical),
+    replayAt: instant(options.replayAt, 'replay_time'),
+  })
+}
+
+export function canonicalAdmissionDate(message: EdielMessageRow, options: EdielMessageTimeOptions = {}): string {
+  return resolveEdielMessageTimeAnchors(message, undefined, options).admissionDate
 }
 
 function readBooleanFact(message: EdielMessageRow, key: string): boolean | undefined {
@@ -58,17 +114,18 @@ function readStringFact(message: EdielMessageRow, key: string): string | undefin
   return typeof value === 'string' ? value.trim() : undefined
 }
 
-export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message)): CanonicalEdielPolicy | null {
+export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions = {}): CanonicalEdielPolicy | null {
   if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR') return null
   if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
 
   const family = canonical.family
-  return resolveCanonicalEdielPolicy({
+  const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
+  const policy = resolveCanonicalEdielPolicy({
     family,
     messageCode: canonical.messageCode,
     subtypeOrReasonCode: canonical.subtype,
     direction: message.direction,
-    referenceDate: canonicalBusinessDate(message, canonical),
+    referenceDate: timeAnchors.admissionDate,
     associationAssignedCode: canonical.version,
     applicationReference: canonical.applicationReference,
     bilateralCapabilityVerified: readBooleanFact(message, 'bilateralCapabilityVerified'),
@@ -83,4 +140,5 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     } : null,
     mode: 'parse',
   })
+  return Object.freeze({ ...policy, timeAnchors })
 }

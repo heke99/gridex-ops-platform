@@ -1,3 +1,4 @@
+import type { EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
 import {copyGasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {copyDeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import { resolveCanonicalAckMatrixRule, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
@@ -55,6 +56,7 @@ export type CanonicalEdielPolicy = {
   transactionReasonCode: string | null
   direction: CanonicalEdielPolicyDirection
   referenceDate: string
+  timeAnchors?: EdielMessageTimeAnchors
   profileKey: string | null
   processGroup: string | null
   phase: string | null
