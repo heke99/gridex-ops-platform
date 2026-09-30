@@ -34,6 +34,10 @@ describe('inbound ACK timer anchors and replay', () => {
     await createAckTimersForMessage({ actorUserId: 'actor', message: message({ message_family: 'UTILTS_ERR', message_code: 'ERR' }) })
     expect(io.upsert.mock.calls[0][0].map((row: { timer_type: string }) => row.timer_type)).toEqual(['contrl_due', 'aperak_due'])
   })
+  it('does not require a receipt clock for ineligible outbound messages', async () => {
+    expect(await createAckTimersForMessage({ actorUserId: 'actor', message: message({ direction: 'outbound', message_received_at: null, created_at: null }) })).toBeNull()
+    expect(io.upsert).not.toHaveBeenCalled()
+  })
   it('creates no ACK-of-ACK timers for CONTRL even with stale default flags', async () => {
     await createAckTimersForMessage({ actorUserId: 'actor', message: message({ message_family: 'CONTRL', message_code: null, requires_contrl: true }) })
     expect(io.upsert).not.toHaveBeenCalled()

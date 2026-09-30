@@ -12,17 +12,21 @@ export async function checkAckDeadlines(params: {
   const now = params.now ?? new Date().toISOString()
   const nowMs = Date.parse(now)
   if (!Number.isFinite(nowMs)) throw new Error('ack_deadline_now_invalid')
-  let query = supabaseService
-    .from('ediel_sla_timers')
-    .select('id, company_id, ediel_message_id, timer_type, warning_at, critical_at, due_at, status')
-    .in('status', ['open', 'warning', 'critical', 'expired'])
-    .order('due_at', { ascending: true })
-    .limit(Math.min(Math.max(Math.floor(params.limit ?? 200), 1), 500))
-
-  if (params.companyId) query = query.eq('company_id', params.companyId)
-
-  const { data, error } = await query
-  if (error) throw error
+  const limit = Math.min(Math.max(Math.floor(params.limit ?? 200), 1), 500)
+  const readTimers = async (statuses: string[], order: string) => {
+    let query = supabaseService.from('ediel_sla_timers')
+      .select('id, company_id, ediel_message_id, timer_type, warning_at, critical_at, due_at, status')
+      .in('status', statuses).order(order, { ascending: true }).limit(limit)
+    if (params.companyId) query = query.eq('company_id', params.companyId)
+    const result = await query
+    if (result.error) throw result.error
+    return result.data ?? []
+  }
+  // An expired backlog must not consume the active timer budget. Expired rows
+  // rotate by last visit so late ACK reconciliation also makes bounded progress.
+  const active = await readTimers(['open', 'warning', 'critical'], 'due_at')
+  const expiredRows = await readTimers(['expired'], 'updated_at')
+  const data = [...active, ...expiredRows]
 
   let warning = 0
   let critical = 0
@@ -66,7 +70,14 @@ export async function checkAckDeadlines(params: {
           ? 'warning'
           : String(row.status ?? 'open'))
 
-    if (status === row.status) continue
+    if (status === row.status) {
+      if (status === 'expired') {
+        const visited = await supabaseService.from('ediel_sla_timers')
+          .update({ updated_at: now }).eq('id', row.id).eq('company_id', row.company_id).eq('status', 'expired')
+        if (visited.error) throw visited.error
+      }
+      continue
+    }
 
     const { data: changed, error: updateError } = await supabaseService
       .from('ediel_sla_timers')

@@ -31,7 +31,8 @@ export function inboundAckTimerCompletion(input: {
     return report.sourceMessageId === input.source.id && report.ackScope === 'message'
       && !report.relatedTransactionReference && row.message_family === 'APERAK' && row.ack_outcome === 'negative'
   })) return 'resolved'
-  const ast = parseCanonicalEdifactAst(input.source.raw_payload)
+  let ast: ReturnType<typeof parseCanonicalEdifactAst>
+  try { ast = parseCanonicalEdifactAst(input.source.raw_payload) } catch { return null }
   const transactions = ast.messages.flatMap(message => message.utiltsTransactions ?? [])
   const ids = transactions.map(transaction => transaction.transactionId)
   if (!ids.length || ids.some(id => !id) || new Set(ids).size !== ids.length) return null

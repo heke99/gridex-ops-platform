@@ -43,11 +43,11 @@ export async function createAckTimersForMessage(params: {
   actorUserId: string
   message: EdielMessageRow
   testRunStartedAt?: string | null
-}): Promise<EdielAckTimerPlan> {
-  const plan = buildAckTimerPlan(params.message, { testRunStartedAt: params.testRunStartedAt ?? null })
+}): Promise<EdielAckTimerPlan | null> {
   const shouldCreateTimers = params.message.direction === 'inbound' && params.message.message_standard === 'edifact'
 
-  if (!shouldCreateTimers) return plan
+  if (!shouldCreateTimers) return null
+  const plan = buildAckTimerPlan(params.message, { testRunStartedAt: params.testRunStartedAt ?? null })
   const requirements = canonicalAckRequirementsForFamilyCode({ family: params.message.message_family, code: params.message.message_code })
   const anchor = { receivedAt: plan.receivedAt, anchorKind: plan.anchorKind, anchorCertainty: plan.anchorCertainty }
 

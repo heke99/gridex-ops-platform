@@ -20,6 +20,12 @@ describe('timer sweep concurrency guard',()=>{
     expect(io.calls).toContainEqual({table:'ediel_sla_timers',op:'eq',args:['status','open']})
     expect(io.event).not.toHaveBeenCalled()
   })
+  it('reserves separate active and expired read budgets', async () => {
+    await checkAckDeadlines({ actorUserId: 'actor', now: '2026-09-30T13:00:00Z', limit: 7 })
+    expect(io.calls).toContainEqual({ table: 'ediel_sla_timers', op: 'in', args: ['status', ['open', 'warning', 'critical']] })
+    expect(io.calls).toContainEqual({ table: 'ediel_sla_timers', op: 'in', args: ['status', ['expired']] })
+    expect(io.calls).toContainEqual({ table: 'ediel_sla_timers', op: 'order', args: ['updated_at', { ascending: true }] })
+  })
   it('rejects invalid caller time before reading or updating timers',async()=>{
     await expect(checkAckDeadlines({actorUserId:'actor',now:'invalid'})).rejects.toThrow('ack_deadline_now_invalid')
     expect(io.calls).toEqual([])

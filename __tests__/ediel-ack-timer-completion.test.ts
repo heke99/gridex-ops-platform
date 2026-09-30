@@ -10,6 +10,9 @@ const ack = (id:string, transaction:string, extra:Record<string,unknown>={}) => 
 const result = (id:string, response:string) => ({ company_id:'tenant-a',environment:'test',source_message_id:'source',
   source_transaction_id:id,finalized_at:'2026-09-30T12:04:00Z',response_message_id:response })
 describe('durable sent response scope resolves ACK timers', () => {
+  it('holds malformed source grammar without interrupting other timer rows', () => {
+    expect(inboundAckTimerCompletion({ source: { ...source, raw_payload: "UNA:+.? 'UNH+M+UTILTS:D:02B:UN:E5SE5A'IDE+24+X?" }, timerType: 'aperak_due', acknowledgements: [] })).toBeNull()
+  })
   it('does not let one finalized and sent IDE satisfy its sibling', () => {
     expect(inboundAckTimerCompletion({source,timerType:'aperak_due',acknowledgements:[ack('a','IDE-A')],transactionResults:[result('IDE-A','a')]})).toBeNull()
   })
