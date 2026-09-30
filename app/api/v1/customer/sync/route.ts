@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const body = parseTenantCustomerSyncPayload(
       await readJsonObject(request),
     ) as TenantCustomerSyncPayload
-    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'])
+    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'], 'tenant_machine')
     if (!context.ok) return context.response
     client = context.client
 

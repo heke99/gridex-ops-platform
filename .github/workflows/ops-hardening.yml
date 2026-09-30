@@ -123,6 +123,10 @@ jobs:
           # native fixture fails. The stack remains alive in this sourced step.
           SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
           npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
+          # Preserve generated types even if a later native/browser fixture
+          # fails; the artifact can then identify genuine schema drift.
+          supabase gen types typescript --local > rem002-database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
           # Originals stay in HOLD until the sourced replay's EXIT trap. Keep
           # the verified original input available to both native case passes.
           export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"
@@ -130,33 +134,50 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-revocation-native-regression.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-event-v2-native.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-contact-command-native.sql
           # Exercise the actual canonical registry, business writes and owner
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
           GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
+          # Shared atomic notification command: real rollback, legacy replay and concurrent sessions.
+          npx vitest run --config scripts/customer-notification-read-native.config.ts
+          npx vitest run --config scripts/customer-notification-read-concurrency-native.config.ts
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
           export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
           [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
+          npx vitest run --config scripts/customer-contact-concurrency-native.config.ts
+          # Exercise the contact browser/API path before the independent case
+          # publication browser fixture, so its own replay result is observable.
+          unset GRIDEX_E2E_BROWSER_BASE_URL
+          export GRIDEX_CONTACT_LOCAL_E2E=1
+          export GRIDEX_CONTACT_FIXTURE_PATH="$RUNNER_TEMP/customer-contact-browser-fixture.json"
+          export GRIDEX_CONTACT_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          npx vitest run --config scripts/customer-contact-browser-native.config.ts
+          [[ -s "$GRIDEX_CONTACT_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_CONTACT_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright install --with-deps chromium
+          npx playwright test e2e/browser/customer-contact-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_CONTACT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
+          rm -f "$GRIDEX_CONTACT_FIXTURE_PATH"
+          unset GRIDEX_CONTACT_TEST_PASSWORD GRIDEX_CONTACT_LOCAL_E2E GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
           unset GRIDEX_E2E_BROWSER_BASE_URL
           export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
           export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
           export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
           npx vitest run --config scripts/ediel-case-view-native.config.ts
           [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
-          npx playwright install --with-deps chromium
           npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
           GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts
           rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
-          unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
+          unset GRIDEX_EDIEL_CASE_TEST_PASSWORD
+          unset SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
           rm -f "$RUNNER_TEMP/e035-native-status.json"
-          supabase gen types typescript --local > rem002-database.types.ts
-          # Typegen emits non-null Returns for nullable SQL columns on the
-          # field-511 resolver; apply the same durable override used on tip.
-          node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
           GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
           MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
           echo "generated_types_sha256=$GENERATED_HASH"
@@ -201,4 +222,5 @@ jobs:
             rem002-clean-replay.log
             rem002-database.types.ts
             rem002-schema-snapshot/
+            e2e-artifacts/customer-contact-saved.png
           if-no-files-found: error

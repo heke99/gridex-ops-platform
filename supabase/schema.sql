@@ -9142,6 +9142,7 @@ $$;
 CREATE FUNCTION public.canonical_transition_tenant_lifecycle(p_company_id uuid, p_target_status text, p_expected_state_version bigint, p_reason text, p_actor_user_id uuid, p_idempotency_key text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
+    SET application_name TO 'gridex_portal_lifecycle_resume_v1'
     AS $$
 declare
   v_cached jsonb;
@@ -11020,6 +11021,8 @@ CREATE TABLE public.customers (
     blocked_sites integer DEFAULT 0 NOT NULL,
     latest_customer_action text,
     process_summary jsonb DEFAULT '{}'::jsonb NOT NULL,
+    contact_revision bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT customers_contact_revision_check CHECK ((contact_revision >= 0)),
     CONSTRAINT customers_customer_type_check CHECK ((customer_type = ANY (ARRAY['private'::text, 'business'::text, 'association'::text]))),
     CONSTRAINT customers_intake_quality_score_check CHECK (((intake_quality_score IS NULL) OR ((intake_quality_score >= 0) AND (intake_quality_score <= 100)))),
     CONSTRAINT customers_intake_status_check CHECK (((intake_status IS NULL) OR (intake_status = ANY (ARRAY['draft'::text, 'incomplete'::text, 'needs_completion'::text, 'pending_information'::text, 'pending_power_of_attorney'::text, 'pending_duplicate_review'::text, 'blocked'::text, 'rejected'::text, 'ready_for_contract'::text, 'ready_for_operations'::text, 'application_received'::text, 'needs_contract_or_poa'::text, 'needs_grid_owner_resolution'::text, 'needs_facility_lookup'::text, 'facility_lookup_ready_to_send'::text, 'facility_lookup_waiting_response'::text, 'ready_for_supplier_switch'::text, 'supplier_switch_waiting_response'::text, 'active_supply'::text, 'needs_admin_review'::text])))),
@@ -11049,6 +11052,12 @@ COMMENT ON COLUMN public.customers.billing_city IS 'Canonical customer billing c
 --
 
 COMMENT ON COLUMN public.customers.billing_country IS 'Canonical ISO country code for the customer billing address.';
+
+--
+-- Name: COLUMN customers.contact_revision; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.customers.contact_revision IS 'Optimistic version for the atomic customer contact command; legacy contact writers must be migrated before full P2 acceptance.';
 
 --
 -- Name: data_quality_issues; Type: TABLE; Schema: public; Owner: -
@@ -15876,6 +15885,326 @@ begin
   values(new.company_id,new.id,'contract_acceptance',v_acceptance,v_sha,new.signed_at) on conflict do nothing;
   return new;
 end $$;
+
+--
+-- Name: gridex_case_publication_heads_v1(uuid, uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]) RETURNS TABLE(customer_case_id uuid, revision bigint)
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  select cp.customer_case_id, max(cp.revision) as revision
+    from public.customer_case_publications cp
+    join public.customer_cases cc on cc.id=cp.customer_case_id
+      and cc.company_id=cp.company_id and cc.customer_id=cp.customer_id
+    where cc.company_id=p_company_id and cp.customer_case_id=any(p_case_ids)
+    group by cp.customer_case_id
+$$;
+
+--
+-- Name: gridex_change_customer_contact_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_change_customer_contact_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+declare
+  v_company_id uuid := nullif(p_command->>'companyId','')::uuid;
+  v_customer_id uuid := nullif(p_command->>'customerId','')::uuid;
+  v_actor_id uuid := nullif(p_command->>'actorUserId','')::uuid;
+  v_client_id uuid := nullif(p_command->>'clientId','')::uuid;
+  v_subject text := nullif(p_command->>'subject','');
+  v_mode text := p_command->>'mode';
+  v_target text := coalesce(p_command->>'contactTarget','primary');
+  v_type text := nullif(p_command->>'contactType','');
+  v_reason text := nullif(btrim(p_command->>'reason'),'');
+  v_key text := p_command->>'idempotencyKey';
+  v_expected bigint := (p_command->>'expectedRevision')::bigint;
+  v_changes jsonb := p_command->'changes';
+  v_customer public.customers%rowtype;
+  v_primary public.customer_contacts%rowtype;
+  v_secondary public.customer_contacts%rowtype;
+  v_primary_count integer;
+  v_email text;
+  v_phone text;
+  v_contact_name text;
+  v_contact_title text;
+  v_selected_contact_id uuid := nullif(p_command->>'contactId','')::uuid;
+  v_request jsonb;
+  v_existing public.canonical_command_results%rowtype;
+  v_result jsonb;
+  v_changed boolean;
+  v_contact_id uuid;
+  v_event_id uuid;
+  v_completion public.customer_portal_completions%rowtype;
+begin
+  if current_user <> 'service_role' then
+    raise exception 'contact_service_required' using errcode='42501';
+  end if;
+  if p_command is null or jsonb_typeof(p_command) <> 'object'
+     or exists (select 1 from jsonb_object_keys(p_command) as k(key)
+       where k.key not in ('companyId','customerId','contactId','actorUserId','clientId','subject',
+         'mode','reason','idempotencyKey','expectedRevision','changes','contactTarget','contactType'))
+     or v_company_id is null or v_customer_id is null
+     or v_mode is null or v_mode not in ('ops','api')
+     or v_target not in ('primary','secondary')
+     or (v_target='primary' and (p_command ? 'contactTarget' or p_command ? 'contactType'))
+     or (v_target='secondary' and (v_mode<>'ops' or v_type is null
+       or v_type not in ('billing','operations','technical','other')))
+     or v_expected is null or v_expected < 0 or v_key is null
+     or v_key !~ '^[A-Za-z0-9._:+~-]{8,200}$'
+     or v_changes is null or jsonb_typeof(v_changes) <> 'object' or v_changes = '{}'::jsonb
+     or exists (select 1 from jsonb_object_keys(v_changes) as k(key)
+       where k.key not in ('email','phone','name','title'))
+  then raise exception 'invalid_contact_command' using errcode='22023'; end if;
+
+  -- Lock both the resource and the authorization relationship during the
+  -- command. The API assertion signature and issuer binding are verified by
+  -- the server before this service-only RPC; this DB check is an additional
+  -- current-link/revocation boundary and cannot replace that signature check.
+  select * into v_customer from public.customers
+  where id=v_customer_id and company_id=v_company_id for update;
+  if not found or v_customer.status='archived' or v_customer.archived_at is not null then
+    raise exception 'contact_customer_unavailable' using errcode='42501';
+  end if;
+  perform 1 from public.companies c where c.id=v_company_id
+    and c.is_active and c.status='active' for share;
+  if not found then
+    raise exception 'contact_tenant_unavailable' using errcode='42501';
+  end if;
+  if v_mode='ops' then
+    if v_actor_id is null or v_client_id is not null or v_subject is not null
+      or v_reason is null or length(v_reason)>200 then
+      raise exception 'contact_actor_forbidden' using errcode='42501';
+    end if;
+    if not private.gridex_contact_actor_active_v1(v_actor_id) then
+      raise exception 'contact_actor_forbidden' using errcode='42501';
+    end if;
+    perform 1 from public.company_memberships m
+      where m.company_id=v_company_id and m.user_id=v_actor_id
+        and m.is_active and m.status='active' for share;
+    if not found or not coalesce(public.gridex_actor_has_company_permission(
+        v_actor_id,v_company_id,'masterdata.write'),false) then
+      raise exception 'contact_actor_forbidden' using errcode='42501';
+    end if;
+  else
+    if v_actor_id is not null or v_client_id is null or v_subject is null
+      or v_selected_contact_id is not null
+      or v_changes ? 'name' or v_changes ? 'title'
+      or length(v_subject)>255 or v_reason is not null then
+      raise exception 'contact_delegation_forbidden' using errcode='42501';
+    end if;
+    perform 1 from public.integration_api_clients c
+      where c.id=v_client_id and c.company_id=v_company_id
+        and c.status='active' and c.revoked_at is null and c.deleted_at is null
+        and (c.expires_at is null or c.expires_at>clock_timestamp())
+        and c.scopes && array['customer_contact.write','customer_portal.write','*']::text[]
+      for share;
+    if not found then raise exception 'contact_delegation_forbidden' using errcode='42501'; end if;
+    perform 1 from public.customer_portal_accounts a
+      where a.company_id=v_company_id and a.customer_id=v_customer_id
+        and a.status='active' and a.is_active
+        and (a.portal_user_id::text=v_subject or a.user_id::text=v_subject
+          or a.external_account_id=v_subject) for share;
+    if not found then raise exception 'contact_delegation_forbidden' using errcode='42501'; end if;
+  end if;
+
+  -- The stored request has only hashes and identifiers, never raw contact
+  -- details or an assertion. A collision across customers/actors is a conflict.
+  v_request:=jsonb_build_object('companyId',v_company_id,'customerId',v_customer_id,
+    'mode',v_mode,'actorId',v_actor_id,'clientId',v_client_id,
+    'contactId',v_selected_contact_id,
+    'subjectHash',case when v_subject is null then null else public.canonical_json_sha256(to_jsonb(v_subject)) end,
+    'expectedRevision',v_expected,'changesHash',public.canonical_json_sha256(v_changes));
+  if v_target='secondary' then
+    v_request:=v_request||jsonb_build_object('contactTarget',v_target,'contactType',v_type);
+  end if;
+  select * into v_existing from public.canonical_command_results
+  where company_id=v_company_id and command_type='customer.contact.change.v1'
+    and idempotency_key=v_key;
+  if found then
+    if v_existing.request_hash<>public.canonical_json_sha256(v_request) then
+      raise exception 'contact_idempotency_conflict' using errcode='23505';
+    end if;
+    return v_existing.result_payload||jsonb_build_object('replayed',true);
+  end if;
+  if v_customer.contact_revision<>v_expected then
+    raise exception 'contact_revision_conflict' using errcode='P0001';
+  end if;
+
+  if exists (select 1 from jsonb_each(v_changes) as e(key,value)
+    where e.value<>'null'::jsonb and jsonb_typeof(e.value)<>'string')
+    or exists (select 1 from jsonb_each(v_changes) as e(key,value)
+      where e.key='email' and e.value<>'null'::jsonb
+        and (length(btrim(e.value#>>'{}')) not between 3 and 320
+          or btrim(e.value#>>'{}') !~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'))
+    or exists (select 1 from jsonb_each(v_changes) as e(key,value)
+      where e.key='phone' and e.value<>'null'::jsonb
+        and length(btrim(e.value#>>'{}')) not between 1 and 50)
+    or exists (select 1 from jsonb_each(v_changes) as e(key,value)
+      where e.key='name' and e.value<>'null'::jsonb
+        and length(btrim(e.value#>>'{}')) not between 1 and 240)
+    or exists (select 1 from jsonb_each(v_changes) as e(key,value)
+      where e.key='title' and e.value<>'null'::jsonb
+        and length(btrim(e.value#>>'{}')) > 120)
+  then raise exception 'invalid_contact_field' using errcode='22023'; end if;
+
+  if v_target='secondary' then
+    if v_selected_contact_id is not null then
+      select * into v_secondary from public.customer_contacts
+      where id=v_selected_contact_id and company_id=v_company_id
+        and customer_id=v_customer_id for update;
+      if not found or v_secondary.is_primary then
+        raise exception 'contact_selection_conflict' using errcode='P0001';
+      end if;
+    end if;
+    v_email:=case when v_changes ? 'email'
+      then nullif(lower(btrim(v_changes->>'email')),'') else v_secondary.email end;
+    v_phone:=case when v_changes ? 'phone'
+      then nullif(btrim(v_changes->>'phone'),'') else v_secondary.phone end;
+    v_contact_name:=case when v_changes ? 'name'
+      then nullif(btrim(v_changes->>'name'),'') else v_secondary.name end;
+    v_contact_title:=case when v_changes ? 'title'
+      then nullif(btrim(v_changes->>'title'),'') else v_secondary.title end;
+    if v_email is null and v_phone is null and v_contact_name is null then
+      raise exception 'contact_method_required' using errcode='22023';
+    end if;
+    v_changed:=v_secondary.id is null
+      or v_secondary.type is distinct from v_type
+      or v_secondary.email is distinct from v_email
+      or v_secondary.phone is distinct from v_phone
+      or v_secondary.name is distinct from v_contact_name
+      or v_secondary.title is distinct from v_contact_title;
+    if v_changed then
+      update public.customers set contact_revision=contact_revision+1,
+        updated_at=clock_timestamp(),updated_by=v_actor_id
+      where id=v_customer_id and company_id=v_company_id;
+      if v_secondary.id is null then
+        insert into public.customer_contacts(company_id,customer_id,type,is_primary,
+          name,title,email,phone,created_by,updated_by)
+        values(v_company_id,v_customer_id,v_type,false,v_contact_name,
+          v_contact_title,v_email,v_phone,v_actor_id,v_actor_id)
+        returning id into v_contact_id;
+      else
+        update public.customer_contacts set type=v_type,name=v_contact_name,
+          title=v_contact_title,email=v_email,phone=v_phone,updated_by=v_actor_id,
+          updated_at=clock_timestamp()
+        where id=v_secondary.id and company_id=v_company_id and customer_id=v_customer_id;
+        v_contact_id:=v_secondary.id;
+      end if;
+    else
+      v_contact_id:=v_secondary.id;
+    end if;
+  else
+  v_email:=case when v_changes ? 'email' then nullif(lower(btrim(v_changes->>'email')),'') else v_customer.email end;
+  v_phone:=case when v_changes ? 'phone' then nullif(btrim(v_changes->>'phone'),'') else v_customer.phone end;
+  if v_email is null and v_phone is null then
+    raise exception 'contact_method_required' using errcode='22023';
+  end if;
+  select count(*) into v_primary_count from public.customer_contacts
+    where company_id=v_company_id and customer_id=v_customer_id and is_primary;
+  if v_primary_count>1 or exists(select 1 from public.customer_contacts
+    where customer_id=v_customer_id and is_primary
+      and company_id is distinct from v_company_id) then
+    raise exception 'ambiguous_primary_contact' using errcode='23514';
+  end if;
+  select * into v_primary from public.customer_contacts
+    where company_id=v_company_id and customer_id=v_customer_id and is_primary for update;
+  if v_mode='ops' and v_selected_contact_id is distinct from v_primary.id then
+    raise exception 'contact_selection_conflict' using errcode='P0001';
+  end if;
+  v_contact_name:=case when v_changes ? 'name'
+    then nullif(btrim(v_changes->>'name'),'')
+    else coalesce(v_primary.name,
+      nullif(btrim(concat_ws(' ',v_customer.first_name,v_customer.last_name)),''))
+    end;
+  v_contact_title:=case when v_changes ? 'title'
+    then nullif(btrim(v_changes->>'title'),'')
+    else v_primary.title end;
+  if v_customer.customer_type in ('business','association') and v_contact_name is null then
+    raise exception 'contact_name_required' using errcode='22023';
+  end if;
+  v_changed:=v_customer.email is distinct from v_email
+    or v_customer.phone is distinct from v_phone
+    or v_primary.id is null
+    or v_primary.email is distinct from v_email
+    or v_primary.phone is distinct from v_phone
+    or v_primary.name is distinct from v_contact_name
+    or v_primary.title is distinct from v_contact_title;
+
+  if v_changed then
+    update public.customers set
+      email=v_email,phone=v_phone,
+      contact_revision=contact_revision+1,updated_at=clock_timestamp(),updated_by=v_actor_id
+    where id=v_customer_id and company_id=v_company_id;
+    if v_primary.id is null then
+      insert into public.customer_contacts(company_id,customer_id,type,is_primary,
+        name,title,email,phone,created_by,updated_by)
+      values(v_company_id,v_customer_id,'primary',true,v_contact_name,v_contact_title,v_email,v_phone,v_actor_id,v_actor_id)
+      returning id into v_contact_id;
+    else
+      update public.customer_contacts set
+        name=v_contact_name,title=v_contact_title,email=v_email,phone=v_phone,
+        updated_by=v_actor_id,updated_at=clock_timestamp()
+      where id=v_primary.id and company_id=v_company_id and customer_id=v_customer_id;
+      v_contact_id:=v_primary.id;
+    end if;
+  else
+    v_contact_id:=v_primary.id;
+  end if;
+  end if;
+
+  v_result:=jsonb_build_object('companyId',v_company_id,'customerId',v_customer_id,
+    'contactId',v_contact_id,'revision',v_expected+case when v_changed then 1 else 0 end,
+    'changed',v_changed,'replayed',false);
+  if v_mode='api' then
+    insert into public.customer_portal_completions(company_id,customer_id,api_client_id,
+      completion_type,status,submitted_payload,result_payload,idempotency_key,request_hash)
+    values(v_company_id,v_customer_id,v_client_id,'profile_update','accepted',
+      jsonb_build_object('contactFieldsHash',public.canonical_json_sha256(v_changes)),
+      v_result,v_key,public.canonical_json_sha256(v_request))
+    returning * into v_completion;
+    v_result:=v_result||jsonb_build_object('completionReference',v_completion.completion_reference,
+      'createdAt',v_completion.created_at);
+  end if;
+  insert into public.canonical_audit_events(company_id,event_type,aggregate_type,aggregate_id,
+    state_version,actor_user_id,reason,idempotency_key,before_state,after_state,metadata)
+  values(v_company_id,'CUSTOMER_CONTACT_COMMAND','customer',v_customer_id,
+    (v_result->>'revision')::bigint,v_actor_id,coalesce(v_reason,'delegated_customer'),v_key,
+    jsonb_build_object('revision',v_expected),jsonb_build_object('revision',v_result->'revision'),
+    jsonb_build_object('mode',v_mode,'clientId',v_client_id,'changed',v_changed)
+      || case when v_target='secondary' then
+        jsonb_build_object('contactTarget',v_target,'contactId',v_contact_id)
+        else '{}'::jsonb end);
+  if v_changed then
+    insert into public.canonical_domain_events(company_id,event_type,aggregate_type,
+      aggregate_id,aggregate_version,idempotency_key,payload,created_by)
+    values(v_company_id,case when v_target='secondary' then
+        'CUSTOMER_SECONDARY_CONTACT_CHANGED' else 'CUSTOMER_CONTACT_CHANGED' end,
+      'customer',v_customer_id,
+      (v_result->>'revision')::bigint,v_key,
+      jsonb_build_object('customerId',v_customer_id,'revision',v_result->'revision')
+        || case when v_target='secondary' then
+          jsonb_build_object('contactId',v_contact_id,'contactTarget',v_target)
+          else '{}'::jsonb end,v_actor_id)
+    returning id into v_event_id;
+    insert into public.canonical_event_outbox(company_id,domain_event_id,topic,
+      idempotency_key,payload)
+    values(v_company_id,v_event_id,case when v_target='secondary' then
+        'customer.contact.secondary.changed' else 'customer.contact.changed' end,v_key,
+      jsonb_build_object('customerId',v_customer_id,'revision',v_result->'revision')
+        || case when v_target='secondary' then
+          jsonb_build_object('contactId',v_contact_id,'contactTarget',v_target)
+          else '{}'::jsonb end);
+  end if;
+  insert into public.canonical_command_results(company_id,command_type,idempotency_key,
+    request_payload,result_payload,actor_user_id)
+  values(v_company_id,'customer.contact.change.v1',v_key,v_request,v_result,v_actor_id);
+  return v_result;
+end;
+$_$;
 
 --
 -- Name: billing_automation_jobs; Type: TABLE; Schema: public; Owner: -
@@ -30690,6 +31019,218 @@ CREATE FUNCTION public.gridex_mark_customer_contract_signature_request_sent_v1(p
 $$;
 
 --
+-- Name: gridex_mark_customer_notifications_read_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_mark_customer_notifications_read_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+declare
+  v_company_id uuid;
+  v_customer_id uuid;
+  v_client_id uuid;
+  v_subject text;
+  v_key text;
+  v_references text[];
+  v_customer public.customers%rowtype;
+  v_account public.customer_portal_accounts%rowtype;
+  v_identity public.customer_portal_identities%rowtype;
+  v_identity_count integer := 0;
+  v_existing public.customer_portal_write_idempotency%rowtype;
+  v_claim_id uuid;
+  v_completed_id uuid;
+  v_ids uuid[] := array[]::uuid[];
+  v_notification public.customer_notifications%rowtype;
+  v_hash text;
+  v_compact_payload text;
+  v_read_at timestamptz;
+  v_updated integer;
+  v_body jsonb;
+  v_route constant text := '/api/v1/customer/notifications/read';
+begin
+  if current_user <> 'service_role' then
+    raise exception 'notification_service_required' using errcode='42501';
+  end if;
+  if p_command is null or jsonb_typeof(p_command) <> 'object' then
+    raise exception 'invalid_notification_command' using errcode='22023';
+  end if;
+  if exists(select 1 from jsonb_object_keys(p_command) as k(key)
+    where k.key not in ('companyId','customerId','clientId','subject',
+      'idempotencyKey','notificationReferences'))
+    or exists(select 1 from jsonb_each(p_command) as e(key,value)
+      where e.key <> 'notificationReferences' and jsonb_typeof(e.value)<>'string')
+    or coalesce(p_command->>'companyId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    or coalesce(p_command->>'customerId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    or coalesce(p_command->>'clientId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    or coalesce(length(p_command->>'subject'),0) not between 1 and 255
+    or coalesce(p_command->>'idempotencyKey','') !~ '^[A-Za-z0-9._:+~-]{8,200}$'
+    or jsonb_typeof(p_command->'notificationReferences') is distinct from 'array'
+  then raise exception 'invalid_notification_command' using errcode='22023'; end if;
+  if jsonb_array_length(p_command->'notificationReferences') not between 1 and 100
+    or exists(select 1 from jsonb_array_elements(p_command->'notificationReferences') as e(value)
+      where jsonb_typeof(e.value)<>'string'
+        or e.value#>>'{}' !~ '^notification_[A-Za-z0-9_-]{32}$')
+  then raise exception 'invalid_notification_command' using errcode='22023'; end if;
+
+  v_company_id:=(p_command->>'companyId')::uuid;
+  v_customer_id:=(p_command->>'customerId')::uuid;
+  v_client_id:=(p_command->>'clientId')::uuid;
+  v_subject:=p_command->>'subject';
+  v_key:=p_command->>'idempotencyKey';
+  select array_agg(e.value order by e.ordinality) into v_references
+    from jsonb_array_elements_text(p_command->'notificationReferences') with ordinality as e(value,ordinality);
+  if (select count(distinct ref) from unnest(v_references) as r(ref)) <> cardinality(v_references) then
+    raise exception 'invalid_notification_command' using errcode='22023';
+  end if;
+
+  -- Same lock order as the canonical contact command. Customer locking also
+  -- serializes first-read timestamps and this customer's idempotency claims.
+  select * into v_customer from public.customers
+    where id=v_customer_id and company_id=v_company_id for update;
+  if not found or v_customer.status='archived' or v_customer.archived_at is not null then
+    raise exception 'notification_customer_unavailable' using errcode='42501';
+  end if;
+  perform 1 from public.companies c where c.id=v_company_id
+    and c.is_active and c.status='active' for share;
+  if not found then
+    raise exception 'notification_tenant_unavailable' using errcode='42501';
+  end if;
+  perform 1 from public.integration_api_clients c
+    where c.id=v_client_id and c.company_id=v_company_id
+      and c.status='active' and c.revoked_at is null and c.deleted_at is null
+      and (c.expires_at is null or c.expires_at>clock_timestamp())
+      and c.scopes && array['customer_notifications.write','customer_portal.write','*']::text[]
+    for share;
+  if not found then
+    raise exception 'notification_delegation_forbidden' using errcode='42501';
+  end if;
+  -- The service adapter has verified the issuer/signature/action. IDs and
+  -- "verified" flags from a public request are never accepted as that evidence.
+  -- Check the exact current account link again and hold its revocation lock.
+  select * into v_account from public.customer_portal_accounts a
+    where a.company_id=v_company_id and a.customer_id=v_customer_id
+      and a.status='active' and a.is_active and a.role='owner'
+      and (a.portal_user_id::text=v_subject
+        or (a.portal_user_id is null and (a.user_id::text=v_subject or a.external_account_id=v_subject)))
+    order by a.id limit 1 for share;
+  if not found then
+    raise exception 'notification_delegation_forbidden' using errcode='42501';
+  end if;
+  -- Matching identity rows are optional in legacy installations, but a revoked
+  -- or ambiguous identity must not race the server guard and authorize replay.
+  for v_identity in select i.* from public.customer_portal_identities i
+    where i.company_id=v_company_id and i.customer_id=v_customer_id
+      and (i.auth_user_id::text=v_subject or i.customer_portal_user_id::text=v_subject
+        or i.external_account_id=v_subject) order by i.id for share
+  loop
+    v_identity_count:=v_identity_count+1;
+    if v_identity.status <> 'active' or v_identity_count>1 then
+      raise exception 'notification_delegation_forbidden' using errcode='42501';
+    end if;
+  end loop;
+
+  -- strictRequest.ts canonicalJson is compact, with ordered array elements.
+  -- Valid references are ASCII without JSON escapes, so this exact construction
+  -- preserves every historical hash. jsonb::text adds whitespace and is wrong.
+  select '{"notification_references":[' || string_agg('"'||r.ref||'"',',' order by r.ordinality) || ']}'
+    into v_compact_payload from unnest(v_references) with ordinality as r(ref,ordinality);
+  v_hash:=encode(extensions.digest(v_compact_payload,'sha256'),'hex');
+
+  select * into v_existing from public.customer_portal_write_idempotency
+    where company_id=v_company_id and api_client_id=v_client_id
+      and customer_id=v_customer_id and route=v_route and idempotency_key=v_key for update;
+  if found then
+    if v_existing.request_hash is distinct from v_hash then
+      raise exception 'idempotency_conflict' using errcode='P0001';
+    end if;
+    if v_existing.status='completed' then
+      -- Return exact stored legacy business response, never recompute it.
+      return jsonb_build_object('statusCode',coalesce(v_existing.response_status,200),
+        'body',v_existing.response_body,'replayed',true);
+    elsif v_existing.status='failed' then
+      raise exception 'idempotency_previous_attempt_failed' using errcode='P0001';
+    else
+      -- Old processing/failed rows may have effects from the former split
+      -- transaction. Neither a timestamp nor a retry proves rollback.
+      raise exception 'idempotency_in_progress' using errcode='P0001';
+    end if;
+  end if;
+
+  -- Resolve and lock the complete set through the canonical composite index.
+  -- Do not mutate any own row when even one requested reference is foreign.
+  for v_notification in select n.* from public.customer_notifications n
+    where n.company_id=v_company_id and n.customer_id=v_customer_id
+      and n.notification_reference=any(v_references) order by n.id for update
+  loop
+    v_ids:=array_append(v_ids,v_notification.id);
+  end loop;
+  if cardinality(v_ids)<>cardinality(v_references) then
+    raise exception 'notification_reference_not_found' using errcode='P0002';
+  end if;
+
+  v_read_at:=clock_timestamp();
+  insert into public.customer_portal_write_idempotency(company_id,api_client_id,
+    customer_id,route,idempotency_key,request_hash,status,started_at,updated_at)
+  values(v_company_id,v_client_id,v_customer_id,v_route,v_key,v_hash,'processing',v_read_at,v_read_at)
+    on conflict do nothing
+    returning id into v_claim_id;
+  if v_claim_id is null then
+    -- An in-flight pre-upgrade wrapper may have inserted its claim without
+    -- locking the customer. Preserve that row's completed/unsafe semantics
+    -- after the unique-index wait instead of silently retrying its mutation.
+    select * into v_existing from public.customer_portal_write_idempotency
+      where company_id=v_company_id and api_client_id=v_client_id
+        and customer_id=v_customer_id and route=v_route and idempotency_key=v_key for update;
+    if not found then
+      raise exception 'idempotency_in_progress' using errcode='P0001';
+    end if;
+    if v_existing.request_hash is distinct from v_hash then
+      raise exception 'idempotency_conflict' using errcode='P0001';
+    elsif v_existing.status='completed' then
+      return jsonb_build_object('statusCode',coalesce(v_existing.response_status,200),
+        'body',v_existing.response_body,'replayed',true);
+    elsif v_existing.status='failed' then
+      raise exception 'idempotency_previous_attempt_failed' using errcode='P0001';
+    else
+      raise exception 'idempotency_in_progress' using errcode='P0001';
+    end if;
+  end if;
+
+  update public.customer_notifications set status='read',
+    read_at=coalesce(read_at,v_read_at),updated_at=v_read_at
+    where company_id=v_company_id and customer_id=v_customer_id
+      and id=any(v_ids) and status='unread';
+  get diagnostics v_updated=row_count;
+  v_body:=jsonb_build_object('data',jsonb_build_object('updated_count',v_updated,
+    'notification_references',to_jsonb(v_references),
+    'read_at',to_char(v_read_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')));
+
+  update public.customer_portal_write_idempotency set status='completed',
+    response_status=200,response_body=v_body,completed_at=clock_timestamp(),updated_at=clock_timestamp()
+    where id=v_claim_id and company_id=v_company_id and api_client_id=v_client_id
+      and customer_id=v_customer_id and route=v_route and idempotency_key=v_key
+      and request_hash=v_hash and status='processing' returning id into v_completed_id;
+  if v_completed_id is null then
+    raise exception 'notification_completion_failed' using errcode='P0001';
+  end if;
+  -- Claim UUID preserves tenant/client/customer/route/key uniqueness even when
+  -- different customers or API clients intentionally use the same public key.
+  insert into public.canonical_audit_events(company_id,event_type,aggregate_type,
+    aggregate_id,actor_user_id,reason,idempotency_key,before_state,after_state,metadata)
+  values(v_company_id,'CUSTOMER_NOTIFICATIONS_READ_COMMAND','customer',v_customer_id,
+    null,'delegated_customer','notification.read.v1:'||v_claim_id::text,
+    jsonb_build_object('unreadRequested',v_updated),jsonb_build_object('updatedCount',v_updated),
+    jsonb_build_object('clientId',v_client_id,'claimId',v_claim_id,'requestHash',v_hash,
+      'subjectHash',encode(extensions.digest(v_subject,'sha256'),'hex'),
+      'notificationReferences',to_jsonb(v_references)));
+  -- An unhandled late completion/audit failure rolls back every write above.
+  -- Mark-read has no external delivery effect and must not enqueue a message.
+  return jsonb_build_object('statusCode',200,'body',v_body,'replayed',false);
+end;
+$_$;
+
+--
 -- Name: gridex_mask_sensitive_payload(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -38317,6 +38858,100 @@ end $_$;
 COMMENT ON FUNCTION public.gridex_publish_contract_version(p_company_id uuid, p_draft_contract_id uuid, p_offer_code text, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid) IS 'Canonical atomic contract publication command. Pricing, legal, contract version and publication either commit together or roll back together.';
 
 --
+-- Name: customer_case_publications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_case_publications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    customer_case_id uuid NOT NULL,
+    revision bigint NOT NULL,
+    public_title text NOT NULL,
+    public_body text NOT NULL,
+    public_status text NOT NULL,
+    author_user_id uuid NOT NULL,
+    channel text NOT NULL,
+    published_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    revoked_at timestamp with time zone,
+    revoked_by uuid,
+    CONSTRAINT customer_case_publications_channel_check CHECK ((channel = ANY (ARRAY['ops'::text, 'phone'::text]))),
+    CONSTRAINT customer_case_publications_public_body_check CHECK (((length(btrim(public_body)) >= 1) AND (length(btrim(public_body)) <= 8000))),
+    CONSTRAINT customer_case_publications_public_status_check CHECK ((public_status = ANY (ARRAY['open'::text, 'waiting_for_customer'::text, 'resolved'::text, 'closed'::text]))),
+    CONSTRAINT customer_case_publications_public_title_check CHECK (((length(btrim(public_title)) >= 1) AND (length(btrim(public_title)) <= 180))),
+    CONSTRAINT customer_case_publications_revision_check CHECK ((revision > 0)),
+    CONSTRAINT customer_case_publications_revoked_actor_check CHECK (((revoked_at IS NULL) = (revoked_by IS NULL)))
+);
+
+--
+-- Name: gridex_publish_customer_case_v1(uuid, uuid, uuid, text, text, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text DEFAULT 'ops'::text) RETURNS public.customer_case_publications
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare
+  v_case public.customer_cases%rowtype;
+  v_result public.customer_case_publications%rowtype;
+  v_revision bigint;
+  v_current_revision bigint;
+begin
+  select * into v_case from public.customer_cases
+    where id=p_case_id and company_id=p_company_id for update;
+  if not found then
+    raise exception using errcode='P0002', message='case_not_found_in_tenant';
+  end if;
+  if not exists (
+    select 1 from public.user_profiles up
+    join public.company_memberships cm on cm.user_id=up.id and cm.company_id=v_case.company_id
+    join public.companies c on c.id=cm.company_id
+    where up.id=p_actor_user_id and up.user_status='active'
+      and cm.status='active' and coalesce(cm.is_active,true)
+      and c.status in ('active','onboarding') and coalesce(c.is_active,true)
+  ) or not coalesce(public.gridex_actor_has_company_permission(
+      p_actor_user_id,v_case.company_id,'cases.write'),false) then
+    raise exception using errcode='42501', message='case_publication_actor_not_authorized';
+  end if;
+  if p_title is null or length(btrim(p_title)) not between 1 and 180
+     or p_body is null or length(btrim(p_body)) not between 1 and 8000
+     or p_status is null or p_status not in ('open','waiting_for_customer','resolved','closed')
+     or p_channel is null or p_channel not in ('ops','phone') then
+    raise exception using errcode='22023', message='invalid_case_publication';
+  end if;
+
+  select coalesce(max(revision),0) into v_current_revision
+    from public.customer_case_publications
+    where customer_case_id=p_case_id;
+  if p_expected_revision is distinct from v_current_revision then
+    raise exception using errcode='PT409', message='case_publication_revision_conflict';
+  end if;
+
+  select coalesce(max(revision),0)+1 into v_revision
+    from public.customer_case_publications where customer_case_id=p_case_id;
+  update public.customer_case_publications
+    set revoked_at=clock_timestamp(), revoked_by=p_actor_user_id
+    where customer_case_id=p_case_id and revoked_at is null;
+  insert into public.customer_case_publications (
+    company_id,customer_id,customer_case_id,revision,public_title,public_body,
+    public_status,author_user_id,channel
+  ) values (
+    v_case.company_id,v_case.customer_id,v_case.id,v_revision,btrim(p_title),btrim(p_body),
+    p_status,p_actor_user_id,p_channel
+  ) returning * into v_result;
+  insert into public.customer_case_events (
+    company_id,customer_id,customer_case_id,event_type,event_status,message,payload,created_by
+  ) values (
+    v_case.company_id,v_case.customer_id,v_case.id,'customer_publication','info',
+    'Kundsynlig ärendeversion publicerad.',
+    jsonb_build_object('publication_id',v_result.id,'revision',v_revision,'channel',p_channel),
+    p_actor_user_id
+  );
+  return v_result;
+end
+$$;
+
+--
 -- Name: gridex_publish_internal_contract_version(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -42586,6 +43221,56 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) IS 'Dedicated legal review operation. Normal company saves rebuild the profile but never approve it.';
+
+--
+-- Name: gridex_revoke_customer_case_publication_v1(uuid, uuid, uuid, bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+declare
+  v_case public.customer_cases%rowtype;
+  v_publication_id uuid;
+  v_current_revision bigint;
+begin
+  select * into v_case from public.customer_cases
+    where id=p_case_id and company_id=p_company_id for update;
+  if not found then
+    raise exception using errcode='P0002', message='case_not_found_in_tenant';
+  end if;
+  if not exists (
+    select 1 from public.user_profiles up
+    join public.company_memberships cm on cm.user_id=up.id and cm.company_id=v_case.company_id
+    join public.companies c on c.id=cm.company_id
+    where up.id=p_actor_user_id and up.user_status='active'
+      and cm.status='active' and coalesce(cm.is_active,true)
+      and c.status in ('active','onboarding') and coalesce(c.is_active,true)
+  ) or not coalesce(public.gridex_actor_has_company_permission(
+      p_actor_user_id,v_case.company_id,'cases.write'),false) then
+    raise exception using errcode='42501', message='case_publication_actor_not_authorized';
+  end if;
+  select revision into v_current_revision from public.customer_case_publications
+    where customer_case_id=p_case_id and revoked_at is null;
+  if v_current_revision is null or p_expected_revision is distinct from v_current_revision then
+    raise exception using errcode='PT409', message='case_publication_revision_conflict';
+  end if;
+  update public.customer_case_publications
+    set revoked_at=clock_timestamp(), revoked_by=p_actor_user_id
+    where customer_case_id=p_case_id and revoked_at is null
+    returning id into v_publication_id;
+  if v_publication_id is null then return false; end if;
+  insert into public.customer_case_events (
+    company_id,customer_id,customer_case_id,event_type,event_status,message,payload,created_by
+  ) values (
+    v_case.company_id,v_case.customer_id,v_case.id,'customer_publication_revoked','info',
+    'Kundsynlig ärendeversion drogs tillbaka.',
+    jsonb_build_object('publication_id',v_publication_id),p_actor_user_id
+  );
+  return true;
+end
+$$;
 
 --
 -- Name: gridex_revoke_portfolio_settlement_permission(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -49772,6 +50457,60 @@ CREATE FUNCTION public.portal_customer_events_page_v1(p_company_id uuid, p_custo
     e.source_table,
     e.source_rank,
     e.event_type,
+    e.source,
+    e.occurred_at,
+    e.created_at
+  from all_events e
+  where p_cursor_occurred_at is null
+     or (e.occurred_at, e.source_rank, e.id)
+        < (p_cursor_occurred_at, coalesce(p_cursor_source_rank, 0), p_cursor_id)
+  order by e.occurred_at desc, e.source_rank desc, e.id desc
+  limit greatest(1, least(coalesce(p_limit, 51), 101));
+$$;
+
+--
+-- Name: portal_customer_events_page_v2(uuid, uuid, timestamp with time zone, integer, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_cursor_source_rank integer DEFAULT NULL::integer, p_cursor_id uuid DEFAULT NULL::uuid, p_limit integer DEFAULT 51) RETURNS TABLE(id uuid, source_table text, source_rank integer, event_type text, event_version integer, source text, occurred_at timestamp with time zone, created_at timestamp with time zone)
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_catalog'
+    AS $$
+  with all_events as (
+    select
+      e.id,
+      'customer_events'::text as source_table,
+      2::integer as source_rank,
+      e.event_type,
+      1::integer as event_version,
+      e.source,
+      coalesce(e.occurred_at, e.created_at) as occurred_at,
+      e.created_at
+    from public.customer_events e
+    where e.company_id = p_company_id
+      and e.customer_id = p_customer_id
+
+    union all
+
+    select
+      d.id,
+      'domain_events'::text as source_table,
+      1::integer as source_rank,
+      d.event_type,
+      d.event_version,
+      d.source,
+      coalesce(d.occurred_at, d.created_at) as occurred_at,
+      d.created_at
+    from public.domain_events d
+    where d.company_id = p_company_id
+      and d.subject_customer_id = p_customer_id
+  )
+  select
+    e.id,
+    e.source_table,
+    e.source_rank,
+    e.event_type,
+    e.event_version,
     e.source,
     e.occurred_at,
     e.created_at
@@ -57291,7 +58030,8 @@ CREATE TABLE public.customer_notifications (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     customer_number text,
-    external_customer_id text
+    external_customer_id text,
+    notification_reference text GENERATED ALWAYS AS (('notification_'::text || substr(translate(encode(extensions.digest(((('gridex-public-reference:v1:'::text || (company_id)::text) || ':notification:'::text) || (id)::text), 'sha256'::text), 'base64'::text), '+/'::text, '-_'::text), 1, 32))) STORED NOT NULL
 );
 
 --
@@ -71634,6 +72374,20 @@ ALTER TABLE ONLY public.customer_case_events
     ADD CONSTRAINT customer_case_events_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_case_publications customer_case_publications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_case_publications customer_case_publications_revision_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_revision_key UNIQUE (company_id, customer_case_id, revision);
+
+--
 -- Name: customer_cases customer_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -75887,6 +76641,18 @@ CREATE INDEX customer_case_events_company_idx ON public.customer_case_events USI
 CREATE INDEX customer_case_events_customer_idx ON public.customer_case_events USING btree (customer_id);
 
 --
+-- Name: customer_case_publications_current_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_case_publications_current_key ON public.customer_case_publications USING btree (company_id, customer_case_id) WHERE (revoked_at IS NULL);
+
+--
+-- Name: customer_case_publications_portal_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_publications_portal_idx ON public.customer_case_publications USING btree (company_id, customer_id, published_at DESC, id DESC) WHERE (revoked_at IS NULL);
+
+--
 -- Name: customer_cases_company_business_process_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -76395,6 +77161,12 @@ CREATE INDEX customer_merge_events_company_primary_idx ON public.customer_merge_
 --
 
 CREATE INDEX customer_notifications_company_customer_number_idx ON public.customer_notifications USING btree (company_id, customer_number) WHERE (customer_number IS NOT NULL);
+
+--
+-- Name: customer_notifications_company_customer_reference_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_notifications_company_customer_reference_uidx ON public.customer_notifications USING btree (company_id, customer_id, notification_reference);
 
 --
 -- Name: customer_notifications_company_customer_time_idx; Type: INDEX; Schema: public; Owner: -
@@ -85754,6 +86526,12 @@ CREATE TRIGGER customer_application_workflow_committed_canonical_v1 AFTER INSERT
 CREATE TRIGGER customer_authorization_documents_bind_poa_tg AFTER INSERT OR UPDATE OF power_of_attorney_id, site_id, status ON public.customer_authorization_documents FOR EACH ROW EXECUTE FUNCTION public.gridex_bind_poa_authorization_document();
 
 --
+-- Name: customer_case_publications customer_case_publication_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_case_publication_immutable BEFORE UPDATE ON public.customer_case_publications FOR EACH ROW EXECUTE FUNCTION private.gridex_guard_case_publication_revision_v1();
+
+--
 -- Name: customer_contract_acceptances customer_contract_acceptances_immutable; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -85886,10 +86664,22 @@ CREATE TRIGGER customer_match_review_cases_validate_tg BEFORE INSERT OR UPDATE O
 CREATE TRIGGER customer_onboarding_legal_snapshots_immutable_tg BEFORE DELETE OR UPDATE ON public.customer_onboarding_legal_snapshots FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_onboarding_legal_snapshot();
 
 --
+-- Name: customer_portal_accounts customer_portal_account_revocation_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_portal_account_revocation_guard BEFORE UPDATE ON public.customer_portal_accounts FOR EACH ROW EXECUTE FUNCTION private.gridex_guard_portal_revocation_v1();
+
+--
 -- Name: customer_portal_identities customer_portal_identities_match_strength_normalize_tg; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER customer_portal_identities_match_strength_normalize_tg BEFORE INSERT OR UPDATE OF match_strength ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION public.gridex_normalize_customer_portal_identity_match_strength();
+
+--
+-- Name: customer_portal_identities customer_portal_identity_revocation_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_portal_identity_revocation_guard BEFORE UPDATE ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION private.gridex_guard_portal_revocation_v1();
 
 --
 -- Name: customer_sites customer_sites_invalidate_operations_on_address_change; Type: TRIGGER; Schema: public; Owner: -
@@ -86948,6 +87738,12 @@ CREATE TRIGGER utilts_bound_source_guard BEFORE UPDATE ON public.ediel_messages 
 --
 
 CREATE TRIGGER website_application_atomic_portal_identity AFTER INSERT OR UPDATE ON public.website_customer_applications FOR EACH ROW WHEN ((new.customer_id IS NOT NULL)) EXECUTE FUNCTION public.gridex_commit_website_portal_identity();
+
+--
+-- Name: website_customer_applications website_application_portal_account_active_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER website_application_portal_account_active_guard AFTER INSERT OR UPDATE ON public.website_customer_applications FOR EACH ROW WHEN ((new.customer_id IS NOT NULL)) EXECUTE FUNCTION private.gridex_check_website_portal_account_v1();
 
 --
 -- Name: website_customer_applications website_application_quote_binding_v2; Type: TRIGGER; Schema: public; Owner: -
@@ -88746,6 +89542,34 @@ ALTER TABLE ONLY public.customer_case_events
 
 ALTER TABLE ONLY public.customer_case_events
     ADD CONSTRAINT customer_case_events_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_publications customer_case_publications_author_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_author_user_id_fkey FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+
+--
+-- Name: customer_case_publications customer_case_publications_case_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_publications customer_case_publications_customer_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_customer_owner_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_publications customer_case_publications_revoked_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_publications
+    ADD CONSTRAINT customer_case_publications_revoked_by_fkey FOREIGN KEY (revoked_by) REFERENCES auth.users(id) ON DELETE RESTRICT;
 
 --
 -- Name: customer_cases customer_cases_assigned_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -95827,6 +96651,12 @@ CREATE POLICY customer_blockers_service_role_all ON public.customer_blockers USI
 --
 
 ALTER TABLE public.customer_case_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: customer_case_publications; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_case_publications ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_cases; Type: ROW SECURITY; Schema: public; Owner: -
@@ -114150,6 +114980,20 @@ REVOKE ALL ON FUNCTION public.gridex_capture_signed_contract_evidence() FROM PUB
 GRANT ALL ON FUNCTION public.gridex_capture_signed_contract_evidence() TO service_role;
 
 --
+-- Name: FUNCTION gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_case_publication_heads_v1(p_company_id uuid, p_case_ids uuid[]) TO service_role;
+
+--
+-- Name: FUNCTION gridex_change_customer_contact_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_change_customer_contact_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_change_customer_contact_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: TABLE billing_automation_jobs; Type: ACL; Schema: public; Owner: -
 --
 
@@ -115568,6 +116412,13 @@ REVOKE ALL ON FUNCTION public.gridex_mark_customer_contract_signature_request_se
 GRANT ALL ON FUNCTION public.gridex_mark_customer_contract_signature_request_sent_v1(p_request_id uuid, p_company_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_mark_customer_notifications_read_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_mark_customer_notifications_read_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_mark_customer_notifications_read_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_mask_sensitive_payload(payload jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116203,6 +117054,19 @@ REVOKE ALL ON FUNCTION public.gridex_publish_contract_version(p_company_id uuid,
 GRANT ALL ON FUNCTION public.gridex_publish_contract_version(p_company_id uuid, p_draft_contract_id uuid, p_offer_code text, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: TABLE customer_case_publications; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_case_publications TO service_role;
+
+--
+-- Name: FUNCTION gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_publish_customer_case_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_title text, p_body text, p_status text, p_expected_revision bigint, p_channel text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_publish_internal_contract_version(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116684,6 +117548,13 @@ GRANT ALL ON FUNCTION public.gridex_retry_website_contract_signature(p_company_i
 
 REVOKE ALL ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_review_company_legal_profile(p_company_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_revoke_customer_case_publication_v1(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_expected_revision bigint) TO service_role;
 
 --
 -- Name: FUNCTION gridex_revoke_portfolio_settlement_permission(p_actor_user_id uuid, p_grant_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
@@ -117399,6 +118270,13 @@ GRANT ALL ON FUNCTION public.portal_customer_documents_page_v1(p_company_id uuid
 
 REVOKE ALL ON FUNCTION public.portal_customer_events_page_v1(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.portal_customer_events_page_v1(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.portal_customer_events_page_v2(p_company_id uuid, p_customer_id uuid, p_cursor_occurred_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer) TO service_role;
 
 --
 -- Name: FUNCTION prevent_actor_test_evidence_mutation(); Type: ACL; Schema: public; Owner: -
@@ -118744,7 +119622,7 @@ GRANT ALL ON TABLE public.customer_ops_timeline_v TO service_role;
 -- Name: TABLE customer_portal_accounts; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON TABLE public.customer_portal_accounts TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE public.customer_portal_accounts TO authenticated;
 GRANT ALL ON TABLE public.customer_portal_accounts TO service_role;
 
 --
@@ -118779,7 +119657,7 @@ GRANT ALL ON TABLE public.customer_portal_events TO service_role;
 -- Name: TABLE customer_portal_identities; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON TABLE public.customer_portal_identities TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE public.customer_portal_identities TO authenticated;
 GRANT ALL ON TABLE public.customer_portal_identities TO service_role;
 
 --

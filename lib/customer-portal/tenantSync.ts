@@ -1163,7 +1163,6 @@ async function syncCustomerProfile(input: {
     last_name: clean(input.profile.last_name),
     full_name: clean(input.profile.full_name),
     company_name: clean(input.profile.company_name),
-    phone: clean(input.profile.phone),
     invoice_email: clean(input.profile.invoice_email),
     preferred_language: clean(input.profile.language_code),
     metadata: input.profile.timezone

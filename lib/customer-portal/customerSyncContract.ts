@@ -128,6 +128,13 @@ const syncRequest = z.object({
   power_of_attorney: powerOfAttorney.optional(),
   metadata,
 }).strict().superRefine((value, context) => {
+  if (value.profile && Object.prototype.hasOwnProperty.call(value.profile, 'phone')) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Telefonändringar kräver det revisionsskyddade kontaktkommandot.',
+      path: ['profile', 'phone'],
+    })
+  }
   if (
     !value.email &&
     !value.customer_number &&

@@ -53,8 +53,11 @@ export function publicPortalCustomer(
     first_name: text(row.first_name),
     last_name: text(row.last_name),
     company_name: text(row.company_name),
-    email: text(identity.email) ?? text(row.email),
+    email: text(row.email) ?? text(identity.email),
     phone: text(row.phone),
+    contact_revision: typeof row.contact_revision === 'number' &&
+      Number.isSafeInteger(row.contact_revision) && row.contact_revision >= 0
+      ? row.contact_revision : null,
     created_at: text(row.created_at),
   }
 }

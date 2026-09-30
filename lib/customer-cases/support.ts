@@ -190,28 +190,17 @@ export async function listTenantSupportCases(input: {
   customerId?: string | null
   status?: string | null
   limit?: number
+  offset?: number
 }): Promise<CustomerCaseListRow[]> {
   const rows = await listCustomerCases({
     companyId: input.companyId,
     customerId: input.customerId ?? null,
     status: input.status ?? null,
     limit: Math.min(Math.max(input.limit ?? 100, 1), 200),
+    offset: Math.max(0, Math.floor(input.offset ?? 0)),
+    supportOnly: true,
   })
+  // Keep this guard even when the database filter is in place; only the exact
+  // support predicate is permitted to leave this service boundary.
   return rows.filter((row) => row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_'))
-}
-
-export function publicSupportCase(row: CustomerCaseRow | CustomerCaseListRow) {
-  return {
-    id: row.id,
-    status: row.status,
-    priority: row.priority,
-    title: row.title,
-    description: row.description,
-    category: row.reason_category,
-    next_action: row.next_action,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    resolved_at: row.resolved_at,
-    closed_at: row.closed_at,
-  }
 }

@@ -7,6 +7,10 @@ const enabled = process.env.GRIDEX_EDIEL_CASE_LOCAL_E2E === '1'
   && Boolean(process.env.GRIDEX_EDIEL_CASE_FIXTURE_PATH && process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD)
 test.skip(!enabled, 'Requires the disposable local Supabase replay and writer-created fixture.')
 
+// These tests share an externally provisioned, mutable database fixture.
+// A failed attempt must start a fresh clean replay, not inherit committed writes.
+test.describe.configure({ mode: 'serial', retries: 0 })
+
 const fixture = enabled ? JSON.parse(readFileSync(process.env.GRIDEX_EDIEL_CASE_FIXTURE_PATH, 'utf8')) : null
 const detail = (id) => `/admin/ediel/operational-cases?caseId=${encodeURIComponent(id)}`
 
@@ -74,6 +78,28 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await expect(page.locator('body')).not.toContainText(fixture.foreign.sourceMessageId)
 })
 
+test('support page reaches 201 older cases after 220 newer unrelated rows without gaps or duplicates', async ({ page }) => {
+  await login(page, fixture.writerEmail)
+  await page.goto('/admin/customer-cases')
+  const support = await adminContent(page)
+  const supportIds = new Set()
+  for (let pageNumber = 1; pageNumber <= 3; pageNumber++) {
+    const ids = await support.locator('article[data-case-id]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-case-id')))
+    for (const id of ids) {
+      expect(supportIds.has(id)).toBe(false)
+      supportIds.add(id)
+    }
+    await expect(support).not.toContainText('Unrelated ordinary')
+    if (pageNumber < 3) {
+      await support.getByRole('link', { name: 'Nästa sida' }).click()
+      await expect(page).toHaveURL(new RegExp(`page=${pageNumber + 1}`))
+    }
+  }
+  expect(supportIds.size).toBe(201)
+  await expect(support.getByRole('link', { name: 'Nästa sida' })).toHaveCount(0)
+  await expect(support.getByRole('link', { name: 'Föregående sida' })).toBeVisible()
+})
+
 test('tenant writer changes only case status; read-only and no-case-read actors cannot triage', async ({ browser }) => {
   const summaryOnly = await browser.newPage()
   await login(summaryOnly, fixture.noCaseReadEmail)
@@ -102,4 +128,91 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
   await expect(readerDetails.getByRole('heading', { name: fixture.old.title })).toBeVisible()
   await expect(reader.getByLabel('Ärendestatus')).toHaveCount(0)
   await reader.close()
+})
+
+test('tenant writer publishes and withdraws; customer portal sees only authored text', async ({ browser }) => {
+  const page = await browser.newPage()
+  const customer = await browser.newPage()
+  const reader = await browser.newPage()
+  await login(reader, fixture.readOnlyEmail)
+  await reader.goto('/admin/customer-cases')
+  await expect(reader.getByRole('heading', { name: 'Supportkö' })).toBeVisible()
+  await expect(reader.getByRole('button', { name: 'Publicera till kunden' })).toHaveCount(0)
+  await expect(reader.getByRole('button', { name: 'Spara status' })).toHaveCount(0)
+  await login(page, fixture.writerEmail)
+  await login(customer, fixture.portalEmail)
+  await customer.goto('/portal/arenden')
+  // The loading fallback nests another main inside the portal layout. Require
+  // the rendered cases heading so neither loading nor an arbitrary first main qualifies.
+  const portalCases = customer.locator('main').filter({
+    has: customer.getByRole('heading', { name: 'Mina ärenden', level: 1, exact: true }),
+  })
+  await expect(portalCases).toHaveCount(1)
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
+  await expect(portalCases).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
+
+  await page.goto('/admin/customer-cases')
+  const support = await adminContent(page)
+  const caseArticle = support.locator(`article[data-case-id="${fixture.supportId}"]`)
+  await expect(caseArticle).toHaveCount(1)
+  await expect(caseArticle).toContainText('Inte publicerat till kunden.')
+  const actionName = await caseArticle.locator('form:has(input[name="public_title"])')
+    .evaluate((form) => Array.from(new FormData(form).keys()).find((key) => key.startsWith('$ACTION_ID_')) ?? null)
+  expect(actionName).toMatch(/^\$ACTION_ID_/)
+  const denied = await reader.evaluate(async ({ actionName, caseId }) => {
+    const form = new FormData()
+    form.append(actionName, '')
+    form.append('case_id', caseId)
+    form.append('expected_revision', '0')
+    form.append('public_title', 'Forged reader publication')
+    form.append('public_body', 'This must never reach the customer.')
+    form.append('public_status', 'open')
+    const response = await fetch('/admin/customer-cases', { method: 'POST', body: form, credentials: 'same-origin' })
+    return response.status
+  }, { actionName, caseId: fixture.supportId })
+  expect(denied).toBeGreaterThanOrEqual(400)
+  await customer.reload()
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
+  await reader.close()
+  await caseArticle.locator('input[name="public_title"]').fill('Customer visible browser subject')
+  await caseArticle.locator('textarea[name="public_body"]').fill('A message authored for the customer.')
+  await caseArticle.getByRole('button', { name: 'Publicera till kunden' }).dblclick()
+  await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
+  await expect(caseArticle).toContainText('A message authored for the customer.')
+  await caseArticle.locator('form:has(input[name="public_title"]) input[name="expected_revision"]')
+    .evaluate((input) => { input.value = '0' })
+  await caseArticle.locator('input[name="public_title"]').fill('Stale attempt')
+  await caseArticle.locator('textarea[name="public_body"]').fill('Must not replace the first publication.')
+  await caseArticle.getByRole('button', { name: 'Publicera ny kundsynlig version' }).click()
+  await expect(support.getByRole('alert')).toContainText('Publiceringen har ändrats')
+  await expect(caseArticle).toContainText('Version 1 · Customer visible browser subject')
+  await customer.reload()
+  await expect(customer.getByRole('heading', { name: 'Customer visible browser subject' })).toBeVisible()
+  await expect(portalCases).toContainText('A message authored for the customer.')
+  await expect(portalCases).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
+  await expect(portalCases).not.toContainText(fixture.recent.title)
+  await customer.goto('/portal/status')
+  const portalStatus = customer.locator('main').first()
+  await expect(portalStatus).toContainText('Customer visible browser subject')
+  await expect(portalStatus).not.toContainText('PRIVATE_TRIAGE_DO_NOT_DISCLOSE')
+  await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
+  await expect(caseArticle).toContainText('Inte publicerat till kunden.')
+  await customer.goto('/portal/arenden')
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
+  await expect(portalCases).not.toContainText('Customer visible browser subject')
+  await page.reload()
+  await expect(caseArticle.locator('input[name="expected_revision"]')).toHaveValue('1')
+  await caseArticle.locator('input[name="public_title"]').fill('New public subject after withdrawal')
+  await caseArticle.locator('textarea[name="public_body"]').fill('Second authored message.')
+  await caseArticle.getByRole('button', { name: 'Publicera till kunden' }).click()
+  await expect(caseArticle).toContainText('Version 2 · New public subject after withdrawal')
+  await customer.reload()
+  await expect(customer.getByRole('heading', { name: 'New public subject after withdrawal' })).toBeVisible()
+  await caseArticle.getByRole('button', { name: 'Dra tillbaka publiceringen' }).click()
+  await expect(caseArticle).toContainText('Inte publicerat till kunden.')
+  await customer.reload()
+  await expect(portalCases).toContainText('Inga ärenden har publicerats')
+  await expect(portalCases).not.toContainText('New public subject after withdrawal')
+  await customer.close()
+  await page.close()
 })

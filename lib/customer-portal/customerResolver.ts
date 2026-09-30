@@ -31,7 +31,7 @@ export type PortalCustomerResolution =
   | { ok: true; customer: ResolvedPortalCustomer }
   | { ok: false; status: number; error: string; code: string; identifiers: CustomerPortalIdentifiers }
 
-const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
+const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,contact_revision,created_at,intake_status,intake_missing_fields,intake_quality_score'
 const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at'
 const CUSTOMER_MINIMAL_SELECT = 'id,company_id,customer_number,status,email,phone,created_at'
 const IDENTITY_SELECT = 'id,company_id,customer_id,external_customer_id,external_account_id,customer_number,email,status,match_strength,match_method,provider,auth_user_id,customer_portal_user_id'
@@ -69,7 +69,30 @@ function isUuid(value: string | null | undefined): value is string {
   return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
 }
 
-function headerOrQuery(request: NextRequest, headers: string[], queries: string[]): string | null {
+const PORTAL_IDENTIFIER_SOURCES = {
+  externalCustomerId: {
+    headers: ['x-gridex-external-customer-id', 'x-external-customer-id'],
+    queries: ['external_customer_id', 'externalCustomerId', 'customer_external_id'],
+  },
+  customerNumber: {
+    headers: ['x-gridex-customer-number', 'x-customer-number'],
+    queries: ['customer_number', 'customerNumber'],
+  },
+  email: {
+    headers: ['x-gridex-customer-email', 'x-customer-email'],
+    queries: ['email', 'customer_email'],
+  },
+  authUserId: {
+    headers: ['x-gridex-auth-user-id', 'x-auth-user-id', 'x-gridex-web-auth-user-id'],
+    queries: ['auth_user_id', 'authUserId', 'web_auth_user_id', 'webAuthUserId'],
+  },
+  customerPortalUserId: {
+    headers: ['x-gridex-customer-portal-user-id', 'x-customer-portal-user-id', 'x-gridex-portal-user-id'],
+    queries: ['customer_portal_user_id', 'customerPortalUserId', 'portal_user_id', 'portalUserId'],
+  },
+} as const
+
+function headerOrQuery(request: NextRequest, headers: readonly string[], queries: readonly string[]): string | null {
   for (const header of headers) {
     const value = clean(request.headers.get(header))
     if (value) return value
@@ -81,18 +104,30 @@ function headerOrQuery(request: NextRequest, headers: string[], queries: string[
   return null
 }
 
+function conflictingRequestIdentifiers(request: NextRequest): boolean {
+  return (Object.keys(PORTAL_IDENTIFIER_SOURCES) as Array<keyof CustomerPortalIdentifiers>).some((field) => {
+    const { headers, queries } = PORTAL_IDENTIFIER_SOURCES[field]
+    const normalize = field === 'email' ? normalizeEmail : clean
+    const values = [
+      ...headers.map((header) => request.headers.get(header)),
+      ...queries.flatMap((query) => request.nextUrl.searchParams.getAll(query)),
+    ].map(normalize).filter((value): value is string => value !== null)
+    return new Set(values).size > 1
+  })
+}
+
+function requestIdentifier(request: NextRequest, field: keyof CustomerPortalIdentifiers): string | null {
+  const { headers, queries } = PORTAL_IDENTIFIER_SOURCES[field]
+  return headerOrQuery(request, headers, queries)
+}
+
 export function portalIdentifiersFromRequest(request: NextRequest): CustomerPortalIdentifiers {
-  const externalCustomerId = headerOrQuery(
-    request,
-    ['x-gridex-external-customer-id', 'x-external-customer-id'],
-    ['external_customer_id', 'externalCustomerId', 'customer_external_id']
-  )
   return {
-    externalCustomerId,
-    customerNumber: headerOrQuery(request, ['x-gridex-customer-number', 'x-customer-number'], ['customer_number', 'customerNumber']),
-    email: normalizeEmail(headerOrQuery(request, ['x-gridex-customer-email', 'x-customer-email'], ['email', 'customer_email'])),
-    authUserId: headerOrQuery(request, ['x-gridex-auth-user-id', 'x-auth-user-id', 'x-gridex-web-auth-user-id'], ['auth_user_id', 'authUserId', 'web_auth_user_id', 'webAuthUserId']),
-    customerPortalUserId: headerOrQuery(request, ['x-gridex-customer-portal-user-id', 'x-customer-portal-user-id', 'x-gridex-portal-user-id'], ['customer_portal_user_id', 'customerPortalUserId', 'portal_user_id', 'portalUserId']),
+    externalCustomerId: requestIdentifier(request, 'externalCustomerId'),
+    customerNumber: requestIdentifier(request, 'customerNumber'),
+    email: normalizeEmail(requestIdentifier(request, 'email')),
+    authUserId: requestIdentifier(request, 'authUserId'),
+    customerPortalUserId: requestIdentifier(request, 'customerPortalUserId'),
   }
 }
 
@@ -106,23 +141,8 @@ function str(row: Record<string, unknown> | null | undefined, key: string): stri
 }
 
 function activeAccount(row: Record<string, unknown>): boolean {
-  if (row.is_active === false) return false
   const status = str(row, 'status')?.toLowerCase()
-  return !status || ['active', 'confirmed', 'enabled'].includes(status)
-}
-
-function hasStrongFirstLinkFactors(identifiers: CustomerPortalIdentifiers, resolved: ResolvedPortalCustomer): boolean {
-  const presentedUserId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
-  const linkedUserIds = new Set([
-    clean(resolved.auth_user_id),
-    clean(resolved.customer_portal_user_id),
-  ].filter((value): value is string => Boolean(value)))
-  const hasVerifiedExistingLink = Boolean(resolved.id && presentedUserId && linkedUserIds.has(presentedUserId))
-  if (hasVerifiedExistingLink) return true
-  const hasEmail = Boolean(identifiers.email && identifiers.email === resolved.email)
-  const hasCustomerNumber = Boolean(identifiers.customerNumber && identifiers.customerNumber === resolved.customer_number)
-  const hasExternalCustomerId = Boolean(identifiers.externalCustomerId && identifiers.externalCustomerId === resolved.external_customer_id)
-  return (hasExternalCustomerId && (hasEmail || hasCustomerNumber)) || (hasCustomerNumber && hasEmail)
+  return row.is_active === true && status === 'active'
 }
 
 async function fetchCustomer(companyId: string, customerId: string): Promise<Record<string, unknown> | null> {
@@ -292,7 +312,7 @@ async function selectPortalAccountsByUser(companyId: string, userId: string): Pr
       .limit(5) as { data: Record<string, unknown>[] | null; error: unknown | null }
 
     if (!account.error) {
-      const rows = asRows(account.data as Record<string, unknown>[] | null).filter((row) => row.customer_id && activeAccount(row))
+      const rows = asRows(account.data as Record<string, unknown>[] | null)
       if (rows.length > 0) return rows
       continue
     }
@@ -303,12 +323,27 @@ async function selectPortalAccountsByUser(companyId: string, userId: string): Pr
   return []
 }
 
-async function linkedByAccount(companyId: string, userId: string): Promise<ResolvedPortalCustomer | null> {
+function selectLinkedRow(rows: Record<string, unknown>[], identifiers: CustomerPortalIdentifiers): Record<string, unknown> | null {
+  if (rows.length === 1) return rows[0]
+  if (rows.length === 0 || (!identifiers.customerNumber && !identifiers.externalCustomerId)) return null
+  const matches = rows.filter((row) =>
+    (identifiers.customerNumber && str(row, 'customer_number') === identifiers.customerNumber) ||
+    (identifiers.externalCustomerId && str(row, 'external_customer_id') === identifiers.externalCustomerId))
+  return matches.length === 1 ? matches[0] : null
+}
+
+async function linkedByAccount(companyId: string, userId: string, identifiers: CustomerPortalIdentifiers): Promise<ResolvedPortalCustomer | null> {
   const rows = await selectPortalAccountsByUser(companyId, userId)
-  if (rows.length === 1) {
-    const row = rows[0]
+  // A revoked or ambiguous account must not fall through to a weaker identifier.
+  if (rows.length > 0) {
+    const row = selectLinkedRow(rows, identifiers)
+    if (!row || !activeAccount(row) || !row.customer_id) return null
+    const identities = await selectPortalIdentitiesByUser(companyId, userId)
+    const matchingIdentities = identities.filter((identity) => identity.customer_id === row.customer_id)
+    if (matchingIdentities.length > 1 || matchingIdentities.some((identity) => !activeIdentity(identity))) return null
+    const identityId = matchingIdentities.length === 1 ? str(matchingIdentities[0], 'id') : null
     return finishResolved(companyId, String(row.customer_id), {
-      id: str(row, 'id'),
+      id: identityId,
       externalCustomerId: str(row, 'external_customer_id'),
       customerNumber: str(row, 'customer_number'),
       email: normalizeEmail(row.email) ?? normalizeEmail(row.user_email),
@@ -321,9 +356,8 @@ async function linkedByAccount(companyId: string, userId: string): Promise<Resol
   }
 
   const identities = await selectPortalIdentitiesByUser(companyId, userId)
-  const active = identities.filter((row) => row.customer_id && activeIdentity(row))
-  if (active.length !== 1) return null
-  const row = active[0]
+  const row = selectLinkedRow(identities, identifiers)
+  if (!row || !row.customer_id || !activeIdentity(row)) return null
   return finishResolved(companyId, String(row.customer_id), {
     id: str(row, 'id'),
     externalCustomerId: str(row, 'external_customer_id'),
@@ -447,7 +481,7 @@ async function canonicalIdentityCandidate(
 
 function activeIdentity(row: Record<string, unknown>): boolean {
   const status = str(row, 'status')?.toLowerCase()
-  return !status || status === 'active'
+  return status === 'active'
 }
 
 async function selectPortalIdentities(companyId: string, field: 'external_customer_id' | 'email', value: string, limit: number): Promise<Record<string, unknown>[]> {
@@ -530,6 +564,9 @@ export async function ensureCustomerPortalUserLink(input: {
   let accountId: string | null = null
   const accountRows = await selectPortalAccountsByUser(input.client.company_id, userId)
   const existingAccount = accountRows.find((row) => str(row, 'customer_id') === input.customerId) ?? null
+  if (existingAccount && !activeAccount(existingAccount)) {
+    throw new Error('customer_portal_account_inactive')
+  }
 
   const accountPayload = {
     company_id: input.client.company_id,
@@ -558,13 +595,20 @@ export async function ensureCustomerPortalUserLink(input: {
 
   if (existingAccount?.id) {
     accountId = String(existingAccount.id)
-    const { error } = await supabaseService
+    // A repeat application can refresh contact data, but cannot reset an
+    // existing account's role, status, activation or verification evidence.
+    const { data, error } = await supabaseService
       .from('customer_portal_accounts')
-      .update(accountPayload)
+      .update({ customer_number: customerNumber, external_customer_id: externalCustomerId, email, user_email: email, updated_at: now })
       .eq('id', accountId)
       .eq('company_id', input.client.company_id)
       .eq('customer_id', input.customerId)
+      .eq('status', 'active')
+      .eq('is_active', true)
+      .select('id')
+      .maybeSingle()
     if (error) throw error
+    if (!data?.id) throw new Error('customer_portal_account_inactive')
   } else {
     const { data, error } = await supabaseService
       .from('customer_portal_accounts')
@@ -698,12 +742,22 @@ export async function resolvePortalCustomer(input: {
   request?: NextRequest
   identifiers?: Partial<CustomerPortalIdentifiers>
 }): Promise<PortalCustomerResolution> {
+  const presented = input.identifiers ?? {}
+  const fromRequest = input.request ? portalIdentifiersFromRequest(input.request) : null
   const identifiers: CustomerPortalIdentifiers = {
-    externalCustomerId: input.identifiers?.externalCustomerId ?? (input.request ? portalIdentifiersFromRequest(input.request).externalCustomerId : null),
-    customerNumber: input.identifiers?.customerNumber ?? (input.request ? portalIdentifiersFromRequest(input.request).customerNumber : null),
-    email: normalizeEmail(input.identifiers?.email ?? (input.request ? portalIdentifiersFromRequest(input.request).email : null)),
-    authUserId: input.identifiers?.authUserId ?? (input.request ? portalIdentifiersFromRequest(input.request).authUserId : null),
-    customerPortalUserId: input.identifiers?.customerPortalUserId ?? (input.request ? portalIdentifiersFromRequest(input.request).customerPortalUserId : null),
+    externalCustomerId: presented.externalCustomerId ?? fromRequest?.externalCustomerId ?? null,
+    customerNumber: presented.customerNumber ?? fromRequest?.customerNumber ?? null,
+    email: normalizeEmail(presented.email ?? fromRequest?.email),
+    authUserId: presented.authUserId ?? fromRequest?.authUserId ?? null,
+    customerPortalUserId: presented.customerPortalUserId ?? fromRequest?.customerPortalUserId ?? null,
+  }
+
+  if ((input.request && conflictingRequestIdentifiers(input.request)) || (fromRequest && (['externalCustomerId', 'customerNumber', 'email', 'authUserId', 'customerPortalUserId'] as const)
+    .some((field) => {
+      const explicit = field === 'email' ? normalizeEmail(presented.email) : clean(presented[field])
+      return Boolean(explicit && fromRequest[field] && explicit !== fromRequest[field])
+    }))) {
+    return { ok: false, status: 403, code: 'customer_identifier_mismatch', error: 'Kundidentifierarna stämmer inte överens.', identifiers }
   }
 
   if (!identifiers.externalCustomerId && !identifiers.customerNumber && !identifiers.email && !identifiers.authUserId && !identifiers.customerPortalUserId) {
@@ -712,8 +766,23 @@ export async function resolvePortalCustomer(input: {
 
   try {
     const userId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
+    if (identifiers.customerPortalUserId && identifiers.authUserId && identifiers.customerPortalUserId !== identifiers.authUserId) {
+      return { ok: false, status: 403, code: 'portal_identity_mismatch', error: 'Portalidentiteterna stämmer inte överens.', identifiers }
+    }
+    if (userId) {
+      // Client-presented profile attributes cannot create, renew, or elevate a
+      // portal relationship. Linking is a separate, reviewed operation.
+      const linked = await linkedByAccount(input.client.company_id, userId, identifiers)
+      if (!linked ||
+        (identifiers.externalCustomerId && identifiers.externalCustomerId !== linked.external_customer_id) ||
+        (identifiers.customerNumber && identifiers.customerNumber !== linked.customer_number) ||
+        (identifiers.email && identifiers.email !== linked.email)) {
+        return { ok: false, status: 403, code: 'customer_portal_link_required', error: 'En aktiv kundportalkoppling krävs.', identifiers }
+      }
+      return { ok: true, customer: linked }
+    }
+
     const resolved =
-      (userId ? await linkedByAccount(input.client.company_id, userId) : null) ??
       await canonicalIdentityCandidate(input.client.company_id, identifiers) ??
       (identifiers.externalCustomerId ? await linkedByExternal(input.client.company_id, identifiers.externalCustomerId) : null) ??
       (identifiers.customerNumber ? await customerByField(input.client.company_id, 'customer_number', identifiers.customerNumber, 'customers.customer_number') : null) ??
@@ -726,43 +795,12 @@ export async function resolvePortalCustomer(input: {
       return { ok: false, status: 404, code: 'customer_not_found', error: 'Kunden hittades inte eller är inte länkad till API-klienten.', identifiers }
     }
 
-    const mayLinkUser = userId ? hasStrongFirstLinkFactors(identifiers, resolved) : false
-    if (userId && !mayLinkUser) {
-      return {
-        ok: false,
-        status: 403,
-        code: 'customer_portal_link_requires_sync',
-        error: 'Första kundportalkopplingen kräver redan länkad användare eller minst två matchande kunduppgifter.',
-        identifiers,
-      }
-    }
-
-    const linked = userId
-      ? await ensureCustomerPortalUserLink({
-          client: input.client,
-          customerId: resolved.customer_id,
-          userId,
-          email: identifiers.email ?? resolved.email,
-          externalCustomerId: identifiers.externalCustomerId ?? resolved.external_customer_id,
-          customerNumber: identifiers.customerNumber ?? resolved.customer_number,
-          identityId: resolved.id,
-          matchMethod: resolved.match_method ?? 'gridex_web_auth_user_auto_link',
-        })
-      : null
-
-    if (linked) {
-      return {
-        ok: true,
-        customer: {
-          ...resolved,
-          id: linked.identityId ?? resolved.id,
-          auth_user_id: userId,
-          customer_portal_user_id: userId,
-          match_strength: 'strong',
-          match_method: linked.matchMethod,
-          provider: resolved.provider ?? 'customer_portal_accounts',
-        },
-      }
+    // The lookup order must not silently choose one customer when other
+    // client-presented identifiers name a different customer in the tenant.
+    if ((identifiers.externalCustomerId && identifiers.externalCustomerId !== resolved.external_customer_id) ||
+        (identifiers.customerNumber && identifiers.customerNumber !== resolved.customer_number) ||
+        (identifiers.email && identifiers.email !== resolved.email)) {
+      return { ok: false, status: 403, code: 'customer_identifier_mismatch', error: 'Kundidentifierarna stämmer inte överens.', identifiers }
     }
 
     return { ok: true, customer: resolved }

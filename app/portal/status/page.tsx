@@ -18,7 +18,7 @@ export default async function PortalStatusPage() {
   ]);
 
   const openCases = cases.filter(
-    (item) => !["resolved", "closed", "done"].includes(String(item.status)),
+    (item) => !["resolved", "closed"].includes(item.public_status),
   );
   const openRequests = infoRequests.filter(
     (item) =>
@@ -86,9 +86,6 @@ export default async function PortalStatusPage() {
                   Status {request.status ?? "—"} · Uppdaterad{" "}
                   {formatDate(request.updated_at)}
                 </div>
-                {request.notes ? (
-                  <p className="mt-2 text-sm text-slate-600">{request.notes}</p>
-                ) : null}
               </div>
             ))}
             {infoRequests.length === 0 ? (
@@ -110,11 +107,11 @@ export default async function PortalStatusPage() {
                 className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-700"
               >
                 <div className="font-semibold text-slate-950">
-                  {item.title ?? "Ärende"}
+                  {item.public_title}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
-                  Status {item.status ?? "—"} · Uppdaterat{" "}
-                  {formatDate(item.updated_at)}
+                  Status {item.public_status === "waiting_for_customer" ? "Väntar på dig" : "Öppet"} · Publicerat{" "}
+                  {formatDate(item.published_at)}
                 </div>
               </div>
             ))}

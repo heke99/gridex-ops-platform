@@ -38,12 +38,36 @@ const profileUpdateSchema = z.object({
   profile: profileSchema.optional(),
   facility_data: facilityDataSchema.optional(),
   metadata: z.record(z.unknown()).optional(),
+  expected_contact_revision: z.number().int().nonnegative().safe().optional(),
 }).strict().superRefine((value, context) => {
   if (!value.profile && !value.facility_data) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['profile'],
       message: 'profile eller facility_data krävs.',
+    })
+  }
+  if (value.profile && ('email' in value.profile || 'phone' in value.profile)) {
+    if (value.expected_contact_revision === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['expected_contact_revision'],
+        message: 'Sparad kontaktrevision krävs för kontaktändring.',
+      })
+    }
+    if (value.facility_data || value.metadata ||
+        Object.keys(value.profile).some((key) => key !== 'email' && key !== 'phone')) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['profile'],
+        message: 'Kontaktändring måste skickas separat från övriga profil- och anläggningsfält.',
+      })
+    }
+  } else if (value.expected_contact_revision !== undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['expected_contact_revision'],
+      message: 'Kontaktrevision får endast skickas med e-post eller telefon.',
     })
   }
 })

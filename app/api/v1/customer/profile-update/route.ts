@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
+import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   customerPortalJson,
@@ -10,6 +10,7 @@ import {
 import { applyCustomerSiteAddressCandidate } from '@/lib/customer-sites/addressIntake'
 import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import { createPortalCompletionCase } from '@/lib/customer-portal/db'
+import { changeCustomerContact, ContactCommandError } from '@/lib/customer-operations/contactCommand'
 import { missingIntegrationApiScopes } from '@/lib/integrations/apiAuth'
 import {
   parseCustomerProfileUpdateRequest,
@@ -63,8 +64,6 @@ async function updateCanonicalCustomerProfile(input: {
     last_name: input.profile.last_name,
     full_name: input.profile.full_name,
     company_name: input.profile.company_name,
-    email: input.profile.email?.toLowerCase(),
-    phone: input.profile.phone,
     invoice_email: input.profile.invoice_email?.toLowerCase(),
     preferred_language: input.profile.language_code,
     metadata: input.profile.timezone
@@ -127,6 +126,43 @@ export async function POST(request: NextRequest) {
         'api_scope_missing',
         403,
       )
+    }
+
+    if (payload.profile && ('email' in payload.profile || 'phone' in payload.profile)) {
+      const idempotencyKey = requireIdempotencyKey(request)
+      const subject = context.identity.customer_portal_user_id
+      if (!subject) {
+        throw new ApiInputError('Aktiv kundkoppling saknas.', 'customer_delegation_link_mismatch', 403)
+      }
+      const contact = await changeCustomerContact({
+        companyId: context.client.company_id,
+        customerId: context.identity.customer_id,
+        actor: { kind: 'api', clientId: context.client.id, subject },
+        expectedRevision: payload.expected_contact_revision!,
+        idempotencyKey,
+        changes: {
+          ...('email' in payload.profile ? { email: payload.profile.email } : {}),
+          ...('phone' in payload.profile ? { phone: payload.profile.phone } : {}),
+        },
+      })
+      await logCustomerPortalSuccess({
+        request,
+        client: context.client,
+        startedAt: context.startedAt,
+        resultCount: 1,
+        metadata: { idempotency_replay: contact.replayed },
+      })
+      return customerPortalJson({
+        data: {
+          completion_reference: contact.completionReference,
+          status: 'accepted',
+          created_at: contact.createdAt,
+          profile_updated: contact.changed,
+          contact_revision: contact.revision,
+          facility_updated: false,
+          address_result: null,
+        },
+      }, { status: 200 })
     }
 
     const result = await executeIdempotentPortalWrite<Record<string, unknown>>({
@@ -241,6 +277,9 @@ export async function POST(request: NextRequest) {
     })
     return customerPortalJson(result.body, { status: result.statusCode })
   } catch (error) {
-    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
+    const handledError = error instanceof ContactCommandError
+      ? new ApiInputError('Kontaktändringen kunde inte sparas.', error.code, error.status)
+      : error
+    return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error: handledError })
   }
 }

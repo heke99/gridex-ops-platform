@@ -1,8 +1,11 @@
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'node:crypto'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
+import { changeCustomerContact } from '@/lib/customer-operations/contactCommand'
 import type {
  CustomerAddressRow,
  CustomerContactRow,
@@ -53,8 +56,27 @@ async function getActorUserId(): Promise<string> {
  return user.id
 }
 
+async function authorizedCustomerCompany(actorUserId: string, customerId: string): Promise<string> {
+ const { data, error } = await supabaseService
+ .from('customers')
+ .select('id,company_id,status')
+ .eq('id', customerId)
+ .maybeSingle()
+
+ if (error) throw error
+ if (!data?.company_id) throw new Error('Forbidden')
+ const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+ if (guard.userId !== actorUserId || (!guard.isPlatformAdmin && guard.companyId !== data.company_id)) {
+ throw new Error('Forbidden')
+ }
+ const companyId = await assertUserCanOperateCompany(actorUserId, data.company_id)
+ if (data.status === 'archived') throw new Error('Archived customer')
+ return companyId
+}
+
 async function insertAuditLog(params: {
  actorUserId: string
+ companyId: string
  entityType: string
  entityId: string
  action: string
@@ -64,6 +86,7 @@ async function insertAuditLog(params: {
 }) {
  const { error } = await supabaseService.from('audit_logs').insert({
  actor_user_id: params.actorUserId,
+ company_id: params.companyId,
  entity_type: params.entityType,
  entity_id: params.entityId,
  action: params.action,
@@ -75,7 +98,7 @@ async function insertAuditLog(params: {
  if (error) throw error
 }
 
-async function saveCustomerContactAction(formData: FormData) {
+export async function saveCustomerContactAction(formData: FormData) {
  'use server'
 
  const actorUserId = await getActorUserId()
@@ -89,6 +112,8 @@ async function saveCustomerContactAction(formData: FormData) {
  const phone = normalizeNullableString(getString(formData, 'phone'))
  const titleInput = normalizeNullableString(getString(formData, 'title'))
  const isPrimary = getCheckbox(formData, 'is_primary')
+ const expectedRevision = Number(getString(formData, 'expected_revision'))
+ const idempotencyKey = getString(formData, 'idempotency_key')
 
  if (!customerId) {
  throw new Error('customer_id saknas')
@@ -102,8 +127,11 @@ async function saveCustomerContactAction(formData: FormData) {
  throw new Error('Företag eller förening kräver namn på primär kontaktperson')
  }
 
- const type = isPrimary ? 'primary' : typeInput
- const title = customerType === 'private' && isPrimary ? titleInput : titleInput
+ const companyId = await authorizedCustomerCompany(actorUserId, customerId)
+
+ if (!isPrimary && !['billing', 'operations', 'technical', 'other'].includes(typeInput)) {
+   throw new Error('Välj en giltig typ för sekundär kontakt')
+ }
 
  const before = contactId
  ? await supabaseService
@@ -111,81 +139,34 @@ async function saveCustomerContactAction(formData: FormData) {
  .select('*')
  .eq('id', contactId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .maybeSingle()
  : { data: null, error: null }
 
  if (before.error) throw before.error
-
- if (isPrimary) {
- const query = supabaseService
- .from('customer_contacts')
- .update({ is_primary: false })
- .eq('customer_id', customerId)
-
- const { error: clearError } = contactId
- ? await query.neq('id', contactId)
- : await query
-
- if (clearError) throw clearError
+ if (contactId && !before.data) throw new Error('Forbidden')
+ if (!isPrimary && before.data?.is_primary) {
+   throw new Error('Primär kontakt kan endast ändras med kontaktkommandot.')
  }
 
- const payload = {
- customer_id: customerId,
- type,
- name,
- email,
- phone,
- title,
- is_primary: isPrimary,
- }
-
- const { data, error } = contactId
- ? await supabaseService
- .from('customer_contacts')
- .update(payload)
- .eq('id', contactId)
- .eq('customer_id', customerId)
- .select('*')
- .single()
- : await supabaseService
- .from('customer_contacts')
- .insert(payload)
- .select('*')
- .single()
-
- if (error) throw error
-
- if (isPrimary) {
- const { error: customerSyncError } = await supabaseService
- .from('customers')
- .update({
- email,
- phone,
- updated_at: new Date().toISOString(),
- })
- .eq('id', customerId)
-
- if (customerSyncError) throw customerSyncError
- }
-
- await insertAuditLog({
- actorUserId,
- entityType: 'customer_contact',
- entityId: data.id,
- action: contactId ? 'customer_contact_updated' : 'customer_contact_created',
- oldValues: before.data,
- newValues: data,
- metadata: {
- customerId,
- customerType,
- isPrimary,
- },
+ await changeCustomerContact({
+   companyId,
+   customerId,
+   contactId: contactId || null,
+   ...(isPrimary ? {} : {
+     contactTarget: 'secondary' as const,
+     contactType: typeInput as 'billing' | 'operations' | 'technical' | 'other',
+   }),
+   actor: { kind: 'ops', userId: actorUserId, reason: 'OPS customer contact form' },
+   expectedRevision,
+   idempotencyKey,
+   changes: { name, title: titleInput, email, phone },
  })
 
  revalidatePath(`/admin/customers/${customerId}`)
 }
 
-async function saveCustomerAddressAction(formData: FormData) {
+export async function saveCustomerAddressAction(formData: FormData) {
  'use server'
 
  const actorUserId = await getActorUserId()
@@ -216,18 +197,23 @@ async function saveCustomerAddressAction(formData: FormData) {
  throw new Error('Anläggningsadress ändras under anläggningsuppgifter.')
  }
 
+ const companyId = await authorizedCustomerCompany(actorUserId, customerId)
+
  const before = addressId
  ? await supabaseService
  .from('customer_addresses')
  .select('*')
  .eq('id', addressId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .maybeSingle()
  : { data: null, error: null }
 
  if (before.error) throw before.error
+ if (addressId && !before.data) throw new Error('Forbidden')
 
  const payload = {
+ company_id: companyId,
  customer_id: customerId,
  type,
  street_1: street1,
@@ -247,6 +233,7 @@ async function saveCustomerAddressAction(formData: FormData) {
  .update(payload)
  .eq('id', addressId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .select('*')
  .single()
  : await supabaseService
@@ -259,6 +246,7 @@ async function saveCustomerAddressAction(formData: FormData) {
 
  await insertAuditLog({
  actorUserId,
+ companyId,
  entityType: 'customer_address',
  entityId: data.id,
  action: addressId ? 'customer_address_updated' : 'customer_address_created',
@@ -311,10 +299,12 @@ function defaultAddressType(customerType: CustomerType): string {
 function ContactForm({
  customerId,
  customerType,
+ contactRevision,
  contact,
 }: {
  customerId: string
  customerType: CustomerType
+ contactRevision: number
  contact?: CustomerContactRow
 }) {
  const isPrimaryContact = contact?.is_primary ?? !contact
@@ -327,6 +317,8 @@ function ContactForm({
  <input type="hidden" name="customer_id" value={customerId} />
  <input type="hidden" name="customer_type" value={customerType} />
  <input type="hidden" name="id" value={contact?.id ?? ''} />
+ <input type="hidden" name="expected_revision" value={contactRevision} />
+ <input type="hidden" name="idempotency_key" value={randomUUID()} />
 
  <div className="grid gap-4 md:grid-cols-2">
  <label className="grid gap-1 text-sm">
@@ -551,12 +543,16 @@ export default function CustomerContactsAddressesCard({
  contacts,
  addresses,
  sites,
+ contactRevision,
+ canEdit,
 }: {
  customerId: string
  customerType: CustomerType
  contacts: CustomerContactRow[]
  addresses: CustomerAddressRow[]
  sites: CustomerSiteRow[]
+ contactRevision: number
+ canEdit: boolean
 }) {
  const contactAddresses = addresses.filter((address) => address.type !== 'facility')
  return (
@@ -569,6 +565,7 @@ export default function CustomerContactsAddressesCard({
  <p className="mt-1 text-sm text-slate-700 ">
  {contactIntro(customerType)}
  </p>
+ <p className="mt-1 text-xs text-slate-600">Sparad kontaktrevision: {contactRevision}</p>
  </div>
 
  <div className="space-y-4 p-6">
@@ -608,7 +605,7 @@ export default function CustomerContactsAddressesCard({
  <div>Skapad: {formatDateTime(contact.created_at)}</div>
  </div>
 
- <details className="mt-4">
+ {canEdit ? <details className="mt-4">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Redigera kontakt
  </summary>
@@ -616,22 +613,23 @@ export default function CustomerContactsAddressesCard({
  <ContactForm
  customerId={customerId}
  customerType={customerType}
+ contactRevision={contactRevision}
  contact={contact}
  />
  </div>
- </details>
+ </details> : null}
  </article>
  ))
  )}
 
- <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+ {canEdit ? <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Lägg till ny kontakt
  </summary>
  <div className="mt-4">
- <ContactForm customerId={customerId} customerType={customerType} />
+ <ContactForm customerId={customerId} customerType={customerType} contactRevision={contactRevision} />
  </div>
- </details>
+ </details> : null}
  </div>
  </div>
 
@@ -698,7 +696,7 @@ export default function CustomerContactsAddressesCard({
  <div>Inflyttad: {formatDateTime(address.moved_in_at)}</div>
  </div>
 
- <details className="mt-4">
+ {canEdit ? <details className="mt-4">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Redigera adress
  </summary>
@@ -709,19 +707,19 @@ export default function CustomerContactsAddressesCard({
  address={address}
  />
  </div>
- </details>
+ </details> : null}
  </article>
  ))
  )}
 
- <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
+ {canEdit ? <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4 ">
  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 ">
  Lägg till ny adress
  </summary>
  <div className="mt-4">
  <AddressForm customerId={customerId} customerType={customerType} />
  </div>
- </details>
+ </details> : null}
  </div>
  </div>
  </section>

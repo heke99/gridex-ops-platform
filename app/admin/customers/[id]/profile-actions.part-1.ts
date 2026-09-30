@@ -223,8 +223,12 @@ export async function saveCustomerProfileImpl(
   const orgNumberInput = normalizeOptionalString(
     getNullableString(formData, "org_number"),
   );
-  const email = normalizeOptionalString(getNullableString(formData, "email"));
-  const phone = normalizeOptionalString(getNullableString(formData, "phone"));
+  if (formData.has("email") || formData.has("phone")) {
+    throw new CustomerActionError(
+      "contact_command_required",
+      "E-post och telefon ändras under Kontakter med sparad kontaktrevision.",
+    );
+  }
   const apartmentNumber = normalizeOptionalString(
     getNullableString(formData, "apartment_number"),
   );
@@ -294,8 +298,6 @@ export async function saveCustomerProfileImpl(
       company_name: companyName,
       personal_number: personalNumber,
       org_number: orgNumber,
-      email,
-      phone,
       apartment_number: apartmentNumber,
       updated_at: new Date().toISOString(),
     })
@@ -305,55 +307,6 @@ export async function saveCustomerProfileImpl(
     .single();
 
   if (updateError) throw updateError;
-
-  const { data: existingPrimaryContact, error: contactLookupError } =
-    await supabaseService
-      .from("customer_contacts")
-      .select("*")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .eq("is_primary", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-  if (contactLookupError) throw contactLookupError;
-
-  const primaryContactName =
-    customerType === "private"
-      ? [firstName, lastName].filter(Boolean).join(" ").trim() || null
-      : [firstName, lastName].filter(Boolean).join(" ").trim() ||
-        companyName ||
-        null;
-
-  if (existingPrimaryContact) {
-    const { error: contactUpdateError } = await supabaseService
-      .from("customer_contacts")
-      .update({
-        name: primaryContactName,
-        email,
-        phone,
-      })
-      .eq("id", existingPrimaryContact.id)
-      .eq("company_id", companyId);
-
-    if (contactUpdateError) throw contactUpdateError;
-  } else if (primaryContactName || email || phone) {
-    const { error: contactInsertError } = await supabaseService
-      .from("customer_contacts")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        type: "primary",
-        name: primaryContactName,
-        email,
-        phone,
-        title: null,
-        is_primary: true,
-      });
-
-    if (contactInsertError) throw contactInsertError;
-  }
 
   await insertAuditLog({
     actorUserId,
@@ -365,7 +318,7 @@ export async function saveCustomerProfileImpl(
     newValues: updated,
     metadata: {
       companyId,
-      syncedPrimaryContact: true,
+      contactFields: "managed_by_atomic_contact_command",
     },
   });
 

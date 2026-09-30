@@ -16,6 +16,28 @@ beforeEach(()=>{vi.resetAllMocks();f.guard.mockResolvedValue({userId:input.actor
 it('commits attempt before storage and returns only non-authoritative witnessed identity',async()=>{f.read.mockImplementation(async()=>{expect(f.rpc.mock.calls.map(c=>c[0])).toEqual(['gridex_begin_document_reference_v1']);return {status:'verified_at_observation',startedAt:'2026-01-01T00:00:01Z',completedAt:'2026-01-01T00:00:01.1Z',byteCount:3,sha256:digest}});expect(await captureDocumentReference(input)).toEqual({status:'recorded',kind:'context_document_reference_v1',attemptId,outcomeId,witnessId,observation:'verified_at_observation',coverage:'incomplete',authority:'none'})})
 it('failed attempt performs no byte read and explicitly reports incomplete',async()=>{f.rpc.mockReturnValue({abortSignal:async()=>({error:{message:'failed'},data:null})});expect(await captureDocumentReference(input)).toMatchObject({status:'unconfirmed',coverage:'incomplete'});expect(f.read).not.toHaveBeenCalled()})
 it('loss appends unavailable outcome to durable attempt',async()=>{f.read.mockResolvedValue({status:'unavailable',reason:'storage_error',startedAt:'2026-01-01T00:00:01Z',completedAt:'2026-01-01T00:00:02Z',byteCount:0});await captureDocumentReference(input);expect(f.rpc.mock.calls[1][1].p_observation.status).toBe('unavailable')})
+it('records a same-millisecond Storage observation despite PostgreSQL microseconds',async()=>{
+ const precise={...attempt,recordedAt:'2026-01-01T00:00:01.000088Z'}
+ f.read.mockResolvedValue({status:'verified_at_observation',startedAt:'2026-01-01T00:00:01.000Z',completedAt:'2026-01-01T00:00:01.006Z',byteCount:3,sha256:digest})
+ f.rpc.mockImplementation(name=>({abortSignal:async()=>{
+  if(name.includes('begin'))return {error:null,data:precise}
+  if(name.includes('observe')){
+   const observation=f.rpc.mock.calls.at(-1)?.[1]?.p_observation
+   return observation.startedAt!==precise.recordedAt
+    ?{error:{message:'invalid_document_observation_time'},data:null}
+    :{error:null,data:{attemptId,outcomeId,factsHash:digest,status:'verified_at_observation'}}
+  }
+  return {error:null,data:{attemptId,outcomeId,witnessId,factsHash:digest,availableAt:'2026-01-01T00:00:02Z'}}
+ }}))
+ expect(await captureDocumentReference(input)).toMatchObject({status:'recorded',observation:'verified_at_observation'})
+ expect(f.rpc.mock.calls[1][1].p_observation).toMatchObject({startedAt:precise.recordedAt,completedAt:'2026-01-01T00:00:01.006Z'})
+})
+it('does not shift a genuinely early observation into the accepted window',async()=>{
+ f.rpc.mockImplementation(name=>({abortSignal:async()=>name.includes('begin')?{error:null,data:{...attempt,recordedAt:'2026-01-01T00:00:01.001088Z'}}:{error:{message:'invalid_document_observation_time'},data:null}}))
+ f.read.mockResolvedValue({status:'verified_at_observation',startedAt:'2026-01-01T00:00:01.000Z',completedAt:'2026-01-01T00:00:01.006Z',byteCount:3,sha256:digest})
+ expect(await captureDocumentReference(input)).toMatchObject({status:'unconfirmed',attemptId})
+ expect(f.rpc.mock.calls[1][1].p_observation.startedAt).toBe('2026-01-01T00:00:01.000Z')
+})
 it('failed witness cannot return recorded',async()=>{f.rpc.mockImplementation(name=>({abortSignal:async()=>({error:name.includes('witness')?{}:null,data:name.includes('begin')?attempt:{attemptId,outcomeId,factsHash:digest,status:'verified_at_observation'}})}));expect(await captureDocumentReference(input)).toMatchObject({status:'unconfirmed',attemptId,coverage:'incomplete'})})
 it('action derives actor and checks exact allOf before capture',async()=>{const form=new FormData();for(const [key,value]of Object.entries(input))if(key!=='actorUserId')form.set(key,value);form.set('recordForReview','on');await captureDocumentReferenceAction(form);expect(f.guard).toHaveBeenCalledWith(input.companyId,{allOf:['communication.send','documents.read','customers.read']});expect(f.operational).toHaveBeenCalledWith(input.companyId);expect(f.rpc.mock.calls[0][1].p_actor_user_id).toBe(input.actorUserId)})
 it('action rejects caller actor, duplicate fields and missing confirmation before guard',async()=>{const form=new FormData();for(const[key,value]of Object.entries(input))form.set(key,value);expect(await captureDocumentReferenceAction(form)).toMatchObject({status:'unavailable'});expect(f.guard).not.toHaveBeenCalled()})

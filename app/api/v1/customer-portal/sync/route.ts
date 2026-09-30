@@ -10,6 +10,7 @@ import {
   requireIdempotencyKey,
 } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
@@ -60,6 +61,13 @@ type PortalIdentityDbStatus = 'active' | 'pending_review' | 'rejected' | 'disabl
 type PortalIdentityApiStatus = 'linked' | 'pending_review' | 'rejected'
 type PortalIdentityMatchStrength = 'strong' | 'weak' | 'manual'
 
+type PortalScopedQuery<T> = {
+  eq: (field: string, value: string) => PortalScopedQuery<T>
+  or: (filter: string) => PortalScopedQuery<T>
+  limit: (count: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+  maybeSingle: () => PromiseLike<{ data: T | null; error: unknown }>
+}
+
 function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
@@ -78,6 +86,36 @@ function serializePortalSyncError(error: unknown): Record<string, unknown> {
     code: record.code,
     details: record.details,
     hint: record.hint,
+  }
+}
+
+function revokedPortalIdentity(error: unknown): boolean {
+  const dbError = error as { code?: string; message?: string } | null
+  return dbError?.code === '23514' &&
+    dbError.message === 'customer_portal_identity_revoked'
+}
+
+async function assertPortalSubjectNotRevoked(companyId: string, externalCustomerId: string, authUserId: string, requireActiveIdentity = false) {
+  const portal = tenantDb(companyId)
+  const [identity, account] = await Promise.all([
+    (portal.from('customer_portal_identities').select('status') as PortalScopedQuery<{ status: string }>)
+      .eq('provider', 'gridex_website')
+      .eq('external_customer_id', externalCustomerId)
+      .eq('auth_user_id', authUserId)
+      .maybeSingle(),
+    (portal.from('customer_portal_accounts').select('status,is_active') as PortalScopedQuery<{ status: string; is_active: boolean }>)
+      .or(`portal_user_id.eq.${authUserId},user_id.eq.${authUserId}`)
+      .limit(50),
+  ])
+  if (identity.error) throw identity.error
+  if (account.error) throw account.error
+  if ((account.data ?? []).length === 50) {
+    throw new ApiInputError('Portalkopplingen kräver manuell kontroll.', 'portal_account_ambiguous', 409)
+  }
+  if (identity.data?.status === 'disabled' ||
+      (requireActiveIdentity && identity.data?.status !== 'active') ||
+      (account.data ?? []).some((row) => row.status !== 'active' || row.is_active !== true)) {
+    throw new ApiInputError('Portalåtkomsten har spärrats.', 'portal_identity_revoked', 409)
   }
 }
 
@@ -218,7 +256,12 @@ async function upsertIdentity(input: {
     .select('id,status,customer_id,match_strength,match_method')
     .single()
 
-  if (error) throw error
+  if (error) {
+    if (revokedPortalIdentity(error)) {
+      throw new ApiInputError('Portalidentiteten är spärrad.', 'portal_identity_revoked', 409)
+    }
+    throw error
+  }
   return data
 }
 
@@ -275,13 +318,16 @@ export async function POST(request: NextRequest) {
       idempotencyKey,
       payload: body,
     })
-    idempotencyRecordId = claim.recordId
     if (claim.replay) {
+      const granted = (claim.responseBody as { data?: { access_granted?: boolean } } | null)?.data?.access_granted === true
+      await assertPortalSubjectNotRevoked(auth.context.companyId, externalCustomerId, body.auth_user_id, granted)
       return customerPortalJson(claim.responseBody, {
         status: claim.statusCode ?? 200,
         headers: { 'Idempotency-Replayed': 'true' },
       })
     }
+    idempotencyRecordId = claim.recordId
+    await assertPortalSubjectNotRevoked(auth.context.companyId, externalCustomerId, body.auth_user_id)
 
     const identityFactors = [email, customerNumber, identifier, facilityId].filter(Boolean).length
     if (identityFactors < 2) {
