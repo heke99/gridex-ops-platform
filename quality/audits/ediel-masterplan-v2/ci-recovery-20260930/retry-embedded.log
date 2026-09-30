@@ -1,0 +1,3 @@
+(node:5) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Embedded PostgreSQL: 22 retry SQL checks and 16 V1 upgrade/replay + exact V2 checks PASS. Native Supabase replay remains required.

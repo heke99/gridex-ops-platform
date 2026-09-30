@@ -1,0 +1,1042 @@
+From 32065e595e7d912456899332142aa2bf1ac61b18 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 30 Sep 2026 19:43:39 +0200
+Subject: [PATCH] test(ediel): repair source loaders and committed V2 retry
+ fixtures
+
+---
+ ...-utilts-committed-retry-embedded-check.mjs | 206 ++++++++++++++++++
+ ...diel-utilts-committed-retry-regression.sql | 112 ++++++++--
+ scripts/helpers/ediel-source-manifest-vm.cjs  |  67 ++++++
+ scripts/test-ediel-component-escaping.cjs     |   8 +-
+ scripts/test-ediel-guide-governance.cjs       |   8 +-
+ ...est-ediel-prodat-characteristic-fields.cjs |   8 +-
+ scripts/test-ediel-prodat-d-z04-reference.cjs |   8 +-
+ scripts/test-ediel-prodat-document-fields.cjs |   8 +-
+ ...t-ediel-prodat-free-text-first-message.cjs |   8 +-
+ scripts/test-ediel-prodat-free-text.cjs       |   8 +-
+ scripts/test-ediel-prodat-party-fields.cjs    |   8 +-
+ .../test-ediel-prodat-reference-fields.cjs    |   8 +-
+ scripts/test-ediel-prodat-source-locators.cjs |   8 +-
+ .../test-ediel-rule-pack-source-identity.cjs  |   8 +-
+ scripts/test-ediel-unb-ack-request.cjs        |  83 ++++++-
+ 15 files changed, 511 insertions(+), 45 deletions(-)
+ create mode 100644 scripts/ediel-utilts-committed-retry-embedded-check.mjs
+ create mode 100644 scripts/helpers/ediel-source-manifest-vm.cjs
+
+diff --git a/scripts/ediel-utilts-committed-retry-embedded-check.mjs b/scripts/ediel-utilts-committed-retry-embedded-check.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..5b9746af79a65763eb1f42522863bd49b10b35ff
+--- /dev/null
++++ b/scripts/ediel-utilts-committed-retry-embedded-check.mjs
+@@ -0,0 +1,206 @@
++// Focused embedded PostgreSQL execution, not native Supabase migration replay,
++// transport, generated-type, or canonical-schema evidence.
++// EDIEL_PGLITE_MODULE must point to pinned @electric-sql/pglite@0.3.14 tooling.
++import assert from 'node:assert/strict'
++import fs from 'node:fs'
++import { fileURLToPath, pathToFileURL } from 'node:url'
++
++const modulePath = process.env.EDIEL_PGLITE_MODULE
++assert.ok(modulePath, 'EDIEL_PGLITE_MODULE required')
++const modulePackage = JSON.parse(fs.readFileSync(new URL('../package.json', pathToFileURL(modulePath)), 'utf8'))
++assert.equal(modulePackage.name, '@electric-sql/pglite')
++assert.equal(modulePackage.version, '0.3.14', 'pinned PGlite 0.3.14 required')
++const { PGlite } = await import(pathToFileURL(modulePath).href)
++const root = fileURLToPath(new URL('..', import.meta.url))
++const read = path => fs.readFileSync(`${root}/${path}`, 'utf8')
++const migration = name => read(`supabase/migrations/${name}.sql`)
++function section(sql, start, end) {
++  const from = sql.indexOf(start)
++  const to = sql.indexOf(end, from + start.length)
++  assert.ok(from >= 0 && to > from, `SQL section unavailable: ${start}`)
++  return sql.slice(from, to)
++}
++const db = new PGlite()
++let checks = 0
++try {
++  await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
++    CREATE SCHEMA extensions;
++    -- PGlite lacks pgcrypto. PostgreSQL's built-in SHA256 supplies the exact
++    -- byte digest used by the unchanged SQL owners, for this check only.
++    CREATE FUNCTION extensions.digest(value bytea, algorithm text) RETURNS bytea
++    LANGUAGE sql IMMUTABLE STRICT AS $$ SELECT CASE WHEN algorithm='sha256' THEN sha256(value) END $$;
++    CREATE TABLE public.companies(id uuid PRIMARY KEY, name text NOT NULL, status text NOT NULL);`)
++  const schema = read('supabase/schema.sql')
++  const tables = ['ediel_messages', 'ediel_ack_transaction_results', 'meter_reading_series',
++    'meter_reading_values', 'ediel_message_profiles', 'ediel_rule_packs']
++  for (const table of tables) {
++    await db.exec(section(schema, `CREATE TABLE public.${table} (`, '\n);') + '\n);')
++    // Load the actual primary/unique constraints needed by the bound owners.
++    const constraints = schema.matchAll(new RegExp(`ALTER TABLE ONLY public\\.${table}\\n    ADD CONSTRAINT [^;]+;`, 'g'))
++    for (const [sql] of constraints) if (/ PRIMARY KEY | UNIQUE /.test(sql)) await db.exec(sql)
++  }
++  const rowGuards = ['gridex_guard_meter_reading_series_tenant', 'gridex_guard_meter_reading_value_tenant',
++    'gridex_guard_immutable_meter_reading_series', 'gridex_guard_immutable_meter_reading_value']
++  for (const name of rowGuards) await db.exec(section(schema, `CREATE FUNCTION public.${name}()`, '\n--'))
++  for (const [sql] of schema.matchAll(/CREATE TRIGGER [^;]+ ON public\.meter_reading_(?:series|values) [^;]+;/g)) await db.exec(sql)
++  await db.exec(`GRANT SELECT ON public.ediel_messages, public.ediel_ack_transaction_results,
++    public.meter_reading_series TO service_role;
++    INSERT INTO public.ediel_rule_packs(id,market,family,guide_version,guide_revision,
++      unh_association_code,valid_from,status,source_document,source_hash)
++    VALUES('00000000-0000-4000-8000-00000000f911','electricity','UTILTS','25-A-4','1',
++      'E5SE5A','2026-01-01','active','embedded-reservation-control',repeat('a',64));
++    INSERT INTO public.ediel_message_profiles(id,rule_pack_id,message_code,direction,
++      business_process,profile_key,profile)
++    VALUES('00000000-0000-4000-8000-00000000f912','00000000-0000-4000-8000-00000000f911',
++      'E66','inbound','embedded-reservation-control','embedded-reservation-control','{}');`)
++
++  // Execute the real binding, source guard, validators and insertion owner.
++  // Downstream business sinks are outside this narrow reservation check.
++  await db.exec(migration('20260923135706_ediel_utilts_consumption_binding_v1'))
++  await db.exec(section(migration('20260923150649_ediel_utilts_bound_sink_authority'),
++    'CREATE FUNCTION gridex_utilts_binding.validate_contract_base_v1', '-- Authoritative lookup'))
++  await db.exec(section(migration('20260928173000_utilts_unowned_regulating_object_sink_fence'),
++    'CREATE FUNCTION gridex_utilts_binding.unowned_regulating_object_v1', '-- Forward replacement'))
++  await db.exec(migration('20260928181500_utilts_held_retry_stable_reservation'))
++  await db.exec(migration('20260928201500_utilts_late_175_physical_ide_fence'))
++  await db.exec(migration('20260928215000_utilts_late_172_physical_ide_fence'))
++  await db.exec(migration('20260929234037_utilts_s02_required_physical_scope'))
++
++  const company = '00000000-0000-4000-8000-00000000f931'
++  const source = '00000000-0000-4000-8000-00000000f932'
++  const heldSource = '00000000-0000-4000-8000-00000000f933'
++  const raw = "UNB+UNOC:3+91100:ZZ+21660:ZZ+261001:0000+LEGACY'UNH+1+UTILTS:D:02B:UN:E5SE5A'BGM+E66+LEGACY+9'NAD+MS+91100:SVK:260'NAD+MR+21660:SVK:260'IDE+24+OLD'LOC+172+POINT::9'MEA+AAZ++KWH'SEQ++1'QTY+136:9007199254740993'UNT+9+1'UNZ+1+LEGACY'"
++  await db.query("INSERT INTO public.companies VALUES($1,'Embedded historical V1 control','active')", [company])
++  for (const id of [source, heldSource]) await db.query(`INSERT INTO public.ediel_messages
++    (id,company_id,environment,direction,message_family,message_code,raw_payload)
++    VALUES($1,$2,'test','inbound','UTILTS','E66',$3)`, [id, company, raw])
++  const skip = { capability: 'skip', reason: 'no_attribution', customerId: null, siteId: null,
++    customerSiteId: null, meteringPointId: null, gridOwnerId: null, sourceRequestId: null }
++  const contract = { version: 1, projectionVersion: 'utilts-consumption-v1', attributionVersion: 'tenant-match-v1',
++    companyId: company, environment: 'test', messageCode: 'E66', transactionId: 'OLD', seriesKind: 'actual',
++    profileKey: 'embedded-reservation-control', profileVersion: null, rulePackHash: null,
++    guideRevision: '25-A-4', sourceType: 'ediel_utilts',
++    interpretation: { localPeriodStart: null, localPeriodEnd: null, localRegistration: null,
++      resolutionValue: null, resolutionFormat: null, timezoneRaw: null, timezoneFormat: null,
++      offsetMinutes: null, timestampPolicy: 'explicit-offset-v1' },
++    observations: [{ ordinal: 0, sourceOrdinal: 0, quantity: 9007199254740992,
++      periodStart: '2026-10-01T00:00:00.000Z', periodEnd: '2026-10-01T00:15:00.000Z',
++      readAt: '2026-10-01T00:15:00.000Z', resolution: null, unit: 'kWh', quality: null,
++      readingType: 'consumption', direction: 'consumption', registerCode: null, productCode: null,
++      sourceLineReference: null, externalPoint: 'POINT', gridArea: null }],
++    metering: skip, billing: { ...skip, requestScope: null, periodStart: null, periodEnd: null,
++      month: null, year: null, status: 'received', sourceSystem: 'ediel_utilts', currency: 'SEK' },
++    billingContributionOrdinals: [] }
++  const oldItem = { transactionId: 'OLD', disposition: 'accepted', responseType: 'positive_aperak',
++    issueCodes: [], seriesKind: 'actual', externalMeteringPointId: 'POINT', unit: 'KWH',
++    quantities: [{ qualifier: '136', value: 9007199254740992 }], consumptionContract: contract }
++  const newItem = { ...oldItem, quantities: [{ qualifier: '136', value: '9007199254740993' }],
++    consumptionContract: { ...contract, version: 2, projectionVersion: 'utilts-consumption-v2',
++      observations: [{ ...contract.observations[0], quantity: '9007199254740993' }] } }
++  const heldItem = { transactionId: 'OLD', disposition: 'internal_review', responseType: 'none',
++    issueCodes: ['UTILTS_STRUCTURE_UNAVAILABLE'], seriesKind: 'actual', quantities: [],
++    consumptionContract: { ...contract, observations: [] } }
++  async function persist(id, item, payload = raw, tenant = company, environment = 'test') {
++    await db.exec('SET ROLE service_role')
++    try {
++      return (await db.query(`SELECT public.gridex_persist_utilts_consumption_v1(
++        $1,$2,$3,'E66',$4,$5::jsonb) result`, [tenant, environment, id, payload, JSON.stringify([item])])).rows[0].result
++    } finally { await db.exec('RESET ROLE') }
++  }
++  async function snapshot(id) {
++    return (await db.query(`SELECT jsonb_build_object(
++      'source',(SELECT to_jsonb(s) FROM public.ediel_messages s WHERE id=$1),
++      'receipt',(SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=$1),
++      'acks',(SELECT jsonb_agg(to_jsonb(a) ORDER BY source_transaction_id) FROM public.ediel_ack_transaction_results a WHERE source_message_id=$1),
++      'series',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.meter_reading_series s WHERE source_ediel_message_id=$1),
++      'values',(SELECT jsonb_agg(to_jsonb(v) ORDER BY v.id) FROM public.meter_reading_values v JOIN public.meter_reading_series s ON s.id=v.series_id WHERE s.source_ediel_message_id=$1),
++      'contracts',(SELECT jsonb_agg(to_jsonb(c) ORDER BY series_id) FROM gridex_utilts_binding.contracts c WHERE source_message_id=$1)) snapshot`, [id])).rows[0].snapshot
++  }
++  async function refusal(action, message) {
++    await assert.rejects(action, error => error.message === message)
++    checks++
++  }
++  const original = await persist(source, oldItem)
++  assert.equal(original[0].contractVersion, 1)
++  // As in the retained SQL regression, the source row stands in for the
++  // synthetic ACK FK. This tests frozen finalization, not an ACK transport.
++  await db.query(`UPDATE public.ediel_ack_transaction_results SET final_response_type='positive_aperak',
++    response_message_id=$1,finalized_at=clock_timestamp() WHERE source_message_id=$1`, [source])
++  await persist(heldSource, heldItem)
++  const before = await snapshot(source)
++  const beforeHeld = await snapshot(heldSource)
++  // A genuine V1 receipt/series/contract is created by the actual historical
++  // public command before applying the forward migration. No direct seed or
++  // post-upgrade rewrite can stand in for immutable historical replay.
++  await db.exec(migration('20260930145350_ediel_utilts_exact_decimal_contract_v2'))
++  await db.exec(migration('20260930161718_ediel_utilts_e30_energy_source_and_null_quality'))
++  assert.deepEqual(await snapshot(source), before)
++  checks++
++  for (const item of [oldItem, newItem]) {
++    const replay = await persist(source, item)
++    assert.equal(replay[0].idempotentReplay, true)
++    assert.equal(replay[0].contractVersion, 1)
++    assert.deepEqual(replay[0].consumptionContract, contract)
++    assert.deepEqual(replay[0].sourceBinding, original[0].sourceBinding)
++    assert.deepEqual(await snapshot(source), before)
++    checks++
++  }
++  const stored = (await db.query('SELECT gridex_utilts_binding.stored_contract_v1($1,$2,\'OLD\') contract', [company, source])).rows[0].contract
++  assert.deepEqual(stored, contract)
++  checks++
++  await refusal(() => persist(source, { ...newItem, quantities: [{ qualifier: '136', value: '9007199254740992' }] }), 'utilts_consumption_decimal_source_conflict')
++  await refusal(() => persist(source, oldItem, raw.replace('LEGACY+9', 'CHANGED+9')), 'utilts_source_binding_conflict')
++  await refusal(() => persist(source, oldItem, raw, '00000000-0000-4000-8000-00000000f934'), 'utilts_source_binding_conflict')
++  await refusal(() => persist(source, oldItem, raw, company, 'production'), 'utilts_source_binding_conflict')
++  for (const item of [oldItem, newItem]) await refusal(() => persist(heldSource, item), 'utilts_legacy_retry_contract_unavailable')
++  assert.deepEqual(await snapshot(source), before)
++  assert.deepEqual(await snapshot(heldSource), beforeHeld)
++  checks++
++
++  const freshSource = '00000000-0000-4000-8000-00000000f935'
++  const freshRaw = raw.replace('IDE+24+OLD', 'IDE+24+FRESH')
++  const freshItem = { ...newItem, transactionId: 'FRESH',
++    consumptionContract: { ...newItem.consumptionContract, transactionId: 'FRESH' } }
++  await db.query(`INSERT INTO public.ediel_messages
++    (id,company_id,environment,direction,message_family,message_code,raw_payload)
++    VALUES($1,$2,'test','inbound','UTILTS','E66',$3)`, [freshSource, company, freshRaw])
++  const beforeFresh = await snapshot(freshSource)
++  await refusal(() => persist(freshSource, { ...oldItem, transactionId: 'FRESH',
++    consumptionContract: { ...contract, transactionId: 'FRESH' } }, freshRaw), 'utilts_new_consumption_requires_v2')
++  assert.deepEqual(await snapshot(freshSource), beforeFresh)
++  const fresh = await persist(freshSource, freshItem, freshRaw)
++  assert.equal(fresh[0].contractVersion, 2)
++  assert.deepEqual(fresh[0].consumptionContract, freshItem.consumptionContract)
++  assert.equal((await db.query('SELECT quantity::text quantity FROM public.meter_reading_values WHERE series_id=$1',
++    [fresh[0].seriesId])).rows[0].quantity, '9007199254740993')
++  assert.equal((await snapshot(freshSource)).receipt.contract_version, 2)
++  checks++
++  const storedFresh = (await db.query("SELECT gridex_utilts_binding.stored_contract_v1($1,$2,'FRESH') contract",
++    [company, freshSource])).rows[0].contract
++  assert.deepEqual(storedFresh, freshItem.consumptionContract)
++  const afterFresh = await snapshot(freshSource)
++  assert.equal((await persist(freshSource, freshItem, freshRaw))[0].idempotentReplay, true)
++  assert.deepEqual(await snapshot(freshSource), afterFresh)
++  checks++
++  await refusal(() => persist(freshSource, { ...freshItem, consumptionContract: {
++    ...freshItem.consumptionContract, observations: [{ ...freshItem.consumptionContract.observations[0], quantity: '9007199254740992' }] } }, freshRaw),
++    'utilts_consumption_decimal_source_conflict')
++  assert.deepEqual(await snapshot(freshSource), afterFresh)
++  checks++
++
++  const sql = read('scripts/ediel-utilts-committed-retry-regression.sql').replace(/^\\[^\n]*\n/gm, '')
++  const executions = await db.exec(sql)
++  const results = executions.find(result => result.fields?.map(field => field.name).join(',') === 'name,passed')?.rows
++  assert.ok(results, 'retained retry results unavailable')
++  const originalChecks = ['held-has-no-series', 'negative-ack-plan-is-durable-before-finalization',
++    'interrupted-err-cannot-become-positive-aperak', 'fresh-authority-releases-held-transaction',
++    'persisted-retry-preserves-series', 'persisted-retry-cannot-become-held',
++    'same-finalized-retry-idempotent', 'finalized-ack-cannot-be-rewritten']
++  for (const name of originalChecks) assert.equal(results.find(row => row.name === name)?.passed, true, name)
++  assert.ok(results.every(row => row.passed === true))
++  console.log(`Embedded PostgreSQL: ${results.length} retry SQL checks and ${checks} V1 upgrade/replay + exact V2 checks PASS. Native Supabase replay remains required.`)
++} catch (error) {
++  console.error(`Embedded PostgreSQL check failed: ${error.message}${error.code ? ` (${error.code})` : ''}`)
++  if (error.where) console.error(error.where)
++  process.exitCode = 1
++} finally { await db.close() }
+diff --git a/scripts/ediel-utilts-committed-retry-regression.sql b/scripts/ediel-utilts-committed-retry-regression.sql
+index 7fa452dc7ddfb861dd3999f5f671dbf2707bcb43..900d2865dd44adf774701d4bf6a4243effb27ec2 100644
+--- a/scripts/ediel-utilts-committed-retry-regression.sql
++++ b/scripts/ediel-utilts-committed-retry-regression.sql
+@@ -6,10 +6,11 @@ CREATE TEMP TABLE utilts_retry_results(name text PRIMARY KEY, passed boolean NOT
+ CREATE FUNCTION pg_temp.retry_check(label text, passed boolean) RETURNS void LANGUAGE plpgsql AS $$
+ BEGIN INSERT INTO utilts_retry_results VALUES (label,coalesce(passed,false)); END $$;
+ 
+--- V1 now requires one complete physical batch and an explicit contract. Keep
++-- The stable V1 command requires V2 contracts for every fresh source. Keep
+ -- all eight reservation assertions, supplying both physical siblings on every
+--- attempt instead of the old unbound subset calls. No legacy backfill adapter.
+-CREATE FUNCTION pg_temp.retry_persist(p_company uuid,p_environment text,p_source uuid,p_code text,p_requested jsonb)
++-- attempt instead of the old unbound subset calls. The version parameter only
++-- supplies the fresh-V1 refusal control; historical V1 is never backfilled.
++CREATE FUNCTION pg_temp.retry_persist(p_company uuid,p_environment text,p_source uuid,p_code text,p_requested jsonb,p_version integer DEFAULT 2)
+ RETURNS jsonb LANGUAGE plpgsql AS $$
+ DECLARE v_transaction_id text; v_item jsonb; v_batch jsonb:='[]'; v_contract jsonb; v_attribution jsonb; v_existing public.ediel_ack_transaction_results%rowtype; v_results jsonb; v_raw text;
+ BEGIN
+@@ -20,7 +21,7 @@ BEGIN
+    SELECT q_ack.* INTO v_existing FROM public.ediel_ack_transaction_results q_ack WHERE q_ack.source_message_id=p_source AND q_ack.source_transaction_id=v_transaction_id;
+    v_item:=jsonb_build_object('transactionId',v_transaction_id,'disposition',coalesce(v_existing.disposition,'internal_review'),'responseType',coalesce(v_existing.planned_response_type,'none'),'issueCodes',coalesce(to_jsonb(v_existing.issue_codes),'[]'),'seriesKind','actual','quantities','[]'::jsonb);
+   END IF;
+-  v_contract:=jsonb_build_object('version',1,'projectionVersion','utilts-consumption-v1','attributionVersion','tenant-match-v1','companyId',p_company,'environment',p_environment,'messageCode',p_code,'transactionId',v_transaction_id,'seriesKind','actual','profileKey','native-reservation-control','profileVersion',NULL,'rulePackHash',NULL,'guideRevision','25-A-4','sourceType','ediel_utilts',
++  v_contract:=jsonb_build_object('version',p_version,'projectionVersion','utilts-consumption-v'||p_version::text,'attributionVersion','tenant-match-v1','companyId',p_company,'environment',p_environment,'messageCode',p_code,'transactionId',v_transaction_id,'seriesKind','actual','profileKey','native-reservation-control','profileVersion',NULL,'rulePackHash',NULL,'guideRevision','25-A-4','sourceType','ediel_utilts',
+    'interpretation',jsonb_build_object('localPeriodStart',NULL,'localPeriodEnd',NULL,'localRegistration',NULL,'resolutionValue',NULL,'resolutionFormat',NULL,'timezoneRaw',NULL,'timezoneFormat',NULL,'offsetMinutes',NULL,'timestampPolicy','no-consumption-v1'),
+    'observations','[]'::jsonb,'metering',v_attribution,'billing',v_attribution||jsonb_build_object('requestScope',NULL,'periodStart',NULL,'periodEnd',NULL,'month',NULL,'year',NULL,'status','received','sourceSystem','ediel_utilts','currency','SEK'),'billingContributionOrdinals','[]'::jsonb);
+   v_batch:=v_batch||jsonb_build_array(v_item||jsonb_build_object('consumptionContract',v_contract));
+@@ -30,6 +31,16 @@ BEGIN
+  RETURN (SELECT jsonb_agg(value) FROM jsonb_array_elements(v_results) WHERE value->>'transactionId'=p_requested#>>'{0,transactionId}');
+ END $$;
+ 
++CREATE FUNCTION pg_temp.retry_snapshot(p_source uuid) RETURNS jsonb LANGUAGE sql AS $$
++ SELECT jsonb_build_object(
++  'source',(SELECT to_jsonb(s) FROM public.ediel_messages s WHERE id=p_source),
++  'receipt',(SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=p_source),
++  'acks',(SELECT jsonb_agg(to_jsonb(a) ORDER BY source_transaction_id) FROM public.ediel_ack_transaction_results a WHERE source_message_id=p_source),
++  'series',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.meter_reading_series s WHERE source_ediel_message_id=p_source),
++  'values',(SELECT jsonb_agg(to_jsonb(v) ORDER BY v.id) FROM public.meter_reading_values v JOIN public.meter_reading_series s ON s.id=v.series_id WHERE s.source_ediel_message_id=p_source),
++  'contracts',(SELECT jsonb_agg(to_jsonb(c) ORDER BY series_id) FROM gridex_utilts_binding.contracts c WHERE source_message_id=p_source))
++$$;
++
+ DO $$
+ DECLARE
+   company constant uuid := '00000000-0000-4000-8000-00000000f921';
+@@ -37,11 +48,13 @@ DECLARE
+   profile public.ediel_message_profiles%rowtype;
+   pack public.ediel_rule_packs%rowtype;
+   held jsonb := '[{"transactionId":"TX-1","disposition":"internal_review","responseType":"none","issueCodes":["UTILTS_STRUCTURE_UNAVAILABLE"],"seriesKind":"actual","quantities":[]}]';
+-  accepted jsonb := '[{"transactionId":"TX-1","disposition":"accepted","responseType":"positive_aperak","issueCodes":[],"seriesKind":"actual","externalMeteringPointId":"POINT","periodStart":"2026-10-01T00:00:00Z","periodEnd":"2026-11-01T00:00:00Z","resolution":"monthly","quantities":[]}]';
++  accepted jsonb := '[{"transactionId":"TX-1","disposition":"accepted","responseType":"positive_aperak","issueCodes":[],"seriesKind":"actual","externalMeteringPointId":"POINT","unit":"KWH","periodStart":"2026-10-01T00:00:00Z","periodEnd":"2026-11-01T00:00:00Z","resolution":"monthly","quantities":[]}]';
+   negative jsonb := '[{"transactionId":"TX-2","disposition":"processability_rejected","responseType":"utilts_err","issueCodes":["E14"],"seriesKind":"actual","quantities":[]}]';
+-  later_positive jsonb := '[{"transactionId":"TX-2","disposition":"accepted","responseType":"positive_aperak","issueCodes":[],"seriesKind":"actual","externalMeteringPointId":"POINT","quantities":[]}]';
++  later_positive jsonb := '[{"transactionId":"TX-2","disposition":"accepted","responseType":"positive_aperak","issueCodes":[],"seriesKind":"actual","externalMeteringPointId":"POINT","unit":"KWH","quantities":[]}]';
+   result jsonb;
+-  series_id uuid;
++  binding jsonb;
++  before_retry jsonb;
++  v_series_id uuid;
+   blocked boolean;
+ BEGIN
+   INSERT INTO public.companies(id,name,status) VALUES (company,'E035 UTILTS retry synthetic','active');
+@@ -50,18 +63,40 @@ BEGIN
+     ORDER BY profile_key LIMIT 1;
+   SELECT * INTO STRICT pack FROM public.ediel_rule_packs WHERE id=profile.rule_pack_id;
+   -- Reservation-only, no-consumption control, but accepted retries still need
+-  -- supported original legal parties and agency9 point identity for BOTH siblings.
++  -- supported original legal parties, agency9 point identity and an own physical
++  -- MEA unit for BOTH siblings under the current E66 decimal-source guard.
+   -- A missing LOC must fail identity qualification, not stand in for retry proof.
+   INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,message_received_at,execution_context_snapshot,
+     canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+-  VALUES (source,company,'test','inbound','edifact','UTILTS','E66','received','UNB+UNOC:3+91100:ZZ+21660:ZZ+261001:0000+RETRY''UNH+1+UTILTS:D:02B:UN:E5SE5A''BGM+E66+RESERVATION+9''NAD+MS+91100:SVK:260''NAD+MR+21660:SVK:260''IDE+24+TX-1''LOC+172+POINT::9''IDE+24+TX-2''LOC+172+POINT::9''UNT+9+1''UNZ+1+RETRY''',clock_timestamp(),'{}',
++  VALUES (source,company,'test','inbound','edifact','UTILTS','E66','received','UNB+UNOC:3+91100:ZZ+21660:ZZ+261001:0000+RETRY''UNH+1+UTILTS:D:02B:UN:E5SE5A''BGM+E66+RESERVATION+9''NAD+MS+91100:SVK:260''NAD+MR+21660:SVK:260''IDE+24+TX-1''LOC+172+POINT::9''MEA+AAZ++KWH''IDE+24+TX-2''LOC+172+POINT::9''MEA+AAZ++KWH''UNT+11+1''UNZ+1+RETRY''',clock_timestamp(),'{}',
+     pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile);
+ 
++  before_retry:=pg_temp.retry_snapshot(source);
++  blocked:=false;
++  BEGIN
++    EXECUTE 'SET LOCAL ROLE service_role';
++    PERFORM pg_temp.retry_persist(company,'test',source,'E66',held,1);
++    EXECUTE 'RESET ROLE';
++  EXCEPTION WHEN SQLSTATE 'P0U01' THEN blocked:=SQLERRM='utilts_new_consumption_requires_v2'; EXECUTE 'RESET ROLE'; END;
++  PERFORM pg_temp.retry_check('fresh-v1-cannot-create-source-binding',blocked AND pg_temp.retry_snapshot(source)=before_retry);
++
+   EXECUTE 'SET LOCAL ROLE service_role';
+   result:=pg_temp.retry_persist(company,'test',source,'E66',held);
+   EXECUTE 'RESET ROLE';
+   PERFORM pg_temp.retry_check('held-has-no-series',result#>>'{0,persistenceStatus}'='not_applicable'
+     AND NOT EXISTS(SELECT FROM public.meter_reading_series WHERE source_ediel_message_id=source));
++  SELECT to_jsonb(r) INTO binding FROM gridex_utilts_binding.receipts r WHERE source_message_id=source;
++  PERFORM pg_temp.retry_check('fresh-v2-binds-the-original-and-both-siblings',binding->'contract_version'='2'::jsonb
++    AND binding->'membership'='["TX-1","TX-2"]'::jsonb
++    AND binding->>'company_id'=company::text AND binding->>'environment'='test' AND binding->>'message_code'='E66'
++    AND (SELECT binding->>'raw_hash'=encode(extensions.digest(convert_to(m.raw_payload,'UTF8'),'sha256'),'hex')
++      AND binding->'source_context'=gridex_utilts_binding.source_context_v1(m) FROM public.ediel_messages m WHERE m.id=source)
++    AND result#>'{0,sourceBinding}'=jsonb_build_object('sourceMessageId',source,'rawHash',binding->>'raw_hash','boundAt',binding->'bound_at'));
++  before_retry:=pg_temp.retry_snapshot(source);
++  EXECUTE 'SET LOCAL ROLE service_role';
++  PERFORM pg_temp.retry_persist(company,'test',source,'E66',held);
++  EXECUTE 'RESET ROLE';
++  PERFORM pg_temp.retry_check('held-retry-preserves-every-bound-row',pg_temp.retry_snapshot(source)=before_retry);
+ 
+   -- The planned negative response is committed before the ACK is created.
+   -- Simulate interruption at that point: no final_response_type or series.
+@@ -71,6 +106,7 @@ BEGIN
+   PERFORM pg_temp.retry_check('negative-ack-plan-is-durable-before-finalization',result#>>'{0,responseType}'='utilts_err'
+     AND (SELECT planned_response_type='utilts_err' AND final_response_type IS NULL AND persisted_series_id IS NULL
+       FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-2'));
++  before_retry:=pg_temp.retry_snapshot(source);
+   blocked:=false;
+   BEGIN
+     EXECUTE 'SET LOCAL ROLE service_role';
+@@ -80,21 +116,41 @@ BEGIN
+   PERFORM pg_temp.retry_check('interrupted-err-cannot-become-positive-aperak',blocked
+     AND (SELECT disposition='processability_rejected' AND planned_response_type='utilts_err' AND final_response_type IS NULL
+       FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-2'));
++  PERFORM pg_temp.retry_check('interrupted-err-conflict-preserves-every-bound-row',pg_temp.retry_snapshot(source)=before_retry);
++
++  blocked:=false;
++  BEGIN
++    EXECUTE 'SET LOCAL ROLE service_role';
++    PERFORM pg_temp.retry_persist(company,'test',source,'E66',jsonb_set(accepted,'{0,unit}','"MWH"'::jsonb));
++    EXECUTE 'RESET ROLE';
++  EXCEPTION WHEN SQLSTATE 'P0U01' THEN blocked:=SQLERRM='utilts_consumption_decimal_source_conflict'; EXECUTE 'RESET ROLE'; END;
++  PERFORM pg_temp.retry_check('v2-unit-must-match-its-original-mea',blocked AND pg_temp.retry_snapshot(source)=before_retry);
+ 
+   EXECUTE 'SET LOCAL ROLE service_role';
+   result:=pg_temp.retry_persist(company,'test',source,'E66',accepted);
+   EXECUTE 'RESET ROLE';
+-  series_id:=(result#>>'{0,seriesId}')::uuid;
++  v_series_id:=(result#>>'{0,seriesId}')::uuid;
+   PERFORM pg_temp.retry_check('fresh-authority-releases-held-transaction',result#>>'{0,persistenceStatus}'='persisted'
+-    AND series_id IS NOT NULL AND (SELECT disposition FROM public.ediel_ack_transaction_results
++    AND v_series_id IS NOT NULL AND (SELECT disposition FROM public.ediel_ack_transaction_results
+       WHERE source_message_id=source AND source_transaction_id='TX-1')='accepted');
++  PERFORM pg_temp.retry_check('fresh-series-stores-its-bound-v2-contract',result#>'{0,contractVersion}'='2'::jsonb
++    AND (SELECT c.contract_version=2 AND c.source_message_id=source AND c.transaction_id='TX-1'
++      AND c.contract=result#>'{0,consumptionContract}' AND c.contract=ms.raw_transaction->'consumptionContract'
++      AND c.contract_hash=result#>>'{0,contractHash}'
++      AND c.contract_hash=encode(extensions.digest(convert_to(c.contract::text,'UTF8'),'sha256'),'hex')
++      AND ms.immutable_hash=encode(extensions.digest(convert_to(ms.raw_transaction::text,'UTF8'),'sha256'),'hex')
++      AND c.contract->'observations'='[]'::jsonb AND c.contract#>>'{metering,capability}'='skip' AND c.contract#>>'{billing,capability}'='skip'
++      FROM gridex_utilts_binding.contracts c JOIN public.meter_reading_series ms ON ms.id=c.series_id WHERE c.series_id=v_series_id)
++    AND NOT EXISTS(SELECT FROM public.meter_reading_values v WHERE v.series_id=v_series_id));
++  before_retry:=pg_temp.retry_snapshot(source);
+ 
+   EXECUTE 'SET LOCAL ROLE service_role';
+   result:=pg_temp.retry_persist(company,'test',source,'E66',accepted);
+   EXECUTE 'RESET ROLE';
+   PERFORM pg_temp.retry_check('persisted-retry-preserves-series',result#>>'{0,idempotentReplay}'='true'
+-    AND (result#>>'{0,seriesId}')::uuid=series_id
++    AND (result#>>'{0,seriesId}')::uuid=v_series_id
+     AND (SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=source)=1);
++  PERFORM pg_temp.retry_check('persisted-retry-preserves-every-bound-row',pg_temp.retry_snapshot(source)=before_retry);
+ 
+   blocked:=false;
+   BEGIN
+@@ -103,18 +159,21 @@ BEGIN
+     EXECUTE 'RESET ROLE';
+   EXCEPTION WHEN check_violation THEN blocked:=SQLERRM='utilts_committed_transaction_retry_conflict'; EXECUTE 'RESET ROLE'; END;
+   PERFORM pg_temp.retry_check('persisted-retry-cannot-become-held',blocked
+-    AND (SELECT persisted_series_id FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-1')=series_id);
++    AND (SELECT persisted_series_id FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-1')=v_series_id);
++  PERFORM pg_temp.retry_check('persisted-conflict-preserves-every-bound-row',pg_temp.retry_snapshot(source)=before_retry);
+ 
+   -- Simulate the already finalized ACK row after ACK message creation. The
+   -- response FK uses a disposable synthetic row; the guard only tests that
+   -- persistence cannot overwrite the final market decision.
+   UPDATE public.ediel_ack_transaction_results SET final_response_type='positive_aperak',response_message_id=source,finalized_at=clock_timestamp()
+     WHERE source_message_id=source AND source_transaction_id='TX-1';
++  before_retry:=pg_temp.retry_snapshot(source);
+   EXECUTE 'SET LOCAL ROLE service_role';
+   result:=pg_temp.retry_persist(company,'test',source,'E66',accepted);
+   EXECUTE 'RESET ROLE';
+   PERFORM pg_temp.retry_check('same-finalized-retry-idempotent',result#>>'{0,idempotentReplay}'='true'
+     AND (SELECT final_response_type FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-1')='positive_aperak');
++  PERFORM pg_temp.retry_check('finalized-retry-preserves-every-bound-row',pg_temp.retry_snapshot(source)=before_retry);
+   blocked:=false;
+   BEGIN
+     EXECUTE 'SET LOCAL ROLE service_role';
+@@ -122,8 +181,33 @@ BEGIN
+     EXECUTE 'RESET ROLE';
+   EXCEPTION WHEN check_violation THEN blocked:=SQLERRM='utilts_committed_transaction_retry_conflict'; EXECUTE 'RESET ROLE'; END;
+   PERFORM pg_temp.retry_check('finalized-ack-cannot-be-rewritten',blocked
+-    AND (SELECT disposition='accepted' AND final_response_type='positive_aperak' AND persisted_series_id=series_id
++    AND (SELECT disposition='accepted' AND final_response_type='positive_aperak' AND persisted_series_id=v_series_id
+       FROM public.ediel_ack_transaction_results WHERE source_message_id=source AND source_transaction_id='TX-1'));
++  PERFORM pg_temp.retry_check('finalized-conflict-preserves-every-bound-row',pg_temp.retry_snapshot(source)=before_retry);
++
++  blocked:=false;
++  BEGIN
++    EXECUTE 'SET LOCAL ROLE service_role';
++    PERFORM pg_temp.retry_persist(company,'test',source,'E66',accepted,1);
++    EXECUTE 'RESET ROLE';
++  EXCEPTION WHEN SQLSTATE 'P0U01' THEN blocked:=SQLERRM='utilts_consumption_version_conflict'; EXECUTE 'RESET ROLE'; END;
++  PERFORM pg_temp.retry_check('bound-v2-cannot-replay-as-v1',blocked AND pg_temp.retry_snapshot(source)=before_retry);
++
++  blocked:=false;
++  BEGIN
++    UPDATE public.ediel_messages SET raw_payload=raw_payload||E'\n' WHERE id=source;
++  EXCEPTION WHEN SQLSTATE 'P0U01' THEN blocked:=SQLERRM='utilts_source_binding_conflict'; END;
++  PERFORM pg_temp.retry_check('bound-original-cannot-be-rewritten',blocked AND pg_temp.retry_snapshot(source)=before_retry);
++  blocked:=false;
++  BEGIN
++    UPDATE gridex_utilts_binding.receipts SET contract_version=1 WHERE source_message_id=source;
++  EXCEPTION WHEN SQLSTATE 'P0U01' THEN blocked:=SQLERRM='utilts_consumption_binding_immutable'; END;
++  PERFORM pg_temp.retry_check('bound-v2-receipt-cannot-be-downgraded',blocked AND pg_temp.retry_snapshot(source)=before_retry);
++  blocked:=false;
++  BEGIN
++    UPDATE gridex_utilts_binding.contracts SET contract_version=1 WHERE contracts.series_id=v_series_id;
++  EXCEPTION WHEN SQLSTATE 'P0U01' THEN blocked:=SQLERRM='utilts_consumption_binding_immutable'; END;
++  PERFORM pg_temp.retry_check('bound-v2-contract-cannot-be-downgraded',blocked AND pg_temp.retry_snapshot(source)=before_retry);
+ END $$;
+ 
+ TABLE utilts_retry_results;
+diff --git a/scripts/helpers/ediel-source-manifest-vm.cjs b/scripts/helpers/ediel-source-manifest-vm.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..97205ce898b8fe14016b3efd8621a0a013b1451b
+--- /dev/null
++++ b/scripts/helpers/ediel-source-manifest-vm.cjs
+@@ -0,0 +1,67 @@
++'use strict'
++
++const fs = require('node:fs')
++const path = require('node:path')
++const assert = require('node:assert/strict')
++const { SyntheticModule } = require('node:vm')
++const deniedAttempts = []
++
++const specifier = '@/docs/ediel/masterplan-v2/registers/source_manifest.json'
++const file = path.resolve(__dirname, '../../docs/ediel/masterplan-v2/registers/source_manifest.json')
++
++// Load the same committed source authority as the real guide registry. Only
++// this exact JSON dependency is allowed; unrelated imports keep their existing
++// fail-closed loader checks. Use the caller's VM context and per-run cache.
++function sourceManifestModule(request, modules, parent) {
++  if (request !== specifier) return null
++  if (!modules.has(file)) {
++    const value = JSON.parse(fs.readFileSync(file, 'utf8'))
++    modules.set(file, new SyntheticModule(['default'], function () {
++      this.setExport('default', value)
++    }, { identifier: file, context: parent.context }))
++  }
++  return modules.get(file)
++}
++
++function sourceRuntimeBoundary(request, modules, parent) {
++  const manifest = sourceManifestModule(request, modules, parent)
++  if (manifest) return manifest
++  const deny = () => {
++    deniedAttempts.push(request)
++    throw new Error(`Unexpected external operation in source-only test: ${request}`)
++  }
++  // Public crypto and pure standard-library operations remain authentic.
++  // Process, filesystem and customer-data I/O are explicitly denied, even
++  // though current Ediel modules statically import their server adapters.
++  const exports = {
++    crypto: {
++      createHash: require('node:crypto').createHash,
++      randomUUID: require('node:crypto').randomUUID,
++      randomBytes: require('node:crypto').randomBytes,
++      X509Certificate: require('node:crypto').X509Certificate,
++    },
++    'node:child_process': { execFile: deny },
++    'node:fs/promises': { mkdtemp: deny, writeFile: deny, rm: deny },
++    'node:os': { tmpdir: require('node:os').tmpdir },
++    'node:path': { join: require('node:path').join },
++    'node:util': { promisify: require('node:util').promisify },
++    '@/lib/cis/db-shared': { getCustomerExportContext: deny, requireContextCompanyId: deny },
++  }
++  const key = request === 'node:crypto' ? 'crypto' : request
++  if (!Object.hasOwn(exports, key)) return null
++  const cacheKey = `source-only-boundary:${key}`
++  if (!modules.has(cacheKey)) {
++    const values = exports[key]
++    modules.set(cacheKey, new SyntheticModule(Object.keys(values), function () {
++      for (const [name, value] of Object.entries(values)) this.setExport(name, value)
++    }, { identifier: cacheKey, context: parent.context }))
++  }
++  return modules.get(cacheKey)
++}
++
++function assertNoSourceBoundaryAttempts() {
++  // A product catch must not hide an attempted subprocess, file or CIS access.
++  assert.deepEqual(deniedAttempts, [], 'Source-only test attempted external I/O')
++}
++
++module.exports = { sourceManifestModule, sourceRuntimeBoundary, assertNoSourceBoundaryAttempts }
+diff --git a/scripts/test-ediel-component-escaping.cjs b/scripts/test-ediel-component-escaping.cjs
+index a8b2e60322f941e8310c75d0c0dcf9d439f5ab2f..e242bba711d459852e0025274251f83f547cc359 100644
+--- a/scripts/test-ediel-component-escaping.cjs
++++ b/scripts/test-ediel-component-escaping.cjs
+@@ -5,8 +5,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ async function runtime() {
+   const modules = new Map()
+@@ -17,11 +19,13 @@ async function runtime() {
+     export { parseUnh } from '@/lib/ediel/core/unh';
+   `, { identifier: path.join(root, 'lib/ediel/escaping-test.ts') })
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'))
+     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
+     const file = ['.ts','/index.ts'].map(suffix=>base+suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root,'lib/ediel/')))
+-    if(!modules.has(file)) modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{identifier:file}))
++    if(!modules.has(file)) modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode: 'transform',sourceUrl:file}),{identifier:file}))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+diff --git a/scripts/test-ediel-guide-governance.cjs b/scripts/test-ediel-guide-governance.cjs
+index 4cacd82c10dd1fdddde4162622bb71fdef5bed4c..6e8101a5533d6e8d4b5d9c6b1b9b8eaa6a35d0bf 100644
+--- a/scripts/test-ediel-guide-governance.cjs
++++ b/scripts/test-ediel-guide-governance.cjs
+@@ -5,8 +5,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ 
+ async function runtime() {
+@@ -17,11 +19,13 @@ async function runtime() {
+     export { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy';
+   `, { identifier: path.join(root, 'lib/ediel/governance-test.ts') })
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency: ${specifier}`)
+     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Only local source modules are loaded')
+-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
++    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+diff --git a/scripts/test-ediel-prodat-characteristic-fields.cjs b/scripts/test-ediel-prodat-characteristic-fields.cjs
+index d73088a7d76dc3fdb46d58dd274dd08716ec4b03..2dcbb360b67b505c05c5e84a68f263f7f0145d66 100644
+--- a/scripts/test-ediel-prodat-characteristic-fields.cjs
++++ b/scripts/test-ediel-prodat-characteristic-fields.cjs
+@@ -6,8 +6,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ async function runtime() {
+   const modules = new Map()
+@@ -30,12 +32,14 @@ async function runtime() {
+     export { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight';
+   `, { identifier: path.join(root, 'lib/ediel/characteristic-test.ts') })
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     if (specifier === '@/lib/supabase/service') return service
+     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
+     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Load only real Ediel sources')
+-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
++    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+diff --git a/scripts/test-ediel-prodat-d-z04-reference.cjs b/scripts/test-ediel-prodat-d-z04-reference.cjs
+index ac6d6ed221865a74533ca1de3682106f875e8b16..b29559c9142c6c123bcabf648f77042d378586e7 100644
+--- a/scripts/test-ediel-prodat-d-z04-reference.cjs
++++ b/scripts/test-ediel-prodat-d-z04-reference.cjs
+@@ -4,8 +4,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ async function runtime() {
+   const modules = new Map()
+@@ -19,11 +21,13 @@ async function runtime() {
+     export { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer';
+   `, { identifier: path.join(root, 'lib/ediel/d-z04-source-test.ts') })
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
+     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Only actual Ediel modules')
+-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
++    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+diff --git a/scripts/test-ediel-prodat-document-fields.cjs b/scripts/test-ediel-prodat-document-fields.cjs
+index dd25136a13b1ef938079b27fe2e38d3093707d1e..e990dbe007e78932bfcf2bcc39006e9227827a25 100644
+--- a/scripts/test-ediel-prodat-document-fields.cjs
++++ b/scripts/test-ediel-prodat-document-fields.cjs
+@@ -5,8 +5,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root=path.resolve(__dirname,'..')
+ async function runtime(){
+  const modules=new Map()
+@@ -38,6 +40,8 @@ async function runtime(){
+  export { parseInboundProdatBusinessData } from '@/lib/ediel/inboundCases';
+  `,{identifier:path.join(root,'lib/ediel/document-test.ts')})
+  await entry.link((name,parent)=>{
++    const manifest = sourceRuntimeBoundary(name, modules, parent)
++    if (manifest) return manifest
+   if(name==='@/lib/supabase/service') return service
+   if(blocked.has(name))return blocked.get(name)
+   if(name==='crypto'||name==='node:crypto')return crypto
+@@ -45,7 +49,7 @@ async function runtime(){
+   const base=name.startsWith('@/')?path.join(root,name.slice(2)):path.resolve(path.dirname(parent.identifier),name)
+   const file=['.ts','/index.ts'].map(ext=>base+ext).find(fs.existsSync)
+   assert(file&&file.startsWith(path.join(root,'lib/ediel/')),'Only actual Ediel source is loaded')
+-  if(!modules.has(file))modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{identifier:file}))
++  if(!modules.has(file))modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode: 'transform',sourceUrl:file}),{identifier:file}))
+   return modules.get(file)
+  })
+  await entry.evaluate();return entry.namespace
+diff --git a/scripts/test-ediel-prodat-free-text-first-message.cjs b/scripts/test-ediel-prodat-free-text-first-message.cjs
+index 7b83ad3985bf11ca7c99ed7494091f2d1d5fd1cd..352867e44f5d8a4c696ce6c897bb8a19e6bf6bd6 100644
+--- a/scripts/test-ediel-prodat-free-text-first-message.cjs
++++ b/scripts/test-ediel-prodat-free-text-first-message.cjs
+@@ -4,8 +4,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ const NOW = '2026-09-20T12:00:00.000Z'
+ 
+@@ -38,6 +40,8 @@ async function loadRuntime() {
+     export { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator';
+   `, { context, identifier: path.join(root, 'lib/ediel/ftx-first-message-test.ts') })
+   await entry.link((name, parent) => {
++    const manifest = sourceRuntimeBoundary(name, modules, parent)
++    if (manifest) return manifest
+     if (boundaries.has(name)) return boundaries.get(name)
+     if (name === 'crypto' || name === 'node:crypto') return crypto
+     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
+@@ -45,7 +49,7 @@ async function loadRuntime() {
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
+     if (!modules.has(file)) modules.set(file, new SourceTextModule(
+-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
++      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
+       { context, identifier: file }))
+     return modules.get(file)
+   })
+diff --git a/scripts/test-ediel-prodat-free-text.cjs b/scripts/test-ediel-prodat-free-text.cjs
+index 41fe6903554b4c489a268a56f04e2949e81b204d..5c04b30dfb479c33486b869e733cbeb8ae1ca6c4 100644
+--- a/scripts/test-ediel-prodat-free-text.cjs
++++ b/scripts/test-ediel-prodat-free-text.cjs
+@@ -6,8 +6,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ const NOW = '2026-09-20T12:00:00.000Z'
+ 
+@@ -47,6 +49,8 @@ async function loadRuntime() {
+     export { buildProdatMessage } from '@/lib/ediel/prodat/buildProdat';
+   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
+   await entry.link((name, parent) => {
++    const manifest = sourceRuntimeBoundary(name, modules, parent)
++    if (manifest) return manifest
+     if (boundaries.has(name)) return boundaries.get(name)
+     if (name === 'crypto' || name === 'node:crypto') return crypto
+     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
+@@ -54,7 +58,7 @@ async function loadRuntime() {
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
+     if (!modules.has(file)) modules.set(file, new SourceTextModule(
+-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
++      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
+       { context, identifier: file }))
+     return modules.get(file)
+   })
+diff --git a/scripts/test-ediel-prodat-party-fields.cjs b/scripts/test-ediel-prodat-party-fields.cjs
+index 265bdebd215ef8a93c80fdcafad3eca418bf22d9..e1003f3c9b7004eb3b43307c9b26141e5311a93e 100644
+--- a/scripts/test-ediel-prodat-party-fields.cjs
++++ b/scripts/test-ediel-prodat-party-fields.cjs
+@@ -6,8 +6,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ async function runtime() {
+   const modules = new Map()
+@@ -55,6 +57,8 @@ async function runtime() {
+     for(const name of names) this.setExport(name,()=>{throw new Error(`Unexpected mutation/context call: ${specifier}/${name}`)})
+   })]))
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     if (specifier === 'crypto' || specifier === 'node:crypto') return crypto
+     if (specifier === '@/lib/supabase/service') return service
+     if (unreachable.has(specifier)) return unreachable.get(specifier)
+@@ -62,7 +66,7 @@ async function runtime() {
+     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Load only real Ediel sources')
+-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
++    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+diff --git a/scripts/test-ediel-prodat-reference-fields.cjs b/scripts/test-ediel-prodat-reference-fields.cjs
+index 958355b237091f02cfed6d16cf32e93639cdc736..8f02719069ceb228c48fe404176d639de645c877 100644
+--- a/scripts/test-ediel-prodat-reference-fields.cjs
++++ b/scripts/test-ediel-prodat-reference-fields.cjs
+@@ -6,8 +6,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ async function runtime() {
+   const modules = new Map()
+@@ -55,6 +57,8 @@ async function runtime() {
+     for(const name of names) this.setExport(name,()=>{throw new Error(`Unexpected mutation/context call: ${specifier}/${name}`)})
+   })]))
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     if (specifier === 'crypto' || specifier === 'node:crypto') return crypto
+     if (specifier === '@/lib/supabase/service') return service
+     if (unreachable.has(specifier)) return unreachable.get(specifier)
+@@ -62,7 +66,7 @@ async function runtime() {
+     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Load only real Ediel sources')
+-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
++    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+diff --git a/scripts/test-ediel-prodat-source-locators.cjs b/scripts/test-ediel-prodat-source-locators.cjs
+index 71dd0333a0698fb7ab6783b20fb6250e72001e24..55be7ce9449616670d1228fbc64ceeefa0952cb0 100644
+--- a/scripts/test-ediel-prodat-source-locators.cjs
++++ b/scripts/test-ediel-prodat-source-locators.cjs
+@@ -4,8 +4,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ 
+ async function runtime() {
+@@ -17,11 +19,13 @@ async function runtime() {
+     export { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer';
+   `, { identifier: path.join(root, 'lib/ediel/source-locator-test.ts') })
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
+     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Load only real Ediel sources')
+-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
++    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+diff --git a/scripts/test-ediel-rule-pack-source-identity.cjs b/scripts/test-ediel-rule-pack-source-identity.cjs
+index 4c087ae9705bbba35f2af609d5a30bb7f93b813b..62de634c73c068ed6a04630978fd16c76b2ff8b8 100644
+--- a/scripts/test-ediel-rule-pack-source-identity.cjs
++++ b/scripts/test-ediel-rule-pack-source-identity.cjs
+@@ -4,8 +4,10 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ 
+ const root = path.resolve(__dirname, '..')
+ async function resolver(row, error = null) {
+@@ -21,13 +23,15 @@ async function resolver(row, error = null) {
+     if (modules.has(file)) return modules.get(file)
+     assert(file.startsWith(path.join(root, 'lib/ediel') + path.sep), 'Only real local Ediel modules are loaded')
+     const module = new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), {
+-      mode: 'strip', sourceUrl: file,
++      mode: 'transform', sourceUrl: file,
+     }), { identifier: file })
+     modules.set(file, module)
+     return module
+   }
+   const entry = load(path.join(root, 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'))
+   await entry.link((specifier, parent) => {
++    const manifest = sourceRuntimeBoundary(specifier, modules, parent)
++    if (manifest) return manifest
+     if (specifier === '@/lib/supabase/service') return service
+     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency: ${specifier}`)
+     const filename = specifier.startsWith('@/')
+diff --git a/scripts/test-ediel-unb-ack-request.cjs b/scripts/test-ediel-unb-ack-request.cjs
+index 4d7b3de0b4645761c52ccba6eb363cd751ef68f3..23b12d0887b5ffe7a73c9c7221789650ae027846 100644
+--- a/scripts/test-ediel-unb-ack-request.cjs
++++ b/scripts/test-ediel-unb-ack-request.cjs
+@@ -6,12 +6,14 @@ const assert = require('node:assert/strict')
+ const fs = require('node:fs')
+ const path = require('node:path')
+ const { stripTypeScriptTypes } = require('node:module')
++const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+ const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
+-const { test } = require('node:test')
++const { test, after } = require('node:test')
++after(assertNoSourceBoundaryAttempts)
+ const root = path.resolve(__dirname, '..')
+ const NOW = '2026-09-20T12:00:00.000Z'
+ 
+-async function loadRuntime() {
++async function loadRuntime(actorFixture = null) {
+   class FixedDate extends Date {
+     constructor(...args) { super(...(args.length ? args : [NOW])) }
+     static now() { return Date.parse(NOW) }
+@@ -23,12 +25,50 @@ async function loadRuntime() {
+   const synthetic = (exports) => new SyntheticModule(Object.keys(exports), function () {
+     for (const [name, value] of Object.entries(exports)) this.setExport(name, value)
+   }, { context })
++  const authorizationReads = []
++  const service = {
++    from(table) {
++      if (!actorFixture) return deny('db')()
++      assert(['company_memberships', 'user_profiles'].includes(table), `Unexpected fixture table: ${table}`)
++      const filters = {}
++      const query = {
++        select() { return query }, eq(key, value) { filters[key] = value; return query },
++        not(key, operator, value) { assert.deepEqual([key, operator, value], ['accepted_at', 'is', null]); return query },
++        async maybeSingle() {
++          authorizationReads.push({ table, filters })
++          if (table === 'company_memberships') {
++            assert.deepEqual(filters, { company_id: actorFixture.companyId, user_id: actorFixture.actorUserId, status: 'active', is_active: true })
++            return { data: actorFixture.active ? { ...filters, accepted_at: NOW } : null, error: null }
++          }
++          assert.deepEqual(filters, { id: actorFixture.actorUserId, user_status: 'active' })
++          return { data: { ...filters }, error: null }
++        },
++      }
++      return query
++    },
++    async rpc(name, parameters) {
++      if (!actorFixture) return deny('rpc')()
++      assert.equal(name, 'gridex_actor_has_company_permission')
++      assert.equal(parameters.p_actor_user_id, actorFixture.actorUserId)
++      assert.equal(parameters.p_company_id, actorFixture.companyId)
++      assert(['communication.write', 'ediel_testing.write'].includes(parameters.p_permission))
++      authorizationReads.push({ name, parameters })
++      return { data: actorFixture.permitted && parameters.p_permission === 'communication.write', error: null }
++    },
++  }
+   const boundaries = new Map([
+-    ['@/lib/supabase/service', synthetic({ supabaseService: { from: deny('db'), rpc: deny('rpc') } })],
++    ['@/lib/supabase/service', synthetic({ supabaseService: service })],
+     ['@/lib/customers/canonicalOnboarding', synthetic({ canonicalIdempotencyKey: deny('idempotency'), onboardCustomerGraph: deny('onboarding') })],
+     ['@/lib/tenant/context', synthetic({ createTenantContext: deny('tenant-context') })],
+     ['@/lib/supabase/tenantDb', synthetic({ tenantDb: deny('tenant-db') })],
+   ])
++  if (actorFixture) boundaries.set('@/lib/cis/db-shared', synthetic({
++    async getCustomerExportContext(selection) {
++      assert.deepEqual({ ...selection }, { customerId: actorFixture.exportContext.customer.id, siteId: actorFixture.exportContext.site.id, meteringPointId: actorFixture.exportContext.meteringPoint.id })
++      return actorFixture.exportContext
++    },
++    requireContextCompanyId(value) { assert.equal(value.companyId, actorFixture.companyId); return value.companyId },
++  }))
+   const crypto = synthetic({ randomUUID: require('node:crypto').randomUUID, createHash: require('node:crypto').createHash })
+   const modules = new Map()
+   const entry = new SourceTextModule(`
+@@ -44,18 +84,20 @@ async function loadRuntime() {
+   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
+   await entry.link((name, parent) => {
+     if (boundaries.has(name)) return boundaries.get(name)
++    const manifest = sourceRuntimeBoundary(name, modules, parent)
++    if (manifest) return manifest
+     if (name === 'crypto' || name === 'node:crypto') return crypto
+     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
+     const base = name.startsWith('@/') ? path.join(root, name.slice(2)) : path.resolve(path.dirname(parent.identifier), name)
+     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
+     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
+     if (!modules.has(file)) modules.set(file, new SourceTextModule(
+-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
++      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
+       { context, identifier: file }))
+     return modules.get(file)
+   })
+   await entry.evaluate()
+-  return { ...entry.namespace, effects }
++  return { ...entry.namespace, effects, authorizationReads }
+ }
+ const api = loadRuntime()
+ 
+@@ -228,21 +270,44 @@ for (const requestAck of [undefined,false,true]) test(`generic PRODAT alternate
+   const built = a.buildProdatMessage(input), wire = finalWire(built.rawEdifact)
+   assert.equal(wire.unb[9], '1'); assert.equal(wire.rows.find(row=>row[0]==='BGM')[4], requestAck===false?'NA':'AB')
+ })
+-test('actual saved-switch PRODAT draft carries the same request and persisted monitoring', async () => {
+-  const a = await api, id = '735999888000000017'
++test('guarded saved-switch draft preserves request and monitoring with explicit mocked authority reads', async () => {
++  const id = '735999888000000017'
+   const portalData = {facilityId:id,customerId:'USER',customerIdAgency:'89',powerOfAttorneyReference:'POA',customerName:'Synthetic',
+     customerAddress:'Street',customerPostalCode:'12345',customerCity:'Town',customerCountry:'SE',siteAddress:'Street',siteCountry:'SE',
+     gridAreaId:'TES',agreementStartDateTime:'202610010000',validityDateTime:'202610010000',reasonForTransaction:'Z22',observationLength:'15',observationLengthFormat:'806',
+     registers:[],dependentConditionFacts:selections(id,'company','USER',['Street'],'12345','Town'),meteringMethod:'Z03',reportingFrequency:'D',
+     meterNumber:'NEW',oldMeterNumber:'OLD',productCode:'8716867000030',settlementMethod:'D',installationStatus:'E22',balanceResponsibleId:'12345'}
+-  const input = {actorUserId:'actor',senderEdielId:'12345',receiverEdielId:'54321',senderSubAddress:'DDQ',receiverSubAddress:'DDQ',applicationReference:'23-DDQ-PRODAT',environment:'test',
++  const input = {actorUserId:'00000000-0000-4000-8000-00000000a001',senderEdielId:'12345',receiverEdielId:'54321',senderSubAddress:'DDQ',receiverSubAddress:'DDQ',applicationReference:'23-DDQ-PRODAT',environment:'test',
+     switchRequest:{id:'switch',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'meter',grid_owner_id:'owner',requested_start_date:'2026-10-01',request_type:'supplier_switch',status:'draft',current_supplier_name:'Existing',power_of_attorney_id:'poa',validation_snapshot:{portalData}},
+     site:{id:'site',company_id:'company',customer_id:'customer',facility_id:id,grid_owner_id:'owner',move_in_date:'2026-10-01',street:'Street',postal_code:'12345',city:'Town'},
+     meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'}}
++  const companyId = '00000000-0000-4000-8000-00000000a002'
++  input.switchRequest.company_id = companyId
++  input.site.company_id = companyId
++  input.meteringPoint.company_id = companyId
++  input.site.country = 'SE'
++  input.site.grid_area_code = 'TES'
++  portalData.dependentConditionFacts = selections(id, companyId, '5560000000', ['Street'], '12345', 'Town')
++  const invoicee = portalData.dependentConditionFacts.invoiceeObjects[0]
++  invoicee.endUser.identity = { id: '5560000000', qualifier: 'SE1', agency: '260' }
++  invoicee.invoicee.identity = { ...invoicee.endUser.identity }
++  const actorFixture = { companyId, actorUserId: input.actorUserId, active: true, permitted: true,
++    exportContext: { companyId, tenantIssues: [], customer: { id: 'customer', company_id: companyId, org_number: '5560000000', company_name: 'Synthetic' }, contacts: [], site: input.site, meteringPoint: input.meteringPoint, contract: null } }
++  const a = await loadRuntime(actorFixture)
+   const before = JSON.stringify(input), draft = await a.buildProdatZ03FromSwitch(input)
+   assert.equal(finalWire(draft.rawPayload).unb[9], '1')
+   assertPending(a,draft,true); assert.equal(JSON.stringify(input),before)
+   assert.equal(draft.customerId,'customer'); assert.equal(draft.siteId,'site'); assert.equal(draft.switchRequestId,'switch')
++  assert.equal(a.authorizationReads.length, 4)
++  assert.deepEqual(a.effects, [])
++  for (const changed of [{ active: false }, { permitted: false }]) {
++    const denied = await loadRuntime({ ...actorFixture, ...changed })
++    await assert.rejects(denied.buildProdatZ03FromSwitch(input), /ediel_tenant_(actor|permission)_forbidden/)
++    assert.deepEqual(denied.effects, [])
++  }
++  const forged = structuredClone(input)
++  forged.switchRequest.validation_snapshot.portalData.dependentConditionFacts.invoiceeObjects[0].source.companyId = 'foreign-company'
++  await assert.rejects(a.buildProdatZ03FromSwitch(forged), /PRODAT_INVOICEE_EVIDENCE_INVALID|invoicee_tenant|prodat_invoicee_evidence_invalid/)
+ })
+ test('all exercised consumers kept provider, database and transport boundaries closed', async () => {
+   assert.deepEqual((await api).effects, [])
+@@ -309,7 +374,7 @@ test('actual outbound route contract still selects ediel_ack for UTILTS_ERR',asy
+     ['@/lib/routes/routeReadiness',synthetic({expectedApplicationReference:requestType=>{captured.push(requestType);throw stop}})],
+   ])
+   const file=path.join(root,'lib/ediel/outbox/routeContract.ts')
+-  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{context,identifier:file})
++  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode: 'transform',sourceUrl:file}),{context,identifier:file})
+   await module.link(name=>{assert.ok(boundaries.has(name),`Unexpected route dependency:${name}`);return boundaries.get(name)})
+   await module.evaluate()
+   await assert.rejects(module.namespace.evaluateEdielRouteContract({direction:'outbound',company_id:'tenant-A',
+-- 
+2.51.1
+

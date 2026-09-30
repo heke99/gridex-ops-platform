@@ -1,0 +1,323 @@
+{
+  "kind": "bounded-local-ediel-ci-recovery",
+  "created_at_utc": "2026-09-30T17:47:44.049344+00:00",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 421,
+  "local_branch": "codex/ediel-ci-recovery-20260930",
+  "local_code_commit": "32065e595e7d912456899332142aa2bf1ac61b18",
+  "local_code_tree": "8af948593629935f410eba15cbebbb892b347932",
+  "base_local_commit": "1eeeeaff21929038dc2a27d723b977c9ee52a9f7",
+  "base_local_tree": "def243e2f69c2696430488c1724fa5e2a95ac7dc",
+  "existing_typed_fixture_commit": "14c4a1427815b2cb5ce011b3592f7b82e07b69b5",
+  "remote_pr_head_last_checked": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+  "remote_pr_tree": "523dd00e3802947c785e71af33d8d4b11698134a",
+  "publication_branch": "codex/ediel-ci-recovery-handoff-20260930",
+  "publication_scope": "transfer artifacts only; leaves PR runtime and ref unchanged; publication tree is not the tested runtime tree",
+  "node_version": "v22.23.3",
+  "pglite_version": "0.3.14",
+  "code_files": [
+    {
+      "path": "scripts/ediel-utilts-committed-retry-embedded-check.mjs",
+      "sha256": "0026eac17eff7be56ecbd1a50c4354f503ce8812ea254d47ad0031053ae074bd",
+      "git_blob": "5b9746af79a65763eb1f42522863bd49b10b35ff",
+      "bytes": 14762
+    },
+    {
+      "path": "scripts/ediel-utilts-committed-retry-regression.sql",
+      "sha256": "828f0d3f7ad91e1f032cb206d9f1bd81fa9e3bb057a98294d8c3c425bcf8208b",
+      "git_blob": "900d2865dd44adf774701d4bf6a4243effb27ec2",
+      "bytes": 17057
+    },
+    {
+      "path": "scripts/helpers/ediel-source-manifest-vm.cjs",
+      "sha256": "ecc1ec51b80057d846e8b0d87d9a992b3caafac00954928552287df60734f5ae",
+      "git_blob": "97205ce898b8fe14016b3efd8621a0a013b1451b",
+      "bytes": 2965
+    },
+    {
+      "path": "scripts/test-ediel-component-escaping.cjs",
+      "sha256": "24b0fa39d6340ec5c878da5dab3d22cd5532236aae35c4f66099e040fbc26f92",
+      "git_blob": "e242bba711d459852e0025274251f83f547cc359",
+      "bytes": 7034
+    },
+    {
+      "path": "scripts/test-ediel-guide-governance.cjs",
+      "sha256": "be9a3061334b573b9a2221a18dc56797ff2c59999762d552773f2e368fc25dff",
+      "git_blob": "6e8101a5533d6e8d4b5d9c6b1b9b8eaa6a35d0bf",
+      "bytes": 6401
+    },
+    {
+      "path": "scripts/test-ediel-prodat-characteristic-fields.cjs",
+      "sha256": "a03ed1694d44af71771012277d1f1f2eb8896a074ee629f3884c7475fe692ca1",
+      "git_blob": "2dcbb360b67b505c05c5e84a68f263f7f0145d66",
+      "bytes": 17374
+    },
+    {
+      "path": "scripts/test-ediel-prodat-d-z04-reference.cjs",
+      "sha256": "759775ef54363c139a29b93233eb32ed881550d94806bb05276f13bffc6f777d",
+      "git_blob": "b29559c9142c6c123bcabf648f77042d378586e7",
+      "bytes": 9105
+    },
+    {
+      "path": "scripts/test-ediel-prodat-document-fields.cjs",
+      "sha256": "d72b84f5ae918a8349a9dee2ea049c9b859ed565ea0fedcb09f0360ec645292c",
+      "git_blob": "e990dbe007e78932bfcf2bcc39006e9227827a25",
+      "bytes": 19871
+    },
+    {
+      "path": "scripts/test-ediel-prodat-free-text-first-message.cjs",
+      "sha256": "4cc3b1d3c4fc37889a5ea0776702cf5651bfcc003767e5f02a0cf07aae08cdee",
+      "git_blob": "352867e44f5d8a4c696ce6c897bb8a19e6bf6bd6",
+      "bytes": 8343
+    },
+    {
+      "path": "scripts/test-ediel-prodat-free-text.cjs",
+      "sha256": "410e61f9231e476ef0842e08a2732f8695e54b044978c0d187df4384372befd1",
+      "git_blob": "5c04b30dfb479c33486b869e733cbeb8ae1ca6c4",
+      "bytes": 20439
+    },
+    {
+      "path": "scripts/test-ediel-prodat-party-fields.cjs",
+      "sha256": "78cb8010c646a0ea82d899106c631158fe335204aad6a26d2114d61150f63508",
+      "git_blob": "e1003f3c9b7004eb3b43307c9b26141e5311a93e",
+      "bytes": 29005
+    },
+    {
+      "path": "scripts/test-ediel-prodat-reference-fields.cjs",
+      "sha256": "6b54f42edeb6b214d5471111aea50346df2a91b4b3e9d708544a7f1d124e241f",
+      "git_blob": "8f02719069ceb228c48fe404176d639de645c877",
+      "bytes": 19510
+    },
+    {
+      "path": "scripts/test-ediel-prodat-source-locators.cjs",
+      "sha256": "d7b1499ab148060e1beb56d6739bba2ebbd4e7e92cadd196a322ef44c17a3406",
+      "git_blob": "55be7ce9449616670d1228fbc64ceeefa0952cb0",
+      "bytes": 9503
+    },
+    {
+      "path": "scripts/test-ediel-rule-pack-source-identity.cjs",
+      "sha256": "9280a639cf255f36bb218b5f2abc55965300a54ab6eefebebb04613c1e3e748a",
+      "git_blob": "62de634c73c068ed6a04630978fd16c76b2ff8b8",
+      "bytes": 12253
+    },
+    {
+      "path": "scripts/test-ediel-unb-ack-request.cjs",
+      "sha256": "2908e94c26175d89320fca66be1bad8ae003c79078d29ce3e42be23eedbc5ce6",
+      "git_blob": "23b12d0887b5ffe7a73c9c7221789650ae027846",
+      "bytes": 27102
+    }
+  ],
+  "evidence_files": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/existing-typed-fixture.log",
+      "sha256": "ea2814316d5b45134e012421288b353aa877e00680280c49a0e7edc87f1c6fff",
+      "bytes": 1035
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/existing-typed-receipt-fixture.patch",
+      "sha256": "798d52633fcbca568856d47f6acdc5cc6765be845f9a759a35110b11c03bbab7",
+      "bytes": 2292
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/frozen-integrity.log",
+      "sha256": "02ee02d70d0b335687e0785ae9c5eae12aeea7349fb7e4317ba91504fe6c932b",
+      "bytes": 753
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/guide-apia.log",
+      "sha256": "0c7940736514555ae5a1957e420784f0086654a7fe1b2d5382a60942b816a6ec",
+      "bytes": 21715
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/guide-stockholm.log",
+      "sha256": "d7048a3ed213c32f30cf6b7d00a2afe5fde615ce21ad3ce53de7b69bdd35ced7",
+      "bytes": 21718
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/guide-utc.log",
+      "sha256": "55e61837984fc1a861a14a64812901a466c76889ac96bd3a60e79330b2e89c67",
+      "bytes": 21717
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/loaders-final.log.gz",
+      "sha256": "d3683c8743fc8e2727211534238b6a20a3c924f3bc864c45f1f3328c49605365",
+      "bytes": 27833,
+      "uncompressed_sha256": "152c3911b5ba218e09e4ac8cb287888f7ee914e9c2ad7289be597dd9c568763f",
+      "uncompressed_bytes": 258916,
+      "compression": "gzip"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/recovery.patch",
+      "sha256": "722c281bfba5bc1ad163092b62da424af1446875128688ba3075892a56b1820f",
+      "bytes": 72076
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/retry-embedded.log",
+      "sha256": "34237405e7fab425badc9a680caf56319d6e4ef8e19635576a918e32e104e48b",
+      "bytes": 305
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/typecheck-tests.log",
+      "sha256": "8aeaa57b4a6f40fc74e58f0d5835afe6436e4f28bd185e4dc2ab0901b61faff6",
+      "bytes": 357
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/eslint-final.log",
+      "sha256": "a2faedda2d72dfe6dfa8c09c199f43d483af230854351de63ffe74ea05bd69c0",
+      "bytes": 3756
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/syntax-checks.json",
+      "sha256": "98ceef014b57683e50faf6712286fe57d5da821040461f056099065ce9c551d6",
+      "bytes": 1250
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/README.md",
+      "sha256": "13dd2dd6def31c89c7e96ac597ae77af2027afef065e55e40caa8f9bce62048e",
+      "bytes": 7096
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ci-recovery-20260930/NEXT-CHAT-PROMPT.md",
+      "sha256": "1a84f7aecf6c3b8ba7cc93f0c6db4668065b53cf4885cbbf49bea411810ba43c",
+      "bytes": 6157
+    }
+  ],
+  "checks": [
+    {
+      "name": "real TypeScript source modules with declared synthetic ports",
+      "passed": 1253,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "exit_code": 0,
+      "command": "node --experimental-vm-modules --test --test-concurrency=1 scripts/test-ediel-component-escaping.cjs scripts/test-ediel-guide-governance.cjs scripts/test-ediel-prodat-characteristic-fields.cjs scripts/test-ediel-prodat-d-z04-reference.cjs scripts/test-ediel-prodat-document-fields.cjs scripts/test-ediel-prodat-free-text-first-message.cjs scripts/test-ediel-prodat-free-text.cjs scripts/test-ediel-prodat-party-fields.cjs scripts/test-ediel-prodat-reference-fields.cjs scripts/test-ediel-prodat-source-locators.cjs scripts/test-ediel-rule-pack-source-identity.cjs scripts/test-ediel-unb-ack-request.cjs",
+      "log": "loaders-final.log.gz",
+      "evidence_level": "source execution, mocked scoped authority ports; no native/RLS/PKIX qualification"
+    },
+    {
+      "name": "retained committed retry SQL",
+      "passed": 22,
+      "failed": 0,
+      "exit_code": 0,
+      "log": "retry-embedded.log",
+      "evidence_level": "focused embedded PostgreSQL, actual selected SQL owners and guards"
+    },
+    {
+      "name": "historical V1 upgrade/replay and exact V2",
+      "passed": 16,
+      "failed": 0,
+      "exit_code": 0,
+      "log": "retry-embedded.log",
+      "evidence_level": "same focused embedded run, not full Supabase replay"
+    },
+    {
+      "name": "test TypeScript",
+      "exit_code": 0,
+      "command": "npm run typecheck:tests",
+      "log": "typecheck-tests.log"
+    },
+    {
+      "name": "inherited complete typed receipt fixture",
+      "passed": 3,
+      "failed": 0,
+      "exit_code": 0,
+      "command": "npx vitest run __tests__/ediel-customer-response-projection.test.ts",
+      "log": "existing-typed-fixture.log",
+      "evidence_level": "mocked unit"
+    },
+    {
+      "name": "frozen masterplan originals/rules/contracts",
+      "originals": 33,
+      "rules": 121,
+      "contracts": 231,
+      "exit_code": 0,
+      "command": "npm run ediel:masterplan-v2:integrity",
+      "log": "frozen-integrity.log",
+      "application_conformance_asserted": false,
+      "production_readiness_asserted": false
+    },
+    {
+      "name": "guide governance timezones",
+      "passed_per_timezone": 98,
+      "timezones": [
+        "UTC",
+        "Europe/Stockholm",
+        "Pacific/Apia"
+      ],
+      "exit_code_per_timezone": 0,
+      "logs": [
+        "guide-utc.log",
+        "guide-stockholm.log",
+        "guide-apia.log"
+      ]
+    },
+    {
+      "name": "13 CJS syntax checks and git diff --check",
+      "exit_code": 0,
+      "evidence_level": "local static checks"
+    },
+    {
+      "name": "changed-file ESLint",
+      "exit_code": 0,
+      "log": "eslint-final.log",
+      "mjs_errors": 0,
+      "cjs_files_ignored_by_existing_config": 13,
+      "note": "CJS utilities are excluded by existing eslint.config; their Node syntax/source execution checks passed. No ignore or gate was changed."
+    },
+    {
+      "name": "14 Node syntax checks",
+      "exit_code": 0,
+      "log": "syntax-checks.json"
+    }
+  ],
+  "ci_observed": [
+    {
+      "sha": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+      "workflow_run": 36747564858,
+      "job": 109997518245,
+      "failure": "parameter properties unsupported in strip-only loader"
+    },
+    {
+      "sha": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+      "workflow_run": 36747565198,
+      "job": 109997519960,
+      "failure": "stale generated-types manifest migration tail 20260930154424"
+    },
+    {
+      "sha": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+      "workflow_run": 36747565198,
+      "job": 109997520323,
+      "failure": "incomplete EdielDispatchStateResult fixture; inherited fix 14c4a142 qualified locally"
+    },
+    {
+      "sha": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+      "workflow_run": 36747565198,
+      "job": 109997520460,
+      "failure": "retained retry SQL fresh V1 fixture rejected as utilts_new_consumption_requires_v2 before native/type/schema gates"
+    }
+  ],
+  "not_qualified": [
+    "full Supabase empty-database replay",
+    "full upgrade replay",
+    "native service-role/RLS and Data API",
+    "interactive browser and E2E",
+    "authentic generated types/schema/fingerprint on integrated frozen runtime",
+    "exact integrated-head five workflows",
+    "external issuer/archive/retention/positive LOC175/full E035 or actual transport"
+  ],
+  "acceptance_status_changes": false,
+  "production_traffic_activated": false,
+  "main_merged": false,
+  "ownership": {
+    "loader_agent": "ediel_loader_review: read-only independent review; APPROVE bounded loader/fixture changes, no material findings",
+    "sql_agent": "ediel_retry_repair: only two SQL fixture/embedded runner files; frozen",
+    "integrator": "root: remaining owned loader files, commit, evidence, scoped memory and publication; different active #421 publisher retains its worktree/ref"
+  },
+  "constraints": [
+    "no force push",
+    "do not change #310",
+    "leave #418/#422 tenantservice work intact",
+    "do not reset a database in use",
+    "recheck all heads and active ownership before integration"
+  ]
+}

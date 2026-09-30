@@ -1,0 +1,58 @@
+[
+  {
+    "path": "scripts/ediel-utilts-committed-retry-embedded-check.mjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/helpers/ediel-source-manifest-vm.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-component-escaping.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-guide-governance.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-characteristic-fields.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-d-z04-reference.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-document-fields.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-free-text-first-message.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-free-text.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-party-fields.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-reference-fields.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-prodat-source-locators.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-rule-pack-source-identity.cjs",
+    "exit_code": 0
+  },
+  {
+    "path": "scripts/test-ediel-unb-ack-request.cjs",
+    "exit_code": 0
+  }
+]

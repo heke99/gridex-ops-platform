@@ -1,0 +1,28 @@
+From 14c4a1427815b2cb5ce011b3592f7b82e07b69b5 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 30 Sep 2026 18:15:51 +0200
+Subject: [PATCH] test(ediel): type complete customer receipt fixtures
+
+---
+ __tests__/ediel-customer-response-projection.test.ts | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/__tests__/ediel-customer-response-projection.test.ts b/__tests__/ediel-customer-response-projection.test.ts
+index 23f6ff81aa9da8d50e2e33ddd65cc14cc551c34c..61a77bd33d8f45859600d914aa3b2136071f9a4a 100644
+--- a/__tests__/ediel-customer-response-projection.test.ts
++++ b/__tests__/ediel-customer-response-projection.test.ts
+@@ -5,9 +5,10 @@ import type { EdielDispatchStateResult } from '@/lib/ediel/intent/dispatchState'
+ import type { CustomerInfoRequestRow } from '@/lib/onboarding/infoRequests'
+ const snapshot = buildCustomerCardSnapshot({ sites: [], meteringPoints: [], infoRequests: [], contracts: [] })
+ function workflow(infoStatus: string, receipts?: { technical: string | null; application: string | null }) {
++  const dispatchState: EdielDispatchStateResult = { state: 'sent', waitingForCounterparty: true, intentId: 'intent', edielMessageId: 'source', outboxId: 'outbox', businessProcess: 'information_request', messageFamily: 'PRODAT', messageCode: 'Z01', blockingReasons: [], tenantLabel: 'Skickad', acknowledgements: receipts, technical: { validationStatus: 'passed', renderStatus: 'rendered', outboxStatus: 'sent', outboxRowStatus: 'sent', messageStatus: 'sent', messageSentAt: '2026-09-30T14:00:00Z', legacyOutboundStatus: null, legacyActuallySent: false } }
+   return buildCustomerCardWorkflow({ customerId: 'customer', snapshot, sites: [], meteringPoints: [], contracts: [], switchRequests: [], powersOfAttorney: [], isPlatformAdmin: false,
+     infoRequests: [{ id: 'request', status: infoStatus, ediel_message_id: 'source', verified_payload: {} } as CustomerInfoRequestRow],
+-    dispatchState: { state: 'sent', waitingForCounterparty: true, edielMessageId: 'source', blockingReasons: [], tenantLabel: 'Skickad', technical: {}, acknowledgements: receipts } as EdielDispatchStateResult,
++    dispatchState,
+   }).workflowSteps
+ }
+ describe('customer timeline preserves independent receipts and business response', () => {
+-- 
+2.51.1
+

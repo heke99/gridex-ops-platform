@@ -1,0 +1,44 @@
+(node:5) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/helpers/ediel-source-manifest-vm.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-component-escaping.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-guide-governance.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-characteristic-fields.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-d-z04-reference.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-document-fields.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-free-text-first-message.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-free-text.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-party-fields.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-reference-fields.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-prodat-source-locators.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-rule-pack-source-identity.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+/workspace/scratch/009189b8c0ad/gridex-ediel-ci-recovery/scripts/test-ediel-unb-ack-request.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 13 problems (0 errors, 13 warnings)
+

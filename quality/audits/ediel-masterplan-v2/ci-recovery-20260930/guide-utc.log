@@ -1,0 +1,604 @@
+(node:6) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# (node:13) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:13) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# (node:13) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# Subtest: direct: impossible reference date "2026-02-29" cannot select a guide
+ok 1 - direct: impossible reference date "2026-02-29" cannot select a guide
+  ---
+  duration_ms: 132.288963
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-02-30" cannot select a guide
+ok 2 - direct: impossible reference date "2026-02-30" cannot select a guide
+  ---
+  duration_ms: 52.200697
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-04-31" cannot select a guide
+ok 3 - direct: impossible reference date "2026-04-31" cannot select a guide
+  ---
+  duration_ms: 68.769678
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-09-31" cannot select a guide
+ok 4 - direct: impossible reference date "2026-09-31" cannot select a guide
+  ---
+  duration_ms: 51.484046
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-11-31" cannot select a guide
+ok 5 - direct: impossible reference date "2026-11-31" cannot select a guide
+  ---
+  duration_ms: 55.577441
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2028-02-30" cannot select a guide
+ok 6 - direct: impossible reference date "2028-02-30" cannot select a guide
+  ---
+  duration_ms: 71.408242
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2100-02-29" cannot select a guide
+ok 7 - direct: impossible reference date "2100-02-29" cannot select a guide
+  ---
+  duration_ms: 58.642882
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "0000-01-01" cannot select a guide
+ok 8 - direct: impossible reference date "0000-01-01" cannot select a guide
+  ---
+  duration_ms: 51.907347
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-00-01" cannot select a guide
+ok 9 - direct: impossible reference date "2026-00-01" cannot select a guide
+  ---
+  duration_ms: 52.066276
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-13-01" cannot select a guide
+ok 10 - direct: impossible reference date "2026-13-01" cannot select a guide
+  ---
+  duration_ms: 44.030918
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-09-00" cannot select a guide
+ok 11 - direct: impossible reference date "2026-09-00" cannot select a guide
+  ---
+  duration_ms: 43.032557
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "2026-09-32" cannot select a guide
+ok 12 - direct: impossible reference date "2026-09-32" cannot select a guide
+  ---
+  duration_ms: 54.295651
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "" cannot select a guide
+ok 13 - direct: impossible reference date "" cannot select a guide
+  ---
+  duration_ms: 59.590616
+  type: 'test'
+  ...
+# Subtest: direct: impossible reference date "not-a-date" cannot select a guide
+ok 14 - direct: impossible reference date "not-a-date" cannot select a guide
+  ---
+  duration_ms: 54.227698
+  type: 'test'
+  ...
+# Subtest: direct: leap days, month ends and prior date-prefix behavior remain valid
+ok 15 - direct: leap days, month ends and prior date-prefix behavior remain valid
+  ---
+  duration_ms: 43.400791
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-02-29" cannot select a guide
+ok 16 - acceptance: impossible reference date "2026-02-29" cannot select a guide
+  ---
+  duration_ms: 44.501865
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-02-30" cannot select a guide
+ok 17 - acceptance: impossible reference date "2026-02-30" cannot select a guide
+  ---
+  duration_ms: 42.377463
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-04-31" cannot select a guide
+ok 18 - acceptance: impossible reference date "2026-04-31" cannot select a guide
+  ---
+  duration_ms: 49.033824
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-09-31" cannot select a guide
+ok 19 - acceptance: impossible reference date "2026-09-31" cannot select a guide
+  ---
+  duration_ms: 47.343384
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-11-31" cannot select a guide
+ok 20 - acceptance: impossible reference date "2026-11-31" cannot select a guide
+  ---
+  duration_ms: 44.397042
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2028-02-30" cannot select a guide
+ok 21 - acceptance: impossible reference date "2028-02-30" cannot select a guide
+  ---
+  duration_ms: 53.729575
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2100-02-29" cannot select a guide
+ok 22 - acceptance: impossible reference date "2100-02-29" cannot select a guide
+  ---
+  duration_ms: 61.48968
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "0000-01-01" cannot select a guide
+ok 23 - acceptance: impossible reference date "0000-01-01" cannot select a guide
+  ---
+  duration_ms: 58.192605
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-00-01" cannot select a guide
+ok 24 - acceptance: impossible reference date "2026-00-01" cannot select a guide
+  ---
+  duration_ms: 56.711085
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-13-01" cannot select a guide
+ok 25 - acceptance: impossible reference date "2026-13-01" cannot select a guide
+  ---
+  duration_ms: 53.295718
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-09-00" cannot select a guide
+ok 26 - acceptance: impossible reference date "2026-09-00" cannot select a guide
+  ---
+  duration_ms: 48.943718
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "2026-09-32" cannot select a guide
+ok 27 - acceptance: impossible reference date "2026-09-32" cannot select a guide
+  ---
+  duration_ms: 60.452822
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "" cannot select a guide
+ok 28 - acceptance: impossible reference date "" cannot select a guide
+  ---
+  duration_ms: 45.367636
+  type: 'test'
+  ...
+# Subtest: acceptance: impossible reference date "not-a-date" cannot select a guide
+ok 29 - acceptance: impossible reference date "not-a-date" cannot select a guide
+  ---
+  duration_ms: 44.72492
+  type: 'test'
+  ...
+# Subtest: acceptance: leap days, month ends and prior date-prefix behavior remain valid
+ok 30 - acceptance: leap days, month ends and prior date-prefix behavior remain valid
+  ---
+  duration_ms: 57.768358
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-02-29" cannot select a guide
+ok 31 - inbound: impossible reference date "2026-02-29" cannot select a guide
+  ---
+  duration_ms: 48.58548
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-02-30" cannot select a guide
+ok 32 - inbound: impossible reference date "2026-02-30" cannot select a guide
+  ---
+  duration_ms: 60.087623
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-04-31" cannot select a guide
+ok 33 - inbound: impossible reference date "2026-04-31" cannot select a guide
+  ---
+  duration_ms: 56.750408
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-09-31" cannot select a guide
+ok 34 - inbound: impossible reference date "2026-09-31" cannot select a guide
+  ---
+  duration_ms: 56.87772
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-11-31" cannot select a guide
+ok 35 - inbound: impossible reference date "2026-11-31" cannot select a guide
+  ---
+  duration_ms: 56.406371
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2028-02-30" cannot select a guide
+ok 36 - inbound: impossible reference date "2028-02-30" cannot select a guide
+  ---
+  duration_ms: 59.302913
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2100-02-29" cannot select a guide
+ok 37 - inbound: impossible reference date "2100-02-29" cannot select a guide
+  ---
+  duration_ms: 60.460043
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "0000-01-01" cannot select a guide
+ok 38 - inbound: impossible reference date "0000-01-01" cannot select a guide
+  ---
+  duration_ms: 55.971979
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-00-01" cannot select a guide
+ok 39 - inbound: impossible reference date "2026-00-01" cannot select a guide
+  ---
+  duration_ms: 56.718491
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-13-01" cannot select a guide
+ok 40 - inbound: impossible reference date "2026-13-01" cannot select a guide
+  ---
+  duration_ms: 56.15926
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-09-00" cannot select a guide
+ok 41 - inbound: impossible reference date "2026-09-00" cannot select a guide
+  ---
+  duration_ms: 46.578325
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "2026-09-32" cannot select a guide
+ok 42 - inbound: impossible reference date "2026-09-32" cannot select a guide
+  ---
+  duration_ms: 54.300548
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "" cannot select a guide
+ok 43 - inbound: impossible reference date "" cannot select a guide
+  ---
+  duration_ms: 41.601727
+  type: 'test'
+  ...
+# Subtest: inbound: impossible reference date "not-a-date" cannot select a guide
+ok 44 - inbound: impossible reference date "not-a-date" cannot select a guide
+  ---
+  duration_ms: 41.406734
+  type: 'test'
+  ...
+# Subtest: inbound: leap days, month ends and prior date-prefix behavior remain valid
+ok 45 - inbound: leap days, month ends and prior date-prefix behavior remain valid
+  ---
+  duration_ms: 41.664261
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-02-29" cannot select a guide
+ok 46 - currentUtilts: impossible reference date "2026-02-29" cannot select a guide
+  ---
+  duration_ms: 53.857362
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-02-30" cannot select a guide
+ok 47 - currentUtilts: impossible reference date "2026-02-30" cannot select a guide
+  ---
+  duration_ms: 61.90264
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-04-31" cannot select a guide
+ok 48 - currentUtilts: impossible reference date "2026-04-31" cannot select a guide
+  ---
+  duration_ms: 57.064811
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-09-31" cannot select a guide
+ok 49 - currentUtilts: impossible reference date "2026-09-31" cannot select a guide
+  ---
+  duration_ms: 60.108304
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-11-31" cannot select a guide
+ok 50 - currentUtilts: impossible reference date "2026-11-31" cannot select a guide
+  ---
+  duration_ms: 41.624551
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2028-02-30" cannot select a guide
+ok 51 - currentUtilts: impossible reference date "2028-02-30" cannot select a guide
+  ---
+  duration_ms: 46.911625
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2100-02-29" cannot select a guide
+ok 52 - currentUtilts: impossible reference date "2100-02-29" cannot select a guide
+  ---
+  duration_ms: 53.198406
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "0000-01-01" cannot select a guide
+ok 53 - currentUtilts: impossible reference date "0000-01-01" cannot select a guide
+  ---
+  duration_ms: 59.875794
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-00-01" cannot select a guide
+ok 54 - currentUtilts: impossible reference date "2026-00-01" cannot select a guide
+  ---
+  duration_ms: 58.011694
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-13-01" cannot select a guide
+ok 55 - currentUtilts: impossible reference date "2026-13-01" cannot select a guide
+  ---
+  duration_ms: 79.613416
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-09-00" cannot select a guide
+ok 56 - currentUtilts: impossible reference date "2026-09-00" cannot select a guide
+  ---
+  duration_ms: 58.44152
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "2026-09-32" cannot select a guide
+ok 57 - currentUtilts: impossible reference date "2026-09-32" cannot select a guide
+  ---
+  duration_ms: 58.556878
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "" cannot select a guide
+ok 58 - currentUtilts: impossible reference date "" cannot select a guide
+  ---
+  duration_ms: 54.806383
+  type: 'test'
+  ...
+# Subtest: currentUtilts: impossible reference date "not-a-date" cannot select a guide
+ok 59 - currentUtilts: impossible reference date "not-a-date" cannot select a guide
+  ---
+  duration_ms: 49.143248
+  type: 'test'
+  ...
+# Subtest: currentUtilts: leap days, month ends and prior date-prefix behavior remain valid
+ok 60 - currentUtilts: leap days, month ends and prior date-prefix behavior remain valid
+  ---
+  duration_ms: 50.826608
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-02-29" cannot select a guide
+ok 61 - version: impossible reference date "2026-02-29" cannot select a guide
+  ---
+  duration_ms: 62.051834
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-02-30" cannot select a guide
+ok 62 - version: impossible reference date "2026-02-30" cannot select a guide
+  ---
+  duration_ms: 59.604257
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-04-31" cannot select a guide
+ok 63 - version: impossible reference date "2026-04-31" cannot select a guide
+  ---
+  duration_ms: 49.8633
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-09-31" cannot select a guide
+ok 64 - version: impossible reference date "2026-09-31" cannot select a guide
+  ---
+  duration_ms: 50.427498
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-11-31" cannot select a guide
+ok 65 - version: impossible reference date "2026-11-31" cannot select a guide
+  ---
+  duration_ms: 48.992493
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2028-02-30" cannot select a guide
+ok 66 - version: impossible reference date "2028-02-30" cannot select a guide
+  ---
+  duration_ms: 52.891781
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2100-02-29" cannot select a guide
+ok 67 - version: impossible reference date "2100-02-29" cannot select a guide
+  ---
+  duration_ms: 59.206249
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "0000-01-01" cannot select a guide
+ok 68 - version: impossible reference date "0000-01-01" cannot select a guide
+  ---
+  duration_ms: 62.320928
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-00-01" cannot select a guide
+ok 69 - version: impossible reference date "2026-00-01" cannot select a guide
+  ---
+  duration_ms: 55.334772
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-13-01" cannot select a guide
+ok 70 - version: impossible reference date "2026-13-01" cannot select a guide
+  ---
+  duration_ms: 57.132548
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-09-00" cannot select a guide
+ok 71 - version: impossible reference date "2026-09-00" cannot select a guide
+  ---
+  duration_ms: 53.535448
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "2026-09-32" cannot select a guide
+ok 72 - version: impossible reference date "2026-09-32" cannot select a guide
+  ---
+  duration_ms: 60.6983
+  type: 'test'
+  ...
+# Subtest: version: impossible reference date "not-a-date" cannot select a guide
+ok 73 - version: impossible reference date "not-a-date" cannot select a guide
+  ---
+  duration_ms: 62.659397
+  type: 'test'
+  ...
+# Subtest: version: leap days, month ends and prior date-prefix behavior remain valid
+ok 74 - version: leap days, month ends and prior date-prefix behavior remain valid
+  ---
+  duration_ms: 68.699011
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-02-29" cannot select a guide
+ok 75 - policy: impossible reference date "2026-02-29" cannot select a guide
+  ---
+  duration_ms: 50.253758
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-02-30" cannot select a guide
+ok 76 - policy: impossible reference date "2026-02-30" cannot select a guide
+  ---
+  duration_ms: 53.282062
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-04-31" cannot select a guide
+ok 77 - policy: impossible reference date "2026-04-31" cannot select a guide
+  ---
+  duration_ms: 57.546054
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-09-31" cannot select a guide
+ok 78 - policy: impossible reference date "2026-09-31" cannot select a guide
+  ---
+  duration_ms: 66.496723
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-11-31" cannot select a guide
+ok 79 - policy: impossible reference date "2026-11-31" cannot select a guide
+  ---
+  duration_ms: 57.946987
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2028-02-30" cannot select a guide
+ok 80 - policy: impossible reference date "2028-02-30" cannot select a guide
+  ---
+  duration_ms: 56.749978
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2100-02-29" cannot select a guide
+ok 81 - policy: impossible reference date "2100-02-29" cannot select a guide
+  ---
+  duration_ms: 58.455902
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "0000-01-01" cannot select a guide
+ok 82 - policy: impossible reference date "0000-01-01" cannot select a guide
+  ---
+  duration_ms: 66.372627
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-00-01" cannot select a guide
+ok 83 - policy: impossible reference date "2026-00-01" cannot select a guide
+  ---
+  duration_ms: 64.128594
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-13-01" cannot select a guide
+ok 84 - policy: impossible reference date "2026-13-01" cannot select a guide
+  ---
+  duration_ms: 60.876809
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-09-00" cannot select a guide
+ok 85 - policy: impossible reference date "2026-09-00" cannot select a guide
+  ---
+  duration_ms: 56.591635
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "2026-09-32" cannot select a guide
+ok 86 - policy: impossible reference date "2026-09-32" cannot select a guide
+  ---
+  duration_ms: 46.416963
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "" cannot select a guide
+ok 87 - policy: impossible reference date "" cannot select a guide
+  ---
+  duration_ms: 46.600498
+  type: 'test'
+  ...
+# Subtest: policy: impossible reference date "not-a-date" cannot select a guide
+ok 88 - policy: impossible reference date "not-a-date" cannot select a guide
+  ---
+  duration_ms: 59.118206
+  type: 'test'
+  ...
+# Subtest: policy: leap days, month ends and prior date-prefix behavior remain valid
+ok 89 - policy: leap days, month ends and prior date-prefix behavior remain valid
+  ---
+  duration_ms: 62.646097
+  type: 'test'
+  ...
+# Subtest: GOV-01: registry append cannot alter source-controlled authority between requests
+ok 90 - GOV-01: registry append cannot alter source-controlled authority between requests
+  ---
+  duration_ms: 51.111916
+  type: 'test'
+  ...
+# Subtest: GOV-01: registry reorder cannot alter source-controlled authority between requests
+ok 91 - GOV-01: registry reorder cannot alter source-controlled authority between requests
+  ---
+  duration_ms: 62.012835
+  type: 'test'
+  ...
+# Subtest: GOV-01: registry replacement cannot alter source-controlled authority between requests
+ok 92 - GOV-01: registry replacement cannot alter source-controlled authority between requests
+  ---
+  duration_ms: 52.716677
+  type: 'test'
+  ...
+# Subtest: GOV-01: guide revision cannot alter source-controlled authority between requests
+ok 93 - GOV-01: guide revision cannot alter source-controlled authority between requests
+  ---
+  duration_ms: 62.590304
+  type: 'test'
+  ...
+# Subtest: GOV-01: guide validity cannot alter source-controlled authority between requests
+ok 94 - GOV-01: guide validity cannot alter source-controlled authority between requests
+  ---
+  duration_ms: 52.873884
+  type: 'test'
+  ...
+# Subtest: GOV-01: activation array cannot alter source-controlled authority between requests
+ok 95 - GOV-01: activation array cannot alter source-controlled authority between requests
+  ---
+  duration_ms: 46.865327
+  type: 'test'
+  ...
+# Subtest: GOV-01: returned guide cannot be used to modify the next caller
+ok 96 - GOV-01: returned guide cannot be used to modify the next caller
+  ---
+  duration_ms: 50.297203
+  type: 'test'
+  ...
+# Subtest: GOV-03: APERAK retains the actual P/U source-family profiles, not a generic 16-B guide
+ok 97 - GOV-03: APERAK retains the actual P/U source-family profiles, not a generic 16-B guide
+  ---
+  duration_ms: 54.471604
+  type: 'test'
+  ...
+# Subtest: GOV-04/05: outbound stays current and inbound grace stops after the fourteenth day
+ok 98 - GOV-04/05: outbound stays current and inbound grace stops after the fourteenth day
+  ---
+  duration_ms: 59.058247
+  type: 'test'
+  ...
+1..98
+# tests 98
+# suites 0
+# pass 98
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5605.316625
