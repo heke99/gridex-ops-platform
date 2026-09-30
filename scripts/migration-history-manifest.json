@@ -482,7 +482,7 @@
     "20260928213000_secondary_contact_atomic_command.sql": "a6c7feb1a020a3578e15ed319012f5d08fdd2eadf02e5bc0d7f68b2b5c65fd14",
     "20260929214729_portal_event_version_read_model_v2.sql": "d63243b59aedffc1c6fa82b881db64cc32065e7f16acca5619a9494394e8f94b",
     "20260930142815_customer_notification_read_atomic_command.sql": "93dd48ff1bc5d080668a01b939412bc75478e0bc9f782dab2de84c3c540c18ff",
-    "20260930144853_customer_profile_facility_atomic_commands.sql": "7910693edcee6ef4f98a119888279a3a33206accfd246dc2bb754e25635de260",
+    "20260930144853_customer_profile_facility_atomic_commands.sql": "48cfc216f04d863ef9a844ff74b905f96e8ecd61c4fd38761d4e6abc67414458",
     "20260930152349_customer_contact_current_authority_command.sql": "147979d1d1e02854209f33bcf71c3fc8bfd41a6b370ff9c5da32b42c7aa962cc",
     "20260930160000_support_case_atomic_commands.sql": "1f0419d3b6ce7e4f2f744ee00383c58815926fb65a1aee039d1a8f767a5d26ba",
     "20260930161500_customer_billing_profile_command.sql": "254e4e09fafb417c6d24c7a5f5fa2f6fc166f3ccf419cdb30bc8a4dd2fe1a898",

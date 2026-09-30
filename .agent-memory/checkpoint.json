@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-30T20:29:44.211727+00:00",
+  "updated_at": "2026-09-30T21:26:44.285116+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/tenantservice-recovery-integration-20260930",
+  "branch": "codex/api-masterplan-continuation-20260930",
   "active_pr": 422,
   "base_head_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
   "runtime_accepted_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
   "last_merged_pr": 415,
   "last_accepted_pr": 415,
   "root_main_acceptance_comment": null,
-  "active_item": "Full tenantservice/API/OPS recovery and coordinated implementation",
-  "current_audit": "quality/audits/tenantservice-api-ops-20260928/recovery-implementation-20260930.md",
+  "active_item": "Full API/tenantservice/OPS original masterplan continuation",
+  "current_audit": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/integration-ledger.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Freeze reviewed commands/fixtures, preserve OPS+API ancestry, publish candidate to existing draft422 and qualify actual disposable replay/HTTP/browser. Adopt only authentic generated artifacts, then continue full remaining T/U scope.",
+  "next_action": "Publish bounded parser/restore/startup repair to existing draft422; inspect actual native/HTTP/browser/restore run, adopt authentic generation, integrate exclusive continuation packages and qualify all75 original requirements.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -946,7 +946,7 @@
     "local_native_executed": false
   },
   "tenantservice_recovery": {
-    "status": "FROZEN_LOCAL_GATES_PASS_CI_PENDING",
+    "status": "PUBLISHED_NATIVE_CI_IN_PROGRESS",
     "source_checkout_head": "da45651ae13b05c2552954fe949fa3e50cbad5bd",
     "recovered_files": 165,
     "recovered_bytes": 12327099,
@@ -971,6 +971,31 @@
       "native_upgrade_restore": "NOT_EXECUTED",
       "candidate_ci": "PENDING",
       "full_acceptance": false
-    }
+    },
+    "published_head": "026f6bab3b261866aecd1015842dd0f3abb4a7b4",
+    "published_tree": "cd0c6f0459ad9ad9478a5f8e8fe735c359a4b407",
+    "local_exact_tree_source": "26cca14097a3b08422c4098185dc01ddb5834484",
+    "original_history_bundle": "quality/audits/tenantservice-api-ops-20260928/recovery-source-history-a5fe8108.bundle",
+    "ops_run": 36775178898,
+    "initial_verify_job": 110091164614,
+    "initial_verify": "FAIL_EXPECTED_GENERATED_TYPES_TAIL_READ_LOG",
+    "native_job": 110091164302,
+    "upgrade_restore_job": 110091164679
+  },
+  "api_masterplan_continuation": {
+    "status": "IN_PROGRESS",
+    "sole_publisher": "root",
+    "ownership_comment": 5919901521,
+    "last_checked_api_head": "026f6bab3b261866aecd1015842dd0f3abb4a7b4",
+    "last_checked_ops_head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+    "last_checked_main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+    "original_worktree_preserved": true,
+    "restore_wrapper_local": "PASS_11_TESTS_NODE22",
+    "legal_parser_native": "PENDING",
+    "candidate_native": "NOT_EXECUTED",
+    "candidate_restore": "NOT_EXECUTED",
+    "requirements_count": 75,
+    "full_acceptance": false,
+    "secret_scan": "BLOCKED_AUTH"
   }
 }

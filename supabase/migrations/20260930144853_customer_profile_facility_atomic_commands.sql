@@ -193,7 +193,7 @@ begin
       or (key='customer_type' and (jsonb_typeof(value)<>'string' or value#>>'{}' not in ('private','business','association')))
       or (key<>'customer_type' and (jsonb_typeof(value) not in ('string','null') or
         (value<>'null'::jsonb and (length(btrim(value#>>'{}'))<1 or length(btrim(value#>>'{}'))>
-          case key when 'first_name' then 120 when 'last_name' then 120 when 'company_name' then 240 else 50 end))))
+          case key when 'first_name' then 120 when 'last_name' then 120 when 'company_name' then 240 else 50 end)))))
     or not (v_changes ? 'customer_type') then
     raise exception 'invalid_legal_profile_field' using errcode='22023'; end if;
   v_company:=(p_command->>'companyId')::uuid; v_customer_id:=(p_command->>'customerId')::uuid;

@@ -133,7 +133,8 @@ fi
   echo 'TENANTSERVICE_UPGRADE_PINNED_OLD_SCHEMA_REPLAY_PASS'
 
   tenantservice_sql(){
-    local database="$1" source_file="$2" proof_log="$TENANTSERVICE_TEMP/$(basename "$source_file").log"
+    local database="$1" source_file="$2"
+    local proof_log="$TENANTSERVICE_TEMP/$(basename "$source_file").log"
     if ! psql "$database" -X -q -v ON_ERROR_STOP=1 -f "$source_file" > "$proof_log" 2>&1; then
       echo "TENANTSERVICE_NATIVE_SQL_FAILED $(basename "$source_file")" >&2
       tenantservice_safe_first_error "$proof_log"
