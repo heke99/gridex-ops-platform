@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -68,7 +68,20 @@ vi.mock('@/lib/supabase/service', () => {
       }).then(resolve, reject)
     }
   }
-  return { supabaseService: { from: (table: string) => new Query(table), rpc: () => { throw Error('unexpected_rpc') } } }
+  return { supabaseService: { from: (table: string) => new Query(table), rpc: async (name: string, args: Row) => {
+      if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error('unexpected_rpc')
+      // ACK-only harness: model an already committed consumer reservation.
+      // Actual receipt/series/contract proof stays in the native suite.
+      const source = database.tables.get('ediel_messages')!.find(row => row.id === args.p_source_message_id &&
+        row.company_id === args.p_company_id && row.environment === args.p_environment)
+      const reservation = database.tables.get('ediel_ack_transaction_results')!.find(row =>
+        row.source_message_id === args.p_source_message_id && row.source_transaction_id === args.p_transaction_id &&
+        row.company_id === args.p_company_id && row.environment === args.p_environment && row.planned_response_type === 'positive_aperak')
+      if (!source || !reservation || args.p_ack_message_id !== null) return { data: null, error: { message: 'utilts_positive_ack_storage_unavailable' } }
+      return { data: { authorityVersion: 1, companyId: source.company_id, environment: source.environment,
+        sourceMessageId: source.id, transactionId: reservation.source_transaction_id,
+        sourceRawHash: createHash('sha256').update(String(source.raw_payload)).digest('hex'), ackMessageId: null, ackRawHash: null }, error: null }
+    } } }
 })
 
 beforeEach(() => {

@@ -17,6 +17,7 @@ import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/valida
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {isListedProdatDocumentCode,prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertUtiltsPositiveAckSourceAuthority } from '@/lib/ediel/utilts/positiveAckAuthority'
 import {
   createCanonicalOutboundMessage,
   resolveCanonicalOutboundContext,
@@ -155,6 +156,7 @@ export async function createCanonicalAckMessage(params: {
   draft: CreateEdielMessageInput
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
+  await assertUtiltsPositiveAckSourceAuthority({ sourceMessage: params.sourceMessage, draft: params.draft })
   if (params.sourceMessage.message_family === 'PRODAT' && params.sourceMessage.raw_payload &&
       (params.ackFamily === 'APERAK' || params.ackFamily === 'CONTRL' && params.outcome !== 'negative')) {
     const wire=tokenizeEdifact(params.sourceMessage.raw_payload)
