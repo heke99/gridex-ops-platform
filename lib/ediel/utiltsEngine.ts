@@ -38,6 +38,8 @@ export * from '@/lib/ediel/utiltsEngine.part-1'
 export type UtiltsRuntimeReferenceOptions = {
   referenceDate?: string | Date | null
   canonicalPolicy?: CanonicalEdielPolicy
+  /** Internal whole-guide candidate selection; never authorizes effects/ACKs. */
+  guideOnly?: boolean
 }
 
 const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
@@ -796,6 +798,7 @@ export function runUtiltsRuntimeForMessage(
   })))
   const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
   const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  if (options?.guideOnly) return guided
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
