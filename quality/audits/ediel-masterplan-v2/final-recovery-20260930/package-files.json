@@ -4,13 +4,13 @@
   "files": [
     {
       "path": "NEXTCHAT.md",
-      "bytes": 16793,
-      "sha256": "0bec94112eeeb0ce24feddc6538d4096b12232124b547ac92fd1bfa8c292f0b1"
+      "bytes": 16889,
+      "sha256": "ad7d628b1f264436b3d0924c33b31b5a5e5e5a9a2e4fed61c463cae75c2e3166"
     },
     {
       "path": "README.md",
-      "bytes": 8255,
-      "sha256": "0950a80d3a6febea0a8a6b77ce6a214acb8ba6de852161294e547bdf22b31c04"
+      "bytes": 8678,
+      "sha256": "e30a9162799df81fd6c9bc25440e3462c013e72877043da4d39116eef96dd4f2"
     },
     {
       "path": "evidence-files.json",
@@ -43,9 +43,9 @@
       "sha256": "c3f564b2a0c32d9c88de31f837efbe1aec934548da452f9806f9f2c958cd68ce"
     },
     {
-      "path": "portable/import-receipt.log",
-      "bytes": 1363,
-      "sha256": "54fb4c9eccd3318813a9c616db974ae130991eb95cddb796bba23f167fcb693c"
+      "path": "portable/import-receipt.log.b64",
+      "bytes": 1821,
+      "sha256": "8b10bc502a8023358177108139a261fb971f290b9c9477c429f6e53c1a3acec0"
     },
     {
       "path": "portable/manifest.json",
@@ -128,9 +128,9 @@
       "sha256": "34101084704eb293969b4c791b57cdbeac64d3bf0df408befffa087c356f2d58"
     },
     {
-      "path": "recovery.patch",
-      "bytes": 366067,
-      "sha256": "a0f2b22d81f79ce7ec755582fcd388258621b0257fbab16089fe85bce0ae444c"
+      "path": "recovery.patch.gz.b64",
+      "bytes": 108009,
+      "sha256": "4ed95d783cf0cd2744cd973d65d0ec427cda8243f73b152abb3179bd968fa4e2"
     },
     {
       "path": "resume-state.json",
@@ -144,8 +144,8 @@
     },
     {
       "path": "verification.json",
-      "bytes": 18185,
-      "sha256": "fe5ffb500487d48c8e525fbdefa5b65362a5ea34ae0ee4bbefdc7230cff45011"
+      "bytes": 18877,
+      "sha256": "b3fc475c705392fb59ba5b8dd96baedde057fe57a2b20c0122e8ee144b032209"
     }
   ],
   "note": "manifest intentionally excludes itself"

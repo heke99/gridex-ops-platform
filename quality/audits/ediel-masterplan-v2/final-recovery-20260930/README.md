@@ -63,8 +63,10 @@ De två CJS-harnessarnas tvingade lint ger samma 16 fel och 2 varningar som hist
 
 ## Portabel återstart
 
-`recovery.patch` innehåller endast rättelsecommiten och kräver kompatibel aktuell bas. `portable/manifest.json` beskriver en full verifierad Git-bundle med kod och dess ännu opublicerade föregångare; endast den redan publicerade main-commiten53bf är prerequisite. Bundlen skapades före dokument/minnescommiten, så dess head är exakt den testade koden. Importera den till en egen gren utan att flytta #421/#423 eller en annan ägares branch.
+`recovery.patch.gz.b64` innehåller endast rättelsecommiten och kräver kompatibel aktuell bas. `portable/manifest.json` beskriver en full verifierad Git-bundle med kod och dess ännu opublicerade föregångare; endast den redan publicerade main-commiten53bf är prerequisite. Bundlen skapades före dokument/minnescommiten, så dess head är exakt den testade koden. Importera den till en egen gren utan att flytta #421/#423 eller en annan ägares branch.
 
 Läs manifestets parts i ordning, kontrollera varje delhash, sammanfoga base64-text och avkoda. Kontrollera decoded bundle SHA256, kör `git bundle verify`, och importera med `git fetch <bundlepath> refs/heads/codex/ediel-final-recovery-20260930:refs/heads/<egen-importgren>`. Jämför därefter runtimecommit/tree med verification.json. Cherry-picka rättelsen till aktuell isolerad integrationskandidat efter ägar- och konfliktkontroll; bundlens senare bas får inte ersätta ännu nyare ändringar.
 
 `evidence-files.json` anger samma procedur för gzip/tar-evidensarkivet, samt varenda logs bytes/hash. Arkivet bevarar 76 kvitton utan att göra gamla resultat till färska. PR421/423:s senaste observerade604e-/0b8c-heads ändrades inte av detta paket. #422 hade under arbetet gått vidare till4b7888a; den bevarades.
+
+Patch och exakt Git-importkvitto är losslessly kodade för att undvika att formatpatchens obligatoriska tomma kontextrader/flutrad eller originalkvittots blanksteg ger dokumentdiff-fel. Avkoda patchens base64, dekomprimera gzip och kontrollera decoded SHA256 före `git apply --check`. Ett separat tempindex bevisar att patchen applicerad på860feb ger exakt90db37a9. Historiskt råpaketac5da75b är oförändrat.

@@ -367,6 +367,10 @@
       "exit_code": 0,
       "source_hashes": 66,
       "log": "gridex-final-portability-check.log"
+    },
+    "encoded_patch_check": {
+      "exit_code": 0,
+      "coverage": "exact decoded bytes; git apply --cached --check and apply on860feb; resulting exact90db37a9 tree"
     }
   },
   "diagnostics": {
@@ -394,6 +398,11 @@
     "wrong_large_file_script_path": {
       "exit_code": 1,
       "classification": "command path mistake, corrected to actual package quality:large-file-budget exit0"
+    },
+    "raw_artifact_whitespace": {
+      "classification": "git-format-patch blank context/footer and exact git log contain required trailing whitespace; represented losslessly as encoded artifacts",
+      "runtime_source_diff_check": "PASS",
+      "historical_raw_package_commit": "ac5da75b4045778d3b2e57d42f53a154637f6e6f"
     }
   },
   "remaining_internal_gaps": [
@@ -454,8 +463,10 @@
   "evidence": {
     "manifest": "evidence-files.json",
     "portable_bundle": "portable/manifest.json",
-    "patch": "recovery.patch",
-    "patch_sha256": "a0f2b22d81f79ce7ec755582fcd388258621b0257fbab16089fe85bce0ae444c"
+    "patch": "recovery.patch.gz.b64",
+    "patch_sha256": "a0f2b22d81f79ce7ec755582fcd388258621b0257fbab16089fe85bce0ae444c",
+    "patch_encoding": "base64 gzip; decode and decompress to raw git format-patch",
+    "decoded_patch_sha256": "a0f2b22d81f79ce7ec755582fcd388258621b0257fbab16089fe85bce0ae444c"
   },
   "prohibitions_preserved": [
     "no main merge",
