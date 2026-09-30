@@ -2,6 +2,8 @@
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
+import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 
 export type EdielAckPreflightIssue = {
   severity: 'error' | 'warning'
@@ -15,82 +17,70 @@ export type EdielAckPreflightResult = {
   summary: string
 }
 
-function upperPayload(message: EdielMessageRow): string {
-  return String(message.raw_payload ?? '').toUpperCase()
+function payload(message: EdielMessageRow): string {
+  // Preserve original data/case; compare only the source-defined codes below.
+  return String(message.raw_payload ?? '')
 }
 
-function containsSegment(rawUpper: string, tag: string): boolean {
-  const normalized = rawUpper.replace(/\r?\n/g, '')
-  return normalized.startsWith(`${tag}+`) || normalized.includes(`'${tag}+`)
+function allSegments(raw: string) {
+  return tokenizeEdifact(raw).segments
 }
 
-function segmentOccurrences(rawUpper: string, tag: string): number {
-  const normalized = rawUpper.replace(/\r?\n/g, '')
-  const pattern = new RegExp(`(^|')${tag}\\+`, 'g')
-  return Array.from(normalized.matchAll(pattern)).length
+function containsSegment(raw: string, tag: string): boolean {
+  return allSegments(raw).some(segment => segment.tag === tag)
 }
 
-function allSegments(raw: string): string[] {
-  return String(raw ?? '')
-    .replace(/\r?\n/g, '')
-    .replace(/^UNA.{6}'/i, '')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
+function segmentOccurrences(raw: string, tag: string): number {
+  return allSegments(raw).filter(segment => segment.tag === tag).length
 }
 
-
-function normalizedEdifact(raw?: string | null): string {
-  return String(raw ?? '').replace(/\r?\n/g, '').toUpperCase()
+function hasComposite(raw: string, tag: string, element: number, expected: readonly string[], prefix = false): boolean {
+  const wire = tokenizeEdifact(raw)
+  return wire.segments.some(segment => segment.tag === tag && (() => {
+    const parts = segmentComposite(segment, element, wire.una)
+    return expected.every((value, index) => parts[index] === value)
+      && (prefix || parts.slice(expected.length).every(value => !value))
+  })())
 }
 
 function sourceLooksLikeE66QuarterOrHourly(sourceMessage: EdielMessageRow): boolean {
   if (sourceMessage.message_family !== 'UTILTS') return false
   if (String(sourceMessage.message_code ?? '').toUpperCase() !== 'E66') return false
-
-  const rawUpper = normalizedEdifact(sourceMessage.raw_payload)
-  const appRef = String(sourceMessage.application_reference ?? '').toUpperCase()
-
-  return (
-    appRef.includes('E66-T') ||
-    rawUpper.includes('DTM+354:15:804') ||
-    rawUpper.includes('DTM+354:60:804') ||
-    rawUpper.includes('QTY+87:') ||
-    rawUpper.includes('QTY+136:')
-  )
+  const raw = String(sourceMessage.raw_payload ?? '')
+  return String(sourceMessage.application_reference ?? '').toUpperCase().includes('E66-T')
+    || hasComposite(raw, 'DTM', 1, ['354', '15', '806'])
+    || hasComposite(raw, 'DTM', 1, ['354', '60', '806'])
+    || hasComposite(raw, 'QTY', 1, ['87'], true)
+    || hasComposite(raw, 'QTY', 1, ['136'], true)
 }
 
-function sourceHasMissingOrInvalidRegistrationTime(sourceMessage: EdielMessageRow): boolean {
+function sourceHasMissingOrInvalidRegistrationTime(sourceMessage: EdielMessageRow, ackMessage: EdielMessageRow): boolean {
   if (!sourceLooksLikeE66QuarterOrHourly(sourceMessage)) return false
-
-  const rawUpper = normalizedEdifact(sourceMessage.raw_payload)
-  const registrationSegments = rawUpper
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.startsWith('DTM+597'))
-
-  if (registrationSegments.length === 0) return true
-
-  return registrationSegments.some((segment) => {
-    const value = segment.split(':')[1]?.trim() ?? ''
-    return !/^\d{8,12}$/.test(value)
+  const wire = tokenizeEdifact(sourceMessage.raw_payload), ack = tokenizeEdifact(ackMessage.raw_payload)
+  const requested = ack.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, ack.una)[0] === 'ACW')
+    .map(segment => segmentComposite(segment, 1, ack.una)[1])
+  const ownTransactions = canonicalUtiltsTransactions(wire.segments, wire.una, 0)
+    .filter(transaction => !requested.length || requested.includes(transaction.transactionId ?? ''))
+  return ownTransactions.some(transaction => {
+    const firstSequence = transaction.segments.findIndex(segment => segment.tag === 'SEQ')
+    const header = firstSequence < 0 ? transaction.segments : transaction.segments.slice(0, firstSequence)
+    const dates = header.filter(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '597')
+    return dates.length !== 1 || dates.some(segment => {
+      const parts = segmentComposite(segment, 1, wire.una)
+      return parts[2] === '203' ? !/^\d{12}$/.test(parts[1] ?? '')
+        : parts[2] === '204' ? !/^\d{14}$/.test(parts[1] ?? '') : true
+    })
   })
 }
 
-function isUtiltsS03Err(rawUpper: string, sourceMessage: EdielMessageRow): boolean {
-  return (
-    sourceMessage.message_family === 'UTILTS' &&
-    String(sourceMessage.message_code ?? '').toUpperCase() === 'S03' &&
-    rawUpper.includes('BGM+ERR:SVK:260')
-  )
+function isUtiltsS03Err(raw: string, sourceMessage: EdielMessageRow): boolean {
+  return sourceMessage.message_family === 'UTILTS'
+    && String(sourceMessage.message_code ?? '').toUpperCase() === 'S03'
+    && hasComposite(raw, 'BGM', 1, ['ERR', 'SVK', '260'])
 }
 
-function firstSegment(raw: string, tag: string): string | null {
-  const upperTag = tag.toUpperCase()
-  return String(raw ?? '')
-    .split("'")
-    .map((segment) => segment.trim())
-    .find((segment) => segment.toUpperCase().startsWith(`${upperTag}+`)) ?? null
+function firstSegment(raw: string, tag: string) {
+  return allSegments(raw).find(segment => segment.tag === tag) ?? null
 }
 
 function isUtiltsContext(ackMessage: EdielMessageRow, sourceMessage: EdielMessageRow): boolean {
@@ -109,8 +99,12 @@ function validateNoProdatSubaddressForUtilts(params: {
 }): EdielAckPreflightIssue[] {
   if (!isUtiltsContext(params.ackMessage, params.sourceMessage)) return []
 
-  const rawUpper = upperPayload(params.ackMessage)
-  if (!rawUpper.includes(':ZZ:PRODAT')) return []
+  const rawPayload = payload(params.ackMessage)
+  const wire = tokenizeEdifact(rawPayload)
+  if (!wire.segments.some(segment => segment.tag === 'UNB' && [2, 3].some(index => {
+    const party = segmentComposite(segment, index, wire.una)
+    return party[1] === 'ZZ' && party[2] === 'PRODAT'
+  }))) return []
 
   return [
     issue(
@@ -177,7 +171,7 @@ function validateContrlPreflight(params: {
 }): EdielAckPreflightIssue[] {
   const { ackMessage, sourceMessage } = params
   const raw = String(ackMessage.raw_payload ?? '')
-  const rawUpper = raw.toUpperCase()
+  const rawPayload = raw
   const issues: EdielAckPreflightIssue[] = []
   const outcome = parseAckOutcome(ackMessage) ?? 'positive'
 
@@ -185,19 +179,19 @@ function validateContrlPreflight(params: {
     issues.push(issue('error', 'contrl_on_contrl_blocked', 'CONTRL får aldrig skickas som kvittens på inkommande CONTRL.'))
   }
 
-  if (!containsSegment(rawUpper, 'UCI')) {
+  if (!containsSegment(rawPayload, 'UCI')) {
     issues.push(issue('error', 'contrl_missing_uci', 'CONTRL-preview saknar UCI-segment.'))
   }
 
   for (const forbiddenTag of ['BGM', 'RFF', 'ERC', 'FTX']) {
-    if (containsSegment(rawUpper, forbiddenTag)) {
+    if (containsSegment(rawPayload, forbiddenTag)) {
       issues.push(issue('error', `contrl_forbidden_${forbiddenTag.toLowerCase()}`, `CONTRL får inte innehålla ${forbiddenTag}; det hör till APERAK/andra meddelanden.`))
     }
   }
 
   const uci = firstSegment(raw, 'UCI')
   if (uci) {
-    const actionCode = uci.split('+')[4]?.split(':')[0]?.trim() ?? null
+    const actionCode = segmentComposite(uci, 4, tokenizeEdifact(raw).una)[0] ?? null
     const expected = outcome === 'negative' ? '4' : '1'
     if (actionCode !== expected) {
       issues.push(issue('error', 'contrl_uci_action_code_mismatch', `UCI action code är ${actionCode ?? 'saknas'}, men ${expected} krävs för ${outcome} CONTRL.`))
@@ -223,7 +217,7 @@ function validateAperakPreflight(params: {
   sourceMessage: EdielMessageRow
 }): EdielAckPreflightIssue[] {
   const { ackMessage, sourceMessage } = params
-  const rawUpper = upperPayload(ackMessage)
+  const rawPayload = payload(ackMessage)
   const issues: EdielAckPreflightIssue[] = []
   const outcome = parseAckOutcome(ackMessage) ?? 'positive'
   const sourceSyntaxOk = sourceSyntaxAccepted(sourceMessage)
@@ -240,47 +234,58 @@ function validateAperakPreflight(params: {
     issues.push(issue('error', 'aperak_blocked_by_syntax_error', 'APERAK får inte skickas innan syntaxen är accepterad. Skicka negativ CONTRL vid syntaxfel.'))
   }
 
-  if (!containsSegment(rawUpper, 'BGM')) {
+  if (!containsSegment(rawPayload, 'BGM')) {
     issues.push(issue('error', 'aperak_missing_bgm', 'APERAK-preview saknar BGM-segment.'))
   }
 
-  if (!containsSegment(rawUpper, 'RFF')) {
+  if (!containsSegment(rawPayload, 'RFF')) {
     issues.push(issue('error', 'aperak_missing_reference', 'APERAK-preview saknar referenssegment.'))
   }
 
-  if (!containsSegment(rawUpper, 'ERC')) {
+  if (!containsSegment(rawPayload, 'ERC')) {
     issues.push(issue('error', 'aperak_missing_erc', 'APERAK-preview saknar ERC-segment.'))
   }
 
-  if (!containsSegment(rawUpper, 'FTX')) {
+  if (!containsSegment(rawPayload, 'FTX')) {
     issues.push(issue('error', 'aperak_missing_ftx', 'APERAK-preview saknar FTX-segment.'))
   }
 
   if (outcome === 'positive') {
-    if (!rawUpper.includes('ERC+100')) {
+    if (!hasComposite(rawPayload, 'ERC', 1, ['100'], true)) {
       issues.push(issue('error', 'positive_aperak_missing_100', 'Positiv APERAK ska innehålla ERC+100.'))
     }
   } else if (outcome === 'negative') {
-    if (rawUpper.includes('ERC+100')) {
+    if (hasComposite(rawPayload, 'ERC', 1, ['100'], true)) {
       issues.push(issue('error', 'negative_aperak_contains_100', 'Negativ APERAK får inte innehålla ERC+100/OK.'))
     }
 
-    if (sourceMessage.message_family === 'UTILTS' && (rawUpper.includes('ERC+40::260') || rawUpper.includes('FTX+AAO++40::260'))) {
+    if (sourceMessage.message_family === 'UTILTS' && (hasComposite(rawPayload, 'ERC', 1, ['40', '', '260']) || hasComposite(rawPayload, 'FTX', 3, ['40', '', '260']))) {
       issues.push(issue('error', 'utilts_negative_aperak_generic_erc40_blocked', 'Negativ UTILTS-APERAK får inte använda generisk ERC/FTX 40. Kör UTILTS runtime och skicka specifik APERAK-kod, t.ex. ERC 41 + FTX 512 för saknad registreringstidpunkt.'))
     }
 
-    if (sourceHasMissingOrInvalidRegistrationTime(sourceMessage)) {
-      if (!rawUpper.includes('ERC+41::260')) {
+    if (sourceHasMissingOrInvalidRegistrationTime(sourceMessage, ackMessage)) {
+      if (!hasComposite(rawPayload, 'ERC', 1, ['41', '', '260'])) {
         issues.push(issue('error', 'utilts_e66_missing_registration_time_requires_erc41', 'UTILTS E66-T med saknad/ogiltig registreringstidpunkt ska besvaras med ERC+41::260.'))
       }
 
-      if (!rawUpper.includes('FTX+AAO++512::260+MANDATORY FIELD MISSING')) {
+      if (!(() => {
+        const wire = tokenizeEdifact(rawPayload)
+        return wire.segments.some(segment => segment.tag === 'FTX'
+          && JSON.stringify(segmentComposite(segment, 3, wire.una)) === JSON.stringify(['512', '', '260'])
+          && segmentComposite(segment, 4, wire.una)[0] === 'MANDATORY FIELD MISSING')
+      })()) {
         issues.push(issue('error', 'utilts_e66_missing_registration_time_requires_ftx512', 'UTILTS E66-T med saknad/ogiltig registreringstidpunkt ska besvaras med FTX+AAO++512::260+MANDATORY FIELD MISSING.'))
       }
     }
   }
 
-  if (sourceMessage.message_family === 'UTILTS' && /'DOC\+S0[1234]::260\+/.test(rawUpper)) {
+  if (sourceMessage.message_family === 'UTILTS' && (() => {
+    const wire = tokenizeEdifact(rawPayload)
+    return wire.segments.some(segment => segment.tag === 'DOC' && (() => {
+      const parts = segmentComposite(segment, 1, wire.una)
+      return /^S0[1234]$/.test(parts[0] ?? '') && !parts[1] && parts[2] === '260'
+    })())
+  })()) {
     issues.push(issue('error', 'utilts_aperak_doc_missing_svk', 'UTILTS-APERAK DOC måste ha kodlistekvalificerare SVK:260.'))
   }
 
@@ -294,7 +299,7 @@ function validateUtiltsErrPreflight(params: {
   sourceMessage: EdielMessageRow
 }): EdielAckPreflightIssue[] {
   const { ackMessage, sourceMessage } = params
-  const rawUpper = upperPayload(ackMessage)
+  const rawPayload = payload(ackMessage)
   const issues: EdielAckPreflightIssue[] = []
   const sourceSyntaxOk = sourceSyntaxAccepted(sourceMessage)
 
@@ -306,34 +311,42 @@ function validateUtiltsErrPreflight(params: {
     issues.push(issue('error', 'utilts_err_blocked_by_syntax_error', 'UTILTS-ERR får inte skickas när källmeddelandet har syntaxfel; negativ CONTRL ska skickas först.'))
   }
 
-  if (!containsSegment(rawUpper, 'BGM')) {
+  if (!containsSegment(rawPayload, 'BGM')) {
     issues.push(issue('error', 'utilts_err_missing_bgm', 'UTILTS-ERR-preview saknar BGM-segment.'))
   }
 
-  if (!rawUpper.includes('UNH+1+UTILTS:D:02B:UN:E5SE5A')) {
+  if (!hasComposite(rawPayload, 'UNH', 2, ['UTILTS', 'D', '02B', 'UN', 'E5SE5A'])) {
     issues.push(issue('error', 'utilts_err_wrong_unh', 'UTILTS-ERR ska använda UNH+1+UTILTS:D:02B:UN:E5SE5A.'))
   }
 
-  if (!rawUpper.includes('BGM+ERR:SVK:260')) {
+  if (!hasComposite(rawPayload, 'BGM', 1, ['ERR', 'SVK', '260'])) {
     issues.push(issue('error', 'utilts_err_wrong_bgm', 'UTILTS-ERR ska använda BGM+ERR:SVK:260.'))
   }
 
-  if (!rawUpper.includes('STS+E01::260+41+')) {
+  if (!(() => {
+    const wire = tokenizeEdifact(rawPayload)
+    return wire.segments.some(segment => segment.tag === 'STS'
+      && JSON.stringify(segmentComposite(segment, 1, wire.una)) === JSON.stringify(['E01', '', '260'])
+      && segmentComposite(segment, 2, wire.una)[0] === '41'
+      && /^E[0-9A-Z]+$/.test(segmentComposite(segment, 3, wire.una)[0] ?? '')
+      && segmentComposite(segment, 3, wire.una)[2] === '260')
+  })()) {
     issues.push(issue('error', 'utilts_err_missing_sts_e01', 'UTILTS-ERR saknar STS+E01::260+41+<felkod>::260.'))
   }
 
   for (const singleton of ['UNB', 'UNH', 'BGM', 'UNT', 'UNZ']) {
-    if (segmentOccurrences(rawUpper, singleton) !== 1) {
+    if (segmentOccurrences(rawPayload, singleton) !== 1) {
       issues.push(issue('error', `utilts_err_${singleton.toLowerCase()}_count`, `UTILTS-ERR ska innehålla exakt ett ${singleton}-segment.`))
     }
   }
 
-  if (isUtiltsS03Err(rawUpper, sourceMessage)) {
+  if (isUtiltsS03Err(rawPayload, sourceMessage)) {
     const segments = allSegments(String(ackMessage.raw_payload ?? ''))
-    const sg5HasValuedDdk = segments.some((segment) => /^NAD\+DDK\+[^']+/i.test(segment))
-    const sg5HasValuedDdq = segments.some((segment) => /^NAD\+DDQ\+[^']+/i.test(segment))
-    const hasPia = segments.some((segment) => /^PIA\+/i.test(segment))
-    const forbiddenDetail = segments.find((segment) => /^(LIN|MEA|CCI|CAV|SEQ|QTY)\+/i.test(segment))
+    const una = tokenizeEdifact(ackMessage.raw_payload).una
+    const sg5HasValuedDdk = segments.some(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, una)[0] === 'DDK' && Boolean(segmentComposite(segment, 2, una)[0]))
+    const sg5HasValuedDdq = segments.some(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, una)[0] === 'DDQ' && Boolean(segmentComposite(segment, 2, una)[0]))
+    const hasPia = segments.some(segment => segment.tag === 'PIA')
+    const forbiddenDetail = segments.find(segment => ['LIN', 'MEA', 'CCI', 'CAV', 'SEQ', 'QTY'].includes(segment.tag))
 
     if (!sg5HasValuedDdk) {
       issues.push(issue('error', 'utilts_s03_err_missing_ddk_value', 'S03 UTILTS-ERR måste innehålla SG5/NAD+DDK med aktörs-ID.'))
@@ -348,7 +361,7 @@ function validateUtiltsErrPreflight(params: {
     }
 
     if (forbiddenDetail) {
-      issues.push(issue('error', 'utilts_s03_err_forbidden_quantity_detail', `S03 UTILTS-ERR får inte skicka mät-/kvantitetsdetalj ${forbiddenDetail.split('+')[0]} i avvisningssvaret.`))
+      issues.push(issue('error', 'utilts_s03_err_forbidden_quantity_detail', `S03 UTILTS-ERR får inte skicka mät-/kvantitetsdetalj ${forbiddenDetail.tag} i avvisningssvaret.`))
     }
   }
 
@@ -357,7 +370,7 @@ function validateUtiltsErrPreflight(params: {
   return issues
 }
 
-export function validateAckPreflight(params: {
+function validateParsedAckPreflight(params: {
   ackMessage: EdielMessageRow
   sourceMessage: EdielMessageRow
 }): EdielAckPreflightResult {
@@ -390,5 +403,14 @@ export function validateAckPreflight(params: {
     summary: ok
       ? `${ackMessage.message_family} preflight godkänd.`
       : `${ackMessage.message_family} preflight stoppad: ${issues.filter((item) => item.severity === 'error').map((item) => item.message).join(' ')}`,
+  }
+}
+
+export function validateAckPreflight(params: { ackMessage: EdielMessageRow; sourceMessage: EdielMessageRow }): EdielAckPreflightResult {
+  try {
+    return validateParsedAckPreflight(params)
+  } catch {
+    const issues = [issue('error', 'ack_wire_parse_invalid', 'Kvittensens eller källans fysiska EDIFACT-kuvert kan inte läsas med deklarerad UNA.')]
+    return {ok: false, issues, summary: 'Kvittens preflight stoppad: fysiskt EDIFACT-kuvert kan inte läsas.'}
   }
 }

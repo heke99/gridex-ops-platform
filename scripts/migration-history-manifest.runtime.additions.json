@@ -35,6 +35,15 @@
     "20260923231731_ediel_correction_concern_capture.sql": "3d8e2e154c4cf95355a6d81724400af6dd687bd80c26a5f1509ae3f0a91794b1",
     "20260924001447_ediel_correction_capture_canonical_permission.sql": "1da1232dd18209471ca41d9143c450effc84cdc6bb61560ee104d5d8e0fee071",
     "20260930144205_ediel_permission_source_atomic_transitions.sql": "99b0d6fda03afe1ecb9a8b3814a18d3127e657f1aaa3fbfd76543da7473124fa",
-    "20260930145350_ediel_utilts_exact_decimal_contract_v2.sql": "ca1cd3b567659672def326ef82c6972cb1225b68e2e30cb1075a97defd545e34"
+    "20260930145350_ediel_utilts_exact_decimal_contract_v2.sql": "ca1cd3b567659672def326ef82c6972cb1225b68e2e30cb1075a97defd545e34",
+    "20260930153955_ediel_supply_source_transitions.sql": "2251d7d150f621a74ff0cf5c5658598a2809e0c2b62fd5d86ea25ab86274945a",
+    "20260930154552_ediel_z02_source_owned_core.sql": "eb31dc74da24c1c6262e34e478bb50664519cf042675a4074b0fc6da1da1a6a9",
+    "20260930154712_ediel_source_bound_business_expectations_v1.sql": "1ccf24aa7120990dcf45639f8b525977d9c14ba8f3c9032008e4dd100df040e1",
+    "20260930161718_ediel_utilts_e30_energy_source_and_null_quality.sql": "646b376d2a6cc46144c7ada19fbb3280d34ab8c8ddfbfb82078aea0311d089b1",
+    "20260930161907_ediel_readiness_current_source_scope.sql": "1f568cd7cb6d36d771caaf01ec0f68dac8a209427929b828ba838d0d1053c177",
+    "20260930165148_ediel_monotonic_route_security_dependencies.sql": "60e0afa6a3716ffb0e3610014045e95b64205f9dfed2f5c7b878d3ba48e64dcc",
+    "20260930170047_ediel_readiness_current_source_provenance.sql": "5e8ec1d4fc1a9cfb52a84fa2a35ae65a20b288314924f93c6cbad27e175f5846",
+    "20260930171116_ediel_wire_reference_namespace.sql": "c6bbd57e0236fd5ea24b08a895e289ac71b83dc95a0ff34e4d0c60aa55c15d57",
+    "20260930173632_ediel_immutable_source_legal_context.sql": "98a186c75e6bef3c8b1609ae15a09679f4599a5452cb141089eff872d4494f13"
   }
 }

@@ -2,11 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
+import { applyActorRegistryRecords, decodeRegistryUpload } from '@/lib/actor-registry/importActorRegistry'
+import type { ParsedActorRegistryActor } from '@/lib/actor-registry/types'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 import { fetchReceiverCertificatesFromExpisoft } from '@/lib/ediel/security/expisoftCertificateDirectory'
-import { applyActorAutoSendReadiness, refreshActorCertificateStatuses, runActorReadinessBackfill } from '@/lib/ediel/operations/actorAutoReadiness'
 import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 
 function value(formData: FormData, key: string): string | null {
@@ -174,6 +175,7 @@ function parseActorCsv(textContent: string): ActorImportRecord[] {
     }] : []
     return {
       market,
+      countryCode: read(row, ['countrycode', 'country', 'land']),
       name: read(row, ['actorname', 'name', 'namn']) ?? '',
       orgNumber: read(row, ['orgnumber', 'orgno', 'organisationsnummer']),
       edielId: read(row, ['edielid']),
@@ -184,79 +186,6 @@ function parseActorCsv(textContent: string): ActorImportRecord[] {
     }
   }).filter((record) => record.name)
 }
-
-function normalizeActorName(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, ' ')
-}
-
-function actorIsTenantVisible(roles: string[]): boolean {
-  return roles.some((role) => ['grid_owner', 'electricity_supplier'].includes(role))
-}
-
-
-function routeValue(value: string | null | undefined): string | null {
-  const trimmed = String(value ?? '').trim()
-  return trimmed.length > 0 ? trimmed : null
-}
-
-async function findExistingActorId(record: ActorImportRecord, normalizedName: string): Promise<{ actorId: string | null; matchMethod: string }> {
-  const identifiers = [
-    ['EdielId', record.edielId],
-    ['EIC', record.eic],
-    ['SvKId', record.svkId],
-    ['OrgNo', record.orgNumber],
-  ] as Array<[string, string | null]>
-
-  for (const [identifierType, identifierValue] of identifiers) {
-    if (!identifierValue) continue
-    const match = await supabaseService
-      .from('platform_actor_identifiers')
-      .select('actor_id')
-      .eq('identifier_type', identifierType)
-      .eq('identifier_value', identifierValue)
-      .limit(2)
-    if (match.error && match.error.code !== 'PGRST116') throw match.error
-    const actorIds=Array.from(new Set((match.data??[]).map(row=>String(row.actor_id))))
-    if(actorIds.length>1)throw new Error('actor_registry_identifier_ambiguous')
-    if(actorIds.length===1)return{actorId:actorIds[0],matchMethod:identifierType}
-    if(identifierType==='EdielId')return{actorId:null,matchMethod:'new_ediel_identity'}
-  }
-
-  const byName = await supabaseService
-    .from('platform_market_actors')
-    .select('id')
-    .eq('normalized_name', normalizedName)
-    .limit(1)
-    .maybeSingle()
-  if (byName.error && byName.error.code !== 'PGRST116') throw byName.error
-  return { actorId: byName.data?.id ? String(byName.data.id) : null, matchMethod: byName.data?.id ? 'normalized_name' : 'new_actor' }
-}
-
-function applyRouteNullSafeFilter<T extends { eq: (column: string, value: string) => T; is: (column: string, value: null) => T }>(query: T, column: string, value: string | null): T {
-  return value === null ? query.is(column, null) : query.eq(column, value)
-}
-
-async function findExistingRouteId(actorId: string, route: ActorImportRecord['routes'][number]): Promise<string | null> {
-  let query = supabaseService
-    .from('platform_actor_routes')
-    .select('id')
-    .eq('actor_id', actorId)
-    .eq('message_family', route.messageFamily)
-    .eq('environment', 'production')
-    .limit(1)
-
-  query = applyRouteNullSafeFilter(query, 'communication_type', routeValue(route.communicationType) ?? 'SMTP')
-  query = applyRouteNullSafeFilter(query, 'communication_address', routeValue(route.communicationAddress))
-  query = applyRouteNullSafeFilter(query, 'party_id', routeValue(route.partyId))
-  query = applyRouteNullSafeFilter(query, 'interchange_party_id', routeValue(route.interchangePartyId))
-  query = applyRouteNullSafeFilter(query, 'subaddress', routeValue(route.subaddress))
-  query = applyRouteNullSafeFilter(query, 'application_reference', routeValue(route.applicationReference))
-
-  const existing = await query.maybeSingle()
-  if (existing.error && existing.error.code !== 'PGRST116') throw existing.error
-  return existing.data?.id ? String(existing.data.id) : null
-}
-
 
 type ActorImportPreviewIssue = {
   recordName: string
@@ -304,7 +233,6 @@ async function buildActorImportPreview(records: ActorImportRecord[]): Promise<Ac
   }
 
   for (const record of records) {
-    const normalizedName = normalizeActorName(record.name)
     const roles = new Set(record.roles)
     if (roles.has('grid_owner')) summary.gridOwners += 1
     if (roles.has('electricity_supplier')) summary.electricitySuppliers += 1
@@ -312,42 +240,12 @@ async function buildActorImportPreview(records: ActorImportRecord[]): Promise<Ac
     summary.prodatRoutes += record.routes.filter((route) => route.messageFamily === 'PRODAT').length
     summary.utiltsRoutes += record.routes.filter((route) => route.messageFamily === 'UTILTS').length
 
-    const byName = await supabaseService
-      .from('platform_market_actors')
-      .select('id,match_status,metadata')
-      .eq('normalized_name', normalizedName)
-      .maybeSingle()
-    if (byName.error && byName.error.code !== 'PGRST116') throw byName.error
-
-    let byEdiel: { actor_id?: string | null } | null = null
-    if (record.edielId) {
-      const edielMatch = await supabaseService
-        .from('platform_actor_identifiers')
-        .select('actor_id')
-        .eq('identifier_type', 'EdielId')
-        .eq('identifier_value', record.edielId)
-        .limit(1)
-        .maybeSingle()
-      if (edielMatch.error && edielMatch.error.code !== 'PGRST116') throw edielMatch.error
-      byEdiel = edielMatch.data as { actor_id?: string | null } | null
-    }
-
-    const existsByName = Boolean(byName.data?.id)
-    const existsByEdiel = Boolean(byEdiel?.actor_id)
-    if (existsByName || existsByEdiel) summary.existingActors += 1
-    else summary.newActors += 1
-    if (existsByName && record.routes.length > 0) summary.changedActors += 1
-
-    if (existsByName && existsByEdiel && byEdiel?.actor_id && byEdiel.actor_id !== byName.data?.id) {
-      summary.conflicts += 1
-      summary.issues.push({
-        recordName: record.name,
-        issueType: 'identifier_conflict',
-        severity: 'blocking',
-        message: `Ediel-ID ${record.edielId} matchar annan aktör än namnet. Importen kräver manuell granskning innan masterdata ändras.`,
-        metadata: { edielId: record.edielId, actorByName: byName.data?.id, actorByEdiel: byEdiel.actor_id },
-      })
-    }
+    const edielMatch = record.edielId ? await supabaseService.from('platform_actor_identifiers').select('actor_id')
+      .in('identifier_type',['EdielId','ediel_id','edielid']).eq('identifier_value',record.edielId) : {data:[],error:null}
+    if(edielMatch.error)throw edielMatch.error
+    const matchedIds=Array.from(new Set((edielMatch.data??[]).map(row=>String(row.actor_id))))
+    if(matchedIds.length>1){summary.conflicts+=1;summary.issues.push({recordName:record.name,issueType:'identifier_conflict',severity:'blocking',message:'Ediel-ID matchar flera juridiska aktörer. Hela tillämpningen hålls för granskning.',metadata:{edielId:record.edielId,actorIds:matchedIds}})}
+    if(matchedIds.length===1){summary.existingActors+=1;summary.changedActors+=1}else summary.newActors+=1
 
     if (!record.edielId) {
       summary.missingEdielId += 1
@@ -448,178 +346,6 @@ async function createActorImportPreviewRun(input: {
   return run.data.id
 }
 
-async function upsertImportedActor(record: ActorImportRecord, importRunId: string, source: string, userId: string) {
-  const normalizedName = normalizeActorName(record.name)
-  const existingActor = await findExistingActorId(record, normalizedName)
-
-  const existing = existingActor.actorId
-    ? await supabaseService
-        .from('platform_market_actors')
-        .select('id,match_status,metadata')
-        .eq('id', existingActor.actorId)
-        .maybeSingle()
-    : {data:null,error:null}
-  if (existing.error && existing.error.code !== 'PGRST116') throw existing.error
-
-  const previousMetadata = (existing.data?.metadata ?? {}) as Record<string, unknown>
-  const metadata = {
-    ...previousMetadata,
-    market: record.market ?? null,
-    sourceRecord:record.sourceRecord??null,
-    importedBy: userId,
-    source,
-    edielId: record.edielId,
-    svkId: record.svkId,
-    eic: record.eic,
-    roles: record.roles,
-    importRunId,
-    matchMethod: existingActor.matchMethod,
-    upsertPolicy: 'identifier_first_no_duplicate',
-  }
-  const payload = {
-    name: record.name,
-    ...(record.countryCode?{country_code:record.countryCode}:{}),
-    org_number: record.orgNumber,
-    legal_name: record.name,
-    status: 'active',
-    match_status: existing.data?.match_status === 'verified' ? 'verified' : (record.edielId || record.orgNumber ? 'strong_suggestion' : 'needs_review'),
-    source,
-    visible_to_tenants: record.market === 'EL' && actorIsTenantVisible(record.roles),
-    metadata,
-    imported_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-
-  const actorResult = existing.data?.id
-    ? await supabaseService.from('platform_market_actors').update(payload).eq('id', existing.data.id).select('id').single()
-    : await supabaseService.from('platform_market_actors').insert(payload).select('id').single()
-  if (actorResult.error) throw actorResult.error
-  const actorId = String(actorResult.data.id)
-
-  const identifiers = [
-    ['EdielId', record.edielId],
-    ['OrgNo', record.orgNumber],
-    ['SvKId', record.svkId],
-    ['EIC', record.eic],
-  ] as Array<[string, string | null]>
-  for (const [type, identifierValue] of identifiers) {
-    if (!identifierValue) continue
-    const existingIdentifier = await supabaseService
-      .from('platform_actor_identifiers')
-      .select('id,actor_id,metadata')
-      .eq('identifier_type', type)
-      .eq('identifier_value', identifierValue)
-      .maybeSingle()
-    if (existingIdentifier.error && existingIdentifier.error.code !== 'PGRST116') throw existingIdentifier.error
-    if(existingIdentifier.data?.actor_id && existingIdentifier.data.actor_id!==actorId){
-      if(type==='OrgNo')continue // actor org_number/rawsource retain descriptive shared OrgNo
-      throw new Error('actor_registry_identifier_owner_conflict')
-    }
-    const identifierPayload = {
-      actor_id: actorId,
-      identifier_type: type,
-      identifier_value: identifierValue,
-      source,
-      is_verified: true,
-      metadata: { ...(existingIdentifier.data?.metadata as Record<string, unknown> | null ?? {}), importRunId, upsertPolicy: 'identifier_first_no_duplicate' },
-      updated_at: new Date().toISOString(),
-    }
-    const result = existingIdentifier.data?.id
-      ? await supabaseService.from('platform_actor_identifiers').update(identifierPayload).eq('id', existingIdentifier.data.id)
-      : await supabaseService.from('platform_actor_identifiers').insert(identifierPayload)
-    if (result.error) throw result.error
-  }
-
-  for (const role of record.roles) {
-    const roleResult = await supabaseService
-      .from('platform_actor_roles')
-      .upsert({ actor_id: actorId, actor_role: role, role_source: source, is_active: record.market === 'EL', metadata: { importRunId, market: record.market ?? null }, updated_at: new Date().toISOString() }, { onConflict: 'actor_id,actor_role' })
-    if (roleResult.error) throw roleResult.error
-  }
-
-  await supabaseService
-    .from('platform_actor_aliases')
-    .upsert({ actor_id: actorId, alias: record.name, alias_source: source, confidence: 1, is_verified: true, metadata: { importRunId } }, { onConflict: 'actor_id,normalized_alias' })
-    .then((result) => { if (result.error) throw result.error })
-
-  for (const route of record.routes) {
-    const existingRouteId = await findExistingRouteId(actorId, route)
-    const existingRoute = existingRouteId
-      ? await supabaseService
-          .from('platform_actor_routes')
-          .select('id,status,is_verified,auto_send_allowed,metadata')
-          .eq('id', existingRouteId)
-          .maybeSingle()
-      : { data: null, error: null }
-    if (existingRoute.error && existingRoute.error.code !== 'PGRST116') throw existingRoute.error
-
-    const existingRouteData = existingRoute.data as { id?: string; status?: string | null; is_verified?: boolean | null; auto_send_allowed?: boolean | null; metadata?: Record<string, unknown> | null } | null
-    const existingRouteMetadata = existingRouteData?.metadata ?? {}
-    const representationRequiresMandate = Boolean(route.partyId && route.interchangePartyId && route.partyId !== route.interchangePartyId)
-    const routeHeld = record.market !== 'EL' || representationRequiresMandate
-    const routePayload = {
-      actor_id: actorId,
-      message_family: route.messageFamily,
-      application_reference: routeValue(route.applicationReference),
-      environment: 'production',
-      subaddress: routeValue(route.subaddress),
-      communication_type: routeValue(route.communicationType) ?? 'SMTP',
-      communication_address: routeValue(route.communicationAddress),
-      edi_charset: routeValue(route.ediCharset),
-      edi_syntax: routeValue(route.ediSyntax),
-      party_id: routeValue(route.partyId),
-      party_id_qualifier: routeValue(route.partyIdQualifier),
-      party_id_responsible: routeValue(route.partyIdResponsible),
-      interchange_party_id: routeValue(route.interchangePartyId),
-      interchange_id_qualifier: routeValue(route.interchangeIdQualifier),
-      requires_poa: true,
-      is_verified: !routeHeld && (existingRouteData?.is_verified ?? false),
-      auto_send_allowed: !routeHeld && (existingRouteData?.auto_send_allowed ?? false),
-      status: routeHeld ? 'blocked' : existingRouteData?.status && existingRouteData.status !== 'blocked' ? existingRouteData.status : 'needs_review',
-      source,
-      metadata: {
-        ...existingRouteMetadata,
-        importRunId,
-        market: record.market ?? null,
-        representation_requires_mandate: representationRequiresMandate,
-        importedFromUi: true,
-        lastXmlUpsertAt: new Date().toISOString(),
-        upsertPolicy: 'route_identity_with_subaddress_application_reference',
-      },
-      updated_at: new Date().toISOString(),
-    }
-    const result = existingRouteId
-      ? await supabaseService.from('platform_actor_routes').update(routePayload).eq('id', existingRouteId)
-      : await supabaseService.from('platform_actor_routes').insert(routePayload)
-    if (result.error) throw result.error
-  }
-
-  if (!record.edielId) {
-    await supabaseService.from('platform_actor_import_issues').insert({
-      import_run_id: importRunId,
-      actor_id: actorId,
-      issue_type: 'missing_identifier',
-      severity: 'blocking',
-      status: 'open',
-      message: 'Aktören saknar EdielId och får inte användas för autosändning.',
-      metadata: { name: record.name },
-    })
-  }
-  if (record.routes.length === 0) {
-    await supabaseService.from('platform_actor_import_issues').insert({
-      import_run_id: importRunId,
-      actor_id: actorId,
-      issue_type: 'missing_route',
-      severity: 'warning',
-      status: 'open',
-      message: 'Aktören saknar EDIFACT-route och behöver kompletteras innan den kan bli send-ready.',
-      metadata: { name: record.name, edielId: record.edielId },
-    })
-  }
-
-  return actorId
-}
-
 export async function importPlatformActorsAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const file = formData.get('actorImportFile')
@@ -629,10 +355,11 @@ export async function importPlatformActorsAction(formData: FormData) {
   const confirmApply = value(formData, 'confirmApply')
   if (!(file instanceof File) || file.size <= 0) throw new Error('Välj companies.xml eller CSV-fil att importera.')
 
-  const textContent = await file.text()
   const fileName = file.name || 'actor-import'
   if(fileName.toLowerCase().endsWith('.txt')||format==='txt')throw new Error('actor_registry_txt_authentic_source_adapter_required')
-  const importType = fileName.toLowerCase().endsWith('.xml') ? 'companies_xml' : 'csv'
+  const importType = format === 'csv' || fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'companies_xml'
+  const sourceBytes=Buffer.from(await file.arrayBuffer())
+  const textContent=decodeRegistryUpload(sourceBytes,importType)
   const parsed = format === 'csv' || fileName.toLowerCase().endsWith('.csv')
     ? parseActorCsv(textContent)
     : parseCompaniesXml(textContent)
@@ -661,70 +388,12 @@ export async function importPlatformActorsAction(formData: FormData) {
     throw new Error('Importen stoppades eftersom förhandsgranskningen hittade konflikt i Ediel-ID/aktörsmatchning. Lös granskningspunkterna innan importen godkänns.')
   }
 
-  const run = await supabaseService
-    .from('platform_actor_import_runs')
-    .insert({
-      source: fileName,
-      import_type: importType,
-      status: 'running',
-      records_seen: parsed.length,
-      records_upserted: 0,
-      safe: true,
-      created_by: context.userId,
-      metadata: { source, importedFromUi: true, mode: 'apply', preview },
-    })
-    .select('id')
-    .single()
-  if (run.error) throw run.error
-
-  let upserted = 0
-  const errors: Array<Record<string, unknown>> = []
-  for (const record of parsed) {
-    try {
-      await upsertImportedActor(record, String(run.data.id), source, context.userId)
-      upserted += 1
-    } catch (error) {
-      errors.push({ name: record.name, error: error instanceof Error ? error.message : String(error) })
-    }
-  }
-
-  const status = errors.length > 0 ? 'completed_with_warnings' : 'completed'
-  const update = await supabaseService
-    .from('platform_actor_import_runs')
-    .update({
-      status,
-      records_upserted: upserted,
-      records_failed: errors.length,
-      completed_at: new Date().toISOString(),
-      error_log: errors,
-      metadata: { source, importedFromUi: true, mode: 'apply', fileName, parsed: parsed.length, preview },
-    })
-    .eq('id', run.data.id)
-  if (update.error) throw update.error
-
-  let autoReadinessResult: Record<string, unknown> | null = null
-  try {
-    const backfill = await runActorReadinessBackfill('xml_import_followup')
-    const certificates = await refreshActorCertificateStatuses('certificate_refresh')
-    const autoSend = await applyActorAutoSendReadiness()
-    autoReadinessResult = { ok: true, backfill, certificates, autoSend }
-  } catch (error) {
-    // Import must not be rolled back because an external LDAP/certificate lookup failed.
-    // The auto-readiness page will show the exact blockers and the cron can retry.
-    autoReadinessResult = { ok: false, error: error instanceof Error ? error.message : String(error) }
-  }
-
-  await logAdminActionAndUsage({
-    companyId: null,
-    actorUserId: context.userId,
-    entityType: 'platform_actor_import_run',
-    entityId: String(run.data.id),
-    action: 'actor_import.completed',
-    label: errors.length > 0 ? 'Aktörsimport slutförd med granskningspunkter' : 'Aktörsimport slutförd',
-    billable: true,
-    billingUnit: 'actor_import',
-    metadata: { source, fileName, parsed: parsed.length, upserted, failed: errors.length, status, preview, autoReadinessResult },
-  })
+  const applied = await applyActorRegistryRecords({ sourceBytes, sourceKind: importType as 'companies_xml' | 'csv', sourceFilename: fileName, actorUserId: context.userId,
+    actors: importType === 'companies_xml' ? parseActorRegistryXml(textContent) : parsed.map(record => ({ name: record.name, legalName: record.name, market: record.market, countryCode: record.countryCode, orgNumber: record.orgNumber, edielId: record.edielId, svkId: record.svkId, eic: record.eic,
+      roles: record.roles as ParsedActorRegistryActor['roles'], routes: record.routes.map(route => ({ ...route, market: record.market, environment: 'production' as const })), certificates: [], raw: record.sourceRecord ?? { ...record, sourceKind: 'csv' } })) })
+  await logAdminActionAndUsage({ companyId: null, actorUserId: context.userId, entityType: 'platform_actor_import_run', entityId: applied.uiRunId,
+    action: 'actor_import.completed', label: 'Aktörsimport atomärt tillämpad', billable: !applied.reusedExistingRun, billingUnit: 'actor_import',
+    metadata: { source, fileName, atomicApplyVersion: 1, result: applied, activation: applied.activation } })
 
   revalidatePath('/admin/ediel/actors')
   revalidatePath('/admin/ediel/auto-readiness')

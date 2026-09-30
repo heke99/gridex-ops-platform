@@ -8,7 +8,7 @@ import type {
 } from '@/lib/ediel/types'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
-import { renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
+import { contrlSourceEnvelope, renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
 import { renderAperakEdiel, usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
 import { inferEdielFileName } from '@/lib/ediel/classify'
 import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
@@ -373,10 +373,8 @@ function buildContrlSegments(params: {
   sourceMessage: EdielMessageRow
   outcome: AckOutcome
 }) {
-  const refs = parseEdifactRefs(params.sourceMessage)
   const rendered = renderContrl2Ediel2({
     outcome: params.outcome,
-    parsedInterchangeReference: refs.interchangeReference,
     source: {
       rawPayload: params.sourceMessage.raw_payload,
       interchangeReference: params.sourceMessage.interchange_reference,
@@ -946,6 +944,13 @@ function buildAckDraft(params: {
   const ackTransactionReference = sequencedReference ?? refs.transactionReference
 
   const parties = sourceParties(params.sourceMessage)
+  const contrlEnvelope = params.ackFamily === 'CONTRL' ? contrlSourceEnvelope(params.sourceMessage.raw_payload) : null
+  if (contrlEnvelope) {
+    parties.senderEdielId = contrlEnvelope.receiverComponents[0]
+    parties.senderSubAddress = contrlEnvelope.receiverComponents[2] || null
+    parties.receiverEdielId = contrlEnvelope.senderComponents[0]
+    parties.receiverSubAddress = contrlEnvelope.senderComponents[2] || null
+  }
 
   const applicationReference =
     trimOrNull(params.sourceMessage.application_reference) ??
@@ -1005,7 +1010,9 @@ function buildAckDraft(params: {
     acknowledgementRequest: ackStatuses.requiresContrl,
     testFlag: params.sourceMessage.test_flag,
     senderEdielId: parties.senderEdielId,
+    senderQualifier: contrlEnvelope?.receiverComponents[1],
     receiverEdielId: parties.receiverEdielId,
+    receiverQualifier: contrlEnvelope?.senderComponents[1],
     messageTypeToken:
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:2:2:UN:EDIEL2'

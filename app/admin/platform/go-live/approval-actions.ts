@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { getCompanyProductionReadiness, runProductionDryRun } from '@/lib/ediel/productionReadiness'
 import { supabaseService } from '@/lib/supabase/service'
+import { getEdielMessageById } from '@/lib/ediel/db'
 
 function required(formData: FormData, key: string): string {
   const value = String(formData.get(key) ?? '').trim()
@@ -30,6 +31,11 @@ export async function approveCompanyProductionAction(formData: FormData) {
   const admin = await requirePlatformAdminActionAccess()
 
   try {
+    const messageId = required(formData, 'message_id')
+    const message = await getEdielMessageById(messageId, { companyId })
+    if (!message || message.company_id !== companyId || message.environment !== 'production' || message.direction !== 'outbound') {
+      throw new Error('Välj ett sparat utgående produktionsmeddelande för detta bolag.')
+    }
     const preflight = await getCompanyProductionReadiness(companyId, {
       checkedBy: admin.userId,
       persist: true,
@@ -41,7 +47,7 @@ export async function approveCompanyProductionAction(formData: FormData) {
       )
     }
 
-    const dryRun = await runProductionDryRun(companyId, admin.userId)
+    const dryRun = await runProductionDryRun(companyId, admin.userId, message)
     if (!dryRun.success) {
       throw new Error(
         `Production dry run blockerades: ${dryRun.blockingIssues.map((issue) => issue.message).join(' · ')}`,

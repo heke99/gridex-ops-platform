@@ -5,7 +5,7 @@ import {prodatMarketMinuteToUtc,prodatNowDate203} from '@/lib/ediel/prodat/rende
 import {selectStructuralSources} from '@/lib/ediel/sources/structuralSourceSelection'
 import {reviewedBusinessFor,type StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 
-export type AiListSupplyPeriod={id:string;company_id:string;customer_id:string;metering_point_id:string;start_date:string;end_date:string|null}
+export type AiListSupplyPeriod={id:string;company_id:string;customer_id:string;metering_point_id:string;start_date:string;end_date:string|null;actual_start_date?:string|null;actual_end_date?:string|null}
 export type AiListHistoryScope={companyId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;legalSupplier:string;legalNetwork:string;fromDate:string;toDate:string;cutoffAt:string}
 export type AiListHistoricalProjection={details:AiListDetailRow[];evidence:{version:1;owner:'ai-reviewed-source-history-v1';snapshotId:string;readsetHash:string;cutoffAt:string;sourceMessageIds:string[];supplyPeriodIds:string[]}}
 function hold(reason:string):never{throw new Error(`ai_list_history_unavailable:${reason}`)}
@@ -26,7 +26,8 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
   for(const period of periods){
     if(period.company_id!==scope.companyId||period.customer_id!==scope.customerId)hold('supply_period_tenant_mismatch')
     if(scope.meteringPointId&&period.metering_point_id!==scope.meteringPointId)continue
-    const periodFrom=aiListDate(period.start_date),periodTo=period.end_date?aiListDate(period.end_date):null
+    const actualEnd=period.actual_end_date??period.end_date
+    const periodFrom=aiListDate(period.actual_start_date??period.start_date),periodTo=actualEnd?aiListDate(actualEnd):null
     if(periodTo&&periodFrom>=periodTo)hold('supply_period_invalid')
     if(periodFrom>=to||periodTo&&periodTo<=from)continue
     const candidates=readset.versions.filter(version=>version.coverage?.supplyPeriodId===period.id&&version.wire.businessCase==='supply_baseline')

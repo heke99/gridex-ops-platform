@@ -21,6 +21,7 @@ import {
   type EdielTgtRunEvaluation,
 } from "@/lib/ediel/testing/tgtRegistry";
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact";
+import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority';
 import { getEdielTgtDynamicTestDataForCase } from "@/lib/ediel/testing/tgtTestDataStore";
 import { supabaseService } from "@/lib/supabase/service";
 import {
@@ -436,11 +437,16 @@ async function createDraftForStep(params: {
     (issue) => issue.severity === "error",
   );
   if (blockingIssues.length > 0) {
-    throw new Error(
+    const qualification = await resolveSourceQualifiedNegativeFixtureDraft({companyId:params.evaluation.testRun.company_id!,runId:params.evaluation.testRun.id,
+      stepNo:params.step.stepNo,actorUserId:params.actorUserId,rawPayload:draft.messageInput.rawPayload ?? '',diagnosticCodes:blockingIssues.map(issue=>issue.code)});
+    if (!qualification) throw new Error(
       `TGT-utkastet är blockerat: ${blockingIssues
         .map((issue) => `${issue.title}: ${issue.description}`)
         .join(" | ")}`,
     );
+    bindSourceQualifiedNegativeFixtureDraft(draft.messageInput,qualification);
+    draft.messageInput.status='prepared';
+    draft.messageInput.parsedPayload={...draft.messageInput.parsedPayload,readyForDownload:true,negativeFixtureEvidence:{registrationId:qualification.registrationId,originalFileSha256:qualification.originalFileSha256,expectedOutcome:'negative'}};
   }
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);

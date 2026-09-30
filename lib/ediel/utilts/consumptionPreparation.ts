@@ -1,6 +1,6 @@
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { canonicalUtiltsTransactions } from './canonicalObservationScope'
-import { utiltsPhysicalQuantityUnit } from './quantityUnitScope'
+import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
 import { canonicalUtiltsDecimal, utiltsEnergyQuantityKwh } from './exactDecimal'
 import { supportedUtiltsConsumptionIdentity } from './consumptionIdentity'
 import { flattenUtiltsTransactionSeries, matchForSeriesItem, stringOrNull, toMeteringReadingType, type UtiltsTransactionMatch } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
@@ -88,7 +88,7 @@ export async function prepareUtiltsConsumptionContracts(input: {
       sourceCursor = sourceQuantity + 1
       const original = physicalQuantities[sourceQuantity]
       const observation = physical.observations.find(observation=>observation.quantities.includes(original)) ?? null
-      const unit = utiltsPhysicalQuantityUnit(physical,observation,original,wire.una)
+      const unit = policy.code==='E30' ? utiltsE30StandardEnergyUnit(physical,original,wire.una) : utiltsPhysicalQuantityUnit(physical,observation,original,wire.una)
       if (!unit) consumptionConflict('physical_quantity_unit')
       const quantity = utiltsEnergyQuantityKwh(canonicalUtiltsDecimal(original.value!,wire.una.decimalMark),unit)
       if (quantity === null) consumptionConflict('non_active_energy_consumption')

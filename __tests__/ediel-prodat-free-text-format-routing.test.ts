@@ -63,7 +63,9 @@ for (const alphabet of alphabets) for (const standard of ['xml', 'ai_list'] as c
     const result = preflightEdielPayload({ rawPayload, messageStandard: standard, mode: 'send', parsedPayload: row.parsed_payload })
     expect(result.blocking).toBe(true)
     expect(result.issues.some(issue => issue.code.includes('PRODAT_FTX_SEND_CONFORMANCE'))).toBe(true)
-    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('PRODAT_FTX_SEND_CONFORMANCE')
+    // Physical EDIFACT mislabeled as XML/list is held before content admission.
+    // The direct checks above still prove the independently invalid FTX field.
+    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
     expect(io.effects).toEqual([])
     expect(row.raw_payload).toBe(rawPayload)
   })
@@ -72,7 +74,7 @@ for (const alphabet of alphabets) for (const standard of ['xml', 'ai_list'] as c
     const row = message(rawPayload, standard)
     expect(() => prodatFreeTextSendIssues(row)).toThrow('edifact_dangling_release_character')
     expect(() => preflightEdielPayload({ rawPayload, messageStandard: standard, mode: 'send' })).toThrow('edifact_dangling_release_character')
-    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('edifact_dangling_release_character')
+    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
     expect(io.effects).toEqual([])
     expect(row.raw_payload).toBe(rawPayload)
   })
@@ -82,7 +84,7 @@ for (const standard of ['xml', 'ai_list'] as const) it(`default EDIFACT without 
   expect(rawPayload.startsWith('UNB+')).toBe(true)
   const row = message(rawPayload, standard)
   expect(prodatFreeTextSendIssues(row).map(issue => issue.code)).toContain('PRODAT_FTX_SEND_CONFORMANCE')
-  await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('PRODAT_FTX_SEND_CONFORMANCE')
+  await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
   expect(io.effects).toEqual([])
   expect(row.raw_payload).toBe(rawPayload)
 })

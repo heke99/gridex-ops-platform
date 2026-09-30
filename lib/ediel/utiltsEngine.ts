@@ -454,12 +454,16 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {
     const reference = resolveUtiltsTransactionId(observed.transactionId, index)
     const pairedAreas = new Set<string>()
+    let areaPresent=false,characteristic:string | null=null,exchange=false
     for (const segment of observed.segments) {
       if (segment.tag === 'SEQ') break
+      if(segment.tag==='CCI') characteristic=segmentComposite(segment,3,wire.una)[0] ?? null
+      if(segment.tag==='CAV' && characteristic==='E12' && segmentComposite(segment,1,wire.una)[0]==='E20') exchange=true
       if (segment.tag !== 'LOC') continue
       const location = segmentComposite(segment, 1, wire.una)[0]
       const fieldCode = fields[location ?? '']
       if (!fieldCode) continue
+      if(location==='239') areaPresent=true
       if (location === '232' || location === '233') pairedAreas.add(location)
       const parts = segmentComposite(segment, 2, wire.una)
       const value = parts[0] ?? ''
@@ -476,6 +480,14 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
+    }
+    const exchangeProfile=['E30','E31','E66','S07','E74'].includes(result.facts.messageCode ?? '')
+    if(!result.facts.isUtiltsErr && exchangeProfile && areaPresent && (exchange || pairedAreas.size>0)) issues.push({severity:'error',kind:'application',
+      code:'UTILTS_EXCHANGE_SINGLE_AREA_NOT_USED',title:'Felaktig nätområdesscope',description:'När eget Exchange använder nätområdesparet260b/260c ska260a inte anges enligt U s55/63.',
+      aperakErcCode:'42',aperakFieldCode:'260a',aperakText:'INCORRECT DATA',referenceQualifier:'ACW',referenceNumber:reference,lineItemReference:reference})
+    if(!result.facts.isUtiltsErr && exchange && ['E31','E66','S07','E74'].includes(result.facts.messageCode ?? '') && pairedAreas.size===0) {
+      for(const field of ['260b','260c']) issues.push({severity:'error',kind:'application',code:'UTILTS_EXCHANGE_AREA_PAIR_REQUIRED',title:'Nätområdespar saknas',
+        description:'Eget Exchange kräver260b och260c enligt U s55/63.',aperakErcCode:'41',aperakFieldCode:field,aperakText:'MANDATORY FIELD MISSING',referenceQualifier:'ACW',referenceNumber:reference,lineItemReference:reference})
     }
     if (!result.facts.isUtiltsErr && pairedAreaProfile.has(result.facts.messageCode ?? '') && pairedAreas.size === 1) {
       const missingField = pairedAreas.has('232') ? '260c' : '260b'

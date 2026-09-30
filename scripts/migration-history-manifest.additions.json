@@ -153,6 +153,12 @@
     "20260904103000_z01_sla_watchdog_candidate_convergence.sql": "9f25c7243dc708f954facf07fa2610c13157d6416330f9196eb7389a1c689c24",
     "20260930143025_ediel_service_assignment_grants_v1.sql": "f02c4a03e9da65d945516406d62611c0ab37dd3220418f961b662c3ea0449fa1",
     "20260930145115_ediel_generic_transport_attempts_v1.sql": "1298e08dd0d2aff2ba51c9741a3dd32d653cfab9abf416f7258bc1461ad55404",
-    "20260930153118_ediel_actor_legal_identity_name_search_v1.sql": "4d4289746b256fab93c4523f13eb1b7ecd388525e26e36045fdc4c316b41cc08"
+    "20260930153118_ediel_actor_legal_identity_name_search_v1.sql": "4d4289746b256fab93c4523f13eb1b7ecd388525e26e36045fdc4c316b41cc08",
+    "20260930164356_ediel_transport_copy_read_v1.sql": "b83e002a1dffa34af730cd617c5eb080a6a6b0980e5df38969add7c33ba3c445",
+    "20260930162005_ediel_service_permission_origination_v1.sql": "a6035a99da12ea91942896868971baa50c20ecf36974600c19206f8d9c49fa79",
+    "20260930172759_ediel_atomic_registry_import_v1.sql": "fa4ec41c2d57083b644fd2e116ffd9801ac1d40d57886d7a2180f8bae1a641a5",
+    "20260930175554_ediel_z08_dispatch_observation_clock_v1.sql": "25db1d6f2a28972d0245e394988ebc7ff3f9710ed7ae4afada7fb3134ce2c39c",
+    "20260930180445_ediel_accepted_transport_projection_v1.sql": "84e3be8aa2625065c0f30746d1c3e749356f0ce0892134ffddc3f3091b3546ae",
+    "20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql": "3f0f51efae58e4b267b22beefd972299acce55b205b574f24b15ae023613f9b7"
   }
 }

@@ -61,3 +61,20 @@ for(const databaseProfileKey of ['',null,42]) test(`never substitutes the semant
  input.decision.validationReport.rulePackEvidence={profileKey:'PRODAT:Z04:L:26.A:r3',databaseProfileKey,messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
  assert.equal(build(input),null)
 })
+
+for(const family of ['CONTRL','APERAK','UTILTS_ERR']) test(`records the actual fresh ${family} canonical facet under its own prospective insert context`,()=>{
+ const input=fixture(),snapshot=input.original.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}
+ input.original.message_family=family;input.validated.message_family=family
+ input.original.execution_context_snapshot={receivedAckContext:structuredClone(snapshot.receivedProdatContext)}
+ input.validated.execution_context_snapshot=structuredClone(input.original.execution_context_snapshot)
+ const evidence=build(input);assert.ok(evidence)
+ assert.equal(JSON.parse(evidence.factsText).sourceDisposition,'not_established')
+ input.original.execution_context_snapshot={receivedProdatContext:snapshot.receivedProdatContext}
+ assert.equal(build(input),null,'PRODAT insertion provenance cannot stand in for ACK capture')
+})
+test('an ACK facet never grants a PRODAT structural register handoff',()=>{
+ const input=fixture(),snapshot=input.original.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}
+ input.original.message_family='APERAK';input.validated.message_family='APERAK';input.original.execution_context_snapshot={receivedAckContext:snapshot.receivedProdatContext}
+ Object.assign(input.decision,{prodatRegisterValidation:{}})
+ assert.equal(build(input),null)
+})

@@ -5,9 +5,10 @@ import type { EdielDispatchStateResult } from '@/lib/ediel/intent/dispatchState'
 import type { CustomerInfoRequestRow } from '@/lib/onboarding/infoRequests'
 const snapshot = buildCustomerCardSnapshot({ sites: [], meteringPoints: [], infoRequests: [], contracts: [] })
 function workflow(infoStatus: string, receipts?: { technical: string | null; application: string | null }) {
+  const dispatchState: EdielDispatchStateResult = { state: 'sent', waitingForCounterparty: true, intentId: 'intent', edielMessageId: 'source', outboxId: 'outbox', businessProcess: 'information_request', messageFamily: 'PRODAT', messageCode: 'Z01', blockingReasons: [], tenantLabel: 'Skickad', acknowledgements: receipts, technical: { validationStatus: 'passed', renderStatus: 'rendered', outboxStatus: 'sent', outboxRowStatus: 'sent', messageStatus: 'sent', messageSentAt: '2026-09-30T14:00:00Z', legacyOutboundStatus: null, legacyActuallySent: false } }
   return buildCustomerCardWorkflow({ customerId: 'customer', snapshot, sites: [], meteringPoints: [], contracts: [], switchRequests: [], powersOfAttorney: [], isPlatformAdmin: false,
     infoRequests: [{ id: 'request', status: infoStatus, ediel_message_id: 'source', verified_payload: {} } as CustomerInfoRequestRow],
-    dispatchState: { state: 'sent', waitingForCounterparty: true, edielMessageId: 'source', blockingReasons: [], tenantLabel: 'Skickad', technical: {}, acknowledgements: receipts } as EdielDispatchStateResult,
+    dispatchState,
   }).workflowSteps
 }
 describe('customer timeline preserves independent receipts and business response', () => {

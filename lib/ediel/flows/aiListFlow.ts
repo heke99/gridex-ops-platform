@@ -1,3 +1,4 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 // lib/ediel/flows/aiListFlow.ts
 
 import { getGridOwnerById } from '@/lib/masterdata/db'
@@ -38,16 +39,7 @@ export async function prepareAndQueueAiList(params: {
   if(!isEvidenceUuid(params.actorUserId)||!isEvidenceUuid(params.companyId))throw new Error('ai_list_actor_company_context_required')
   const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await makeServerClient()
-  const permissions=await Promise.all(['communication.write','ediel_testing.write'].map(async permission=>{
-    const {data,error}=await supabase.rpc('gridex_actor_has_company_permission',{p_actor_user_id:actorUserId,p_company_id:params.companyId,p_permission:permission}).abortSignal(AbortSignal.timeout(2000))
-    return !error&&data===true
-  }))
-  const [{data:membership,error:membershipError,count:membershipCount},{data:profile,error:profileError}]=await Promise.all([
-    supabase.from('company_memberships').select('company_id,user_id,status,is_active,accepted_at,disabled_at,removed_at,suspended_at',{count:'exact'}).eq('company_id',params.companyId).eq('user_id',actorUserId).limit(2).abortSignal(AbortSignal.timeout(2000)),
-    supabase.from('user_profiles').select('id,user_status').eq('id',actorUserId).abortSignal(AbortSignal.timeout(2000)).maybeSingle(),
-  ])
-  const member=membership?.[0]
-  if(!permissions.some(Boolean)||membershipError||profileError||membershipCount!==1||membership?.length!==1||member?.status!=='active'||member.is_active!==true||!member.accepted_at||member.disabled_at||member.removed_at||member.suspended_at||profile?.user_status!=='active')throw new Error('ai_list_tenant_authorization_required')
+  await assertEdielTenantActor({companyId:params.companyId,actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
   const {data:siteData,error:siteError}=await supabase.from('customer_sites').select('*').eq('id',params.siteId).eq('company_id',params.companyId).eq('customer_id',params.customerId).abortSignal(AbortSignal.timeout(2000)).maybeSingle()
   if(siteError||!siteData)throw new Error('ai_list_customer_site_scope_mismatch')
   const site=siteData as unknown as CustomerSiteRow
@@ -79,7 +71,7 @@ export async function prepareAndQueueAiList(params: {
   if(!tenant.identity.roleCodes.includes('electricity_supplier')||tenant.identity.legalEdielId!==routeContext.senderEdielId||params.supplierEdielId&&params.supplierEdielId!==tenant.identity.legalEdielId||!gridOwner?.ediel_id||gridOwner.ediel_id!==routeContext.receiverEdielId||params.receiverEdielId!==routeContext.receiverEdielId)throw new Error('ai_list_verified_supplier_network_context_required')
   // Complete all-status supply history; an active-only query would omit ended
   // periods. This is a scope index, never authority for historical field values.
-  let periodsQuery=supabase.from('customer_supply_periods').select('id,company_id,customer_id,metering_point_id,start_date,end_date',{count:'exact'}).eq('company_id',params.companyId).eq('customer_id',params.customerId)
+  let periodsQuery=supabase.from('customer_supply_periods').select('id,company_id,customer_id,metering_point_id,start_date,end_date,actual_start_date,actual_end_date',{count:'exact'}).eq('company_id',params.companyId).eq('customer_id',params.customerId)
   if(params.meteringPointId)periodsQuery=periodsQuery.eq('metering_point_id',params.meteringPointId)
   const {data:periods,error:periodError,count:periodCount}=await periodsQuery.limit(1001).abortSignal(AbortSignal.timeout(2000))
   if(periodError||periodCount===null||periodCount>1000||periods?.length!==periodCount)throw new Error('ai_list_supply_history_read_incomplete')

@@ -3,7 +3,7 @@
 import type { EdielAckOutcome, EdielMessageRow } from '@/lib/ediel/types'
 import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts'
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
-import { isSingletonE30Reading, validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
+import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
@@ -1077,45 +1077,9 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     }))
   }
 
-  const needsMeteringPoint = ['S02', 'E30', 'E66'].includes(code)
-  const needsGridArea = ['S02', 'S03', 'E30', 'E31', 'E66'].includes(code)
-  if (needsMeteringPoint && !facts.meterPointId && !(code === 'E66' && facts.transactions.some(transaction => transaction.regulatingObjectPresent))) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_METERING_POINT',
-      title: 'Anläggningsid saknas',
-      description: 'LOC+172 saknas eller saknar anläggningsid.',
-      aperakErcCode: '41',
-      aperakFieldCode: '515',
-    }))
-  }
-
-  if (needsGridArea && !facts.gridAreaId) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_GRID_AREA',
-      title: 'Nätområdesid saknas',
-      description: 'LOC+239 saknas eller saknar nätområdesid.',
-      aperakErcCode: '41',
-      aperakFieldCode: '508',
-    }))
-  }
-
-  if (needsGridArea && !facts.deliveryPeriodRaw && !(
-    code === 'E30' && facts.transactions.length > 0 && facts.transactions.every((_, index) => isSingletonE30Reading(facts, index))
-  )) {
-    issues.push(buildIssue({
-      severity: 'error',
-      kind: 'application',
-      code: 'UTILTS_MISSING_DELIVERY_PERIOD',
-      title: 'Leveransperiod saknas',
-      description: 'DTM+324 saknas för objektmeddelandet.',
-      aperakErcCode: '41',
-      aperakFieldCode: '238',
-    }))
-  }
+  // Own physical requirements are evaluated by validateCanonicalUtiltsProfile.
+  // Global first-IDE summaries cannot impose optional/conditional fields or
+  // supply a missing field to another transaction.
 
   if (!functionalEligible || functionalEligible.size > 0) addObjectProcessabilityIssues({ issues, message, facts, code, functionalEligible })
 
@@ -1216,7 +1180,6 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
       const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
-      const gridAreaId = parseLocValueFromGroup(group, 'LOC+239') ?? facts.gridAreaId
       const label = code === 'E31' ? 'E31' : 'S03'
 
 

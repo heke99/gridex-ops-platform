@@ -1,3 +1,5 @@
+import {readSourceBoundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
 import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
@@ -58,7 +60,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   parsedPayload?: Record<string, unknown> | null
 }
 
-export type RulebookValidationResult = LegacyRulebookValidationResult
+export type RulebookValidationResult = LegacyRulebookValidationResult & { canonicalPolicy?: CanonicalEdielPolicy }
 
 type ActiveCanonicalFamily = 'PRODAT' | 'UTILTS' | 'UTILTS_ERR' | 'APERAK' | 'CONTRL'
 type BusinessRulePackFamily = 'PRODAT' | 'UTILTS'
@@ -418,6 +420,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       code: policy.code,
       processGroup: policy.processGroup ?? 'unknown',
       expectedApplicationReference: policy.applicationReference,
+      canonicalPolicy: policy,
       parsed,
       issues,
       fieldRuleSource: 'static',
@@ -505,7 +508,19 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     // ACKs inherit the exact activation/evidence snapshot from the source
     // business message. Inbound parsing is fully source-controlled and does not
     // require a mutable DB row to define protocol meaning.
-    if (input.mode !== 'send') return result
+    if (input.mode !== 'send') {
+      if (!input.messageRow || familyValue === 'UTILTS_ERR') return result
+      try {
+        const {sourceMessage,evidence}=await readSourceBoundAckRulePackEvidence(input.messageRow)
+        const policy=result.canonicalPolicy!
+        const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+        const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+        return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+      }catch(error){
+        const issues=[...result.issues,issue({severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description:error instanceof Error?error.message:String(error)})]
+        return {...result,ok:false,blocking:true,issues,fieldRuleSource:'static',rulePackSnapshot:null}
+      }
+    }
     const inherited = inheritedSourceRulePackSnapshot(input)
     if (!inherited) {
       const issues = [...result.issues, issue({
@@ -524,7 +539,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   }
 
   try {
-    const policy = policyForValidation({ ...input, parsed }, parsed)
+    const policy = result.canonicalPolicy ?? policyForValidation({ ...input, parsed }, parsed)
     const evidence = await resolveCanonicalRulePack({
       family: familyValue,
       messageCode: policy.code,

@@ -47,12 +47,12 @@ describe('real UTILTS quantity sinks require durable transaction acceptance', ()
     bound[0].consumptionContract!.observations[0].quantity = 888
     await consume(p, bound)
     expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 123, periodEnd: '2026-09-01T00:00:00.000Z' }))
-    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 123, underlayMonth: 9, underlayYear: 2026 }))
+    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '123', underlayMonth: 9, underlayYear: 2026 }))
   })
   it('preserves accepted persisted quantities and tenant attribution', async () => {
     await consume(payload())
     expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'tenant-a', customerId: 'customer-a', meteringPointId: 'point-a', quantityKwh: 123, sourceTransactionReference: 'T1' }))
-    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'customer-a', meteringPointId: 'point-a', totalKwh: 123 }))
+    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'customer-a', meteringPointId: 'point-a', totalKwh: '123' }))
   })
   for (const state of ['failed', 'held', 'rejected', 'missing decisions', 'missing persistence', 'empty decisions', 'empty persistence', 'duplicate decisions', 'duplicate persistence', 'duplicate transactions', 'contradictory persistence']) {
     it(`excludes ${state} from both sinks without restoring aggregate quantity`, async () => {
@@ -81,7 +81,7 @@ describe('real UTILTS quantity sinks require durable transaction acceptance', ()
       await consume(p)
       expect(io.meter).toHaveBeenCalledTimes(1)
       expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 7, sourceTransactionReference: 'T2' }))
-      expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 7 }))
+      expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '7' }))
     })
   }
   it('does not consume an accepted sibling when another IDE has an internal storage failure', async () => {
@@ -111,7 +111,7 @@ describe('real UTILTS quantity sinks require durable transaction acceptance', ()
     p.utiltsTransactionDispositions = [decision('transaction-1')]; p.utiltsTransactionPersistenceResults = [persisted('transaction-1')]
     await consume(p)
     expect(io.meter).toHaveBeenCalledWith(expect.objectContaining({ sourceTransactionReference: 'transaction-1', quantityKwh: 123 }))
-    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 123 }))
+    expect(io.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '123' }))
   })
 })
 

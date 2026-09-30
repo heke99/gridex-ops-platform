@@ -23,7 +23,7 @@ function receipt(value:unknown):Receipt{
  if(!value||typeof value!=='object'||typeof (value as Receipt).scoped!=='boolean')throw Error('outbound_dispatch_invalid_receipt')
  return value as Receipt
 }
-export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,context:{message:EdielMessageRow;actorUserId:string;owner?:OutboundDispatchOwner;mimeMode:string;payload:Buffer;encoding:string}){
+export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,context:{message:EdielMessageRow;actorUserId:string;owner?:OutboundDispatchOwner;mimeMode:string;payload:Buffer;encoding:string;admissionDecision?:Readonly<Record<string,unknown>>|null}){
  const {message}=context
  // The source owner selects the Z08 closure lane. All other families use
  // the shared transport journal; inspect the sealed wire as well as row code.
@@ -49,7 +49,7 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
    if(callbackUsed)throw Error('outbound_dispatch_callback_reused')
    callbackUsed=true
    const binding={...actual,originalHash:hash(Buffer.from(message.raw_payload ?? '','utf8')),routeId:message.communication_route_id,
-    mimeMode:context.mimeMode,encoding:context.encoding,payloadBase64:context.payload.toString('base64'),payloadHash:hash(context.payload),payloadLength:context.payload.length}
+    mimeMode:context.mimeMode,encoding:context.encoding,payloadBase64:context.payload.toString('base64'),payloadHash:hash(context.payload),payloadLength:context.payload.length,admissionDecision:context.admissionDecision??null}
    const reservation=await call('prepare',{owner:context.owner ?? {kind:'direct'},binding})
    scoped=reservation.scoped
    if(!scoped){

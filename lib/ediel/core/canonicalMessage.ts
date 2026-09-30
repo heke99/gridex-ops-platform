@@ -192,6 +192,23 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
   const facts = parseEdifactMessageFacts(rawPayload)
   const una = parseUna(rawPayload)
   const rawSegments = facts.rawSegments
+  // ACK facts use the same service alphabet and physical components as their
+  // guide/correlation consumers; no literal delimiter or metadata fallback.
+  if (facts.messageType === 'APERAK' || facts.messageType === 'CONTRL') {
+    const family=facts.messageType, present=(value:string | undefined)=>value?.length?value:null
+    const unb=(index:number)=>segmentComposite(facts.unb,index,una)
+    const refs=referenceList(facts.segments,una)
+    return {
+      family,messageFamilyForStorage:family,messageStandard:'edifact',messageCode:family,subtype:null,direction,
+      version:present(segmentComposite(facts.unh,2,una)[4]),applicationReference:present(unb(7)[0]),
+      sender:present(unb(2)[0]),receiver:present(unb(3)[0]),senderSubAddress:present(unb(2)[2]),receiverSubAddress:present(unb(3)[2]),
+      interchangeReference:present(unb(5)[0]),messageReference:present(segmentComposite(facts.unh,1,una)[0]),
+      documentReference:present(segmentComposite(facts.bgm,2,una)[0]),transactionReference:referenceValue(refs,'LI','ACW','DM'),
+      businessReference:referenceValue(refs,'LI','ACW'),relatedReference:referenceValue(refs,'ACW','Z07'),facilityId:null,meteringPointId:null,gridArea:null,permissionId:null,
+      period:null,quantities:[],statuses:[],references:refs,processGroup:processGroupForMessage(family,family),una,rawSegments:facts.rawSegments,
+      facts:{parsedBy:'canonicalMessage',sourceFacts:{messageType:family,messageCode:facts.messageCode,documentReference:facts.documentReference}},parserWarnings:[],
+    }
+  }
   const unbRaw = facts.unb?.raw ?? firstSegment(rawSegments, 'UNB+')
   const unhRaw = facts.unh?.raw ?? firstSegment(rawSegments, 'UNH+')
   const bgmRaw = facts.bgm?.raw ?? firstSegment(rawSegments, 'BGM+')

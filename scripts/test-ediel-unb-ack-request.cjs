@@ -6,12 +6,14 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+after(assertNoSourceBoundaryAttempts)
 const root = path.resolve(__dirname, '..')
 const NOW = '2026-09-20T12:00:00.000Z'
 
-async function loadRuntime() {
+async function loadRuntime(actorFixture = null) {
   class FixedDate extends Date {
     constructor(...args) { super(...(args.length ? args : [NOW])) }
     static now() { return Date.parse(NOW) }
@@ -23,12 +25,50 @@ async function loadRuntime() {
   const synthetic = (exports) => new SyntheticModule(Object.keys(exports), function () {
     for (const [name, value] of Object.entries(exports)) this.setExport(name, value)
   }, { context })
+  const authorizationReads = []
+  const service = {
+    from(table) {
+      if (!actorFixture) return deny('db')()
+      assert(['company_memberships', 'user_profiles'].includes(table), `Unexpected fixture table: ${table}`)
+      const filters = {}
+      const query = {
+        select() { return query }, eq(key, value) { filters[key] = value; return query },
+        not(key, operator, value) { assert.deepEqual([key, operator, value], ['accepted_at', 'is', null]); return query },
+        async maybeSingle() {
+          authorizationReads.push({ table, filters })
+          if (table === 'company_memberships') {
+            assert.deepEqual(filters, { company_id: actorFixture.companyId, user_id: actorFixture.actorUserId, status: 'active', is_active: true })
+            return { data: actorFixture.active ? { ...filters, accepted_at: NOW } : null, error: null }
+          }
+          assert.deepEqual(filters, { id: actorFixture.actorUserId, user_status: 'active' })
+          return { data: { ...filters }, error: null }
+        },
+      }
+      return query
+    },
+    async rpc(name, parameters) {
+      if (!actorFixture) return deny('rpc')()
+      assert.equal(name, 'gridex_actor_has_company_permission')
+      assert.equal(parameters.p_actor_user_id, actorFixture.actorUserId)
+      assert.equal(parameters.p_company_id, actorFixture.companyId)
+      assert(['communication.write', 'ediel_testing.write'].includes(parameters.p_permission))
+      authorizationReads.push({ name, parameters })
+      return { data: actorFixture.permitted && parameters.p_permission === 'communication.write', error: null }
+    },
+  }
   const boundaries = new Map([
-    ['@/lib/supabase/service', synthetic({ supabaseService: { from: deny('db'), rpc: deny('rpc') } })],
+    ['@/lib/supabase/service', synthetic({ supabaseService: service })],
     ['@/lib/customers/canonicalOnboarding', synthetic({ canonicalIdempotencyKey: deny('idempotency'), onboardCustomerGraph: deny('onboarding') })],
     ['@/lib/tenant/context', synthetic({ createTenantContext: deny('tenant-context') })],
     ['@/lib/supabase/tenantDb', synthetic({ tenantDb: deny('tenant-db') })],
   ])
+  if (actorFixture) boundaries.set('@/lib/cis/db-shared', synthetic({
+    async getCustomerExportContext(selection) {
+      assert.deepEqual({ ...selection }, { customerId: actorFixture.exportContext.customer.id, siteId: actorFixture.exportContext.site.id, meteringPointId: actorFixture.exportContext.meteringPoint.id })
+      return actorFixture.exportContext
+    },
+    requireContextCompanyId(value) { assert.equal(value.companyId, actorFixture.companyId); return value.companyId },
+  }))
   const crypto = synthetic({ randomUUID: require('node:crypto').randomUUID, createHash: require('node:crypto').createHash })
   const modules = new Map()
   const entry = new SourceTextModule(`
@@ -44,18 +84,20 @@ async function loadRuntime() {
   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
   await entry.link((name, parent) => {
     if (boundaries.has(name)) return boundaries.get(name)
+    const manifest = sourceRuntimeBoundary(name, modules, parent)
+    if (manifest) return manifest
     if (name === 'crypto' || name === 'node:crypto') return crypto
     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
     const base = name.startsWith('@/') ? path.join(root, name.slice(2)) : path.resolve(path.dirname(parent.identifier), name)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
     if (!modules.has(file)) modules.set(file, new SourceTextModule(
-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
+      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
       { context, identifier: file }))
     return modules.get(file)
   })
   await entry.evaluate()
-  return { ...entry.namespace, effects }
+  return { ...entry.namespace, effects, authorizationReads }
 }
 const api = loadRuntime()
 
@@ -228,21 +270,44 @@ for (const requestAck of [undefined,false,true]) test(`generic PRODAT alternate 
   const built = a.buildProdatMessage(input), wire = finalWire(built.rawEdifact)
   assert.equal(wire.unb[9], '1'); assert.equal(wire.rows.find(row=>row[0]==='BGM')[4], requestAck===false?'NA':'AB')
 })
-test('actual saved-switch PRODAT draft carries the same request and persisted monitoring', async () => {
-  const a = await api, id = '735999888000000017'
+test('guarded saved-switch draft preserves request and monitoring with explicit mocked authority reads', async () => {
+  const id = '735999888000000017'
   const portalData = {facilityId:id,customerId:'USER',customerIdAgency:'89',powerOfAttorneyReference:'POA',customerName:'Synthetic',
     customerAddress:'Street',customerPostalCode:'12345',customerCity:'Town',customerCountry:'SE',siteAddress:'Street',siteCountry:'SE',
     gridAreaId:'TES',agreementStartDateTime:'202610010000',validityDateTime:'202610010000',reasonForTransaction:'Z22',observationLength:'15',observationLengthFormat:'806',
     registers:[],dependentConditionFacts:selections(id,'company','USER',['Street'],'12345','Town'),meteringMethod:'Z03',reportingFrequency:'D',
     meterNumber:'NEW',oldMeterNumber:'OLD',productCode:'8716867000030',settlementMethod:'D',installationStatus:'E22',balanceResponsibleId:'12345'}
-  const input = {actorUserId:'actor',senderEdielId:'12345',receiverEdielId:'54321',senderSubAddress:'DDQ',receiverSubAddress:'DDQ',applicationReference:'23-DDQ-PRODAT',environment:'test',
+  const input = {actorUserId:'00000000-0000-4000-8000-00000000a001',senderEdielId:'12345',receiverEdielId:'54321',senderSubAddress:'DDQ',receiverSubAddress:'DDQ',applicationReference:'23-DDQ-PRODAT',environment:'test',
     switchRequest:{id:'switch',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'meter',grid_owner_id:'owner',requested_start_date:'2026-10-01',request_type:'supplier_switch',status:'draft',current_supplier_name:'Existing',power_of_attorney_id:'poa',validation_snapshot:{portalData}},
     site:{id:'site',company_id:'company',customer_id:'customer',facility_id:id,grid_owner_id:'owner',move_in_date:'2026-10-01',street:'Street',postal_code:'12345',city:'Town'},
     meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'}}
+  const companyId = '00000000-0000-4000-8000-00000000a002'
+  input.switchRequest.company_id = companyId
+  input.site.company_id = companyId
+  input.meteringPoint.company_id = companyId
+  input.site.country = 'SE'
+  input.site.grid_area_code = 'TES'
+  portalData.dependentConditionFacts = selections(id, companyId, '5560000000', ['Street'], '12345', 'Town')
+  const invoicee = portalData.dependentConditionFacts.invoiceeObjects[0]
+  invoicee.endUser.identity = { id: '5560000000', qualifier: 'SE1', agency: '260' }
+  invoicee.invoicee.identity = { ...invoicee.endUser.identity }
+  const actorFixture = { companyId, actorUserId: input.actorUserId, active: true, permitted: true,
+    exportContext: { companyId, tenantIssues: [], customer: { id: 'customer', company_id: companyId, org_number: '5560000000', company_name: 'Synthetic' }, contacts: [], site: input.site, meteringPoint: input.meteringPoint, contract: null } }
+  const a = await loadRuntime(actorFixture)
   const before = JSON.stringify(input), draft = await a.buildProdatZ03FromSwitch(input)
   assert.equal(finalWire(draft.rawPayload).unb[9], '1')
   assertPending(a,draft,true); assert.equal(JSON.stringify(input),before)
   assert.equal(draft.customerId,'customer'); assert.equal(draft.siteId,'site'); assert.equal(draft.switchRequestId,'switch')
+  assert.equal(a.authorizationReads.length, 4)
+  assert.deepEqual(a.effects, [])
+  for (const changed of [{ active: false }, { permitted: false }]) {
+    const denied = await loadRuntime({ ...actorFixture, ...changed })
+    await assert.rejects(denied.buildProdatZ03FromSwitch(input), /ediel_tenant_(actor|permission)_forbidden/)
+    assert.deepEqual(denied.effects, [])
+  }
+  const forged = structuredClone(input)
+  forged.switchRequest.validation_snapshot.portalData.dependentConditionFacts.invoiceeObjects[0].source.companyId = 'foreign-company'
+  await assert.rejects(a.buildProdatZ03FromSwitch(forged), /PRODAT_INVOICEE_EVIDENCE_INVALID|invoicee_tenant|prodat_invoicee_evidence_invalid/)
 })
 test('all exercised consumers kept provider, database and transport boundaries closed', async () => {
   assert.deepEqual((await api).effects, [])
@@ -309,7 +374,7 @@ test('actual outbound route contract still selects ediel_ack for UTILTS_ERR',asy
     ['@/lib/routes/routeReadiness',synthetic({expectedApplicationReference:requestType=>{captured.push(requestType);throw stop}})],
   ])
   const file=path.join(root,'lib/ediel/outbox/routeContract.ts')
-  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{context,identifier:file})
+  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode: 'transform',sourceUrl:file}),{context,identifier:file})
   await module.link(name=>{assert.ok(boundaries.has(name),`Unexpected route dependency:${name}`);return boundaries.get(name)})
   await module.evaluate()
   await assert.rejects(module.namespace.evaluateEdielRouteContract({direction:'outbound',company_id:'tenant-A',

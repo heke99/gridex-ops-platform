@@ -3,17 +3,13 @@
 import { getGridOwnerById } from "@/lib/masterdata/db";
 import type { GridOwnerRow } from "@/lib/masterdata/types";
 import { supabaseService } from "@/lib/supabase/service";
-import {
-  getCustomerExportContext,
-  requireContextCompanyId,
-} from "@/lib/cis/db-shared";
+import { buildCustomerMasterdataZ01Draft } from "@/lib/ediel/intent/renderers/customerMasterdataZ01";
 import type {
   GridOwnerDataRequestRow,
   OutboundRequestRow,
 } from "@/lib/cis/types";
 import { updateGridOwnerDataRequestStatus } from "@/lib/cis/db-data";
 import { resolveCanonicalOutboundContext } from "@/lib/ediel/core/kernel";
-import { isEdielPortalParty } from "@/lib/ediel/core/productionGuards";
 import {
   resolveDecisionBackedOutboundContext,
   RouteDecisionBlockedError,
@@ -26,8 +22,6 @@ import type {
   EdielMessageRow,
 } from "@/lib/ediel/types";
 import { buildDefaultApplicationReference } from "@/lib/ediel/config";
-import { buildEdifactEnvelope } from "@/lib/ediel/messages";
-import { inferEdielFileName } from "@/lib/ediel/classify";
 import {
   makeCustomerOperationBlocker,
   routeIssueCodeToCustomerBlocker,
@@ -44,11 +38,6 @@ import { buildCanonicalOutboundReferences } from "@/lib/ediel/core/referenceRegi
 import { materializeCompanyGridOwnerRoute } from "@/lib/ediel/routeMaterializer";
 import { resolveCustomerInfoOperationEnvironment } from "@/lib/ediel/customerInfoEnvironmentResolver";
 import { resolveCanonicalOutboundVersion } from "@/lib/ediel/core/versionRegistry";
-import {
-  computeOutboundAckDueAt,
-  deriveEdielAckDefaults,
-} from "@/lib/ediel/references";
-import { renderProdat26A } from "@/lib/ediel/prodatEngine";
 import {
   createEdielMessageIntent,
   updateIntentLifecycle,
@@ -126,63 +115,6 @@ function compactReference(
 }
 
 
-function normalizeCustomerIdentity(
-  customer: Awaited<ReturnType<typeof getCustomerExportContext>>["customer"],
-) {
-  const customerId = sanitize(
-    customer?.personal_number ??
-      customer?.org_number ??
-      customer?.customer_number ??
-      null,
-  );
-  const qualifier = customer?.org_number
-    ? "1"
-    : customerId.length === 10
-      ? "SE1"
-      : "SE2";
-
-  const customerName =
-    sanitize(
-      customer?.company_name ??
-        customer?.full_name ??
-        [customer?.first_name, customer?.last_name].filter(Boolean).join(" ") ??
-        customer?.customer_number ??
-        "Kund",
-    ) || "Kund";
-
-  return {
-    customerId: customerId || null,
-    qualifier,
-    customerName,
-  };
-}
-
-function resolveMeterPointId(
-  context: Awaited<ReturnType<typeof getCustomerExportContext>>,
-): string {
-  return sanitize(
-    context.meteringPoint?.ediel_reference ??
-      context.meteringPoint?.meter_point_id ??
-      context.site?.facility_id ??
-      "",
-  );
-}
-
-function resolveGridAreaId(
-  context: Awaited<ReturnType<typeof getCustomerExportContext>>,
-  gridOwner: GridOwnerRow | null,
-): string | null {
-  // Grid area and bidding/price area are different market concepts.
-  // PRODAT fields that ask for grid area must use e.g. LKA, not SE4.
-  return (
-    sanitize(
-      context.meteringPoint?.grid_area_code ??
-        context.site?.grid_area_code ??
-        gridOwner?.owner_code ??
-        null,
-    ) || null
-  );
-}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -491,173 +423,10 @@ export function buildProdatZ01Draft(params: {
   transactionReference: string;
   messageVersion: string;
 }): Promise<CreateEdielMessageInput> {
-  return (async () => {
-    const context = await getCustomerExportContext({
-      customerId: params.dataRequest.customer_id,
-      siteId: params.dataRequest.site_id,
-      meteringPointId: params.dataRequest.metering_point_id,
-    });
-    const companyId = requireContextCompanyId(context, "Bygg PRODAT Z01");
-    const customer = normalizeCustomerIdentity(context.customer);
-    const meterPointId = resolveMeterPointId(context);
-    if (!meterPointId) {
-      throw new Error(
-        "PRODAT Z01 kan inte byggas utan anläggnings-id/mätpunkt.",
-      );
-    }
-
-    const messageVersionToken =
-      params.messageVersion === "26A" ? "E2SE6A" : params.messageVersion;
-    const isEdielPortalTgt = isEdielPortalParty(
-      params.routeContext.receiverEdielId,
-    );
-    const senderSubAddress = isEdielPortalTgt
-      ? "PRODAT"
-      : params.routeContext.senderSubAddress;
-    const receiverSubAddress = isEdielPortalTgt
-      ? "PRODAT"
-      : params.routeContext.receiverSubAddress;
-    const applicationReference =
-      params.routeContext.applicationReference ??
-      buildDefaultApplicationReference({
-        actorSubAddress: senderSubAddress,
-        process: "PRODAT",
-      });
-
-    const rendered = renderProdat26A({
-      context: {
-        code: "Z01",
-        bgmReference: params.externalReference,
-        transactionReference: params.transactionReference,
-        senderEdielId: params.routeContext.senderEdielId,
-        receiverEdielId: params.routeContext.receiverEdielId,
-        customerName: customer.customerName,
-        customerId: customer.customerId,
-        customerIdCodeListQualifier: customer.qualifier,
-        meterPointId,
-        gridAreaId: resolveGridAreaId(context, params.gridOwner),
-        startDate:
-          context.site?.move_in_date ?? params.dataRequest.requested_at,
-        customerAddress: context.site?.street ?? null,
-        customerPostalCode: context.site?.postal_code ?? null,
-        customerCity: context.site?.city ?? null,
-        customerCountry: context.site?.country ?? "SE",
-        siteAddress: context.site?.street ?? null,
-        sitePostalCode: context.site?.postal_code ?? null,
-        siteCity: context.site?.city ?? null,
-        siteCountry: context.site?.country ?? "SE",
-        reasonForTransaction: "Z22",
-        powerOfAttorneyReference:
-          params.dataRequest.external_reference ?? params.externalReference,
-      },
-    });
-
-    const ack = deriveEdielAckDefaults({ family: "PRODAT", code: "Z01" });
-
-    const envelope = buildEdifactEnvelope({
-      acknowledgementRequest: ack.requiresContrl,
-      senderEdielId: params.routeContext.senderEdielId,
-      senderSubAddress,
-      receiverEdielId: params.routeContext.receiverEdielId,
-      receiverSubAddress,
-      applicationReference,
-      testFlag: params.routeContext.environment === "production" ? 0 : 1,
-      messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
-      segments: rendered.segments,
-    });
-
-    const validationReport = {
-      status: rendered.issues.some((issue) => issue.severity === "error")
-        ? "warning"
-        : "ready",
-      checkedAt: new Date().toISOString(),
-      prodatEngine: rendered.diagnostics,
-      prodatAckExpectation: rendered.ackExpectation ?? null,
-      engineIssues: rendered.issues,
-      payloadPreflight: envelope.payloadPreflight,
-    };
-
-    return {
-      actorUserId: params.actorUserId,
-      companyId,
-      direction: "outbound",
-      messageStandard: "edifact",
-      messageFamily: "PRODAT",
-      messageCode: "Z01",
-      messageVersion: params.messageVersion,
-      processType: "customer_masterdata_request",
-      environment: params.routeContext.environment,
-      testFlag: params.routeContext.environment === "production" ? 0 : 1,
-      status: "draft",
-      transportType: "smtp",
-      mailbox: params.routeContext.mailbox,
-      senderEdielId: params.routeContext.senderEdielId,
-      senderName: params.routeContext.senderName,
-      receiverEdielId: params.routeContext.receiverEdielId,
-      receiverName: params.routeContext.receiverName,
-      senderSubAddress,
-      receiverSubAddress,
-      receiverEmail: params.routeContext.receiverEmail,
-      subject: `PRODAT Z01 ${params.externalReference}`,
-      fileName: inferEdielFileName({
-        family: "PRODAT",
-        code: "Z01",
-        direction: "outbound",
-        extension: "edi",
-      }),
-      mimeType: "application/edifact",
-      interchangeReference: envelope.interchangeReference,
-      applicationReference,
-      externalReference: params.externalReference,
-      transactionReference: params.transactionReference,
-      communicationRouteId: params.routeContext.route.id,
-      gridOwnerDataRequestId: params.dataRequest.id,
-      customerId: params.dataRequest.customer_id,
-      siteId: params.dataRequest.site_id,
-      meteringPointId: params.dataRequest.metering_point_id,
-      gridOwnerId: params.dataRequest.grid_owner_id,
-      rawPayload: envelope.raw,
-      parsedPayload: {
-        draftType: "prodat_customer_masterdata_outbound",
-        processLabel: "customer_masterdata_request",
-        prodatCode: "Z01",
-        expectedResponse:
-          "CONTRL/APERAK och därefter PRODAT Z02 eller negativ APERAK",
-        gridOwnerDataRequestId: params.dataRequest.id,
-        requestScope: params.dataRequest.request_scope,
-        customerId: params.dataRequest.customer_id,
-        siteId: params.dataRequest.site_id,
-        meteringPointId: params.dataRequest.metering_point_id,
-        gridOwnerId: params.dataRequest.grid_owner_id,
-        meterPointId,
-        gridOwnerEdielId: params.gridOwner?.ediel_id ?? null,
-        gridOwnerOwnerCode: params.gridOwner?.owner_code ?? null,
-        // The legal authorization chain must be traceable on the rendered
-        // message (powers_of_attorney -> customer_authorization_documents ->
-        // ... -> ediel_messages metadata), not only on upstream request rows.
-        authorization_document_id: params.dataRequest.authorization_document_id ?? null,
-        power_of_attorney_id:
-          (params.dataRequest.request_payload?.power_of_attorney_id as string | null | undefined) ?? null,
-        prodatEngine: rendered.diagnostics,
-        prodatAckExpectation: rendered.ackExpectation ?? null,
-      },
-      validationReport,
-      requiresContrl: ack.requiresContrl,
-      requiresAperak: ack.requiresAperak,
-      contrlStatus: ack.contrlStatus,
-      aperakStatus: ack.aperakStatus,
-      utiltsErrStatus: ack.utiltsErrStatus,
-      ackDueAt: computeOutboundAckDueAt({
-        requiresContrl: ack.requiresContrl,
-        requiresAperak: ack.requiresAperak,
-        contrlStatus: ack.contrlStatus,
-        aperakStatus: ack.aperakStatus,
-        utiltsErrStatus: ack.utiltsErrStatus,
-      }),
-      syntaxCheckStatus: "not_checked",
-      functionalCheckStatus: "not_checked",
-    };
-  })();
+  return buildCustomerMasterdataZ01Draft({
+    ...params,
+    operationId: params.dataRequest.operation_id ?? null,
+  });
 }
 
 export async function prepareAndQueueProdatZ01FromDataRequest(params: {
