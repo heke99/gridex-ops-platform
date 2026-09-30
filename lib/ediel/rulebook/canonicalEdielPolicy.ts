@@ -1,3 +1,4 @@
+import { assertEdielFutureCapabilityHeld, type EdielRequestedCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import type { EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
 import {copyGasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {copyDeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
@@ -89,6 +90,7 @@ export type ResolveCanonicalEdielPolicyInput = {
   associationAssignedCode?: string | null
   /** A complete accepted guide candidate; never a field-by-field override. */
   selectedGuideRevision?: string | null
+  requestedCapability?: EdielRequestedCapability | null
   applicationReference?: string | null
   requestedMessageCode?: string | null
   businessContext?: ProdatBusinessContext | null
@@ -168,6 +170,7 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
   const code = family === 'UTILTS_ERR' ? 'ERR' : normalize(input.messageCode)
   const referenceDate = normalizeDate(input.referenceDate)
   const mode = policyMode(input)
+  assertEdielFutureCapabilityHeld(input.requestedCapability, referenceDate)
   if (!code) throw new Error(`canonical_ediel_message_code_required:${family}`)
 
   const acceptance = resolveEdielGuideAcceptance({

@@ -1,3 +1,4 @@
+import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { stockholmBusinessDate, type EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
@@ -124,6 +125,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
   const candidate = (selectedGuideRevision?: string): CanonicalEdielPolicy => Object.freeze({ ...resolveCanonicalEdielPolicy({
     selectedGuideRevision,
+    requestedCapability: requestedEdielCapability(message),
     family,
     messageCode,
     subtypeOrReasonCode: canonical.subtype,

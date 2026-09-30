@@ -56,7 +56,7 @@ describe('local time context hold', () => {
     expect(decision.syntaxDecision).toBe('accepted')
     expect(decision.applicationDecision).toBe('manual_review')
     expect(decision.functionalDecision).toBe('not_applicable')
-    expect(decision.responsePlan.some(item => item.responseType === 'negative_aperak' || item.responseType === 'utilts_err')).toBe(false)
+    expect(decision.responsePlan.some(item => item.family === 'APERAK' || item.family === 'UTILTS_ERR')).toBe(false)
     expect(decision.issues.some(issue => issue.description.includes('ediel_admission_time_missing'))).toBe(true)
   })
 })

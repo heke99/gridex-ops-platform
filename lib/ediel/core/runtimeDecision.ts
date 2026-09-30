@@ -1,3 +1,4 @@
+import { classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
 import type {ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
@@ -418,18 +419,6 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
       description,
       source: 'resolveCanonicalEdielPolicy',
     }))
-    const internalContextFailure = /^ediel_(?:admission_time|business_time|actual_send_time|replay_time|energy_sharing_activation)_/.test(description)
-      || description.startsWith('canonical_ediel_guide_candidate_not_accepted:')
-      || description === 'utilts_runtime_policy_context_mismatch'
-    if (internalContextFailure) {
-      sourceRules.push('GOV-06:LOCAL_TIME_CONTEXT')
-      const prodatProcessingDisposition: ProdatProcessingDisposition | undefined = canonical.family === 'PRODAT'
-        ? { kind: 'internal_review', reasons: [{ code: 'EDIEL_LOCAL_CONTEXT_REVIEW_REQUIRED', sourceRule: 'GOV-06', reason: description }] }
-        : undefined
-      return buildResult({ canonical, policy: null, prodatProcessingDisposition, utiltsBusinessOutcome: null,
-        syntaxDecision: 'accepted', applicationDecision: 'manual_review', functionalDecision: 'not_applicable',
-        responsePlan, issues, sourceRules, decisionTrace: [...decisionTrace, `Lokalt beslutsunderlag kräver granskning (${description}); inget nationellt APERAK-fältfel skapas.`], syntax })
-    }
     // Field 202 is required across the entire frozen P26.A code list. Resolve
     // this one physical header error before code-specific policy selection;
     // an unlisted code is invalid field content, not ERC40/100 "unimplemented".
@@ -443,6 +432,20 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
       title:'Meddelandenamn saknas eller är ogiltigt',description:'BGM/C002/1001 följer inte P26.A §2.2.',prodatDiagnostic:diagnostic}]) : null
     const qualified=Boolean(field202 && sourceWire && projected?.applicationErrors.length &&
       prodatHeaderFieldRejection({field:'202',sourceWire,errors:projected.applicationErrors}).qualified)
+    const failureDisposition = classifyEdielFailure(error, qualified ? { sourceRule: 'PRODAT26A:§2.2:ALL:202' } : undefined)
+    if (failureDisposition.kind !== 'protocol_rejection') {
+      const contextRule = description.startsWith('ediel_energy_sharing_activation_held:') ? 'GOV-07'
+        : /^ediel_(?:admission_time|business_time|actual_send_time|replay_time)_/.test(description) ? 'GOV-06' : 'OPS-05'
+      sourceRules.push(`${contextRule}:LOCAL_CONTEXT`)
+      const prodatProcessingDisposition: ProdatProcessingDisposition | undefined = canonical.family === 'PRODAT'
+        ? { kind: 'internal_review', reasons: [{ code: failureDisposition.code, sourceRule: contextRule, reason: description }] }
+        : undefined
+      const result = buildResult({ canonical, policy: null, prodatProcessingDisposition, utiltsBusinessOutcome: null,
+        syntaxDecision: 'accepted', applicationDecision: 'manual_review', functionalDecision: 'not_applicable',
+        responsePlan, issues, sourceRules, decisionTrace: [...decisionTrace, `Lokalt beslutsunderlag kräver granskning (${description}); inget nationellt APERAK-fältfel skapas.`], syntax })
+      result.validationReport.failureDisposition = failureDisposition
+      return result
+    }
     if (qualified && projected) {
       sourceRules.push('PRODAT26A:§2.2:ALL:202')
       issues.push(issue({layer:'application',severity:'error',code:'PRODAT_HEADER_202_POLICY',

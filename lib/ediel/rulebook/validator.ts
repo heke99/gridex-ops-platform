@@ -1,3 +1,4 @@
+import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
 import { stockholmBusinessDate } from '@/lib/ediel/core/executionContext'
 import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
@@ -330,6 +331,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
 
   const policy = resolveCanonicalEdielPolicy({
     family: familyValue,
+    requestedCapability: requestedEdielCapability({ message_intent: input.messageRow?.message_intent ?? null, parsed_payload: input.parsedPayload ?? {} }),
     messageCode: code,
     subtypeOrReasonCode: parsed.subtype,
     prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
