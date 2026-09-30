@@ -1,3 +1,4 @@
+import { advancePermissionMarketDeadlines } from '@/lib/ediel/permissions/permissionMarketTransition'
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
@@ -92,6 +93,9 @@ async function run(request: NextRequest) {
     const inboundAckSla = automationUserConfig.ok && automationUserConfig.userId
       ? await checkAckDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit * 2, 100) })
       : { warning: 0, critical: 0, expired: 0, updated: 0, configurationBlocked: true }
+    const permissionMarketDeadlines = automationUserConfig.ok && automationUserConfig.userId
+      ? await advancePermissionMarketDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit, 100) })
+      : { updated: 0, configurationBlocked: true }
     const facilityLookupDispatch = await processReadyFacilityLookupEdifactDispatches({
       limit: Math.min(requestedLimit, 25),
     })
@@ -134,6 +138,7 @@ async function run(request: NextRequest) {
         customerOperations,
         z01ResponseSla,
         inboundAckSla,
+        permissionMarketDeadlines,
         facilityLookupDispatch,
         resumedIntents,
         poaExpiry,

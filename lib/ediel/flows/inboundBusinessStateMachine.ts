@@ -24,6 +24,7 @@ export type InboundBusinessStateInput = {
   message: EdielMessageRow
   matchedSwitchRequestId?: string | null
   customerInfoRequestId?: string | null
+  permissionSourceResult?: { applied: boolean; targetId: string | null; reason?: string | null }
   source?: string
   onSourceSwitchCommitted?: SourceSwitchCommitObserver
   utiltsInternalReviewRequired?: boolean

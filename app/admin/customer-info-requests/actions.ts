@@ -177,20 +177,7 @@ export async function applyZ14SnapshotAction(formData: FormData) {
     companyId: actor.companyId,
     actorUserId: actor.userId,
     permissionId,
-    permissionReference: nullableText(formData, "permission_reference"),
-    approvedStartDate: nullableText(formData, "approved_start_date"),
-    approvedEndDate: nullableText(formData, "approved_end_date"),
-    resolutionCode: nullableText(formData, "resolution_code"),
-    reportFrequency: nullableText(formData, "report_frequency"),
-    approvedSites: [
-      {
-        siteId: nullableText(formData, "site_id"),
-        meteringPointId: nullableText(formData, "metering_point_id"),
-        facilityId: nullableText(formData, "facility_id"),
-        gridAreaCode: nullableText(formData, "grid_area_code"),
-        status: text(formData, "site_status") || "approved",
-      },
-    ],
+    sourceMessageId: nullableText(formData, "source_message_id"),
   });
 
   revalidatePath("/admin/customer-info-requests");

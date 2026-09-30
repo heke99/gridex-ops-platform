@@ -344,25 +344,12 @@ export default async function CustomerInfoRequestsPage() {
                       </button>
                     </form>
                     <details className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Registrera Z14-svar manuellt</summary>
+                      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Koppla mottaget Z14-svar</summary>
                       <form action={applyZ14SnapshotAction} className="mt-3 grid gap-2">
                         <input type="hidden" name="permission_id" value={permission.id} />
-                        <input name="permission_reference" placeholder="Tillståndets id/RFF+Z09" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        <div className="grid gap-2 md:grid-cols-2">
-                          <input name="approved_start_date" type="date" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                          <input name="approved_end_date" type="date" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        </div>
-                        <div className="grid gap-2 md:grid-cols-2">
-                          <input name="facility_id" placeholder="Anläggnings-id/LIN" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                          <input name="grid_area_code" placeholder="Nätområde/RFF+Z05" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        </div>
-                        <input name="resolution_code" placeholder="Tidslängd, t.ex. 15 min" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        <input name="report_frequency" placeholder="Rapporteringsfrekvens" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        <select name="site_status" defaultValue="approved" className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs">
-                          <option value="approved">Godkänd</option>
-                          <option value="rejected">Nekad</option>
-                        </select>
-                        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Spara Z14-status</button>
+                        <label className="text-xs text-slate-600" htmlFor={`z14-source-${permission.id}`}>Id för det mottagna Z14-meddelandet</label>
+                        <input id={`z14-source-${permission.id}`} name="source_message_id" required placeholder="Meddelande-id" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Koppla och behandla mottaget svar</button>
                       </form>
                     </details>
                   </div>

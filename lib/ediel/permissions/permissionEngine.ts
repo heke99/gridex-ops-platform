@@ -17,6 +17,7 @@ export function applyPermissionEvent(params: {
     | 'z14n_a76'
     | 'utilts_e66_received'
     | 'z18_sent'
+    | 'z15_ended'
     | 'z15_b80'
     | 'z15_b79'
     | 'z15_e37'
@@ -42,6 +43,7 @@ export function applyPermissionEvent(params: {
     z14n_a76: 'z14n_a76_timeout',
     utilts_e66_received: 'receiving_utilts_e66',
     z18_sent: 'z18_sent',
+    z15_ended: 'terminated_after_z15',
     z15_b80: 'z15_b80_termination',
     z15_b79: 'z15_b79_customer_revocation',
     z15_e37: 'z15_e37_no_grid_contract',

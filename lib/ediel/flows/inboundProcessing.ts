@@ -631,6 +631,7 @@ async function processInboundProdatMessage(params: {
         (customerInfoLink as { customerInfoRequestId?: string | null } | null)?.customerInfoRequestId ??
         (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
         null,
+      permissionSourceResult: meteringPermissionLink,
       source: "prodat_without_strong_switch_match",
       onSourceSwitchCommitted: params.onSourceSwitchCommitted,
     });
@@ -701,6 +702,7 @@ async function processInboundProdatMessage(params: {
       (customerInfoLink as { customerInfoRequestId?: string | null } | null)?.customerInfoRequestId ??
       (customerInfoLink as { requestId?: string | null } | null)?.requestId ??
       null,
+    permissionSourceResult: meteringPermissionLink,
     source: "prodat_with_strong_switch_match",
       onSourceSwitchCommitted: params.onSourceSwitchCommitted,
   });

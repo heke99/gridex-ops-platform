@@ -341,10 +341,11 @@ export async function applyInboundBusinessStateMachine(input: {
   message: EdielMessageRow
   matchedSwitchRequestId?: string | null
   customerInfoRequestId?: string | null
+  permissionSourceResult?: { applied: boolean; targetId: string | null; reason?: string | null }
   source?: string
   onSourceSwitchCommitted?: SourceSwitchCommitObserver
 }): Promise<InboundBusinessStateResult> {
-  const outcome = outcomeForMessage(input.message)
+  let outcome = outcomeForMessage(input.message)
   const updated: string[] = []
   let reviewRequired = [
     'business_rejection',
@@ -356,13 +357,20 @@ export async function applyInboundBusinessStateMachine(input: {
     'meter_change_received',
     'unexpected_direction_review',
   ].includes(outcome)
-  const tenantMessage = tenantMessageForOutcome(outcome, input.message)
+  let tenantMessage = tenantMessageForOutcome(outcome, input.message)
   const companyId = input.message.company_id ?? text(readPayloadRecord(input.message).resolved_company_id) ?? null
   if (!companyId && outcome !== 'ignored') throw new Error('business_state_company_required')
   const prodatLifecycle = String(input.message.message_family ?? '').toUpperCase() === 'PRODAT'
     ? decideProdatLifecycle(input.message)
     : null
   let supplyActivationCommitted = false
+  if (outcome === 'permission_confirmed' || outcome === 'permission_rejected') {
+    if (!input.permissionSourceResult?.applied) {
+      reviewRequired = true
+      tenantMessage = 'Mottaget tillståndssvar inväntar säker koppling till originalbegäran och berörda objekt.'
+      outcome = 'manual_review_required'
+    } else updated.push('metering_permissions', 'metering_permission_sites')
+  }
 
   if (outcome === 'grid_owner_information_received') {
     const customerInfoRequestId = input.customerInfoRequestId ?? text(readPayloadRecord(input.message).customer_info_request_id) ?? null
@@ -503,7 +511,12 @@ export async function applyInboundBusinessStateMachine(input: {
       message: input.message,
     })
     if (permissionResult.applied) updated.push('metering_permissions')
-    if (!permissionResult.applied) reviewRequired = true
+    if (!permissionResult.applied) {
+      reviewRequired = true; outcome = 'manual_review_required'
+      tenantMessage = 'Tillståndshändelsen inväntar säker original- och objektkoppling.'
+    } else if (permissionResult.status === 'active' && outcome === 'permission_ended') {
+      tenantMessage = 'Tillståndets upphörandetid är registrerad; övriga giltiga objekt och framtida rapporteringstider bevaras.'
+    }
   }
 
   if ((outcome === 'masterdata_update_received' || outcome === 'meter_change_received') && companyId) {
