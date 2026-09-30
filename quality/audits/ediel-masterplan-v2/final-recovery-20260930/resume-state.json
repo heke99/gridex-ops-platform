@@ -1,0 +1,25 @@
+{
+  "runtime_sha": "ed3f5159ba52a81ff7cdf877bf3302205540b0b8",
+  "runtime_tree": "90db37a96248771520b62e522b2a717e9a4a4334",
+  "status": "IN_PROGRESS",
+  "active_item": "Continue whole Ediel masterplan v2 F0-F7 from verified bounded recovery handoff",
+  "next_action": "Read published recovery/prompt and preserve active source/CI owners; integrate compatible code and three baseline runtime gaps; authenticate full replay/generated artifacts and final-head native/browser/CI; finish each of352IDs",
+  "publication_owner": "Only new final-recovery artifact branch; #421/#423 refs stay with their owners",
+  "three_internal_gaps": [
+    {
+      "id": "ack_replay_current_authority",
+      "status": "OPEN_BASELINE",
+      "detail": "duplicate ACK lookup occurs before protected original basis and lacks tenant/environment filters; later #421 owner code must be integrated and verified"
+    },
+    {
+      "id": "native_fresh_transport_source_port",
+      "status": "OPEN_BASELINE",
+      "detail": "actual prepare/enter binding lacks protected sourceRulePackEvidence/technicalSyntaxAckEvidence in generic/applicable sealedZ08 ports; actual SQL currently fail-closes"
+    },
+    {
+      "id": "prodat_mixed_object_partial_orchestration",
+      "status": "OPEN_BASELINE",
+      "detail": "processed BGM34 incomplete own outcomes for untreated sibling; safe hold is verified, original function not implemented"
+    }
+  ]
+}

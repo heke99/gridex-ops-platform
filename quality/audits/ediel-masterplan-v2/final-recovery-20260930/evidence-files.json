@@ -1,0 +1,413 @@
+{
+  "archive": "concatenate listed base64 parts in order, then decode",
+  "decoded_sha256": "0bc518f7d0adf28e71c9b916aa0d55baf528f7713c5f4fdbfc4a6bd21294825a",
+  "files": [
+    {
+      "name": "gridex-final-ack-final.json",
+      "bytes": 42542,
+      "sha256": "50d9f7b567132b9002515041d8983a7ed722f36fe831508c24c479c9b0b5f6d9"
+    },
+    {
+      "name": "gridex-final-ack-launch-native.log",
+      "bytes": 69710,
+      "sha256": "98dccc059f5e3db299e42992b1e88c69a44f92ae7b5334ca0ee4c6a9e25731cf"
+    },
+    {
+      "name": "gridex-final-characteristic-baseline-lint.log",
+      "bytes": 1267,
+      "sha256": "6dd0a527b4d6c60c3f8577c2ba25606b8e918b61c335797ca76042e5f3f993cb"
+    },
+    {
+      "name": "gridex-final-document-baseline-lint.log",
+      "bytes": 1179,
+      "sha256": "098b20ebabca1177a19690178fe36e36175495668811e3c653e319c4cd5346c2"
+    },
+    {
+      "name": "gridex-final-document-characteristic-lint-no-ignore.log",
+      "bytes": 2234,
+      "sha256": "cf419b6cbe13c472b5e120634daaa7cbd6b25226ec7972f7c7d7ae13d044e799"
+    },
+    {
+      "name": "gridex-final-freeze-app-types.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "gridex-final-freeze-full.json",
+      "bytes": 2444207,
+      "sha256": "aff0663a1462127a5303f0bbea1a4e8f531f4df2b2effaa713db01b07833d650"
+    },
+    {
+      "name": "gridex-final-freeze-full.log",
+      "bytes": 85889,
+      "sha256": "847815f4f82ba181923a563a4177006fcee1783b957b93b9c1d1b4f9008f4c69"
+    },
+    {
+      "name": "gridex-final-freeze-large-file-budget.log",
+      "bytes": 668,
+      "sha256": "1556499d8ebc1ffc0107585fc61895174f5c9f321b6db5030923d7af45614255"
+    },
+    {
+      "name": "gridex-final-freeze-large-file.log",
+      "bytes": 728,
+      "sha256": "cc3f02ac6859243921a1be4feae69c75672c387142b58e00fc550ea6140352d7"
+    },
+    {
+      "name": "gridex-final-freeze-lint-result.json",
+      "bytes": 3117,
+      "sha256": "a4a6394b4c37bde05f4857b8f791059c510bd61d8d847a93f59f9bdf461f7297"
+    },
+    {
+      "name": "gridex-final-freeze-lint.log",
+      "bytes": 174,
+      "sha256": "e0cb71fe601c6aa0bc77d1c72b7de24eb689cec9d73775860edf39dc4fa5755c"
+    },
+    {
+      "name": "gridex-final-freeze-native-durable.log",
+      "bytes": 693,
+      "sha256": "2dcf3d77cfcbb2ce9ebf841c8306c77a7f11b9259aea1583cf6920a0fa03a1cf"
+    },
+    {
+      "name": "gridex-final-freeze-native-namespace.log",
+      "bytes": 717,
+      "sha256": "560083f38a4ebb7f7143d1d7c10a4e5250eb701aca9b09f3ce3226cabf0c139f"
+    },
+    {
+      "name": "gridex-final-freeze-node-characteristic.log",
+      "bytes": 27619,
+      "sha256": "bf15626e59db522efea8fb8daffe3eef543113352fbf557f57c0ce1cc117d21b"
+    },
+    {
+      "name": "gridex-final-freeze-node-components.log",
+      "bytes": 9381,
+      "sha256": "37b36a3ed5c3488181b30e434144e107cbba54f6a07016b5e433c1381a5851c2"
+    },
+    {
+      "name": "gridex-final-freeze-node-d-z04.log",
+      "bytes": 12299,
+      "sha256": "0763cc5eb988c6251b51f16de0543559014668d6e8a19a03b7f37c2ee4301e4d"
+    },
+    {
+      "name": "gridex-final-freeze-node-document.log",
+      "bytes": 28190,
+      "sha256": "df26b1a436b9c69bef41a91bec5002e275ea5fba503b7601f9b4e071403c9234"
+    },
+    {
+      "name": "gridex-final-freeze-node-guide-Apia.log",
+      "bytes": 21719,
+      "sha256": "0ef5e8f8b5519bf01891d8b6d2da55d395b9a3786b33d5e2f8e488d746cda8f6"
+    },
+    {
+      "name": "gridex-final-freeze-node-guide-Stockholm.log",
+      "bytes": 21713,
+      "sha256": "00c138e4d2d0378bbc5c423d2cee6653d9463d81caece6dce211936a5b1f831b"
+    },
+    {
+      "name": "gridex-final-freeze-node-guide-UTC.log",
+      "bytes": 21715,
+      "sha256": "4ba7f5c1daef7441fb6197169d1073849000db940cea9d0c8c936f9c47ba500c"
+    },
+    {
+      "name": "gridex-final-freeze-node-party.log",
+      "bytes": 54665,
+      "sha256": "bdec9660e28710dcae84cf2a6e34281e8073df71a056466b1df8c6c9a09f2bca"
+    },
+    {
+      "name": "gridex-final-freeze-node-reference.log",
+      "bytes": 21884,
+      "sha256": "96713559b14a1afad030600e6e70d1c4d21c0f2f3da2aeb68c570b85ce094ab1"
+    },
+    {
+      "name": "gridex-final-freeze-node-results.json",
+      "bytes": 4085,
+      "sha256": "70f07c7a92c0b73c9069f5db576665eac683dff4574dd508c044774aea1f3cf1"
+    },
+    {
+      "name": "gridex-final-freeze-node-source-identity.log",
+      "bytes": 9466,
+      "sha256": "8f299b1617cf8e2086a23c200512182c2dd04d712512cc65e7af66f35b4a117d"
+    },
+    {
+      "name": "gridex-final-freeze-node-source-locators.log",
+      "bytes": 6397,
+      "sha256": "06699b5a737938ecca3a645a2b67af6499568250aa685ddb829a6abbe2107630"
+    },
+    {
+      "name": "gridex-final-freeze-node-unb-ack.log",
+      "bytes": 13427,
+      "sha256": "069343f8884c091348a0893d68d7433b7907086c0daaeeeb0392ec123f226956"
+    },
+    {
+      "name": "gridex-final-freeze-normative-authority.log",
+      "bytes": 214,
+      "sha256": "af3d91c7640262255ea7d9599fc8a1de50470f32711c6fd01d2e1de300583598"
+    },
+    {
+      "name": "gridex-final-freeze-parser-authority.log",
+      "bytes": 211,
+      "sha256": "8ad4a46bc237c22e073f2f690b0cdf91d9bac2ee9cc031a52a02b5a0643595b7"
+    },
+    {
+      "name": "gridex-final-freeze-quality.log",
+      "bytes": 938,
+      "sha256": "736601ab7f5308ffe9be9671e643abd334580fc1224f21e9dfe238918c17c506"
+    },
+    {
+      "name": "gridex-final-freeze-script-types.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "gridex-final-freeze-static-agent-memory.log",
+      "bytes": 332,
+      "sha256": "891601fcf614b33e57960c223a855dd57e4e363b2a869c4c3ea5381e0e6599da"
+    },
+    {
+      "name": "gridex-final-freeze-static-aperak-canonical-evidence.log",
+      "bytes": 224,
+      "sha256": "1bab1a9f18d54cccd2acf7f17290557a1fea07555637ece178d4531049b0e1aa"
+    },
+    {
+      "name": "gridex-final-freeze-static-component-escaping.log",
+      "bytes": 9374,
+      "sha256": "db59b7199ce91785bb3d30863ccccc25ecfae4c6512b1648d53a4110aee43e4f"
+    },
+    {
+      "name": "gridex-final-freeze-static-contract-channel.log",
+      "bytes": 3458,
+      "sha256": "6ac1dfba555f7318183af182fc80e89c54558294068353649c2f4c1917b8221b"
+    },
+    {
+      "name": "gridex-final-freeze-static-database-contract.log",
+      "bytes": 606,
+      "sha256": "f229a899f5fce259e8b77b82bb2e429f87875ec13e778e00bad8712dd73c0145"
+    },
+    {
+      "name": "gridex-final-freeze-static-exit-codes.log",
+      "bytes": 3921,
+      "sha256": "8a4aab5fd4ff08e5417c10b9581a61e2e8b782da5509d449fbb5f6fbc332b66c"
+    },
+    {
+      "name": "gridex-final-freeze-static-guide-governance-Europe-Stockholm.log",
+      "bytes": 21719,
+      "sha256": "bb3d10205edb829ba67c269eff7b82c5a36301f5dd7d01d491066b1ad5e3c5d0"
+    },
+    {
+      "name": "gridex-final-freeze-static-guide-governance-Pacific-Apia.log",
+      "bytes": 21721,
+      "sha256": "0efa8f8d4782da6e5f681e49ebe80df811d2e51920250bce068a6a4b7c76e9ae"
+    },
+    {
+      "name": "gridex-final-freeze-static-guide-governance-UTC.log",
+      "bytes": 21715,
+      "sha256": "80e9e47269d7f3f83e3280b4336076b8632851281ba22eaeb12f9ca0482a60ad"
+    },
+    {
+      "name": "gridex-final-freeze-static-integrity.log",
+      "bytes": 750,
+      "sha256": "26eb4da9053f7ec45432e76bbbe9135f9de76ca5acdf227a1db097b891834137"
+    },
+    {
+      "name": "gridex-final-freeze-static-mechanical.log",
+      "bytes": 635,
+      "sha256": "d640737c34a089b7d0ffb9ad2672167612f161c45139954f19f632bcf80a6ed4"
+    },
+    {
+      "name": "gridex-final-freeze-static-migration-provenance.log",
+      "bytes": 632,
+      "sha256": "c5978e740d14a274bdfa3f2c45c0aae424acc112ded3b6adb31a2943f4422324"
+    },
+    {
+      "name": "gridex-final-freeze-static-migrations-composite.log",
+      "bytes": 2877,
+      "sha256": "1646756333070ba4f7f68efe3e83176ee60c9f16f0e681bcbeecbccd6791bec8"
+    },
+    {
+      "name": "gridex-final-freeze-static-migrations-integrity.log",
+      "bytes": 632,
+      "sha256": "6a65e2db2db173c65cda501ca2243e482f2a76bc1b75155bfb814df12070059c"
+    },
+    {
+      "name": "gridex-final-freeze-static-prodat-characteristic-fields.log",
+      "bytes": 102682,
+      "sha256": "800a54982621e3157fb1bf05bf1984216616102ad51f26dc381bbe5bc9ac14dd"
+    },
+    {
+      "name": "gridex-final-freeze-static-prodat-d-z04-reference.log",
+      "bytes": 12296,
+      "sha256": "390c55bbf1042a282203d15cd6060947e9db15d86307ff6812cd4c9188624dec"
+    },
+    {
+      "name": "gridex-final-freeze-static-prodat-document-fields.log",
+      "bytes": 35989,
+      "sha256": "32c85ef2aaeca55b4a15088550d6698a9c59c12915ad867e7fe70aa0d687f2ec"
+    },
+    {
+      "name": "gridex-final-freeze-static-prodat-party-fields.log",
+      "bytes": 54674,
+      "sha256": "3f275666fb1bae7e68b988166c6521bb2e5dc74367da89e3d61192ec50c1bedd"
+    },
+    {
+      "name": "gridex-final-freeze-static-prodat-reference-fields.log",
+      "bytes": 21879,
+      "sha256": "3425a1a90996537db8870f747c011d88b86309ef88e71b1953ed48fbe44d80d0"
+    },
+    {
+      "name": "gridex-final-freeze-static-prodat-source-locators.log",
+      "bytes": 6393,
+      "sha256": "2eb48f8849caaf5f99a17d504a4b42fc52e1254e056798847c5640d34b4ccc7e"
+    },
+    {
+      "name": "gridex-final-freeze-static-public-legal-migration.log",
+      "bytes": 622,
+      "sha256": "b72fdc739d50e7ff9ff289f407b983de55ab2e9bd9c9cdea417a85bf8592ee80"
+    },
+    {
+      "name": "gridex-final-freeze-static-rule-pack-source-identity.log",
+      "bytes": 9464,
+      "sha256": "648612d97d6172ac448abc59c4ea01999246db94472a12b785cfff11697bcf96"
+    },
+    {
+      "name": "gridex-final-freeze-static-service-role.log",
+      "bytes": 485,
+      "sha256": "dab310e440f47f8b7f23cbb7d34dd3e9628e9d872a50bc2df103400e790489ba"
+    },
+    {
+      "name": "gridex-final-freeze-static-types.log",
+      "bytes": 545,
+      "sha256": "2897963cf6e33b0c1197e368076c7c9940566af24503d1386abb0bc438d235a0"
+    },
+    {
+      "name": "gridex-final-freeze-test-types.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "gridex-final-full-after.json",
+      "bytes": 2470553,
+      "sha256": "39ef3affef9fd5e6fcb7b7e1ecbe947386d9b64610424e84e8b10a9e5e2651be"
+    },
+    {
+      "name": "gridex-final-full-after.log",
+      "bytes": 85893,
+      "sha256": "11ef10ade9104741e65e8287e74f11df2fd841a2c76e0b0a468f40e6c20d97a4"
+    },
+    {
+      "name": "gridex-final-full.json",
+      "bytes": 2911991,
+      "sha256": "4bab6e70d0104e51d1d2bbdb7e582b42a013dba359f5b60064439a5ab4564714"
+    },
+    {
+      "name": "gridex-final-full.log",
+      "bytes": 85015,
+      "sha256": "755de0a41244ead0a77029480b3960d9420d0eb68aae463ba971c94043e57e26"
+    },
+    {
+      "name": "gridex-final-misc-focused-final.log",
+      "bytes": 2167,
+      "sha256": "1aacbd78aaf4e7f36a596a2e7ff496d1ba69f6a212589c6ab618ae5bae7b3e9b"
+    },
+    {
+      "name": "gridex-final-native-chained-null-app-red.log",
+      "bytes": 892,
+      "sha256": "038b02e96df74a08cc14ff737782eb8fb3eb52f95dbf2f5c0af52fc7d3d601d3"
+    },
+    {
+      "name": "gridex-final-observed-remote.json",
+      "bytes": 3479,
+      "sha256": "8b20517925d055fd9ec77f9d3feae43db3ed883fa37ccc78d4a8a3448bfc6489"
+    },
+    {
+      "name": "gridex-final-postports-final.json",
+      "bytes": 24813,
+      "sha256": "06e5203121eafc79a3f8223dd293a8105411da3d807eeb4c7342026b9027f676"
+    },
+    {
+      "name": "gridex-final-postports-final.log",
+      "bytes": 1110,
+      "sha256": "b68dc313478a684feee3b8db0888d3c499171142794d51f3f5007033f6922a92"
+    },
+    {
+      "name": "gridex-final-postports-z04-second.json",
+      "bytes": 48959,
+      "sha256": "063af33baf645e9ca387fad63c07a92050e6a973bfc087fd5b43e982c4fa11e8"
+    },
+    {
+      "name": "gridex-final-postports-z04-second.log",
+      "bytes": 590,
+      "sha256": "6d7afd256070335d9d09ff74b48c74c063d42e3b3c600921ea40c87f717a26a1"
+    },
+    {
+      "name": "gridex-final-readers-final.json",
+      "bytes": 34326,
+      "sha256": "2be5f9607a2ad3f6b3a08fd5c6c07ba397b50980b9d7b27a448c4c9532dfe556"
+    },
+    {
+      "name": "gridex-final-recovery-capture.json",
+      "bytes": 1534,
+      "sha256": "bbeefd6885f513ac7fc31ec362cd049ce5faf9602fbcf04d5447f32098c664d1"
+    },
+    {
+      "name": "gridex-final-root-verified-gates.json",
+      "bytes": 905,
+      "sha256": "54051c19cfa725e11226a5cbfaabc3d5b757e072d877710fc05c24ffb863d72b"
+    },
+    {
+      "name": "gridex-final-s02-empty-area-affected-tests.log",
+      "bytes": 2875,
+      "sha256": "7d6ef7a0ea0e9f3a68072d732fb09aa528766284c51f5760cd37db609ac39ad2"
+    },
+    {
+      "name": "gridex-final-s02-empty-area-red.log",
+      "bytes": 2179,
+      "sha256": "66fcc45ce9f9e8dc820a9566052bf1affe1e5d31e503d9e7a11b41f725256816"
+    },
+    {
+      "name": "gridex-final-s02-erc42-source.log",
+      "bytes": 7152,
+      "sha256": "2af8c8952aecfdd858d2a45682167e9ee11b0f3a81db885a645a5b7128c6a283"
+    },
+    {
+      "name": "gridex-independent-runtime-review-final.json",
+      "bytes": 26776,
+      "sha256": "a2d637416c606fce84934a7ebfb5b10eb8758705c2bcf7842332f2cd11724514"
+    },
+    {
+      "name": "gridex-independent-runtime-review-final.log",
+      "bytes": 1646,
+      "sha256": "38c569c95b4d733caa1b9ef2c827f935e406202d420e0c86ba6564b248e939fa"
+    },
+    {
+      "name": "gridex-processors-final.json",
+      "bytes": 34602,
+      "sha256": "5bcb66d44e7c9ba75dfa0aa34c55f49660b8a90052dcbcc4ff85fa158b37dc47"
+    }
+  ],
+  "parts": [
+    {
+      "path": "portable/evidence.tar.gz.part-001.b64",
+      "bytes": 262145,
+      "sha256": "3088e772b1fc02003ed69968c38b9121bae4bfab2e84e815c24350e0fb8b31d5"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-002.b64",
+      "bytes": 262145,
+      "sha256": "e6b5648065337519841458ac2d422801ddeaad89ed6ddbdb601094941793618f"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-003.b64",
+      "bytes": 262145,
+      "sha256": "5aa6aa1c9e205ee56a86b7122c70a60c37f962e0b7c41c56f11a89d29d30949b"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-004.b64",
+      "bytes": 262145,
+      "sha256": "03cc1a15d965eb2283fd9a01e590a4a9c841b08af2599bd614c93a9a6102d769"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-005.b64",
+      "bytes": 134813,
+      "sha256": "c3f564b2a0c32d9c88de31f837efbe1aec934548da452f9806f9f2c958cd68ce"
+    }
+  ]
+}

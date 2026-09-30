@@ -1,0 +1,469 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-30T22:16:38.006540+00:00",
+  "scope": "bounded final recovery; full masterplan v2 IN_PROGRESS; no contract/activation approval",
+  "runtime": {
+    "branch": "codex/ediel-final-recovery-20260930",
+    "commit": "ed3f5159ba52a81ff7cdf877bf3302205540b0b8",
+    "tree": "90db37a96248771520b62e522b2a717e9a4a4334",
+    "base_commit": "860feb10644a2b0c89452a4aff65359fc2187724",
+    "base_tree": "4631fa302f32d89960a1401e619c7da1e2ed6874",
+    "changed_files": 66,
+    "freeze_manifest": "source-files.json",
+    "source_hashes_verified_after_checks": 66
+  },
+  "publication": {
+    "branch": "codex/ediel-final-recovery-handoff-20260930",
+    "kind": "artifact-only; imports code via verified portable Git bundle or patch",
+    "runtime_parent": "604e339922b9fa0eb449dbd1ef720c49a8b5cafa",
+    "runtime_parent_tree": "2ee43ad8e4e8607415596c70593c72332dc5bd6e",
+    "exact_artifact_commit_tree": "read back from branch/PR publication receipt; distinct from tested runtime"
+  },
+  "remote_observation": {
+    "observed_at": "2026-09-30T22:09:56.623Z",
+    "pull_requests": [
+      {
+        "number": 421,
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/421",
+        "head_sha": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+        "branch": "codex/ediel-v2-identity-e035-owner-20260928",
+        "draft": true,
+        "merged": false,
+        "base_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03"
+      },
+      {
+        "number": 423,
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/423",
+        "head_sha": "604e339922b9fa0eb449dbd1ef720c49a8b5cafa",
+        "branch": "codex/ediel-ci-integrated-replay-20260930",
+        "draft": true,
+        "merged": false,
+        "base_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03"
+      },
+      {
+        "number": 418,
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/418",
+        "head_sha": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+        "branch": "codex/tenantservice-api-ops-20260928",
+        "draft": true,
+        "merged": false,
+        "base_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8"
+      },
+      {
+        "number": 422,
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/422",
+        "head_sha": "4b7888a461ad03580b6e11ae91217b64cd05fa21",
+        "branch": "codex/tenantservice-api-structure-20260929",
+        "draft": true,
+        "merged": false,
+        "base_sha": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8"
+      }
+    ],
+    "latest_pr423_ci": [
+      {
+        "id": 36762800729,
+        "name": "Ediel masterplan v2 regressions",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_number": 609,
+        "jobs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800729/jobs",
+        "logs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800729/logs",
+        "workflow_id": 358913488
+      },
+      {
+        "id": 36762800473,
+        "name": "Gridex full E2E",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_number": 2206,
+        "jobs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800473/jobs",
+        "logs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800473/logs",
+        "workflow_id": 336204822
+      },
+      {
+        "id": 36762800590,
+        "name": "OPS hardening",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_number": 3401,
+        "jobs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800590/jobs",
+        "logs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800590/logs",
+        "workflow_id": 298519857
+      },
+      {
+        "id": 36762800497,
+        "name": "Tenant integrity regression",
+        "status": "completed",
+        "conclusion": "success",
+        "run_number": 914,
+        "jobs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800497/jobs",
+        "logs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800497/logs",
+        "workflow_id": 343826806
+      },
+      {
+        "id": 36762800411,
+        "name": "Gridex browser and quality E2E",
+        "status": "completed",
+        "conclusion": "success",
+        "run_number": 2185,
+        "jobs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800411/jobs",
+        "logs_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs/36762800411/logs",
+        "workflow_id": 336345774
+      }
+    ]
+  },
+  "remote_main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "toolchain": {
+    "node": "22.23.3",
+    "vitest_workers": 2,
+    "typescript": "serial app/tests/scripts; incremental=false; max_old_space_size=4096",
+    "embedded_postgres": "PGlite0.3.14; private selected authentic SQL owners; not full Supabase replay"
+  },
+  "final_results": {
+    "unit": {
+      "command": "node node_modules/vitest/vitest.mjs run --maxWorkers=2 --reporter=json --outputFile=/tmp/gridex-final-freeze-full.json",
+      "exit_code": 0,
+      "passed": 7176,
+      "failed": 0,
+      "pending": 0,
+      "test_files": 481,
+      "vitest_reported_suites": 1043,
+      "log": "gridex-final-freeze-full.log",
+      "json": "gridex-final-freeze-full.json"
+    },
+    "quality": {
+      "exit_code": 0,
+      "passed": 45,
+      "failed": 0,
+      "test_files": 2,
+      "log": "gridex-final-freeze-quality.log"
+    },
+    "workflow_node": {
+      "exit_code": 0,
+      "passed": 1179,
+      "failed": 0,
+      "skipped": 0,
+      "executions": 12,
+      "note": "includes guide governance repeated across three TZ; count is test instances, not unique requirements",
+      "results": "gridex-final-freeze-node-results.json"
+    },
+    "typecheck_app": {
+      "exit_code": 0,
+      "log": "gridex-final-freeze-app-types.log"
+    },
+    "typecheck_tests": {
+      "exit_code": 0,
+      "log": "gridex-final-freeze-test-types.log"
+    },
+    "typecheck_scripts": {
+      "exit_code": 0,
+      "log": "gridex-final-freeze-script-types.log"
+    },
+    "scoped_TS_lint": {
+      "exit_code": 0,
+      "files": 56,
+      "log": "gridex-final-freeze-lint.log",
+      "full_repo_lint": "NOT_EXECUTED"
+    },
+    "CJS_MJS_syntax": {
+      "exit_code": 0,
+      "scope": "all changed CJS/MJS"
+    },
+    "CJS_lint": {
+      "status": "NOT_QUALIFIED",
+      "note": "repo ESLint ignores CJS; forced two repaired CJS have same16 errors+2warnings as baseline, no introduced lint regression"
+    },
+    "diff_check": {
+      "exit_code": 0
+    },
+    "embedded_namespace": {
+      "exit_code": 0,
+      "passed": 69,
+      "log": "gridex-final-freeze-native-namespace.log",
+      "coverage": "actual171116/184410/192030/forward owners; rollback, retry, tenant, collision, immutable row and ACL; selected function proof"
+    },
+    "embedded_durable_ACK": {
+      "exit_code": 0,
+      "passed": 19,
+      "log": "gridex-final-freeze-native-durable.log",
+      "coverage": "actual184410 technical owners/current public guard; committed genuine syntax facet; native two-phase selected function proof"
+    },
+    "parser_authority": {
+      "exit_code": 0,
+      "log": "gridex-final-freeze-parser-authority.log"
+    },
+    "normative_authority": {
+      "exit_code": 0,
+      "log": "gridex-final-freeze-normative-authority.log"
+    },
+    "large_file_budget": {
+      "exit_code": 0,
+      "log": "gridex-final-freeze-large-file-budget.log"
+    },
+    "static_gates": [
+      {
+        "name": "mechanical",
+        "exit_code": 0,
+        "command": "bash quality/mechanical/verify.sh",
+        "log": "gridex-final-freeze-static-mechanical.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "integrity",
+        "exit_code": 0,
+        "command": "npm run ediel:masterplan-v2:integrity",
+        "log": "gridex-final-freeze-static-integrity.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "migrations-integrity",
+        "exit_code": 0,
+        "command": "npm run db:migrations:integrity",
+        "log": "gridex-final-freeze-static-migrations-integrity.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "public-legal-migration",
+        "exit_code": 0,
+        "command": "npm run db:public-contract-legal-migration:check",
+        "log": "gridex-final-freeze-static-public-legal-migration.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "database-contract",
+        "exit_code": 0,
+        "command": "npm run db:contract-hardening",
+        "log": "gridex-final-freeze-static-database-contract.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "types",
+        "exit_code": 1,
+        "command": "npm run db:types:check",
+        "log": "gridex-final-freeze-static-types.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "service-role",
+        "exit_code": 0,
+        "command": "npm run tenant:service-role-ratchet",
+        "log": "gridex-final-freeze-static-service-role.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "migration-provenance",
+        "exit_code": 0,
+        "command": "node scripts/gridex-aud-003-migration-provenance-regression.cjs",
+        "log": "gridex-final-freeze-static-migration-provenance.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "agent-memory",
+        "exit_code": 0,
+        "command": "node scripts/check-agent-memory-git-state.cjs",
+        "log": "gridex-final-freeze-static-agent-memory.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "contract-channel",
+        "exit_code": 0,
+        "command": "npm run gridex:contract-channel-publication-regression",
+        "log": "gridex-final-freeze-static-contract-channel.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "guide-governance-UTC",
+        "exit_code": 0,
+        "command": "TZ=UTC node --experimental-vm-modules --test scripts/test-ediel-guide-governance.cjs",
+        "log": "gridex-final-freeze-static-guide-governance-UTC.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "guide-governance-Europe-Stockholm",
+        "exit_code": 0,
+        "command": "TZ=Europe/Stockholm node --experimental-vm-modules --test scripts/test-ediel-guide-governance.cjs",
+        "log": "gridex-final-freeze-static-guide-governance-Europe-Stockholm.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "guide-governance-Pacific-Apia",
+        "exit_code": 0,
+        "command": "TZ=Pacific/Apia node --experimental-vm-modules --test scripts/test-ediel-guide-governance.cjs",
+        "log": "gridex-final-freeze-static-guide-governance-Pacific-Apia.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "rule-pack-source-identity",
+        "exit_code": 0,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-rule-pack-source-identity.cjs",
+        "log": "gridex-final-freeze-static-rule-pack-source-identity.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "prodat-source-locators",
+        "exit_code": 0,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-prodat-source-locators.cjs",
+        "log": "gridex-final-freeze-static-prodat-source-locators.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "prodat-characteristic-fields",
+        "exit_code": 1,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "log": "gridex-final-freeze-static-prodat-characteristic-fields.log",
+        "phase": "diagnostic_before_two_CJS_fixture_repairs"
+      },
+      {
+        "name": "prodat-reference-fields",
+        "exit_code": 0,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-prodat-reference-fields.cjs",
+        "log": "gridex-final-freeze-static-prodat-reference-fields.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "prodat-document-fields",
+        "exit_code": 1,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-prodat-document-fields.cjs",
+        "log": "gridex-final-freeze-static-prodat-document-fields.log",
+        "phase": "diagnostic_before_two_CJS_fixture_repairs"
+      },
+      {
+        "name": "prodat-party-fields",
+        "exit_code": 0,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-prodat-party-fields.cjs",
+        "log": "gridex-final-freeze-static-prodat-party-fields.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "prodat-d-z04-reference",
+        "exit_code": 0,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-prodat-d-z04-reference.cjs",
+        "log": "gridex-final-freeze-static-prodat-d-z04-reference.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "component-escaping",
+        "exit_code": 0,
+        "command": "node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs",
+        "log": "gridex-final-freeze-static-component-escaping.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "aperak-canonical-evidence",
+        "exit_code": 0,
+        "command": "node scripts/gridex-aperak-canonical-evidence-regression.cjs",
+        "log": "gridex-final-freeze-static-aperak-canonical-evidence.log",
+        "phase": "frozen_runtime_selected_static"
+      },
+      {
+        "name": "migrations-composite",
+        "exit_code": 1,
+        "command": "npm run db:migrations:check",
+        "log": "gridex-final-freeze-static-migrations-composite.log",
+        "phase": "frozen_runtime_selected_static"
+      }
+    ],
+    "portable_import": {
+      "exit_code": 0,
+      "source_hashes": 66,
+      "log": "gridex-final-portability-check.log"
+    }
+  },
+  "diagnostics": {
+    "initial_full_unit": {
+      "passed": 6861,
+      "failed": 268,
+      "total": 7129,
+      "json": "gridex-final-full.json"
+    },
+    "intermediate_full_unit": {
+      "passed": 7143,
+      "failed": 31,
+      "total": 7174,
+      "json": "gridex-final-full-after.json"
+    },
+    "real_ACK_validator_probe": {
+      "failed": 3,
+      "source": "gridex-final-postports-z04-second.json",
+      "resolution": "two mixed-object incomplete BGM34 cases now explicitly safe-held and retained as internal functional gap; valid one-object negative ACK/retry and own-reference P17 controls use real validator"
+    },
+    "earlier_parallel_app_tsc": {
+      "exit_code": 137,
+      "classification": "resource exhaustion; serial final app check exit0"
+    },
+    "wrong_large_file_script_path": {
+      "exit_code": 1,
+      "classification": "command path mistake, corrected to actual package quality:large-file-budget exit0"
+    }
+  },
+  "remaining_internal_gaps": [
+    {
+      "id": "ack_replay_current_authority",
+      "status": "OPEN_BASELINE",
+      "detail": "duplicate ACK lookup occurs before protected original basis and lacks tenant/environment filters; later #421 owner code must be integrated and verified"
+    },
+    {
+      "id": "native_fresh_transport_source_port",
+      "status": "OPEN_BASELINE",
+      "detail": "actual prepare/enter binding lacks protected sourceRulePackEvidence/technicalSyntaxAckEvidence in generic/applicable sealedZ08 ports; actual SQL currently fail-closes"
+    },
+    {
+      "id": "prodat_mixed_object_partial_orchestration",
+      "status": "OPEN_BASELINE",
+      "detail": "processed BGM34 incomplete own outcomes for untreated sibling; safe hold is verified, original function not implemented"
+    }
+  ],
+  "remaining_gates": {
+    "db_generated_types": {
+      "status": "FAILED_STALE",
+      "exit_code": 1,
+      "manifest_tail": "20260929234037",
+      "actual_tail": "20260930213117_ediel_contrl_empty_application_namespace.sql",
+      "action": "authentic same-candidate replay+typegen/snapshot/fingerprint; no hand generation"
+    },
+    "full_clean_replay": "NOT_EXECUTED_LOCAL",
+    "upgrade_replay": "NOT_EXECUTED_LOCAL",
+    "real_psql_producer_handoff": "NOT_EXECUTED_LOCAL",
+    "native_PostgREST_RLS": "NOT_EXECUTED_LOCAL",
+    "interactive_browser": "NOT_EXECUTED_LOCAL",
+    "build": "NOT_EXECUTED_LOCAL",
+    "full_security_and_contract_parity": "PENDING_COMPOSED_CANDIDATE",
+    "exact_runtime_head_CI": "NOT_EXECUTED",
+    "external_release_and_activation": "HELD"
+  },
+  "migration": {
+    "forward": "20260930213117_ediel_contrl_empty_application_namespace.sql",
+    "sha256": "c19ffa39d670e277152904e7d9c0891a73b0b236aab86340b1816626a47986d2",
+    "manifest": "scripts/migration-history-manifest.json",
+    "historical_migration_modified": false,
+    "production_executed": false,
+    "backfill": "none for function repair",
+    "rollback": "separate reviewed compensating forward migration; do not rewrite history or reintroduce known regression"
+  },
+  "masterplan": {
+    "phases": "F0-F7",
+    "rules": 121,
+    "contracts": 231,
+    "distinct_IDs": 352,
+    "immutable_artifacts": 33,
+    "original_registers_changed": false,
+    "acceptance_statuses_changed": false,
+    "system_approved": false,
+    "next_prompt": "NEXTCHAT.md"
+  },
+  "evidence": {
+    "manifest": "evidence-files.json",
+    "portable_bundle": "portable/manifest.json",
+    "patch": "recovery.patch",
+    "patch_sha256": "a0f2b22d81f79ce7ec755582fcd388258621b0257fbab16089fe85bce0ae444c"
+  },
+  "prohibitions_preserved": [
+    "no main merge",
+    "no production migration",
+    "no real customer messages",
+    "no Ediel/real counterpart/TGT/AGT activity",
+    "no force push",
+    "no #310 changes",
+    "no other owner ref/write replacement"
+  ]
+}

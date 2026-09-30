@@ -1,0 +1,338 @@
+{
+  "frozen_at": "2026-09-30T22:09:06.628896+00:00",
+  "base_sha": "860feb10644a2b0c89452a4aff65359fc2187724",
+  "files": [
+    {
+      "path": "__tests__/ediel-correction-outbound-scope.test.ts",
+      "bytes": 17108,
+      "sha256": "693aee844bb303a10d6ce98a27725b4021d11a9a29b7e9156d69c7ea97270dd2"
+    },
+    {
+      "path": "__tests__/ediel-durable-source-business-outcomes.test.ts",
+      "bytes": 17088,
+      "sha256": "3417dafba6a9323f13b5e69e7ef4e30a73109663f451e78682bdb2b261b82ad2"
+    },
+    {
+      "path": "__tests__/ediel-masterplan-protocol-regression.test.ts",
+      "bytes": 7562,
+      "sha256": "09e5f3406990e0e217401c0feea729c8597a632382b08d3712dec68b1a9fe85e"
+    },
+    {
+      "path": "__tests__/ediel-outbound-transport-journal.test.ts",
+      "bytes": 4655,
+      "sha256": "6b9b06940f6512469f8932c322b3408f4a8bc362a7ae34968dd9cfc120853d18"
+    },
+    {
+      "path": "__tests__/ediel-parser-authority-guard.test.ts",
+      "bytes": 2648,
+      "sha256": "a8cbe95032533f39eb266931bdea8e7ebd959ae48a554c2cedf1f3f0761c838d"
+    },
+    {
+      "path": "__tests__/ediel-prodat-aperak-text-legacy.test.ts",
+      "bytes": 3205,
+      "sha256": "4349bba3556d363b3f46cffb8c6619344e7bb91056f98ab31545ada6b00dc9c6"
+    },
+    {
+      "path": "__tests__/ediel-prodat-date-event-send.test.ts",
+      "bytes": 2169,
+      "sha256": "426a6e8a8c35738f7abf3abc9bbee88bc9726d8d5258e1c041549cd9a639e5a2"
+    },
+    {
+      "path": "__tests__/ediel-prodat-death-status-smtp.test.ts",
+      "bytes": 2415,
+      "sha256": "aac893e15c15da10a8bc1b2c3031ca64995e86c832a37814062de598551a5f9f"
+    },
+    {
+      "path": "__tests__/ediel-prodat-field-identity.test.ts",
+      "bytes": 7127,
+      "sha256": "1349dfd7f0f63a47d2afdcae1850f8a9e788a9fe181e0dc8fb769cd99e05b4ac"
+    },
+    {
+      "path": "__tests__/ediel-prodat-free-text-format-routing.test.ts",
+      "bytes": 6811,
+      "sha256": "9815c3cf0aa505832c2ca10c047baa1b94f2a2ab1b3b1064af4116d299dfa868"
+    },
+    {
+      "path": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+      "bytes": 6572,
+      "sha256": "9d8654d4681a1ed5db53766c64c33da687d0eace1b23a7657bfac7b0fc4cada9"
+    },
+    {
+      "path": "__tests__/ediel-prodat-gas-disposition.test.ts",
+      "bytes": 8488,
+      "sha256": "64459202d6b7812699efa9541bddaccdf72f1494ecf9ddc8b3e646864d8ba79f"
+    },
+    {
+      "path": "__tests__/ediel-prodat-gas-identity-consumers.test.ts",
+      "bytes": 6529,
+      "sha256": "19a8bea0e804c363634619b5dafde710371045c90c7514197bde1a0c28b4cfe4"
+    },
+    {
+      "path": "__tests__/ediel-prodat-meter-change-smtp.test.ts",
+      "bytes": 2320,
+      "sha256": "53bf9a253a7037af50a3d348a5a516fff4f9f854c030c4cb108cb0d1ba6f2e69"
+    },
+    {
+      "path": "__tests__/ediel-prodat-recovery-gateway.test.ts",
+      "bytes": 5006,
+      "sha256": "8ee35c6398cebf66c1ebf1ec0e5d80e029b87ce243e57042d932cbd937006e4d"
+    },
+    {
+      "path": "__tests__/ediel-prodat-reporting-smtp.test.ts",
+      "bytes": 2559,
+      "sha256": "2057228c9aaa9bfb6806b5f94d4b9782c382376f3c10f536d83e27c561d9b69e"
+    },
+    {
+      "path": "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+      "bytes": 49925,
+      "sha256": "6a8385106b3ffed404bb2f7f4c84fb2e61c5a06950da4571a67d57577d858c0f"
+    },
+    {
+      "path": "__tests__/ediel-received-context-outcomes.test.ts",
+      "bytes": 7684,
+      "sha256": "e9e0afecc32315edf3ec7f065edc78ac7f1911e806c678acaae0e62685a94725"
+    },
+    {
+      "path": "__tests__/ediel-received-context-reader.test.ts",
+      "bytes": 13827,
+      "sha256": "e3b932a4d335f169c1eb5d23647556b05c5fde1b9765b9d9a2c263d99804399e"
+    },
+    {
+      "path": "__tests__/ediel-received-structure-reader-boundaries.test.ts",
+      "bytes": 18690,
+      "sha256": "3dd5c229f51648caae69caad0afec5798186e600139af57e08be653e3dba1836"
+    },
+    {
+      "path": "__tests__/ediel-received-structure-reader-deadline.test.ts",
+      "bytes": 6195,
+      "sha256": "e5f1bfc19697868db2a6f5ca3659c2823a91bbd1ba9a006b9cc7e74bb5a15a3d"
+    },
+    {
+      "path": "__tests__/ediel-received-structure-reader.test.ts",
+      "bytes": 20020,
+      "sha256": "bc9429494160c8348b5afa959c457d278d3675b2abaed220411fcc25b8aff788"
+    },
+    {
+      "path": "__tests__/ediel-received-utilts-transaction-validation.test.ts",
+      "bytes": 2807,
+      "sha256": "81d299f0eccbc0da7c27504ccbea89e119ccbf38575cd23516f3337ea950ff50"
+    },
+    {
+      "path": "__tests__/ediel-smtp-post-acceptance.test.ts",
+      "bytes": 16294,
+      "sha256": "ff0e5e58ad2d2772d26bb3e22cb884aa76c38168198583dd5b5976f428a3ec13"
+    },
+    {
+      "path": "__tests__/ediel-source-owner-processor.test.ts",
+      "bytes": 6579,
+      "sha256": "6f97a6e2f87dd2ca4147eeda19053835c7767bb939a3229c3db12431ed455a5a"
+    },
+    {
+      "path": "__tests__/ediel-source-owner-runtime.test.ts",
+      "bytes": 10934,
+      "sha256": "9090dc44a8352c187b779b2023094e32cb9b7e837e3bb9c600308b5414f99cb0"
+    },
+    {
+      "path": "__tests__/ediel-source-vm-xml-boundary.test.ts",
+      "bytes": 2545,
+      "sha256": "ce203c61969f09b591ba3841db5c925b355493011ad37b608b217033ea7e9074"
+    },
+    {
+      "path": "__tests__/ediel-transport-byte-integrity.test.ts",
+      "bytes": 5165,
+      "sha256": "3e934af060068dbea76c3e355a4364387f1baa68e298ddeb73f57a59c90a13c2"
+    },
+    {
+      "path": "__tests__/ediel-utilts-aperak-physical-scope.test.ts",
+      "bytes": 3552,
+      "sha256": "021a8b0b33183a9c28611bda9d5356c8fe46421cb955344b7335fce4139158d4"
+    },
+    {
+      "path": "__tests__/ediel-utilts-decision-reuse.test.ts",
+      "bytes": 12871,
+      "sha256": "f51bb0b129fdd879b4bf672f7b92d186a8fc1e149933087c9d4372bc5bebea49"
+    },
+    {
+      "path": "__tests__/ediel-utilts-err-gateway.test.ts",
+      "bytes": 23469,
+      "sha256": "d5b7372c86746847d95a5c957c75e9483d30214467beb9fbd0cbd7bff7963fcd"
+    },
+    {
+      "path": "__tests__/ediel-utilts-final-validation-flow.test.ts",
+      "bytes": 6078,
+      "sha256": "f39c140720c674c3d39e0cd03190de760fd2064f1756f529a1a6f90fd5cf16e2"
+    },
+    {
+      "path": "__tests__/ediel-utilts-negative-ack-own-content.test.ts",
+      "bytes": 10909,
+      "sha256": "3c810000d24e58efd9f9346ccc9bea46ed99cdeb4ec28dd95f149fd34b775a6f"
+    },
+    {
+      "path": "__tests__/ediel-utilts-observation-processor-handoff.test.ts",
+      "bytes": 5747,
+      "sha256": "2e81a8d5bc282d7d3bb6273cd0e031a7fbf1c9828fc9b9761162f3b3933d7cad"
+    },
+    {
+      "path": "__tests__/ediel-utilts-persistence-processor.test.ts",
+      "bytes": 62451,
+      "sha256": "036d26bc26dc28cb137d21c70e9b6cd6047330dd529c87bbfd4bc87f883e4579"
+    },
+    {
+      "path": "__tests__/ediel-utilts-positive-ack-authority.test.ts",
+      "bytes": 8889,
+      "sha256": "bfb5fb57bd7b8c8129ed2ea2a76a8969908001c224e0c02a7887a387544729f6"
+    },
+    {
+      "path": "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+      "bytes": 2702,
+      "sha256": "4db0cb4c2d5e9ae73dd10b941fb4e80cb39335449785af993ded4870c52fd143"
+    },
+    {
+      "path": "__tests__/ediel-utilts-runtime-cutoff.test.ts",
+      "bytes": 52909,
+      "sha256": "bf19314c938a5554333b78ca21addf23da84c9bacbc76a347d642285aef806aa"
+    },
+    {
+      "path": "__tests__/ediel-utilts-s02-required-scope.test.ts",
+      "bytes": 12050,
+      "sha256": "a0595568168fc74028dc88f1b04a7d5a3d3f5b69118443ff5652bca60ab9b432"
+    },
+    {
+      "path": "__tests__/ediel-utilts-s02-shared-original-requirements.test.ts",
+      "bytes": 10133,
+      "sha256": "0da257ef7c1623e1e1a439c31f8c206e2db068a47545ad9d1ee3739cc8c75a23"
+    },
+    {
+      "path": "__tests__/helpers/sourceOwnerFixtures.ts",
+      "bytes": 4688,
+      "sha256": "a31040b8141da02bedb78d1053f73b2a801d54d50b3d7677d7fc1797d12fc94b"
+    },
+    {
+      "path": "__tests__/helpers/sourceOwnerTestDatabase.ts",
+      "bytes": 2595,
+      "sha256": "df95ccf4ece80414265e1927d14b406914d0fd706b8d7e97ebeb548281d48efa"
+    },
+    {
+      "path": "__tests__/helpers/utiltsFinalValidationFixture.ts",
+      "bytes": 5319,
+      "sha256": "4e1c5ab69cd63c6b2d85eec5ebe21b079e79421abfda94b7d040cc21ab8a836b"
+    },
+    {
+      "path": "lib/ediel/core/kernel.ts",
+      "bytes": 24624,
+      "sha256": "9177bcb5a8e5cb9acbe3b052acd627b9caac0a03aa9e7481038c45db6b459d74"
+    },
+    {
+      "path": "lib/ediel/operationalVerification.ts",
+      "bytes": 15699,
+      "sha256": "630a7ea816652ba297ef0816addafbde6b9d7d958d7b1c199a1e6a5db3434ab3"
+    },
+    {
+      "path": "lib/ediel/recovery/prodatRecovery.ts",
+      "bytes": 14929,
+      "sha256": "b78fab0a4f3d464c5da71ed1e94c0f7172816bb48e717176029c3e961de4ffea"
+    },
+    {
+      "path": "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "bytes": 7360,
+      "sha256": "28026e80dcbb75aaa1fa7ac3d5de48a66eb49c12a342a05591731a870237d691"
+    },
+    {
+      "path": "lib/ediel/sources/structuralSourceSelection.ts",
+      "bytes": 14222,
+      "sha256": "0d1ec99fee7b35d652a0c6e82f2dfec9ff53c3a9b1422428e9a5f3e9db4d9a79"
+    },
+    {
+      "path": "lib/ediel/testing/aperakErrorRuleRegistry.ts",
+      "bytes": 56291,
+      "sha256": "6bee041b1496c2177e030a6cad152d49c63840a703e6b103e7530a8abef6a24c"
+    },
+    {
+      "path": "lib/ediel/transport/acceptedProjectionRepair.ts",
+      "bytes": 1798,
+      "sha256": "9edf2a51eccf5995f5068dfbb4662d157a3fcfd9a42bdc1069d8cebce2749639"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "bytes": 39256,
+      "sha256": "808ae90a0b4835acf1ea2ebb65f1275cd6b9db334584c713c7184b6c393fa7e8"
+    },
+    {
+      "path": "lib/ediel/transport/outboundAttempt.ts",
+      "bytes": 6273,
+      "sha256": "15e4a5db9d0ddb0189736419052315e3440f37210e9bdc0e5fb128b0a8ebfaca"
+    },
+    {
+      "path": "lib/ediel/utilts/observationOrderGuide.ts",
+      "bytes": 4307,
+      "sha256": "68517e6a9155812e1645537fcd74f533fd8e88c739c35ab6a82b96e920ea6e91"
+    },
+    {
+      "path": "lib/ediel/utilts/quantityPrecision.ts",
+      "bytes": 6342,
+      "sha256": "767f2b229e7fcc7d7917833631e8feea82297a277986cac872aa78e5d5bec7b1"
+    },
+    {
+      "path": "lib/ediel/utilts/quantityUnitScope.ts",
+      "bytes": 6411,
+      "sha256": "80e79c898eba25a9f1d871fbacd28d5ed7a078ed3c6df6deadd810378e9a22fd"
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.ts",
+      "bytes": 51605,
+      "sha256": "d4fc3a95d6f29d469b54e4b78c9b1f797c0d41390bf80b44b167bbb2aa221f16"
+    },
+    {
+      "path": "scripts/ediel-parser-authority-guard.cjs",
+      "bytes": 4030,
+      "sha256": "b93724fa110f6ecba66b741354f9e2724d8fcdfc0c268f90853b0101d7b7d7d0"
+    },
+    {
+      "path": "scripts/ediel-wire-reference-namespace-embedded-check.mjs",
+      "bytes": 18748,
+      "sha256": "20b5a0d0959822fbd01239184a714b3a87a0e428ff90cc45d5aacf075a3e439b"
+    },
+    {
+      "path": "scripts/ediel-z04-ack-durable-embedded-check.mjs",
+      "bytes": 14823,
+      "sha256": "c1486828a231e43b4d3a049bb72b1b6639674972fac5cc2d6d82ddb2947609ce"
+    },
+    {
+      "path": "scripts/ediel-z04-ack-durable-regression.sql",
+      "bytes": 16901,
+      "sha256": "e0180a8ddd43934ae5e2bd2a836983860b50ec5b9cebc775d3c9962de6f89c75"
+    },
+    {
+      "path": "scripts/helpers/ediel-source-manifest-vm.cjs",
+      "bytes": 3189,
+      "sha256": "18c0b6f8eba10a8f767b4402d8020bef7b0ed657e099625b4928ff0fa44e189a"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "bytes": 73530,
+      "sha256": "4d4e13c8f15accbb51c5ad54e65bb0489e395211c800e3513cf05c391d38cfd1"
+    },
+    {
+      "path": "scripts/test-ediel-prodat-characteristic-fields.cjs",
+      "bytes": 17956,
+      "sha256": "8b9236e70d5c8ae6b60a85d22b53be49a69d2f7f32af344e2866cca25b7968b9"
+    },
+    {
+      "path": "scripts/test-ediel-prodat-document-fields.cjs",
+      "bytes": 21462,
+      "sha256": "66531f95aad71925f024635711e14e8a82f0ecf492950ba5a61d73c2194f3ecc"
+    },
+    {
+      "path": "scripts/test-ediel-unb-ack-request.cjs",
+      "bytes": 27274,
+      "sha256": "4c54389808da3ece70ede8cdcc7cd198811832a0e1e6739f85296f2e9fb4c035"
+    },
+    {
+      "path": "supabase/migrations/20260930213117_ediel_contrl_empty_application_namespace.sql",
+      "bytes": 4639,
+      "sha256": "c19ffa39d670e277152904e7d9c0891a73b0b236aab86340b1816626a47986d2"
+    }
+  ],
+  "runtime_commit": "ed3f5159ba52a81ff7cdf877bf3302205540b0b8",
+  "runtime_tree": "90db37a96248771520b62e522b2a717e9a4a4334"
+}

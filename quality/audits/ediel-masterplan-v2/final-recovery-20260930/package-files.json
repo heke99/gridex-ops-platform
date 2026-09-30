@@ -1,0 +1,152 @@
+{
+  "runtime_sha": "ed3f5159ba52a81ff7cdf877bf3302205540b0b8",
+  "runtime_tree": "90db37a96248771520b62e522b2a717e9a4a4334",
+  "files": [
+    {
+      "path": "NEXTCHAT.md",
+      "bytes": 16793,
+      "sha256": "0bec94112eeeb0ce24feddc6538d4096b12232124b547ac92fd1bfa8c292f0b1"
+    },
+    {
+      "path": "README.md",
+      "bytes": 8255,
+      "sha256": "0950a80d3a6febea0a8a6b77ce6a214acb8ba6de852161294e547bdf22b31c04"
+    },
+    {
+      "path": "evidence-files.json",
+      "bytes": 14414,
+      "sha256": "c03ac84a6c4b22251cbeb6cb944ad754d405b9bd5427522f8f7bfd1329c56889"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-001.b64",
+      "bytes": 262145,
+      "sha256": "3088e772b1fc02003ed69968c38b9121bae4bfab2e84e815c24350e0fb8b31d5"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-002.b64",
+      "bytes": 262145,
+      "sha256": "e6b5648065337519841458ac2d422801ddeaad89ed6ddbdb601094941793618f"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-003.b64",
+      "bytes": 262145,
+      "sha256": "5aa6aa1c9e205ee56a86b7122c70a60c37f962e0b7c41c56f11a89d29d30949b"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-004.b64",
+      "bytes": 262145,
+      "sha256": "03cc1a15d965eb2283fd9a01e590a4a9c841b08af2599bd614c93a9a6102d769"
+    },
+    {
+      "path": "portable/evidence.tar.gz.part-005.b64",
+      "bytes": 134813,
+      "sha256": "c3f564b2a0c32d9c88de31f837efbe1aec934548da452f9806f9f2c958cd68ce"
+    },
+    {
+      "path": "portable/import-receipt.log",
+      "bytes": 1363,
+      "sha256": "54fb4c9eccd3318813a9c616db974ae130991eb95cddb796bba23f167fcb693c"
+    },
+    {
+      "path": "portable/manifest.json",
+      "bytes": 3016,
+      "sha256": "825f1beb3bc6dd35ff2ce982fb9215097361fbd8844d9b170a4e84f3f7aa6ccf"
+    },
+    {
+      "path": "portable/runtime.bundle.part-001.b64",
+      "bytes": 262145,
+      "sha256": "de5bb707a1b0edfdfa894ab09348755deb9542e71e29dff199b021d9c9094289"
+    },
+    {
+      "path": "portable/runtime.bundle.part-002.b64",
+      "bytes": 262145,
+      "sha256": "53dd3eafb025144cf6e6b130d439c9087929cbfb47e09c6983de4ca37e06b7da"
+    },
+    {
+      "path": "portable/runtime.bundle.part-003.b64",
+      "bytes": 262145,
+      "sha256": "3a042ceba4d112962c6481cbefa06df618ed1331939901d9233e4401d1a38f32"
+    },
+    {
+      "path": "portable/runtime.bundle.part-004.b64",
+      "bytes": 262145,
+      "sha256": "b518b926cc3a49c818939b8f394f539a5a0f9d75f4b69a237217b85a7261f289"
+    },
+    {
+      "path": "portable/runtime.bundle.part-005.b64",
+      "bytes": 262145,
+      "sha256": "c5cba01e1cd456230b6ce5b930b507b0aae16a6a0fe76718d0eb9b0463917b8f"
+    },
+    {
+      "path": "portable/runtime.bundle.part-006.b64",
+      "bytes": 262145,
+      "sha256": "9c36289c38dfdadc475236b373fa531034fb7d4337079d6f49d87e042d527507"
+    },
+    {
+      "path": "portable/runtime.bundle.part-007.b64",
+      "bytes": 262145,
+      "sha256": "c9e87582024d131a00138a35933f8f0bc277128dd06daae223416670032bc515"
+    },
+    {
+      "path": "portable/runtime.bundle.part-008.b64",
+      "bytes": 262145,
+      "sha256": "175182fd20d3c9af408e3f7305ef445edcdabb263750ecd0a0ca3e5b8955dfce"
+    },
+    {
+      "path": "portable/runtime.bundle.part-009.b64",
+      "bytes": 262145,
+      "sha256": "d8b2a4108b7d426716b214b103edea68b1cf769dd3f75aecbd4241d08942149b"
+    },
+    {
+      "path": "portable/runtime.bundle.part-010.b64",
+      "bytes": 262145,
+      "sha256": "c309794b06e6dede050c7b30d6fc17ef7f71cc471e79389723fc9cee4796c3f4"
+    },
+    {
+      "path": "portable/runtime.bundle.part-011.b64",
+      "bytes": 262145,
+      "sha256": "728e9d438166b0d68c9b524e74853fb33d9fe91d30a2e9d189be21427bb9c9ef"
+    },
+    {
+      "path": "portable/runtime.bundle.part-012.b64",
+      "bytes": 262145,
+      "sha256": "bf08047714beb872d715d468a84ba7f96c17065045b1bedb4719b12db99eddd7"
+    },
+    {
+      "path": "portable/runtime.bundle.part-013.b64",
+      "bytes": 262145,
+      "sha256": "2868c2636bb914b71d5390df5619ffbdfc8036ff9f6f2a347b2aec7d8a9de098"
+    },
+    {
+      "path": "portable/runtime.bundle.part-014.b64",
+      "bytes": 262145,
+      "sha256": "ede966a3faaab9c66c52f7f81437d781c0ed13319120463061144137ce79802d"
+    },
+    {
+      "path": "portable/runtime.bundle.part-015.b64",
+      "bytes": 208073,
+      "sha256": "34101084704eb293969b4c791b57cdbeac64d3bf0df408befffa087c356f2d58"
+    },
+    {
+      "path": "recovery.patch",
+      "bytes": 366067,
+      "sha256": "a0f2b22d81f79ce7ec755582fcd388258621b0257fbab16089fe85bce0ae444c"
+    },
+    {
+      "path": "resume-state.json",
+      "bytes": 1419,
+      "sha256": "5d4bc10796fe77d20ab1b0855e73f30ec06ba579e4eec646e734afef7f7f9d53"
+    },
+    {
+      "path": "source-files.json",
+      "bytes": 12311,
+      "sha256": "e97c984b0e2b9ecac06401e511afb73e2c307c1f6c3bb58f161039300514c0c2"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 18185,
+      "sha256": "fe5ffb500487d48c8e525fbdefa5b65362a5ea34ae0ee4bbefdc7230cff45011"
+    }
+  ],
+  "note": "manifest intentionally excludes itself"
+}
