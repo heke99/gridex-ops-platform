@@ -5,9 +5,12 @@ import { redirect } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { createTenantSupportCase } from '@/lib/customer-cases/support'
-import { updateCustomerCaseStatus } from '@/lib/customer-cases/db'
+import { executeSupportCommand } from '@/lib/customer-operations/supportCommand'
+import { supportFormError, type SupportFormState } from '@/lib/customer-cases/formState'
+import { currentSupportSession } from '@/lib/customer-operations/supportSession'
 import { publishCustomerCase, revokeCustomerCasePublication } from '@/lib/customer-cases/publication'
 import type { CustomerCasePriority } from '@/lib/customer-cases/types'
+import { intakeSupportAttachment } from '@/lib/customer-cases/attachments'
 
 const ALLOWED_STATUSES = new Set(['open', 'action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'])
 const ALLOWED_PRIORITIES = new Set<CustomerCasePriority>(['low', 'normal', 'high', 'urgent'])
@@ -50,7 +53,7 @@ function redirectOnPublicationConflict(error: unknown, formData: FormData): neve
   throw error
 }
 
-export async function createCustomerCaseFromFormAction(formData: FormData): Promise<void> {
+async function createSupportFromForm(formData: FormData) {
   const admin = await requireAdminActionAccess(['cases.write'])
   const companyId = await companyIdFor(admin.userId, admin.companyId)
   const customerId = value(formData, 'customer_id')
@@ -58,7 +61,7 @@ export async function createCustomerCaseFromFormAction(formData: FormData): Prom
   if (!customerId || !title) throw new Error('Kund och rubrik krävs för supportärendet.')
   const rawPriority = value(formData, 'priority') as CustomerCasePriority
 
-  await createTenantSupportCase({
+  const result = await createTenantSupportCase({
     companyId,
     customerId,
     title,
@@ -68,25 +71,71 @@ export async function createCustomerCaseFromFormAction(formData: FormData): Prom
     channel: 'admin',
     idempotencyKey: value(formData, 'idempotency_key') || null,
     actorUserId: admin.userId,
+    actor: await currentSupportSession('ops', admin.userId),
+    interactionChannel: value(formData, 'contact_channel') === 'phone' ? 'phone' : 'ops',
   })
   revalidate()
+  return { revision: result.case.support_revision ?? 1, replayed: result.reused }
 }
 
-export async function updateCustomerCaseStatusAction(formData: FormData): Promise<void> {
+export async function createCustomerCaseFromFormAction(formData: FormData): Promise<void> { await createSupportFromForm(formData) }
+export async function createCustomerCaseCommandAction(formData: FormData): Promise<SupportFormState> {
+  try { const result = await createSupportFromForm(formData); return { ok: true, revision: result.revision, message: `Supportärendet är sparat. Revision ${result.revision}.` } }
+  catch (error) { return supportFormError(error) }
+}
+
+async function updateSupportStatus(formData: FormData) {
   const admin = await requireAdminActionAccess(['cases.write'])
   const companyId = await companyIdFor(admin.userId, admin.companyId)
   const caseId = value(formData, 'case_id')
   const status = value(formData, 'status')
   if (!caseId || !ALLOWED_STATUSES.has(status)) throw new Error('Ogiltig supportåtgärd.')
 
-  await updateCustomerCaseStatus({
-    caseId,
-    companyId,
-    status,
-    message: `Supportstatus uppdaterad till ${status}.`,
-    actorUserId: admin.userId,
-  })
+  const result = await executeSupportCommand({ companyId, customerId: value(formData, 'customer_id'), caseId,
+    actor: await currentSupportSession('ops', admin.userId), operation: 'status',
+    expectedRevision: revision(formData), idempotencyKey: value(formData, 'idempotency_key'), payload: { status } })
   revalidate()
+  return result
+}
+export async function updateCustomerCaseStatusAction(formData: FormData): Promise<void> { await updateSupportStatus(formData) }
+export async function updateCustomerCaseStatusCommandAction(formData: FormData): Promise<SupportFormState> {
+  try { const result = await updateSupportStatus(formData); return { ok: true, revision: result.revision, message: `Statusen är sparad. Revision ${result.revision}.` } }
+  catch (error) { return supportFormError(error) }
+}
+
+async function addSupportMessage(formData: FormData) {
+  const admin = await requireAdminActionAccess(['cases.write'])
+  const companyId = await companyIdFor(admin.userId, admin.companyId)
+  const visibility = value(formData, 'visibility')
+  if (!['customer', 'internal'].includes(visibility)) throw new Error('Välj intern anteckning eller uttryckligt kundmeddelande.')
+  const result = await executeSupportCommand({ companyId, customerId: value(formData, 'customer_id'), caseId: value(formData, 'case_id'),
+    actor: await currentSupportSession('ops', admin.userId), operation: visibility === 'customer' ? 'customer_message' : 'internal_note',
+    interactionChannel: value(formData, 'contact_channel') === 'phone' ? 'phone' : 'ops',
+    expectedRevision: revision(formData), idempotencyKey: value(formData, 'idempotency_key'), payload: { body: value(formData, 'body') } })
+  revalidate()
+  return result
+}
+export async function addCustomerCaseMessageAction(formData: FormData): Promise<void> { await addSupportMessage(formData) }
+export async function addCustomerCaseMessageCommandAction(formData: FormData): Promise<SupportFormState> {
+  try { const result = await addSupportMessage(formData); return { ok: true, revision: result.revision, message: `Meddelandet är sparat. Revision ${result.revision}.` } }
+  catch (error) { return supportFormError(error) }
+}
+
+export async function uploadCustomerCaseAttachmentAction(data: FormData): Promise<SupportFormState> {
+  try {
+    const admin = await requireAdminActionAccess(['cases.write'])
+    const companyId = await companyIdFor(admin.userId, admin.companyId)
+    const visibility = value(data, 'visibility')
+    if (!['customer', 'internal'].includes(visibility)) throw new Error('Välj bilagans synlighet.')
+    const result = await intakeSupportAttachment({ context: { companyId, customerId: value(data, 'customer_id'), actor: await currentSupportSession('ops', admin.userId) },
+      caseId: value(data, 'case_id'), expectedRevision: revision(data), idempotencyKey: value(data, 'idempotency_key'),
+      visibility: visibility as 'customer' | 'internal', file: data.get('file') as File })
+    revalidate()
+    return { ok: true, revision: result.revision, message: `Bilagan är mottagen i privat karantän. Revision ${result.revision}. Den kan inte öppnas innan säkerhetskontrollen är ansluten.` }
+  } catch (error) { return supportFormError(error) }
+}
+export async function uploadCustomerCaseAttachmentFallbackAction(data: FormData): Promise<void> {
+  const result = await uploadCustomerCaseAttachmentAction(data); if (!result.ok) throw new Error(result.message)
 }
 
 export async function publishCustomerCaseAction(formData: FormData): Promise<void> {
@@ -102,8 +151,10 @@ export async function publishCustomerCaseAction(formData: FormData): Promise<voi
   }
   try {
     await publishCustomerCase({
-      companyId, caseId, actorUserId: admin.userId, title, body,
+      companyId, caseId, customerId: value(formData, 'customer_id'), actorUserId: admin.userId,
+      actor: await currentSupportSession('ops', admin.userId), title, body,
       status: status as 'open' | 'waiting_for_customer' | 'resolved' | 'closed',
+      channel: value(formData, 'publication_channel') === 'phone' ? 'phone' : 'ops',
       expectedRevision: revision(formData),
     })
   } catch (error) {
@@ -119,7 +170,8 @@ export async function revokeCustomerCasePublicationAction(formData: FormData): P
   if (!caseId || revision(formData) < 1) throw new Error('Ogiltig publiceringsrevision.')
   try {
     await revokeCustomerCasePublication({
-      companyId, caseId, actorUserId: admin.userId,
+      companyId, caseId, customerId: value(formData, 'customer_id'), actorUserId: admin.userId,
+      actor: await currentSupportSession('ops', admin.userId),
       expectedRevision: revision(formData),
     })
   } catch (error) {

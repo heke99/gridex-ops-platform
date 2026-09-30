@@ -1,20 +1,13 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const notificationId = '11111111-1111-4111-8111-111111111111'
-const fixture = vi.hoisted(() => ({
-  readAt: null as string | null,
-  readWrites: 0,
-  claim: null as null | Record<string, unknown>,
-  completionAttempts: 0,
-}))
-
+const fixture = vi.hoisted(() => ({ rpc: vi.fn(), separateWrites: 0 }))
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/customer-portal/externalApi', () => ({
   requireCustomerPortalApiContext: async () => ({
     ok: true, startedAt: 1,
     client: { id: 'synthetic-client', company_id: 'synthetic-company' },
-    identity: { customer_id: 'synthetic-customer' },
+    identity: { customer_id: 'synthetic-customer', customer_portal_user_id: 'verified-subject' },
   }),
   customerPortalJson: (body: unknown, init?: ResponseInit) => Response.json(body, init),
   logCustomerPortalSuccess: vi.fn(),
@@ -22,110 +15,34 @@ vi.mock('@/lib/customer-portal/externalApi', () => ({
     Response.json({ code: error.code ?? 'write_failed' }, { status: error.status ?? 500 }),
 }))
 vi.mock('@/lib/supabase/service', () => ({
-  supabaseService: {
-    from: (table: string) => {
-      if (table === 'customer_portal_write_idempotency') {
-        let action = 'select'
-        let payload: Record<string, unknown> = {}
-        const filters = new Map<string, unknown>()
-        const query = {
-          insert: (value: Record<string, unknown>) => {
-            action = 'insert'
-            payload = value
-            return query
-          },
-          update: (value: Record<string, unknown>) => {
-            action = 'update'
-            payload = value
-            return query
-          },
-          select: () => query,
-          eq: (field: string, value: unknown) => {
-            filters.set(field, value)
-            return query
-          },
-          maybeSingle: async () => {
-            if (action === 'insert') {
-              if (fixture.claim) return { data: null, error: { code: '23505' } }
-              fixture.claim = { ...payload, id: 'synthetic-claim' }
-              return { data: { id: 'synthetic-claim' }, error: null }
-            }
-            if (action === 'update' && payload.status === 'completed') {
-              fixture.completionAttempts += 1
-              return { data: null, error: { code: 'synthetic_completion_failure' } }
-            }
-            return { data: fixture.claim && filters.get('company_id') === fixture.claim.company_id
-              ? fixture.claim : null, error: null }
-          },
-          then: (resolve: (value: unknown) => unknown) => {
-            if (action === 'update' && payload.status === 'failed') {
-              fixture.claim = { ...fixture.claim, ...payload }
-            }
-            return Promise.resolve({ error: null }).then(resolve)
-          },
-        }
-        return query
-      }
-      if (table === 'customer_notifications') {
-        let action = 'select'
-        const filters = new Map<string, string>()
-        const query = {
-          select: () => query,
-          update: (value: { read_at: string }) => {
-            action = 'update'
-            fixture.readAt = value.read_at
-            return query
-          },
-          eq: (field: string, value: string) => {
-            filters.set(field, value)
-            return query
-          },
-          in: () => query,
-          order: () => query,
-          range: () => query,
-          then: (resolve: (value: unknown) => unknown) => {
-            const owned = filters.get('company_id') === 'synthetic-company' &&
-              filters.get('customer_id') === 'synthetic-customer'
-            if (action === 'update' && owned) fixture.readWrites += 1
-            return Promise.resolve({ data: owned ? [{ id: notificationId }] : [], error: null }).then(resolve)
-          },
-        }
-        return query
-      }
-      throw new Error(`Unexpected table: ${table}`)
-    },
-  },
+  supabaseService: { rpc: fixture.rpc, from: () => {
+    fixture.separateWrites += 1
+    throw new Error('notification adapter crossed the atomic command boundary')
+  } },
 }))
 
-import { publicReference } from '@/lib/integrations/publicReferences'
 import { POST } from '@/app/api/v1/customer/notifications/read/route'
 
-const reference = publicReference('notification', 'synthetic-company', notificationId)
-const request = () => new NextRequest(
-  'https://gridex.example.test/api/v1/customer/notifications/read',
-  { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'synthetic-notification-read-1' },
-    body: JSON.stringify({ notification_references: [reference] }) },
-)
+const reference = `notification_${'a'.repeat(32)}`
+const request = () => new NextRequest('https://gridex.example.test/api/v1/customer/notifications/read', {
+  method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'synthetic-notification-read-1' },
+  body: JSON.stringify({ notification_references: [reference] }),
+})
 
-describe('remaining mark-read atomicity gap with a synthetic completion failure', () => {
-  beforeEach(() => {
-    fixture.readAt = null
-    fixture.readWrites = 0
-    fixture.claim = null
-    fixture.completionAttempts = 0
-  })
+describe('notification write boundary (adapter regression; native suite proves rollback)', () => {
+  beforeEach(() => { fixture.rpc.mockReset(); fixture.separateWrites = 0 })
 
-  it('persists the notification change before a failed completion and refuses same-key replay', async () => {
-    const first = await POST(request())
-    expect(first.status).toBe(500)
-    expect(fixture.readWrites).toBe(1)
-    expect(fixture.readAt).not.toBeNull()
-    expect(fixture.completionAttempts).toBe(1)
-    expect(fixture.claim?.status).toBe('failed')
+  it('never performs separate mutation, claim or completion when a late SQL error is returned', async () => {
+    fixture.rpc.mockResolvedValueOnce({ data: null, error: { code: 'XX000', message: 'synthetic late completion failure' } })
+    expect((await POST(request())).status).toBe(500)
+    expect(fixture.separateWrites).toBe(0)
 
-    const replay = await POST(request())
-    expect(replay.status).toBe(409)
-    expect(await replay.json()).toMatchObject({ code: 'idempotency_previous_attempt_failed' })
-    expect(fixture.readWrites).toBe(1)
+    fixture.rpc.mockResolvedValueOnce({ data: {
+      statusCode: 200, replayed: false,
+      body: { data: { updated_count: 1, notification_references: [reference], read_at: '2026-09-30T12:00:00Z' } },
+    }, error: null })
+    expect((await POST(request())).status).toBe(200)
+    expect(fixture.rpc).toHaveBeenCalledTimes(2)
+    expect(fixture.separateWrites).toBe(0)
   })
 })

@@ -316,6 +316,33 @@ describe('evaluateBillingReadinessCore', () => {
 })
 
 describe('evaluateContractBillingAccountReadiness', () => {
+  it.each(['e_invoice', 'direct_debit'] as const)('accepts a complete canonical %s destination without substituting email or post', (distributionMethod) => {
+    const result = evaluateContractBillingAccountReadiness({
+      contract: { id: 'contract-1', company_id: 'company-1', customer_id: 'customer-1', vat_rate: 25,
+        billing_profile_override: {}, billing_profile_override_revision: 0 },
+      customer: { id: 'customer-1', company_id: 'company-1', billing_profile_revision: 4,
+        billing_profile: { recipient: 'Billing Customer', distributionMethod, reference: 'VERIFIED-BILLING-REFERENCE' } },
+      paymentTerms: { dueDays: 30 },
+    })
+    expect(result.blockers).toEqual([])
+    expect(result.evidence).toMatchObject({ invoice_email: null, has_postal_invoice_address: false,
+      invoice_distribution_method: distributionMethod, invoice_reference: 'VERIFIED-BILLING-REFERENCE', billing_profile_revision: 4 })
+  })
+
+  it('reports an explicitly cleared canonical street as incomplete even when the site rule remains enabled', () => {
+    const result = evaluateContractBillingAccountReadiness({
+      contract: { id: 'contract-1', company_id: 'company-1', customer_id: 'customer-1', vat_rate: 25,
+        billing_address_same_as_site: true, billing_profile_override: { street: null } },
+      customer: { id: 'customer-1', company_id: 'company-1', billing_profile: { recipient: 'Billing Customer', distributionMethod: 'paper' } },
+      paymentTerms: { dueDays: 30 },
+      billingProfile: { profileId: 'profile-1', status: 'active', distributionMethod: 'paper',
+        ocrPolicy: 'provider_generated', paymentReferencePolicy: 'invoice_number',
+        siteAddress: { street: 'Site Street', postalCode: '11111', city: 'Site City' } },
+    })
+    expect(result.blockers.map((blocker) => blocker.code)).toContain('invoice_distribution_missing')
+    expect(result.evidence.has_postal_invoice_address).toBe(false)
+  })
+
   it('accepts billing_address_same_as_site as a distribution channel', () => {
     const result = evaluateContractBillingAccountReadiness({
       contract: {
@@ -333,12 +360,13 @@ describe('evaluateContractBillingAccountReadiness', () => {
     expect(result.evidence).toMatchObject({ billing_address_same_as_site: true })
   })
 
-  it('falls back to canonical customer data for recipient and distribution', () => {
+  it('uses explicit customer billing data for recipient and distribution', () => {
     const result = evaluateContractBillingAccountReadiness({
       contract: { vat_rate: 25 },
       customer: {
         full_name: 'Anna Andersson',
-        email: 'anna@example.com',
+        email: 'contact@example.com',
+        invoice_email: 'anna@example.com',
       },
       paymentTerms: { dueDays: 30 },
     })

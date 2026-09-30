@@ -1,3 +1,5 @@
+import { resolveEffectiveBillingProfile, type EffectiveBillingProfile } from '@/lib/billing/effectiveBillingProfile'
+
 // Central customer/contract-level billing readiness (faktureringsbarhet).
 //
 // This is the one place that answers "may this customer be invoiced for this
@@ -87,6 +89,8 @@ export type BillingReadinessContract = {
   export_blocked?: boolean | null
   export_block_reason?: string | null
   billing_blocker_reasons?: Array<Record<string, unknown>> | null
+  billing_profile_override?: Record<string, unknown> | null
+  billing_profile_override_revision?: number | null
 }
 
 export type BillingReadinessCustomer = {
@@ -100,6 +104,8 @@ export type BillingReadinessCustomer = {
   billing_street?: string | null
   billing_postal_code?: string | null
   billing_city?: string | null
+  billing_profile?: Record<string, unknown> | null
+  billing_profile_revision?: number | null
 }
 
 export type BillingReadinessInput = {
@@ -167,6 +173,7 @@ export type BillingReadinessInput = {
   }
   /** Externally supplied blockers (e.g. customer_operation_tasks of blocking type). */
   externalBlockers?: BillingBlocker[] | null
+  effectiveBillingProfile?: EffectiveBillingProfile
 }
 
 /**
@@ -178,16 +185,23 @@ export function evaluateContractBillingAccountReadiness(input: {
   customer?: BillingReadinessCustomer | null
   paymentTerms?: { dueDays?: number | null; defaulted?: boolean } | null
   billingProfile?: BillingReadinessInput['billingProfile']
+  effectiveBillingProfile?: EffectiveBillingProfile
 }): { blockers: BillingBlocker[]; warnings: BillingWarning[]; evidence: BillingReadinessEvidence } {
   const blockers: BillingBlocker[] = []
   const warnings: BillingWarning[] = []
   const contract = input.contract
   const customer = input.customer ?? null
 
-  const recipient =
-    clean(contract?.invoice_recipient) ??
-    clean(customer?.full_name) ??
-    clean(customer?.company_name)
+  const effective = input.effectiveBillingProfile ?? resolveEffectiveBillingProfile({
+    companyId: clean(contract?.company_id) ?? clean(customer?.company_id) ?? '',
+    customerId: clean(contract?.customer_id) ?? clean(customer?.id) ?? '',
+    contract, customer, siteAddress: input.billingProfile?.siteAddress,
+    defaultDistributionMethod: input.billingProfile?.distributionMethod,
+  })
+  const usesCanonicalProfile = Boolean(input.effectiveBillingProfile) || Object.hasOwn(customer ?? {}, 'billing_profile')
+    || Object.hasOwn(contract ?? {}, 'billing_profile_override')
+  const recipient = effective.recipient
+  if (usesCanonicalProfile) blockers.push(...effective.blockers)
   if (!recipient) {
     blockers.push({
       code: 'invoice_recipient_missing',
@@ -195,19 +209,21 @@ export function evaluateContractBillingAccountReadiness(input: {
     })
   }
 
-  const invoiceEmail = clean(contract?.invoice_email) ?? clean(customer?.invoice_email) ?? clean(customer?.email)
-  const billingStreet = clean(contract?.billing_street) ?? clean(customer?.billing_street)
-  const billingPostalCode = clean(contract?.billing_postal_code) ?? clean(customer?.billing_postal_code)
-  const billingCity = clean(contract?.billing_city) ?? clean(customer?.billing_city)
+  const invoiceEmail = effective.email
+  const billingStreet = effective.address.street
+  const billingPostalCode = effective.address.postalCode
+  const billingCity = effective.address.city
   const hasPostalAddress = Boolean(billingStreet && billingPostalCode && billingCity)
   const sameAsSite = contract?.billing_address_same_as_site === true
   const siteAddress = input.billingProfile?.siteAddress
   const siteAddressComplete = siteAddress === undefined
     ? sameAsSite
     : Boolean(clean(siteAddress?.street) && clean(siteAddress?.postalCode) && clean(siteAddress?.city))
-  const hasResolvedPostalAddress = hasPostalAddress || (sameAsSite && siteAddressComplete)
+  const hasResolvedPostalAddress = hasPostalAddress || (!usesCanonicalProfile && sameAsSite && siteAddressComplete)
   const hasDistribution = Boolean(invoiceEmail || hasResolvedPostalAddress)
-  if (!hasDistribution) {
+  // Canonical distribution, including reference-based methods and explicit
+  // clearing, is already validated by the shared resolver above.
+  if (!hasDistribution && !usesCanonicalProfile) {
     blockers.push({
       code: 'invoice_distribution_missing',
       message: 'Varken fakturaadress, faktura-e-post eller "samma som anläggningsadress" finns.',
@@ -244,7 +260,9 @@ export function evaluateContractBillingAccountReadiness(input: {
   const profile = input.billingProfile
   const profileId = clean(profile?.profileId)
   const profileStatus = clean(profile?.status)?.toLowerCase() ?? null
-  const distributionMethod = clean(profile?.distributionMethod)?.toLowerCase() ?? null
+  const distributionMethod = usesCanonicalProfile
+    ? effective.distributionMethod
+    : profile !== undefined ? clean(profile?.distributionMethod)?.toLowerCase() ?? null : effective.distributionMethod
   const ocrPolicy = clean(profile?.ocrPolicy)
   const paymentReferencePolicy = clean(profile?.paymentReferencePolicy)
   if (profile !== undefined) {
@@ -270,14 +288,14 @@ export function evaluateContractBillingAccountReadiness(input: {
         code: 'invoice_distribution_missing',
         message: 'Fakturaprofilen kräver e-post men faktura-e-post saknas.',
       })
-    } else if (['postal', 'post', 'letter'].includes(distributionMethod) && !hasResolvedPostalAddress) {
+    } else if (['paper', 'postal', 'post', 'letter'].includes(distributionMethod) && !hasResolvedPostalAddress) {
       blockers.push({
         code: 'invoice_distribution_missing',
         message: 'Fakturaprofilen kräver postadress men en komplett fakturaadress saknas.',
       })
     } else if (
       ['einvoice', 'e_invoice', 'e-faktura'].includes(distributionMethod) &&
-      !clean(contract?.invoice_reference)
+      !effective.reference
     ) {
       blockers.push({
         code: 'invoice_reference_missing',
@@ -299,11 +317,16 @@ export function evaluateContractBillingAccountReadiness(input: {
   }
 
   return {
-    blockers,
+    blockers: [...new Map(blockers.map(blocker => [blocker.code, blocker])).values()],
     warnings,
     evidence: {
       invoice_recipient: recipient,
       invoice_email: invoiceEmail,
+      invoice_reference: effective.reference,
+      billing_profile_revision: effective.profileRevision,
+      billing_profile_override_revision: effective.contractOverrideRevision,
+      billing_profile_sources: effective.sources,
+      effective_billing_profile: effective,
       has_postal_invoice_address: hasResolvedPostalAddress,
       billing_address_same_as_site: sameAsSite,
       vat_rate: vatRate,
@@ -518,6 +541,7 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     customer: input.customer ?? null,
     paymentTerms: input.paymentTerms ?? null,
     billingProfile: input.billingProfile,
+    effectiveBillingProfile: input.effectiveBillingProfile,
   })
   blockers.push(...account.blockers)
   warnings.push(...account.warnings)

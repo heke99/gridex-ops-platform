@@ -214,5 +214,617 @@
     "routes": [
       "POST /api/v1/website/customer-applications"
     ]
+  },
+  "notification_service_required": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_delegation_forbidden": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_customer_unavailable": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_tenant_unavailable": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_service_required": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_actor_forbidden": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_delegation_forbidden": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_customer_unavailable": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_tenant_unavailable": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_actor_forbidden": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_delegation_forbidden": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_session_revoked": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_actor_forbidden": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_delegation_forbidden": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_customer_unavailable": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_tenant_unavailable": {
+    "http_status": 403,
+    "public_message": "Ett giltigt och aktivt mandat krävs.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_reference_not_found": {
+    "http_status": 404,
+    "public_message": "Resursen hittades inte för kunden.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "resource_not_found": {
+    "http_status": 404,
+    "public_message": "Resursen hittades inte för kunden.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "idempotency_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "idempotency_previous_attempt_failed": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "idempotency_in_progress": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_revision_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "facility_address_revision_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_revision_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_idempotency_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_status_transition_forbidden": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_case_closed": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_revision_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_idempotency_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_override_revision_conflict": {
+    "http_status": 409,
+    "public_message": "Ändringen kunde inte sparas med angiven revision, status eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_read_unknown_field": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_references_required": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_references_limit_exceeded": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_reference_invalid": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_reference_duplicate": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_notification_command": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_field_not_supported": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_profile_command": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_profile_preferences": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_revision_required": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_facility_command": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "facility_address_revision_required": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "facility_candidate_invalid": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_metadata_not_supported": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_support_command": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_publication_required": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_billing_profile_command": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_billing_profile_field": {
+    "http_status": 422,
+    "public_message": "Förfrågan innehåller ogiltiga eller otillåtna fält.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "notification_result_invalid": {
+    "http_status": 503,
+    "public_message": "Kundtjänstens databasgräns är tillfälligt otillgänglig.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "profile_result_invalid": {
+    "http_status": 503,
+    "public_message": "Kundtjänstens databasgräns är tillfälligt otillgänglig.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_schema_unavailable": {
+    "http_status": 503,
+    "public_message": "Kundtjänstens databasgräns är tillfälligt otillgänglig.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_result_invalid": {
+    "http_status": 503,
+    "public_message": "Kundtjänstens databasgräns är tillfälligt otillgänglig.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_unavailable": {
+    "http_status": 503,
+    "public_message": "Kundtjänstens databasgräns är tillfälligt otillgänglig.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "billing_profile_result_invalid": {
+    "http_status": 503,
+    "public_message": "Kundtjänstens databasgräns är tillfälligt otillgänglig.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_legacy_idempotency_requires_review": {
+    "http_status": 409,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_unavailable": {
+    "http_status": 503,
+    "public_message": "Ärendefunktionen är tillfälligt otillgänglig.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_revision_required": {
+    "http_status": 422,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_service_required": {
+    "http_status": 403,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_revision_conflict": {
+    "http_status": 409,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_idempotency_conflict": {
+    "http_status": 409,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_selection_conflict": {
+    "http_status": 409,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_actor_forbidden": {
+    "http_status": 403,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_delegation_forbidden": {
+    "http_status": 403,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_customer_unavailable": {
+    "http_status": 403,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "contact_tenant_unavailable": {
+    "http_status": 403,
+    "public_message": "Åtgärden kunde inte genomföras med aktuell behörighet, revision eller idempotensnyckel.",
+    "retryable": false,
+    "security_sensitive": true,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "invalid_support_attachment": {
+    "http_status": 422,
+    "public_message": "Bilagan kunde inte tas emot med de angivna uppgifterna.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_attachment_too_large": {
+    "http_status": 413,
+    "public_message": "Bilagan är för stor.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
+  },
+  "support_attachment_unavailable": {
+    "http_status": 503,
+    "public_message": "Bilagan kunde inte hanteras just nu. Försök igen senare.",
+    "retryable": true,
+    "security_sensitive": false,
+    "routes": [
+      "customer_delegated"
+    ]
   }
 }

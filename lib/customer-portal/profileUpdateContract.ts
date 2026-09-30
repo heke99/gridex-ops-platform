@@ -30,6 +30,7 @@ const addressSchema = z.object({
 
 const facilityDataSchema = z.object({
   facility_reference: z.string().trim().min(1).max(120),
+  expected_address_revision: z.number().int().nonnegative().safe().optional(),
   address: addressSchema,
   external_request_id: optionalText(200),
 }).strict()
@@ -39,6 +40,8 @@ const profileUpdateSchema = z.object({
   facility_data: facilityDataSchema.optional(),
   metadata: z.record(z.unknown()).optional(),
   expected_contact_revision: z.number().int().nonnegative().safe().optional(),
+  expected_billing_revision: z.number().int().nonnegative().safe().optional(),
+  expected_profile_revision: z.number().int().nonnegative().safe().optional(),
 }).strict().superRefine((value, context) => {
   if (!value.profile && !value.facility_data) {
     context.addIssue({
@@ -55,13 +58,8 @@ const profileUpdateSchema = z.object({
     })
   }
   if (value.profile && ('email' in value.profile || 'phone' in value.profile)) {
-    if (value.expected_contact_revision === undefined) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['expected_contact_revision'],
-        message: 'Sparad kontaktrevision krävs för kontaktändring.',
-      })
-    }
+    // New commands require a saved revision at the transactional boundary.
+    // Omission is parsed only so an authorized historical completed claim can replay.
     if (value.facility_data || value.metadata ||
         Object.keys(value.profile).some((key) => key !== 'email' && key !== 'phone')) {
       context.addIssue({
@@ -76,6 +74,23 @@ const profileUpdateSchema = z.object({
       path: ['expected_contact_revision'],
       message: 'Kontaktrevision får endast skickas med e-post eller telefon.',
     })
+  }
+  if (value.profile && 'invoice_email' in value.profile) {
+    // The atomic command requires a saved revision for new billing writes.
+    // Revision omission and historical metadata reach only that completed-claim
+    // lookup. The command rejects metadata before every fresh billing mutation.
+    if (value.facility_data || Object.keys(value.profile).some((key) => key !== 'invoice_email')) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['profile'],
+        message: 'Faktureringsändring måste skickas separat från kontakt- och anläggningsuppgifter.' })
+    }
+  } else if (value.expected_billing_revision !== undefined) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['expected_billing_revision'],
+      message: 'Faktureringsrevision får endast skickas med invoice_email.' })
+  }
+  if (value.expected_profile_revision !== undefined &&
+      (!value.profile || Object.keys(value.profile).some((field) => field !== 'language_code' && field !== 'timezone'))) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['expected_profile_revision'],
+      message: 'Profilrevision får endast skickas med språk eller tidszon.' })
   }
 })
 

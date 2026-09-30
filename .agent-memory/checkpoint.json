@@ -1,17 +1,17 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-27T22:50:00Z",
+  "updated_at": "2026-09-30T20:29:44.211727+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-v2-f3-prodat-header-206-20260927",
-  "active_pr": 416,
+  "branch": "codex/tenantservice-recovery-integration-20260930",
+  "active_pr": 422,
   "base_head_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
   "runtime_accepted_sha": "bd3e131e9697df23afd7ae8aaf2d683ccf16531d",
   "last_merged_pr": 415,
   "last_accepted_pr": 415,
   "root_main_acceptance_comment": null,
-  "active_item": "PR416 F3 header206 + 313; independent-review lowercase 313 split reproduced/fixed locally, corrected head CI pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-header-313-whole-message-20260928.md",
+  "active_item": "Full tenantservice/API/OPS recovery and coordinated implementation",
+  "current_audit": "quality/audits/tenantservice-api-ops-20260928/recovery-implementation-20260930.md",
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish literal field313 AB/NA validation and third native variant to draft PR416 from exact 63244be9; require corrected-head CI/native/replay/schema/type, repeat final review, then one merge if green. Market activation separate; PR310 untouched.",
+  "next_action": "Freeze reviewed commands/fixtures, preserve OPS+API ancestry, publish candidate to existing draft422 and qualify actual disposable replay/HTTP/browser. Adopt only authentic generated artifacts, then continue full remaining T/U scope.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -887,7 +887,7 @@
     "local_fixture_correction": "DTM+ZZZ:1:805, computed UNT; affected34/34, test TS/lint PASS, unpublished"
   },
   "api_422_continuation": {
-    "status": "IN_PROGRESS",
+    "status": "VERIFIED",
     "branch": "codex/tenantservice-api-structure-20260929",
     "published_start_sha": "a826b5886e7b946ea10164d8f736eac07e8c6ac1",
     "preserved_original_local_sha": "9ed10d8cb1d43effa819fb33111adf5461e71c9f",
@@ -895,6 +895,82 @@
     "source_candidate_sha": "56e7a5429273061043b3a652b2f496a3e419f74f",
     "candidate_version": "2026-09-30.1",
     "current_audit": "quality/audits/tenantservice-api-ops-20260928/api-event-v2-evidence-20260930.md",
-    "next_action": "Freeze reviewed fixes and verify/publish exact candidate; obtain actual new HTTP/native CI proof. Final published SHA and receipt are in PR422. No main/production/full-phase acceptance."
+    "next_action": "Do not redo event-v2. Continue coherent notification transaction/native legal-metering package; real issuer/deploy/full-phase acceptance remain open.",
+    "qualified_published_sha": "cc90678d45602d37db7f8edf9713597c66fee28a",
+    "qualified_tree": "ae26888d6170c0439bbcaa0a8cad71b8870bb187",
+    "ops_run": 36716141163,
+    "native_job": 109889422728,
+    "native_artifact": 11095934722,
+    "http_native_markers": 3,
+    "sql_native_markers": 10,
+    "final_receipt": "https://github.com/heke99/gridex-ops-platform/pull/422#issuecomment-5911733693"
+  },
+  "api_next_parallel_package": {
+    "plan_status": "VERIFIED",
+    "implementation_status": "NOT_STARTED",
+    "plan": "docs/superpowers/plans/2026-09-30-api-notification-native-parallel.md",
+    "local_planning_base": "e37f24c0",
+    "api_remote_head": "cc90678d45602d37db7f8edf9713597c66fee28a",
+    "ops_remote_head": "7afb3dcac62376edc5cab24c83ebcce80cb06e9a",
+    "parallel_workers": [
+      "notification database",
+      "notification API adapter",
+      "notification proof",
+      "legal proof",
+      "metering proof",
+      "contract preparation"
+    ],
+    "integration_owner": "root",
+    "read_proof_schema_change_required": false,
+    "confirmed_contract_gaps": [
+      "legal GET503",
+      "metering GET503"
+    ],
+    "next_action": "Freeze notification RPC and legacy reference/hash/claim compatibility; execute six owned workstreams in parallel, integrate once, materialize one final release, then exact-head native/CI qualification.",
+    "production_or_merge": false
+  },
+  "tenantservice_integration": {
+    "base_ops": "7afb3dcac62376edc5cab24c83ebcce80cb06e9a",
+    "base_api": "cc90678d45602d37db7f8edf9713597c66fee28a",
+    "base_main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+    "status": "IN_PROGRESS",
+    "local_native_available": false,
+    "full_requirement_acceptance": false
+  },
+  "tenantservice_delivery": {
+    "status": "IN_PROGRESS",
+    "remote_ops_head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+    "remote_api_head": "cc90678d45602d37db7f8edf9713597c66fee28a",
+    "ops_starting_run": 36737320079,
+    "report": "quality/audits/tenantservice-api-ops-20260928/delivery-20260930.md",
+    "local_native_executed": false
+  },
+  "tenantservice_recovery": {
+    "status": "FROZEN_LOCAL_GATES_PASS_CI_PENDING",
+    "source_checkout_head": "da45651ae13b05c2552954fe949fa3e50cbad5bd",
+    "recovered_files": 165,
+    "recovered_bytes": 12327099,
+    "originals_unchanged": true,
+    "last_checked_main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+    "verified_ops_predecessor": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+    "verified_api_predecessor": "cc90678d45602d37db7f8edf9713597c66fee28a",
+    "requirements_count": 75,
+    "full_acceptance": false,
+    "native_candidate_verified": false,
+    "secret_scan": "BLOCKED_AUTH",
+    "local_validation": {
+      "node": "22.23.3",
+      "unit_tests": 6714,
+      "unit_files": 454,
+      "app_typecheck": "PASS_4GIB",
+      "tests_typecheck": "PASS",
+      "scripts_typecheck": "PASS",
+      "migration_integrity_files": 663,
+      "migration_integrity_version_groups": 567,
+      "upgrade_plan_only": "PASS_653_BASELINE_10_FORWARD",
+      "native_upgrade_restore": "NOT_EXECUTED",
+      "candidate_ci": "PENDING",
+      "full_acceptance": false
+    }
   }
 }

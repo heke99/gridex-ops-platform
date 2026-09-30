@@ -66,6 +66,11 @@ export type CustomerRow = {
   email: string | null;
   phone: string | null;
   contact_revision: number;
+  address_book_revision?: number;
+  legal_profile_revision?: number;
+  lifecycle_revision?: number;
+  billing_profile?: unknown;
+  billing_profile_revision?: number;
   personal_number: string | null;
   org_number: string | null;
   customer_number: string | null;
@@ -539,6 +544,8 @@ export function canShowCustomerWorkspaceTab(
 export function normalizeWorkspaceTab(
   value: string | null | undefined,
 ): CustomerWorkspaceTab {
+  // Preserve bookmarked contact links while using one editor for this task.
+  if (value === 'contacts-addresses') return 'profile';
   if (value && CUSTOMER_WORKSPACE_TAB_IDS.has(value as CustomerWorkspaceTab)) {
     return value as CustomerWorkspaceTab;
   }
@@ -550,17 +557,19 @@ export function customerTabHref(
   customerId: string,
   tab: CustomerWorkspaceTab,
 ): string {
-  return `/admin/customers/${customerId}?tab=${encodeURIComponent(tab)}#${encodeURIComponent(tab)}`;
+  return `/admin/customers/${encodeURIComponent(customerId)}?tab=${encodeURIComponent(tab)}#${encodeURIComponent(tab)}`;
 }
 
 export function CustomerLookupProblem({
   title,
   description,
   lookupId,
+  showPlatformLink = false,
 }: {
   title: string;
   description: string;
   lookupId: string;
+  showPlatformLink?: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -574,7 +583,7 @@ export function CustomerLookupProblem({
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-700 ">
           {description}
         </p>
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 ">
+        <div className="mt-4 break-all rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 ">
           Lookup-id: {lookupId}
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
@@ -584,12 +593,12 @@ export function CustomerLookupProblem({
           >
             Till kundregistret
           </Link>
-          <Link
+          {showPlatformLink ? <Link
             href="/admin/ediel"
             className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
           >
             Till Ediel
-          </Link>
+          </Link> : null}
         </div>
       </section>
     </div>
@@ -603,7 +612,7 @@ export async function getCustomer(
   const { data, error } = await supabase
     .from("customers")
     .select(
-      "id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, contact_revision, personal_number, org_number, customer_number, source, apartment_number, created_at, intake_status, intake_missing_fields, intake_quality_score, intake_warnings, is_test_data, archived_at, archive_reason, data_retention_note",
+      "id, company_id, customer_type, status, first_name, last_name, full_name, company_name, email, phone, contact_revision, legal_profile_revision, lifecycle_revision, billing_profile, billing_profile_revision, personal_number, org_number, customer_number, source, apartment_number, created_at, intake_status, intake_missing_fields, intake_quality_score, intake_warnings, is_test_data, archived_at, archive_reason, data_retention_note",
     )
     .eq("id", id)
     .maybeSingle();

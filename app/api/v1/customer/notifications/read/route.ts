@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
-import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
-import { supabaseService } from '@/lib/supabase/service'
-import { publicReference } from '@/lib/integrations/publicReferences'
+import { ApiInputError, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
+import { markCustomerNotificationsRead } from '@/lib/customer-portal/notificationCommands'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -61,35 +60,6 @@ function notificationReferences(payload: Record<string, unknown>): string[] {
   return references
 }
 
-async function resolveNotificationIds(input: {
-  companyId: string
-  customerId: string
-  references: string[]
-}): Promise<Map<string, string>> {
-  const resolved = new Map<string, string>()
-  const pageSize = 1_000
-  // query-loop-budget: paginated-scan page=1000
-  // Public references are one-way hashes, so resolution walks disjoint pages;
-  // this is not a repeated child query for one parent collection.
-  for (let from = 0; resolved.size < input.references.length; from += pageSize) {
-    const { data, error } = await supabaseService
-      .from('customer_notifications')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('customer_id', input.customerId)
-      .order('id', { ascending: true })
-      .range(from, from + pageSize - 1)
-    if (error) throw error
-    const rows = data ?? []
-    for (const row of rows) {
-      const reference = publicReference('notification', input.companyId, row.id)
-      if (reference && input.references.includes(reference)) resolved.set(reference, String(row.id))
-    }
-    if (rows.length < pageSize) break
-  }
-  return resolved
-}
-
 export async function POST(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_notifications.write'])
   if (!context.ok) return context.response
@@ -97,50 +67,17 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await readJsonObject(request) as Record<string, unknown>
     const references = notificationReferences(payload)
-    const canonicalPayload = { notification_references: references }
-    const result = await executeIdempotentPortalWrite<Record<string, unknown>>({
-      request,
+    const subject = context.identity.customer_portal_user_id
+    if (!subject) {
+      throw new ApiInputError('Aktiv kundkoppling saknas.', 'customer_delegation_link_mismatch', 403)
+    }
+    const result = await markCustomerNotificationsRead({
       companyId: context.client.company_id,
       clientId: context.client.id,
       customerId: context.identity.customer_id,
-      operation: '/api/v1/customer/notifications/read',
-      payload: canonicalPayload,
-      execute: async () => {
-        const resolved = await resolveNotificationIds({
-          companyId: context.client.company_id,
-          customerId: context.identity.customer_id,
-          references,
-        })
-        if (resolved.size !== references.length) {
-          throw new ApiInputError(
-            'En eller flera notisreferenser hittades inte för kunden.',
-            'notification_reference_not_found',
-            404,
-            'notification_references',
-          )
-        }
-        const readAt = new Date().toISOString()
-        const { data, error } = await supabaseService
-          .from('customer_notifications')
-          .update({ status: 'read', read_at: readAt, updated_at: readAt })
-          .eq('company_id', context.client.company_id)
-          .eq('customer_id', context.identity.customer_id)
-          .eq('status', 'unread')
-          .in('id', [...resolved.values()])
-          .select('id')
-        if (error) throw error
-
-        return {
-          statusCode: 200,
-          body: {
-            data: {
-              updated_count: data?.length ?? 0,
-              notification_references: references,
-              read_at: readAt,
-            },
-          },
-        }
-      },
+      subject,
+      idempotencyKey: requireIdempotencyKey(request),
+      notificationReferences: references,
     })
 
     await logCustomerPortalSuccess({

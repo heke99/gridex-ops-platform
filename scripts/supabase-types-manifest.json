@@ -1,9 +1,9 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-29T22:07:10Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-run36636567043-artifact11065526805",
+  "generated_at": "2026-09-30T15:22:39Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-run36734905474-artifact11106997870",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "301fcaf283405cf7c9ef71f74363c276bb91269354f678a7c8baffe895bd7664",
-  "latest_migration": "20260929214729_portal_event_version_read_model_v2.sql",
-  "latest_migration_schema_effect": "Additive service-only portal_customer_events_page_v2 projects stored domain event versions and explicit customer event version 1. Authentic clean replay of PR head 16aa90e59e1770addd2a1095897ab9cb790359a8 on synthetic merge bd02380921fcad54d1e906c4997bd870987d01e3 (OPS 36636567043, job 109638534974, artifact 11065526805) passed all event native checks: versions 7/3/2/4, two sources, tenant/customer isolation, 116 events in 58 pages, 59 cursor replays, anon/authenticated denial and source immutability. Exact generated type/schema bytes were adopted; schema fingerprint dbeb4ba40bffcaf6c0e49b83ffa32417a9429baec3357ee37e8b388887564f86. That diagnostic job ended only on the deliberately stale generated-types manifest. Final-head parity and CI are reported on PR #418 and handed to #422, without phase or production acceptance."
+  "sha256": "53f36a5fe9bbe446dfc9cc7aaf4c891eb70ba31dc9446f4a58f7d8d67c75db3c",
+  "latest_migration": "20260930142815_customer_notification_read_atomic_command.sql",
+  "latest_migration_schema_effect": "Indexed generated canonical notification references and service-only atomic mark-read command. Authentic clean replay of draft #418 head ac57248b5db52d67b71013156cb97e00f7a640d2 (OPS36734905474 clean109953940935 artifact11106997870) passed notification native7/7, concurrency3/3 and all retained contact/case/Ediel browser/native checks. It stopped only at the deliberately stale generated-types hash. Exact generated types/schema/fingerprint bytes adopted; semantic fingerprint6818f94cfee31124b54647b3b37a456997cb7828c6dea7efaaf63674a8f6b419. New exact-head CI remains required; no full masterplan or production qualification."
 }

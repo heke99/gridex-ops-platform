@@ -137,6 +137,8 @@ export type PriceAreaLocalityRow = {
 };
 
 export type CustomerSiteRow = {
+  site_revision?: number;
+  archived_at?: string | null;
   id: string;
   customer_id: string;
   site_name: string;

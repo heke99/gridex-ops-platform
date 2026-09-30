@@ -135,6 +135,18 @@ const syncRequest = z.object({
       path: ['profile', 'phone'],
     })
   }
+  const protectedProfileField = Object.keys(value.profile ?? {}).find((field) => field !== 'phone')
+  if (protectedProfileField) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', protectedProfileField],
+      message: 'Profiländringar kräver ett separat revisionsskyddat kommando med rätt fältbehörighet.' })
+  }
+  for (const [index, item] of (value.facility_data ?? []).entries()) {
+    if (item.address !== undefined) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['facility_data', index, 'address'],
+        message: 'Adressändringar kräver det separata revisionsskyddade anläggningskommandot med kundmandat.',
+        params: { apiCode: 'sync_facility_address_command_required' } })
+    }
+  }
   if (
     !value.email &&
     !value.customer_number &&
@@ -161,7 +173,9 @@ export function parseTenantCustomerSyncPayload(
     const issue = parsed.error.issues[0]
     throw new ApiInputError(
       issue?.message ?? 'Kundsynk-requesten är ogiltig.',
-      issue?.code === 'unrecognized_keys'
+      issue?.code === 'custom' && issue.params?.apiCode === 'sync_facility_address_command_required'
+        ? 'sync_facility_address_command_required'
+        : issue?.code === 'unrecognized_keys'
         ? 'unknown_field'
         : 'VALIDATION_FAILED',
       422,

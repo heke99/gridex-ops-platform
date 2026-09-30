@@ -31,8 +31,8 @@ import { syncTenantCustomerRecords } from '@/lib/customer-portal/tenantSync'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
 
-describe('open machine sync transaction gap', () => {
-  it('persists a profile change before a later legal validation failure', async () => {
+describe('machine sync cannot bypass protected profile commands', () => {
+  it('rejects direct invocation before profile mutation or later legal processing', async () => {
     fixture.updates.length = 0
     await expect(syncTenantCustomerRecords({
       client: { id: 'synthetic-client', company_id: 'synthetic-tenant' } as IntegrationApiClient,
@@ -48,7 +48,21 @@ describe('open machine sync transaction gap', () => {
           accepted_at: '2026-09-29T00:00:00Z',
         }],
       },
-    })).rejects.toThrow('LEGAL_BUNDLE_NOT_RESOLVED')
-    expect(fixture.updates).toMatchObject([{ first_name: 'Synthetic' }])
+    })).rejects.toMatchObject({ code: 'sync_profile_command_required', status: 422, field: 'profile.first_name' })
+    expect(fixture.updates).toEqual([])
+  })
+
+  it.each([
+    { address: { city: 'Synthetic' } }, { address: {} },
+    { street: 'Synthetic 1' }, { postalCode: '11122' }, { city: 'Synthetic' },
+    { country: 'SE' }, { care_of: 'Synthetic' }, { apartment_number: '1001' },
+  ])('rejects protected addresses and legacy aliases before other domain work', async (facility) => {
+    fixture.updates.length = 0
+    await expect(syncTenantCustomerRecords({
+      client: { id: 'synthetic-client', company_id: 'synthetic-tenant' } as IntegrationApiClient,
+      identity: { customer_id: 'synthetic-customer', customer_number: 'SYN-1001' } as LinkedPortalIdentity,
+      payload: { customer_number: 'SYN-1001', facility_data: [{ facility_reference: 'SITE-1', ...facility }] },
+    })).rejects.toMatchObject({ code: 'sync_facility_address_command_required', status: 422 })
+    expect(fixture.updates).toEqual([])
   })
 })

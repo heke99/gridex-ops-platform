@@ -30,7 +30,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '5mb',
+      // A support file is capped at 5 MiB by the domain. The request also
+      // includes bounded multipart fields and the Server Action envelope.
+      bodySizeLimit: '6mb',
     },
     cpus: 1,
     memoryBasedWorkersCount: false,

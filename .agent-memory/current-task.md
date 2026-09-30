@@ -1,3 +1,31 @@
+## Tenantservice recovery — IN_PROGRESS, 2026-09-30
+
+Single active initiative: recover and finish the complete user-authorized tenantservice/API/OPS masterplan, retaining all75 T01–T55/U01–U20 meanings. Root is the sole publisher. Originals remain unchanged; the isolated integration branch recovered165 dirty/untracked source files (12,327,099 bytes) with byte/hash verification from the old delivery checkout at da45651a. Existing API ancestry and fixed backup refs are preserved. Draft #418 ae56ee0a and #422 cc90678d remain the verified predecessors; later local runtime is not yet CI/native/browser qualified.
+
+Current checkpoint: recovered command/support/billing/UI candidate is frozen and independently reviewed. Node22 full suite6,714/6,714 in454 files and app/test/script typechecks passed; migration integrity663 files/567 groups and genuine older-baseline plan-only653+10 forward preflight passed. API paired release2026-09-30.2 is deterministic and local docs/compatibility/release verification passed. RBAC24/24, service-role ratchet and production audit passed. Candidate publication, actual native SQL/HTTP/browser/build/CI, upgrade/restore and authentic generated schema/types remain pending; plan-only and test counts accept no whole requirement. Confirmed Ediel test-graph legacy book and target-tenant authorization compatibility needs the next narrow repair; site supplier-switch/readiness continuation remains separate integration work.
+
+Use quality/audits/tenantservice-api-ops-20260928/recovery-implementation-20260930.md for current ownership and evidence. New native fixtures are prepared, not passed. Cached Supabase CLI2.101.0 exists; local Docker/psql do not. GitGuardian formal scan is BLOCKED_AUTH; no finding or successful scan is invented. Real customer issuer/phone policy/scanner/provider/deployed website configuration remain external evidence boundaries and must stay fail-closed. No main merge, production migration, real communication, key rotation or Ediel activation; #310/#421 unchanged. Earlier state below is historical.
+
+## Tenantservice UI/API/OPS integration — IN_PROGRESS, 2026-09-30
+
+One active initiative: complete the user-authorized UI/API/tenantservice implementation in six exclusive file areas. Root owns all integration/publication. Source heads, original checkouts/unpushed history and qualified event-v2 are preserved. See quality/audits/tenantservice-api-ops-20260928/integration-implementation-20260930.md. No main merge or production action is authorized by this task. Earlier memory below is historical and does not authorize such actions.
+
+Next: finish notification/support/billing domain commands and adapters, guarded OPS/portal editing and real legal/metering/native/HTTP proof; integrate one frozen candidate, authentic artifacts and exact-head final gates. Current code is not yet native/browser/CI qualified. requirements.csv retains all75 original T/U meanings.
+
+## API #422 next package — PARALLEL PLAN VERIFIED, 2026-09-30
+
+The user asked how to execute the next API work together and quickly. Three bounded read-only reviews established the next coherent package: notification references/atomic command/API adapter/native proof plus independently qualified legal and metering reads, with one final paired release. Six workers have explicit non-overlapping file ownership; root alone owns workflows, generated artifacts, integration and publication. Plan: `docs/superpowers/plans/2026-09-30-api-notification-native-parallel.md`.
+
+Live heads were rechecked: #422 `cc90678d45602d37db7f8edf9713597c66fee28a`, #418 `7afb3dcac62376edc5cab24c83ebcce80cb06e9a`, both draft/unmerged. No source/schema/release/workflow changes were made by this planning turn. Implementation and new native proof are NOT_STARTED. Existing event-v2 remains VERIFIED.
+
+Next execution: lock the strict notification RPC and legacy reference/hash/claim compatibility, then run database, adapter, notification proof, legal proof, metering proof and contract preparation in parallel. Read fixtures require no schema change. Materialize one release only after integration freezes runtime; require exact-head native/CI and artifact parity. Preserve old failed/processing claims safely and all historical release bytes.
+
+## API #422 event-v2 — VERIFIED, 2026-09-30
+
+Published code head `cc90678d45602d37db7f8edf9713597c66fee28a` (tree `ae26888d6170c0439bbcaa0a8cad71b8870bb187`) passed all applicable first-attempt CI. OPS36716141163 verify/quality/clean SUCCESS;6376/424 unit coverage, build/release/RBAC PASS; actual three HTTP/native markers PASS,10SQL event markers PASS, generated types/schema/fingerprint byte-identical. Final authoritative receipt: https://github.com/heke99/gridex-ops-platform/pull/422#issuecomment-5911733693. Original API/OPS checkouts and local history are preserved. No production/main merge or whole-phase acceptance.
+
+Next coherent API work remains transactional notification completion and separately qualified native legal/metering reads. Real issuer/deployed customer integration and full T/U/phase acceptance remain open. Do not repeat the completed event-v2 package. Earlier pre-publication pending notes below are superseded only for this package.
+
 ## Current API #422 — event-v2 publication candidate, 2026-09-30
 
 The active item in this isolated API checkout is the bounded `2026-09-30.1` event-v2 package on draft #422. Original API `a826b588` and local `9ed10d8c` are preserved; exact SQL/native prerequisite #418 `7afb3dca` is integrated. Original checkouts are untouched. Root owns one non-force publisher; source, native-fixture and release reviews ran in parallel. All historical notes below refer to their original Ediel task and do not restart that work here.

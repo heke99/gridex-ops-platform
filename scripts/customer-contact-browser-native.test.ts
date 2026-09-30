@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
-import { exportJWK, generateKeyPair, SignJWT } from 'jose'
+import { decodeJwt, exportJWK, generateKeyPair, SignJWT } from 'jose'
 import { expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateIntegrationApiToken } from '@/lib/integrations/apiClientSecrets'
@@ -51,6 +51,11 @@ async function actor(tag: string, company: string, keys: string[], membershipRol
   const client = createClient(API, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } })
   const login = await client.auth.signInWithPassword({ email, password: process.env.GRIDEX_CONTACT_TEST_PASSWORD! })
   expect(login.error).toBeNull()
+  if (!login.data.session) throw new Error('fixture_auth_session_missing')
+  const sessionId = decodeJwt(login.data.session.access_token).session_id
+  if (typeof sessionId !== 'string') throw new Error('fixture_session_claim_missing')
+  expect(sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM auth.sessions WHERE id=${quote(sessionId)}::uuid
+    AND user_id=${quote(userId)} AND (not_after IS NULL OR not_after>clock_timestamp())));`)).toBe(true)
   const context = await client.rpc('canonical_authenticated_tenant_context', { p_selected_company_id: company })
   expect(context.error).toBeNull()
   expect(context.data).toMatchObject({ authorized: true, selected_company_id: company })
@@ -62,6 +67,40 @@ it('uses real local Auth and verifies the browser/API contact result with native
   const temp = process.env.RUNNER_TEMP
   const fixturePath = resolve(process.env.GRIDEX_CONTACT_FIXTURE_PATH!)
   if (!temp || !fixturePath.startsWith(resolve(temp) + sep)) throw new Error('fixture_must_stay_in_runner_temp')
+  if (process.env.GRIDEX_TENANTSERVICE_UI_VERIFY_AFTER_BROWSER === '1') {
+    const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
+      companyA: string; customerUi: string; contactUi: string; legalEditorId: string
+    }
+    const state = sql(`SELECT jsonb_build_object('contactRevision',c.contact_revision,'phone',c.phone,
+      'contactPhone',(SELECT phone FROM public.customer_contacts WHERE id=${quote(fixture.contactUi)} AND company_id=c.company_id AND customer_id=c.id),
+      'billingRevision',c.billing_profile_revision,'billingRecipient',c.billing_profile->>'recipient',
+      'billingMethod',c.billing_profile->>'distributionMethod','billingEmail',c.billing_profile->>'email',
+      'legalRevision',c.legal_profile_revision,'firstName',c.first_name,
+      'legalAudit',(SELECT count(*) FROM public.canonical_audit_events WHERE company_id=c.company_id AND aggregate_id=c.id
+        AND event_type='CUSTOMER_LEGAL_PROFILE_COMMAND' AND actor_user_id=${quote(fixture.legalEditorId)}),
+      'legalOutbox',(SELECT count(*) FROM public.canonical_event_outbox WHERE company_id=c.company_id
+        AND topic='customer.legal.profile.changed' AND payload->>'customerId'=c.id::text),
+      'addressRevision',c.address_book_revision,
+      'addresses',(SELECT count(*) FROM public.customer_addresses WHERE company_id=c.company_id AND customer_id=c.id AND type<>'facility'),
+      'addressStreet',(SELECT street_1 FROM public.customer_addresses WHERE company_id=c.company_id AND customer_id=c.id AND type='registered'),
+      'addressCity',(SELECT city FROM public.customer_addresses WHERE company_id=c.company_id AND customer_id=c.id AND type='registered'),
+      'addressCommands',(SELECT count(*) FROM public.canonical_command_results WHERE company_id=c.company_id
+        AND command_type='customer.address.book.change.v1' AND result_payload->>'customerId'=c.id::text),
+      'addressAudit',(SELECT count(*) FROM public.canonical_audit_events WHERE company_id=c.company_id
+        AND aggregate_id=c.id AND event_type='CUSTOMER_ADDRESS_BOOK_COMMAND'),
+      'addressEvents',(SELECT count(*) FROM public.canonical_domain_events WHERE company_id=c.company_id
+        AND aggregate_id=c.id AND event_type='CUSTOMER_ADDRESS_BOOK_CHANGED'),
+      'addressOutbox',(SELECT count(*) FROM public.canonical_event_outbox WHERE company_id=c.company_id
+        AND topic='customer.address.book.changed' AND payload->>'customerId'=c.id::text))
+      FROM public.customers c WHERE id=${quote(fixture.customerUi)} AND company_id=${quote(fixture.companyA)};`)
+    expect(state).toEqual({ contactRevision: 1, phone: '+46700003333', contactPhone: '+46700003333',
+      billingRevision: 1, billingRecipient: 'Synthetic UI Billing', billingMethod: 'email', billingEmail: 'ui-invoice@example.invalid',
+      legalRevision: 1, firstName: 'UiPersisted', legalAudit: 1, legalOutbox: 1,
+      addressRevision: 2, addresses: 1, addressStreet: 'Synthetic UI Street 1', addressCity: 'Updated Synthetic City',
+      addressCommands: 2, addressAudit: 2, addressEvents: 2, addressOutbox: 2 })
+    console.log('TENANTSERVICE_CUSTOMER_UI_NATIVE_PASS conflict_winner=1 contact_billing_legal_address_persisted=true legal_actor_attributed=true address_commands=2')
+    return
+  }
   if (process.env.GRIDEX_CONTACT_VERIFY_AFTER_BROWSER === '1') {
     const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
       companyA: string; companyB: string; customerA: string; customerB: string
@@ -70,7 +109,7 @@ it('uses real local Auth and verifies the browser/API contact result with native
     const state = sql<{
       revision: number; email: string; phone: string; name: string; contactEmail: string
       contactPhone: string; audit: number; opsAudit: number; apiAudit: number
-      domains: number; outbox: number; commands: number; completions: number
+      domains: number; outbox: number; commands: number; completions: number; routeClaims: number
       secondaryContacts: number; secondaryDomains: number; secondaryOutbox: number
       otherPhone: string; otherRevision: number; contaminated: number
     }>(`SELECT jsonb_build_object(
@@ -90,6 +129,8 @@ it('uses real local Auth and verifies the browser/API contact result with native
       'secondaryOutbox',(SELECT count(*) FROM public.canonical_event_outbox WHERE company_id=${quote(fixture.companyA)} AND topic='customer.contact.secondary.changed'),
       'commands',(SELECT count(*) FROM public.canonical_command_results WHERE company_id=${quote(fixture.companyA)} AND command_type='customer.contact.change.v1'),
       'completions',(SELECT count(*) FROM public.customer_portal_completions WHERE company_id=${quote(fixture.companyA)} AND api_client_id=${quote(fixture.apiClientId)} AND completion_type='profile_update'),
+      'routeClaims',(SELECT count(*) FROM public.customer_portal_write_idempotency WHERE company_id=${quote(fixture.companyA)}
+        AND api_client_id=${quote(fixture.apiClientId)} AND customer_id=${quote(fixture.customerA)} AND route='/api/v1/customer/profile-update' AND status='completed'),
       'otherPhone',(SELECT phone FROM public.customers WHERE id=${quote(fixture.customerB)} AND company_id=${quote(fixture.companyB)}),
       'otherRevision',(SELECT contact_revision FROM public.customers WHERE id=${quote(fixture.customerB)}),
       'contaminated',(SELECT count(*) FROM public.canonical_command_results WHERE company_id=${quote(fixture.companyB)} AND command_type='customer.contact.change.v1')
@@ -99,7 +140,7 @@ it('uses real local Auth and verifies the browser/API contact result with native
       name: 'Synthetic Primary', contactEmail: 'before@example.invalid', contactPhone: '+46222222222',
       audit: 3, opsAudit: 2, apiAudit: 1, domains: 2, outbox: 2, commands: 3,
       secondaryContacts: 1, secondaryDomains: 1, secondaryOutbox: 1,
-      completions: 1, otherPhone: '+4600000001', otherRevision: 0, contaminated: 0,
+      completions: 1, routeClaims: 1, otherPhone: '+4600000001', otherRevision: 0, contaminated: 0,
     })
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.canonical_event_outbox o
       JOIN public.canonical_domain_events e ON e.id=o.domain_event_id AND e.company_id=o.company_id
@@ -111,7 +152,7 @@ it('uses real local Auth and verifies the browser/API contact result with native
   }
 
   const companyA = randomUUID(), companyB = randomUUID()
-  const customerA = randomUUID(), customerB = randomUUID(), contactA = randomUUID()
+  const customerA = randomUUID(), customerB = randomUUID(), contactA = randomUUID(), customerUi = randomUUID(), contactUi = randomUUID()
   const customerNumberA = `P2-A-${customerA.slice(0, 8).toUpperCase()}`
   const customerNumberB = `P2-B-${customerB.slice(0, 8).toUpperCase()}`
   sql(`
@@ -120,9 +161,11 @@ it('uses real local Auth and verifies the browser/API contact result with native
       (${quote(companyB)},'Synthetic browser contact B','active');
     INSERT INTO public.customers(id,company_id,customer_number,name,customer_type,first_name,last_name,email,phone)
       VALUES(${quote(customerA)},${quote(companyA)},${quote(customerNumberA)},'Synthetic A','private','Synthetic','Customer','before@example.invalid','+4600000000'),
-      (${quote(customerB)},${quote(companyB)},${quote(customerNumberB)},'Synthetic B','private','Other','Customer','other@example.invalid','+4600000001');
+      (${quote(customerB)},${quote(companyB)},${quote(customerNumberB)},'Synthetic B','private','Other','Customer','other@example.invalid','+4600000001'),
+      (${quote(customerUi)},${quote(companyA)},${quote(`UI-${customerUi.slice(0, 8).toUpperCase()}`)},'Synthetic UI Customer','private','Synthetic UI','Customer','ui-before@example.invalid','+46700003000');
     INSERT INTO public.customer_contacts(id,company_id,customer_id,type,is_primary,name,email,phone)
-      VALUES(${quote(contactA)},${quote(companyA)},${quote(customerA)},'primary',true,'Synthetic Primary','before@example.invalid','+4600000000');
+      VALUES(${quote(contactA)},${quote(companyA)},${quote(customerA)},'primary',true,'Synthetic Primary','before@example.invalid','+4600000000'),
+      (${quote(contactUi)},${quote(companyA)},${quote(customerUi)},'primary',true,'Synthetic UI Primary','ui-before@example.invalid','+46700003000');
     SELECT to_jsonb(count(*)) FROM public.customer_contacts WHERE id=${quote(contactA)};
   `)
   const writer = await actor(`writer-${customerA.slice(0, 8)}`, companyA,
@@ -131,6 +174,8 @@ it('uses real local Auth and verifies the browser/API contact result with native
     ['customers.read', 'masterdata.read'], 'viewer')
   const foreignWriter = await actor(`foreign-${customerA.slice(0, 8)}`, companyB,
     ['customers.read', 'masterdata.read', 'masterdata.write'], 'operations')
+  const legalEditor = await actor(`legal-${customerUi.slice(0, 8)}`, companyA,
+    ['customers.read', 'customers.write'], 'operations')
   const portal = await supabaseService.auth.admin.createUser({
     email: `p2-contact-portal-${customerA.slice(0, 8)}@example.invalid`,
     password: process.env.GRIDEX_CONTACT_TEST_PASSWORD!, email_confirm: true,
@@ -177,6 +222,7 @@ it('uses real local Auth and verifies the browser/API contact result with native
       .setIssuedAt().setExpirationTime('5m').sign(privateKey)
   writeFileSync(fixturePath, JSON.stringify({
     companyA, companyB, customerA, customerB, customerNumberB, contactA, writerId: writer.userId,
+    customerUi, contactUi, legalEditorEmail: legalEditor.email, legalEditorId: legalEditor.userId,
     writerEmail: writer.email, readerEmail: reader.email, foreignWriterEmail: foreignWriter.email,
     apiClientId, apiKey: apiKey.token, trust,
     apiPostAssertion: await sign('POST /api/v1/customer/profile-update'),

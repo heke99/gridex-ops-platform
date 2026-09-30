@@ -68,7 +68,10 @@ async function createActor(tag: string, company: string, keys: string[]) {
   expect(context.error).toBeNull()
   expect(context.data).toMatchObject({ authorized: true, selected_company_id: company })
   for (const key of keys) expect((context.data as { permissions: string[] }).permissions).toContain(key)
-  return { user, email, client }
+  if (!login.data.session) throw new Error('gotrue_session_missing')
+  const sessionId = JSON.parse(Buffer.from(login.data.session.access_token.split('.')[1], 'base64url').toString('utf8')).session_id as string
+  if (!sessionId) throw new Error('gotrue_session_id_missing')
+  return { user, email, client, sessionId }
 }
 
 async function writeCase(company: string, customer: string, actor: string) {
@@ -167,6 +170,18 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     p_title: 'Public subject', p_body: 'Public response only',
     p_status: 'open', p_expected_revision: 0, p_channel: 'ops',
   }
+  const publicationRpc = (operation: 'publish' | 'revoke', args: {
+    p_company_id: string; p_case_id: string; p_actor_user_id: string; p_expected_revision: number;
+    p_title?: string; p_body?: string; p_status?: string; p_channel?: string
+  }) => supabaseService.rpc('gridex_support_case_publication_v1', {
+    p_context: { companyId: args.p_company_id, customerId: customerA, mode: 'ops', actorUserId: args.p_actor_user_id,
+      sessionId: [writer, readOnly, actorB, inactiveActor].find(actor => actor.user === args.p_actor_user_id)?.sessionId,
+      clientId: null, subject: null },
+    p_publication: { operation, caseId: args.p_case_id, expectedRevision: args.p_expected_revision,
+      ...(operation === 'publish' ? { title: args.p_title, body: args.p_body, status: args.p_status, channel: args.p_channel ?? 'ops' } : {}) },
+  })
+  const sessionless = await supabaseService.rpc('gridex_publish_customer_case_v1', publishArgs)
+  expect(sessionless.error).toMatchObject({ code: '42501', message: 'support_session_required' })
   for (const badArgs of [
     { ...publishArgs, p_company_id: companyB },
     { ...publishArgs, p_actor_user_id: actorB.user },
@@ -174,7 +189,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     { ...publishArgs, p_actor_user_id: inactiveActor.user },
     { ...publishArgs, p_case_id: foreign.id },
   ]) {
-    const attempt = await supabaseService.rpc('gridex_publish_customer_case_v1', badArgs)
+    const attempt = await publicationRpc('publish', badArgs)
     expect(attempt.error).not.toBeNull()
   }
   console.log('[case-publication-native] denied RPCs completed')
@@ -188,7 +203,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   console.log('[case-publication-native] direct grants checked')
   expect(sql<boolean>("SELECT to_jsonb(has_table_privilege('authenticated','public.customer_case_publications','SELECT') OR has_table_privilege('anon','public.customer_case_publications','INSERT'))")).toBe(false)
 
-  const first = await supabaseService.rpc('gridex_publish_customer_case_v1', publishArgs)
+  const first = await publicationRpc('publish', publishArgs)
   console.log('[case-publication-native] first publish returned')
   expect(first.error).toBeNull()
   expect(first.data).toMatchObject({ company_id: companyA, customer_id: customerA, revision: 1, author_user_id: writer.user })
@@ -199,12 +214,12 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   expect(await listPortalCases({ companyId: companyB, customerIds: [customerB] } as CustomerPortalContext)).toEqual([])
   expect(await listPortalCases({ companyId: companyA, customerIds: [customerB] } as CustomerPortalContext)).toEqual([])
   const staleStartedAt = Date.now()
-  const stale = await supabaseService.rpc('gridex_publish_customer_case_v1', publishArgs)
+  const stale = await publicationRpc('publish', publishArgs)
   expect(stale.error).toMatchObject({ code: 'PT409', message: 'case_publication_revision_conflict' })
   expect(stale.status).toBe(409)
   expect(Date.now() - staleStartedAt).toBeLessThan(10_000)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(recent.id)}`)).toBe(1)
-  const second = await supabaseService.rpc('gridex_publish_customer_case_v1', {
+  const second = await publicationRpc('publish', {
     ...publishArgs, p_expected_revision: 1, p_title: 'Revised public subject', p_body: 'Revised public response', p_status: 'resolved',
   })
   console.log('[case-publication-native] second publish returned')
@@ -212,7 +227,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   expect(second.data).toMatchObject({ revision: 2, public_status: 'resolved' })
   expect((await listPortalCases(portalContext)).map((row) => row.public_title)).toEqual(['Revised public subject'])
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_publications WHERE customer_case_id=${quote(recent.id)} AND revoked_at IS NOT NULL`)).toBe(1)
-  const revoke = await supabaseService.rpc('gridex_revoke_customer_case_publication_v1', {
+  const revoke = await publicationRpc('revoke', {
     p_company_id: companyA, p_case_id: recent.id, p_actor_user_id: writer.user, p_expected_revision: 2,
   })
   console.log('[case-publication-native] revoke returned')
@@ -224,17 +239,17 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   })).error).not.toBeNull()
   expect(sql<boolean>("SELECT to_jsonb(has_function_privilege('authenticated','public.gridex_case_publication_heads_v1(uuid,uuid[])','EXECUTE'))")).toBe(false)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_case_events WHERE customer_case_id=${quote(recent.id)} AND event_type IN ('customer_publication','customer_publication_revoked')`)).toBe(3)
-  const staleAfterRevoke = await supabaseService.rpc('gridex_publish_customer_case_v1', {
+  const staleAfterRevoke = await publicationRpc('publish', {
     ...publishArgs, p_expected_revision: 0,
   })
   expect(staleAfterRevoke.error).toMatchObject({ code: 'PT409', message: 'case_publication_revision_conflict' })
-  const republished = await supabaseService.rpc('gridex_publish_customer_case_v1', {
+  const republished = await publicationRpc('publish', {
     ...publishArgs, p_expected_revision: 2, p_title: 'Reopened public subject',
   })
   expect(republished.error).toBeNull()
   expect(republished.data).toMatchObject({ revision: 3, public_title: 'Reopened public subject' })
   expect((await listPortalCases(portalContext)).map((row) => row.public_title)).toEqual(['Reopened public subject'])
-  const finalRevoke = await supabaseService.rpc('gridex_revoke_customer_case_publication_v1', {
+  const finalRevoke = await publicationRpc('revoke', {
     p_company_id: companyA, p_case_id: recent.id, p_actor_user_id: writer.user, p_expected_revision: 3,
   })
   expect(finalRevoke).toMatchObject({ data: true, error: null })

@@ -371,3 +371,12 @@ Independent reviewer traced lowercase BGM/4343 across canonical field matrix and
 ## API #422 event-v2 final local checkpoint — 2026-09-30
 
 Parallel source/native-fixture/release reviews completed; safe schema-readiness503, matching unpublished contract, manifest instant and transport-log sanitation corrected. Final local6376/424, types, focused regressions and release gates PASS. Publish exact candidate and read PR422 for actual HTTP/native and exact-head CI; those results remain pending here. No production or full-phase acceptance.
+
+## API #422 event-v2 — VERIFIED, 2026-09-30
+
+Published code head `cc90678d45602d37db7f8edf9713597c66fee28a` (tree `ae26888d6170c0439bbcaa0a8cad71b8870bb187`) passed all applicable first-attempt CI. OPS36716141163 verify/quality/clean SUCCESS;6376/424 unit coverage, build/release/RBAC PASS; actual three HTTP/native markers PASS,10SQL event markers PASS, generated types/schema/fingerprint byte-identical. Final authoritative receipt: https://github.com/heke99/gridex-ops-platform/pull/422#issuecomment-5911733693. Original API/OPS checkouts and local history are preserved. No production/main merge or whole-phase acceptance.
+
+
+## 2026-09-30 parallel next API package
+
+Prepared the six-worker notification/native-read package after live head and file ownership checks. Canonical references, legacy compact hashes/claims and real fixture constraints are explicit. Root-only integration/release/publisher; implementation NOT_STARTED. The completed event-v2 receipt is retained.

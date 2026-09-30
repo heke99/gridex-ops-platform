@@ -143,6 +143,18 @@ jobs:
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
           GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
+          # Atomic notifier command faults/concurrency use independent fixtures.
+          npx vitest run --config scripts/customer-notification-read-native.config.ts
+          npx vitest run --config scripts/customer-notification-read-concurrency-native.config.ts
+          npx vitest run --config scripts/customer-profile-commands-native.config.ts
+          npx vitest run --config scripts/customer-address-command-native.config.ts
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-site-command-native.sql
+          npx vitest run --config scripts/customer-site-command-native.config.ts
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-ops-capabilities-native.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-authoritative-writer-fences-native.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-support-command-native.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-billing-command-native.sql
+          npx vitest run --config scripts/customer-billing-concurrency-native.config.ts
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
@@ -160,6 +172,10 @@ jobs:
           export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_CONTACT_FIXTURE_PATH,"utf8")).trust)')"
           npx playwright install --with-deps chromium
           npx playwright test e2e/browser/customer-contact-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          # Real forms, conflict/retry, navigation, mobile and zoom interactions
+          # use an independent customer, then verify persisted state natively.
+          npx playwright test e2e/browser/tenantservice-customer-ui-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_TENANTSERVICE_UI_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           GRIDEX_CONTACT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           rm -f "$GRIDEX_CONTACT_FIXTURE_PATH"
           unset GRIDEX_CONTACT_TEST_PASSWORD GRIDEX_CONTACT_LOCAL_E2E GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
@@ -173,6 +189,46 @@ jobs:
           GRIDEX_EVENT_V2_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-event-v2-native.config.ts
           rm -f "$GRIDEX_EVENT_V2_FIXTURE_PATH"
           unset GRIDEX_EVENT_V2_LOCAL_E2E GRIDEX_EVENT_V2_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          export GRIDEX_NOTIFICATION_READ_LOCAL_E2E=1
+          export GRIDEX_NOTIFICATION_READ_FIXTURE_PATH="$RUNNER_TEMP/customer-notification-read-fixture.json"
+          npx vitest run --config scripts/customer-notification-http-native.config.ts
+          [[ -s "$GRIDEX_NOTIFICATION_READ_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NOTIFICATION_READ_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-notification-read-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_NOTIFICATION_READ_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-notification-http-native.config.ts
+          rm -f "$GRIDEX_NOTIFICATION_READ_FIXTURE_PATH"
+          unset GRIDEX_NOTIFICATION_READ_LOCAL_E2E GRIDEX_NOTIFICATION_READ_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # Genuine HTTP/Data API qualification; these request specs are not
+          # counted as interactive UI evidence. Every proof owns its fixtures.
+          export GRIDEX_LEGAL_READ_LOCAL_E2E=1
+          export GRIDEX_LEGAL_READ_FIXTURE_PATH="$RUNNER_TEMP/customer-legal-read-fixture.json"
+          npx vitest run --config scripts/customer-legal-read-native.config.ts
+          [[ -s "$GRIDEX_LEGAL_READ_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_LEGAL_READ_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-legal-read-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_LEGAL_READ_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-legal-read-native.config.ts
+          rm -f "$GRIDEX_LEGAL_READ_FIXTURE_PATH"
+          unset GRIDEX_LEGAL_READ_LOCAL_E2E GRIDEX_LEGAL_READ_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          npx vitest run --config scripts/customer-legal-read-native.legacy.config.ts
+          export GRIDEX_METERING_READ_LOCAL_E2E=1
+          export GRIDEX_METERING_READ_FIXTURE_PATH="$RUNNER_TEMP/customer-metering-read-fixture.json"
+          npx vitest run --config scripts/customer-metering-read-native.config.ts
+          [[ -s "$GRIDEX_METERING_READ_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_METERING_READ_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-metering-read-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_METERING_READ_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-metering-read-native.config.ts
+          rm -f "$GRIDEX_METERING_READ_FIXTURE_PATH"
+          unset GRIDEX_METERING_READ_LOCAL_E2E GRIDEX_METERING_READ_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          npx vitest run --config scripts/customer-metering-read-native.legacy.config.ts
+          export GRIDEX_SUPPORT_HTTP_LOCAL_E2E=1
+          export GRIDEX_SUPPORT_HTTP_FIXTURE_PATH="$RUNNER_TEMP/customer-support-http-fixture.json"
+          npx vitest run --config scripts/customer-support-http-native.config.ts
+          [[ -s "$GRIDEX_SUPPORT_HTTP_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_SUPPORT_HTTP_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-support-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_SUPPORT_HTTP_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-support-http-native.config.ts
+          rm -f "$GRIDEX_SUPPORT_HTTP_FIXTURE_PATH"
+          unset GRIDEX_SUPPORT_HTTP_LOCAL_E2E GRIDEX_SUPPORT_HTTP_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
           unset GRIDEX_E2E_BROWSER_BASE_URL
           export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
           export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
@@ -230,4 +286,48 @@ jobs:
             rem002-database.types.ts
             rem002-schema-snapshot/
             e2e-artifacts/customer-contact-saved.png
+            e2e-artifacts/playwright-results/**/tenantservice-*.png
+            e2e-artifacts/playwright-results/**/support-interactive-*.png
+          if-no-files-found: error
+
+  upgrade-backup-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install matching PostgreSQL backup and restore clients
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          echo "GRIDEX_PG_RESTORE=/usr/lib/postgresql/$server_major/bin/pg_restore" >> "$GITHUB_ENV"
+      - name: Upgrade real older schema and restore an actual isolated backup
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          bash scripts/tenantservice-upgrade-restore.sh 2>&1 | tee tenantservice-upgrade-restore.log
+      - name: Upload sanitized upgrade and restore proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenantservice-upgrade-restore-proof
+          path: tenantservice-upgrade-restore.log
           if-no-files-found: error

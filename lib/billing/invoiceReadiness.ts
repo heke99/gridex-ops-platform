@@ -1,7 +1,9 @@
-import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingMonth } from '@/lib/time/stockholm'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { resolveEffectiveBillingProfile } from '@/lib/billing/effectiveBillingProfile'
+import { readQualifiedLockedBillingProfile, billingConfigurationSnapshotSha256 } from '@/lib/billing/billingConfigurationSnapshot'
+import { lockBillingConfiguration } from '@/lib/billing/billingProfileCommand'
 import {
   companyAllowsEstimatedMeteringValues,
   evaluateMeteringCompletenessForMonth,
@@ -121,21 +123,6 @@ export function resolveCanonicalBillingPriceArea(input: {
   if (priceArea && meterArea && meterArea !== priceArea) conflicts.push(`metering_point:${meterArea}`)
   if (priceArea && siteArea && siteArea !== priceArea) conflicts.push(`customer_site:${siteArea}`)
   return { priceArea, source, conflicts: [...new Set(conflicts)] }
-}
-
-function stableJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
-  if (value && typeof value === 'object') {
-    return `{${Object.entries(value as JsonRecord)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`)
-      .join(',')}}`
-  }
-  return JSON.stringify(value) ?? 'null'
-}
-
-function sha256(value: unknown): string {
-  return createHash('sha256').update(stableJson(value)).digest('hex')
 }
 
 function isMissingRelationError(error: unknown): boolean {
@@ -338,80 +325,11 @@ export async function lockBillingPeriodForInvoiceExport(input: {
   })
 }
 
-export async function evaluateBillingMonthInvoiceReadiness(input: {
-  companyId: string
-  billingMonth: string
-}) {
-  const { billingMonth, year, month } = monthParts(input.billingMonth)
-  const issues: InvoiceReadinessIssue[] = []
-
-  const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
-  if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
-    issues.push({ code: 'period_locked', message: `Fakturaperioden är ${periodLock.status}.`, severity: 'blocked' })
-  }
-
-  await assertPlatformSchemaReady()
-  const underlays: Record<string, unknown>[] = []
-  const pageSize = 1_000
-  for (let from = 0; ; from += pageSize) {
-    const underlayResult = await supabaseService
-      .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at')
-      .eq('company_id', input.companyId)
-      .eq('underlay_year', year)
-      .eq('underlay_month', month)
-      .order('id', { ascending: true })
-      .range(from, from + pageSize - 1)
-    if (underlayResult.error) throw underlayResult.error
-    const page = (underlayResult.data ?? []) as Record<string, unknown>[]
-    underlays.push(...page)
-    if (page.length < pageSize) break
-  }
-
-  if (underlays.length === 0) {
-    issues.push({ code: 'no_underlays', message: 'Inga faktureringsunderlag finns för perioden.', severity: 'blocked' })
-  }
-
-  const blockedUnderlayIds = new Set<string>()
-  if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
-    for (const row of underlays) blockedUnderlayIds.add(String(row.id))
-  }
-
-  const blockedUnderlays = underlays.filter((row) => row.status !== 'validated' || row.readiness_status !== 'ready')
-  for (const row of blockedUnderlays) blockedUnderlayIds.add(String(row.id))
-  if (blockedUnderlays.length > 0) {
-    issues.push({ code: 'blocked_underlays', message: `${blockedUnderlays.length} faktureringsunderlag kräver granskning.`, severity: 'blocked' })
-  }
-
-  const missingPricing = underlays.filter((row) => row.calculated_total_sek_inc_vat === null || row.calculated_total_sek_inc_vat === undefined)
-  for (const row of missingPricing) blockedUnderlayIds.add(String(row.id))
-  if (missingPricing.length > 0) {
-    issues.push({ code: 'missing_pricing', message: `${missingPricing.length} underlag saknar prisberäkning.`, severity: 'blocked' })
-  }
-
-  const missingSnapshot = underlays.filter((row) => !row.contract_id || (!row.pricing_snapshot_id && !row.contract_price_snapshot_id))
-  for (const row of missingSnapshot) blockedUnderlayIds.add(String(row.id))
-  if (missingSnapshot.length > 0) {
-    issues.push({ code: 'missing_contract_or_snapshot', message: `${missingSnapshot.length} underlag saknar avtal eller prissnapshot.`, severity: 'blocked' })
-  }
-
-  const incompleteCoverage = underlays.filter((row) => Number(row.missing_values_count ?? 0) > 0)
-  for (const row of incompleteCoverage) blockedUnderlayIds.add(String(row.id))
-  if (incompleteCoverage.length > 0) {
-    issues.push({ code: 'incomplete_metering_coverage', message: `${incompleteCoverage.length} underlag har mätvärdesluckor.`, severity: 'blocked' })
-  }
-
-  // Full canonical gate. Every underlay is evaluated against contract, tenant,
-  // customer, site, metering point, exact supply-period overlap, price snapshot,
-  // price area, meter coverage, invoice account and external blockers.
-  const contractIds = [...new Set(underlays.map((row) => (typeof row.contract_id === 'string' ? row.contract_id : '')).filter(Boolean))]
-  const meteringPointIds = [...new Set(underlays.map((row) => (typeof row.metering_point_id === 'string' ? row.metering_point_id : '')).filter(Boolean))]
-  const bounds = billingMonthBounds(billingMonth)
-
+export async function loadCompanyBillingConfiguration(companyId: string) {
   const companyResult = await supabaseService
     .from('companies')
     .select('id,name,legal_name,org_number,operating_environment,billing_settings')
-    .eq('id', input.companyId)
+    .eq('id', companyId)
     .maybeSingle()
   if (companyResult.error) throw companyResult.error
   const company = companyResult.data as {
@@ -429,7 +347,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   const providerResult = await supabaseService
     .from('billing_provider_connections')
     .select('id,provider,environment,status,settings,updated_at')
-    .eq('company_id', input.companyId)
+    .eq('company_id', companyId)
     .in('status', ['ready', 'active'])
     .order('updated_at', { ascending: false })
   if (providerResult.error) throw providerResult.error
@@ -487,11 +405,91 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       }]
     : []
 
+  return { company, paymentTerms, billingProfileBase, paymentProvider, providerBlockers }
+}
+
+export async function evaluateBillingMonthInvoiceReadiness(input: {
+  companyId: string
+  billingMonth: string
+  customerId?: string | null
+  billingUnderlayId?: string | null
+}) {
+  const { billingMonth, year, month } = monthParts(input.billingMonth)
+  const issues: InvoiceReadinessIssue[] = []
+
+  const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
+  if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
+    issues.push({ code: 'period_locked', message: `Fakturaperioden är ${periodLock.status}.`, severity: 'blocked' })
+  }
+
+  await assertPlatformSchemaReady()
+  const underlays: Record<string, unknown>[] = []
+  const pageSize = 1_000
+  for (let from = 0; ; from += pageSize) {
+    let underlayQuery = supabaseService
+      .from('billing_underlays')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at')
+      .eq('company_id', input.companyId)
+      .eq('underlay_year', year)
+      .eq('underlay_month', month)
+    if (input.customerId) underlayQuery = underlayQuery.eq('customer_id', input.customerId)
+    if (input.billingUnderlayId) underlayQuery = underlayQuery.eq('id', input.billingUnderlayId)
+    const underlayResult = await underlayQuery
+      .order('id', { ascending: true })
+      .range(from, from + pageSize - 1)
+    if (underlayResult.error) throw underlayResult.error
+    const page = (underlayResult.data ?? []) as Record<string, unknown>[]
+    underlays.push(...page)
+    if (page.length < pageSize) break
+  }
+
+  if (underlays.length === 0) {
+    issues.push({ code: 'no_underlays', message: 'Inga faktureringsunderlag finns för perioden.', severity: 'blocked' })
+  }
+
+  const blockedUnderlayIds = new Set<string>()
+  if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
+    for (const row of underlays) blockedUnderlayIds.add(String(row.id))
+  }
+
+  const blockedUnderlays = underlays.filter((row) => row.status !== 'validated' || row.readiness_status !== 'ready')
+  for (const row of blockedUnderlays) blockedUnderlayIds.add(String(row.id))
+  if (blockedUnderlays.length > 0) {
+    issues.push({ code: 'blocked_underlays', message: `${blockedUnderlays.length} faktureringsunderlag kräver granskning.`, severity: 'blocked' })
+  }
+
+  const missingPricing = underlays.filter((row) => row.calculated_total_sek_inc_vat === null || row.calculated_total_sek_inc_vat === undefined)
+  for (const row of missingPricing) blockedUnderlayIds.add(String(row.id))
+  if (missingPricing.length > 0) {
+    issues.push({ code: 'missing_pricing', message: `${missingPricing.length} underlag saknar prisberäkning.`, severity: 'blocked' })
+  }
+
+  const missingSnapshot = underlays.filter((row) => !row.contract_id || (!row.pricing_snapshot_id && !row.contract_price_snapshot_id))
+  for (const row of missingSnapshot) blockedUnderlayIds.add(String(row.id))
+  if (missingSnapshot.length > 0) {
+    issues.push({ code: 'missing_contract_or_snapshot', message: `${missingSnapshot.length} underlag saknar avtal eller prissnapshot.`, severity: 'blocked' })
+  }
+
+  const incompleteCoverage = underlays.filter((row) => Number(row.missing_values_count ?? 0) > 0)
+  for (const row of incompleteCoverage) blockedUnderlayIds.add(String(row.id))
+  if (incompleteCoverage.length > 0) {
+    issues.push({ code: 'incomplete_metering_coverage', message: `${incompleteCoverage.length} underlag har mätvärdesluckor.`, severity: 'blocked' })
+  }
+
+  // Full canonical gate. Every underlay is evaluated against contract, tenant,
+  // customer, site, metering point, exact supply-period overlap, price snapshot,
+  // price area, meter coverage, invoice account and external blockers.
+  const contractIds = [...new Set(underlays.map((row) => (typeof row.contract_id === 'string' ? row.contract_id : '')).filter(Boolean))]
+  const meteringPointIds = [...new Set(underlays.map((row) => (typeof row.metering_point_id === 'string' ? row.metering_point_id : '')).filter(Boolean))]
+  const bounds = billingMonthBounds(billingMonth)
+
+  const { company, paymentTerms, billingProfileBase, paymentProvider, providerBlockers } = await loadCompanyBillingConfiguration(input.companyId)
+
   const contractsById = new Map<string, BillingReadinessContract & { id: string; customer_id?: string | null; customer_site_id?: string | null; site_id?: string | null; price_area_used?: string | null; metadata?: Record<string, unknown> | null }>()
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
+      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons,billing_profile_override,billing_profile_override_revision')
       .eq('company_id', input.companyId)
       .in('id', contractIds)
     if (contractResult.error) throw contractResult.error
@@ -520,7 +518,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (customerIds.length > 0) {
     const customerResult = await supabaseService
       .from('customers')
-      .select('id,company_id,customer_number,full_name,company_name,email,invoice_email,billing_street,billing_postal_code,billing_city')
+      .select('id,company_id,customer_number,full_name,company_name,invoice_email,billing_street,billing_postal_code,billing_city,billing_profile,billing_profile_revision')
       .eq('company_id', input.companyId)
       .in('id', customerIds)
     if (customerResult.error) throw customerResult.error
@@ -567,6 +565,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }
   }
 
+  const pendingBillingLocks: Array<Parameters<typeof lockBillingConfiguration>[0]> = []
   for (const underlay of underlays) {
     const underlayId = String(underlay.id ?? 'okänt')
     const contractId = typeof underlay.contract_id === 'string' ? underlay.contract_id : ''
@@ -607,11 +606,26 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
           message: `Faktureringsunderlagets operativa områdesdata motsäger avtalets låsta prisområde ${priceArea ?? 'okänt'} (${canonicalArea.conflicts.join(', ')}).`,
         }]
       : []
+    const siteAddress = site ? {
+      street: typeof site.street === 'string' ? site.street : null,
+      postalCode: typeof site.postal_code === 'string' ? site.postal_code : null,
+      city: typeof site.city === 'string' ? site.city : null,
+    } : null
+    const qualifiedLockedProfile = readQualifiedLockedBillingProfile(underlay.billing_configuration_snapshot, {
+      companyId: input.companyId, customerId, contractId, snapshotSha256: underlay.billing_configuration_snapshot_sha256,
+    })
+    const lockedProfileBlockers = underlay.billing_configuration_snapshot_sha256 && !qualifiedLockedProfile ? [{
+      code: 'billing_configuration_snapshot_unqualified',
+      message: 'Den låsta faktureringsprofilens format eller fingerprint kan inte kvalificeras. Bevara historiken och granska en ny underlagsrevision.',
+    }] : []
+    const effectiveProfile = qualifiedLockedProfile ?? resolveEffectiveBillingProfile({ companyId: input.companyId, customerId, customer, contract,
+      siteAddress, defaultDistributionMethod: billingProfileBase.distributionMethod })
     const readiness = evaluateBillingReadinessCore({
       companyId: input.companyId,
       customerId,
       customer,
       contract,
+      effectiveBillingProfile: effectiveProfile,
       issuer: { legalName: company?.legal_name ?? company?.name ?? null, orgNumber: company?.org_number ?? null },
       site: site ? { id: String(site.id), company_id: String(site.company_id ?? ''), customer_id: String(site.customer_id ?? '') } : null,
       meteringPoint: meter ? {
@@ -654,13 +668,9 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       } : null,
       billingProfile: {
         ...billingProfileBase,
-        siteAddress: site ? {
-          street: typeof site.street === 'string' ? site.street : null,
-          postalCode: typeof site.postal_code === 'string' ? site.postal_code : null,
-          city: typeof site.city === 'string' ? site.city : null,
-        } : null,
+        siteAddress,
       },
-      externalBlockers: [...providerBlockers, ...snapshotBlockers, ...areaBlockers],
+      externalBlockers: [...providerBlockers, ...snapshotBlockers, ...areaBlockers, ...lockedProfileBlockers, ...effectiveProfile.blockers],
     })
     for (const blocker of readiness.blockers) {
       blockedUnderlayIds.add(underlayId)
@@ -671,10 +681,11 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }
 
     const billingConfigurationSnapshot = {
-      schema: 'billing_configuration_v1',
+      schema: 'billing_configuration_v2',
       company_id: input.companyId,
       customer_id: customerId || null,
       contract_id: contractId || null,
+      effective_billing_profile: effectiveProfile,
       payment_terms: paymentTerms,
       invoice_profile: billingProfileBase,
       provider: paymentProvider ? {
@@ -691,7 +702,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
       price_area_source: canonicalArea.source,
       price_area_conflicts: canonicalArea.conflicts,
     }
-    const configurationHash = sha256(billingConfigurationSnapshot)
+    const configurationHash = billingConfigurationSnapshotSha256(billingConfigurationSnapshot)
     const storedHash = typeof underlay.billing_configuration_snapshot_sha256 === 'string'
       ? underlay.billing_configuration_snapshot_sha256
       : null
@@ -703,23 +714,8 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
         severity: 'blocked',
       })
     } else if (!storedHash && readiness.billable) {
-      const snapshottedAt = new Date().toISOString()
-      const snapshotUpdate = await supabaseService
-        .from('billing_underlays')
-        .update({
-          billing_configuration_snapshot: billingConfigurationSnapshot,
-          billing_configuration_snapshot_sha256: configurationHash,
-          billing_configuration_snapshotted_at: snapshottedAt,
-          updated_at: snapshottedAt,
-        })
-        .eq('company_id', input.companyId)
-        .eq('id', underlayId)
-        .is('billing_configuration_snapshot_sha256', null)
-        .select('id')
-      if (snapshotUpdate.error) throw snapshotUpdate.error
-      if ((snapshotUpdate.data ?? []).length !== 1) {
-        throw new Error(`Faktureringskonfigurationen för underlag ${underlayId} kunde inte låsas atomiskt.`)
-      }
+      pendingBillingLocks.push({ companyId: input.companyId, underlayId,
+        effectiveProfile, snapshot: billingConfigurationSnapshot, snapshotSha256: configurationHash })
     }
   }
 
@@ -756,6 +752,12 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
         severity: issue.severity,
       })
     }
+  }
+
+  // A later coverage, period or pricing blocker must not freeze a draft's
+  // destination. Lock only after the complete readiness result is known.
+  for (const pending of pendingBillingLocks) {
+    if (!blockedUnderlayIds.has(pending.underlayId)) await lockBillingConfiguration(pending)
   }
 
   const totalKwh = underlays.reduce((sum, row) => {

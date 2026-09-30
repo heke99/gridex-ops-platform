@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-09-30.1'
+const version = '2026-09-30.2'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -19,8 +19,8 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-09-29.8'
-const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', '2026-08-20.2', '2026-08-22.2', '2026-09-29.1', '2026-09-29.3', '2026-09-29.4', '2026-09-29.5', '2026-09-29.6', '2026-09-29.7', priorVersion, version]
+const priorVersion = '2026-09-30.1'
+const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', '2026-08-20.2', '2026-08-22.2', '2026-09-29.1', '2026-09-29.3', '2026-09-29.4', '2026-09-29.5', '2026-09-29.6', '2026-09-29.7', '2026-09-29.8', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
   'customer_profile.read',
@@ -99,7 +99,16 @@ function setRequest(spec, path, schema, method = 'post') {
 }
 
 function setResponse(spec, path, schema, method = 'get', status = '200') {
-  spec.paths[path][method].responses[status].content['application/json'].schema = schema
+  const operation = spec.paths[path][method]
+  operation.responses = operation.responses ?? {}
+  const response = operation.responses[status] ?? {}
+  operation.responses[status] = response
+  if (typeof response.description !== 'string' || !response.description.trim()) {
+    response.description = status === '201' ? 'Created resource or replayed result.' : 'Successful response.'
+  }
+  response.content = response.content ?? {}
+  response.content['application/json'] = response.content['application/json'] ?? {}
+  response.content['application/json'].schema = schema
 }
 
 function normalizeContractVersionMetadata(document) {

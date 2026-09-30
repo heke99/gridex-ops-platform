@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { logoutAction } from "@/lib/auth/logoutAction";
 import { getCustomerPortalContext } from "@/lib/customer-portal/db";
+import AdminUnsavedChanges from '@/components/admin/AdminUnsavedChanges'
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,7 @@ export default async function PortalLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-6 py-8 sm:px-8"><AdminUnsavedChanges>{children}</AdminUnsavedChanges></main>
     </div>
   );
 }

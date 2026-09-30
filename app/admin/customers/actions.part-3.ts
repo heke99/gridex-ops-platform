@@ -528,7 +528,7 @@ export async function buildCustomerParamsFromImportRow(params: {
     existingCustomerId: row.existing_customer_id || null,
     duplicateOverrideReason: row.duplicate_override_reason || null,
     invoiceRecipient: row.invoice_recipient || row.billing_recipient || null,
-    invoiceEmail: row.invoice_email || row.billing_email || row.email || null,
+    invoiceEmail: row.invoice_email || row.billing_email || null,
     invoiceReference: row.invoice_reference || row.billing_reference || null,
     billingStreet:
       row.billing_street || row.invoice_street || row.street || null,

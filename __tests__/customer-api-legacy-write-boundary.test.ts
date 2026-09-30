@@ -1,92 +1,59 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiInputError } from '@/lib/api/strictRequest'
 
-const fixture = vi.hoisted(() => ({
-  customerUpdates: [] as Record<string, unknown>[],
-  completionAttempts: 0,
-  addressApplies: 0,
-  scope: ['customer_contact.write', 'customer_facility_data.write'],
-}))
+const fixture = vi.hoisted(() => ({ facility: vi.fn(), legacyOperations: 0 }))
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/customer-portal/externalApi', () => ({
   customerPortalJson: (body: unknown, init?: ResponseInit) => Response.json(body, init),
   requireCustomerPortalApiContext: async () => ({ ok: true, client: {
-    id: 'synthetic-client', company_id: 'synthetic-tenant', scopes: fixture.scope,
-  }, identity: { customer_id: 'synthetic-customer', customer_portal_user_id: 'synthetic-account' }, startedAt: 1 }),
+    id: 'synthetic-client', company_id: 'synthetic-tenant', scopes: ['customer_contact.write', 'customer_facility_data.write'],
+  }, identity: { customer_id: 'synthetic-customer', customer_portal_user_id: 'verified-subject' }, startedAt: 1 }),
   logCustomerPortalSuccess: vi.fn(),
-  handleCustomerPortalRouteError: () => Response.json({ error: { code: 'write_failed' } }, { status: 500 }),
-}))
-vi.mock('@/lib/api/strictRequest', async (original) => ({
-  ...(await original<typeof import('@/lib/api/strictRequest')>()),
-  executeIdempotentPortalWrite: async ({ execute }: { execute: () => Promise<unknown> }) => execute(),
+  handleCustomerPortalRouteError: ({ error }: { error: unknown }) => error instanceof ApiInputError
+    ? Response.json({ error: { code: error.code } }, { status: error.status })
+    : Response.json({ error: { code: 'write_failed' } }, { status: 500 }),
 }))
 vi.mock('@/lib/customer-operations/contactCommand', () => ({
-  ContactCommandError: class ContactCommandError extends Error {},
-  changeCustomerContact: vi.fn(),
+  ContactCommandError: class ContactCommandError extends Error {}, changeCustomerContact: vi.fn(),
 }))
-vi.mock('@/lib/customer-sites/addressIntake', () => ({
-  applyCustomerSiteAddressCandidate: async () => {
-    fixture.addressApplies += 1
-    return { status: 'updated', siteId: 'synthetic-site' }
-  },
+vi.mock('@/lib/billing/billingProfileCommand', () => ({
+  BillingProfileCommandError: class BillingProfileCommandError extends Error {}, changeCustomerBillingProfileFromApi: vi.fn(),
 }))
-vi.mock('@/lib/customer-operations/automation', () => ({ enqueueCustomerDataRequestAutomation: async () => null }))
-vi.mock('@/lib/customer-portal/db', () => ({ createPortalCompletionCase: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({
-  supabaseService: {
-    from: (table: string) => {
-      if (table === 'customers') return {
-        select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { metadata: {} }, error: null }) }) }) }),
-        update: (payload: Record<string, unknown>) => ({
-          eq: () => ({ eq: () => ({ select: () => ({ maybeSingle: async () => {
-            fixture.customerUpdates.push(payload)
-            return { data: { id: 'synthetic-customer' }, error: null }
-          } }) }) }),
-        }),
-      }
-      if (table === 'customer_sites') return {
-        select: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: {
-          id: 'synthetic-site', facility_reference: 'SITE-1',
-        }, error: null }) }) }) }) }),
-      }
-      if (table === 'customer_portal_completions') return {
-        insert: () => ({ select: () => ({ single: async () => {
-          fixture.completionAttempts += 1
-          return { data: null, error: { code: 'synthetic_completion_failure' } }
-        } }) }),
-      }
-      throw new Error(`unexpected table: ${table}`)
-    },
-  },
-}))
+vi.mock('@/lib/customer-operations/profilePreferencesCommand', () => ({ changeCustomerProfilePreferences: vi.fn() }))
+vi.mock('@/lib/customer-operations/facilityProfileCommand', () => ({ changeCustomerFacilityProfile: fixture.facility }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
+  from: () => { fixture.legacyOperations += 1; throw new Error('separate legacy mutation/completion') },
+} }))
+vi.mock('@/lib/customer-sites/addressIntake', () => ({ applyCustomerSiteAddressCandidate: () => {
+  fixture.legacyOperations += 1; throw new Error('legacy address mutation')
+} }))
 
 import { POST } from '@/app/api/v1/customer/profile-update/route'
 
 const request = (body: unknown) => new NextRequest('https://gridex.example.test/api/v1/customer/profile-update', {
-  method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'synthetic-write-1' },
-  body: JSON.stringify(body),
+  method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'synthetic-write-1' }, body: JSON.stringify(body),
 })
 
-describe('open legacy API write gap, with a synthetic failure after the business mutation', () => {
-  beforeEach(() => {
-    fixture.customerUpdates.length = 0
-    fixture.completionAttempts = 0
-    fixture.addressApplies = 0
-  })
+describe('legacy API alternate writers cannot bypass protected commands (adapter regression)', () => {
+  beforeEach(() => { fixture.legacyOperations = 0; fixture.facility.mockReset() })
 
-  it('shows a noncontact profile write preceding its separately failed completion', async () => {
+  it('rejects legal identity before any customer update or completion', async () => {
     const response = await POST(request({ profile: { first_name: 'Synthetic' } }))
-    expect(response.status).toBe(500)
-    expect(fixture.customerUpdates).toMatchObject([{ first_name: 'Synthetic' }])
-    expect(fixture.completionAttempts).toBe(1)
+    expect(response.status).toBe(422)
+    expect((await response.json()).error.code).toBe('profile_field_not_supported')
+    expect(fixture.legacyOperations).toBe(0)
   })
 
-  it('shows a facility address write preceding its separately failed completion', async () => {
-    const response = await POST(request({ facility_data: {
-      facility_reference: 'SITE-1', address: { street: 'Example 1', postal_code: '11122', city: 'Stockholm' },
-    } }))
+  it('does not invoke separate legacy address writers after a failed atomic command', async () => {
+    fixture.facility.mockRejectedValue({ code: 'XX000', message: 'synthetic late completion failure' })
+    const payload = { facility_data: { facility_reference: 'SITE-1', expected_address_revision: 2,
+      address: { street: 'Example 1', postal_code: '11122', city: 'Stockholm' } } }
+    const response = await POST(request(payload))
     expect(response.status).toBe(500)
-    expect(fixture.addressApplies).toBe(1)
-    expect(fixture.completionAttempts).toBe(1)
+    expect(fixture.facility).toHaveBeenCalledWith({ companyId: 'synthetic-tenant', customerId: 'synthetic-customer',
+      actor: { kind: 'api', clientId: 'synthetic-client', subject: 'verified-subject' }, idempotencyKey: 'synthetic-write-1', payload,
+    })
+    expect(fixture.legacyOperations).toBe(0)
   })
 })

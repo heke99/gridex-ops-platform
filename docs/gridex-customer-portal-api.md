@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-30.1** (release candidate on the API draft branch)
+Current contract: **2026-09-30.2** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -26,7 +26,8 @@ organization, API client, customer and action claims to the authenticated
 client, currently active portal account, and exact `POST /api/v1/customer/profile-update`
 path. It expires within five minutes. A customer number, email or API key alone
 does not prove the customer's identity. Assertions are not one-time tokens and
-do not authorize login, billing-recipient or legal identity changes.
+do not authorize login or legal identity changes. Billing changes require their
+own explicit scope and revision, described below.
 
 First read `GET /api/v1/customer/me` with a fresh assertion for that exact
 action and the `customer_profile.read` scope. Use `data.contact_revision` from
@@ -43,14 +44,150 @@ outbox in one local database transaction. It does not synchronously deliver an
 external message. `data.status` is `accepted`, and
 `data.completion_reference` is an opaque public reference.
 
-Other profile fields currently use `customer_contact.write`; facility address
-changes use `customer_facility_data.write`. Send them in separate POST requests.
-These legacy writers do not have the contact command's atomic audit/outbox and
-replay guarantee. The machine sync rejects `profile.phone`; its other profile,
-document, legal and facility writers also remain separately staged. Do not
-infer the contact guarantee for these paths. See
+Send an invoice email change separately as
+`{"profile":{"invoice_email":"billing@example.invalid"},"expected_billing_revision":0}`,
+using the current `billing_revision`, a fresh exact-action assertion,
+`customer_billing.write` and a new idempotency key. This explicit scope is not
+granted by the legacy portal-write alias. The protected billing command returns
+`billing_revision` and `affected_contract_count`; only contracts inheriting the
+customer standard change, while explicit contract overrides remain unchanged.
+The email is a billing setting, not a contact email or login identity.
+
+Send language/timezone separately as
+`{"profile":{"language_code":"sv","timezone":"Europe/Stockholm"},"expected_profile_revision":0}`
+with the current `data.profile_revision` from `/me`, `customer_contact.write`
+and a new idempotency key. The atomic preferences command returns
+`profile_revision`. An unsupported language code or timezone is rejected.
+
+Read `/sites` with `customer_sites.read` before an address change. Send
+`{"facility_data":{"facility_reference":"<returned reference>","expected_address_revision":0,"address":{"street":"Exempelvägen 1"}}}`
+with the site's current `address_revision`, `customer_facility_data.write` and
+a new idempotency key. `data.address_result.status` distinguishes an applied
+or unchanged address from a submitted/conflicting request; submission alone
+does not prove that the address was saved. The command preserves the intake
+rules and atomically persists its history, revision and durable integration
+intent; external delivery runs separately.
+
+Fresh contact/billing/preference/facility changes require their revision. A stale revision
+returns 409 `profile_revision_conflict` or
+`facility_address_revision_conflict`. Missing revisions return 422
+`contact_revision_required`, `billing_profile_revision_required`,
+`profile_revision_required` or `facility_address_revision_required`.
+Exact completed legacy claims can replay without newly introduced revisions
+only after current active-owner, client, relation and scope checks. Profile
+replays retain their logical completion, status and time but pass through the
+current closed public projection: old internal site IDs, normalization details
+and private address payloads are removed. Failed or
+processing legacy claims return a conflict. `/me` exposes nullable
+`contact_revision`, `billing_revision` and `profile_revision`; `/sites` exposes
+nullable `address_revision`. A missing legacy revision is never fabricated as
+zero and cannot authorize a fresh write.
+
+Mixed contact/billing/preferences/facility categories and fresh command
+metadata return 422 without a mutation. Juridical identity fields return 422
+`profile_field_not_supported`. Missing command schemas return canonical 503
+`platform_schema_not_ready` with `error.retryable:true` and no database
+information. Machine sync rejects every nonempty `profile` before writes.
+A supplied `facility_data[].address` returns 422
+`sync_facility_address_command_required` before identity lookup, claims or
+effects; legacy address aliases are also rejected by the writer. Use the
+separately delegated facility command with the current address revision.
+Non-address facility, document and legal intake remain separately staged. See
 `scripts/tenantservice/customer-api-reference.mjs` for a runnable synthetic
 contact journey using an isolated in-memory issuer and customer.
+
+## Customer support cases
+
+The exported `runCustomerSupportReference` in
+`scripts/tenantservice/customer-api-reference.mjs` provides a runnable backend
+flow: create, list, read, reply, replay and readback. Supply the real backend
+API credential and platform-enrolled assertion signer when integrating; its
+standalone command defaults to an in-memory synthetic HTTP fixture.
+The tenant backend can create and continue a case through six delegated
+endpoints. `customer_cases.read` and `customer_cases.write` are explicit scopes;
+legacy portal aliases do not grant them. Each call needs a current signed
+assertion for its exact method and path. `GET /api/v1/customer/cases` lists only
+this customer's published cases. `POST /api/v1/customer/cases` accepts exactly
+`{"title":"...","body":"..."}` and an `Idempotency-Key`, returning 201 with an
+opaque `case_reference`, revision, status and replay marker.
+
+Use `GET /api/v1/customer/cases/{reference}/messages` to read that case's
+customer-visible messages. Continue the same case with `POST` on that path,
+`{"body":"...","expected_revision":1}` and a fresh idempotency key. The reply
+returns 201 with `case_reference`, `message_reference`, revision, status and
+replay marker. Stale revisions or changed same-key payloads return 409;
+foreign case references return neutral 404. Reads accept `limit` (default 25,
+maximum 100) and a customer/resource-bound `cursor`.
+
+The public case projection is limited to reference, title, status, revision
+and timestamps. The message projection is limited to reference, body, author
+kind, channel, revision and creation time. Staff notes and internal case text
+are separate records and never become public messages. Staff and portal
+continuations use the same protected command under their actual current
+session. A portal account with read-only rights cannot write or replay writes.
+An explicitly published same-case telephone summary is staff-authored with
+channel `phone` and the actual current staff session; raw telephone intake
+stays internal and never automatically becomes a public customer message.
+An identified telephone contact requires a real risk-policy verification
+issuer; that issuer and attachment scanner enrollment remain external
+configuration requirements. Identity-sensitive telephone changes fail closed
+while verification is unavailable. Files remain in private quarantine while
+the scanner is unavailable.
+An unidentified contact cannot read customer history or change a profile.
+
+The disposable support proof creates cases over real HTTP, continues the same
+case using an actual seeded staff session at the native command boundary,
+checks public replies/internal privacy, read-only denial and current
+revocation, and rereads the resulting messages over HTTP. It is a server and
+database proof, not an interactive browser proof. A distinct interactive suite
+uses a separate synthetic portal customer: it clicks create/reply, retries a
+lost response after server commit with the same form key, continues the same
+case in OPS with separate internal/public messages, reloads both views, and
+checks portal/OPS read-only controls. Its screenshots contain only synthetic
+data. Prepared suites become execution evidence only after their exact-version
+CI markers and native postchecks pass. The repository's runnable
+reference client and these proofs do not mean an external tenant website is
+implemented; the real frontend must still integrate its authenticated backend
+with the platform-enrolled assertion issuer and these six endpoints.
+
+For attachment intake, POST multipart/form-data to
+`/api/v1/customer/cases/{reference}/attachments` with exactly `file` and
+`expected_revision`, explicit `customer_cases.write`, exact-path delegation
+and an idempotency key. Send one nonempty PDF, PNG, JPEG or valid UTF-8 plain
+text file, up to 5 MiB. Declared type and content must agree. The 201 result
+contains only `attachment_reference`, revision, `scan_status:"quarantined"`
+and replay marker. An identical retry returns the same attachment; a changed
+payload conflicts. Unknown or duplicate multipart fields, including a
+client-supplied clean flag, are rejected. Excess size returns 413
+`support_attachment_too_large`; storage/schema failure returns safe retryable
+503 `support_attachment_unavailable`.
+
+GET on the same path with `customer_cases.read` returns only the attachment
+reference, file name, media type, byte size, quarantine status and creation
+time, with the support page metadata. No object path, download URL or clean
+status is returned. Storage stays private and the protected command records
+the scan request; intake success does not authorize file release. The exported
+`runCustomerAttachmentReference` performs upload, identical replay and metadata
+read-back using the caller's enrolled signer. Its synthetic fixture checks the
+multipart contract and clean-flag denial; it is not scanner or deployed storage
+evidence.
+
+The reference CLI also provides an explicit read against a real configured
+backend:
+
+```sh
+node scripts/tenantservice/customer-api-reference.mjs --real /absolute/private/customer-api-options.mjs /api/v1/customer/me
+```
+
+The private module must export `customerApiOptions` with `baseUrl`, backend
+`apiKey`, linked `customerNumber` and `signAssertion(action)`. Supply the existing
+platform-enrolled issuer; this mode creates no identity, session or mandate.
+Keep the module and credentials outside the repository and browser. HTTPS is
+required except for the explicit loopback test server. The client validates
+the normalized customer path before signing, refuses traversal and redirects,
+and signs the exact method/path sent. It prints only status, row count, request
+ID, contract version and error code. Real frontend/issuer integration still
+needs to be executed in its authorized environment.
 
 ## Paginated support reads
 
@@ -86,8 +223,18 @@ Unavailable fields remain JSON null, including the document reference when
 neither source exists. Internal IDs, snapshots, metadata, trace/request IDs,
 contract relations and signatures are not item fields. The synthetic client
 follows two legal pages and rejects wrong signed actions and foreign cursors.
-This local evidence is PARTIAL, not native SQL/RLS or full phase acceptance.
-No external support/case/message/attachment endpoint exists in this package.
+This synthetic client is contract characterization, not native SQL/RLS or full
+phase acceptance. The separate disposable-CI legal fixture constructs actual
+product/version/bundle/document and legacy legal-text relations, then the
+HTTP suite checks three customers, microsecond ties, cursor replay, public
+fields and current authority. Source immutability is checked after HTTP.
+These new suites are prepared for execution; their existence is not an
+executed native result or proof of a deployed customer integration.
+
+If all compatible legal read models are unavailable, GET returns canonical
+HTTP 503 `platform_schema_not_ready` with `error.retryable:true`. Database
+diagnostics are not public. Legacy-schema fallbacks are characterized
+separately, without changing the shared current-schema replay database.
 
 ## Metering value reads
 
@@ -108,7 +255,15 @@ only opaque value and metering-point references, the period, resolution,
 quantity, quality/status and creation time; unavailable values remain null.
 The synthetic reference client follows two filtered pages and checks a bad
 cursor. Native multi-customer SQL and a deployed customer integration are not
-qualified by that client.
+qualified by that client. The separate disposable-CI fixture constructs owned
+customer/site/metering-point relations with non-null quantities and valid
+periods. Its real HTTP suite checks inclusive microsecond bounds, facility
+filters, filter-bound cursor replay, three customers, public fields and
+revocation; a native postcheck verifies unchanged source rows and customer
+attribution. These suites require execution on the frozen candidate before
+their result can be called verified. Missing canonical metering schema returns
+HTTP 503 `platform_schema_not_ready` and `error.retryable:true` using the safe
+canonical error envelope.
 
 ## Invoice reads
 
@@ -157,10 +312,20 @@ Already read rows retain their first read timestamp and do not increase
 attempt time, so read the list again for a row's persisted timestamp.
 An identical retry under the same key returns the stored completion after
 current authority is checked; a changed payload under that key conflicts.
-The current route resolves references, updates rows and completes idempotency
-in separate database steps. It does not yet have the contact command's atomic
-mutation/completion/audit/outbox guarantee. The runnable synthetic client
-shows two pages of each list, mark-read, replay, read-back and a 404.
+The service-only command resolves the entire indexed reference set, rechecks
+current authority, mutates unread rows, completes idempotency and writes
+canonical audit in one local transaction. A late completion or audit failure
+rolls back every command effect. Marking read has no external delivery effect.
+The existing compact ordered payload hash and tenant/client/customer/route/key
+namespace remain unchanged. Completed legacy claims replay their stored data
+after current authorization; old failed or processing claims retain their
+safe 409 result because their prior effects cannot be assumed rolled back.
+The runnable synthetic client shows two pages of each list, mark-read,
+replay, read-back, changed-payload conflict and mixed-reference denial.
+Actual transaction, concurrency, rollback and index evidence comes from the
+separate native suites and real HTTP GET→POST→replay→GET suite, once executed
+on the frozen candidate. HTTP-request Playwright evidence is server/database
+evidence and does not count as interactive UI verification.
 
 ## Events and powers of attorney
 

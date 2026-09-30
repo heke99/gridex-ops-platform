@@ -21,6 +21,11 @@ import CustomerSwitchOperationsCard from "@/components/admin/customers/CustomerS
 import CustomerContractsCard from "@/components/admin/customers/CustomerContractsCard"
 import CustomerContactsAddressesCard from "@/components/admin/customers/CustomerContactsAddressesCard"
 import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard"
+import CustomerBillingProfileCard from "@/components/admin/customers/CustomerBillingProfileCard"
+import { resolveEffectiveBillingProfile } from '@/lib/billing/effectiveBillingProfile'
+import { loadCompanyBillingConfiguration } from '@/lib/billing/invoiceReadiness'
+import { randomUUID } from 'node:crypto'
+import { getCustomerOpsCommandCapabilities } from '@/lib/customer-operations/opsCommandCapabilities'
 import { buildCustomerCardWorkflow } from "@/lib/customer-operations/customerCardWorkflow"
 import { buildTenantCustomerCardView } from "@/lib/customer-operations/customerCardTenantView"
 import CustomerGridOwnerFileImportCard from "@/components/admin/customers/CustomerGridOwnerFileImportCard"
@@ -66,6 +71,8 @@ export async function CustomerAdminDetailPage({
   const isPlatformAdmin = isPlatformAdminContext(access);
   const canReadContracts = isPlatformAdmin || access.permissions.includes("contracts.read");
   const canWriteContracts = isPlatformAdmin || access.permissions.includes("contracts.write");
+  const canReadCases = isPlatformAdmin || access.permissions.includes("cases.read");
+  const canWriteCases = isPlatformAdmin || access.permissions.includes("cases.write");
 
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
@@ -93,6 +100,7 @@ export async function CustomerAdminDetailPage({
         title="Bolagskoppling saknas"
         description="Kontot saknar aktiv bolagskoppling. Kundkort kan bara öppnas när användaren har ett aktivt bolag eller platform-behörighet."
         lookupId={id}
+        showPlatformLink={isPlatformAdmin}
       />
     );
   }
@@ -105,6 +113,7 @@ export async function CustomerAdminDetailPage({
         title="Kunden finns inte i kundregistret"
         description="Kunden hittades inte i det aktiva kundregistret. Kontrollera att du är i rätt bolag och att kunden inte har flyttats eller rensats från denna miljö."
         lookupId={id}
+        showPlatformLink={isPlatformAdmin}
       />
     );
   }
@@ -115,6 +124,7 @@ export async function CustomerAdminDetailPage({
         title="Kunden saknar bolagskoppling"
         description="Kunden saknar bolagskoppling och kan därför inte användas i kundflödet. Koppla kunden till rätt bolag eller arkivera raden innan den används."
         lookupId={id}
+        showPlatformLink={isPlatformAdmin}
       />
     );
   }
@@ -125,6 +135,7 @@ export async function CustomerAdminDetailPage({
         title="Edielportalens kontrollkund visas inte som vanlig kund"
         description="Den här raden är skapad från Edielportalens kontrollflöde. Den ska hanteras från Ediel-arbetsytan och inte ligga kvar i det vanliga kundregistret."
         lookupId={id}
+        showPlatformLink={isPlatformAdmin}
       />
     );
   }
@@ -138,6 +149,7 @@ export async function CustomerAdminDetailPage({
         title="Kunden tillhör ett annat bolag"
         description="Tenant-isoleringen blockerar kundkortet eftersom kunden inte tillhör ditt aktiva bolag."
         lookupId={id}
+        showPlatformLink={isPlatformAdmin}
       />
     );
   }
@@ -145,6 +157,12 @@ export async function CustomerAdminDetailPage({
   const customerCompanyId = tenantScope.isPlatformAdmin
     ? customer.company_id
     : tenantScope.companyId;
+  if (!customerCompanyId) throw new Error('Customer tenant context unavailable');
+  const commandCapabilities = await getCustomerOpsCommandCapabilities({
+    companyId: customerCompanyId, customerId: customer.id, expectedUserId: access.userId,
+  });
+  const canEditCustomer = commandCapabilities.canEditContact && commandCapabilities.canEditAddresses;
+  const canEditLegalCustomer = commandCapabilities.canEditLegalProfile;
   // Load only the data required by the selected workspace tab. The overview
   // keeps a lightweight cross-process summary; provider-heavy diagnostics are
   // only loaded on the dedicated platform diagnostics tab.
@@ -688,6 +706,12 @@ export async function CustomerAdminDetailPage({
     ].includes(String(request.status ?? "").toLowerCase()),
   );
   const showFoldedTechnicalPanels = isPlatformAdmin && activeTab === "ediel-operations";
+  const billingConfiguration = activeTab === 'billing-metering' ? await loadCompanyBillingConfiguration(customerCompanyId) : null;
+  const billingDefaultMethod = billingConfiguration?.billingProfileBase.distributionMethod ?? null;
+  const customerIsArchived = customer.status === 'archived' || Boolean(customer.archived_at);
+  const canEditBilling = commandCapabilities.canEditBilling && !customerIsArchived && typeof customer.billing_profile_revision === 'number' && Number.isSafeInteger(customer.billing_profile_revision) && customer.billing_profile_revision >= 0;
+  const primaryTabIds = new Set<CustomerWorkspaceTab>(['overview', 'profile', 'sites', 'billing-metering', 'communication']);
+  const visibleTabs = CUSTOMER_WORKSPACE_TABS.filter((tab) => tab.id !== 'contacts-addresses' && canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin, canReadContracts));
 
   return (
     <div className="space-y-6">
@@ -710,6 +734,9 @@ export async function CustomerAdminDetailPage({
             <span className="rounded-full bg-slate-100 px-3 py-1">
               Kundnummer: {customer.customer_number ?? "—"}
             </span>
+            <span className="break-all rounded-full bg-emerald-50 px-3 py-1 text-emerald-900">
+              Tenant: {tenantScope.companyId === customer.company_id ? tenantScope.companyName ?? customer.company_id : customer.company_id}
+            </span>
             <span className="rounded-full bg-slate-100 px-3 py-1">
               {displayEmail ?? "Ingen e-post"}
             </span>
@@ -723,6 +750,25 @@ export async function CustomerAdminDetailPage({
             ) : null}
           </div>
         </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {canReadCases ? <Link href={`/admin/customer-cases?customer=${encodeURIComponent(id)}${canWriteCases ? '&channel=phone' : ''}`} className="inline-flex min-h-11 items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{canWriteCases ? 'Registrera kontakt' : 'Visa kundärenden'}</Link> : null}
+          <Link href={customerTabHref(id, 'profile')} className="inline-flex min-h-11 items-center rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{(canEditCustomer || canEditLegalCustomer) && !customerIsArchived ? 'Ändra uppgifter' : 'Visa uppgifter'}</Link>
+          <details className="relative">
+            <summary className="cursor-pointer rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800 focus-visible:outline-2 focus-visible:outline-emerald-700">Fler åtgärder</summary>
+            <nav aria-label="Fler kundåtgärder" className="mt-2 flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm">
+              <Link href={customerTabHref(id, 'billing-metering')} className="rounded px-2 py-1 font-semibold text-emerald-800 underline focus-visible:outline-2 focus-visible:outline-emerald-700">Fakturering</Link>
+              {canReadContracts ? <Link href={customerTabHref(id, 'contracts')} className="rounded px-2 py-1 font-semibold text-emerald-800 underline focus-visible:outline-2 focus-visible:outline-emerald-700">Avtal</Link> : null}
+              <Link href={customerTabHref(id, 'notes')} className="rounded px-2 py-1 font-semibold text-emerald-800 underline focus-visible:outline-2 focus-visible:outline-emerald-700">Interna anteckningar</Link>
+            </nav>
+          </details>
+        </div>
+        {commandCapabilities.status !== 'ready' && !customerIsArchived ? (
+          <p role="status" className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            {commandCapabilities.status === 'unavailable'
+              ? 'Läsläge för kunduppgifter och fakturering – ändringsbehörigheten kunde inte kontrolleras. Läs om sidan innan du försöker ändra uppgifter.'
+              : 'Läsläge för kunduppgifter och fakturering – du saknar aktiv bolagskoppling eller ändringsbehörighet för den här kunden.'}
+          </p>
+        ) : null}
       </section>
 
       {isPlatformAdmin && activeTab === "technical-details" ? (
@@ -753,14 +799,14 @@ export async function CustomerAdminDetailPage({
         aria-label="Kundkortets delar"
         className="flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm"
       >
-        {CUSTOMER_WORKSPACE_TABS
-          .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin, canReadContracts))
+        {visibleTabs
+          .filter((tab) => primaryTabIds.has(tab.id))
           .map((tab) => (
             <Link
               key={tab.id}
               href={customerTabHref(id, tab.id)}
               aria-current={activeTab === tab.id ? "page" : undefined}
-              className={`rounded-full border px-3 py-1.5 font-semibold transition ${
+              className={`min-h-11 rounded-full border px-3 py-2.5 font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
                 activeTab === tab.id
                   ? "border-emerald-700 bg-emerald-700 text-white"
                   : "border-slate-200 text-slate-700 hover:bg-slate-50"
@@ -769,6 +815,12 @@ export async function CustomerAdminDetailPage({
               {tab.label}
             </Link>
           ))}
+        <details open={!primaryTabIds.has(activeTab)} className="w-full">
+          <summary className="cursor-pointer rounded-2xl px-3 py-2.5 font-semibold text-slate-800 focus-visible:outline-2 focus-visible:outline-emerald-700">Fördjupning och historik</summary>
+          <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+            {visibleTabs.filter((tab) => !primaryTabIds.has(tab.id)).map((tab) => <Link key={tab.id} href={customerTabHref(id, tab.id)} aria-current={activeTab === tab.id ? 'page' : undefined} className={`min-h-11 rounded-full border px-3 py-2.5 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${activeTab === tab.id ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>{tab.label}</Link>)}
+          </div>
+        </details>
       </nav>
 
       {activeTab === "overview" ? (
@@ -887,7 +939,7 @@ export async function CustomerAdminDetailPage({
         >
           <section className="grid gap-6">
             <div className={isPlatformAdmin ? "grid gap-6 xl:grid-cols-2" : "grid gap-6"}>
-              <CustomerProfileCard customer={customer} showLifecycleTools={isPlatformAdmin} />
+              <CustomerProfileCard key={`${customer.id}:${customer.legal_profile_revision}`} customer={customer} showLifecycleTools={commandCapabilities.canCloseLifecycle} showPlatformTools={isPlatformAdmin} canEdit={canEditLegalCustomer} idempotencyKey={randomUUID()} />
               {isPlatformAdmin ? (
                 <CustomerContractOfferEligibilityCard
                   customerId={id}
@@ -903,7 +955,8 @@ export async function CustomerAdminDetailPage({
               addresses={addresses}
               sites={sites}
               contactRevision={customer.contact_revision}
-              canEdit={isPlatformAdmin || access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)}
+              addressBookRevision={customer.address_book_revision}
+              canEdit={canEditCustomer && !customerIsArchived}
             />
           </section>
         </SectionAnchor>
@@ -1030,6 +1083,23 @@ export async function CustomerAdminDetailPage({
           title="Fakturering"
           description="Status för mätvärden, fakturaunderlag och fakturapartner."
         >
+          <CustomerBillingProfileCard
+            profile={resolveEffectiveBillingProfile({ companyId: customerCompanyId, customerId: id, customer, defaultDistributionMethod: billingDefaultMethod })}
+            contracts={customerContracts.map((contract) => {
+              const site = sites.find((candidate) => candidate.id === (contract.customer_site_id ?? contract.site_id) && candidate.customer_id === id && candidate.company_id === customerCompanyId);
+              const rawContract = contract as unknown as Record<string, unknown>;
+              const overrideRevision = rawContract.billing_profile_override_revision;
+              return {
+                id: contract.id,
+                name: contract.contract_name ?? 'Avtal',
+                canEdit: canEditBilling && typeof overrideRevision === 'number' && Number.isSafeInteger(overrideRevision) && overrideRevision >= 0,
+                profile: resolveEffectiveBillingProfile({ companyId: customerCompanyId, customerId: id, customer, contract: rawContract, siteAddress: site ? { street: site.street, postalCode: site.postal_code, city: site.city } : null, defaultDistributionMethod: billingDefaultMethod }),
+              };
+            })}
+            providerBlockers={billingConfiguration?.providerBlockers ?? []}
+            canEdit={canEditBilling}
+            idempotencyKey={randomUUID()}
+          />
           <CustomerBillingMeteringCard
             customerId={id}
             sites={sites}
@@ -1149,24 +1219,6 @@ export async function CustomerAdminDetailPage({
         </SectionAnchor>
       ) : null}
 
-      {isPlatformAdmin && activeTab === "contacts-addresses" ? (
-        <SectionAnchor
-          id="contacts-addresses"
-          title="Kontakter och adresser"
-          description="Primära kontaktpersoner, adresser och kundens kontaktstruktur."
-        >
-          <CustomerContactsAddressesCard
-            customerId={id}
-            customerType={normalizedCustomerType}
-            contacts={contacts}
-            addresses={addresses}
-            sites={sites}
-            contactRevision={customer.contact_revision}
-            canEdit={isPlatformAdmin || access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)}
-          />
-        </SectionAnchor>
-      ) : null}
-
       <span id="anlaggning" aria-hidden className="block scroll-mt-36" />
       {activeTab === "sites" ? (
         <SectionAnchor
@@ -1213,17 +1265,18 @@ export async function CustomerAdminDetailPage({
                 <p className="mt-2">{customerCardSnapshot.switchBlockerLabels.join(", ")}</p>
               </div>
             ) : null}
-            {isPlatformAdmin ? (
+            {isPlatformAdmin || commandCapabilities.canEditSites ? (
               <details className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                 <summary className="cursor-pointer text-sm font-semibold text-slate-900">Redigera anläggningsuppgifter</summary>
                 <section className="mt-5 grid gap-6 xl:grid-cols-[460px_minmax(0,1fr)]">
-                  <CustomerSiteForm
+                  {commandCapabilities.canEditSites && !safeSelectedSite?.archived_at ? <CustomerSiteForm
                     customerId={id}
                     gridOwners={gridOwners}
                     priceAreas={priceAreas}
                     site={safeSelectedSite}
+                    commandKey={randomUUID()}
                     cancelHref={`/admin/customers/${id}#anlaggning`}
-                  />
+                  /> : <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Läsläge – du saknar ändringsbehörighet för anläggningen eller så är anläggningen arkiverad.</p>}
                   <CustomerSitesTable
                     customerId={id}
                     sites={sites}

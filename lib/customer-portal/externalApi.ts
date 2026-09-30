@@ -14,6 +14,7 @@ import { ApiInputError } from '@/lib/api/strictRequest'
 import { PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
+import { publicRouteContract } from '@/lib/api/publicRouteRegistry'
 import { verifyCustomerDelegationAssertion } from '@/lib/customer-portal/delegationAssertion'
 
 export type LinkedPortalIdentity = {
@@ -248,7 +249,7 @@ export async function requireCustomerPortalApiContextForIdentifiers(
   const startedAt = Date.now()
   const auth = await requireIntegrationApiAccess(request, scopes)
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logPortalRequestTelemetry({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
   }
 
@@ -263,13 +264,13 @@ export async function requireCustomerPortalApiContextForIdentifiers(
       : { ok: false as const, status: 403, code: 'machine_scope_required', error: 'Ett separat tenantmaskinmandat krävs.', identifiers: portalIdentifiersFromRequest(request) }
     : await resolveDelegatedPortalCustomer({ request, client: auth.client, identifiers })
   if (!resolution.ok) {
-    await logIntegrationApiRequest({
+    await logPortalRequestTelemetry({
       client: auth.client,
       request,
       statusCode: resolution.status,
       startedAt,
       errorCode: resolution.code,
-      metadata: resolution.code.startsWith('customer_delegation_') ? { decision: 'denied' } : { ...resolution.identifiers },
+      metadata: { decision: 'denied' },
     })
     return { ok: false, response: jsonError(resolution.error, resolution.status, resolution.code), startedAt }
   }
@@ -299,24 +300,38 @@ export async function requireCustomerPortalApiContext(
   const startedAt = Date.now()
   const auth = await requireIntegrationApiAccess(request, scopes)
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logPortalRequestTelemetry({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
   }
 
   const identity = await resolveLinkedPortalIdentity(request, auth.client)
   if (!identity.ok) {
-    await logIntegrationApiRequest({
+    await logPortalRequestTelemetry({
       client: auth.client,
       request,
       statusCode: identity.status,
       startedAt,
       errorCode: identity.code,
-      metadata: identity.code.startsWith('customer_delegation_') ? { decision: 'denied' } : { ...portalIdentifiersFromRequest(request) },
+      metadata: { decision: 'denied' },
     })
     return { ok: false, response: jsonError(identity.error, identity.status, identity.code), startedAt }
   }
 
   return { ok: true, client: auth.client, identity: identity.identity, startedAt }
+}
+
+// Request timing/count logging is ordinary telemetry. Canonical audit belongs
+// to the protected command transaction and must still fail the transaction.
+export async function logPortalRequestTelemetry(input: Parameters<typeof logIntegrationApiRequest>[0]): Promise<void> {
+  try {
+    await logIntegrationApiRequest(input)
+  } catch {
+    console.warn('[customer-portal-api] request telemetry failed', {
+      route: publicRouteContract(input.request.method, input.request.nextUrl.pathname)?.publicPath ??
+        publicRouteContract(input.request.method, input.request.nextUrl.pathname)?.path ?? 'unregistered',
+      statusCode: input.statusCode,
+    })
+  }
 }
 
 export async function logCustomerPortalSuccess(input: {
@@ -326,7 +341,7 @@ export async function logCustomerPortalSuccess(input: {
   resultCount?: number
   metadata?: Record<string, unknown>
 }) {
-  await logIntegrationApiRequest({
+  await logPortalRequestTelemetry({
     client: input.client,
     request: input.request,
     statusCode: 200,
@@ -345,7 +360,7 @@ export function handleCustomerPortalRouteError(input: {
   error: unknown
 }) {
   if (input.error instanceof PlatformSchemaNotReadyError) {
-    void logIntegrationApiRequest({
+    void logPortalRequestTelemetry({
       client: input.client ?? null,
       request: input.request,
       statusCode: input.error.status,
@@ -363,7 +378,7 @@ export function handleCustomerPortalRouteError(input: {
     )
   }
   if (input.error instanceof ApiInputError || input.error instanceof PortalCursorError) {
-    void logIntegrationApiRequest({
+    void logPortalRequestTelemetry({
       client: input.client ?? null,
       request: input.request,
       statusCode: input.error.status,
@@ -455,7 +470,7 @@ export function handleCustomerPortalRouteError(input: {
     },
   ].find((candidate) => candidate.pattern.test(databaseMessage))
   if (mappedDatabaseError) {
-    void logIntegrationApiRequest({
+    void logPortalRequestTelemetry({
       client: input.client ?? null,
       request: input.request,
       statusCode: mappedDatabaseError.status,
@@ -471,8 +486,12 @@ export function handleCustomerPortalRouteError(input: {
       { status: mappedDatabaseError.status },
     )
   }
-  console.error('[customer-portal-api] route failed', { route: input.request.nextUrl.pathname, error: input.error })
-  void logIntegrationApiRequest({
+  console.error('[customer-portal-api] route failed', {
+    route: publicRouteContract(input.request.method, input.request.nextUrl.pathname)?.publicPath ??
+      publicRouteContract(input.request.method, input.request.nextUrl.pathname)?.path ?? 'unregistered',
+    code: 'customer_portal_internal_error',
+  })
+  void logPortalRequestTelemetry({
     client: input.client ?? null,
     request: input.request,
     statusCode: 500,

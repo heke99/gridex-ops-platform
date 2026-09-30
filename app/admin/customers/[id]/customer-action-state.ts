@@ -6,6 +6,9 @@ export type CustomerActionState = {
   status: "idle" | "success" | "error";
   message?: string;
   code?: string;
+  revision?: number;
+  changed?: boolean;
+  replayed?: boolean;
 };
 
 export const IDLE_CUSTOMER_ACTION_STATE: CustomerActionState = {

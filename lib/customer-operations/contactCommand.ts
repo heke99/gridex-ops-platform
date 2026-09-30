@@ -1,4 +1,5 @@
 import 'server-only'
+import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type ContactChanges = {
@@ -8,7 +9,7 @@ export type ContactChanges = {
   title?: string | null
 }
 export type ContactActor =
-  | { kind: 'ops'; userId: string; reason: string }
+  | { kind: 'ops'; userId: string; sessionId: string; reason: string }
   | { kind: 'api'; clientId: string; subject: string }
 
 export class ContactCommandError extends Error {
@@ -18,18 +19,41 @@ export class ContactCommandError extends Error {
   }
 }
 
-export async function changeCustomerContact(input: {
+// Match strictRequest's historical compact hash byte-for-byte. PostgreSQL's
+// jsonb text representation is intentionally not the source of this hash.
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') return `{${Object.entries(value as Record<string, unknown>)
+    .filter(([, nested]) => nested !== undefined).sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, nested]) => `${JSON.stringify(key)}:${canonicalJson(nested)}`).join(',')}}`
+  return JSON.stringify(value) ?? 'null'
+}
+
+type ContactCommandInput = {
   companyId: string
   customerId: string
   contactId?: string | null
   contactTarget?: 'secondary'
   contactType?: 'billing' | 'operations' | 'technical' | 'other'
   actor: ContactActor
-  expectedRevision: number
+  expectedRevision?: number
   idempotencyKey: string
   changes: ContactChanges
-}): Promise<{ revision: number; changed: boolean; replayed: boolean; completionReference?: string; createdAt?: string }> {
-  if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0 ||
+}
+export type ContactCommandResult = { revision: number; changed: boolean; replayed: boolean; completionReference?: string; createdAt?: string }
+export type LegacyContactReplay = { publicBody: Record<string, unknown>; statusCode: number; replayed: true }
+export function changeCustomerContact(input: Omit<ContactCommandInput, 'actor' | 'expectedRevision'> & {
+  actor: Extract<ContactActor, { kind: 'ops' }>; expectedRevision: number
+}): Promise<ContactCommandResult>
+export function changeCustomerContact(input: Omit<ContactCommandInput, 'actor'> & {
+  actor: Extract<ContactActor, { kind: 'api' }>
+}): Promise<ContactCommandResult | LegacyContactReplay>
+export async function changeCustomerContact(input: ContactCommandInput): Promise<ContactCommandResult | LegacyContactReplay> {
+  if (input.actor.kind === 'ops' && (typeof input.actor.sessionId !== 'string' || !input.actor.sessionId)) {
+    throw new ContactCommandError('contact_actor_forbidden', 403)
+  }
+  if ((input.expectedRevision === undefined ? input.actor.kind !== 'api'
+        : !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0) ||
       Object.keys(input.changes).length === 0 ||
       Object.keys(input.changes).some(key => !['email', 'phone', 'name', 'title'].includes(key)) ||
       (input.actor.kind === 'api' && ('name' in input.changes || 'title' in input.changes)) ||
@@ -47,6 +71,10 @@ export async function changeCustomerContact(input: {
       : {}),
     mode: input.actor.kind,
     actorUserId: input.actor.kind === 'ops' ? input.actor.userId : null,
+    sessionId: input.actor.kind === 'ops' ? input.actor.sessionId : null,
+    requestJson: input.actor.kind === 'api' ? canonicalJson({
+      profile: input.changes, expected_contact_revision: input.expectedRevision,
+    }) : null,
     clientId: input.actor.kind === 'api' ? input.actor.clientId : null,
     subject: input.actor.kind === 'api' ? input.actor.subject : null,
     reason: input.actor.kind === 'ops' ? input.actor.reason : null,
@@ -55,27 +83,42 @@ export async function changeCustomerContact(input: {
     changes: input.changes,
   }
   const { data, error } = await supabaseService.rpc(
-    'gridex_change_customer_contact_v1',
+    'gridex_change_customer_contact_v2',
     { p_command },
   )
   if (error) {
+    if (['42883', 'PGRST202'].includes(String(error.code ?? '')) &&
+        String(error.message ?? '').includes('gridex_change_customer_contact_v2')) {
+      throw new PlatformSchemaNotReadyError('Kontaktkommandots aktuella databasgräns är ännu inte tillgänglig.')
+    }
     const code = String(error.message ?? '')
-    if (code === 'contact_revision_conflict' || code === 'contact_idempotency_conflict' ||
+    if (['idempotency_conflict', 'idempotency_previous_attempt_failed', 'idempotency_in_progress'].includes(code) ||
+        code === 'contact_revision_conflict' || code === 'contact_idempotency_conflict' ||
         code === 'contact_selection_conflict')
       throw new ContactCommandError(code, 409)
-    if (code === 'contact_actor_forbidden' || code === 'contact_delegation_forbidden' ||
+    if (['profile_service_required', 'profile_actor_forbidden', 'profile_delegation_forbidden',
+        'profile_customer_unavailable', 'profile_tenant_unavailable'].includes(code) ||
+        code === 'contact_service_required' || code === 'contact_actor_forbidden' || code === 'contact_delegation_forbidden' ||
         code === 'contact_customer_unavailable' || code === 'contact_tenant_unavailable')
       throw new ContactCommandError(code, 403)
-    if (code === 'invalid_contact_command' || code === 'invalid_contact_field' ||
+    if (code === 'invalid_profile_command' || code === 'contact_revision_required' ||
+        code === 'invalid_contact_command' || code === 'invalid_contact_field' ||
         code === 'contact_method_required' || code === 'ambiguous_primary_contact' ||
         code === 'contact_name_required')
       throw new ContactCommandError(code, 422)
     throw error
   }
   const result = data as Record<string, unknown> | null
-  if (!result || !Number.isSafeInteger(result.revision) || typeof result.changed !== 'boolean' ||
-      typeof result.replayed !== 'boolean' || result.customerId !== input.customerId ||
-      result.companyId !== input.companyId) {
+  if (!result || result.companyId !== input.companyId || result.customerId !== input.customerId) {
+    throw new ContactCommandError('contact_result_invalid', 503)
+  }
+  if (input.actor.kind === 'api' && result?.replayed === true &&
+      result.publicBody && typeof result.publicBody === 'object' && !Array.isArray(result.publicBody) &&
+      Number.isSafeInteger(result.statusCode) && Number(result.statusCode) >= 200 && Number(result.statusCode) <= 599) {
+    return { publicBody: result.publicBody as Record<string, unknown>, statusCode: result.statusCode as number, replayed: true }
+  }
+  if (!Number.isSafeInteger(result.revision) || Number(result.revision) < 0 ||
+      typeof result.changed !== 'boolean' || typeof result.replayed !== 'boolean') {
     throw new ContactCommandError('contact_result_invalid', 503)
   }
   return {

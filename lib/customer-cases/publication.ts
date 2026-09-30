@@ -1,5 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
+import { SupportCommandError, type SupportActor } from '@/lib/customer-operations/supportCommand'
+import { supportActorContext } from './customerRead'
 
 export type CurrentCasePublication = {
   id: string
@@ -36,41 +38,44 @@ export async function listCasePublicationHeads(companyId: string, caseIds: strin
   return new Map((data ?? []).map((row: { customer_case_id: string; revision: number }) => [row.customer_case_id, row.revision]))
 }
 
-export async function publishCustomerCase(input: {
-  companyId: string
-  caseId: string
-  actorUserId: string
-  title: string
-  body: string
-  status: CurrentCasePublication['public_status']
-  expectedRevision: number
-}) {
-  const { data, error } = await supabaseService.rpc('gridex_publish_customer_case_v1', {
-    p_company_id: input.companyId,
-    p_case_id: input.caseId,
-    p_actor_user_id: input.actorUserId,
-    p_title: input.title,
-    p_body: input.body,
-    p_status: input.status,
-    p_expected_revision: input.expectedRevision,
-    p_channel: 'ops',
-  })
-  if (error) throw error
-  return data as CurrentCasePublication
+type PublicationContext = {
+  companyId: string; customerId: string; caseId: string; actorUserId: string;
+  actor: Extract<SupportActor, { kind: 'ops' | 'portal' }>; expectedRevision: number
 }
 
-export async function revokeCustomerCasePublication(input: {
-  companyId: string
-  caseId: string
-  actorUserId: string
-  expectedRevision: number
+function checkedContext(input: PublicationContext) {
+  if (!input.actor || input.actor.kind !== 'ops' || input.actor.userId !== input.actorUserId) {
+    throw new SupportCommandError('support_actor_forbidden', 403)
+  }
+  return supportActorContext(input)
+}
+function publicationError(error: { code?: string; message?: string }) {
+  if (error.message === 'support_actor_forbidden') throw new SupportCommandError(error.message, 403)
+  if (['42883', '42P01', 'PGRST202'].includes(error.code ?? '')) throw new SupportCommandError('support_schema_unavailable', 503)
+  throw error
+}
+export async function publishCustomerCase(input: PublicationContext & {
+  title: string; body: string; status: CurrentCasePublication['public_status']; channel?: 'ops' | 'phone'
 }) {
-  const { data, error } = await supabaseService.rpc('gridex_revoke_customer_case_publication_v1', {
-    p_company_id: input.companyId,
-    p_case_id: input.caseId,
-    p_actor_user_id: input.actorUserId,
-    p_expected_revision: input.expectedRevision,
+  const channel = input.channel ?? 'ops'
+  const { data, error } = await supabaseService.rpc('gridex_support_case_publication_v1', {
+    p_context: checkedContext(input), p_publication: { operation: 'publish', caseId: input.caseId,
+      title: input.title, body: input.body, status: input.status, expectedRevision: input.expectedRevision, channel },
   })
-  if (error) throw error
-  return data === true
+  if (error) publicationError(error)
+  const result = data as CurrentCasePublication | null
+  if (!result || result.customer_case_id !== input.caseId || result.customer_id !== input.customerId ||
+      result.author_user_id !== input.actorUserId || result.channel !== channel || result.revision !== input.expectedRevision + 1) {
+    throw new SupportCommandError('support_result_invalid', 503)
+  }
+  return result
+}
+
+export async function revokeCustomerCasePublication(input: PublicationContext) {
+  const { data, error } = await supabaseService.rpc('gridex_support_case_publication_v1', {
+    p_context: checkedContext(input), p_publication: { operation: 'revoke', caseId: input.caseId, expectedRevision: input.expectedRevision },
+  })
+  if (error) publicationError(error)
+  if (data !== true) throw new SupportCommandError('support_result_invalid', 503)
+  return true
 }

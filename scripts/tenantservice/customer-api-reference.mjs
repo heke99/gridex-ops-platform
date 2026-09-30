@@ -8,6 +8,9 @@
  */
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
+import { createHash } from 'node:crypto'
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { generateKeyPair, exportJWK, createLocalJWKSet, jwtVerify, SignJWT } from 'jose'
 
 const tenantId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
@@ -30,20 +33,82 @@ const syntheticInvoice = (reference, number, status, amount) => ({
   status, created_at: '2026-09-29T00:00:00Z',
 })
 
-export async function delegatedRequest({ baseUrl, method, path, signAssertion, body, idempotencyKey }) {
-  const pathname = new URL(path, baseUrl).pathname
-  const response = await fetch(`${baseUrl}${path}`, {
+export async function delegatedRequest({ baseUrl, method, path, signAssertion, body = undefined, idempotencyKey = undefined, apiKey: backendApiKey, customerNumber: linkedCustomerNumber }) {
+  let url
+  try {
+    const base = new URL(baseUrl)
+    if ((base.protocol !== 'https:' && !(base.protocol === 'http:' && base.hostname === '127.0.0.1')) || base.username || base.password || base.search || base.hash
+      || typeof path !== 'string' || !path.startsWith('/api/v1/customer/') || /[#\\\x00-\x20]/.test(path)) throw new Error()
+    // URL normalizes dot segments before fetch. Reject them before signing,
+    // including repeatedly encoded traversal and encoded path separators.
+    let decodedPath = path.split('?')[0]
+    for (let round = 0; round < 5; round++) {
+      if (/(?:^|\/)\.{1,2}(?:\/|$)/.test(decodedPath) || /\\|%2f|%5c/i.test(decodedPath)) throw new Error()
+      const next = decodeURIComponent(decodedPath)
+      if (next === decodedPath) break
+      decodedPath = next
+      if (round === 4) throw new Error()
+    }
+    url = new URL(path, base)
+    if (url.origin !== base.origin || !url.pathname.startsWith('/api/v1/customer/')) throw new Error()
+  } catch { throw new Error('customer_reference_secure_backend_url_required') }
+  if (typeof signAssertion !== 'function' || typeof backendApiKey !== 'string' || !backendApiKey || typeof linkedCustomerNumber !== 'string' || !linkedCustomerNumber) {
+    throw new Error('customer_reference_enrolled_backend_credentials_required')
+  }
+  if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'].includes(method)) throw new Error('customer_reference_exact_method_required')
+  const multipart = body instanceof FormData
+  const response = await fetch(url.href, {
     method,
+    redirect: 'error',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'x-gridex-customer-number': customerNumber,
-      'x-gridex-customer-assertion': await signAssertion(`${method} ${pathname}`),
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      Authorization: `Bearer ${backendApiKey}`,
+      'x-gridex-customer-number': linkedCustomerNumber,
+      'x-gridex-customer-assertion': await signAssertion(`${method} ${url.pathname}`),
+      ...(body === undefined || multipart ? {} : { 'Content-Type': 'application/json' }),
       ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
     },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    ...(body === undefined ? {} : { body: multipart ? body : JSON.stringify(body) }),
   })
   return { status: response.status, body: await response.json() }
+}
+
+/** The enrolled backend supplies a real File and current case revision. The
+ * server validates content and stores it privately; no scan status is sent. */
+export async function runCustomerAttachmentReference(options, { caseReference, expectedRevision, file, idempotencyKey }) {
+  if (!/^case_[A-Za-z0-9_-]{32}$/.test(caseReference) || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || !(file instanceof File)) {
+    throw new Error('customer_attachment_reference_input_required')
+  }
+  const path = `/api/v1/customer/cases/${caseReference}/attachments`
+  const payload = () => {
+    const form = new FormData()
+    form.set('file', file)
+    form.set('expected_revision', String(expectedRevision))
+    return form
+  }
+  const upload = () => delegatedRequest({ ...options, method: 'POST', path, body: payload(), idempotencyKey })
+  const created = await upload()
+  if (created.status !== 201 || !/^case_attachment_[A-Za-z0-9_-]{32}$/.test(created.body.data?.attachment_reference ?? '') || created.body.data.scan_status !== 'quarantined') {
+    throw new Error(`customer_attachment_reference_upload_failed:${created.status}`)
+  }
+  const replay = await upload()
+  if (replay.status !== 201 || replay.body.data.attachment_reference !== created.body.data.attachment_reference || replay.body.data.replayed !== true) {
+    throw new Error('customer_attachment_reference_replay_failed')
+  }
+  const listed = await delegatedRequest({ ...options, method: 'GET', path })
+  const row = listed.body.data?.find(item => item.attachment_reference === created.body.data.attachment_reference)
+  if (listed.status !== 200 || !row || row.scan_status !== 'quarantined' || Object.keys(row).sort().join(',') !== 'attachment_reference,byte_size,created_at,file_name,media_type,scan_status') {
+    throw new Error('customer_attachment_reference_metadata_failed')
+  }
+  return { attachmentReference: created.body.data.attachment_reference, revision: created.body.data.revision, scanStatus: 'quarantined' }
+}
+
+/** Runnable read against a configured real backend. The caller must supply
+ * its existing enrolled signer; no issuer, user session or mandate is created. */
+export async function runConfiguredCustomerRead(options, path = '/api/v1/customer/me') {
+  const response = await delegatedRequest({ ...options, method: 'GET', path })
+  return { status: response.status, resultCount: Array.isArray(response.body.data) ? response.body.data.length : response.body.data ? 1 : 0,
+    requestId: response.body.request_id ?? null, contractVersion: response.body.contract_schema_version ?? null,
+    errorCode: response.body.error?.code ?? null }
 }
 
 async function syntheticServer(publicKey) {
@@ -52,6 +117,8 @@ async function syntheticServer(publicKey) {
   jwk.alg = 'RS256'
   jwk.use = 'sig'
   const keySet = createLocalJWKSet({ keys: [jwk] })
+  const supportReference = `case_${'w'.repeat(32)}`
+  const support = { revision: 0, title: null, messages: [], attachments: [], claims: new Map() }
   const state = { revision: 2, phone: '+46111000000', writes: 0, audit: 0, outbox: 0,
     notificationReads: 0, notificationReadAt: null }
   const completions = new Map()
@@ -80,8 +147,74 @@ async function syntheticServer(publicKey) {
       return
     }
 
+    if (/^\/api\/v1\/customer\/cases\/[^/]+\/attachments$/.test(url.pathname)) {
+      if (url.pathname !== `/api/v1/customer/cases/${supportReference}/attachments` || !support.revision) {
+        reply(404, { error: { code: 'resource_not_found' } }); return
+      }
+      if (request.method === 'GET') {
+        reply(200, { data: [...support.attachments].reverse(), page: { limit: 25, returned: support.attachments.length, has_more: false, next_cursor: null } }); return
+      }
+      if (request.method !== 'POST') { reply(404, { error: { code: 'resource_not_found' } }); return }
+      const chunks = []
+      for await (const chunk of request) chunks.push(chunk)
+      let form
+      try { form = await new Request('http://127.0.0.1', { method: 'POST', headers: request.headers, body: Buffer.concat(chunks) }).formData() }
+      catch { reply(422, { error: { code: 'invalid_support_attachment' } }); return }
+      const fields = [...form.keys()]
+      const file = form.get('file'), revisionText = form.get('expected_revision'), key = request.headers['idempotency-key']
+      if (!key) { reply(400, { error: { code: 'idempotency_key_required' } }); return }
+      if (fields.length !== 2 || fields.some(field => !['file', 'expected_revision'].includes(field)) || new Set(fields).size !== 2
+        || !(file instanceof File) || typeof revisionText !== 'string' || !/^(0|[1-9][0-9]*)$/.test(revisionText) || !Number.isSafeInteger(Number(revisionText))
+        || file.size === 0 || !['text/plain', 'application/pdf', 'image/png', 'image/jpeg'].includes(file.type)) {
+        reply(422, { error: { code: 'invalid_support_attachment' } }); return
+      }
+      if (file.size > 5 * 1024 * 1024) { reply(413, { error: { code: 'support_attachment_too_large' } }); return }
+      const hash = JSON.stringify({ revision: revisionText, fileName: file.name, mediaType: file.type, contentHash: createHash('sha256').update(Buffer.from(await file.arrayBuffer())).digest('hex') })
+      const namespace = `${url.pathname}:${key}`, prior = support.claims.get(namespace)
+      if (prior) {
+        reply(prior.hash === hash ? 201 : 409, prior.hash === hash ? { data: { ...prior.data, replayed: true } } : { error: { code: 'support_idempotency_conflict' } }); return
+      }
+      if (Number(revisionText) !== support.revision) { reply(409, { error: { code: 'support_revision_conflict' } }); return }
+      support.revision += 1
+      const reference = `case_attachment_${'a'.repeat(32)}`
+      support.attachments.push({ attachment_reference: reference, file_name: file.name, media_type: file.type, byte_size: file.size, scan_status: 'quarantined', created_at: '2026-09-29T00:00:00Z' })
+      const data = { attachment_reference: reference, revision: support.revision, scan_status: 'quarantined', replayed: false }
+      support.claims.set(namespace, { hash, data })
+      reply(201, { data }); return
+    }
+
+    if (url.pathname === '/api/v1/customer/cases' || url.pathname === `/api/v1/customer/cases/${supportReference}/messages`) {
+      const messagesPath = url.pathname.endsWith('/messages')
+      const page = { limit: 25, returned: messagesPath ? support.messages.length : support.revision ? 1 : 0, has_more: false, next_cursor: null }
+      if (request.method === 'GET') {
+        reply(200, { data: messagesPath ? [...support.messages].reverse() : support.revision ? [{ case_reference: supportReference,
+          title: support.title, revision: support.revision, status: 'open', created_at: '2026-09-29T00:00:00Z', updated_at: '2026-09-29T00:00:00Z' }] : [], page })
+        return
+      }
+      if (request.method !== 'POST') { reply(404, { error: { code: 'resource_not_found' } }); return }
+      const chunks = []
+      for await (const chunk of request) chunks.push(chunk)
+      let body
+      try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { reply(400, { error: { code: 'invalid_json' } }); return }
+      const key = request.headers['idempotency-key'], allowed = messagesPath ? ['body', 'expected_revision'] : ['title', 'body']
+      if (!key || !body?.body || (!messagesPath && !body.title) || Object.keys(body).some(field => !allowed.includes(field))) {
+        reply(422, { error: { code: 'validation_failed' } }); return
+      }
+      const hash = JSON.stringify(body), prior = support.claims.get(`${url.pathname}:${key}`)
+      if (prior) {
+        reply(prior.hash === hash ? 201 : 409, prior.hash === hash ? { data: { ...prior.data, replayed: true } } : { error: { code: 'support_idempotency_conflict' } }); return
+      }
+      if (messagesPath && body.expected_revision !== support.revision) { reply(409, { error: { code: 'support_revision_conflict' } }); return }
+      support.revision += 1
+      support.title ??= body.title
+      const messageReference = `case_message_${String(support.revision).repeat(32)}`
+      support.messages.push({ message_reference: messageReference, body: body.body, author_kind: 'customer', channel: 'api', revision: support.revision, created_at: '2026-09-29T00:00:00Z' })
+      const data = { case_reference: supportReference, ...(messagesPath ? { message_reference: messageReference } : {}), revision: support.revision, status: 'open', replayed: false }
+      support.claims.set(`${url.pathname}:${key}`, { hash, data })
+      reply(201, { data }); return
+    }
     if (request.method === 'GET' && url.pathname === '/api/v1/customer/me') {
-      reply(200, { data: { customer_number: customerNumber, contact_revision: state.revision, phone: state.phone } })
+      reply(200, { data: { customer_number: customerNumber, contact_revision: state.revision, billing_revision: 0, profile_revision: 0, language_code: 'sv', timezone: 'Europe/Stockholm', phone: state.phone } })
       return
     }
     if (request.method === 'GET' && url.pathname === '/api/v1/customer/contracts') {
@@ -110,8 +243,8 @@ async function syntheticServer(publicKey) {
       reply(200, {
         data: {
           sites: [{ facility_reference: `facility_${'c'.repeat(32)}`, facility_id: null,
-            status: null, name: 'Synthetic site', facility_type: null,
-            address: { street: null, care_of: null, postal_code: null, city: 'Stockholm', country: 'SE' },
+            status: null, name: 'Synthetic site', facility_type: null, address_revision: 0,
+            address: { street: null, care_of: null, apartment_number: null, postal_code: null, city: 'Stockholm', country: 'SE' },
             price_area: null, grid_area_code: null, move_in_date: null, move_out_date: null,
             annual_consumption_kwh: null, created_at: '2026-09-28T00:00:00Z' }],
           metering_points: [{ metering_point_reference: `metering_point_${'d'.repeat(32)}`,
@@ -162,7 +295,7 @@ async function syntheticServer(publicKey) {
           document_reference: cursor ? null : `legal_document_${'t'.repeat(32)}`,
           document_code: cursor ? null : 'terms', document_version: cursor ? null : '1',
           document_hash: cursor ? null : 'a'.repeat(64),
-          accepted_at: '2026-09-29T00:00:00Z', source: cursor ? null : 'portal',
+          accepted_at: '2026-09-29T00:00:00Z', source: cursor ? null : 'customer_portal',
           created_at: '2026-09-29T00:00:00Z' }],
         page: { limit: 1, offset: 0, returned: 1, has_more: !cursor,
           next_cursor: cursor ? null : 'synthetic-next-legal' },
@@ -356,6 +489,31 @@ async function syntheticServer(publicKey) {
   return { server, baseUrl: `http://127.0.0.1:${address.port}`, state }
 }
 
+/** Server-to-server reference. The real tenant backend supplies its enrolled
+ * assertion signer and keeps both credentials outside the browser. This
+ * function sends customer-origin text only; staff/internal fields are absent. */
+export async function runCustomerSupportReference({ baseUrl, apiKey: backendApiKey, customerNumber: linkedCustomerNumber,
+  signAssertion, title, body, continuation, createKey, replyKey }) {
+  const call = (method, path, payload, key) => delegatedRequest({ baseUrl, apiKey: backendApiKey,
+    customerNumber: linkedCustomerNumber, signAssertion, method, path, body: payload, idempotencyKey: key })
+  const created = await call('POST', '/api/v1/customer/cases', { title, body }, createKey)
+  if (created.status !== 201 || !/^case_[A-Za-z0-9_-]{32}$/.test(created.body.data?.case_reference ?? '')) throw new Error(`support_reference_create_failed:${created.status}`)
+  const reference = created.body.data.case_reference, path = `/api/v1/customer/cases/${reference}/messages`
+  const replay = await call('POST', '/api/v1/customer/cases', { title, body }, createKey)
+  if (replay.status !== 201 || replay.body.data.case_reference !== reference || replay.body.data.replayed !== true) throw new Error('support_reference_replay_failed')
+  const listed = await call('GET', '/api/v1/customer/cases')
+  if (listed.status !== 200 || !listed.body.data.some(item => item.case_reference === reference)) throw new Error('support_reference_list_failed')
+  const firstRead = await call('GET', path)
+  if (firstRead.status !== 200 || !firstRead.body.data.some(item => item.body === body)) throw new Error('support_reference_initial_read_failed')
+  const reply = await call('POST', path, { body: continuation, expected_revision: created.body.data.revision }, replyKey)
+  if (reply.status !== 201) throw new Error(`support_reference_reply_failed:${reply.status}`)
+  const readBack = await call('GET', path)
+  if (readBack.status !== 200 || !readBack.body.data.some(item => item.body === continuation && item.message_reference === reply.body.data.message_reference)) throw new Error('support_reference_persistence_read_failed')
+  const replayReply = await call('POST', path, { body: continuation, expected_revision: created.body.data.revision }, replyKey)
+  if (replayReply.status !== 201 || replayReply.body.data.message_reference !== reply.body.data.message_reference || replayReply.body.data.replayed !== true) throw new Error('support_reference_reply_replay_failed')
+  return { caseReference: reference, revision: reply.body.data.revision, messages: readBack.body.data.length }
+}
+
 export async function runSyntheticCustomerJourney() {
   const { privateKey, publicKey } = await generateKeyPair('RS256', { extractable: true })
   const signAssertion = (action) => new SignJWT({
@@ -365,9 +523,18 @@ export async function runSyntheticCustomerJourney() {
     .setIssuedAt().setExpirationTime('2m').sign(privateKey)
   const { server, baseUrl, state } = await syntheticServer(publicKey)
   const call = (method, path, body, idempotencyKey) => delegatedRequest({
-    baseUrl, method, path, body, idempotencyKey, signAssertion,
+    baseUrl, method, path, body, idempotencyKey, signAssertion, apiKey, customerNumber,
   })
   try {
+    const support = await runCustomerSupportReference({ baseUrl, apiKey, customerNumber, signAssertion, title: 'Synthetic reference support case', body: 'Customer reference first message', continuation: 'Customer reference continuation', createKey: 'synthetic-support-create-1', replyKey: 'synthetic-support-reply-1' })
+    const attachment = await runCustomerAttachmentReference({ baseUrl, apiKey, customerNumber, signAssertion }, { caseReference: support.caseReference,
+      expectedRevision: support.revision, file: new File(['Synthetic customer attachment'], 'customer-note.txt', { type: 'text/plain' }), idempotencyKey: 'synthetic-support-attachment-1' })
+    const unsafeAttachment = new FormData()
+    unsafeAttachment.set('file', new File(['Synthetic customer attachment'], 'customer-note.txt', { type: 'text/plain' }))
+    unsafeAttachment.set('expected_revision', String(attachment.revision))
+    unsafeAttachment.set('scan_status', 'clean')
+    const deniedAttachment = await call('POST', `/api/v1/customer/cases/${support.caseReference}/attachments`, unsafeAttachment, 'synthetic-support-attachment-clean')
+    assert.equal(deniedAttachment.status, 422)
     const before = await call('GET', '/api/v1/customer/me')
     assert.equal(before.status, 200)
     const revision = before.body.data.contact_revision
@@ -423,7 +590,7 @@ export async function runSyntheticCustomerJourney() {
     assert.equal(legal.body.data[0].document_code, 'terms')
     assert.equal(legal.body.data[0].document_version, '1')
     assert.equal(legal.body.data[0].document_hash, 'a'.repeat(64))
-    assert.equal(legal.body.data[0].source, 'portal')
+    assert.equal(legal.body.data[0].source, 'customer_portal')
     assert.equal(legal.body.page.has_more, true)
     const nextLegal = await call('GET', `${legalPath}&cursor=${legal.body.page.next_cursor}`)
     assert.equal(nextLegal.status, 200)
@@ -438,7 +605,7 @@ export async function runSyntheticCustomerJourney() {
     const foreignLegalCursor = await call('GET', `${legalPath}&cursor=foreign-customer-cursor`)
     assert.equal(foreignLegalCursor.status, 400)
     assert.equal(foreignLegalCursor.body.error.code, 'invalid_cursor')
-    const wrongLegalAction = await delegatedRequest({ baseUrl, method: 'GET', path: legalPath,
+    const wrongLegalAction = await delegatedRequest({ baseUrl, method: 'GET', path: legalPath, apiKey, customerNumber,
       signAssertion: () => signAssertion('GET /api/v1/customer/events') })
     assert.equal(wrongLegalAction.status, 403)
     assert.equal(wrongLegalAction.body.error.code, 'customer_delegation_required')
@@ -504,6 +671,10 @@ export async function runSyntheticCustomerJourney() {
     const readReplay = await call('POST', '/api/v1/customer/notifications/read',
       { notification_references: [notifications.body.data[0].notification_reference] }, 'synthetic-notification-read-1')
     assert.deepEqual(readReplay.body, markRead.body)
+    const changedReadPayload = await call('POST', '/api/v1/customer/notifications/read',
+      { notification_references: [`notification_${'z'.repeat(32)}`] }, 'synthetic-notification-read-1')
+    assert.equal(changedReadPayload.status, 409)
+    assert.equal(changedReadPayload.body.error.code, 'idempotency_conflict')
     const readBack = await call('GET', '/api/v1/customer/notifications?limit=1')
     assert.equal(readBack.body.data[0].status, 'read')
     assert.equal(readBack.body.data[0].read_at, markRead.body.data.read_at)
@@ -516,20 +687,26 @@ export async function runSyntheticCustomerJourney() {
       { notification_references: [`notification_${'z'.repeat(32)}`] }, 'synthetic-notification-read-2')
     assert.equal(unknownNotification.status, 404)
     assert.equal(unknownNotification.body.error.code, 'notification_reference_not_found')
+    const mixedNotification = await call('POST', '/api/v1/customer/notifications/read',
+      { notification_references: [notificationReference, `notification_${'z'.repeat(32)}`] }, 'synthetic-notification-mixed')
+    assert.equal(mixedNotification.status, 404)
+    assert.equal(mixedNotification.body.error.code, 'notification_reference_not_found')
+    assert.equal(state.notificationReads, 1)
     const badNotification = await call('POST', '/api/v1/customer/notifications/read',
       { notification_references: [notificationReference, notificationReference] }, 'synthetic-notification-read-3')
     assert.equal(badNotification.status, 422)
     const foreignCursor = await call('GET', '/api/v1/customer/contracts?cursor=foreign-customer-cursor')
     assert.equal(foreignCursor.status, 400)
     assert.equal(foreignCursor.body.error.code, 'invalid_cursor')
-    const wrongAction = await delegatedRequest({ baseUrl, method: 'GET', path: '/api/v1/customer/sites',
+    const wrongAction = await delegatedRequest({ baseUrl, method: 'GET', path: '/api/v1/customer/sites', apiKey, customerNumber,
       signAssertion: () => signAssertion('GET /api/v1/customer/me') })
     assert.equal(wrongAction.status, 403)
     assert.equal(state.notificationReads, 1)
     assert.deepEqual({ writes: state.writes, audit: state.audit, outbox: state.outbox }, {
       writes: 1, audit: 1, outbox: 1,
     })
-    return { revisionBefore: revision, revisionAfter: state.revision, stale: stale.status,
+    return { supportCase: support.caseReference, supportRevision: support.revision, supportMessages: support.messages, attachmentRevision: attachment.revision,
+      attachmentQuarantined: attachment.scanStatus === 'quarantined', clientScanFlagDenied: deniedAttachment.status, revisionBefore: revision, revisionAfter: state.revision, stale: stale.status,
       replay: replay.status, changedKey: changedKey.status, writes: state.writes,
       contractPages: 2, sites: sites.body.data.sites.length, meteringPages: 2,
       foreignMeteringCursor: badMeteringCursor.status, legalPages: 2,
@@ -538,6 +715,7 @@ export async function runSyntheticCustomerJourney() {
       invoiceDetail: invoice.status, foreignInvoice: foreignInvoice.status,
       documentPages: 2, notificationPages: 2, notificationRead: markRead.status,
       notificationReplay: readReplay.status, readAgainCount: readAgain.body.data.updated_count,
+      changedReadPayload: changedReadPayload.status, mixedNotification: mixedNotification.status,
       unknownNotification: unknownNotification.status,
       eventPages: 2, authorityPages: 2, foreignEventCursor: foreignEventCursor.status,
       wrongAction: wrongAction.status }
@@ -546,11 +724,18 @@ export async function runSyntheticCustomerJourney() {
   }
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  runSyntheticCustomerJourney().then((result) => {
-    console.log('Synthetic delegated customer journey passed:', JSON.stringify(result))
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  const real = process.argv[2] === '--real'
+  const task = real ? (async () => {
+    if (!process.argv[3] || process.argv.length > 5) throw new Error('customer_reference_real_config_module_required')
+    const config = await import(pathToFileURL(resolve(process.argv[3])).href)
+    if (!config.customerApiOptions) throw new Error('customer_reference_real_config_module_required')
+    return runConfiguredCustomerRead(config.customerApiOptions, process.argv[4])
+  })() : runSyntheticCustomerJourney()
+  task.then((result) => {
+    console.log(real ? 'Configured delegated customer read:' : 'Synthetic delegated customer journey passed:', JSON.stringify(result))
   }).catch((error) => {
-    console.error(error)
+    console.error(real ? 'Configured delegated customer read failed; check the enrolled backend configuration.' : error)
     process.exitCode = 1
   })
 }

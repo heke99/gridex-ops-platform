@@ -1,3 +1,11 @@
+## API next package — confirmed scope, 2026-09-30
+
+Notification atomicity/indexed-reference/legacy-claim compatibility, real legal/metering HTTP/native qualification and missing legal/metering503 documentation remain open. The parallel execution plan is prepared; no remediation or new native acceptance is claimed. Read-proof fixtures need actual legal parent chains, valid customer_portal source, metering composite parents/non-null quantity and post-seed snapshots; legacy schema fallback stays separate. Root owns integration and generated artifacts.
+
+## API #422 event-v2 — VERIFIED, 2026-09-30
+
+Event-v2 SQL/HTTP/native and exact-head CI are resolved; no open code finding remains in this bounded package. Notification transaction safety, native legal/metering, deployed issuer/release and full-phase/scanner qualification remain open; see final PR receipt. Older event-v2 pending statements below are superseded.
+
 ## Current API #422 — event-v2 publication candidate, 2026-09-30
 
 HTTP/native event-v2 has not yet executed for this new API candidate. Formal GitGuardian scanning is unavailable: ggshield is not installed/configured; no scanner success is claimed. Deployed issuer/customer integration, previous transactional notification concerns and full T/U acceptance remain outside this package. Previous #418 browser/audit blockers are resolved by the verified prerequisite.

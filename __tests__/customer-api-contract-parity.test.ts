@@ -38,30 +38,45 @@ describe('customer API public contract against its runtime parsers', () => {
     ).every((parameter) => parameter.required === false)).toBe(true)
   })
 
-  it('requires a contact revision and excludes mixed writes as the parser does', () => {
+  it('separates revision-bound commands and preserves parsing only for authorized completed legacy replay', () => {
     const request = schemas.CustomerProfileUpdateRequest
     expect(request.oneOf?.map((branch) => branch.$ref)).toEqual([
       '#/components/schemas/CustomerContactChangeRequest',
-      '#/components/schemas/CustomerNonContactProfileUpdateRequest',
+      '#/components/schemas/CustomerBillingChangeRequest',
+      '#/components/schemas/CustomerPreferencesChangeRequest',
+      '#/components/schemas/CustomerFacilityChangeRequest',
     ])
     const contact = schemas.CustomerContactChangeRequest
-    expect(contact.required).toEqual(['profile', 'expected_contact_revision'])
+    expect(contact.required).toEqual(['profile'])
     expect(contact.additionalProperties).toBe(false)
-    expect(contact.properties.expected_contact_revision).toMatchObject({ type: 'integer', minimum: 0 })
+    expect(contact.properties.expected_contact_revision).toMatchObject({ type: 'integer', minimum: 0,
+      description: expect.stringContaining('Required on fresh commands') })
     expect(schemas.CustomerContactFields).toMatchObject({
       additionalProperties: false, minProperties: 1,
     })
     expect(Object.keys(schemas.CustomerContactFields.properties).sort()).toEqual(['email', 'phone'])
-    expect(Object.keys(schemas.CustomerNonContactFields.properties)).not.toContain('email')
-    expect(Object.keys(schemas.CustomerNonContactFields.properties)).not.toContain('phone')
-    expect(schemas.CustomerNonContactFields.properties.first_name.maxLength).toBe(120)
+    expect(schemas.CustomerPreferencesChangeRequest.properties.profile.$ref).toBe('#/components/schemas/CustomerPreferencesFields')
+    expect(Object.keys(schemas.CustomerPreferencesFields.properties).sort()).toEqual(['language_code', 'timezone'])
+    expect(Object.keys(schemas.CustomerBillingChangeRequest.properties.profile.properties)).toEqual(['invoice_email'])
+    expect(schemas.CustomerBillingChangeRequest.properties.expected_billing_revision).toMatchObject({ type: 'integer', minimum: 0,
+      description: expect.stringContaining('Required on fresh commands') })
     expect(schemas.CustomerFacilityUpdate.properties.facility_reference.maxLength).toBe(120)
     expect(schemas.CustomerFacilityUpdate.properties.address.properties.postal_code.maxLength).toBe(20)
-    expect(schemas.CustomerNonContactProfileUpdateRequest.properties.expected_contact_revision).toBeUndefined()
+    for (const kind of ['CustomerPreferencesChangeRequest', 'CustomerBillingChangeRequest', 'CustomerFacilityChangeRequest']) {
+      expect(schemas[kind].properties.expected_contact_revision).toBeUndefined()
+      expect(schemas[kind].additionalProperties).toBe(false)
+    }
 
     expect(parseCustomerProfileUpdateRequest({ profile: { phone: '+46123456789' }, expected_contact_revision: 2 }))
       .toMatchObject({ expected_contact_revision: 2 })
-    expect(() => parseCustomerProfileUpdateRequest({ profile: { phone: '+46123456789' } })).toThrow()
+    // The database command rejects fresh revision-less writes; retaining this
+    // parse shape lets its current-authority gate resolve historical completions.
+    expect(parseCustomerProfileUpdateRequest({ profile: { phone: '+46123456789' } }))
+      .toEqual({ profile: { phone: '+46123456789' } })
+    expect(parseCustomerProfileUpdateRequest({ profile: { invoice_email: 'invoice@example.invalid' }, expected_billing_revision: 3 }))
+      .toMatchObject({ expected_billing_revision: 3 })
+    expect(parseCustomerProfileUpdateRequest({ profile: { language_code: 'sv' }, expected_profile_revision: 4 }))
+      .toMatchObject({ expected_profile_revision: 4 })
     expect(() => parseCustomerProfileUpdateRequest({
       profile: { phone: '+46123456789', first_name: 'Synthetic' }, expected_contact_revision: 2,
     })).toThrow()

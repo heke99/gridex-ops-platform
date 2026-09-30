@@ -29,6 +29,8 @@ const apiAuth = read('lib/integrations/apiAuth.ts')
 const profileContract = read('lib/customer-portal/profileUpdateContract.ts')
 const profileRoute = read('app/api/v1/customer/profile-update/route.ts')
 const notificationRoute = read('app/api/v1/customer/notifications/read/route.ts')
+const notificationCommand = read('lib/customer-portal/notificationCommands.ts')
+const syncContract = read('lib/customer-portal/customerSyncContract.ts')
 const eventService = read('lib/customer-portal/customerEvents.ts')
 const websiteEventsRoute = read('app/api/v1/website/customer-events/route.ts')
 const eventsRoute = read('app/api/v1/events/route.ts')
@@ -150,14 +152,15 @@ check(
   'contact request, write response and GET /me revision are documented together',
 )
 check(
-  !portal.components.schemas.CustomerSyncRequest?.properties?.profile?.properties?.phone &&
+  portal.components.schemas.CustomerSyncRequest?.properties?.profile?.maxProperties === 0 &&
+    syncContract.includes('const protectedProfileField') &&
     profileContract.includes('value.profile && value.facility_data'),
   'machine phone bypass and mixed legacy profile/facility writes are rejected in spec and parser',
 )
 check(
-  profileRoute.includes("anyOf: ['customer_contact.write', 'customer_facility_data.write']") &&
+  profileRoute.includes("anyOf: ['customer_contact.write', 'customer_billing.write', 'customer_facility_data.write']") &&
     profileRoute.includes('missingIntegrationApiScopes'),
-  'profile-update requires the relevant scope and both scopes when both mutations are submitted',
+  'profile-update requires the operation-specific contact, billing or facility scope',
 )
 check(
   profileContract.includes('profileSchema') && profileContract.includes('facilityDataSchema') && profileContract.includes('.strict()'),
@@ -169,16 +172,23 @@ check(
   'profile and facility address updates reject empty mutation objects in OpenAPI',
 )
 check(
-  profileRoute.includes(".eq('company_id', input.companyId)") && profileRoute.includes(".eq('customer_id', input.customerId)"),
-  'profile and facility writes remain tenant/customer scoped',
+  profileRoute.includes('companyId: context.client.company_id') &&
+    profileRoute.includes('customerId: context.identity.customer_id') &&
+    ['changeCustomerContact', 'changeCustomerBillingProfile', 'changeCustomerProfilePreferences', 'changeCustomerFacilityProfile']
+      .every((command) => profileRoute.includes(`await ${command}(`)) &&
+    !profileRoute.includes(".update("),
+  'profile and facility writes bind the verified tenant/customer to protected domain commands',
 )
 
 const notificationRequest = portal.components.schemas.CustomerNotificationReadRequest
 check(notificationRequest?.required?.includes('notification_references'), 'notification read request has one canonical notification_references field')
 check(notificationRoute.includes('payload.notification_references'), 'notification runtime reads the documented notification_references field')
-check(notificationRoute.includes('executeIdempotentPortalWrite'), 'notification write requires durable tenant-bound idempotency')
+check(notificationRoute.includes('markCustomerNotificationsRead') &&
+  notificationRoute.includes('idempotencyKey: requireIdempotencyKey(request)') &&
+  notificationCommand.includes('gridex_mark_customer_notifications_read_v1'),
+  'notification write uses the atomic tenant-bound domain command and durable idempotency')
 check(
-  notificationRoute.includes('notification_references: references') &&
+  notificationRoute.includes('notificationReferences: references') &&
     !notificationRoute.includes('data: data ?? []') &&
     portal.components.schemas.CustomerNotificationReadData?.required?.includes('updated_count'),
   'notification runtime response matches the operation-specific OpenAPI data object',

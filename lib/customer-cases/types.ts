@@ -85,6 +85,7 @@ export type CustomerCaseRow = {
   updated_at: string
   resolved_at: string | null
   closed_at: string | null
+  support_revision?: number
 }
 
 export type CustomerCaseEventRow = {

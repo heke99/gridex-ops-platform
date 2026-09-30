@@ -28,9 +28,38 @@ describe('tenant machine contact boundary', () => {
     expect(fixture.write).not.toHaveBeenCalled()
   })
 
-  it('continues to allow noncontact sync profile fields', () => {
-    expect(parseTenantCustomerSyncPayload({
-      customer_number: 'C-1', profile: { first_name: 'Synthetic', invoice_email: 'invoice@example.invalid' },
-    }).profile).toMatchObject({ first_name: 'Synthetic', invoice_email: 'invoice@example.invalid' })
+  it.each(['first_name', 'invoice_email', 'language_code', 'timezone'])
+    ('rejects protected %s before identity resolution or any sync writer', async (field) => {
+      fixture.context.mockClear()
+      fixture.write.mockClear()
+      const response = await POST(new NextRequest('https://gridex.test/api/v1/customer/sync', {
+        method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'synthetic-sync-key' },
+        body: JSON.stringify({ customer_number: 'C-1', profile: { [field]: field === 'invoice_email' ? 'invoice@example.invalid' : 'Synthetic' } }),
+      }))
+      expect(response.status).toBe(422)
+      expect(await response.json()).toMatchObject({ field: `profile.${field}` })
+      expect(fixture.context).not.toHaveBeenCalled()
+      expect(fixture.write).not.toHaveBeenCalled()
+    })
+
+  it('keeps the machine intake of supported non-profile records available', () => {
+    expect(parseTenantCustomerSyncPayload({ customer_number: 'C-1', documents: [{ document_type: 'customer_document' }] }))
+      .toMatchObject({ customer_number: 'C-1', documents: [{ document_type: 'customer_document' }] })
+  })
+
+  it('rejects protected site addresses before identity resolution or any sync writer', async () => {
+    fixture.context.mockClear(); fixture.write.mockClear()
+    const response = await POST(new NextRequest('https://gridex.test/api/v1/customer/sync', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'synthetic-sync-key' },
+      body: JSON.stringify({ customer_number: 'C-1', facility_data: [{ facility_reference: 'SITE-1', address: { city: 'Synthetic' } }] }),
+    }))
+    expect(response.status).toBe(422)
+    expect(await response.json()).toMatchObject({ code: 'sync_facility_address_command_required', field: 'facility_data.0.address' })
+    expect(fixture.context).not.toHaveBeenCalled(); expect(fixture.write).not.toHaveBeenCalled()
+  })
+
+  it('retains non-address facility intake with explicit owned references', () => {
+    const payload = { customer_number: 'C-1', facility_data: [{ facility_reference: 'SITE-1', facility_id: 'FACILITY-1' }] }
+    expect(parseTenantCustomerSyncPayload(payload)).toEqual(payload)
   })
 })
