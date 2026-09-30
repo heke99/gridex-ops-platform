@@ -80,7 +80,7 @@ it('refuses a forged cross-tenant ACK draft before any persistence query', async
 it('refuses missing or duplicate positive ACW rather than substituting BGM identity', async () => {
   const f = fixture(), ack = outbound(f); ack.raw_payload = ack.raw_payload!.replace("RFF+ACW:OWN-IDE'", '')
   await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toThrow('utilts_positive_ack_storage_unavailable')
-  ack.raw_payload = f.draft.rawPayload!.replace("RFF+ACW:OWN-IDE'", "RFF+ACW:OWN-IDE'RFF+ACW:OTHER'")
+  ack.raw_payload = f.draft.rawPayload!.replace("RFF+ACW:OWN-IDE'", "RFF+ACW:OWN-IDE'RFF+ACW:OWN-IDE'")
   await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toThrow('utilts_positive_ack_storage_unavailable')
   expect(state.rpc).not.toHaveBeenCalled()
 })
@@ -89,4 +89,22 @@ it('preserves negative UTILTS APERAK and technical ACK routes without a positive
   await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).resolves.toBeUndefined()
   await expect(assertUtiltsPositiveAckAuthorityForSend({ ...ack, message_family: 'CONTRL', raw_payload: "UNH+1+CONTRL:D:96A:UN'E" } as EdielMessageRow)).resolves.toBeUndefined()
   expect(state.rpc).not.toHaveBeenCalled()
+})
+
+it.each(['APERAK:D:96A:UN:E5SE5A', 'APERAK:D:04A:UN:E2SE6A', 'APERAK:D:04A:UN', 'PRODAT:D:04A:UN:E5SE5A'])(
+  'holds a physical positive BGM312 with malformed/mismatched profile %s', async profile => {
+    const f = fixture(), ack = outbound(f); ack.raw_payload = ack.raw_payload!.replace('APERAK:D:04A:UN:E5SE5A', profile)
+    await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toThrow('utilts_positive_ack_storage_unavailable')
+    expect(state.rpc).not.toHaveBeenCalled()
+  })
+it('checks every physical ACW in a multi-group positive ACK before allowing transmission', async () => {
+  const f = fixture(), ack = outbound(f); ack.raw_payload = ack.raw_payload!.replace("RFF+ACW:OWN-IDE'", "RFF+ACW:OWN-IDE'RFF+DM:DOCUMENT'RFF+ACW:OTHER-IDE'")
+  state.rpc.mockImplementation(async (_name, args) => {
+    const result = authority(f, ack); result.data.transactionId = args.p_transaction_id; return result
+  })
+  await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).resolves.toBeUndefined()
+  expect(state.rpc.mock.calls.map(call => call[1].p_transaction_id)).toEqual(['OWN-IDE', 'OTHER-IDE'])
+  state.rpc.mockReset(); state.rpc.mockImplementation(async (_name, args) => args.p_transaction_id === 'OWN-IDE'
+    ? authority(f, ack) : { data: null, error: { message: 'utilts_positive_ack_storage_unavailable' } })
+  await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toThrow('utilts_positive_ack_storage_unavailable')
 })

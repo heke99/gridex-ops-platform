@@ -66,9 +66,11 @@ BEGIN
   IF ack_tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='UNH'
     AND t#>>'{elements,2,0}'='APERAK' AND t#>>'{elements,2,2}'='04A' AND t#>>'{elements,2,4}'='E5SE5A')<>1
    OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'='312')<>1
-   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW')<>1
+   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW' AND t#>>'{elements,1,1}'=p_transaction_id)<>1
    OR NOT EXISTS(SELECT FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW' AND t#>>'{elements,1,1}'=p_transaction_id)
-   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM')<>1
+   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM')
+      <>(SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW')
+   OR EXISTS(SELECT FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM' AND t#>>'{elements,1,1}' IS DISTINCT FROM document_id)
    OR NOT EXISTS(SELECT FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM' AND t#>>'{elements,1,1}'=document_id) THEN
    RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
   ack_hash:=encode(digest(convert_to(ack.raw_payload,'UTF8'),'sha256'),'hex');

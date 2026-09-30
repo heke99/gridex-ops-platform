@@ -5,16 +5,19 @@ import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types
 
 const STORAGE_REQUIRED = 'utilts_positive_ack_storage_unavailable'
 
-function positiveUtiltsWire(raw: string | null | undefined): { transactionId: string } | null {
-  if (!raw) return null
+function positiveUtiltsWire(raw: string | null | undefined, required = false): { transactionIds: string[] } | null {
+  if (!raw) { if (required) throw new Error(STORAGE_REQUIRED); return null }
   const { segments, una } = tokenizeEdifact(raw)
-  const unh = segments.find(s => s.tag === 'UNH')
-  const type = unh ? segmentComposite(unh, 2, una) : []
-  const bgm = segments.find(s => s.tag === 'BGM')
-  if (type[0] !== 'APERAK' || type[2] !== '04A' || type[4] !== 'E5SE5A' || !bgm || segmentComposite(bgm, 1, una)[0] !== '312') return null
+  const bgms = segments.filter(s => s.tag === 'BGM')
+  const physicalPositive = bgms.some(s => segmentComposite(s, 1, una)[0] === '312')
+  if (!physicalPositive) { if (required) throw new Error(STORAGE_REQUIRED); return null }
+  const unhs = segments.filter(s => s.tag === 'UNH')
+  const type = unhs.length === 1 ? segmentComposite(unhs[0], 2, una) : []
+  if (bgms.length !== 1 || type[0] !== 'APERAK' || type[2] !== '04A' || type[4] !== 'E5SE5A') throw new Error(STORAGE_REQUIRED)
   const acw = segments.filter(s => s.tag === 'RFF').map(s => segmentComposite(s, 1, una)).filter(c => c[0] === 'ACW')
-  if (acw.length !== 1 || !acw[0][1] || acw[0][1] !== acw[0][1].trim()) throw new Error(STORAGE_REQUIRED)
-  return { transactionId: acw[0][1] }
+  const ids = acw.map(c => c[1])
+  if (!ids.length || ids.some(id => !id || id !== id.trim()) || new Set(ids).size !== ids.length) throw new Error(STORAGE_REQUIRED)
+  return { transactionIds: ids }
 }
 
 async function requireAuthority(input: {
@@ -45,21 +48,23 @@ async function requireAuthority(input: {
 /** CREATE needs committed accepted storage. Final ACK binding follows creation,
  * avoiding a circular requirement for ordinary consumer finalization. */
 export async function assertUtiltsPositiveAckSourceAuthority(input: { sourceMessage: EdielMessageRow; draft: CreateEdielMessageInput }) {
-  const wire = positiveUtiltsWire(input.draft.rawPayload)
+  const required = input.sourceMessage.message_family === 'UTILTS' && input.draft.messageFamily === 'APERAK' &&
+    (input.draft.ackOutcome === 'positive' || input.draft.parsedPayload?.ackOutcome === 'positive')
+  const wire = positiveUtiltsWire(input.draft.rawPayload, required)
   if (!wire) return
   if (input.sourceMessage.message_family !== 'UTILTS' || input.sourceMessage.direction !== 'inbound' ||
       (input.draft.companyId != null && input.draft.companyId !== input.sourceMessage.company_id) || input.draft.environment !== input.sourceMessage.environment ||
-      (input.draft.parsedPayload?.relatedTransactionReference && input.draft.parsedPayload.relatedTransactionReference !== wire.transactionId)) throw new Error(STORAGE_REQUIRED)
-  await requireAuthority({ companyId: input.sourceMessage.company_id, environment: input.sourceMessage.environment,
-    sourceMessageId: input.sourceMessage.id, transactionId: wire.transactionId, sourceRawPayload: input.sourceMessage.raw_payload })
+      (input.draft.parsedPayload?.relatedTransactionReference && (wire.transactionIds.length !== 1 || input.draft.parsedPayload.relatedTransactionReference !== wire.transactionIds[0]))) throw new Error(STORAGE_REQUIRED)
+  for (const transactionId of wire.transactionIds) await requireAuthority({ companyId: input.sourceMessage.company_id, environment: input.sourceMessage.environment,
+    sourceMessageId: input.sourceMessage.id, transactionId, sourceRawPayload: input.sourceMessage.raw_payload })
 }
 
 /** SEND re-reads durable authority and requires the immutable final reservation
  * to name this exact ACK and source. JSON flags never authorize transmission. */
 export async function assertUtiltsPositiveAckAuthorityForSend(message: EdielMessageRow) {
-  const wire = positiveUtiltsWire(message.raw_payload)
+  const wire = positiveUtiltsWire(message.raw_payload, message.message_family === 'APERAK' && message.message_version === 'E5SE5A' && message.ack_outcome === 'positive')
   if (!wire) return
   if (message.direction !== 'outbound' || message.message_family !== 'APERAK') throw new Error(STORAGE_REQUIRED)
-  await requireAuthority({ companyId: message.company_id, environment: message.environment, sourceMessageId: message.related_message_id,
-    transactionId: wire.transactionId, ackMessageId: message.id, ackRawPayload: message.raw_payload })
+  for (const transactionId of wire.transactionIds) await requireAuthority({ companyId: message.company_id, environment: message.environment, sourceMessageId: message.related_message_id,
+    transactionId, ackMessageId: message.id, ackRawPayload: message.raw_payload })
 }
