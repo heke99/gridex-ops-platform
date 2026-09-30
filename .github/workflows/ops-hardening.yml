@@ -157,6 +157,7 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-ops-capabilities-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-authoritative-writer-fences-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-support-command-native.sql
+          npx vitest run --config scripts/customer-support-continuation-20260930-native.config.ts
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-billing-command-native.sql
           npx vitest run --config scripts/customer-billing-concurrency-native.config.ts
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
@@ -175,6 +176,7 @@ jobs:
           [[ -s "$GRIDEX_CONTACT_FIXTURE_PATH" ]] || exit 1
           export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_CONTACT_FIXTURE_PATH,"utf8")).trust)')"
           npx playwright install --with-deps chromium
+          npx playwright test e2e/browser/api-release-local.spec.mjs --config=playwright.config.mjs --project=chromium
           npx playwright test e2e/browser/customer-contact-local.spec.mjs --config=playwright.config.mjs --project=chromium
           # Real forms, conflict/retry, navigation, mobile and zoom interactions
           # use an independent customer, then verify persisted state natively.

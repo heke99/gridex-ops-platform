@@ -53,11 +53,74 @@ for filename in sys.argv[1:]:
         raise SystemExit(0)
 PY
 }
+tenantservice_local_docker(){
+  # A selected Docker context or DOCKER_HOST must never redirect this proof to
+  # a remote daemon. The dedicated Ubuntu runner owns this local Unix socket.
+  env -u DOCKER_HOST -u DOCKER_CONTEXT docker --host=unix:///var/run/docker.sock "$@"
+}
+
+tenantservice_restore_archive(){
+  local restore_database="$1" restore_url="$2"
+  local restore_container='supabase_db_gridex-ops-platform'
+  local source_role target_oid admin_evidence
+  # The immutable archived baseline config pins project_id=gridex-ops-platform.
+  # Only the random template0 database just created through the proven local
+  # stack is an allowed target. No linked project URL or admin credential exists.
+  if [[ "${CI:-}" != true || "${DB_URL:-}" != postgresql://postgres:postgres@127.0.0.1:54322/postgres ||
+        -z "${RUNNER_TEMP:-}" || "$TENANTSERVICE_TEMP" != "$RUNNER_TEMP"/tenantservice-upgrade-restore.* ||
+        ! "$restore_database" =~ ^tenantservice_restore_[0-9]+_[0-9]+$ ||
+        "$restore_url" != "postgresql://postgres:postgres@127.0.0.1:54322/$restore_database" ]]; then
+    echo 'TENANTSERVICE_RESTORE_LOCAL_BOUNDARY_REQUIRED' >&2; return 2
+  fi
+  source_role="$(psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -c \
+    "select current_user||'|'||rolsuper::text from pg_roles where rolname=current_user;" \
+    2> "$TENANTSERVICE_TEMP/restore-authority.log")" || return 1
+  [[ "$source_role" =~ ^postgres\|(true|false)$ ]] || {
+    echo 'TENANTSERVICE_RESTORE_SOURCE_ROLE_UNEXPECTED' >&2; return 1;
+  }
+  target_oid="$(psql "$restore_url" -XAtq -v ON_ERROR_STOP=1 -c \
+    'select oid from pg_database where datname=current_database();' \
+    2>> "$TENANTSERVICE_TEMP/restore-authority.log")" || return 1
+  [[ "$target_oid" =~ ^[0-9]+$ ]] || {
+    echo 'TENANTSERVICE_RESTORE_TARGET_DATABASE_UNEXPECTED' >&2; return 1;
+  }
+  # Supabase's postgres role is restricted. The existing vendor administrator
+  # can preserve every archived owner/ACL without promoting postgres or changing
+  # memberships. In-container loopback uses the vendor's local authentication.
+  # Check actual session/current role, superuser attribute and the same target
+  # database OID before handing any archive SQL to that connection.
+  if ! admin_evidence="$(tenantservice_local_docker exec "$restore_container" psql \
+    --host=127.0.0.1 --port=5432 --username=supabase_admin --no-password \
+    --dbname="$restore_database" -XAtq -v ON_ERROR_STOP=1 -c \
+    "select session_user||'|'||current_user||'|'||r.rolsuper::text||'|'||d.oid::text \
+      from pg_roles r,pg_database d where r.rolname=current_user and d.datname=current_database();" \
+    2>> "$TENANTSERVICE_TEMP/restore-authority.log")"; then
+    echo 'TENANTSERVICE_RESTORE_LOCAL_ADMIN_CONNECTION_FAILED' >&2; return 1
+  fi
+  [[ "$admin_evidence" == "supabase_admin|supabase_admin|true|$target_oid" ]] || {
+    echo 'TENANTSERVICE_RESTORE_LOCAL_ADMIN_AUTHORITY_MISMATCH' >&2; return 1;
+  }
+  echo "TENANTSERVICE_RESTORE_SOURCE_ROLE postgres_superuser=${source_role#*|}"
+  echo 'TENANTSERVICE_RESTORE_LOCAL_ADMIN_AUTHORITY_PASS'
+  # The matching host pg_restore reads the actual custom archive and exact TOC.
+  # Its original owner/ACL SQL and BEGIN/COMMIT stream directly to the proven
+  # local administrator. pipefail and ON_ERROR_STOP preserve either failure.
+  # No private backup copy or admin password is written into the container.
+  if ! {
+    "$TENANTSERVICE_PG_RESTORE" --file=- --exit-on-error --single-transaction \
+      --use-list="$TENANTSERVICE_TEMP/restore.filtered.toc" "$TENANTSERVICE_TEMP/database.dump" |
+      tenantservice_local_docker exec -i "$restore_container" psql \
+        --host=127.0.0.1 --port=5432 --username=supabase_admin --no-password \
+        --dbname="$restore_database" -X -q -v ON_ERROR_STOP=1
+  } > "$TENANTSERVICE_TEMP/restore.log" 2>&1; then
+    echo 'TENANTSERVICE_RESTORE_PG_RESTORE_FAILED' >&2; return 1
+  fi
+}
 tenantservice_private_cleanup(){
   local proof_status="$1"
   if [[ "$proof_status" != 0 ]]; then
     tenantservice_safe_first_error "$TENANTSERVICE_TEMP/baseline-clean.log" \
-      "$TENANTSERVICE_TEMP/dump.log" "$TENANTSERVICE_TEMP/restore.log" \
+      "$TENANTSERVICE_TEMP/dump.log" "$TENANTSERVICE_TEMP/restore-authority.log" "$TENANTSERVICE_TEMP/restore.log" \
       "$TENANTSERVICE_TEMP/schema-snapshot.log" || true
   fi
   rm -rf "$TENANTSERVICE_TEMP"
@@ -110,7 +173,7 @@ echo "TENANTSERVICE_UPGRADE_BASELINE_SHA=$TENANTSERVICE_BASELINE_SHA"
 if [[ "$TENANTSERVICE_PLAN_ONLY" == --plan-only ]]; then
   echo 'TENANTSERVICE_PLAN_ONLY_NATIVE_NOT_EXECUTED'; exit 0
 fi
-for required in supabase psql python3 node; do command -v "$required" >/dev/null; done
+for required in supabase psql python3 node docker; do command -v "$required" >/dev/null; done
 readonly TENANTSERVICE_PG_DUMP="${GRIDEX_PG_DUMP:-pg_dump}"
 readonly TENANTSERVICE_PG_RESTORE="${GRIDEX_PG_RESTORE:-pg_restore}"
 command -v "$TENANTSERVICE_PG_DUMP" >/dev/null
@@ -196,12 +259,7 @@ PY
   [[ "$(psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 -c \
     "select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname not like 'pg_%' and n.nspname <> 'information_schema';")" == 0 ]]
   echo 'TENANTSERVICE_RESTORE_EMPTY_TEMPLATE0_DATABASE_PASS'
-  if ! "$TENANTSERVICE_PG_RESTORE" --dbname="$TENANTSERVICE_RESTORE_URL" \
-    --exit-on-error --single-transaction --use-list="$TENANTSERVICE_TEMP/restore.filtered.toc" \
-    "$TENANTSERVICE_TEMP/database.dump" > "$TENANTSERVICE_TEMP/restore.log" 2>&1; then
-    echo 'TENANTSERVICE_RESTORE_PG_RESTORE_FAILED' >&2
-    exit 1
-  fi
+  tenantservice_restore_archive "$TENANTSERVICE_RESTORE_DATABASE" "$TENANTSERVICE_RESTORE_URL"
   echo 'TENANTSERVICE_RESTORE_REAL_PG_DUMP_ARCHIVE_PASS'
   psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 \
     -f "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-restore-data-fingerprint.sql" \

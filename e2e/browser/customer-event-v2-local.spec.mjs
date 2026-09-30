@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import { test, expect } from '@playwright/test'
 import { eventV2SafeGet } from '../helpers/event-v2-safe-request.mjs'
 
+const activeContractVersion = JSON.parse(readFileSync(new URL('../../docs/openapi/website-integration-v1.json', import.meta.url), 'utf8')).info.version
+
 const enabled = process.env.CI === 'true' && process.env.GRIDEX_EVENT_V2_LOCAL_E2E === '1'
   && process.env.NEXT_PUBLIC_SUPABASE_URL === 'http://127.0.0.1:54321'
   && !process.env.GRIDEX_E2E_BROWSER_BASE_URL && Boolean(process.env.GRIDEX_EVENT_V2_FIXTURE_PATH)
@@ -25,7 +27,7 @@ test('actual HTTP/native events preserve versions, sources, customer isolation, 
     const response = await eventV2SafeGet(request, url, { headers: headers(a1) })
     expect(response.status()).toBe(200)
     const body = await response.json()
-    expect(body.contract_schema_version).toBe('2026-09-30.1')
+    expect(body.contract_schema_version).toBe(activeContractVersion)
     expect(body.page).toMatchObject({ limit: 2, offset: 0, returned: body.data.length })
     expect(body.data.length).toBeLessThanOrEqual(2)
     for (const row of body.data) {

@@ -46,11 +46,18 @@ function fixture() {
     snapshot: () => sql(`SELECT jsonb_build_object(
       'deliveries',(SELECT jsonb_agg(to_jsonb(d) ORDER BY d.id) FROM public.webhook_deliveries d WHERE company_id IN (${companyList})),
       'turns',(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.company_id) FROM private.webhook_dispatch_tenant_turns t WHERE company_id IN (${companyList})));`),
-    cleanup: () => sql(`DELETE FROM public.webhook_deliveries WHERE company_id IN (${companyList});
-      DELETE FROM public.domain_events WHERE company_id IN (${companyList});
-      DELETE FROM public.webhook_subscriptions WHERE company_id IN (${companyList});
+    // Company insertion also creates published immutable legal versions.
+    // Retain that synthetic company/history until disposable stack teardown;
+    // never cascade-delete or unpublish it merely to clean a queue fixture.
+    cleanup: () => sql(`DELETE FROM public.webhook_deliveries WHERE company_id IN (${companyList})
+        AND webhook_subscription_id IN (${quote(subA)},${quote(subB)});
+      DELETE FROM public.event_outbox o USING public.domain_events e WHERE o.domain_event_id=e.id
+        AND e.company_id IN (${companyList}) AND e.event_type='webhook.test' AND e.aggregate_type='synthetic';
+      DELETE FROM public.domain_events WHERE company_id IN (${companyList})
+        AND event_type='webhook.test' AND aggregate_type='synthetic';
+      DELETE FROM public.webhook_subscriptions WHERE company_id IN (${companyList}) AND id IN (${quote(subA)},${quote(subB)});
       DELETE FROM private.webhook_dispatch_tenant_turns WHERE company_id IN (${companyList});
-      DELETE FROM public.companies WHERE id IN (${companyList}); SELECT to_jsonb(true);`),
+      SELECT to_jsonb(true);`),
   }
 }
 function session(name: string) {

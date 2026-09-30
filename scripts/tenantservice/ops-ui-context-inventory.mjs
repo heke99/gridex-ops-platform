@@ -85,17 +85,17 @@ for (const file of pages) {
   }
   const reachable = graph([file, ...layouts])
   let count = 0
-  for (const module of reachable) {
+  for (const sourceModule of reachable) {
     const occurrence = new Map()
-    for (const control of source(module).controls) {
-      const identity = JSON.stringify([module, control.tag, control.role, control.name, control.type, control.value, control.label, control.href, control.action, control.onClick, control.onChange, control.onSubmit, control.inheritedForm])
+    for (const control of source(sourceModule).controls) {
+      const identity = JSON.stringify([sourceModule, control.tag, control.role, control.name, control.type, control.value, control.label, control.href, control.action, control.onClick, control.onChange, control.onSubmit, control.inheritedForm])
       const index = (occurrence.get(identity) ?? 0) + 1; occurrence.set(identity, index)
       const id = `OPS-CTX-${createHash('sha256').update(`${route}|${identity}|${index}`).digest('hex').slice(0, 16)}`
-      controls.push({ id, plannedTestId: `CASE-${id}`, pageRoute: route, pageFile: file, sourceFile: module, ...control, actorPolicy: 'UNTRACED', tenantCustomerResourcePolicy: 'UNTRACED', expectedEffect: 'UNTRACED', serverOperation: control.action ?? control.inheritedForm?.action ?? null, navigationTarget: control.href, browserResult: 'NOT_EXECUTED', status: 'STATIC_CONTEXT_CANDIDATE', requirementIds: ['U02', 'U03', 'U09', 'U16', 'U20'] })
+      controls.push({ id, plannedTestId: `CASE-${id}`, pageRoute: route, pageFile: file, sourceFile: sourceModule, ...control, actorPolicy: 'UNTRACED', tenantCustomerResourcePolicy: 'UNTRACED', expectedEffect: 'UNTRACED', serverOperation: control.action ?? control.inheritedForm?.action ?? null, navigationTarget: control.href, browserResult: 'NOT_EXECUTED', status: 'STATIC_CONTEXT_CANDIDATE', requirementIds: ['U02', 'U03', 'U09', 'U16', 'U20'] })
       count++
     }
   }
-  classifiedPages.push({ pageRoute: route, pageFile: file, ancestorLayouts: layouts, reachableModules: reachable.length, reachableUiModules: reachable.filter((module) => source(module).controls.length).length, contextControls: count, guardNames: [...new Set(reachable.flatMap((module) => source(module).guards))].sort(), classification: route.startsWith('/admin/platform') || route.startsWith('/admin/ediel') ? 'TECHNICAL_OR_PLATFORM_REQUIRES_ROLE_TRACE' : 'OPS_OR_TENANT_REQUIRES_ROLE_TRACE', status: 'STATIC_GRAPH_CLASSIFIED_RUNTIME_NOT_VERIFIED' })
+  classifiedPages.push({ pageRoute: route, pageFile: file, ancestorLayouts: layouts, reachableModules: reachable.length, reachableUiModules: reachable.filter((sourceModule) => source(sourceModule).controls.length).length, contextControls: count, guardNames: [...new Set(reachable.flatMap((sourceModule) => source(sourceModule).guards))].sort(), classification: route.startsWith('/admin/platform') || route.startsWith('/admin/ediel') ? 'TECHNICAL_OR_PLATFORM_REQUIRES_ROLE_TRACE' : 'OPS_OR_TENANT_REQUIRES_ROLE_TRACE', status: 'STATIC_GRAPH_CLASSIFIED_RUNTIME_NOT_VERIFIED' })
 }
 mkdirSync(output, { recursive: true })
 function write(name, rows) { writeFileSync(join(output, name), rows.map((row) => JSON.stringify(row)).join('\n') + '\n') }

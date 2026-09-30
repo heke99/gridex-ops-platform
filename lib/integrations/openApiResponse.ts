@@ -13,13 +13,11 @@ function isRecord(value: unknown): value is JsonRecord {
 }
 
 /**
- * Normalizes release metadata at the final serialization boundary.
+ * Prepares release metadata for explicit document generation.
  *
- * OpenAPI source files are also materialized by the release tooling, but every
- * canonical and immutable route passes through this function. Keeping the
- * final boundary strict prevents a stale top-level release extension or a
- * copied response description from being served even if a generated JSON file
- * was produced by an older finalizer.
+ * Serving a materialized release must preserve its original bytes. Callers
+ * that generate a new document may explicitly use this cloned normalization;
+ * the runtime serializer does not apply it to frozen contracts.
  */
 export function normalizeOpenApiDocument(document: unknown): unknown {
   const normalized = JSON.parse(JSON.stringify(document)) as unknown
@@ -51,7 +49,7 @@ export function normalizeOpenApiDocument(document: unknown): unknown {
 }
 
 export function serializeOpenApiDocument(document: unknown): string {
-  return `${JSON.stringify(normalizeOpenApiDocument(document), null, 2)}\n`
+  return `${JSON.stringify(document, null, 2)}\n`
 }
 
 export function openApiDocumentResponse(

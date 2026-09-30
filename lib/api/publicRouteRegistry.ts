@@ -86,6 +86,8 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-09-30.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-09-30.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-09-30.2/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-09-30.2.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-09-30.2/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-09-30.2.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-09-30.3/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-09-30.3.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-09-30.3/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-09-30.3.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Current OpenAPI specification for customer portal integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verify the authenticated API client and retrieve its public integration context.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/public-contracts', scopes: ['api_contracts.read'], description: 'Retrieve contracts published to the general API channel.', rateLimitClass: 'read' },
@@ -187,7 +189,7 @@ export function publicRouteCost(method: string, pathname: string): number {
 
 export const PUBLIC_API_ENDPOINT_ROWS = PUBLIC_API_ROUTES.map((route) => [
   route.method,
-  route.publicPath ?? route.path,
+  (route.publicPath ?? route.path).replace(/\[([^\]]+)\]/g, '{$1}'),
   // scopeMode=all means every listed scope is required (AND). scopeMode=any
   // means one of the listed scopes is enough (OR). Developer docs must match.
   route.scopes.join(route.scopeMode === 'any' ? ' OR ' : ' AND '),

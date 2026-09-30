@@ -25,15 +25,15 @@ function sha256(document: unknown): string {
   return createHash('sha256').update(serializeOpenApiDocument(document)).digest('hex')
 }
 
-describe('OpenAPI release metadata parity', () => {
-  it('serves the canonical release version on both OpenAPI documents', () => {
+describe('explicit OpenAPI generation metadata and runtime artifact checksums', () => {
+  it('normalizes the canonical release version when explicitly preparing both documents', () => {
     for (const source of [websiteIntegrationOpenApi, customerPortalOpenApi]) {
       const normalized = normalizeOpenApiDocument(source) as JsonRecord
       expect(normalized['x-gridex-release-version']).toBe(normalized.info.version)
     }
   })
 
-  it('describes customer-portal sync as a portal bundle, not an invoice-list response', () => {
+  it('prepares the portal-bundle description when generation explicitly requests normalization', () => {
     const normalized = normalizeOpenApiDocument(customerPortalOpenApi) as JsonRecord
     const response = normalized.paths['/api/v1/customer-portal/sync'].post.responses['200']
 
@@ -41,7 +41,7 @@ describe('OpenAPI release metadata parity', () => {
     expect(response.description.toLowerCase()).not.toContain('fakturalista')
   })
 
-  it('computes release-manifest checksums from the exact normalized documents served at runtime', () => {
+  it('computes release-manifest checksums from the exact unchanged documents served at runtime', () => {
     const manifest = buildOpenApiReleaseManifest()
 
     expect(manifest.specifications.website.sha256).toBe(

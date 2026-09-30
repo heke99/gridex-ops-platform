@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-30T21:26:44.285116+00:00",
+  "updated_at": "2026-09-30T22:30:54.309985+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/api-masterplan-continuation-20260930",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Publish bounded parser/restore/startup repair to existing draft422; inspect actual native/HTTP/browser/restore run, adopt authentic generation, integrate exclusive continuation packages and qualify all75 original requirements.",
+  "next_action": "Publish frozen cleanup/restore/API/import/support/artifact integration to existing draft422; run genuine candidate CI and continue new provider/customer-queue/contract-authority/redelivery/sensitive-proof packages toward all75 terminal outcomes.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -986,33 +986,37 @@
     "status": "IN_PROGRESS",
     "sole_publisher": "root",
     "ownership_comment": 5919901521,
-    "last_checked_api_head": "0d81465617d11f099502832385d976fdedf3cc6d",
+    "last_checked_api_head": "4b7888a461ad03580b6e11ae91217b64cd05fa21",
     "last_checked_ops_head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
     "last_checked_main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
     "original_worktree_preserved": true,
-    "restore_wrapper_local": "PASS_2_STUB_WRAPPER_TESTS_NODE22_NOT_NATIVE",
-    "legal_parser_native": "PENDING",
-    "candidate_native": "PENDING_NEXT_PUBLISHED_CANDIDATE",
-    "candidate_restore": "PENDING_NEXT_PUBLISHED_CANDIDATE",
+    "restore_wrapper_local": "PASS_9_EXTRACTED_BASH_STUB_TESTS_NODE22_NOT_NATIVE",
+    "legal_parser_native": "PASS_ACTUAL_4B_EMPTY_REPLAY_AND_UPGRADE",
+    "candidate_native": "FAILED_WEBHOOK_FIXTURE_CLEANUP_CORRECTED_NEXT_CANDIDATE_PENDING",
+    "candidate_restore": "FAILED_SET_ROLE_SUPABASE_ADMIN_BOUNDED_WRAPPER_REVIEWED_NEXT_NATIVE_PENDING",
     "requirements_count": 75,
     "full_acceptance": false,
     "secret_scan": "BLOCKED_AUTH",
-    "last_published_api_head": "0d81465617d11f099502832385d976fdedf3cc6d",
-    "last_published_tree": "e86c110e64e7fa494a68a7dc6010aea39c2c7394",
-    "local_source_commit_same_tree": "3f0e2c5f231dbe7cdb4ba3653d098da644bcd1bf",
+    "last_published_api_head": "4b7888a461ad03580b6e11ae91217b64cd05fa21",
+    "last_published_tree": "06630a04ba3800e5e1ae53bffa1bacdd47950de1",
+    "local_source_commit_same_tree": "97c81f8f66a2725b4fe4570c461d47850a73b124",
     "startup_redaction_local": "PASS_2_EXTRACTED_BASH_TESTS_NODE22",
     "last_actual_ops": {
-      "run": 36780003023,
-      "checkout": "45a09811bbbba42f287c6778de76f27dbe13b9ec",
-      "tree": "e86c110e64e7fa494a68a7dc6010aea39c2c7394",
-      "quality": "PASS_6718_TESTS_AND_COMPLETE_RELEASE_GATES",
+      "run": 36783103604,
+      "checkout": "7c98504db2d656e7211a5b721ca8731e0e25be69",
+      "tree": "06630a04ba3800e5e1ae53bffa1bacdd47950de1",
+      "quality": "FAILED_SINGLE_INVENTORY_LOOP_BINDING_LINT_CORRECTED_FULL_LINT_LOCAL_PASS",
       "verify": "FAILED_STALE_AUTHENTIC_GENERATED_TYPE_TAIL",
-      "clean": "FAILED_SITE_SQL_CASE_GRAMMAR_AFTER_LEGAL_PARSER_PASSED",
-      "upgrade": "FAILED_MISSING_HISTORICAL_LIFECYCLE_COLUMNS_AFTER_WRAPPER_PASSED",
-      "artifact": 11127404106,
-      "generated_artifact_members": 0
+      "clean": "EMPTY_REPLAY_ARTIFACT_CAPTURE_PASS_WEBHOOK_NATIVE_ALL6_FAIL_IMMUTABLE_CLEANUP_LATER_NOT_REACHED",
+      "upgrade": "13_FORWARDS_LEGACY_ISSUED_BYTE_LIFECYCLE_CHECKS_PASS_RESTORE_SET_ROLE_FAIL",
+      "artifact": 11128845353,
+      "generated_artifact_members": 3,
+      "artifact_sha256": "be13dbfabee525633814cd126cdc33bb7908b01c7ca07192384ee0079fc8d1ab"
     },
     "baseline_sql_byte_comparison": "PASS_653_UNCHANGED",
-    "next_work": "Publish reviewed continuation and actual SQL compatibility fixes; genuine replay/HTTP/browser/concurrency/restore, authentic artifacts, all75 original terminal outcomes; no broad acceptance."
+    "next_work": "Publish frozen integration first, genuine exact-candidate native/HTTP/browser/restore; finish new bounded atomic provider/customer fairness/contract scope/redelivery/sensitive proof packages; regenerate authentically after any new SQL; all75 original verified or explicit concrete blocked outcomes.",
+    "local_integrated_checks": "PASS_66_TESTS_8FILES_AND_3_TYPESCRIPT_PROJECTS_NODE22",
+    "public_contract_release": "2026-09-30.3",
+    "public_contract_http_local": "PASS_4_ACTUAL_NEXT_HTTP_CASES_52_IMMUTABLE_ROUTES_50_OLDER_UNCHANGED"
   }
 }
