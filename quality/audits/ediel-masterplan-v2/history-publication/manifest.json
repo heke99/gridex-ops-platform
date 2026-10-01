@@ -1,14 +1,14 @@
 {
   "repository": "heke99/gridex-ops-platform",
-  "source": "49d4b94fe06b55d499527117361b3a10a666d7b1",
-  "tree": "eee88212010ac89c11c88a1ed08f4221b7f85df1",
+  "source": "49a40a2e5427c91d1724d8d4257a5ca5b2f7c084",
+  "tree": "4d59ea8d7e1685381993e27f093f7fe33b7bed4a",
   "sourceParents": [
-    "1d7172ebe3ba01d5390a845f7087d546a9d2c3d2"
+    "e9d654d56f5af88fde7c28049e8e6cbd8a6cd373"
   ],
   "sourceRef": "refs/heads/codex/ediel-composed-rules-20261001",
   "targetRef": "refs/heads/codex/ediel-composed-rules-20261001",
-  "expectedTarget": "1d7172ebe3ba01d5390a845f7087d546a9d2c3d2",
-  "bootstrapParent": "b80a68cb745e54481c8cd2aee2b4c635952b3962",
+  "expectedTarget": "49d4b94fe06b55d499527117361b3a10a666d7b1",
+  "bootstrapParent": "f66cc1555c89e5df2338d099ee950883cc1a08c1",
   "prerequisites": [
     "c8f666d9bf61f84816c2f295dc44442167f0b75a",
     "3c7342c64c83b705e85c18f300705166a1732ad6"
@@ -22,7 +22,39 @@
     "056d6505d27cc5b8d26356de9c42b3c3544c92a6",
     "823606064a9a908ab6d94b848ef36fb1103525a0"
   ],
-  "bundleBytes": 1317727,
-  "bundleSha256": "21969e8788f5d89d87e0a77f1178323a280ad483f51344313f52a7a0f1245959",
+  "bundleBytes": 1472137,
+  "bundleSha256": "a3762dbb24796b7d8e197f6720592668fe8ef5516775d647beb027ad38177f9d",
+  "checkpointBranches": [
+    {
+      "source": "6376e27e011d219ab2710f0c6ebccc56c6821176",
+      "tree": "eadbc24214917dd11b0179b065d7921aca8ec7a4",
+      "sourceParents": [
+        "32aae260e12c56044f3b57dc9411ee7b1d4fd6a9"
+      ],
+      "sourceRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+      "targetRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+      "expectedTarget": ""
+    },
+    {
+      "source": "9dca678fe75a6a52128cf5b47cd79e6d8d5d3f14",
+      "tree": "2d86ad93ba387a20b07483e870ec9d3fc0f3244b",
+      "sourceParents": [
+        "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+      ],
+      "sourceRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+      "targetRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+      "expectedTarget": ""
+    },
+    {
+      "source": "7cc1b3438a8382645179c36595596271634b83fe",
+      "tree": "1100cb4d0aed799c3d169621d32a29670aa8b819",
+      "sourceParents": [
+        "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+      ],
+      "sourceRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+      "targetRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+      "expectedTarget": ""
+    }
+  ],
   "scope": "Exact codephase commit publication only; no final acceptance, production, main merge or traffic"
 }
