@@ -23,6 +23,7 @@ try{
  await db.exec(decoder.slice(decoder.indexOf('CREATE FUNCTION gridex_received_sources.wire_tokens_bounded_v1'),decoder.indexOf('-- Keep the existing closure budget')))
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930171839_ediel_source_qualified_negative_fixture_v1.sql',import.meta.url),'utf8'))
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930212435_ediel_source_qualified_positive_fixture_v1.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930221133_ediel_test_original_preparer_scope.sql',import.meta.url),'utf8'));checks++
  assert.equal((await as('service_role',read())).result,null);checks++
  await rejects('service_role',publish(),/permission denied/)
  await rejects('gridex_ediel_fixture_authority_owner',publish({...scope,expectedOutcome:'negative',expectedDiagnosticCodes:['NATIONAL']}),/qualified_original_required/)
@@ -44,7 +45,8 @@ try{
  await db.exec(insert(message,witness));checks++
  await rejects('service_role',require(),/actual_run_link_required/)
  await db.exec(`insert into ediel_test_run_messages values('${run}','${message}',1);`)
- await db.exec("delete from permission_fixture where permission='communication.send';");await rejects('service_role',require(),/actor_not_authorized/);await db.exec("insert into permission_fixture values('communication.send');");
+ await db.exec("delete from permission_fixture where permission='communication.send';");assert.equal((await as('service_role',require())).result.registrationId,registration);checks++;assert.equal((await db.query("select gridex_actor_has_company_permission($1,$2,'communication.send') allowed",[actor,company])).rows[0].allowed,false);checks++; // source proof is not current sender permission
+ await db.exec("delete from permission_fixture;");await rejects('service_role',require(),/actor_not_authorized/);await db.exec("insert into permission_fixture values('communication.write'),('communication.send');");
  assert.equal((await as('service_role',require())).result.registrationId,registration);checks++
  await rejects('service_role',`select gridex_negative_fixtures.prepared_positive_fixture_v1('${company}','${witness}',${literal(raw)},'${actor}') result;`,/prepared_original_required/)
  await rejects('service_role',require(message,'Z06'),/physical_message_required/)
@@ -72,8 +74,8 @@ try{
  await rejects('service_role',`select gridex_negative_fixtures.prepared_positive_fixture_v1('${company}','${negw}',${literal(raw)},'${actor}') result;`,/prepared_original_required/)
  await rejects('service_role',`select gridex_negative_fixtures.prepared_negative_fixture_v1('${company}','${negw}',${literal(raw+' ')},'${actor}') result;`,/prepared_original_required/)
  await db.exec(`insert into gridex_ediel_outbound_owner.boundary_fixture values('${uid(7)}',${literal(raw)});insert into ediel_messages values('${uid(7)}','${company}','outbound','test','edifact',${literal(raw)},'PRODAT','Z09',${json({sourceQualifiedNegativeFixtureWitnessId:negw})});insert into ediel_test_run_messages values('${run}','${uid(7)}',3);`);checks++
- await rejects('service_role',`select gridex_negative_fixtures.require_negative_message_v1('${company}','${uid(7)}','Z09') result;`,/actor_not_authorized/)
- await db.exec("insert into permission_fixture values('communication.send');")
+ assert.equal((await as('service_role',`select gridex_negative_fixtures.require_negative_message_v1('${company}','${uid(7)}','Z09') result;`)).result.registrationId,negregistration);checks++
+ await db.exec("delete from permission_fixture;");await rejects('service_role',`select gridex_negative_fixtures.require_negative_message_v1('${company}','${uid(7)}','Z09') result;`,/actor_not_authorized/);await db.exec("insert into permission_fixture values('communication.write'),('communication.send');")
  assert.equal((await as('service_role',`select gridex_negative_fixtures.require_negative_message_v1('${company}','${uid(7)}','Z09') result;`)).result.registrationId,negregistration);checks++
  await rejects('service_role',`select gridex_negative_fixtures.prepared_negative_fixture_v1('${company}','${negw}',${literal(raw)},'${actor}') result;`,/prepared_original_required/)
  await db.exec("delete from permission_fixture;insert into permission_fixture values('ediel_testing.write');")
