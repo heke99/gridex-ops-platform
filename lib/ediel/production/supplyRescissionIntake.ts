@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto'
-import {supabaseService} from '@/lib/supabase/service'
+import {createSupabaseServerClient} from '@/lib/supabase/server'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 export const SUPPLY_RESCISSION_SOURCE_MAX_BYTES=8*1024*1024
 export type SupplyRescissionSelector={environment:'test'|'production';supplyPeriodId:string;effectiveAt:string;rulePackId:string}
@@ -14,7 +14,14 @@ type RescissionRpcCalls={
  ediel_read_supply_rescission_artifact_v1:{p_company_id:string;p_actor_user_id:string;p_artifact_id:string;p_include_bytes:boolean};
  ediel_review_supply_rescission_v1:{p_company_id:string;p_actor_user_id:string;p_artifact_id:string;p_review:SupplyRescissionReview};
 }
-const supplyRescissionRpc=supabaseService.rpc.bind(supabaseService) as unknown as <N extends keyof RescissionRpcCalls>(name:N,args:RescissionRpcCalls[N])=>PromiseLike<{data:unknown;error:{message:string;code:string}|null}>
+async function supplyRescissionRpc<N extends keyof RescissionRpcCalls>(name:N,args:RescissionRpcCalls[N]){
+ const client=await createSupabaseServerClient(),{data,error}=await client.auth.getUser()
+ if(error||!isEvidenceUuid(args.p_company_id)||!isEvidenceUuid(args.p_actor_user_id)||!isEvidenceUuid(data.user?.id)||data.user.id!==args.p_actor_user_id)throw Error('supply_rescission_authenticated_session_required')
+ // The same verified session sends the native request. Native auth.uid and
+ // current phase checks bind the actor again before reads and every return.
+ const rpc=client.rpc.bind(client) as unknown as <K extends keyof RescissionRpcCalls>(rpcName:K,rpcArgs:RescissionRpcCalls[K])=>PromiseLike<{data:unknown;error:{message:string;code:string}|null}>
+ return rpc(name,args)
+}
 
 const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v),object=(v:unknown):Record<string,unknown>|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:null
 function checked(value:unknown,statuses:string[],input:Scope,artifactId?:string){const r=object(value);if(!r||!statuses.includes(String(r.status))||r.companyId!==input.companyId||artifactId&&r.artifactId!==artifactId||!Array.isArray(r.missing)||r.missing.some(v=>typeof v!=='string'))throw Error('supply_rescission_intake_result_invalid');return r}
