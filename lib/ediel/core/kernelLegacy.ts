@@ -33,15 +33,10 @@ import {
 } from '@/lib/ediel/core/versionRegistry'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { prepareAiBiInboundReconciliation, processAiBiInboundReconciliation } from '@/lib/ediel/aiBiInboundReconciliation'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 
 function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
-}
-
-function isCanonicalAckFamily(
-  family: string | null | undefined
-): family is 'CONTRL' | 'APERAK' | 'UTILTS_ERR' {
-  return family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR'
 }
 
 function isPostgresUniqueViolation(error: unknown): boolean {
@@ -134,133 +129,50 @@ export async function resolveInboundAcceptedVersions(params: {
   return resolveCanonicalInboundAcceptedVersions(params)
 }
 
+function assertInboundDuplicateScope(duplicate:EdielMessageRow,input:CreateEdielMessageInput) {
+  if(duplicate.direction!=='inbound' || duplicate.company_id!==(input.companyId??null)
+    || duplicate.environment!==input.environment || duplicate.message_standard!==(input.messageStandard??'edifact')
+    || duplicate.message_family!==input.messageFamily || duplicate.message_code!==String(input.messageCode)
+    || (duplicate.receiver_ediel_id??null)!==(input.receiverEdielId??null)
+    || (duplicate.application_reference??null)!==(input.applicationReference??null)
+    || duplicate.raw_payload!==input.rawPayload)
+    throw new Error('canonical_inbound_duplicate_scope_or_original_conflict')
+}
+
 export async function registerInboundCanonicalMessage(params: {
   actorUserId?: string | null
   input: CreateEdielMessageInput
 }) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-  const isAiBiSource = params.input.messageStandard === 'ai_list' || params.input.messageFamily === 'AI_LIST'
-    || /^\uFEFF?(AI|BI);/.test(params.input.rawPayload ?? '')
-  if (isAiBiSource) {
-    if (params.input.direction !== 'inbound' || !params.input.companyId) throw new Error('ai_bi_reconciliation_tenant_source_required')
-  }
-  const identity = buildInboundCanonicalIdentity({
-    mailbox: params.input.mailbox,
-    mailboxMessageId: params.input.mailboxMessageId,
-    senderEdielId: params.input.senderEdielId,
-    interchangeReference: params.input.interchangeReference,
-    transactionReference: params.input.transactionReference,
-    externalReference: params.input.externalReference,
-  })
-
-  const duplicate = await findInboundDuplicateByCanonicalIdentity(identity)
-  if (duplicate) {
-    if (isAiBiSource) {
-      if (duplicate.company_id !== params.input.companyId || duplicate.environment !== params.input.environment
-        || duplicate.raw_payload !== params.input.rawPayload) throw new Error('ai_bi_reconciliation_duplicate_scope_mismatch')
-      await processAiBiInboundReconciliation({ actorUserId, message: duplicate })
-    }
-    await createCanonicalDuplicateBlockEvent({
-      actorUserId,
-      edielMessageId: duplicate.id,
-      layer: 'canonical_inbound',
-      message: 'Inbound dublett blockerad i canonical kernel.',
-      payload: {
-        mailbox: identity.mailbox,
-        mailboxMessageId: identity.mailboxMessageId,
-        senderEdielId: identity.senderEdielId,
-        interchangeReference: identity.interchangeReference,
-        transactionReference: identity.transactionReference,
-        externalReference: identity.externalReference,
-      },
-    })
+  const actorUserId=ensureActorUserId(params.actorUserId),input=params.input
+  if(input.direction!=='inbound' || !['test','production'].includes(input.environment??''))
+    throw new Error('canonical_inbound_scope_required')
+  if(input.companyId)await assertEdielTenantActor({companyId:input.companyId,actorUserId,permission:'communication.write'})
+  const isAiBiSource=input.messageStandard==='ai_list'||input.messageFamily==='AI_LIST'||/^\uFEFF?(AI|BI);/.test(input.rawPayload??'')
+  if(isAiBiSource&&!input.companyId)throw new Error('ai_bi_reconciliation_tenant_source_required')
+  const identity=buildInboundCanonicalIdentity({...input,senderEdielId:input.senderEdielId,
+    receiverEdielId:input.receiverEdielId,applicationReference:input.applicationReference})
+  const reuse=async(duplicate:EdielMessageRow)=>{
+    assertInboundDuplicateScope(duplicate,input)
+    if(isAiBiSource)await processAiBiInboundReconciliation({actorUserId,message:duplicate})
+    await createCanonicalDuplicateBlockEvent({actorUserId,edielMessageId:duplicate.id,layer:'canonical_inbound',
+      message:'Inbound dublett blockerad i canonical kernel.',payload:{...identity}})
     return duplicate
   }
-
-  if (isAiBiSource) {
-    const environment = params.input.environment
-    if (!params.input.companyId || (environment !== 'test' && environment !== 'production')) throw new Error('ai_bi_reconciliation_tenant_source_required')
-    const source = { companyId: params.input.companyId, environment, actorUserId, rawPayload: params.input.rawPayload ?? '' }
-    await prepareAiBiInboundReconciliation(source)
-  }
-
-  const inboundAckFamily = isCanonicalAckFamily(params.input.messageFamily)
-    ? params.input.messageFamily
-    : null
-
-  if (
-    params.input.direction === 'inbound' &&
-    inboundAckFamily &&
-    params.input.relatedMessageId
-  ) {
-    const duplicateAck = await hasCanonicalAckDuplicate({
-      sourceMessageId: params.input.relatedMessageId,
-      ackFamily: inboundAckFamily,
-    })
-
-    if (duplicateAck) {
-      await createCanonicalDuplicateBlockEvent({
-        actorUserId,
-        edielMessageId: duplicateAck.id,
-        layer: 'canonical_inbound',
-        message: 'Inbound ACK-dublett blockerad i canonical kernel.',
-        payload: {
-          mailbox: identity.mailbox,
-          mailboxMessageId: identity.mailboxMessageId,
-          senderEdielId: identity.senderEdielId,
-          interchangeReference: identity.interchangeReference,
-          transactionReference: identity.transactionReference,
-          externalReference: identity.externalReference,
-          relatedMessageId: params.input.relatedMessageId,
-          ackFamily: inboundAckFamily,
-          existingAckMessageId: duplicateAck.id,
-        },
-      })
-      return duplicateAck
-    }
-  }
-
+  const duplicate=await findInboundDuplicateByCanonicalIdentity(identity)
+  if(duplicate)return reuse(duplicate)
+  if(isAiBiSource)await prepareAiBiInboundReconciliation({companyId:input.companyId!,
+    environment:input.environment as 'test'|'production',actorUserId,rawPayload:input.rawPayload??''})
   try {
-    const message = await createEdielMessage({
-      ...params.input,
-      actorUserId,
-    })
-    if (isAiBiSource) await processAiBiInboundReconciliation({ actorUserId, message })
+    const message=await createEdielMessage({...input,actorUserId})
+    if(isAiBiSource)await processAiBiInboundReconciliation({actorUserId,message})
     return message
-  } catch (error) {
-    if (
-      isPostgresUniqueViolation(error) &&
-      params.input.direction === 'inbound' &&
-      inboundAckFamily &&
-      params.input.relatedMessageId
-    ) {
-      const duplicateAck = await hasCanonicalAckDuplicate({
-        sourceMessageId: params.input.relatedMessageId,
-        ackFamily: inboundAckFamily,
-      })
-
-      if (duplicateAck) {
-        await createCanonicalDuplicateBlockEvent({
-          actorUserId,
-          edielMessageId: duplicateAck.id,
-          layer: 'canonical_inbound',
-          message: 'Inbound ACK-dublett blockerad av databasens unikhetsregel och återanvändes.',
-          payload: {
-            mailbox: identity.mailbox,
-            mailboxMessageId: identity.mailboxMessageId,
-            senderEdielId: identity.senderEdielId,
-            interchangeReference: identity.interchangeReference,
-            transactionReference: identity.transactionReference,
-            externalReference: identity.externalReference,
-            relatedMessageId: params.input.relatedMessageId,
-            ackFamily: inboundAckFamily,
-            existingAckMessageId: duplicateAck.id,
-          },
-        })
-        return duplicateAck
-      }
+  } catch(error) {
+    // Only the same whole original in the same actual scope may satisfy a
+    // uniqueness race. ACK family/source alone merges distinct IDE responses.
+    if(isPostgresUniqueViolation(error)){
+      const raced=await findInboundDuplicateByCanonicalIdentity(identity)
+      if(raced)return reuse(raced)
     }
-
     throw error
   }
 }
@@ -283,20 +195,31 @@ export async function createCanonicalOutboundMessage(params: {
   }
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
+  const operationId = params.baseInput.sourceOperationId
+    ?? params.baseInput.parsedPayload?.operation_id ?? params.baseInput.parsedPayload?.operationId
 
   if (params.duplicateCheck) {
     const duplicate = await findOutboundEdielMessageDuplicate({
+      companyId: params.baseInput.companyId, environment: params.baseInput.environment,
+      sourceOperationId: typeof operationId === 'string' ? operationId : null,
       outboundRequestId: params.duplicateCheck.outboundRequestId ?? null,
       sourceType: params.duplicateCheck.sourceType ?? null,
       sourceId: params.duplicateCheck.sourceId ?? null,
       requestType: params.requestType,
       receiverEdielId: params.duplicateCheck.receiverEdielId ?? null,
-      messageFamily: params.duplicateCheck.messageFamily,
-      messageCode: params.duplicateCheck.messageCode,
-      messageVersion: params.duplicateCheck.messageVersion ?? null,
+      messageFamily: params.baseInput.messageFamily,
+      messageCode: String(params.baseInput.messageCode),
+      messageVersion: null,
     })
 
     if (duplicate) {
+      if (duplicate.company_id !== params.baseInput.companyId || duplicate.environment !== params.baseInput.environment
+        || duplicate.direction !== 'outbound' || duplicate.message_family !== params.baseInput.messageFamily
+        || duplicate.message_code !== String(params.baseInput.messageCode)
+        || typeof operationId === 'string' && duplicate.source_operation_id !== operationId
+        || params.duplicateCheck.outboundRequestId && duplicate.outbound_request_id !== params.duplicateCheck.outboundRequestId)
+        throw new Error('canonical_outbound_existing_operation_scope_conflict')
+      if (duplicate.raw_payload !== params.baseInput.rawPayload) throw new Error('canonical_outbound_existing_operation_wire_conflict')
       await createCanonicalDuplicateBlockEvent({
         actorUserId,
         edielMessageId: duplicate.id,
