@@ -27,7 +27,8 @@ export async function createReceivedProdatCommittedEffectAcks(input:{actorUserId
   if(refs.length!==1)continue
   const reference=segmentComposite(refs[0],1,wire.una)[1]
   if(!reference)continue
-  const retained=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:[reference]})
+  const retained=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:[reference],
+   acknowledgedProdatObjects:[{objectId:group.itemId,identityAgency:group.identityAgency,firstLineIndex:lineIndex,lineItemReference:reference}]})
   if(!retained)continue
   if(retained.ack_outcome!=='positive'){
    if(input.objectLineIndices)throw new Error('blocked_final_ack_exists: Originalets ACK-utfall är oföränderligt.')
@@ -46,7 +47,10 @@ export async function createReceivedProdatCommittedEffectAcks(input:{actorUserId
   if(fixed.has(plan.objectLineIndices[0]))continue
   const indices=receivedProdatFinalResponseQualification({plan,sourceMessage:final.sourceMessage})
   if(!indices)throw new Error('prodat_structural_response_own_effect_unavailable')
-  let ack=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:final.sourceMessage,ackFamily:'APERAK',outcome:'positive',ackScope:'object',acknowledgedReferences:plan.acknowledgedReferences})
+  const own=physical.find(group=>group.segments[0].index===indices[0])
+  if(!own||indices.length!==1)throw new Error('prodat_structural_response_scope_required')
+  let ack=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:final.sourceMessage,ackFamily:'APERAK',outcome:'positive',ackScope:'object',acknowledgedReferences:plan.acknowledgedReferences,
+   acknowledgedProdatObjects:[{objectId:own.itemId,identityAgency:own.identityAgency,firstLineIndex:indices[0],lineItemReference:plan.acknowledgedReferences[0]??null}]})
   const retained=ack!==null
   if(!ack){
    const qualification=await readSourceBoundOutboundAckRulePackEvidence({companyId:input.companyId,environment:source.environment,sourceMessageId:source.id})
