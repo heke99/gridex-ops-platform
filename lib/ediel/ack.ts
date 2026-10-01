@@ -6,7 +6,6 @@ import type {
   CreateEdielMessageInput,
   EdielMessageRow,
 } from '@/lib/ediel/types'
-import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { contrlSourceEnvelope, renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
 import { renderAperakEdiel, usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
@@ -27,6 +26,8 @@ import {
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 
 export type {
   AckFamily,
@@ -402,6 +403,7 @@ function buildAperakSegments(params: {
   utiltsHeaderRejected?: boolean
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
+  const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: params.sourceMessage.message_family })
   const rendered = renderAperakEdiel({
     source: {
       id: params.sourceMessage.id,
@@ -410,6 +412,8 @@ function buildAperakSegments(params: {
       messageCode: String(params.sourceMessage.message_code),
       senderEdielId: params.sourceMessage.sender_ediel_id,
       receiverEdielId: params.sourceMessage.receiver_ediel_id,
+      legalSenderEdielId: originalParties.legalSender.id,
+      legalReceiverEdielId: originalParties.legalReceiver.id,
       externalReference: params.sourceMessage.external_reference,
       messageReceivedAt: params.sourceMessage.message_received_at,
       createdAt: params.sourceMessage.created_at,
@@ -795,14 +799,15 @@ function buildUtiltsErrSegments(params: {
     throw new Error(`Kan inte skapa UTILTS_ERR: transaktion ${requestedTransaction} saknas i källmeddelandet.`)
   }
   const sourceCode = sanitizeEdifactToken(String(params.sourceMessage.message_code ?? 'UTILTS'), 8) ?? 'UTILTS'
+  const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: 'UTILTS' })
 
   const segments: Array<string | null> = [
     `BGM+ERR:SVK:260+${buildUtiltsErrDocumentReference()}+9+AB`,
     `DTM+137:${swedishDateTime()}:203`,
     'DTM+735:?+0100:406',
     copiedUtiltsSegment(sourceMks, 'MKS+'),
-    `NAD+MS+${sanitizeEdifactToken(params.sourceMessage.receiver_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
-    `NAD+MR+${sanitizeEdifactToken(params.sourceMessage.sender_ediel_id) ?? 'UNKNOWN'}:SVK:260`,
+    originalAckLegalNadSegment('MS', originalParties.legalReceiver),
+    originalAckLegalNadSegment('MR', originalParties.legalSender),
     sourceSubordinateNad,
   ]
 
@@ -944,20 +949,18 @@ function buildAckDraft(params: {
   const ackTransactionReference = sequencedReference ?? refs.transactionReference
 
   const parties = sourceParties(params.sourceMessage)
-  const contrlEnvelope = params.ackFamily === 'CONTRL' ? contrlSourceEnvelope(params.sourceMessage.raw_payload) : null
-  if (contrlEnvelope) {
-    parties.senderEdielId = contrlEnvelope.receiverComponents[0]
-    parties.senderSubAddress = contrlEnvelope.receiverComponents[2] || null
-    parties.receiverEdielId = contrlEnvelope.senderComponents[0]
-    parties.receiverSubAddress = contrlEnvelope.senderComponents[2] || null
-  }
+  // Every ACK reverses the original technical UNB route. Legal NAD parties are
+  // projected independently by the family renderer and never replace UNB.
+  const originalEnvelope = contrlSourceEnvelope(params.sourceMessage.raw_payload)
+  parties.senderEdielId = originalEnvelope.receiverComponents[0]
+  parties.senderSubAddress = originalEnvelope.receiverComponents[2] || null
+  parties.receiverEdielId = originalEnvelope.senderComponents[0]
+  parties.receiverSubAddress = originalEnvelope.senderComponents[2] || null
 
-  const applicationReference =
-    trimOrNull(params.sourceMessage.application_reference) ??
-    buildDefaultApplicationReference({
-      actorSubAddress: parties.senderSubAddress,
-      process: params.ackFamily,
-    })
+  const sourceWire = tokenizeEdifact(params.sourceMessage.raw_payload)
+  const originalApplication = segmentComposite(sourceWire.segments.find(segment => segment.tag === 'UNB'), 7, sourceWire.una)
+  if (originalApplication.length !== 1) throw new Error('ack_original_application_reference_ambiguous')
+  const applicationReference = originalApplication[0] || null
 
   const ackStatuses = deriveEdielAckDefaults({ family: params.ackFamily, code: params.ackFamily })
 
@@ -1010,9 +1013,9 @@ function buildAckDraft(params: {
     acknowledgementRequest: ackStatuses.requiresContrl,
     testFlag: params.sourceMessage.test_flag,
     senderEdielId: parties.senderEdielId,
-    senderQualifier: contrlEnvelope?.receiverComponents[1],
+    senderQualifier: originalEnvelope.receiverComponents[1],
     receiverEdielId: parties.receiverEdielId,
-    receiverQualifier: contrlEnvelope?.senderComponents[1],
+    receiverQualifier: originalEnvelope.senderComponents[1],
     messageTypeToken:
       params.ackFamily === 'CONTRL'
         ? 'CONTRL:2:2:UN:EDIEL2'
