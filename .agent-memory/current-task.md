@@ -1,3 +1,13 @@
+## Active — 2026-09-30 full Ediel masterplan v2 code phase
+
+Root is sole integrator/publisher for draft #421; six isolated package owners work in parallel with explicit file scopes. Current integrated local `fc2e2311`; published checkpoint `0b8c1c37c0806f99e18c36d8ccd576bbda117442` has the exact tree of local `0c39065f`. Current WIP is preserved and still incomplete. Baseline `885137de838481be6cda58f9af45df6c1655edfe` and all earlier commits remain intact. #418/#422 are read-only coordination contracts; #310 is untouched.
+
+Continue through actual source-qualified outbound/ACK consumers, AI native origin and exact export bytes, normal/P11/CALL03 producers, UTILTS own-IDE/header facets and the shared generated native ACK guide. Integrate all independent feasible packets, clear Critical/Important findings, run serial typecheck, changed-file lint and targeted risky regressions, then publish a meaningful exact-tree checkpoint without force. Full final-candidate unit/native/replay/schema/types/security/browser/manual verification remains separate and unrun. Do not mark formal acceptances PASSED or activate traffic.
+
+Working matrix and packet receipts: `quality/audits/ediel-masterplan-v2/codephase-20260930/`. New DSN source packet passed 49 bounded TypeScript assertions and 23 explicitly synthetic embedded SQL checks with independent source/tenant review; it is unverified sender trust and cannot authorize delivery, resend or business effects. Serialized application typecheck passed after scoped BRP query typing; no generated schemas/types fabricated.
+
+Earlier checkpoint sections below are historical and superseded for the active next action. Their exact-SHA verification remains scoped to those original candidates.
+
 ## Current — 2026-09-30 #421 coherent syntax/header code package; final-head CI pending
 
 Supersedes earlier not-executed/probe-only next-action text. Test-only head e0bd3641f617edb92e508bd62c2767730e20fca1 actually ran OPS36702357516/replay109844514929: 439/442, three confirmed mismatches (UNT999 accepted series+contract; OTHER positive CONTRL but no accepted storage; SC045 two APERAKs). Last all-green d30/native439 retained.

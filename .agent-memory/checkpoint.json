@@ -10,8 +10,8 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR #421 coherent U-03/ACK-03/SC045 syntax-header remediation; final-head CI pending",
-  "current_audit": "quality/audits/ediel-masterplan-v2/utilts-syntax-header-remediation-20260930.md",
+  "active_item": "Ediel masterplan v2 full code phase: integrate source-backed feasible packages; root sole integrator, six isolated package owners",
+  "current_audit": "quality/audits/ediel-masterplan-v2/codephase-20260930/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
     "baseline_ops": 36702357516,
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "After remote/comment recheck, publish coherent syntax-header product package exact-tree fast-forward frome0 to draft421 and verify remote tree. Inspect auto-triggered exactnewheadfivegates/native442/case/browser/types/schema; only approve affectedcontracts after actualproof. No unchangedgreenrerun or externalrecords invention; no traffic/merge.",
+  "next_action": "Complete actual source-qualified outbound/ACK gateways, AI intent/export byte binding, normal/P11/CALL03 live producers, U header/own-IDE facets and native shared ACK guide projection; independent C/I review, quick checks; publish exact-tree draft checkpoint without force. Full final-candidate tests remain a separate later phase.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1284,5 +1284,29 @@
     "product_changed": false,
     "refutation": "UNH/UNT-ref currentlyinternal-held byexistingidentityguard; notasecondacceptedstorageclaim",
     "next": "Actualnativefirstfailure beforeminimalproductfix"
+  },
+  "ediel_full_code_phase_20260930": {
+    "status": "IN_PROGRESS",
+    "baseline_local_and_remote": "885137de838481be6cda58f9af45df6c1655edfe",
+    "current_integrated_local": "fc2e2311",
+    "last_published_remote": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+    "last_published_local_equivalent": "0c39065f",
+    "formal_acceptance_statuses": "unchanged",
+    "latest_code_packets": [
+      "d6bd145f DSN actual source observations and current API/UI",
+      "43fde3d5 shared immutable accepted transport receipt",
+      "fdaf43bb P15 current supply continuity",
+      "5d25da6e/fbbe4cda normal atomic switch and actual initial source scope",
+      "61856b69/fc2e2311 source-approved physical BRP change"
+    ],
+    "latest_quick_checks": {
+      "dsn_typescript": "49 passing assertions, five files",
+      "dsn_embedded_sql": "23 passing explicitly synthetic checks",
+      "dsn_lint": "zero errors/warnings",
+      "full_application_typecheck": "PASS serialized Node22, 4096MB after BRP typed query fix; baseline default2048MB attempt OOM is not a code result"
+    },
+    "external_state": "draft, no merge or production/counterparty traffic; #418/#422 contracts read only and #310 untouched",
+    "final_test_phase": "NOT_RUN fixed final candidate: full unit/native clean+upgrade replay/type-schema parity/security/browser/manual; mandatory CI preserved",
+    "historic_checkpoint_scope": "all older accepted/native/CI entries retain their original exact SHA and narrower scope; never imply final-candidate verification"
   }
 }
