@@ -11,7 +11,7 @@ import { addNormalizedResolution, normalizeEdifactResolution } from './resolutio
 import { resolveUtiltsTransactionId } from './transactionIdentity'
 import { utiltsSeriesKind } from './transactionPersistence'
 import { canonicalAbsoluteInstant, consumptionConflict, validateUtiltsConsumptionContract, type UtiltsConsumptionAttribution, type UtiltsConsumptionContract, type UtiltsBillingContext } from './consumptionContract'
-import type { UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
+import {utiltsRuntimeSegments,type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
@@ -30,7 +30,7 @@ export async function prepareUtiltsConsumptionContracts(input: {
   if (!companyId) consumptionConflict('company_missing')
   const wire = tokenizeEdifact(message.raw_payload ?? '')
   const sourceTransactionsPhysical = canonicalUtiltsTransactions(wire.segments.slice(wire.segments.findIndex(segment => segment.tag === 'UNH')),wire.una,0)
-  const timezone = parseEdifactTimezoneOffsetFromSegments(runtime.facts.rawSegments)
+  const timezone = parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(runtime.facts))
   const absolute = (value: unknown) => canonicalAbsoluteInstant(localEdifactDateTimeToUtc(stringOrNull(value), timezone))
   const noAttribution = (reason: string): UtiltsConsumptionAttribution => ({ capability: 'skip', reason, customerId: null, siteId: null, customerSiteId: null, meteringPointId: null, gridOwnerId: null, sourceRequestId: null })
   // Resolve local instants before the pure legacy extractor performs interval

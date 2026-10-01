@@ -6,7 +6,7 @@ import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { readAndRecordDurableReceivedSources } from '@/lib/ediel/utilts/receivedSourceLedger'
@@ -471,7 +471,7 @@ export async function processInboundUtiltsMessage(params: {
       transactions: buildUtiltsTransactionPersistencePayload({
         messageCode,
         transactions: runtime.facts.transactions,
-        rawSegments: runtime.facts.rawSegments,
+        rawSegments: utiltsRuntimeSegments(runtime.facts),
         dispositions: transactionDispositions,
         matches: transactionMatches,
       }),

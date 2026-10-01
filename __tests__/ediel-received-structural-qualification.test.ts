@@ -64,7 +64,11 @@ it.each(['second-reading','energy'] as const)('prior E30 %s without period/resol
  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
  expect(runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected'}])
  expect(runtime.validation.issues.map(issue=>issue.code)).toEqual(expect.arrayContaining([
-  'UTILTS_MISSING_DELIVERY_PERIOD','UTILTS_PROFILE_PERIOD_MISSING','UTILTS_PROFILE_RESOLUTION_MISSING',
+  'UTILTS_PROFILE_PERIOD_MISSING','UTILTS_PROFILE_RESOLUTION_MISSING',
+ ]))
+ expect(runtime.validation.issues).toEqual(expect.arrayContaining([
+  expect.objectContaining({aperakErcCode:'41',aperakFieldCode:'245',referenceNumber:'GRIDEX2607E66001'}),
+  expect.objectContaining({aperakErcCode:'41',aperakFieldCode:'508',referenceNumber:'GRIDEX2607E66001'}),
  ]))
 })
 it('an invalid singleton E30 calendar date cannot claim the no-period exception',()=>{
@@ -246,7 +250,12 @@ it('keeps a valid LOC+172 sibling while LOC+175 agency fails field 533',async()=
 })
 it('holds an unproved reading while preserving an exempt energy sibling in the same physical message',async()=>{
  const args=input()
- const lines=args.message.raw_payload!.split('\n')
+ // Both own IDEs belong to the same quarter-resolution transfer. The first
+ // retains its actual opening/closing meter readings; only its interval changes.
+ const lines=args.message.raw_payload!.replace('202607010000202608010000:719','202607010000202607010015:719')
+  .replace('DTM+597:202608010000:203','DTM+597:202607010020:203')
+  .replace('DTM+597:202608010000:203','DTM+597:202607010015:203')
+  .replace('DTM+354:1:802','DTM+354:15:806').split('\n')
  const close=lines.findIndex(line=>line.startsWith('UNT+'))
  const second=[
   "IDE+24+GRIDEX2607E66002'", "LOC+172+735999260731000007::9'", "LOC+239+TES:SVK:260'",
@@ -311,6 +320,7 @@ it.each(['E30-energy','E30-readings','S07'] as const)('qualifies the real %s par
  args.message.raw_payload=args.message.raw_payload!.replace('?+0200:406','?+0100:406').replace('QTY+220:11000','QTY+220:10500')
   .replace('BGM+E66::260',code==='S07'?'BGM+S07:SVK:260':'BGM+E30::260')
   .replace(/23-DDQ-E66-[ST]/g,args.message.application_reference)
+ if(code==='E30')args.message.raw_payload=recountEdifactUnt(args.message.raw_payload.replace("MEA+AAZ++KWH'\n",''))
  args.canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:'2026-10-01',applicationReference:args.message.application_reference,mode:'parse'})
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])

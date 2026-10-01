@@ -6,6 +6,8 @@ import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
 import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import {utiltsApplicationErrorText,locateUtiltsSourceOccurrence} from '@/lib/ediel/utilts/aperakSourceText'
+import {segmentComposite,segmentUntrimmedRaw,splitComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {escapeEdifactData} from '@/lib/ediel/core/una'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
 
@@ -186,6 +188,12 @@ function numberOrNull(value: unknown): number | null {
 function normalizedOptionalId(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
+function physicalOptionalReference(value:unknown):string|null {
+  return typeof value==='string' && value!=='' ? value : null
+}
+export function utiltsRuntimeSegments(facts:ParsedUtiltsMessage):string[] {
+  return facts.runtimeSegments ?? facts.rawSegments
+}
 
 export function resolveUtiltsTransactionDispositions(input: {
   syntaxOk: boolean
@@ -212,7 +220,7 @@ export function resolveUtiltsTransactionDispositions(input: {
 
     const transactionIssues = input.issues.filter((issue) => {
       if (issue.severity !== 'error' || issue.kind === 'syntax') return false
-      const reference = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
+      const reference = physicalOptionalReference(issue.referenceNumber ?? issue.lineItemReference)
       return reference === null || reference === transactionId
     })
     const guideIssues = transactionIssues.filter((issue) => issue.kind === 'application')
@@ -275,7 +283,7 @@ function transactionMatchesFromMessage(message?: EdielMessageRow | null): Utilts
     if (!item || typeof item !== 'object' || Array.isArray(item)) return []
     const row = item as Record<string, unknown>
     return [{
-      transactionReference: normalizedOptionalId(row.transactionReference),
+      transactionReference: physicalOptionalReference(row.transactionReference),
       externalMeteringPointId: normalizedOptionalId(row.externalMeteringPointId),
       externalGridAreaId: normalizedOptionalId(row.externalGridAreaId),
       meteringPointId: normalizedOptionalId(row.meteringPointId),
@@ -321,13 +329,13 @@ function hasMoreSpecificFunctionalIssueForReference(params: {
   referenceNumber: string | null
   ignoredCode: string
 }): boolean {
-  const reference = sanitizeRuntimeToken(params.referenceNumber, 35)
+  const reference = physicalOptionalReference(params.referenceNumber)
   if (!reference) return false
   return params.issues.some((issue) => {
     if (issue.severity !== 'error' || issue.kind !== 'functional') return false
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code || code === params.ignoredCode) return false
-    const issueReference = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
+    const issueReference = physicalOptionalReference(issue.referenceNumber ?? issue.lineItemReference)
     return issueReference === reference
   })
 }
@@ -340,7 +348,7 @@ function addObjectProcessabilityIssues(params: {
   functionalEligible?: ReadonlySet<string>
 }) {
   const code = String(params.code ?? '').toUpperCase()
-  const groups = splitTransactionGroups(params.facts.rawSegments)
+  const groups = splitTransactionGroups(utiltsRuntimeSegments(params.facts))
   if (groups.length === 0) return
 
   const resolvedObject = messageHasResolvedObjectContext(params.message)
@@ -402,9 +410,7 @@ function addObjectProcessabilityIssues(params: {
 }
 
 function firstComponent(value: string | null | undefined): string | null {
-  const trimmed = value?.trim()
-  if (!trimmed) return null
-  return trimmed.split(':')[0]?.trim() || null
+  return physicalOptionalReference(splitComposite(value)[0])
 }
 
 function segmentValue(segments: readonly string[], prefix: string): string | null {
@@ -416,18 +422,22 @@ function segmentValues(segments: readonly string[], prefix: string): string[] {
 }
 
 function element(segment: string | null | undefined, index: number): string | null {
-  const value = segment?.split('+')[index]?.trim() ?? ''
-  return value.length > 0 ? value : null
+  if(!segment)return null
+  const token=tokenizeEdifact(segment).segments[0]
+  if(!token)return null
+  // Keep encoded component boundaries until each caller selects a component.
+  const parts=segmentComposite({...token,raw:segmentUntrimmedRaw(token)},index)
+  return physicalOptionalReference(parts.map(value=>escapeEdifactData(value)).join(':'))
 }
 
 function parseUnhVersion(unh: string | null): string | null {
   const composite = element(unh, 2)
-  const parts = composite?.split(':') ?? []
+  const parts = splitComposite(composite)
   return parts[4]?.trim() || null
 }
 
 function parseUnhMessageReference(unh: string | null): string | null {
-  return element(unh, 1)
+  return firstComponent(element(unh, 1))
 }
 
 function parseBgmCode(bgm: string | null): string | null {
@@ -435,10 +445,10 @@ function parseBgmCode(bgm: string | null): string | null {
 }
 
 function parseBgmReference(bgm: string | null): string | null {
-  return element(bgm, 2)
+  return firstComponent(element(bgm, 2))
 }
 function parseUnbInterchangeReference(unb: string | null): string | null {
-  return element(unb, 5)
+  return firstComponent(element(unb, 5))
 }
 
 function parseMks(mks: string | null): { market: string | null; stage: string | null } {
@@ -501,7 +511,7 @@ function parseRegistrationDateTime(segment: string | null): string | null {
 
 function parseDtmComposite(segment: string | null): { qualifier: string | null; value: string | null; format: string | null } {
   const composite = element(segment, 1)
-  const parts = composite?.split(':') ?? []
+  const parts = splitComposite(composite)
   return {
     qualifier: parts[0]?.trim() || null,
     value: parts[1]?.trim() || null,
@@ -527,7 +537,7 @@ function parsePeriod719(segment: string | null): { raw: string | null; start: st
 
 function parseQuantity(segment: string): { qualifier: string | null; value: number | null; raw: string } {
   const composite = element(segment, 1)
-  const parts = composite?.split(':') ?? []
+  const parts = splitComposite(composite)
   return {
     qualifier: parts[0]?.trim() || null,
     value: numberOrNull(parts[1]),
@@ -538,9 +548,9 @@ function parseQuantity(segment: string): { qualifier: string | null; value: numb
 function parseReferences(segments: readonly string[]): Array<{ qualifier: string; value: string }> {
   return segmentValues(segments, 'RFF+').flatMap((segment) => {
     const composite = element(segment, 1)
-    const parts = composite?.split(':') ?? []
+    const parts = splitComposite(composite)
     const qualifier = parts[0]?.trim()
-    const value = parts.slice(1).join(':').trim()
+    const value = parts[1]
     if (!qualifier || !value) return []
     return [{ qualifier, value }]
   })
@@ -553,8 +563,7 @@ function referenceValue(references: readonly { qualifier: string; value: string 
 
 function parseStsReason(segments: readonly string[]): string | null {
   const sts = segmentValue(segments, 'STS+7')
-  const parts = sts?.split('+') ?? []
-  return firstComponent(parts[3]) ?? firstComponent(parts[2])
+  return firstComponent(element(sts,3)) ?? firstComponent(element(sts,2))
 }
 
 function parseUnit(segments: readonly string[]): string | null {
@@ -616,14 +625,12 @@ function transactionDtmValue(group: UtiltsTransactionGroup, prefix: 'DTM+597' | 
 
 function parseUnitFromSegments(segments: readonly string[]): string | null {
   const mea = segmentValue(segments, 'MEA+AAZ')
-  const parts = mea?.split('+') ?? []
-  return parts[3]?.trim() || null
+  return firstComponent(element(mea,3))
 }
 
 function parseUnitFromGroup(group: UtiltsTransactionGroup): string | null {
   const mea = groupSegmentValue(group, 'MEA+AAZ')
-  const parts = mea?.split('+') ?? []
-  return parts[3]?.trim() || null
+  return firstComponent(element(mea,3))
 }
 
 function parseLocValueFromGroup(group: UtiltsTransactionGroup, prefix: 'LOC+172' | 'LOC+175' | 'LOC+239'): string | null {
@@ -700,7 +707,7 @@ function sanitizeRuntimeToken(value?: string | null, maxLength = 35): string | n
 }
 
 function transactionIssueReference(group: UtiltsTransactionGroup, fallback: string | null): string | null {
-  return normalizedOptionalId(group.transactionId ?? fallback)
+  return physicalOptionalReference(group.transactionId ?? fallback)
 }
 
 function synthesizedTransactionIssueReference(
@@ -719,8 +726,8 @@ function aperakErrorsFromIssues(message:EdielMessageRow,issues: readonly UtiltsV
       fieldCode: normalizedOptionalId(issue.aperakFieldCode),
       text: utiltsApplicationErrorText({raw:message.raw_payload ?? '',issue}) ?? '',
       referenceQualifier: sanitizeRuntimeToken(issue.referenceQualifier ?? null, 12),
-      referenceNumber: normalizedOptionalId(issue.referenceNumber),
-      lineItemReference: normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber),
+      referenceNumber: physicalOptionalReference(issue.referenceNumber),
+      lineItemReference: physicalOptionalReference(issue.lineItemReference ?? issue.referenceNumber),
     }))
 
   const seen = new Set<string>()
@@ -1022,7 +1029,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   const code = String(facts.messageCode ?? '').toUpperCase()
   const mayCheckFunction = (reference: string | null) => !functionalEligible || functionalEligible.has(String(reference ?? ''))
 
-  if (!facts.rawSegments.some((segment) => segment.startsWith('UNB+'))) {
+  if (!utiltsRuntimeSegments(facts).some((segment) => segment.startsWith('UNB+'))) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'syntax',
@@ -1033,7 +1040,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
     }))
   }
 
-  if (!facts.rawSegments.some((segment) => segment.startsWith('UNH+'))) {
+  if (!utiltsRuntimeSegments(facts).some((segment) => segment.startsWith('UNH+'))) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'syntax',
@@ -1086,7 +1093,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
 
   if (!functionalEligible || functionalEligible.size > 0) addObjectProcessabilityIssues({ issues, message, facts, code, functionalEligible })
 
-  if (['S02', 'S03'].includes(code) && (!functionalEligible || functionalEligible.size > 0) && !hasSegment(facts.rawSegments, 'STS+7')) {
+  if (['S02', 'S03'].includes(code) && (!functionalEligible || functionalEligible.size > 0) && !hasSegment(utiltsRuntimeSegments(facts), 'STS+7')) {
     issues.push(buildIssue({
       severity: 'error',
       kind: 'functional',
@@ -1098,7 +1105,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   }
 
   if (code === 'S02') {
-    for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
+    for (const [index, group] of splitTransactionGroups(utiltsRuntimeSegments(facts)).entries()) {
       const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupUnit = parseUnitFromGroup(group)
       const deliveryPeriod = parseDtmComposite(groupSegmentValue(group, 'DTM+324'))
@@ -1182,7 +1189,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   }
 
   if (code === 'S03' || code === 'E31') {
-    for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
+    for (const [index, group] of splitTransactionGroups(utiltsRuntimeSegments(facts)).entries()) {
       const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
       const label = code === 'E31' ? 'E31' : 'S03'
@@ -1250,7 +1257,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
   }
 
   if (code === 'E66') {
-    for (const [index, group] of splitTransactionGroups(facts.rawSegments).entries()) {
+    for (const [index, group] of splitTransactionGroups(utiltsRuntimeSegments(facts)).entries()) {
       const transactionReference = synthesizedTransactionIssueReference(group, facts.transactionId, index)
       const groupQuantities = parseQuantitiesFromGroup(group)
       const hasMissingValueStatus = groupHasStatusCode(group, '46')
@@ -1338,7 +1345,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
 
 function shouldPositiveAperakBeSent(message: EdielMessageRow, facts: UtiltsRuntimeFacts): boolean {
   if (message.environment === 'test') return true
-  const bgm = segmentValue(facts.rawSegments, 'BGM+')
+  const bgm = segmentValue(utiltsRuntimeSegments(facts), 'BGM+')
   const requestAck = element(bgm, 4)
   return requestAck === 'AB'
 }
@@ -1353,8 +1360,8 @@ function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationI
   for (const issue of functionalIssues) {
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code) continue
-    const referenceNumber = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
-    const lineItemReference = normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber)
+    const referenceNumber = physicalOptionalReference(issue.referenceNumber ?? issue.lineItemReference)
+    const lineItemReference = physicalOptionalReference(issue.lineItemReference ?? issue.referenceNumber)
     const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
     const codes = codesByReference.get(referenceKey) ?? new Set<string>()
     codes.add(code)
@@ -1367,8 +1374,8 @@ function functionalUtiltsErrDetailsFromIssues(issues: readonly UtiltsValidationI
   for (const issue of functionalIssues) {
     const code = sanitizeRuntimeToken(issue.utiltsErrCode?.toUpperCase(), 8)
     if (!code) continue
-    const referenceNumber = normalizedOptionalId(issue.referenceNumber ?? issue.lineItemReference)
-    const lineItemReference = normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber)
+    const referenceNumber = physicalOptionalReference(issue.referenceNumber ?? issue.lineItemReference)
+    const lineItemReference = physicalOptionalReference(issue.lineItemReference ?? issue.referenceNumber)
     const referenceKey = `${referenceNumber ?? ''}|${lineItemReference ?? ''}`
     const codesForReference = codesByReference.get(referenceKey)
 
@@ -1405,7 +1412,7 @@ function serializeUtiltsErrDetails(details: readonly UtiltsRuntimeUtiltsErrDetai
     .map((detail) => {
       const code = sanitizeRuntimeToken(detail.code?.toUpperCase(), 8)
       if (!code) return null
-      const reference = normalizedOptionalId(detail.referenceNumber ?? detail.lineItemReference)
+      const reference = physicalOptionalReference(detail.referenceNumber ?? detail.lineItemReference)
       return reference ? `${code}@${reference}` : code
     })
     .filter((value): value is string => Boolean(value))
@@ -1518,7 +1525,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
 
 export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts {
   const parsed = parseInboundUtilts(rawPayload)
-  const segments = parsed.rawSegments
+  const segments = utiltsRuntimeSegments(parsed)
   const unb = segmentValue(segments, 'UNB+')
   const unh = segmentValue(segments, 'UNH+')
   const bgm = segmentValue(segments, 'BGM+')
@@ -1529,7 +1536,12 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
   const dtm354 = segmentValue(segments, 'DTM+354')
   const period = parsePeriod719(dtm324)
   const references = parseReferences(segments)
-  const transactions = splitTransactionGroups(segments).map((group, index) => parseUtiltsTransactionGroup(group, index))
+  const transactions = splitTransactionGroups(segments).map((group, index) => {
+    const transaction=parseUtiltsTransactionGroup(group,index)
+    const originalQuantities=parsed.utiltsObservedTransactions?.[index]?.segments.filter(segment=>segment.tag==='QTY') ?? []
+    return {...transaction,quantities:transaction.quantities.map((quantity,quantityIndex)=>({...quantity,
+      raw:originalQuantities[quantityIndex] ? segmentUntrimmedRaw(originalQuantities[quantityIndex]) : quantity.raw}))}
+  })
   const bgmCode = parseBgmCode(bgm)
   const normalizedCode = String(parsed.messageCode ?? bgmCode ?? '').toUpperCase()
 
@@ -1558,7 +1570,7 @@ export function parseUtiltsRuntimeFacts(rawPayload: string): UtiltsRuntimeFacts 
     resolution: parseDtmComposite(dtm354).value,
     transactionReason: parseStsReason(segments),
     unit: parseUnit(segments),
-    quantities: segmentValues(segments, 'QTY+').map(parseQuantity),
+    quantities: segments.flatMap((segment,index)=>segment.toUpperCase().startsWith('QTY+')?[{...parseQuantity(segment),raw:parsed.rawSegments[index]}]:[]),
     transactions,
     references,
     isUtiltsErr:
