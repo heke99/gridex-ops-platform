@@ -301,6 +301,7 @@ try {
  const ignoredForward=readFileSync(new URL('../supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql',import.meta.url),'utf8');await db.exec(ignoredForward.slice(0,ignoredForward.indexOf('CREATE FUNCTION public.gridex_read_prodat_ignored_fields_v1'))+'COMMIT;')
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930234111_ediel_prodat_canonical_response_facets.sql',import.meta.url),'utf8'));checks++
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930235457_ediel_native_prodat_planned_response_authority.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001002444_ediel_prodat_positive_response_functional_parity.sql',import.meta.url),'utf8'));checks++
  await db.exec("update ediel_rule_packs set family='PRODAT',guide_version='26.A',guide_revision='3';update ediel_message_profiles set profile_key='DB:Z04',message_code='Z04'")
  const pNamed=(await db.query("select jsonb_build_object('rulePack',(select to_jsonb(p) from ediel_rule_packs p),'messageProfile',(select to_jsonb(p) from ediel_message_profiles p),'guideSources',(select jsonb_agg(to_jsonb(s) order by id) from ediel_rule_pack_sources s)) s")).rows[0].s
  const pFreshEvidence={...pEvidence,profileKey:'DB:Z04',snapshot:{...pEvidence.snapshot,profileKey:'DB:Z04',...pNamed}}
@@ -315,6 +316,7 @@ try {
  await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',$3,$4)",[uid(130),uid(1),pFacet.sourcePayloadHash,pFreshEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(130),pFreshEvidence])
  const recordP=async(facet=pFacet,facts=pFacts)=>{await db.exec('set role service_role');try{return(await db.query('select public.gridex_record_prodat_source_validation_v3($1,$2,$3,$4,$5,$6,$7) r',[uid(1),'test',uid(130),pFacet.sourcePayloadHash,JSON.stringify(facts),null,facet===null?null:JSON.stringify(facet)])).rows[0].r}finally{await db.exec('reset role')}}
  const registeredReceipt=await recordP();assert.equal(registeredReceipt.version,3);assert.ok(registeredReceipt.responseFactsHash);checks++
+ for(const functionalDecision of ['rejected','manual_review','not_applicable']){await assert.rejects(recordP(pFacet,{...pFacts,functionalDecision}),/same_owner_required/);checks++}
  const readOwnP=(await db.query('select gridex_received_sources.require_prodat_responses_v1($1,$2) r',[uid(1),uid(130)])).rows[0].r;assert.deepEqual(readOwnP.objects,pFacet.objects);checks++
  for(const facet of [{...pFacet,sourcePayloadHash:'f'.repeat(64)},{...pFacet,objects:[{...pFacet.objects[0],registerLineIndices:[ownLines[0].index]}]},{...pFacet,responses:[{...ownResponse,li:'SIBLING'}]},{...pFacet,objects:[{...pFacet.objects[0],outcome:'held'}]}]){await assert.rejects(recordP(facet),/same_owner_required/);checks++}
  const assessmentsBefore=(await db.query('select count(*)::int n from gridex_received_sources.validation_assessments where source_message_id=$1',[uid(130)])).rows[0].n
