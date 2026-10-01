@@ -21,6 +21,7 @@ export type InboundAckSourceCorrelation = {
   /** Whole-message classification does not describe each object in a mixed
    * processed PRODAT APERAK. These results use each physical ERC/LI group. */
   scopedOutcomes?: {reference: string; outcome: 'positive' | 'negative'}[]
+  wholeSourceOutcome?: 'positive' | 'negative'
 }
 export type AckSourceQualification<T extends AckCorrelationMessage> =
   | {status: 'unique'; sourceMessage: T; correlation: InboundAckSourceCorrelation; candidateIds: string[]; reason: null}
@@ -107,7 +108,11 @@ export function readPhysicalAckSourceCorrelation(message: AckCorrelationMessage)
   }
   const scopedOutcomes = classification.family === 'APERAK' && classification.profile === 'PRODAT_16_B' && scope === 'object'
     ? prodatObjectOutcomes(wire, acknowledgedReferences) : undefined
-  return {classification, scope, acknowledgedReferences, lookupReferences, ...(scopedOutcomes ? {scopedOutcomes} : {})}
+  const wholeSourceOutcome = classification.family === 'CONTRL' ? classification.outcome
+    : scope === 'message' && classification.family === 'APERAK' && classification.outcome === 'negative'
+      && (classification.profile === 'UTILTS_25_A' && classification.code === '313'
+        || classification.profile === 'PRODAT_16_B' && component(wire, first(wire, 'BGM'), 3) === '27') ? 'negative' : undefined
+  return {classification, scope, acknowledgedReferences, lookupReferences, ...(scopedOutcomes ? {scopedOutcomes} : {}), ...(wholeSourceOutcome ? {wholeSourceOutcome} : {})}
 }
 function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrelation): boolean {
   const ackUnb = first(ack, 'UNB'), sourceUnb = first(source, 'UNB')

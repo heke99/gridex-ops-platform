@@ -30,6 +30,22 @@ describe('existing outbound original ACK controls deduplication',()=>{
   expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',transactionReference:'OWN-POSITIVE',outcome:'negative'})).toBeNull()
   expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',transactionReference:'OWN-NEGATIVE',outcome:'negative'})).toMatchObject({id:'ack',ack_outcome:'negative'})
   expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',transactionReference:'OWN-NEGATIVE',outcome:'positive'})).toBeNull()
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:['OWN-POSITIVE','OWN-NEGATIVE'],outcome:'negative'})).toBeNull()
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:['OWN-POSITIVE','OWN-NEGATIVE'],outcome:'positive'})).toBeNull()
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:['OWN-NEGATIVE','ABSENT'],outcome:'negative'})).toBeNull()
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:['OWN-POSITIVE','OWN-NEGATIVE']})).toMatchObject({id:'ack',ack_outcome:'negative'})
+ })
+ it('requires the entire own physical transaction set rather than a sibling subset',async()=>{
+  io.rpc.mockResolvedValue(response([original(true,'OWN')]))
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'transaction',acknowledgedReferences:['OWN','SIBLING'],outcome:'positive'})).toBeNull()
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'transaction',acknowledgedReferences:['OWN'],outcome:'positive'})).toMatchObject({id:'ack'})
+ })
+ it('recognizes explicit national header rejection as whole-source negative coverage',async()=>{
+  const item=original(false);item.message.raw_payload=item.message.raw_payload!.replace("RFF+ACW:OWN'",'')
+  item.message.raw_payload=item.message.raw_payload!.replace(/UNT\+\d+\+ACK-M/, 'UNT+7+ACK-M')
+  item.payloadHash=createHash('sha256').update(item.message.raw_payload!).digest('hex')
+  io.rpc.mockResolvedValue(response([item]))
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'transaction',acknowledgedReferences:['OWN','SIBLING'],outcome:'negative'})).toMatchObject({id:'ack'})
  })
  it('does not collapse another physical transaction into the requested scope',async()=>{
   io.rpc.mockResolvedValue(response([original(true,'SIBLING'),original(false,'OWN')]))

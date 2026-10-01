@@ -209,18 +209,26 @@ export async function findExistingAckForSource(params: {
   outcome?: AckOutcome
   ackScope?: 'interchange'|'message'|'transaction'|'object'
   transactionReference?: string
+  acknowledgedReferences?: readonly string[]
 }): Promise<EdielMessageRow | null> {
   const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily)
+  const references=[...new Set([...(params.acknowledgedReferences??[]),...(params.transactionReference?[params.transactionReference]:[])])]
   for(const original of originals){
     const {correlation}=original
-    if(params.ackScope && correlation.scope!==params.ackScope
-      && correlation.scope!=='message' && correlation.scope!=='interchange')continue
-    if(params.transactionReference && ['transaction','object'].includes(correlation.scope)
-      && !correlation.acknowledgedReferences.includes(params.transactionReference))continue
+    const wholeCoverage=correlation.wholeSourceOutcome!==undefined && ['message','interchange'].includes(correlation.scope)
+    if(params.ackScope && correlation.scope!==params.ackScope && !wholeCoverage)continue
+    if(references.length && ['transaction','object'].includes(correlation.scope)
+      && !references.every(reference=>correlation.acknowledgedReferences.includes(reference)))continue
+    if(references.length && !['transaction','object'].includes(correlation.scope) && !wholeCoverage)continue
     if(original.status==='held')throw new Error('ediel_existing_ack_original_basis_unavailable')
-    const outcome=params.transactionReference && correlation.scope==='object'
-      ? correlation.scopedOutcomes?.find(result=>result.reference===params.transactionReference)?.outcome
-      : correlation.classification.outcome
+    const outcomes=references.length && correlation.scope==='object'
+      ? references.map(reference=>correlation.scopedOutcomes?.find(result=>result.reference===reference)?.outcome)
+      : [wholeCoverage?correlation.wholeSourceOutcome:correlation.classification.outcome]
+    if(outcomes.some(outcome=>outcome!=='positive'&&outcome!=='negative'))throw new Error('ediel_existing_ack_original_outcome_unavailable')
+    if(params.outcome!==undefined && !outcomes.every(outcome=>outcome===params.outcome))continue
+    // This is only an aggregate of the requested own groups. The caller keeps
+    // their separate physical scoped results when checking immutable conflicts.
+    const outcome=outcomes.some(value=>value==='negative')?'negative':'positive'
     if(outcome!=='positive'&&outcome!=='negative')throw new Error('ediel_existing_ack_original_outcome_unavailable')
     if(params.outcome!==undefined&&outcome!==params.outcome)continue
     // A read projection only. The returned actual original keeps status/raw/ID;
