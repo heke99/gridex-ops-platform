@@ -1,4 +1,5 @@
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
+import {receivedUtiltsOwnerFixture,utiltsNamedOwnerWitness,utiltsCanonicalOwnerRpc,utiltsOwnerCompany,resetUtiltsCanonicalOwnerIo} from './helpers/utiltsCanonicalOwnerIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -6,8 +7,9 @@ import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdiel
 import { observationHandoffMessage, energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, type Parts } from './fixtures/prodat-register'
 
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn(),registry:vi.fn(),rpc:vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async()=>({...await vi.importActual<object>('@/lib/ediel/rulebook/canonicalRulePackRegistry'),resolveCanonicalRulePack:io.registry}))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -28,7 +30,7 @@ function source() {
     line('1', point, undefined, '9'), ['DTM', ['92', '202607010000', '203']], ['RFF', ['MG', 'M']], ...characteristic('Z16', '201', 3),
   ]
   const wire = raw(body)
-  return { id: 'source-1', company_id: 'tenant-a', environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04',
+  return { id: 'source-1', company_id: utiltsOwnerCompany, environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04',
     metering_point_id: 'meter-tenant-a', raw_payload: wire, immutable_payload_hash: createHash('sha256').update(wire, 'utf8').digest('hex'),
     message_received_at: '2026-06-20T09:00:00Z', received_prodat_context: undefined as Record<string, unknown> | undefined }
 }
@@ -43,7 +45,8 @@ function query() {
   return q
 }
 beforeEach(() => {
-  vi.clearAllMocks(); incoming = observationHandoffMessage(); rows = []
+  vi.clearAllMocks(); resetUtiltsCanonicalOwnerIo(); incoming = receivedUtiltsOwnerFixture(observationHandoffMessage()); rows = []
+  io.registry.mockImplementation(utiltsNamedOwnerWitness);io.rpc.mockImplementation(utiltsCanonicalOwnerRpc)
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(query)
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, meteringPointId: 'meter-tenant-a', externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
@@ -74,7 +77,7 @@ async function capture(accepted: boolean) {
 }
 for (const accepted of [false, true]) for (const state of ['recorded', 'unavailable', 'contradictory'] as const) {
   it(`preserves every ${accepted ? 'accepted' : 'rejected'} business outcome with ${state} context`, async () => {
-    if (accepted) { incoming = energyHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
+    if (accepted) { incoming = receivedUtiltsOwnerFixture(energyHandoffMessage('2026-10-01')); io.allMatched.mockReturnValue(true) }
     const baseline = await capture(accepted)
     const row = source()
     if (state !== 'unavailable') row.received_prodat_context = {

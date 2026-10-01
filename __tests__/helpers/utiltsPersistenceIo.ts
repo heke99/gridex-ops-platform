@@ -12,6 +12,6 @@ export async function successfulUtiltsPersistenceIo(
     responseType: item.responseType,
     persistenceStatus: item.disposition === 'accepted' ? 'persisted' : 'not_applicable',
     sourceBinding: { sourceMessageId: input.sourceMessageId, rawHash: createHash('sha256').update(input.rawPayload).digest('hex'), boundAt: '2026-09-23T00:00:00Z' },
-    ...(item.disposition === 'accepted' ? { seriesId: `synthetic-series-${item.transactionId}`, consumptionContract: structuredClone(input.contracts[index]), contractHash: 'a'.repeat(64), contractVersion: 1 } : {}),
+    ...(item.disposition === 'accepted' ? { seriesId: `synthetic-series-${item.transactionId}`, consumptionContract: structuredClone(input.contracts[index]), contractHash: 'a'.repeat(64), contractVersion: input.contracts[index].version } : {}),
   })))
 }
