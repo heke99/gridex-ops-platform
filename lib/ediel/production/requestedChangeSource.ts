@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto'
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {copyProdatInvoiceeObjects,type ProdatInvoiceeObject} from '@/lib/ediel/prodat/prodatInvoicee'
-import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type {ProdatDependentConditionFacts} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 export type RequestedChangeBasis={status:'authorized';companyId:string;environment:'test'|'production';eventId:string;variant:'E'|'F'|'G';eventKind:'death'|'quarter_contract'|'method_contract';supplyPeriodId:string;supplySourceMessageId:string;supplyStateVersion:number;customerId:string;meteringPointId:string;legalActorId:string;legalSenderId:string;legalReceiverId:string;pointId:string;identityAgency:'9'|'89';gridArea:string;brpEdielId:string;effectiveAt:string;sourceReference:string;sourceVersion:string;sourceDigest:string;invoiceeProfile:ProdatInvoiceeObject;customerIdentity:{id:string;qualifier:''|'1'|'SE1'|'SE2';agency:'89'|'260';name:string;addressLines:string[];city:string;postalCode:string;country:string}}
 export type RequestedChangeHeld={status:'held';missing:string[]}

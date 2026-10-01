@@ -7,7 +7,8 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
 const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
 const NOW = '2026-09-20T12:00:00.000Z'
 
@@ -43,6 +44,8 @@ async function loadRuntime() {
     export { validateRulebookMessage } from '@/lib/ediel/rulebook/validator';
   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
   await entry.link((name, parent) => {
+    const sourceBoundary = sourceRuntimeBoundary(name, modules, parent)
+    if (sourceBoundary) return sourceBoundary
     if (boundaries.has(name)) return boundaries.get(name)
     if (name === 'crypto' || name === 'node:crypto') return crypto
     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
@@ -50,7 +53,7 @@ async function loadRuntime() {
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
     if (!modules.has(file)) modules.set(file, new SourceTextModule(
-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
+      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
       { context, identifier: file }))
     return modules.get(file)
   })
@@ -58,6 +61,7 @@ async function loadRuntime() {
   return { ...entry.namespace, effects }
 }
 const api = loadRuntime()
+after(() => assertNoSourceBoundaryAttempts())
 
 // Independent lexical oracle: retain release sequences while counting structure.
 function splitWire(value, delimiter, release) {
@@ -230,7 +234,9 @@ for (const requestAck of [undefined,false,true]) test(`generic PRODAT alternate 
   const built = a.buildProdatMessage(input), wire = finalWire(built.rawEdifact)
   assert.equal(wire.unb[9], '1'); assert.equal(wire.rows.find(row=>row[0]==='BGM')[4], requestAck===false?'NA':'AB')
 })
-test('actual saved-switch PRODAT draft carries the same request and persisted monitoring', async () => {
+// Positive saved-switch qualification uses the native signed-contract/Z03 fixture.
+// This source-only fixture has no current tenant actor and must stop before I/O.
+test('saved-switch draft without a current tenant actor holds before source or external access', async () => {
   const a = await api, id = '735999888000000017'
   const portalData = {facilityId:id,customerId:'USER',customerIdAgency:'89',powerOfAttorneyReference:'POA',customerName:'Synthetic',
     customerAddress:'Street',customerPostalCode:'12345',customerCity:'Town',customerCountry:'SE',siteAddress:'Street',siteCountry:'SE',
@@ -241,10 +247,10 @@ test('actual saved-switch PRODAT draft carries the same request and persisted mo
     switchRequest:{id:'switch',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'meter',grid_owner_id:'owner',requested_start_date:'2026-10-01',request_type:'supplier_switch',status:'draft',current_supplier_name:'Existing',power_of_attorney_id:'poa',validation_snapshot:{portalData}},
     site:{id:'site',company_id:'company',customer_id:'customer',facility_id:id,grid_owner_id:'owner',move_in_date:'2026-10-01',street:'Street',postal_code:'12345',city:'Town'},
     meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'}}
-  const before = JSON.stringify(input), draft = await a.buildProdatZ03FromSwitch(input)
-  assert.equal(finalWire(draft.rawPayload).unb[9], '1')
-  assertPending(a,draft,true); assert.equal(JSON.stringify(input),before)
-  assert.equal(draft.customerId,'customer'); assert.equal(draft.siteId,'site'); assert.equal(draft.switchRequestId,'switch')
+  const before = JSON.stringify(input)
+  await assert.rejects(a.buildProdatZ03FromSwitch(input), /ediel_tenant_actor_required/)
+  assert.equal(JSON.stringify(input), before)
+  assert.deepEqual(a.effects, [])
 })
 test('all exercised consumers kept provider, database and transport boundaries closed', async () => {
   assert.deepEqual((await api).effects, [])
@@ -311,7 +317,7 @@ test('actual outbound route contract still selects ediel_ack for UTILTS_ERR',asy
     ['@/lib/routes/routeReadiness',synthetic({expectedApplicationReference:requestType=>{captured.push(requestType);throw stop}})],
   ])
   const file=path.join(root,'lib/ediel/outbox/routeContract.ts')
-  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{context,identifier:file})
+  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'transform',sourceUrl:file}),{context,identifier:file})
   await module.link(name=>{assert.ok(boundaries.has(name),`Unexpected route dependency:${name}`);return boundaries.get(name)})
   await module.evaluate()
   await assert.rejects(module.namespace.evaluateEdielRouteContract({direction:'outbound',company_id:'tenant-A',

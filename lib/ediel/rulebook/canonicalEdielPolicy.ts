@@ -12,6 +12,7 @@ import {
   type ProdatDependentConditionEvaluation,
   type ProdatDependentConditionFacts,
 } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+export type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import {
   resolveEdielGuideAcceptance,
   type AuthoritativeEdielGuide,

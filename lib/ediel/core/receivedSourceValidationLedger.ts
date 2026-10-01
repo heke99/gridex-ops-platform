@@ -1,3 +1,4 @@
+import {recordReceivedProdatObjectValidation} from './receivedProdatObjectValidation'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { CanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
@@ -46,7 +47,11 @@ export async function recordReceivedSourceValidation(input: {
       || data.sourceMessageId !== evidence.sourceMessageId || data.sourcePayloadHash !== evidence.sourcePayloadHash || data.factsHash !== factsHash
       || (prodat&&data.ignoredFieldsHash!==ignoredFactsHash) || data.sourceDisposition !== 'not_established' || !isEvidenceUuid(data.assessmentId) || (utilts && (data.transactionFactsHash!==transactionFactsHash || data.headerFactsHash!==headerFactsHash || data.functionalFactsHash!==functionalFactsHash))) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
     const receipt: ReceivedSourceValidationReceipt = { status: 'recorded', sourceDisposition: 'not_established', assessmentId: data.assessmentId, factsHash }
-    if (capturedOriginal.message_family === 'PRODAT') freshOwnerSeeds.set(receipt, {original: capturedOriginal, evidence, assessmentId: data.assessmentId})
+    if (capturedOriginal.message_family === 'PRODAT') {
+      const objectRecorded=evidence.prodatObjectValidation&&await recordReceivedProdatObjectValidation({...evidence,assessmentId:data.assessmentId,validation:evidence.prodatObjectValidation})
+      const baseEvidence={...evidence};delete baseEvidence.prodatObjectValidation
+      freshOwnerSeeds.set(receipt,{original:capturedOriginal,evidence:objectRecorded?evidence:baseEvidence,assessmentId:data.assessmentId})
+    }
     return receipt
   } catch { return { status: 'unconfirmed', sourceDisposition: 'not_established' } }
 }

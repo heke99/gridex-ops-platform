@@ -44,6 +44,9 @@
     "20260930165148_ediel_monotonic_route_security_dependencies.sql": "60e0afa6a3716ffb0e3610014045e95b64205f9dfed2f5c7b878d3ba48e64dcc",
     "20260930170047_ediel_readiness_current_source_provenance.sql": "5e8ec1d4fc1a9cfb52a84fa2a35ae65a20b288314924f93c6cbad27e175f5846",
     "20260930171116_ediel_wire_reference_namespace.sql": "c6bbd57e0236fd5ea24b08a895e289ac71b83dc95a0ff34e4d0c60aa55c15d57",
-    "20260930173632_ediel_immutable_source_legal_context.sql": "98a186c75e6bef3c8b1609ae15a09679f4599a5452cb141089eff872d4494f13"
+    "20260930173632_ediel_immutable_source_legal_context.sql": "98a186c75e6bef3c8b1609ae15a09679f4599a5452cb141089eff872d4494f13",
+    "20260930224443_ediel_outbound_ack_protected_replay.sql": "374112f9efcd18642d02b0bfdaaff32612bd822a623703eb7b83eacab192e860",
+    "20260930224540_ediel_source_bound_requested_changes.sql": "7f0a34d11ed5bab4f55fbc427465c644035d8469dec2a1e96d94b15dd74e3334",
+    "20260930224726_ediel_prodat_mixed_own_object_processing.sql": "14cbfc9d62b94e441b396f76d5b39a1357391e07aceaf05c6f069cab22dd3ab5"
   }
 }

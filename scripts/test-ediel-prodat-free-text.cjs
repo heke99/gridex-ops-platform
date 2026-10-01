@@ -7,7 +7,8 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
 const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
 const NOW = '2026-09-20T12:00:00.000Z'
 
@@ -47,6 +48,8 @@ async function loadRuntime() {
     export { buildProdatMessage } from '@/lib/ediel/prodat/buildProdat';
   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
   await entry.link((name, parent) => {
+    const sourceBoundary = sourceRuntimeBoundary(name, modules, parent)
+    if (sourceBoundary) return sourceBoundary
     if (boundaries.has(name)) return boundaries.get(name)
     if (name === 'crypto' || name === 'node:crypto') return crypto
     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
@@ -54,7 +57,7 @@ async function loadRuntime() {
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
     if (!modules.has(file)) modules.set(file, new SourceTextModule(
-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
+      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
       { context, identifier: file }))
     return modules.get(file)
   })
@@ -62,6 +65,7 @@ async function loadRuntime() {
   return { ...entry.namespace, effects }
 }
 const api = loadRuntime()
+after(() => assertNoSourceBoundaryAttempts())
 
 // Independent synthetic wire data. Expected FTX semantics are literal source rules,
 // never inferred from production descriptors or the reader under test.

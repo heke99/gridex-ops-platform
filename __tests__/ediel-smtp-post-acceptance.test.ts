@@ -5,7 +5,8 @@ import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport/index.part-2'
 import { SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
-const mocks = vi.hoisted(() => ({ send: vi.fn(), status: vi.fn(), event: vi.fn(), auditError: null as Error | null,rpc:vi.fn() }))
+const mocks = vi.hoisted(() => ({ send: vi.fn(), status: vi.fn(), event: vi.fn(), auditError: null as Error | null,rpc:vi.fn(),
+ snapshot:{profileKey:'PRODAT:Z01:Z22:26.A:r3',profileVersionId:'00000000-0000-4000-8000-000000000097',version:'26.A:r3',checksum:'a'.repeat(64)} }))
 vi.mock('@/lib/ediel/db', () => ({ updateEdielMessageStatus: mocks.status, createEdielMessageEvent: mocks.event, getEdielRouteProfileByCommunicationRouteId: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: mocks.send }))
 vi.mock('@/lib/ediel/mailReadiness', () => ({ assertEdielSmtpReadiness: () => ({ from: 'sender@example.test' }) }))
@@ -20,7 +21,15 @@ vi.mock('@/lib/ediel/transport/index.part-1', () => ({
 
 // Admission is mocked for this persistence-only unit; the shared canonical
 // policy still builds/seals/registers the real Z01 expectation plan.
-vi.mock('@/lib/ediel/rulebook/sendGuards',async()=>{const{resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy');return{assertRulebookAllowsSend:()=>({canonicalPolicy:resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z01',subtypeOrReasonCode:'Z22',direction:'outbound',referenceDate:'2026-09-30',applicationReference:'23-DDQ-PRODAT'})})}})
+vi.mock('@/lib/ediel/rulebook/sendGuards',async()=>{
+ const {resolveCanonicalEdielPolicy}=await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+ const admission=(message:EdielMessageRow)=>{
+  expect(message).toMatchObject({id:'00000000-0000-4000-8000-000000000001',company_id:'00000000-0000-4000-8000-000000000002',environment:'test',direction:'outbound',message_family:'PRODAT',message_code:'Z01'})
+  expect(message.raw_payload).toBe(raw)
+  return{rulePackSnapshot:mocks.snapshot,canonicalPolicy:resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z01',subtypeOrReasonCode:'Z22',direction:'outbound',referenceDate:'2026-09-30',applicationReference:'23-DDQ-PRODAT'})}
+ }
+ return{assertRulebookAllowsSend:admission,assertRegistryRulebookAllowsSend:async(message:EdielMessageRow)=>admission(message)}
+})
 let journal:ReturnType<typeof transportJournalFixture>
 const uid=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const raw=closureFixture({reason:'Z22'}).wire.replace('BGM+Z05','BGM+Z01')
@@ -29,7 +38,15 @@ describe('SMTP acceptance followed by persistence failure', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.auditError = null
-    journal=transportJournalFixture();mocks.rpc.mockImplementation(journal.rpc)
+    journal=transportJournalFixture();mocks.rpc.mockImplementation(async(name,args)=>{
+      // Mechanical persistence fixture only: this DTO cannot establish native
+      // protected-source authority. Bind its tuple to this one synthetic send.
+      if(name==='ediel_capture_source_rule_pack_basis_v1'){
+        expect(args).toEqual({p_company_id:uid(2),p_message_id:uid(1)})
+        return{data:{rulePackId:uid(98),messageProfileId:mocks.snapshot.profileVersionId,profileKey:mocks.snapshot.profileKey,version:mocks.snapshot.version,sourceHash:mocks.snapshot.checksum,snapshot:mocks.snapshot},error:null}
+      }
+      return journal.rpc(name,args)
+    })
     mocks.send.mockImplementation(async(input,entry)=>{await journal.beforeProvider(input,entry);return{ accepted: ['recipient@example.test'], rejected: [], messageId: '<smtp1@example.test>' };})
     mocks.status.mockResolvedValue(undefined)
     mocks.event.mockResolvedValue(undefined)

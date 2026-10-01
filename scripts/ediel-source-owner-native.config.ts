@@ -15,5 +15,17 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = status.ANON_KEY
 process.env.SUPABASE_SERVICE_ROLE_KEY = status.SERVICE_ROLE_KEY
 export default defineConfig({
   resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},
-  test:{environment:'node',include:['scripts/ediel-source-owner-native.test.ts','scripts/ediel-closure-wire-native.test.ts','scripts/ediel-utilts-consumption-native.test.ts','scripts/ediel-correction-context-native.test.ts','scripts/ediel-document-reference-native.test.ts','scripts/ediel-z04-ack-native.test.ts','scripts/ediel-utilts-err-gateway-native.test.ts','scripts/ediel-utilts-s02-required-native.test.ts'],testTimeout:30000,hookTimeout:30000,fileParallelism:false},
+  test:{environment:'node',include:[
+    'scripts/ediel-source-owner-native.test.ts',
+    'scripts/ediel-closure-wire-native.test.ts',
+    'scripts/ediel-utilts-consumption-native.test.ts',
+    'scripts/ediel-correction-context-native.test.ts',
+    'scripts/ediel-document-reference-native.test.ts',
+    'scripts/ediel-z04-ack-native.test.ts',
+    'scripts/ediel-utilts-err-gateway-native.test.ts',
+    'scripts/ediel-utilts-s02-required-native.test.ts',
+    'scripts/ediel-outbound-ack-replay-native.test.ts',
+    'scripts/ediel-prodat-mixed-native.test.ts',
+    'scripts/ediel-transport-data-query-plan-native.test.ts',
+  ],testTimeout:30000,hookTimeout:30000,fileParallelism:false},
 })

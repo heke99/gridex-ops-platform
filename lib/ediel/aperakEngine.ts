@@ -407,6 +407,25 @@ export function renderAperakEdiel(params: {
         ]
       : normalizeAperakErrors(params.applicationErrors, params.messageText ?? null, isUtiltsSource)
 
+  // BGM34 answers every physical object in the processed original. A negative
+  // object does not grant success for an untouched sibling. Only actual own
+  // outcomes supplied by the processing owner may complete a mixed response.
+  if (hasProdatWire && bgmFunction === '34' && sourceWire) {
+    const objects = prodatRegisterGroups(sourceWire.segments, sourceWire.una).groups.filter(group => group.registerPosition === 1)
+    const answered = new Set<number>()
+    for (const error of errors) {
+      const matches = objects.filter(group => {
+        const refs = group.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, sourceWire.una)[0] === 'LI')
+        const li = refs.length === 1 ? segmentComposite(refs[0], 1, sourceWire.una)[1] : null
+        return (error.lineItemReference ? error.lineItemReference === li : error.referenceNumber === group.itemId)
+          && (!error.referenceNumber || error.referenceNumber === group.itemId)
+      })
+      if (matches.length !== 1) throw new Error('APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH')
+      answered.add(matches[0].lineIndex)
+    }
+    if (objects.some(object => !answered.has(object.lineIndex))) throw new Error('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
+  }
+
   for (const [errorIndex, error] of errors.entries()) {
     segments.push(`ERC+${error.ercCode}::260`)
     segments.push(

@@ -62,10 +62,16 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
   const register = bindReceivedRegisterValidation(canonical.registerValidation, seed.original.raw_payload)
   if (!register || !register.objects.length) return null
   const ready = [canonical.syntaxDecision,canonical.applicationDecision,canonical.functionalDecision].every(state=>state==='accepted')
+  const ownGuides=seed.evidence.prodatObjectValidation
+  const mixedReady=canonical.syntaxDecision==='accepted'&&canonical.applicationDecision==='rejected'&&canonical.functionalDecision==='accepted'&&ownGuides?.sharedAccepted===true
+    &&ownGuides.objects.every(object=>object.disposition!=='unavailable')&&ownGuides.objects.some(object=>object.disposition==='accepted')&&ownGuides.objects.some(object=>object.disposition==='rejected')
   const rejected = [canonical.syntaxDecision,canonical.applicationDecision,canonical.functionalDecision].includes('rejected')
-  const entries: ObjectDecision[] = register.objects.map(({disposition,reasons,...object})=>({object,
-    disposition:rejected||disposition==='rejected'?'rejected':'unavailable',
-    reasons:rejected?['canonical_rejected']:disposition==='rejected'&&reasons.length?reasons:['source_owner_not_established'],business:null,party:null}))
+  const entries: ObjectDecision[] = register.objects.map(({disposition,reasons,...object})=>{
+    const guide=ownGuides?.objects.find(own=>own.firstLineIndex===object.registers[0].lineIndex&&own.objectId===object.objectId&&own.identityAgency===object.identityAgency)
+    const ownRejected=mixedReady&&guide?.disposition==='rejected'
+    return {object,disposition:disposition==='rejected'||ownRejected||rejected&&!mixedReady?'rejected':'unavailable',
+      reasons:rejected&&!mixedReady?['canonical_rejected']:ownRejected?guide.reasons:disposition==='rejected'&&reasons.length?reasons:['source_owner_not_established'],business:null,party:null}
+  })
   let operation:Promise<SourceOwnerReceipt>|undefined
   let pending:Promise<void> = Promise.resolve()
   const committedScopes = new Set<string>()
@@ -76,7 +82,7 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
       if (committedScopes.has(key)) return
       committedScopes.add(key)
       pending = pending.then(async()=>{
-        if (ready) {
+        if (ready || mixedReady) {
           // One native whole-source transaction may commit multiple exact
           // objects. Accumulate their existing primary-owner decisions before
           // the single immutable composition is persisted in finish().
@@ -84,7 +90,7 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
             const point = await readSourceOwnerRow('metering_points', seed.evidence.companyId,
               commit.message.metering_point_id ?? '', AbortSignal.timeout(2000))
             const matches = entries.map((entry,index)=>({entry,index})).filter(({entry,index})=>
-              register.objects[index].disposition === 'accepted' && entry.object.messageIndex === 0
+              register.objects[index].disposition === 'accepted' && (ready||ownGuides?.objects.some(own=>own.firstLineIndex===entry.object.registers[0].lineIndex&&own.objectId===entry.object.objectId&&own.identityAgency===entry.object.identityAgency&&own.disposition==='accepted')) && entry.object.messageIndex === 0
               && entry.object.identityAgency === '9' && entry.object.objectId === point.meter_point_id)
             if (matches.length === 1) {
               const {entry,index} = matches[0]
