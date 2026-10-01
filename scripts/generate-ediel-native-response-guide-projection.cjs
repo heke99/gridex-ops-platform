@@ -36,5 +36,5 @@ if(argv.includes('--check')){
  console.log('Native response guide source projection matches the current shared canonical owner; immutable publication provenance valid')
 }else{
  const marker='-- CANONICAL RESPONSE GUIDE PROJECTION PLACEHOLDER';if(!content.includes(marker))throw Error('New migration marker missing; existing publication must never be rewritten')
- fs.writeFileSync(target,content.replace(marker,block));console.log(`Generated same-owner P/U/T/ERR registered-guide source projection ${edition.sourceVersion}`)
+ fs.writeFileSync(target,content.replace(marker,block).replaceAll('__CANONICAL_ACK_GUIDE_SOURCE_VERSION__',edition.sourceVersion));console.log(`Generated same-owner P/U/T/ERR registered-guide source projection ${edition.sourceVersion}`)
 }

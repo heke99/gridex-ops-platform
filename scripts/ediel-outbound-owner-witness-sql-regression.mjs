@@ -275,6 +275,23 @@ try {
  await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(120),uid(1),pSource,pEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(120),pEvidence])
  const prepareP=async(wire,source=120)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:wire,relatedMessageId:uid(source),rulePackEvidence:pEvidence}])).rows[0].r
  const createP=async(id,wire,sealed,code='APERAK',source=120)=>db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,encode(sha256(convert_to($4,'UTF8')),'hex'),now())",[uid(id),uid(1),code,wire,uid(source),pEvidence.rulePackId,pEvidence.messageProfileId,pEvidence.profileKey,pEvidence.version,pEvidence.sourceHash,sealed.evidence.snapshot,{outboundOwnerWitnessId:sealed.witnessId}])
+ // ACK-10 correction composed with the actual existing P guide, owner seal,
+ // one-use consumption and INSERT. The apply delegates are declared boundary
+ // fixtures only; their NEW guard mechanics have their own focused harness.
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','PRODAT','Z14',$3,now())",[uid(116),uid(1),pSource]);await legal(116)
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(116),uid(1),pSource,pEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(116),pEvidence])
+ const oldUnusedWire=(await pAck('OLD-UNUSED')).replace('BGM+++34','BGM+APERAK+OLD-DOCUMENT+34')
+ const oldUnusedSeal=await prepareP(oldUnusedWire,116);await createP(119,oldUnusedWire,oldUnusedSeal,'APERAK',116);checks++
+ await db.exec(`create function gridex_ack_authority.read_committed_v1(uuid,text,uuid,uuid) returns jsonb language sql as 'select null::jsonb';create function gridex_ack_authority.apply_v1(uuid,text,uuid,uuid,uuid) returns jsonb language sql as $$select '{"explicitBoundary":"incoming_apply_tested_separately"}'::jsonb$$;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql',import.meta.url),'utf8'));checks++
+ for(const bgm of ['BGM+APERAK++34','BGM++NEW-DOCUMENT+34','BGM+::260++34']){
+  const invalid=(await pAck('FRESH-UNUSED')).replace('BGM+++34',bgm)
+  await assert.rejects(prepareP(invalid),/ediel_prodat_aperak_unused_document_element/)
+  await assert.rejects(createP(118,invalid,oldUnusedSeal),/ediel_prodat_aperak_unused_document_element/)
+  assert.equal((await db.query('select count(*)::int n from ediel_messages where id=$1',[uid(118)])).rows[0].n,0);checks++
+ }
+ // Published source knowledge does not rewrite a previously consumed original.
+ assert.deepEqual((await db.query('select gridex_ediel_outbound_owner.require_v1($1,$2) r',[uid(1),uid(119)])).rows[0].r,oldUnusedSeal.evidence);checks++
  const mixedRaw=await pAck('MIXED');const mixedSeal=await prepareP(mixedRaw);assert.equal((await db.query('select code from gridex_ediel_outbound_owner.witnesses where id=$1',[mixedSeal.witnessId])).rows[0].code,'APERAK');checks++
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930231746_ediel_native_prodat_ack_immutable_scope.sql',import.meta.url),'utf8'));checks++
  const ownPScopes=(await db.query('select gridex_ediel_ack_guide.prodat_outcomes_v1($1,$2) r',[mixedRaw,pSource])).rows[0].r;assert.deepEqual(ownPScopes.map(s=>s.outcome),['positive','negative']);checks++
