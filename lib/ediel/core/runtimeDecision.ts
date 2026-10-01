@@ -678,6 +678,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
   }
   if (base.policy.family !== 'PRODAT' && base.policy.family !== 'UTILTS') return base
 
+  const selectedFamily=base.policy.family
   const selectedPolicy=base.policy
   let issuerIdentityAuthority:UtiltsIssuerIdentityAuthority|undefined
   try {
@@ -692,7 +693,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
         responsePlan,issues,sourceRules,decisionTrace,syntax:base.validationReport.syntax})
     }
     const evidence = await resolveCanonicalRulePack({
-      family: selectedPolicy.family,
+      family: selectedFamily,
       messageCode: selectedPolicy.code,
       transactionSubtype: selectedPolicy.subtype,
       applicationReference: selectedPolicy.applicationReference,
