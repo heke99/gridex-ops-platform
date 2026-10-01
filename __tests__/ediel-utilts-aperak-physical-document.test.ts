@@ -50,7 +50,8 @@ describe('ACK-03 A503/A504 exact present physical original',()=>{
   expect(validateCanonicalAckGuide({policy,rawSegments:wire.segments.map(t=>t.raw),una:wire.una,sourceRawPayload:message.raw_payload}).filter(issue=>issue.code==='ACK_UTILTS_ORIGINAL_DOCUMENT_MISMATCH')).toEqual([])
  })
  it('copies a long observed original into its own negative header response without truncation',()=>{
-  const reference='OWN?:+'.repeat(10),message=source(reference)
+  // At the D.02B 1004 an..35 directory limit, with service characters.
+  const reference='OWN?:+'.repeat(5)+'ABCDE',message=source(reference)
   message.raw_payload=message.raw_payload!.replace('BGM+E66::260','BGM+E66::999')
   const result=render(message,true)
   expect(doc(result)).toEqual([{code:['E66','SVK','260'],reference:[reference]}])
@@ -78,13 +79,17 @@ describe('ACK-03 A503/A504 exact present physical original',()=>{
   expect(()=>render(message,false,parent+'X')).toThrow('ediel_own_ack_group_reference_invalid')
  })
  it.each([false,true])('copies the observed original into its own national negative A505 ACW with alternate UNA=%s',customUna=>{
-  const reference='X'.repeat(70),message=source(document,customUna)
+  // At the D.02B 7402 an..35 directory limit; longer is a CONTRL syntax rejection.
+  const reference='X'.repeat(35),message=source(document,customUna)
   message.message_received_at='2026-10-15T20:00:00Z'
   message.raw_payload=message.raw_payload!.replace('GRIDEX2607E66001',reference).replace('735999260731000007','735999260731000008')
   const runtime=runUtiltsRuntimeForMessage(message)
   expect(runtime.transactionDispositions).toMatchObject([{transactionId:reference,disposition:'guide_rejected',responseType:'negative_aperak'}])
   const ack=tokenizeEdifact(render(message,true).segments.map(t=>t+"'").join(''))
   expect(ack.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,ack.una)[0]==='ACW').map(t=>segmentComposite(t,1,ack.una)[1])).toEqual(runtime.ackPlan.aperakApplicationErrors.map(()=>reference))
-  expect(()=>render(message)).toThrow('utilts_aperak_transaction_reference_invalid')
+  const long=source(document,customUna);long.message_received_at=message.message_received_at
+  long.raw_payload=long.raw_payload!.replace('GRIDEX2607E66001','X'.repeat(70)).replace('735999260731000007','735999260731000008')
+  expect(runUtiltsRuntimeForMessage(long).transactionDispositions).toMatchObject([{disposition:'syntax_rejected',responseType:'negative_contrl'}])
+  expect(()=>render(long)).toThrow('utilts_aperak_transaction_reference_invalid')
  })
 })
