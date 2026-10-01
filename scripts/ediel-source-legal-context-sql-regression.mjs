@@ -26,6 +26,7 @@ try {
   const insert = async (id, company, raw, direction = 'inbound', code = 'E66', related = null) => db.query("insert into ediel_messages values($1,$2,'test',$3,'UTILTS',$4,$5,'2026-09-30T12:00:00Z',$6)", [uid(id), uid(company), direction, code, raw, related])
   await insert(9, 1, wire()) // Synthetic retained original preceding new capture.
   await db.exec(readFileSync(new URL('../supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql', import.meta.url), 'utf8')); checks++
+  const ruleForward=readFileSync(new URL('../supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql', import.meta.url),'utf8'); await db.exec(ruleForward.slice(ruleForward.indexOf('CREATE OR REPLACE FUNCTION gridex_ediel_inbound_context.derive'),ruleForward.indexOf('CREATE SCHEMA gridex_ediel_source_rules')))
   const requireContext = async id => (await db.query('select public.ediel_require_inbound_legal_context_v1($1,$2) context', [uid(1), uid(id)])).rows[0].context
   await assert.rejects(requireContext(9), /ediel_historical_identity_basis_unavailable/); checks++
   await insert(10, 1, wire()); const first = await requireContext(10)
@@ -43,6 +44,7 @@ try {
   await insert(14, 1, wire({ app: '23-GUESSED-E66-T' })); await assert.rejects(requireContext(14), /ediel_inbound_legal_context_required/); checks++
   await db.exec(`insert into tenant_actor_identifiers values('${uid(30)}','${uid(31)}','test','${uid(32)}','EdielId','SUPPLIER','2000-01-01',null)`)
   await insert(15, 1, wire()); await assert.rejects(requireContext(15), /ediel_inbound_legal_context_required/); checks++
+  await insert(22, 1, wire({ outbound: true }), 'outbound', 'E73'); assert.equal((await requireContext(22)).direction,'outbound'); checks++
   await db.exec(`delete from tenant_actor_identifiers where id='${uid(30)}';insert into tenant_counterparty_relations values('${uid(40)}','${uid(1)}','test','${uid(41)}','ediel_transport_agent',true,'2000-01-01',null);insert into platform_actor_identifiers values('${uid(42)}','${uid(41)}','EdielId','AGENT','2000-01-01',null)`)
   await insert(16, 1, wire({ receiver: 'AGENT' })); assert.equal((await requireContext(16)).legalEdielId, 'SUPPLIER'); assert.equal((await requireContext(16)).transportEdielId, 'AGENT'); checks++
   await db.exec(`delete from tenant_counterparty_relations;update tenant_actor_roles set role_code='energy_service_company'`)
