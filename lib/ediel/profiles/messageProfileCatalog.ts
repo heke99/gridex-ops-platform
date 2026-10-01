@@ -8,6 +8,7 @@ import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldM
 import { PRODAT_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/prodatRulebook'
 import { UTILTS_CANONICAL_PROFILES } from '@/lib/ediel/rulebook/utiltsRulebook'
 import { getSupplierUtiltsSupport, getUtiltsMarketProfile } from '@/lib/ediel/rulebook/utiltsMarketEngine'
+import {getUtiltsFieldRequirement} from '@/lib/ediel/rulebook/utiltsFieldMatrix'
 
 export type MessageFamily = 'PRODAT' | 'UTILTS' | 'CONTRL' | 'APERAK' | 'UTILTS-ERR'
 export type MessageDirection = 'outbound' | 'inbound'
@@ -170,11 +171,13 @@ function utiltsFields(code: string): Pick<EdielMessageProfile, 'requiredFields' 
   if (canonical.location172Requirement === 'required') requiredFields.push('metering_point_id')
   if (canonical.location172Requirement === 'conditional') conditionalFields.push('metering_point_id')
   if (canonical.requiresGridArea) requiredFields.push('grid_area_code')
+  else if(getUtiltsFieldRequirement(code,'260a','grid_area_id')==='D') conditionalFields.push('grid_area_code')
   if (canonical.messageCode !== 'ERR' && canonical.scope !== 'request') {
-    if (canonical.requiresQuantities) requiredFields.push('meter_values')
+    const monetaryBranch=['522','523'].some(field=>getUtiltsFieldRequirement(code,field)==='D')
+    if (canonical.requiresQuantities && !monetaryBranch) requiredFields.push('meter_values')
     else conditionalFields.push('meter_values')
   }
-  return { requiredFields, conditionalFields, allowedMissingFields: [] }
+  return { requiredFields, conditionalFields, allowedMissingFields: getUtiltsFieldRequirement(code,'260a','grid_area_id')==='O' ? ['grid_area_code'] : [] }
 }
 
 const utiltsProfiles: EdielMessageProfile[] = UTILTS_CANONICAL_PROFILES.map((canonical) => {

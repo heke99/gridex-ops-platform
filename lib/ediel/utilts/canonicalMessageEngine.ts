@@ -1,9 +1,13 @@
 import type { UtiltsCanonicalMessageCode, UtiltsCanonicalProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
-import { resolveCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import { canonicalUtiltsObservationRequirements, resolveCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import {getUtiltsFieldRequirement} from '@/lib/ediel/rulebook/utiltsFieldMatrix'
+import {expectedObservationCountForResolution,normalizeEdifactResolution} from './resolution'
 
 export type UtiltsPhase = 'planning' | 'metering' | 'settlement'
 
 export type UtiltsObservation = {
+  kind?: 'quantity' | 'amount' | 'price'
+  currency?: string | null
   timestamp: string
   value: number | null
   quality: string | null
@@ -91,14 +95,11 @@ function instant(value: string, subDaily: boolean): number | null {
 }
 
 function expectedIntervalCount(start: string, end: string, resolution: string): number | null {
-  const minutes = resolutionMinutes(resolution)
-  if (!minutes) return null
-  const subDaily = minutes < 1440
-  const startMs = instant(start, subDaily)
-  const endMs = instant(end, subDaily)
-  if (startMs === null || endMs === null || endMs <= startMs) return null
-  const count = (endMs - startMs) / (minutes * 60_000)
-  return Number.isInteger(count) ? count : null
+  const normalized=normalizeEdifactResolution({value:resolution})
+  if(!normalized) return null
+  const subDaily=normalized.startsWith('PT')
+  if(instant(start,subDaily)===null || instant(end,subDaily)===null) return null
+  return expectedObservationCountForResolution({start,end,value:normalized})
 }
 
 function allObservations(transaction: UtiltsTransaction): UtiltsObservation[] {
@@ -117,11 +118,13 @@ function validateObservation(params: {
   const { observation, transaction, seenTimestamps, issues } = params
   const timestamp = clean(observation.timestamp)
   if (!timestamp) issues.push(issue('UTILTS_OBSERVATION_TIMESTAMP_REQUIRED', 'Observationen saknar tidsstämpel.', transaction.transactionId))
-  if (timestamp && seenTimestamps.has(timestamp)) issues.push(issue('UTILTS_OBSERVATION_TIMESTAMP_DUPLICATE', `Dubblett tidsstämpel ${timestamp}.`, transaction.transactionId))
-  if (timestamp) seenTimestamps.add(timestamp)
+  const identity=JSON.stringify([observation.kind ?? 'quantity',observation.currency ?? null,timestamp])
+  if (timestamp && seenTimestamps.has(identity)) issues.push(issue('UTILTS_OBSERVATION_TIMESTAMP_DUPLICATE', `Dubblett tidsstämpel ${timestamp}.`, transaction.transactionId))
+  if (timestamp) seenTimestamps.add(identity)
   if (observation.value !== null && !Number.isFinite(observation.value)) {
     issues.push(issue('UTILTS_OBSERVATION_VALUE_INVALID', 'Observationens värde är inte ett ändligt tal.', transaction.transactionId))
   }
+  if(observation.kind && observation.kind!=='quantity' && !clean(observation.currency)) issues.push(issue('UTILTS_MONETARY_CURRENCY_REQUIRED','Belopp och pris kräver egen valuta enligt fält269a/269b.',transaction.transactionId))
   if (observation.value === null && !clean(observation.status)) {
     issues.push(issue('UTILTS_MISSING_VALUE_STATUS_REQUIRED', 'Saknat värde kräver en explicit statuskod.', transaction.transactionId))
   }
@@ -169,24 +172,32 @@ export function validateUtiltsMessage(input: {
     if (id) transactionIds.add(id)
     if (profile.requiresMeteringPoint && !clean(transaction.meteringPointId)) issues.push(issue('UTILTS_METERING_POINT_REQUIRED', 'Mätpunkt saknas.', id || null))
     if (profile.requiresGridArea && !clean(transaction.gridAreaId)) issues.push(issue('UTILTS_GRID_AREA_REQUIRED', 'Nätområde saknas.', id || null))
-    if (!clean(transaction.timeSeriesProduct)) issues.push(issue('UTILTS_TIMESERIES_PRODUCT_REQUIRED', 'Tidsserieprodukt saknas.', id || null))
+    if (getUtiltsFieldRequirement(input.message.code,'511','time_series_product')==='R' && !clean(transaction.timeSeriesProduct)) issues.push(issue('UTILTS_TIMESERIES_PRODUCT_REQUIRED', 'Tidsserieprodukt saknas.', id || null))
     if (!clean(transaction.reasonForTransaction)) issues.push(issue('UTILTS_REASON_REQUIRED', 'Reason for transaction saknas.', id || null))
     if (profile.requiresPeriod && (!clean(transaction.deliveryPeriod.start) || !clean(transaction.deliveryPeriod.end))) issues.push(issue('UTILTS_PERIOD_REQUIRED', 'Leveransperiod saknas.', id || null))
-    if (profile.requiresResolution && !resolutionMinutes(transaction.resolution)) issues.push(issue('UTILTS_RESOLUTION_INVALID', `Ogiltig upplösning ${transaction.resolution || '(saknas)'}.`, id || null))
-    if (profile.requiresUnit && !clean(transaction.unit)) issues.push(issue('UTILTS_UNIT_REQUIRED', 'Enhet saknas.', id || null))
-
+    if (profile.requiresResolution && !normalizeEdifactResolution({value:transaction.resolution})) issues.push(issue('UTILTS_RESOLUTION_INVALID', `Ogiltig upplösning ${transaction.resolution || '(saknas)'}.`, id || null))
     const observations = allObservations(transaction)
-    if (profile.requiresQuantities && observations.length === 0) issues.push(issue('UTILTS_OBSERVATIONS_REQUIRED', 'Profilen kräver observationer.', id || null))
-    if (!profile.requiresQuantities && observations.length > 0) issues.push(issue('UTILTS_REQUEST_MUST_NOT_CONTAIN_OBSERVATIONS', 'Requestprofilen får inte innehålla observationer.', id || null))
+    const quantities=observations.filter(observation=>!observation.kind || observation.kind==='quantity')
+    const monetary=observations.filter(observation=>observation.kind==='amount' || observation.kind==='price')
+    const requirement=canonicalUtiltsObservationRequirements(input.message.code,{quantityCount:quantities.length,hasAmountOrPrice:monetary.length>0})
+    if (requirement.unitRequired && !clean(transaction.unit)) issues.push(issue('UTILTS_UNIT_REQUIRED', 'Enhet saknas för kvantitetsgrenen.', id || null))
+    if (requirement.quantitiesRequired && quantities.length === 0) issues.push(issue('UTILTS_OBSERVATIONS_REQUIRED', 'Profilens kvantitetsgren kräver observationer.', id || null))
+    if (profile.scope==='request' && observations.length > 0) issues.push(issue('UTILTS_REQUEST_MUST_NOT_CONTAIN_OBSERVATIONS', 'Requestprofilen får inte innehålla observationer.', id || null))
+    for(const observation of monetary) if(getUtiltsFieldRequirement(input.message.code,observation.kind==='amount' ? '522' : '523')!=='D') issues.push(issue('UTILTS_MONETARY_BRANCH_NOT_ALLOWED','Belopp/pris stöds inte av denna meddelandetyp.',id || null))
     const seenTimestamps = new Set<string>()
-    for (const observation of observations) validateObservation({ observation, transaction, seenTimestamps, issues })
+    for (const observation of transaction.observations) validateObservation({ observation, transaction, seenTimestamps, issues })
+    for(const register of transaction.registers) {
+      const ownRegisterTimestamps=new Set<string>()
+      for(const observation of register.observations) validateObservation({observation,transaction,seenTimestamps:ownRegisterTimestamps,issues})
+    }
 
     if (profile.validatesDst && profile.requiresQuantities) {
       const expected = expectedIntervalCount(transaction.deliveryPeriod.start, transaction.deliveryPeriod.end, transaction.resolution)
       if (expected === null) {
         issues.push(issue('UTILTS_PERIOD_OR_TIMEZONE_INVALID', 'Period/upplösning kan inte valideras. Subdygnsvärden måste ha UTC-offset.', id || null))
-      } else if (observations.length !== expected) {
-        issues.push(issue('UTILTS_INTERVAL_COUNT_MISMATCH', `Förväntade ${expected} observationer men fick ${observations.length}.`, id || null))
+      } else if (transaction.observations.filter(observation => !observation.kind || observation.kind === 'quantity').length !== expected) {
+        const count = transaction.observations.filter(observation => !observation.kind || observation.kind === 'quantity').length
+        issues.push(issue('UTILTS_INTERVAL_COUNT_MISMATCH', `Förväntade ${expected} energiobservationer men fick ${count}.`, id || null))
       }
     }
 
@@ -235,7 +246,12 @@ export function renderCanonicalUtiltsBody(input: {
       segments.push(`DTM+324:${dtm203(transaction.deliveryPeriod.start)}${dtm203(transaction.deliveryPeriod.end)}:719`)
     }
     if (transaction.registrationTimestamp) segments.push(`DTM+597:${dtm203(transaction.registrationTimestamp)}:203`)
-    if (transaction.resolution) segments.push(`DTM+354:${token(String(resolutionMinutes(transaction.resolution) ?? transaction.resolution))}:802`)
+    if (transaction.resolution) {
+      const normalized=normalizeEdifactResolution({value:transaction.resolution})
+      const resolution=normalized==='P1M' ? '1:802' : normalized==='P1Y' ? '1:801' : normalized==='P1D' ? '1:804' : resolutionMinutes(transaction.resolution) ? `${resolutionMinutes(transaction.resolution)}:806` : null
+      if(!resolution) throw new Error('utilts_resolution_source_unavailable')
+      segments.push(`DTM+354:${resolution}`)
+    }
     segments.push(`STS+7++${token(transaction.reasonForTransaction)}::260`)
     if (transaction.unit) segments.push(`MEA+AAZ++${token(transaction.unit)}`)
     let sequence = 0
@@ -243,7 +259,11 @@ export function renderCanonicalUtiltsBody(input: {
       sequence += 1
       segments.push(`SEQ++${sequence}`)
       segments.push(`DTM+163:${dtm203(observation.timestamp)}:203`)
-      if (observation.value !== null) segments.push(`QTY+136:${String(observation.value)}`)
+      if (observation.value !== null) {
+        if(observation.kind==='amount') segments.push(`MOA+9:${String(observation.value)}:${token(observation.currency)}`)
+        else if(observation.kind==='price') segments.push(`PRI+CAL:${String(observation.value)}`,`CUX+2:${token(observation.currency)}`)
+        else segments.push(`QTY+136:${String(observation.value)}`)
+      }
       if (observation.quality) segments.push(`STS+7++${token(observation.quality)}::260`)
       if (observation.status) segments.push(`FTX+AAO+++${token(observation.status)}`)
     }
