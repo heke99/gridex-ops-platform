@@ -1,3 +1,4 @@
+import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import { prodatFreeTextField, validateProdatFreeText } from '@/lib/ediel/prodat/prodatFreeText'
@@ -57,6 +58,7 @@ export function validateCanonicalPolicyFields(input: {
   scope?: 'all' | 'dependent_only'
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
+  if (input.policy.family === 'APERAK' || input.policy.family === 'CONTRL') return validateCanonicalAckGuide(input)
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).filter(rule => !(input.policy.family === 'PRODAT' && input.policy.direction === 'inbound' && (['322','324','506'].includes(rule.fieldNumber ?? '') || rule.fieldNumber === '242' && incomingProduct242IsFalse(input.policy.code)))).flatMap((rule): RulebookFieldRule[] => {
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(rule.fieldNumber ?? '')) return [rule]
     // The new UD parent is selected per wire object below, never from a root snapshot.
