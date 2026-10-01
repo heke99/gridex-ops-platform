@@ -545,7 +545,10 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     }
   }
 
-  if(familyValue==='APERAK'&&input.mode==='send'&&input.messageRow?.execution_context_snapshot?.prodatCommonHeaderNegativeWitnessId){
+  const executionSnapshot=input.messageRow?.execution_context_snapshot
+  const commonHeaderWitness=executionSnapshot&&typeof executionSnapshot==='object'&&!Array.isArray(executionSnapshot)
+    ? (executionSnapshot as Record<string,unknown>).prodatCommonHeaderNegativeWitnessId : null
+  if(familyValue==='APERAK'&&input.mode==='send'&&input.messageRow&&commonHeaderWitness){
     try{
       if(!input.companyId||(input.environment!=='test'&&input.environment!=='production')||!input.rawPayload)throw Error('ediel_common_header_negative_witness_required')
       const {evidence}=await readPersistedProdatCommonHeaderNegativeAckBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload})
