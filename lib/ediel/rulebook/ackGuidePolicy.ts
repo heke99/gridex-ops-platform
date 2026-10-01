@@ -1,9 +1,10 @@
-import {tokenizeEdifact,segmentComposite,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact,observeCompletedEdifactSegments,segmentComposite,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
 import {parseUna,type EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 import type {CanonicalEdielPolicy} from './canonicalEdielPolicy'
 import type {EdielRulebookIssue} from './rulebook'
 import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS,prodatAperakFieldWireLabel} from '@/lib/ediel/prodat/prodatAperakText'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {utiltsErrSourceCopyViolations} from '@/lib/ediel/utilts/errSourceCopy'
 
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 /** Source projection port for native admission. The TS guide consumer below
@@ -14,6 +15,22 @@ export const CANONICAL_ACK_GUIDE_CONSTRAINTS=Object.freeze({
  PRODAT:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','96A','UN','E2SE6A']),allowedErc:Object.freeze(['100','40','41','42']),allowedFunctions:Object.freeze(['27','34']),legalAgency:'SVK',legalQualifier:'160',countryPattern:'^[A-Z]{2}$',missingSuffix:' saknas',missingCustomerPrefix:' saknas, kundid',invalidPrefix:'Felaktigt ',agency:'260',textQualifier:'AAO',textMax:70,fieldReferenceMax:3,fieldLabels:Object.freeze(Object.fromEntries(Object.keys(PRODAT_APERAK_FIELD_NAMES).map(key=>[key,prodatAperakFieldWireLabel(key)]))),applicationTexts:PRODAT_APERAK_APPLICATION_TEXTS,source:Object.freeze({id:'P',sections:Object.freeze(['3.3','3.4','3.5']),pages:Object.freeze([89,105]),availableBasis:'authenticated_original_page_excerpt'})}),
  UTILTS:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','04A','UN','E5SE5A']),allowedErc:Object.freeze(['100','41','42']),allowedDocumentStatuses:Object.freeze(['312','313']),messageFunction:'9',documentIdMax:35,fixedOffset:Object.freeze(['735','+0100','406']),legalAgencies:Object.freeze(['260','9','305']),svkAgency:'260',svkQualifier:'SVK',agency:'260',textQualifier:'AAO',textMax:512,fieldReferenceMax:17,ownDmMax:70,originalAcwMax:70,missingText:'MANDATORY FIELD MISSING',invalidTextPattern:'^INCORRECT DATA .+$',source:Object.freeze({id:'U',sections:Object.freeze(['5.3','5.4','5.5']),pages:Object.freeze([108,119]),availableBasis:'authentic_original'})}),
  CONTRL:Object.freeze({technicalProfile:Object.freeze(['CONTRL','2','2','UN']),optionalAssociation:'EDIEL2',allowedActions:Object.freeze(['1','4']),forbiddenSegments:Object.freeze(['BGM','DOC','ERC','FTX','RFF','NAD']),originalUciMax:14,source:Object.freeze({id:'T',section:'2.1',availableBasis:'frozen_authenticated_contract'})}),
+})
+/** U §3.7.4 pp66–68 and the original validity appendix pp122–126, field531.
+ * This is the single ERR guide source port used by TS and native projection;
+ * immutable own functional facets separately authorize an actual response. */
+export const CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS=Object.freeze({
+ version:1,technicalProfile:Object.freeze(['UTILTS','D','02B','UN','E5SE5A']),documentCode:'ERR',documentAgency:'260',optionalDocumentCodeLists:Object.freeze(['','SVK']),
+ documentIdMax:35,allowedFunctions:Object.freeze(['5','9']),allowedAcknowledgementRequests:Object.freeze(['AB','NA']),
+ documentDate:Object.freeze({...CANONICAL_ACK_GUIDE_CONSTRAINTS.common.documentDate,noFuture:true}),fixedOffset:CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.fixedOffset,
+ marketCodes:Object.freeze(['23','27']),phaseCodes:Object.freeze(['E02','E03','E04']),agency:'260',
+ legalAgencies:CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.legalAgencies,svkAgency:'260',svkQualifier:'SVK',
+ subordinateRoles:Object.freeze(['DDK','DDQ','DDX','DEA','DEC','DER','DGG','DGI','EZ','MDR','PQ']),
+ transactionQualifier:'24',ownTransactionIdMax:35,originalTransactionIdMax:70,responseQualifier:'E01',responseStatus:'41',referenceQualifier:'TN',
+ allowedReasons:Object.freeze(['E10','E14','E16','E18','E29','E47','E49','E50','E51','E55','E61','E62','E73','E87','E90','E97','E98']),
+ originalMessageCodes:Object.freeze(['E30','E31','E66','E72','E73','E74','S01','S02','S03','S04','S05','S06','S07']),
+ forbiddenSegments:Object.freeze(['ERC','FTX','DOC','LIN','SEQ','QTY','MEA','CCI','CAV']),
+ source:Object.freeze({id:'U',section:'3.7.4',pages:Object.freeze([66,68]),reasonField:'531',validityPages:Object.freeze([122,126]),availableBasis:'authentic_original'}),
 })
 type Wire=ReturnType<typeof tokenizeEdifact>
 const equal=(a:readonly string[],b:readonly string[])=>JSON.stringify(a)===JSON.stringify(b)
@@ -38,7 +55,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
  const segments=wire.segments,all=(tag:string)=>segments.filter(t=>t.tag===tag),type=segmentComposite(all('UNH')[0],2,wire.una)
  if(all('UNH').length!==1)add('ACK_GUIDE_ONE_MESSAGE_REQUIRED','Kvittensen ska avse ett eget fysiskt meddelande.','UNH')
  if(input.sourceRawPayload){
-  const source=tokenizeEdifact(input.sourceRawPayload),originals=source.segments.filter(t=>t.tag==='UNB'),original=originals[0],outgoing=all('UNB')[0]
+  const source=input.policy.family==='CONTRL'?observeCompletedEdifactSegments(input.sourceRawPayload):tokenizeEdifact(input.sourceRawPayload),originals=source.segments.filter(t=>t.tag==='UNB'),original=originals[0],outgoing=all('UNB')[0]
   if(originals.length!==1||all('UNB').length!==1
    ||!equal(segmentComposite(outgoing,2,wire.una),segmentComposite(original,3,source.una))
    ||!equal(segmentComposite(outgoing,3,wire.una),segmentComposite(original,2,source.una))
@@ -46,7 +63,54 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
    ||!equal(segmentComposite(outgoing,11,wire.una),segmentComposite(original,11,source.una)))add('ACK_ORIGINAL_TECHNICAL_ROUTE_MISMATCH','Kvittensens tekniska UNB-parter, application reference och miljö ska spegla det faktiska originalet.','UNB')
   if(input.policy.family==='UTILTS_ERR'&&value(source,source.segments.find(t=>t.tag==='UNH'),2)!=='UTILTS')add('ACK_SOURCE_FAMILY_MISMATCH','UTILTS-ERR måste tillhöra ett verkligt UTILTS-ursprung.','UNH')
  }
- if(input.policy.family==='UTILTS_ERR')return issues // ERR guide fields remain in the one UTILTS owner.
+ if(input.policy.family==='UTILTS_ERR'){
+  const cfg=CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS
+  if(!equal(type,[...cfg.technicalProfile.slice(0,4),input.policy.associationAssignedCode??'']))add('ACK_UTILTS_ERR_PROFILE_INVALID','UTILTS-ERR ska använda det faktiska originalets tekniska UTILTS-version.','UNH/S009')
+  const bgms=all('BGM'),bgm=bgms[0],name=segmentComposite(bgm,1,wire.una),id=segmentComposite(bgm,2,wire.una)
+  if(bgms.length!==1||name[0]!==cfg.documentCode||name[2]!==cfg.documentAgency||!cfg.optionalDocumentCodeLists.includes(name[1]??'')||name.slice(3).some(Boolean))add('ACK_UTILTS_ERR_DOCUMENT_CODE_INVALID','UTILTS-ERR ska ha dokumentnamn ERR och kodlistansvarig260.','BGM/202')
+  if(!id[0]||id[0].length>cfg.documentIdMax||id.slice(1).some(Boolean))add('ACK_UTILTS_ERR_DOCUMENT_ID_INVALID','UTILTS-ERR ska ha ett eget entydigt dokument-id.','BGM/203')
+  if(!cfg.allowedFunctions.includes(value(wire,bgm,3))||!cfg.allowedAcknowledgementRequests.includes(value(wire,bgm,4))||[3,4].some(index=>segmentComposite(bgm,index,wire.una).length!==1)||bgm?.elements.slice(5).some(Boolean))add('ACK_UTILTS_ERR_FUNCTION_REQUEST_INVALID','UTILTS-ERR ska ange meddelandefunktion5eller9 och kvittensbegäranABellerNA.','BGM/204/313')
+  const dates=all('DTM').filter(t=>value(wire,t,1)===cfg.documentDate.qualifier),date=segmentComposite(dates[0],1,wire.una),offsets=all('DTM').filter(t=>value(wire,t,1)==='735')
+  if(dates.length!==1||date.length!==3||date[2]!==cfg.documentDate.format||!dateTime(date[1]??''))add('ACK_UTILTS_ERR_DOCUMENT_DATE_INVALID','UTILTS-ERR ska ha ett giltigt eget meddelandedatum.','DTM/205')
+  const admittedAt=input.policy.timeAnchors?.admissionAt
+  if(dateTime(date[1]??'')&&admittedAt&&Number.isFinite(Date.parse(admittedAt))){const stamp=date[1],documentUtc=Date.UTC(Number(stamp.slice(0,4)),Number(stamp.slice(4,6))-1,Number(stamp.slice(6,8)),Number(stamp.slice(8,10)),Number(stamp.slice(10,12)))-60*60*1000;if(documentUtc>Date.parse(admittedAt))add('ACK_UTILTS_ERR_DOCUMENT_DATE_FUTURE','UTILTS-ERR datum får inte ligga efter den verkliga kontrollklockan i svensk normaltid.','DTM/205')}
+  if(offsets.length!==1||!equal(segmentComposite(offsets[0],1,wire.una),cfg.fixedOffset))add('ACK_UTILTS_ERR_OFFSET_INVALID','UTILTS-ERR ska ange svensk fast tidszon.','DTM/206')
+  for(const tag of cfg.forbiddenSegments)if(all(tag).length)add('ACK_UTILTS_ERR_SEGMENT_FORBIDDEN',`UTILTS-ERR får inte innehålla ${tag} från data- eller APERAK-meddelandet.`,tag)
+  const firstIde=segments.findIndex(t=>t.tag==='IDE'),header=firstIde<0?segments:segments.slice(0,firstIde),markets=header.filter(t=>t.tag==='MKS'),market=markets[0]
+  if(markets.length!==1||!cfg.marketCodes.includes(value(wire,market,1))||!cfg.phaseCodes.includes(value(wire,market,2))||segmentComposite(market,2,wire.una)[2]!==cfg.agency)add('ACK_UTILTS_ERR_MARKET_PHASE_INVALID','UTILTS-ERR ska kopiera originalets marknad och skede.','MKS/501/502')
+  for(const qualifier of ['MS','MR']){
+   const parties=header.filter(t=>t.tag==='NAD'&&value(wire,t,1)===qualifier),party=segmentComposite(parties[0],2,wire.una)
+   if(parties.length!==1||!party[0]||party[0].length>35||!cfg.legalAgencies.includes(party[2]??'')||(party[2]===cfg.svkAgency&&party[1]!==cfg.svkQualifier))add('ACK_UTILTS_ERR_LEGAL_PARTY_INVALID','UTILTS-ERR ska ange egna juridiska kvittensparter och rätt kvalifikatorer.','NAD/207/208')
+  }
+  const subordinate=header.filter(t=>t.tag==='NAD'&&!['MS','MR'].includes(value(wire,t,1)))
+  if(subordinate.length!==1||!cfg.subordinateRoles.includes(value(wire,subordinate[0],1))||segmentComposite(subordinate[0],2,wire.una).some(Boolean))add('ACK_UTILTS_ERR_SUBORDINATE_ROLE_INVALID','UTILTS-ERR ska ange originalets underordnade avsändarroll.','NAD/509')
+  const groups=segments.flatMap((t,index)=>t.tag==='IDE'?[segments.slice(index,segments.findIndex((next,nextIndex)=>nextIndex>index&&['IDE','UNT','UNZ'].includes(next.tag))<0?segments.length:segments.findIndex((next,nextIndex)=>nextIndex>index&&['IDE','UNT','UNZ'].includes(next.tag)))]:[]),ids:string[]=[],scopes:string[]=[]
+  if(!groups.length)add('ACK_UTILTS_ERR_TRANSACTION_MISSING','UTILTS-ERR ska innehålla egna avvisningstransaktioner.','IDE/505')
+  for(const group of groups){
+   const own=segmentComposite(group[0],2,wire.una),responses=group.filter(t=>t.tag==='STS'&&value(wire,t,1)===cfg.responseQualifier),response=responses[0],status=segmentComposite(response,2,wire.una),reason=segmentComposite(response,3,wire.una),tn=references(wire,group,cfg.referenceQualifier)
+   if(value(wire,group[0],1)!==cfg.transactionQualifier||!own[0]||own[0].length>cfg.ownTransactionIdMax||own.length!==1||ids.includes(own[0]))add('ACK_UTILTS_ERR_OWN_TRANSACTION_INVALID','ERR-transaktionsnumret ska vara eget och unikt.','IDE/505');ids.push(own[0]??'')
+   if(responses.length!==1||!equal(segmentComposite(response,1,wire.una),[cfg.responseQualifier,'',cfg.agency])||!equal(status,[cfg.responseStatus])||!cfg.allowedReasons.includes(reason[0]??'')||!equal(reason,[reason[0]??'','',cfg.agency])||response?.elements.slice(4).some(Boolean))add('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID','ERR ska ange STS41 och en faktisk nationell avvisningsorsak med kodlistansvarig260.','STS/528/531')
+   if(!one(tn)||tn[0].length>cfg.originalTransactionIdMax||group.filter(t=>t.tag==='RFF'&&value(wire,t,1)===cfg.referenceQualifier).some(t=>segmentComposite(t,1,wire.una).length!==2))add('ACK_UTILTS_ERR_ORIGINAL_TRANSACTION_INVALID','ERR ska referera exakt ett fullständigt transaktionsnummer i originalet.','RFF/529')
+   const scope=`${tn[0]??''}|${reason[0]??''}`;if(scopes.includes(scope))add('ACK_UTILTS_ERR_OWN_RESPONSE_DUPLICATE','Samma ursprungstransaktion och avvisningsorsak får inte dupliceras.','RFF/529');scopes.push(scope)
+   const docs=group.filter(t=>t.tag==='RFF'&&cfg.originalMessageCodes.includes(value(wire,t,1)))
+   if(group.some(t=>t.tag==='RFF'&&!cfg.originalMessageCodes.includes(value(wire,t,1))&&value(wire,t,1)!==cfg.referenceQualifier))add('ACK_UTILTS_ERR_REFERENCE_QUALIFIER_INVALID','ERR får bara innehålla sina föreskrivna egna originalreferenser.','RFF/503/529')
+   if(docs.length!==1||!segmentComposite(docs[0],1,wire.una)[1]||segmentComposite(docs[0],1,wire.una).length!==2)add('ACK_UTILTS_ERR_ORIGINAL_DOCUMENT_INVALID','ERR ska kopiera ursprungsmeddelandets typ och dokument-id.','RFF/503/504')
+  }
+  if(input.sourceRawPayload){
+   const source=tokenizeEdifact(input.sourceRawPayload),sourceHeaders=source.segments.filter(t=>t.tag==='UNH'),originalType=segmentComposite(sourceHeaders[0],2,source.una),sourceBgm=source.segments.filter(t=>t.tag==='BGM'),sourceFirstIde=source.segments.findIndex(t=>t.tag==='IDE'),originalHeader=sourceFirstIde<0?source.segments:source.segments.slice(0,sourceFirstIde)
+   if(sourceHeaders.length!==1||!equal(type,originalType)||sourceBgm.length!==1||!cfg.originalMessageCodes.includes(value(source,sourceBgm[0],1)))add('ACK_UTILTS_ERR_ORIGINAL_PROFILE_MISMATCH','ERR ska ärva det faktiska originalets tekniska profil och dokumenttyp.','UNH/BGM')
+   const originalMarkets=originalHeader.filter(t=>t.tag==='MKS'),originalSubordinate=originalHeader.filter(t=>t.tag==='NAD'&&!['MS','MR'].includes(value(source,t,1)))
+   if(originalMarkets.length!==1||markets.length!==1||!equal(segmentComposite(originalMarkets[0],1,source.una),segmentComposite(market,1,wire.una))||!equal(segmentComposite(originalMarkets[0],2,source.una),segmentComposite(market,2,wire.una)))add('ACK_UTILTS_ERR_ORIGINAL_MARKET_MISMATCH','ERR får inte byta originalets marknad eller skede.','MKS/501/502')
+   if(originalSubordinate.length!==1||subordinate.length!==1||value(source,originalSubordinate[0],1)!==value(wire,subordinate[0],1))add('ACK_UTILTS_ERR_ORIGINAL_ROLE_MISMATCH','ERR ska behålla den faktiska underordnade rollen från originalet.','NAD/509')
+   for(const [own,opposite] of [['MS','MR'],['MR','MS']]){
+    const original=originalHeader.filter(t=>t.tag==='NAD'&&value(source,t,1)===opposite),actual=header.filter(t=>t.tag==='NAD'&&value(wire,t,1)===own)
+    if(original.length!==1||actual.length!==1||!equal(segmentComposite(original[0],2,source.una),segmentComposite(actual[0],2,wire.una)))add('ACK_UTILTS_ERR_ORIGINAL_LEGAL_PARTY_MISMATCH','Juridiska ERR-parter ska spegla originalets egna parter och kvalifikatorer.','NAD/207/208')
+   }
+   for(const group of groups){const refs=group.filter(t=>t.tag==='RFF'&&cfg.originalMessageCodes.includes(value(wire,t,1)));if(refs.length!==1||value(wire,refs[0],1)!==value(source,sourceBgm[0],1)||segmentComposite(refs[0],1,wire.una)[1]!==value(source,sourceBgm[0],2))add('ACK_UTILTS_ERR_ORIGINAL_DOCUMENT_MISMATCH','ERR ska kopiera känt ursprungligt dokument-id och dokumenttyp.','RFF/503/504')}
+   for(const field of utiltsErrSourceCopyViolations(input.sourceRawPayload,`${wire.una.raw}${segments.map(t=>t.raw).join(wire.una.segmentTerminator)}${wire.una.segmentTerminator}`))add('ACK_UTILTS_ERR_ORIGINAL_COPY_MISMATCH',`ERR ska kopiera den egna ursprungstransaktionens tillgängliga fält${field}.`,`UTILTS/${field}`)
+  }
+  return issues
+ }
  if(input.technicalOriginal){
   const original=input.technicalOriginal.originalUNB,unb=all('UNB'),uci=all('UCI')
   if(input.policy.family!=='CONTRL'||unb.length!==1||uci.length!==1
@@ -65,7 +129,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   if(!CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.allowedActions.includes(value(wire,uci[0],4)))add('ACK_CONTRL_ACTION_INVALID','UCI/0083 ska vara 1 eller 4.','UCI/0083')
   for(const index of [2,3])if(!segmentComposite(uci[0],index,wire.una)[0])add('ACK_CONTRL_ORIGINAL_PARTY_MISSING','UCI ska innehålla originalets tekniska parter.','UCI')
   if(input.sourceRawPayload){
-   const source=tokenizeEdifact(input.sourceRawPayload),original=source.segments.find(t=>t.tag==='UNB')
+   const source=observeCompletedEdifactSegments(input.sourceRawPayload),original=source.segments.find(t=>t.tag==='UNB')
    if(source.segments.some(t=>t.tag==='UNH'&&value(source,t,2)==='CONTRL')||value(wire,uci[0],1)!==value(source,original,5).slice(0,CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.originalUciMax)
      ||!equal(segmentComposite(uci[0],2,wire.una),segmentComposite(original,2,source.una))||!equal(segmentComposite(uci[0],3,wire.una),segmentComposite(original,3,source.una)))add('ACK_CONTRL_ORIGINAL_SCOPE_MISMATCH','UCI ska kopiera det faktiska originalets överföring och tekniska parter.','UCI')
   }
