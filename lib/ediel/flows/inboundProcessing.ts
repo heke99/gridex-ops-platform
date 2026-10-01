@@ -1,6 +1,17 @@
 import {createReceivedSourceOwnerSession, type SourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import type {SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger';
+import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence';
+import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry';
+import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator';
+import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,recordEdielTechnicalSyntaxDecision} from '@/lib/ediel/ack/technicalSyntaxAuthority';
+import {createHash} from 'node:crypto';
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
+import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
+import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
+import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
+import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent';
 // lib/ediel/flows/inboundProcessing.ts
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
@@ -30,9 +41,6 @@ import {
 } from "@/lib/ediel/matching";
 import { linkEdielMessage, updateEdielMessageStatus } from "@/lib/ediel/db";
 import {
-  buildContrlDraft,
-  buildAperakDraft,
-  buildUtiltsErrDraft,
   getAutomaticAckPolicy,
   getCanonicalAckState,
   type EdielAperakApplicationError,
@@ -57,6 +65,7 @@ import { analyzeEdielProcessingPipeline } from "@/lib/ediel/orchestrator/edielPr
 import { createOutboxItem } from "@/lib/ediel/outbox/createOutboxItem";
 import { recognizeInboundFacilityData } from "@/lib/ediel/inbound/inboundFacilityRecognition";
 import { applyInboundBusinessStateMachine } from "@/lib/ediel/flows/inboundBusinessStateMachine";
+import { processAiBiInboundReconciliation } from "@/lib/ediel/aiBiInboundReconciliation";
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
@@ -108,36 +117,18 @@ async function createAckIfMissing(params: {
   messageText?: string | null;
   applicationErrors?: readonly EdielAperakApplicationError[] | null;
   utiltsHeaderRejected?: boolean;
+  relatedTransactionReference?:string;
 }) {
-  const draft =
-    params.ackFamily === "CONTRL"
-      ? buildContrlDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: params.sourceMessage,
-          outcome: params.outcome ?? "positive",
-          messageText: params.messageText ?? null,
-        })
-      : params.ackFamily === "APERAK"
-        ? buildAperakDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            outcome: params.outcome ?? "positive",
-            messageText: params.messageText ?? null,
-            applicationErrors: params.applicationErrors ?? null,
-            utiltsHeaderRejected: params.utiltsHeaderRejected,
-          })
-        : buildUtiltsErrDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            messageText: params.messageText ?? null,
-          });
-
-  const ack = await createCanonicalAckMessage({
+  const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,
+    ackFamily:params.ackFamily,outcome:params.outcome??(params.ackFamily==='UTILTS_ERR'?'negative':'positive'),
+    messageText:params.messageText??null,applicationErrors:params.applicationErrors,
+    utiltsHeaderRejected:params.utiltsHeaderRejected,relatedTransactionReference:params.relatedTransactionReference});
+  const ack = prepared.kind==='existing'?prepared.message:await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
     outcome: params.outcome,
-    draft,
+    draft:prepared.draft,
   });
 
   if (["draft", "prepared", "queued", "failed"].includes(String(ack.status))) {
@@ -145,7 +136,7 @@ async function createAckIfMissing(params: {
       actorUserId: params.actorUserId,
       message: ack,
       sourceMessageId: params.sourceMessage.id,
-      status: "queued",
+      status: prepared.kind==='existing'?"prepared":"queued",
       payload: {
         createdBy: "inbound_backend_automation",
         ackFamily: params.ackFamily,
@@ -166,6 +157,20 @@ async function createAckIfMissing(params: {
   }
 
   return ack;
+}
+
+async function acknowledgeCommittedReceivedErr(actorUserId:string,message:EdielMessageRow){
+  try {
+    await createReceivedErrApplicationAcks({actorUserId,message,createAck:scope=>createAckIfMissing({
+      actorUserId,sourceMessage:scope.sourceMessage,ackFamily:'APERAK',outcome:'positive',
+      relatedTransactionReference:scope.relatedTransactionReference}),repairRetainedAck:async ack=>{
+        await createOutboxItem({actorUserId,message:ack,sourceMessageId:message.id,status:'prepared',
+          payload:{createdBy:'retained_incoming_err_response_repair',ackFamily:'APERAK',sourceMessageId:message.id}});
+      }});
+  } catch(error) {
+    await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'APERAK',
+      reason:formatErrorMessage(error,'Mottaget ERR saknar beständig egen svarskvalifikation.')});
+  }
 }
 
 async function readCanonicalAckSnapshot(sourceMessageId: string) {
@@ -305,12 +310,19 @@ async function applyCanonicalRuntimeDecision(params: {
   originalMessage: EdielMessageRow;
   resolvedCompanyId: string;
 }): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision; sourceOwnerSession: SourceOwnerSession | null }> {
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(
-    params.message,
-  );
+  const syntax=params.message.message_standard==='edifact'
+    ? validateEdifactSyntax({...params.message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}) : null;
+  const deathStatusContext=syntax?.ok ? await loadCustomerLifeEventValidationContext(params.message,params.actorUserId) : undefined;
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext});
   const sourceValidationEvidence = await recordReceivedSourceValidation({
     original: params.originalMessage, validated: params.message, resolvedCompanyId: params.resolvedCompanyId, decision,
   });
+  const registryIncidentReview = decision.prodatProcessingDisposition?.kind==='internal_review' &&
+    receivedOriginalRulePackWitness(decision.validationReport.rulePackEvidence)===null;
+  if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && decision.policy && !registryIncidentReview) {
+    if(sourceValidationEvidence.status!=='recorded')throw new Error('prodat_canonical_source_validation_unconfirmed');
+    await captureFreshEdielSourceRulePackEvidence(params.resolvedCompanyId,params.message.id);
+  }
   const sourceOwnerSession = createReceivedSourceOwnerSession(sourceValidationEvidence);
   const now = new Date().toISOString();
   const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
@@ -577,7 +589,7 @@ async function processInboundProdatMessage(params: {
   message: EdielMessageRow;
   onSourceSwitchCommitted?: SourceSwitchCommitObserver;
 }) {
-  const facilityRecognition = await recognizeInboundFacilityData({
+  await recognizeInboundFacilityData({
     actorUserId: params.actorUserId,
     edielMessageId: params.message.id,
   }).catch(async (error) => {
@@ -788,6 +800,41 @@ export async function processInboundEdielMessage(params: {
 
   if (!message) throw new Error("Ediel-meddelandet hittades inte");
 
+  if(message.direction==='inbound' && ['CONTRL','APERAK','UTILTS_ERR'].includes(message.message_family)){
+    // A protected old own receipt is read before current route/guide/runtime
+    // loaders and public projection writes. Legacy summaries stay unknown.
+    const committed=await readCommittedInboundAck({actorUserId,message});
+    if(committed){
+      if(message.message_family==='UTILTS_ERR')await acknowledgeCommittedReceivedErr(actorUserId,message);
+      return message;
+    }
+  }
+
+  if (message.direction === 'inbound' && (message.message_standard === 'ai_list' || message.message_family === 'AI_LIST')) {
+    await processAiBiInboundReconciliation({ actorUserId, message });
+    return message;
+  }
+
+  // Syntax belongs to the actual wire and transport endpoint. It precedes
+  // legal tenant routing and grants no business attribution or guide approval.
+  if(message.direction==='inbound' && message.message_standard==='edifact' && message.message_family!=='CONTRL') {
+    try {
+      const endpoint=await readEdielTechnicalSourceEndpoint(message.id);
+      if(endpoint) {
+        if(endpoint.environment!==message.environment || endpoint.sourceHash!==createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('technical_source_wire_scope_mismatch');
+        await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
+        const syntax=validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null});
+        await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
+          syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code)});
+        await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id);
+        await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative'});
+      }
+    } catch(error) {
+      await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'CONTRL',
+        reason:formatErrorMessage(error,'Teknisk kvittens kunde inte kvalificeras.')});
+    }
+  }
+
   if (!isActiveEdielMessageFamily(message.message_family)) {
     await createEdielMessageEvent({
       actorUserId,
@@ -968,11 +1015,7 @@ export async function processInboundEdielMessage(params: {
     runtimeMessage.message_family === "UTILTS_ERR"
   ) {
     await processInboundAckMessage({ actorUserId, message: runtimeMessage });
-    await applyInboundBusinessStateMachine({
-      actorUserId,
-      message: runtimeMessage,
-      source: "ack_processing",
-    });
+    if(runtimeMessage.message_family==='UTILTS_ERR')await acknowledgeCommittedReceivedErr(actorUserId,runtimeMessage);
     await syncActorTestingGlobally({
       actorUserId,
       message: runtimeMessage,
@@ -985,6 +1028,8 @@ export async function processInboundEdielMessage(params: {
 
   if (runtimeMessage.message_family === "PRODAT") {
     try {
+      await applyInboundCustomerLifeEvent({message:runtimeMessage,actorUserId,
+        onCustomerLifeEventCommitted:canonicalRuntime.sourceOwnerSession?.onCustomerLifeEventCommitted});
       await processInboundProdatMessage({ actorUserId, message: runtimeMessage,
         onSourceSwitchCommitted: canonicalRuntime.sourceOwnerSession?.onSwitchCommitted });
     } finally {
@@ -998,6 +1043,7 @@ export async function processInboundEdielMessage(params: {
       actorUserId,
       edielMessageId: runtimeMessage.id,
       canonicalPolicy: canonicalRuntime.decision.policy,
+      canonicalDecision: canonicalRuntime.decision,
     });
     await applyInboundBusinessStateMachine({
       actorUserId,
