@@ -2,7 +2,7 @@ import {tokenizeEdifact,segmentComposite,type EdifactTokenizedSegment} from '@/l
 import {parseUna,type EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 import type {CanonicalEdielPolicy} from './canonicalEdielPolicy'
 import type {EdielRulebookIssue} from './rulebook'
-import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS} from '@/lib/ediel/prodat/prodatAperakText'
+import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS,prodatAperakFieldWireLabel} from '@/lib/ediel/prodat/prodatAperakText'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 
 type Wire=ReturnType<typeof tokenizeEdifact>
@@ -76,7 +76,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
    if(!ref[0]||ref[0].length>(utilts?17:3)||ref[1]||ref[2]!=='260'||ref.slice(3).some(Boolean))add('ACK_APERAK_FIELD_REFERENCE_INVALID','Negativ ERC ska peka på sin egen source-kvalificerade felreferens.','FTX/A903/A904')
    if(!utilts&&['41','42'].includes(code)&&!PRODAT_APERAK_FIELD_NAMES[ref[0]??''])add('ACK_PRODAT_FIELD_REFERENCE_UNKNOWN','A904 ska referera ett PRODAT-fältnummer.','FTX/A904')
    if(!utilts&&code==='40'&&(!PRODAT_APERAK_APPLICATION_TEXTS[ref[0]??'']||literal[0]!==PRODAT_APERAK_APPLICATION_TEXTS[ref[0]??'']))add('ACK_PRODAT_APPLICATION_TEXT_INVALID','A903/A905 ska ange det föreskrivna PRODAT-applikationsfelet.','FTX/A903/A905')
-   const label=PRODAT_APERAK_FIELD_NAMES[ref[0]??'']
+   const label=prodatAperakFieldWireLabel(ref[0]??'')
    if(!utilts&&code==='41'&&label&&literal[0]!==`${label} saknas`&&!literal[0]?.startsWith(`${label} saknas, kundid`))add('ACK_PRODAT_MISSING_TEXT_INVALID','ERC41 ska använda det svenska fältnamnet och föreskriven beskrivning.','FTX/A905')
    if(!utilts&&code==='42'&&label&&(!literal[0]?.startsWith(`Felaktigt ${label} `)||literal[0].length<=`Felaktigt ${label} `.length))add('ACK_PRODAT_INVALID_TEXT_INVALID','ERC42 ska använda det svenska fältnamnet och felaktigt mottaget innehåll.','FTX/A905')
    if(utilts&&code==='41'&&literal[0]!=='MANDATORY FIELD MISSING')add('ACK_UTILTS_MISSING_TEXT_INVALID','ERC41 ska ange den föreskrivna beskrivningen.','FTX/A905')
