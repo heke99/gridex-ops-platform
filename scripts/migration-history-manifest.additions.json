@@ -159,6 +159,7 @@
     "20260930172759_ediel_atomic_registry_import_v1.sql": "fa4ec41c2d57083b644fd2e116ffd9801ac1d40d57886d7a2180f8bae1a641a5",
     "20260930175554_ediel_z08_dispatch_observation_clock_v1.sql": "25db1d6f2a28972d0245e394988ebc7ff3f9710ed7ae4afada7fb3134ce2c39c",
     "20260930180445_ediel_accepted_transport_projection_v1.sql": "84e3be8aa2625065c0f30746d1c3e749356f0ce0892134ffddc3f3091b3546ae",
-    "20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql": "3f0f51efae58e4b267b22beefd972299acce55b205b574f24b15ae023613f9b7"
+    "20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql": "3f0f51efae58e4b267b22beefd972299acce55b205b574f24b15ae023613f9b7",
+    "20260930184042_ediel_service_administration_commands_v1.sql": "c14ed560924522b748e879e1187b7e7793d95ea2ae69e9a97cda7b727f93a689"
   }
 }

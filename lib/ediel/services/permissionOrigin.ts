@@ -5,7 +5,7 @@ export type ServicePermissionOriginInput = {
   expectedVersion: number; permissionId: string; code: 'Z13' | 'Z18'
 }
 export type ServicePermissionOriginBasis = {
-  status: 'authorized'; companyId: string; assignmentId: string; assignmentVersion: number;
+  status: 'authorized'; companyId: string; assignmentId: string; assignmentVersion: number; scopeBasisVersion:number;
   permissionId: string; permissionStateVersion: number; code: 'Z13' | 'Z18'; environment: 'test' | 'production';
   providerActorId: string; dsoActorId: string; legalSenderId: string; legalReceiverId: string;
   customerId: string; customer: Record<string, unknown>; mode: 'V' | 'VH';

@@ -250,7 +250,7 @@ export type TgtEvidence = {
 };
 export type ServiceReportingRoute = Pick<Route, 'routeProfileId' | 'communicationRouteId' | 'legalSender' | 'legalRecipient' | 'senderId' | 'receiverId' | 'senderQualifier' | 'receiverQualifier' | 'senderSubaddress' | 'receiverSubaddress' | 'applicationReference' | 'mailbox' | 'receiverEmail'> & { transportType: 'smtp' };
 export type ServiceReportingSource = {
-    kind: 'service_permission'; companyId: UUID; assignmentId: UUID; assignmentVersion: number;
+    kind: 'service_permission'; companyId: UUID; assignmentId: UUID; assignmentVersion: number; scopeBasisVersion:number;
     permissionId: UUID; evidenceId: UUID; evidenceVersion: string; evidenceSha256: string;
     actorId: UUID; intentId: UUID; environment: 'test' | 'production'; code: 'Z13'; route: ServiceReportingRoute;
 };

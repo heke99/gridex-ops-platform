@@ -104,11 +104,11 @@ export function copyReportingSource(value: unknown): ServerSource {
     return { kind: 'tgt', scope: copyReportingScope(r.scope), source: identity(r.source), factsRevision: uuid(r.factsRevision), actorId: uuid(r.actorId), sourceNote: text(r.sourceNote, 2000), route: copyReportingRoute(r.route) };
 }
 function copyServiceSource(value: unknown): ServiceReportingSource {
-    const r = record(value, ['kind','companyId','assignmentId','assignmentVersion','permissionId','evidenceId','evidenceVersion','evidenceSha256','actorId','intentId','environment','code','route']);
-    if (r.kind !== 'service_permission' || typeof r.assignmentVersion !== 'number' || !Number.isSafeInteger(r.assignmentVersion) || r.assignmentVersion < 1 || !/^[a-f0-9]{64}$/.test(String(r.evidenceSha256))) return invalid();
+    const r = record(value, ['kind','companyId','assignmentId','assignmentVersion','scopeBasisVersion','permissionId','evidenceId','evidenceVersion','evidenceSha256','actorId','intentId','environment','code','route']);
+    if (r.kind !== 'service_permission' || typeof r.assignmentVersion !== 'number' || !Number.isSafeInteger(r.assignmentVersion) || r.assignmentVersion < 1 || typeof r.scopeBasisVersion !== 'number' || !Number.isSafeInteger(r.scopeBasisVersion) || r.scopeBasisVersion<1 || !/^[a-f0-9]{64}$/.test(String(r.evidenceSha256))) return invalid();
     const rt = record(r.route, ['routeProfileId','communicationRouteId','legalSender','legalRecipient','senderId','receiverId','senderQualifier','receiverQualifier','senderSubaddress','receiverSubaddress','applicationReference','transportType','mailbox','receiverEmail']);
     const nullable = (v: unknown) => v === null ? null : text(v);
-    return { kind:'service_permission', companyId:uuid(r.companyId), assignmentId:uuid(r.assignmentId), assignmentVersion:r.assignmentVersion,
+    return { kind:'service_permission', companyId:uuid(r.companyId), assignmentId:uuid(r.assignmentId), assignmentVersion:r.assignmentVersion,scopeBasisVersion:r.scopeBasisVersion,
         permissionId:uuid(r.permissionId), evidenceId:uuid(r.evidenceId), evidenceVersion:text(r.evidenceVersion), evidenceSha256:text(r.evidenceSha256,64),
         actorId:uuid(r.actorId), intentId:uuid(r.intentId), environment:oneOf(r.environment,['test','production']), code:oneOf(r.code,['Z13']),
         route:{ routeProfileId:uuid(rt.routeProfileId), communicationRouteId:uuid(rt.communicationRouteId), legalSender:party(rt.legalSender), legalRecipient:party(rt.legalRecipient),
