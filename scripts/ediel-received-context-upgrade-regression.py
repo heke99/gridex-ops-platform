@@ -71,10 +71,12 @@ source_rows = checked(source_rows_sql)
 registry = json.loads(checked("""SELECT jsonb_build_array(to_jsonb(p),to_jsonb(r))
  FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id
  WHERE p.profile_key='PRODAT:Z04:L:26.A:r3' AND p.is_enabled;"""))
-trigger = checked("""SELECT pg_get_triggerdef(t.oid)||';' FROM pg_trigger t
+trigger = checked("""SET search_path=pg_catalog;
+ SELECT pg_get_triggerdef(t.oid)||';' FROM pg_trigger t
  WHERE t.tgrelid='public.ediel_messages'::regclass AND NOT t.tgisinternal
  AND t.tgfoid='public.gridex_validate_ediel_message_contract()'::regprocedure;""")
 assert trigger.count('CREATE TRIGGER ') == 1, 'Exactly one actual canonical guard trigger required'
+assert 'EXECUTE FUNCTION public.gridex_validate_ediel_message_contract()' in trigger, 'Native trigger function must retain its qualified identity'
 # CI installs the client matching the pinned native server. Use that same
 # explicit executable as the schema snapshot; PATH can still resolve v16.
 pg_dump = os.environ.get('GRIDEX_PG_DUMP', 'pg_dump')

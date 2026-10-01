@@ -19,3 +19,12 @@ export async function readFreshEdielBusinessIncident(input:{companyId:string;act
  if(error)throw error
  const receipt=result.parse(data);if(receipt.companyId!==input.companyId||receipt.incidentId!==input.incidentId)throw Error('ediel_business_incident_receipt_scope_mismatch');return receipt
 }
+
+/** Current native own-company rights; platform guard shortcuts never grant UI authority. */
+export async function readFreshEdielBusinessIncidentAccess(input:{companyId:string;actorUserId:string}):Promise<{companyId:string;canRead:true;canReport:boolean}>{
+ const {data,error}=await supabaseService.rpc('ediel_fresh_business_incident_access_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId})
+ if(error)throw error
+ const access=z.object({companyId:z.string().uuid(),canRead:z.literal(true),canReport:z.boolean()}).strict().parse(data)
+ if(access.companyId!==input.companyId)throw Error('ediel_business_incident_access_scope_mismatch')
+ return access
+}
