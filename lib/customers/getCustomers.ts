@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { readCustomerRegistryPage } from './customerRegistryPageRead'
 import type { LatestContractBucketFilter } from '@/lib/customer-contracts/db'
 import { isMissingRelationError } from '@/lib/tenant/scope'
 
@@ -52,10 +53,6 @@ const CUSTOMER_LIST_SELECT = [
   'id',
   'customer_type',
   'status',
-  'possible_duplicate',
-  'duplicate_review_status',
-  'consolidated_invoice',
-  'billing_level',
   'billing_profile_revision',
   'intake_status',
   'intake_missing_fields',
@@ -101,6 +98,15 @@ export type CustomerFlagFilter =
   | 'ready_for_switch'
   | 'billing_ready'
   | 'test_customers'
+
+export class CustomerRegistryFilterUnavailableError extends Error {
+  readonly code = 'CUSTOMER_REGISTRY_FILTER_UNAVAILABLE'
+
+  constructor(readonly filter: 'possible_duplicate' | 'consolidated_invoice') {
+    super(`Kundfiltret ${filter} är inte tillgängligt eftersom dess registeruppgift saknar en verifierad lagrad källa.`)
+    this.name = 'CustomerRegistryFilterUnavailableError'
+  }
+}
 
 type GetCustomersOptions = {
   query?: string | null
@@ -185,10 +191,12 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
     id: String(row.id),
     customer_type: stringOrNull(row.customer_type) ?? 'private',
     status: stringOrNull(row.status) ?? 'draft',
-    possible_duplicate: booleanOrFalse(row.possible_duplicate),
-    duplicate_review_status: stringOrNull(row.duplicate_review_status),
-    consolidated_invoice: booleanOrFalse(row.consolidated_invoice),
-    billing_level: stringOrNull(row.billing_level),
+    // The canonical customers table does not store these four facts. Preserve
+    // unknown until a current typed writer and envelope are qualified.
+    possible_duplicate: null,
+    duplicate_review_status: null,
+    consolidated_invoice: null,
+    billing_level: null,
     billing_profile_revision: typeof row.billing_profile_revision === 'number' && Number.isSafeInteger(row.billing_profile_revision)
       && row.billing_profile_revision >= 0 ? row.billing_profile_revision : null,
     intake_status: stringOrNull(row.intake_status),
@@ -214,58 +222,6 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
     active_metering_point_count: 0,
     contract_count: 0,
   }
-}
-
-function matchesText(row: CustomerListRow, query: string): boolean {
-  if (!query) return true
-  const normalized = query.toLowerCase()
-  return [
-    row.full_name,
-    row.company_name,
-    row.email,
-    row.phone,
-    row.personal_number,
-    row.org_number,
-    row.customer_number,
-    row.first_name,
-    row.last_name,
-  ]
-    .filter(Boolean)
-    .some((value) => String(value).toLowerCase().includes(normalized))
-}
-
-function matchesCustomerType(row: CustomerListRow, customerType: CustomerTypeFilter): boolean {
-  if (customerType === 'all') return true
-  if (customerType === 'private') return row.customer_type === 'private' || !row.customer_type
-  return row.customer_type === customerType
-}
-
-function matchesStatus(row: CustomerListRow, status: CustomerStatusFilter): boolean {
-  return status === 'all' || row.status === status
-}
-
-function matchesContract(row: CustomerListRow, filter: LatestContractBucketFilter): boolean {
-  if (filter === 'all') return true
-  if (filter === 'none') return row.contract_count === 0
-  return row.contract_count > 0
-}
-
-function matchesFlag(row: CustomerListRow, flag: CustomerFlagFilter): boolean {
-  if (flag === 'all') return true
-  if (flag === 'possible_duplicate') return Boolean(row.possible_duplicate)
-  if (flag === 'multi_site') return row.site_count > 1
-  if (flag === 'multi_contract') return row.contract_count > 1
-  if (flag === 'consolidated_invoice') return Boolean(row.consolidated_invoice)
-  if (flag === 'missing_grid_owner') return Boolean(row.has_missing_grid_owner)
-  if (flag === 'missing_authorization') return !row.has_signed_power_of_attorney
-  if (flag === 'ready_for_switch') {
-    return row.site_count > 0 && row.metering_point_count > 0 && Boolean(row.has_signed_power_of_attorney) && !row.has_missing_grid_owner
-  }
-  if (flag === 'billing_ready') {
-    return row.site_count > 0 && row.metering_point_count > 0 && row.contract_count > 0 && !row.has_missing_grid_owner
-  }
-  if (flag === 'test_customers') return row.is_test_data === true || String(row.source ?? '').toLowerCase().includes('test')
-  return true
 }
 
 function canUsePagedCustomerQuery(params: {
@@ -388,35 +344,6 @@ async function loadPagedCustomerRows(params: {
     rows: await hydrateDerivedCustomerData(rows, params.companyId),
     total: count ?? rows.length,
     counts,
-  }
-}
-
-async function loadCustomerRows(
-  companyId: string | null,
-  status: CustomerStatusFilter,
-  includeHidden = false
-): Promise<CustomerListRow[]> {
-  try {
-    let query = supabaseService
-      .from('customers')
-      .select(CUSTOMER_LIST_SELECT)
-      .not('company_id', 'is', null)
-      .or('source.is.null,source.neq.ediel_portal_test')
-      .order('created_at', { ascending: false })
-      .limit(1000)
-
-    if (companyId) query = query.eq('company_id', companyId)
-    if (!includeHidden) query = query.or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
-
-    const { data, error } = await query
-    if (error) throw error
-
-    return ((data ?? []) as unknown as RawCustomerRow[])
-      .filter((row) => typeof row.id === 'string')
-      .map(normalizeCustomerRow)
-  } catch (error) {
-    if (isMissingRelationError(error)) return []
-    throw error
   }
 }
 
@@ -552,36 +479,6 @@ async function hydrateDerivedCustomerData(rows: CustomerListRow[], companyId: st
   return Array.from(byCustomerId.values())
 }
 
-function emptyCounts(): CustomerStatusCounts {
-  return {
-    all: 0,
-    draft: 0,
-    pending_verification: 0,
-    active: 0,
-    inactive: 0,
-    moved: 0,
-    terminated: 0,
-    blocked: 0,
-    archived: 0,
-  }
-}
-
-function buildCounts(rows: CustomerListRow[]): CustomerStatusCounts {
-  const counts = emptyCounts()
-  counts.all = rows.length
-  for (const row of rows) {
-    if (row.status === 'draft') counts.draft += 1
-    if (row.status === 'pending_verification') counts.pending_verification += 1
-    if (row.status === 'active') counts.active += 1
-    if (row.status === 'inactive') counts.inactive += 1
-    if (row.status === 'moved') counts.moved += 1
-    if (row.status === 'terminated') counts.terminated += 1
-    if (row.status === 'blocked') counts.blocked += 1
-    if (row.status === 'archived') counts.archived += 1
-  }
-  return counts
-}
-
 export async function listCustomersPage(options: {
   query?: string | null
   page?: number
@@ -603,6 +500,9 @@ export async function listCustomersPage(options: {
   const contractFilter = options.contractFilter ?? 'all'
   const customerType = options.customerType ?? 'all'
   const flag = options.flag ?? 'all'
+  if (flag === 'possible_duplicate' || flag === 'consolidated_invoice') {
+    throw new CustomerRegistryFilterUnavailableError(flag)
+  }
   const companyId = options.companyId ?? null
   const excludeTestData = Boolean(options.excludeTestData) && flag !== 'test_customers'
 
@@ -627,38 +527,9 @@ export async function listCustomersPage(options: {
     }
   }
 
-  const includeHiddenRows = status === 'archived'
-  const baseRows = await loadCustomerRows(companyId, status, includeHiddenRows)
-  const visibleRows = excludeTestData
-    ? baseRows.filter((row) => !matchesFlag(row, 'test_customers'))
-    : baseRows
-  const hydrationCandidates = visibleRows.filter(
-    (row) => matchesText(row, query) && matchesCustomerType(row, customerType)
-  )
-  const hydratedRows = await hydrateDerivedCustomerData(hydrationCandidates, companyId)
-  const counts = buildCounts(
-    hydratedRows.filter((row) => matchesCustomerType(row, customerType) && matchesFlag(row, flag))
-  )
-  const filteredRows = hydratedRows.filter(
-    (row) =>
-      matchesStatus(row, status) &&
-      matchesCustomerType(row, customerType) &&
-      matchesContract(row, contractFilter) &&
-      matchesFlag(row, flag)
-  )
-
-  const total = filteredRows.length
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const from = (page - 1) * pageSize
-
-  return {
-    rows: filteredRows.slice(from, from + pageSize),
-    total,
-    page,
-    pageSize,
-    totalPages,
-    counts,
-  }
+  return readCustomerRegistryPage({
+    companyId, query, status, contractFilter, customerType, flag, excludeTestData, page, pageSize,
+  })
 }
 
 export async function getCustomers(options: GetCustomersOptions = {}): Promise<CustomerListRow[]> {
