@@ -225,3 +225,12 @@ export function canonicalProdatFieldWireDescriptor(fieldNumber:string):Readonly<
 export function canonicalProdatMeasurementResolution(value:string|null|undefined):'15'|'60'|null {
  return value==='Z04'?'15':value==='Z02'?'60':null
 }
+
+import {canonicalProdatRequestedMethod} from '@/lib/ediel/prodat/canonicalRenderSemantics'
+import {canonicalProdatTransactionReason} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+/** Read-only projection of the existing subtype/reason and render authorities. */
+export function canonicalProdatMethodChangeTuple(subtype:'F'|'G'){
+ const method=canonicalProdatRequestedMethod(subtype),reason=canonicalProdatTransactionReason(subtype,'Z09')
+ if(!method||!reason)throw new Error('canonical_method_change_tuple_missing')
+ return Object.freeze({subtype,reason,method})
+}
