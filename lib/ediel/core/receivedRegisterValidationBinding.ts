@@ -42,8 +42,12 @@ export function bindReceivedRegisterValidation(value: unknown, raw: string): Pro
         || !object.reasons.every(reason=>typeof reason==='string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(reason))
         || new Set(object.reasons).size!==object.reasons.length) return null
       if (object.disposition==='accepted' ? object.reasons.length!==0 : object.reasons.length===0) return null
-      if ((object.messageIndex!==0 || !text(object.messageReference) || !text(object.objectId) || !['9','89'].includes(String(object.identityAgency)))
+      if ((object.messageIndex!==0 || !text(object.messageReference) || !text(object.objectId))
         && object.disposition!=='unavailable') return null
+      // Preserve a source-owned rejected identity exactly as received. The
+      // physical match below still rejects forged agency substitutions; an
+      // invalid agency can never acquire an accepted object disposition.
+      if (!['9','89'].includes(String(object.identityAgency)) && object.disposition==='accepted') return null
       const first=object.registers[0]
       if (!isEvidenceRecord(first)) return null
       const key=JSON.stringify([object.messageIndex,object.objectId,object.identityAgency,object.objectId ? null : first.lineIndex])

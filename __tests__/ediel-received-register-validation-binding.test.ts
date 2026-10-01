@@ -53,3 +53,16 @@ test('operational report register JSON is never used as actual validator output'
   const result=build({...input,decision})
   expect(result).not.toBeNull();expect(JSON.parse(result!.factsText)).not.toHaveProperty('registerValidation')
 })
+
+import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
+test('retains an exact physical invalid agency only in a rejected or unavailable register facet',()=>{
+ const input=fixture(),raw=input.original.raw_payload.replace('MP-B:::89','MP-B:::999')
+ expect(raw).not.toBe(input.original.raw_payload)
+ const value=structuredClone(input.decision.prodatRegisterValidation);value.objects[1].identityAgency='999'
+ expect(bindReceivedRegisterValidation(value,raw)?.objects[1]).toMatchObject({identityAgency:'999',disposition:'rejected',reasons:['PRODAT_REGISTER_INVALID']})
+ expect(bindReceivedRegisterValidation(value,input.original.raw_payload)).toBeNull()
+ value.objects[1].disposition='accepted';value.objects[1].reasons=[]
+ expect(bindReceivedRegisterValidation(value,raw)).toBeNull()
+ value.objects[1].disposition='unavailable';value.objects[1].reasons=['REGISTER_SCOPE_UNAVAILABLE']
+ expect(bindReceivedRegisterValidation(value,raw)?.objects[1].disposition).toBe('unavailable')
+})
