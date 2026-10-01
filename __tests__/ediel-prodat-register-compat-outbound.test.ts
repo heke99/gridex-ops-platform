@@ -1,17 +1,18 @@
 import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  buildProdatZ03FromSwitch, buildProdatZ04FromSwitch, buildProdatZ06FromSwitch, buildProdatZ10FromSwitch,
+  buildProdatZ03FromSwitch, buildProdatZ09FromSwitch, buildProdatZ04FromSwitch, buildProdatZ06FromSwitch, buildProdatZ10FromSwitch,
   validateProdatSwitchContext, type ProdatSwitchCode,
 } from '@/lib/ediel/prodat/compatAdapter'
+import {prepareCustomerMasterdataSource} from '@/lib/ediel/production/customerMasterdataSource'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 
-const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('unexpected database access')}),getCustomerExportContext:vi.fn(),assertEdielTenantActor:vi.fn(),readContractRequestedMethodSource:vi.fn(),prepareQualifiedBrpSource:vi.fn()}))
+const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(()=>{throw new Error('unexpected database access')}),getCustomerExportContext:vi.fn(),assertEdielTenantActor:vi.fn(),readContractRequestedMethodSource:vi.fn(),prepareQualifiedBrpSource:vi.fn()}))
 vi.mock('@/lib/cis/db-shared',async importOriginal=>({...await importOriginal<typeof import('@/lib/cis/db-shared')>(),getCustomerExportContext:io.getCustomerExportContext}))
 vi.mock('@/lib/ediel/production/contractRequestedMethodSource',async importOriginal=>({...await importOriginal<typeof import('@/lib/ediel/production/contractRequestedMethodSource')>(),readContractRequestedMethodSource:io.readContractRequestedMethodSource}))
 vi.mock('@/lib/ediel/production/brpFieldSource',()=>({prepareQualifiedBrpSource:io.prepareQualifiedBrpSource}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.assertEdielTenantActor}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from}}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from,rpc:io.rpc}}))
 type Input=Parameters<typeof buildProdatZ04FromSwitch>[0]
 const id='735999888000000017'
 const facts={market:'electricity',registerObjects:[{meteringPointId:id,identityAgency:'9',expectedRegisterCount:2,meterReadingsSentInUtilts:false}]}
@@ -38,7 +39,7 @@ describe('saved switch compatibility respects operational direction',()=>{
   const parsed=parseProdatMessage(draft.rawPayload!)
   expect(parsed.lineItems.map(line=>[line.meteringPointId,line.lineSequenceNumber,line.registerIndex])).toEqual([[id,'1',null]])
   expect(draft).toMatchObject({direction:'outbound',messageCode:'Z03',environment:'test',status:'draft',testFlag:1,switchRequestId:'switch',customerId:'customer',siteId:'site',meteringPointId:'meter'})
-  expect(io.getCustomerExportContext).toHaveBeenCalledWith({companyId:'company',customerId:'customer',siteId:'site',meteringPointId:'meter',actorUserId:'actor',asOf:'2026-09-30T23:00:00.000Z'})
+  expect(io.getCustomerExportContext).toHaveBeenCalledWith({companyId:'company',customerId:'customer',siteId:'site',meteringPointId:'meter',actorUserId:'actor',environment:'test',requireCustomerMasterdata:true,asOf:'2026-09-30T23:00:00.000Z'})
   expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Source Customer')
   expect(draft.rawPayload).not.toContain('USER:')
   expect(draft.rawPayload).toContain("CCI++Z04'CAV+Z04'")
@@ -63,6 +64,26 @@ describe('saved switch compatibility respects operational direction',()=>{
   io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null,customerLifeEvent:null})
   await expect(buildProdatZ03FromSwitch(p)).rejects.toThrow('prodat_render_blocked:Z03')
   expect(io.from).not.toHaveBeenCalled()
+ })
+ it('does not request unrelated customer address authority for a source-forbidden Z09F end-user group',async()=>{
+  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),reasonForTransaction:'E64',registers:[]}}
+  const context=await io.getCustomerExportContext();io.getCustomerExportContext.mockResolvedValue({...context,customer:{id:'customer',company_id:'company'},customerLifeEvent:null})
+  // The actual legacy path may still hold missing independent structural/event
+  // authority; it must not turn a forbidden UD group into a new legal-ID need.
+  const outcome=await buildProdatZ09FromSwitch(p).then(()=>null,(error:Error)=>error)
+  expect(outcome?.message).not.toContain('prodat_customer_legal_identity_required')
+  expect(io.getCustomerExportContext).toHaveBeenLastCalledWith(expect.objectContaining({requireCustomerMasterdata:false}))
+ })
+ it('passes the selected protected registered customer context into the real ordinary draft',async()=>{
+  const p=input(),invoicee=selectedInvoiceeFact(id,'company','9','199001011234',['Street'],'SE2','12345','Town','SE')
+  p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity',invoiceeObjects:[invoicee]}}}
+  io.rpc.mockResolvedValueOnce({error:null,data:{status:'authorized',companyId:'company',customerId:'customer',environment:'test',asOf:'2026-10-01T00:00:00Z',sourceKind:'registered_customer_address',sourceReference:'source',sourceDigest:'d'.repeat(64),sourceContextId:'00000000-0000-4000-8000-000000000111',customerIdentity:{id:'199001011234',qualifier:'SE2',agency:'260'},endUserMasterdata:{nameParts:['Registered','Own name'],streetParts:['Street'],postalCode:'12345',city:'Town',country:'SE'}}})
+  io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'MUTABLE',full_name:'Mutable name'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null,customerLifeEvent:null,
+   customerMasterdata:await prepareCustomerMasterdataSource({companyId:'company',customerId:'customer',actorUserId:'actor',environment:'test',asOf:'2026-10-01T00:00:00Z'})})
+  const draft=await buildProdatZ03FromSwitch(p)
+  expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Registered:Own name+Street+Town++12345+SE')
+  expect(draft.rawPayload).not.toContain('MUTABLE')
+  expect(draft.parsedPayload?.customerMasterdataSourceContextId).toBe('00000000-0000-4000-8000-000000000111')
  })
  it('holds missing new-agreement declaration even when portal and prior DSO method look usable',async()=>{
   io.readContractRequestedMethodSource.mockResolvedValue({status:'held',missing:['unique_authentic_new_agreement_requested_method_declaration']})

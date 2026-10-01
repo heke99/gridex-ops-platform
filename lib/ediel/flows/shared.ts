@@ -1,3 +1,5 @@
+import {bindCustomerMasterdataDraftContext} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
 // lib/ediel/flows/shared.ts
 
 import type { CreateEdielMessageInput, EdielEnvironment } from '@/lib/ediel/types'
@@ -228,6 +230,7 @@ export async function finalizeOutboundDraft(params: {
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null
+  customerMasterdataContext?:CustomerMasterdataValidationContext
   reportingContext?: ExpectedContext
   dateEventContext?: import('@/lib/ediel/prodat/prodatDateEventAuthority').ProdatDateEventValidationContext
   duplicateCheck: {
@@ -254,6 +257,7 @@ export async function finalizeOutboundDraft(params: {
     duplicateCheck: params.duplicateCheck,
     reportingContext: params.reportingContext,
     dateEventContext: params.dateEventContext,
+    customerMasterdataContext:params.customerMasterdataContext??bindCustomerMasterdataDraftContext({draft:params.draft,companyId:params.routeContext.companyId??'',environment:params.routeContext.environment,routeId:params.routeContext.route.id}),
   }
   return finalizeCanonicalOutboundDraft(canonical)
 }

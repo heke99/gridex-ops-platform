@@ -1,18 +1,27 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-const state=vi.hoisted(()=>({customer:{} as Record<string,unknown>, customerLifeEvent:null as Record<string,unknown>|null, envelope:null as Record<string,unknown>|null}))
-vi.mock('@/lib/cis/db-shared',()=>({getCustomerExportContext:vi.fn(async()=>({customer:state.customer,customerLifeEvent:state.customerLifeEvent,site:{company_id:'COMPANY',facility_id:'735123456789012345',street:'Installation Street',postal_code:'99999',city:'Installation City',country:'SE',move_in_date:'2026-10-01'}})),requireContextCompanyId:()=> 'COMPANY'}))
+const state=vi.hoisted(()=>({customer:{} as Record<string,unknown>, customerLifeEvent:null as Record<string,unknown>|null, customerMasterdata:null as Record<string,unknown>|null, envelope:null as Record<string,unknown>|null,sourceRpc:vi.fn(),realEnvelope:false}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:state.sourceRpc}}))
+vi.mock('@/lib/cis/db-shared',()=>({getCustomerExportContext:vi.fn(async()=>({customer:state.customer,customerLifeEvent:state.customerLifeEvent,customerMasterdata:state.customerMasterdata,site:{company_id:'COMPANY',facility_id:'735123456789012345',street:'Installation Street',postal_code:'99999',city:'Installation City',country:'SE',move_in_date:'2026-10-01'}})),requireContextCompanyId:()=> 'COMPANY'}))
 vi.mock('@/lib/customer-operations/customerSiteProcessContext',()=>({resolveCustomerSiteProcessContext:async()=>({processType:'supplier_switch',requestedStartDate:'2026-10-01'}),resolveProdatCustomerProcessVariant:()=>({supported:true,z01Variant:'L',z01Reason:'Z22',expectedZ02Variant:'L'})}))
 vi.mock('@/lib/ediel/core/versionRegistry',()=>({resolveCanonicalOutboundVersion:vi.fn(async()=> 'E2SE6A')}))
-vi.mock('@/lib/ediel/messages',()=>({buildEdifactEnvelope:vi.fn((input)=>{state.envelope=input;return {raw:'WIRE',interchangeReference:'I',payloadPreflight:{}}})}))
-vi.mock('@/lib/ediel/references',()=>({computeOutboundAckDueAt:()=>null,deriveEdielAckDefaults:()=>({requiresContrl:true,requiresAperak:true,contrlStatus:'pending',aperakStatus:'pending',utiltsErrStatus:'not_required'})}))
+vi.mock('@/lib/ediel/messages',async(importActual)=>{const actual=await importActual<typeof import('@/lib/ediel/messages')>();return {buildEdifactEnvelope:vi.fn((input)=>{state.envelope=input;return state.realEnvelope?actual.buildEdifactEnvelope(input):{raw:'WIRE',interchangeReference:'I',payloadPreflight:{}}})}})
+vi.mock('@/lib/ediel/references',async(importActual)=>({...await importActual<typeof import('@/lib/ediel/references')>(),computeOutboundAckDueAt:()=>null,deriveEdielAckDefaults:()=>({requiresContrl:true,requiresAperak:true,contrlStatus:'pending',aperakStatus:'pending',utiltsErrStatus:'not_required'})}))
 import {buildCustomerMasterdataZ01Draft} from '@/lib/ediel/intent/renderers/customerMasterdataZ01'
 import {buildFacilityLookupZ01Draft} from '@/lib/ediel/intent/renderers/facilityLookupZ01'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {prepareCustomerMasterdataSource,bindCustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import {customerMasterdataSendIssue} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import {getCustomerExportContext} from '@/lib/cis/db-shared'
 const input={companyId:'COMPANY',actorUserId:'ACTOR',request:{id:'REQUEST',customer_id:'CUSTOMER',customer_site_id:'SITE',grid_owner_id:'DSO',grid_area_code:'NET',price_area:'SE3'},routeContext:{senderEdielId:'12345',receiverEdielId:'54321',environment:'test',applicationReference:'23-DDQ-PRODAT',route:{id:'ROUTE'}},outboundRequestId:'OUT',operationId:'OP',intentId:'INTENT',gridOwner:{owner_code:'NET'}} as unknown as Parameters<typeof buildFacilityLookupZ01Draft>[0]
+async function qualifiedMasterdata(data:Record<string,unknown>){
+ const projection={status:'authorized',companyId:'COMPANY',customerId:'CUSTOMER',environment:'test',asOf:'2026-10-01T00:00:00Z',sourceKind:'registered_customer_address',sourceReference:'registered-source',sourceDigest:'d'.repeat(64),sourceContextId:'00000000-0000-4000-8000-000000000111',...data}
+ state.sourceRpc.mockResolvedValueOnce({data:projection,error:null})
+ return prepareCustomerMasterdataSource({companyId:'COMPANY',customerId:'CUSTOMER',actorUserId:'ACTOR',environment:'test',asOf:projection.asOf})
+}
 const masterdataInput={actorUserId:'ACTOR',routeContext:input.routeContext,
   dataRequest:{id:'REQUEST',company_id:'COMPANY',customer_id:'CUSTOMER',site_id:'SITE',metering_point_id:null,grid_owner_id:'DSO'},
   gridOwner:{owner_code:'NET'},externalReference:'DOC',transactionReference:'LI',messageVersion:'E2SE6A'}
-beforeEach(()=>{vi.clearAllMocks();state.customer={};state.envelope=null;state.customerLifeEvent={effectiveVersionCount:1,endUserMasterdata:{street:['Street'],postCode:'12345',city:'City',country:'FI'}}})
+beforeEach(()=>{vi.clearAllMocks();state.customer={};state.envelope=null;state.customerMasterdata=null;state.realEnvelope=false;state.customerLifeEvent={effectiveVersionCount:1,endUserMasterdata:{street:['Street'],postCode:'12345',city:'City',country:'FI'}}})
 describe('facility lookup uses the shared source-owned customer identity',()=>{
   it.each([{customer_number:'INTERNAL',full_name:'Name'},{personal_number:'199001011234',customer_number:'INTERNAL'}])('blocks incomplete legal identity before constructing a draft',async customer=>{
     state.customer=customer
@@ -54,6 +63,48 @@ describe('facility lookup uses the shared source-owned customer identity',()=>{
     const result=kind==='facility'?buildFacilityLookupZ01Draft(input):buildCustomerMasterdataZ01Draft(masterdataInput)
     await expect(result).rejects.toThrow('prodat_render_blocked:Z01')
     expect(state.envelope).toBeNull()
+  })
+
+  it.each(['facility','masterdata'] as const)('preserves literal qualified UD component bytes through %s Z01',async kind=>{
+    const name=[' '+ 'A'.repeat(33)+' '," Actual A+B's Name "]
+    const street=[' Selected Street ',' Second '+': Street ',' Last Street ']
+    state.customer={personal_number:'199001011234',full_name:'TODAY'}
+    state.customerMasterdata=await qualifiedMasterdata({customerIdentity:{id:'198001011234',qualifier:'SE2',agency:'260'},endUserMasterdata:{nameParts:name,streetParts:street,postalCode:' 12345 ',city:' Selected City ',country:'FI'}})
+    if(kind==='facility')await buildFacilityLookupZ01Draft(input)
+    else await buildCustomerMasterdataZ01Draft(masterdataInput)
+    const raw=(state.envelope?.segments as string[]).find(segment=>segment.startsWith('NAD+UD'))!
+    const token=tokenizeEdifact(raw+"'").segments[0]
+    expect(segmentComposite(token,4)).toEqual(name)
+    expect(segmentComposite(token,5)).toEqual(street)
+    expect(segmentComposite(token,6)).toEqual([' Selected City '])
+    expect(segmentComposite(token,8)).toEqual([' 12345 '])
+    const actualRaw="UNH+1+PRODAT:D:97A:UN:E2SE6A'"+(state.envelope?.segments as string[]).join("'")+"'"
+    const projection=await qualifiedMasterdata({customerIdentity:{id:'198001011234',qualifier:'SE2',agency:'260'},endUserMasterdata:{nameParts:name,streetParts:street,postalCode:' 12345 ',city:' Selected City ',country:'FI'}})
+    const context=bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:'COMPANY',customerId:'CUSTOMER',environment:'test',rawPayload:actualRaw,intentId:'INTENT',routeId:'ROUTE',projection})
+    const row={direction:'outbound',message_family:'PRODAT',message_code:'Z01',company_id:'COMPANY',customer_id:'CUSTOMER',environment:'test',raw_payload:actualRaw,intent_id:'INTENT',communication_route_id:'ROUTE'}
+    expect(customerMasterdataSendIssue(row,context)).toBeNull()
+    await expect(qualifiedMasterdata({customerIdentity:{id:'198001011234',qualifier:'SE2',agency:'260'},endUserMasterdata:{nameParts:['A'.repeat(36)],streetParts:street,postalCode:'12345',city:'City',country:'FI'}})).rejects.toThrow('customer_masterdata_source_result_invalid')
+  })
+  it.each(['facility','masterdata'] as const)('carries own source facts through the actual encoded envelope and preflight for %s Z01',async kind=>{
+    state.realEnvelope=true
+    state.customer={personal_number:'199001011234',full_name:'TODAY'}
+    state.customerMasterdata=await qualifiedMasterdata({customerIdentity:{id:'198001011234',qualifier:'SE2',agency:'260'},endUserMasterdata:{nameParts:[' Actual name ','Second'],streetParts:['','Own Street ',''],postalCode:'12345',city:' City ',country:'FI'}})
+    const draft=kind==='facility'?(await buildFacilityLookupZ01Draft(input)).draft:await buildCustomerMasterdataZ01Draft(masterdataInput)
+    expect(draft.rawPayload).toContain('++ Actual name :Second+.:Own Street :+ City ++12345+FI')
+    expect(draft.validationReport?.payloadPreflight).toMatchObject({blocking:false})
+    expect(state.envelope?.customerMasterdataProjection).toBe(state.customerMasterdata)
+  })
+
+  it.each(['facility','masterdata'] as const)('uses the same registered dated UD and passes its private selector through %s Z01',async kind=>{
+    state.customer={org_number:'MUTABLE',company_name:'Mutable name'}
+    state.customerLifeEvent=null
+    state.customerMasterdata=await qualifiedMasterdata({customerIdentity:{id:'199001011234',qualifier:'SE2',agency:'260'},
+      endUserMasterdata:{nameParts:['Source','Own name'],streetParts:['Own street','Box 12'],postalCode:'00123',city:'Own city',country:'FI'}})
+    const draft=kind==='facility'?(await buildFacilityLookupZ01Draft(input)).draft:await buildCustomerMasterdataZ01Draft(masterdataInput)
+    const ud=(state.envelope?.segments as string[]).find(segment=>segment.startsWith('NAD+UD'))
+    expect(ud).toBe('NAD+UD+199001011234:SE2:260++Source:Own name+Own street:Box 12+Own city++00123+FI')
+    expect(draft.parsedPayload?.customerMasterdataSourceContextId).toBe('00000000-0000-4000-8000-000000000111')
+    expect(getCustomerExportContext).toHaveBeenCalledWith(expect.objectContaining({companyId:'COMPANY',actorUserId:'ACTOR',environment:'test'}))
   })
 
   it('requires the known request tenant before querying any customer data',async()=>{

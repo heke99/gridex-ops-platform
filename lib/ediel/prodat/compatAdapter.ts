@@ -1,3 +1,7 @@
+import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import {canonicalProdatSubtypeAlias} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import {resolveProdatEndUserGroupRequirement} from '@/lib/ediel/prodat/prodatParentApplicability'
+import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import {readContractRequestedMethodSource,assertContractRequestedMethodSelection,type ContractRequestedMethodBasis} from '@/lib/ediel/production/contractRequestedMethodSource'
 import {prepareQualifiedBrpSource,type BrpFieldBasis} from '@/lib/ediel/production/brpFieldSource'
 import { prodatDateToIsoDate,prodatDate203,prodatMarketMinuteToUtc } from '@/lib/ediel/prodat/render/dates'
@@ -475,13 +479,14 @@ function renderProdatSegments(params: {
   const savedPortalData = portalSnapshot(params.switchRequest)
   const sourceContext=params.sourceContext
   const companyId=requireContextCompanyId(sourceContext,'Bygg PRODAT från vald kund/anläggning')
-  const endUser=resolveSwedishProdatEndUserExport({customer:sourceContext.customer as unknown as Record<string,unknown>|null,customerLifeEvent:sourceContext.customerLifeEvent})
+  const endUser=resolveSwedishProdatEndUserExport({customer:sourceContext.customer as unknown as Record<string,unknown>|null,customerLifeEvent:sourceContext.customerLifeEvent,customerMasterdata:sourceContext.customerMasterdata})
   const customer=endUser.identity
-  if(!customer.id||!customer.qualifier||!customer.name)throw new Error('prodat_customer_legal_identity_required')
+  const endUserParentRequirement=resolveProdatEndUserGroupRequirement(params.code,canonicalProdatSubtypeAlias(portalString(savedPortalData,'reasonForTransaction'),params.code))
+  if(endUserParentRequirement!=='forbidden'&&(!customer.id||!customer.qualifier||!customer.name))throw new Error('prodat_customer_legal_identity_required')
   const meterPointId=params.requestedMethodSource?.pointId??inferMeterPointIdentifier(sourceContext.meteringPoint!)
   if(!/^\d{18}$/.test(meterPointId))throw new Error('prodat_source_object_identity_required')
   const {addressLines,postalCode,city,country}=endUser
-  const endUserAddressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${params.switchRequest.customer_id}/${params.switchRequest.site_id}/${params.switchRequest.metering_point_id}`,meterPointId,identityAgency:params.requestedMethodSource?.identityAgency??'9',customer,addressLines})
+  const endUserAddressObjects=endUserParentRequirement==='forbidden'?[]:sourceContext.customerMasterdata?createCustomerMasterdataAddressFacts({projection:sourceContext.customerMasterdata,meteringPointId:meterPointId,identityAgency:params.requestedMethodSource?.identityAgency??'9'}):prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${params.switchRequest.customer_id}/${params.switchRequest.site_id}/${params.switchRequest.metering_point_id}`,meterPointId,identityAgency:params.requestedMethodSource?.identityAgency??'9',customer,addressLines})
   // A saved protocol preview cannot replace the selected server-owned legal
   // customer, object, address or its dependent-condition source.
   const portalData={...(savedPortalData??{}),customerId:customer.id,customerIdCodeListQualifier:customer.qualifier,customerIdAgency:'260',customerName:customer.name,customerNameLines:endUser.nameLines,
@@ -517,9 +522,9 @@ function renderProdatSegments(params: {
       startDate,
       // Z05 closes the supplier contract at the requested switch boundary.
       contractEndDate: portalPartyText(portalData, 'agreementEndDateTime') ?? (params.code === 'Z05' ? startDate : null),
-      customerAddress: portalPartyText(portalData, 'customerAddress'),
-      customerPostalCode: portalPartyText(portalData, 'customerPostalCode'),
-      customerCity: portalPartyText(portalData, 'customerCity'),
+      customerAddress: addressLines[0],
+      customerPostalCode: postalCode,
+      customerCity: city,
       customerCountry:country,
       siteAddress: portalPartyText(portalData, 'siteAddress') ?? params.site.street?.trim() ?? null,
       sitePostalCode: portalPartyText(portalData, 'sitePostalCode') ?? params.site.postal_code?.trim() ?? null,
@@ -595,13 +600,15 @@ function buildProdatSwitchOutboundDraft(
     await assertEdielTenantActor({companyId:input.switchRequest.company_id,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
     const sourceStartAt=code==='Z03'?prodatMarketMinuteToUtc(prodatDate203(input.switchRequest.requested_start_date)):null
     if(code==='Z03'&&!sourceStartAt)throw new Error('prodat_new_agreement_source_start_required')
-    const sourceContext=await getCustomerExportContext({companyId:input.switchRequest.company_id,customerId:input.switchRequest.customer_id,siteId:input.switchRequest.site_id,meteringPointId:input.switchRequest.metering_point_id,actorUserId:input.actorUserId,...(sourceStartAt?{asOf:sourceStartAt}:{})})
+    const environment = input.environment ?? 'test'
+    const endUserParentRequirement=resolveProdatEndUserGroupRequirement(code,canonicalProdatSubtypeAlias(portalString(portalSnapshot(input.switchRequest),'reasonForTransaction'),code))
+    const requireCustomerMasterdata=code==='Z03'||endUserParentRequirement==='required'
+    const sourceContext=await getCustomerExportContext({companyId:input.switchRequest.company_id,customerId:input.switchRequest.customer_id,siteId:input.switchRequest.site_id,meteringPointId:input.switchRequest.metering_point_id,actorUserId:input.actorUserId,environment,requireCustomerMasterdata,...(sourceStartAt?{asOf:sourceStartAt}:{})})
     const sourceCompanyId=requireContextCompanyId(sourceContext,'Bygg PRODAT från vald kund/anläggning')
     if(sourceCompanyId!==input.switchRequest.company_id||sourceContext.customer?.id!==input.switchRequest.customer_id||sourceContext.site?.id!==input.switchRequest.site_id||sourceContext.site.customer_id!==input.switchRequest.customer_id
       ||sourceContext.meteringPoint?.id!==input.switchRequest.metering_point_id||sourceContext.meteringPoint.customer_id!==input.switchRequest.customer_id||(sourceContext.meteringPoint.customer_site_id??sourceContext.meteringPoint.site_id)!==input.switchRequest.site_id
       ||input.site.id!==sourceContext.site.id||input.meteringPoint.id!==sourceContext.meteringPoint.id)throw new Error('prodat_selected_customer_site_point_scope_mismatch')
 
-    const environment = input.environment ?? 'test'
     let requestedMethodSource:ContractRequestedMethodBasis|null=null
     let brpSource:BrpFieldBasis|null=null,sourceStartDate:string|null=null
     if(code==='Z03'){
@@ -691,11 +698,13 @@ function buildProdatSwitchOutboundDraft(
       messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
       segments: prodatRendered.segments,
       companyId: input.switchRequest.company_id,
+      customerMasterdataProjection:sourceContext.customerMasterdata??undefined,
       parsedPayload: {prodatEngine: prodatRendered.diagnostics},
     })
 
 
     const parsedPayload: Record<string, unknown> = {
+      customerMasterdataSourceContextId: sourceContext.customerMasterdata?.sourceContextId ?? null,
       draftType: 'prodat_switch_outbound',
       processLabel: deriveProcessLabel(code),
       prodatCode: code,
@@ -728,7 +737,7 @@ function buildProdatSwitchOutboundDraft(
       prodatAckExpectation: prodatRendered.ackExpectation ?? null,
     }
 
-    return {
+    return rememberCustomerMasterdataDraft({
       actorUserId: input.actorUserId,
       companyId:sourceCompanyId,
       direction: 'outbound',
@@ -791,7 +800,7 @@ function buildProdatSwitchOutboundDraft(
       }),
       syntaxCheckStatus: 'not_checked',
       functionalCheckStatus: 'not_checked',
-    }
+    },sourceContext.customerMasterdata)
   })()
 }
 

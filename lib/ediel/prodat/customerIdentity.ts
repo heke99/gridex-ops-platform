@@ -1,5 +1,6 @@
 import {copyProdatEndUserAddressObjects,type ProdatEndUserAddressObject} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import type { CustomerLifeEventExportProjection } from '@/lib/ediel/production/customerLifeEventExport'
+import type { SourceQualifiedCustomerMasterdataProjection } from '@/lib/ediel/production/customerMasterdataSource'
 export type SwedishProdatEndUserQualifier = 'SE1' | 'SE2'
 
 export type SwedishProdatCustomerIdentity = {
@@ -60,6 +61,7 @@ export function resolveSwedishProdatCustomerIdentity(
 export function resolveSwedishProdatEndUserExport(input: {
   customer: CustomerIdentitySource
   customerLifeEvent?: CustomerLifeEventExportProjection | null
+  customerMasterdata?: SourceQualifiedCustomerMasterdataProjection | null
 }): {
   identity: SwedishProdatCustomerIdentity
   nameLines: string[] | undefined
@@ -67,7 +69,21 @@ export function resolveSwedishProdatEndUserExport(input: {
   postalCode: string | null
   city: string | null
   country: string
+  sourceContextId: string | null
 } {
+  const masterdata = input.customerMasterdata
+  if (masterdata) {
+    const nameLines = [...masterdata.endUserMasterdata.nameParts]
+    return {
+      identity: { id: sanitize(masterdata.customerIdentity.id), qualifier: masterdata.customerIdentity.qualifier, name: nameLines.join(' ').trim() },
+      nameLines,
+      addressLines: [...masterdata.endUserMasterdata.streetParts],
+      postalCode: masterdata.endUserMasterdata.postalCode || null,
+      city: masterdata.endUserMasterdata.city || null,
+      country: sanitize(masterdata.endUserMasterdata.country),
+      sourceContextId: masterdata.sourceContextId,
+    }
+  }
   const identity = resolveSwedishProdatCustomerIdentity(input.customer)
   const source = input.customerLifeEvent && input.customerLifeEvent.effectiveVersionCount > 0
     ? input.customerLifeEvent.endUserMasterdata : undefined
@@ -81,6 +97,7 @@ export function resolveSwedishProdatEndUserExport(input: {
     // Empty is deliberate: the serializer must not manufacture a Swedish
     // country from the legal-id qualifier or the installation's country.
     country: source ? sanitize(source.country) : '',
+    sourceContextId: null,
   }
 }
 

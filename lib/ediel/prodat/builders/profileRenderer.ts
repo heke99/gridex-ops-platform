@@ -79,6 +79,21 @@ function portalString(portalData: ProdatEnginePortalSnapshot, key: string): stri
   return typeof value === 'string' && value.trim().length > 0 ? sanitizeProdatText(value) : null
 }
 
+// Literal NAD+UD data keeps source component bytes. This pure text projection
+// does not qualify a customer source; live opaque/native ownership is separate.
+function portalLiteralPartyText(portalData: ProdatEnginePortalSnapshot,key:string):string|null {
+ const value=portalData?.[key]
+ if(value==null)return null
+ if(typeof value!=='string')throw new Error('prodat_party_snapshot_invalid')
+ return value
+}
+function portalLiteralPartyLines(portalData: ProdatEnginePortalSnapshot,key:string):readonly string[]|undefined {
+ const value=portalData?.[key]
+ if(value==null)return undefined
+ if(!Array.isArray(value)||value.some(part=>typeof part!=='string'))throw new Error('prodat_party_snapshot_invalid')
+ return value
+}
+
 function portalPartyText(portalData: ProdatEnginePortalSnapshot, key: string): string | null {
   const value = portalData?.[key]
   if (value == null) return null
@@ -310,19 +325,19 @@ export function buildProfiledProdatSegments(input: {
   }
 
   const addressOverridden=portalData && (Object.hasOwn(portalData,'customerAddressLines') || Object.hasOwn(portalData,'customerAddress'))
-  const ownAddressLines=addressOverridden ? Object.hasOwn(portalData,'customerAddressLines') ? portalPartyLines(portalData,'customerAddressLines') ?? [] : undefined : context.customerAddressLines
-  const ownAddress=addressOverridden ? portalPartyText(portalData,'customerAddress') : context.customerAddress
+  const ownAddressLines=addressOverridden ? Object.hasOwn(portalData,'customerAddressLines') ? portalLiteralPartyLines(portalData,'customerAddressLines') ?? [] : undefined : context.customerAddressLines
+  const ownAddress=addressOverridden ? portalLiteralPartyText(portalData,'customerAddress') : context.customerAddress
   if (partyFieldAllowed('END_USER_GROUP')) {
     segments.push(prodatCustomerNadSegment({
       customerId: portalPartyText(portalData, 'customerId') ?? context.customerId ?? null,
       customerIdCodeListQualifier: portalPartyText(portalData, 'customerIdCodeListQualifier') ?? context.customerIdCodeListQualifier ?? null,
-      customerName: portalPartyText(portalData, 'customerName') ?? context.customerName,
-      nameLines: portalPartyLines(portalData, 'customerNameLines') ?? context.customerNameLines,
+      customerName: portalLiteralPartyText(portalData, 'customerName') ?? context.customerName,
+      nameLines: portalLiteralPartyLines(portalData, 'customerNameLines') ?? context.customerNameLines,
       idAgency: portalAgency(portalData, 'customerIdAgency', ['89', '260'] as const) ?? context.customerIdAgency,
       addressLines: partyFieldAllowed('229') ? ownAddressLines : undefined,
       address: partyFieldAllowed('229') ? ownAddress ?? null : null,
-      city: partyFieldAllowed('232') ? portalPartyText(portalData, 'customerCity') ?? context.customerCity ?? null : null,
-      postalCode: partyFieldAllowed('231') ? portalPartyText(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null : null,
+      city: partyFieldAllowed('232') ? portalLiteralPartyText(portalData, 'customerCity') ?? context.customerCity ?? null : null,
+      postalCode: partyFieldAllowed('231') ? portalLiteralPartyText(portalData, 'customerPostalCode') ?? context.customerPostalCode ?? null : null,
       country: portalPartyText(portalData, 'customerCountry') ?? context.customerCountry ?? null,
     }))
   }

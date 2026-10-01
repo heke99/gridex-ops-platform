@@ -1,3 +1,5 @@
+import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import { getCustomerExportContext, requireContextCompanyId } from '@/lib/cis/db-shared'
 import { buildDefaultApplicationReference } from '@/lib/ediel/config'
 import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
@@ -75,6 +77,8 @@ export async function buildCustomerMasterdataZ01Draft(input: {
   const context = await getCustomerExportContext({
     companyId: requestedCompanyId,
     actorUserId: input.actorUserId,
+    environment: input.routeContext.environment,
+    requireCustomerMasterdata: true,
     customerId: input.dataRequest.customer_id,
     siteId: input.dataRequest.site_id,
     meteringPointId: input.dataRequest.metering_point_id,
@@ -99,6 +103,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
   const endUser = resolveSwedishProdatEndUserExport({
     customer: (context.customer ?? null) as unknown as JsonRecord | null,
     customerLifeEvent: context.customerLifeEvent,
+    customerMasterdata: context.customerMasterdata,
   })
   const customer = endUser.identity
   if (!customer.id || !customer.qualifier || !customer.name) {
@@ -110,7 +115,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     throw new Error('PRODAT Z01 kan inte byggas utan anläggnings-id/mätpunkt.')
   }
 
-  const addressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.dataRequest.customer_id}/${input.dataRequest.site_id}`,
+  const addressObjects=context.customerMasterdata?createCustomerMasterdataAddressFacts({projection:context.customerMasterdata,meteringPointId:meterPointId,identityAgency:'9'}):prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.dataRequest.customer_id}/${input.dataRequest.site_id}`,
     meterPointId,identityAgency:'9',customer,addressLines:endUser.addressLines})
   const endUserAddressAvailable = addressObjects[0].availability==='available'
   const installationAddressAvailable = Boolean(clean(context.site?.street))
@@ -197,9 +202,11 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     testFlag: input.routeContext.environment === 'production' ? 0 : 1,
     messageTypeToken: `PRODAT:D:97A:UN:${messageVersionToken}`,
     segments: rendered.segments,
+    companyId,customerMasterdataProjection:context.customerMasterdata??undefined,
+    parsedPayload:{prodatEngine:rendered.diagnostics},
   })
 
-  return {
+  return rememberCustomerMasterdataDraft({
     actorUserId: input.actorUserId,
     companyId,
     direction: 'outbound',
@@ -237,6 +244,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     gridOwnerId: input.dataRequest.grid_owner_id,
     rawPayload: envelope.raw,
     parsedPayload: {
+      customerMasterdataSourceContextId: endUser.sourceContextId,
       draftType: 'prodat_customer_masterdata_outbound',
       processLabel: 'customer_masterdata_request',
       prodatCode: 'Z01',
@@ -284,5 +292,5 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     }),
     syntaxCheckStatus: 'not_checked',
     functionalCheckStatus: 'not_checked',
-  }
+  },context.customerMasterdata)
 }

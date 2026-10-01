@@ -1,3 +1,5 @@
+import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 // lib/ediel/intent/renderers/facilityLookupZ01.ts
 //
 // Sanctioned PRODAT Z01 renderer for facility lookup. This is the ONLY place that
@@ -86,6 +88,8 @@ export async function buildFacilityLookupZ01Draft(input: {
   const context = await getCustomerExportContext({
     companyId: input.companyId,
     actorUserId: input.actorUserId,
+    environment: input.routeContext.environment,
+    requireCustomerMasterdata: true,
     customerId: input.request.customer_id,
     siteId: input.request.customer_site_id,
     meteringPointId: null,
@@ -94,7 +98,7 @@ export async function buildFacilityLookupZ01Draft(input: {
   if (companyId !== input.companyId) throw new Error('facility_lookup_tenant_mismatch')
   const customer = (context.customer ?? null) as unknown as JsonRecord | null
   const site = (context.site ?? null) as unknown as JsonRecord | null
-  const endUser = resolveSwedishProdatEndUserExport({customer, customerLifeEvent: context.customerLifeEvent})
+  const endUser = resolveSwedishProdatEndUserExport({customer, customerLifeEvent: context.customerLifeEvent, customerMasterdata: context.customerMasterdata})
   const identity = endUser.identity
   if (!identity.id || !identity.qualifier || !identity.name) throw new Error('facility_lookup_verified_customer_identity_required')
   const externalReference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
@@ -116,7 +120,7 @@ export async function buildFacilityLookupZ01Draft(input: {
   if(!resolvedFacilityIdentifier || !/^\d{18}$/.test(resolvedFacilityIdentifier))throw new Error('facility_lookup_verified_object_identity_required')
   const allowedMissing: string[] = []
   const addressLines=endUser.addressLines
-  const addressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.request.customer_id}/${input.request.customer_site_id}`,
+  const addressObjects=context.customerMasterdata?createCustomerMasterdataAddressFacts({projection:context.customerMasterdata,meteringPointId:resolvedFacilityIdentifier,identityAgency:'9'}):prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.request.customer_id}/${input.request.customer_site_id}`,
     meterPointId:resolvedFacilityIdentifier,identityAgency:'9',customer:identity,addressLines})
 
   const rendered = renderProdat26A({
@@ -159,6 +163,8 @@ export async function buildFacilityLookupZ01Draft(input: {
     testFlag: input.routeContext.environment === 'production' ? 0 : 1,
     messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
     segments: rendered.segments,
+    companyId,customerMasterdataProjection:context.customerMasterdata??undefined,
+    parsedPayload:{prodatEngine:rendered.diagnostics},
   })
 
   const draft: CreateEdielMessageInput = {
@@ -198,6 +204,7 @@ export async function buildFacilityLookupZ01Draft(input: {
     gridOwnerId: input.request.grid_owner_id,
     rawPayload: envelope.raw,
     parsedPayload: {
+      customerMasterdataSourceContextId: endUser.sourceContextId,
       draftType: 'facility_lookup_prodat_z01_outbound',
       processLabel: 'facility_lookup_request',
       grid_owner_information_request_id: input.request.id,
@@ -242,5 +249,6 @@ export async function buildFacilityLookupZ01Draft(input: {
     functionalCheckStatus: 'not_checked',
   }
 
+  rememberCustomerMasterdataDraft(draft,context.customerMasterdata)
   return { draft, externalReference, resolvedFacilityIdentifier, allowedMissing }
 }
