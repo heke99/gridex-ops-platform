@@ -22,9 +22,10 @@ export async function recordFinalCanonicalUtiltsDecision(input:{original:EdielMe
   if(!companyId) throw new Error('utilts_final_canonical_source_company_required')
   const receipt=await recordReceivedSourceValidation({...input,resolvedCompanyId:companyId,decision})
   if(receipt.status!=='recorded') throw new Error('utilts_final_canonical_transaction_evidence_unconfirmed')
-  // A source-qualified negative can be frozen without an active rule pack.
-  // Every new accepted scope requires the protected original named witness.
-  if(decision.utiltsTransactionValidation?.transactions.some(item=>item.disposition==='accepted')) {
+  // Named original witness also supports actual national/functional negative
+  // ACK rendering; capturing it never asserts positive own-IDE treatment.
+  // Missing active witness can still freeze a genuine negative-only facet.
+  if(decision.validationReport.rulePackEvidence) {
     await captureFreshEdielSourceRulePackEvidence(companyId,input.original.id)
   }
   return {decision,receipt}
