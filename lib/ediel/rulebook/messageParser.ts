@@ -33,61 +33,6 @@ export type ParsedRulebookMessage = {
   warnings: string[]
 }
 
-function segments(raw: string): string[] {
-  return raw.split("'").map((segment) => segment.trim()).filter(Boolean)
-}
-
-function part(segment: string | null | undefined, index: number): string | null {
-  if (!segment) return null
-  return segment.split('+')[index]?.trim() || null
-}
-
-function splitParty(value: string | null): { id: string | null; subAddress: string | null } {
-  if (!value) return { id: null, subAddress: null }
-  const parts = value.split(':')
-  return { id: parts[0]?.trim() || null, subAddress: parts[2]?.trim() || null }
-}
-
-function first(segments: string[], prefix: string): string | null {
-  return segments.find((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase())) ?? null
-}
-
-function all(segments: string[], prefix: string): string[] {
-  return segments.filter((segment) => segment.toUpperCase().startsWith(prefix.toUpperCase()))
-}
-
-function extractRff(rawSegments: string[], qualifier: string): string | null {
-  const hit = rawSegments.find((segment) => segment.toUpperCase().startsWith(`RFF+${qualifier.toUpperCase()}:`))
-  if (!hit) return null
-  return hit.split(':').slice(1).join(':').trim() || null
-}
-
-function extractDtm(rawSegments: string[], qualifier: string): string | null {
-  const hit = rawSegments.find((segment) => segment.toUpperCase().startsWith(`DTM+${qualifier.toUpperCase()}:`))
-  return hit?.split(':')[1]?.trim() || null
-}
-
-function inferFamilyFromUnh(unh: string | null): EdielMessageFamily | 'UNKNOWN' {
-  const token = (unh ?? '').toUpperCase()
-  if (token.includes('PRODAT')) return 'PRODAT'
-  if (token.includes('UTILTS')) return 'UTILTS'
-  if (token.includes('APERAK')) return 'APERAK'
-  if (token.includes('CONTRL')) return 'CONTRL'
-  if (token.includes('UTILTS_ERR')) return 'UTILTS_ERR'
-  return 'UNKNOWN'
-}
-
-function parseBgmCode(bgm: string | null): string | null {
-  if (!bgm) return null
-  const value = part(bgm, 1)
-  if (!value) return null
-  return value.split(':')[0]?.trim().toUpperCase() || null
-}
-
-function parseBgmReference(bgm: string | null): string | null {
-  return part(bgm, 2)?.split(':')[0]?.trim() || null
-}
-
 function inferSubtype(raw: string): string | null {
   const tokenized = tokenizeEdifact(raw)
   return prodatCharacteristicValue('223', tokenized.segments, tokenized.una)?.toUpperCase() ?? null
@@ -115,33 +60,24 @@ function parseContrlFacts(source: ReturnType<typeof tokenizeEdifact>): Record<st
   }
 }
 
-function parseAperakFacts(rawSegments: string[]): Record<string, unknown> {
-  const erc = all(rawSegments, 'ERC+')
-  const ftx = all(rawSegments, 'FTX+')
-  const doc = all(rawSegments, 'DOC+')
-  return {
-    erc,
-    ftx,
-    doc,
-    errors: erc.map((segment, index) => ({
-      erc: segment.split('+')[1]?.split(':')[0] ?? null,
-      ftx: ftx[index] ?? null,
-    })),
-  }
+function physicalRff(source: ReturnType<typeof tokenizeEdifact>, qualifier: string): string | null {
+  const match = source.segments.find(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, source.una)[0] === qualifier)
+  return segmentComposite(match, 1, source.una)[1] || null
 }
-
-function parseUtiltsFacts(rawSegments: string[]): Record<string, unknown> {
-  return {
-    mks: all(rawSegments, 'MKS+'),
-    ide: all(rawSegments, 'IDE+'),
-    loc: all(rawSegments, 'LOC+'),
-    qty: all(rawSegments, 'QTY+'),
-    sts: all(rawSegments, 'STS+'),
-    dtm137: extractDtm(rawSegments, '137'),
-    dtm354: extractDtm(rawSegments, '354'),
-    dtm597: extractDtm(rawSegments, '597'),
-    dtm735: extractDtm(rawSegments, '735'),
-  }
+function physicalDtm(source: ReturnType<typeof tokenizeEdifact>, qualifier: string): string | null {
+  const match = source.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, source.una)[0] === qualifier)
+  return segmentComposite(match, 1, source.una)[1] || null
+}
+function parseAperakFacts(source: ReturnType<typeof tokenizeEdifact>): Record<string, unknown> {
+  const erc = source.segments.filter(segment => segment.tag === 'ERC')
+  const ftx = source.segments.filter(segment => segment.tag === 'FTX').map(segment => segment.raw)
+  return { erc: erc.map(segment => segment.raw), ftx, doc: source.segments.filter(segment => segment.tag === 'DOC').map(segment => segment.raw),
+    errors: erc.map((segment, index) => ({ erc: segmentComposite(segment, 1, source.una)[0] || null, ftx: ftx[index] ?? null })) }
+}
+function parseUtiltsFacts(source: ReturnType<typeof tokenizeEdifact>): Record<string, unknown> {
+  const values = (tag: string) => source.segments.filter(segment => segment.tag === tag).map(segment => segment.raw)
+  return { mks: values('MKS'), ide: values('IDE'), loc: values('LOC'), qty: values('QTY'), sts: values('STS'),
+    dtm137: physicalDtm(source, '137'), dtm354: physicalDtm(source, '354'), dtm597: physicalDtm(source, '597'), dtm735: physicalDtm(source, '735') }
 }
 
 export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
@@ -149,48 +85,46 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   const sourceFamily = segmentComposite(source.segments.find(segment => segment.tag === 'UNH'), 2, source.una)[0]?.trim().toUpperCase()
   const isProdat = sourceFamily === 'PRODAT'
   const isContrl = sourceFamily === 'CONTRL'
-  const structuredEnvelope = isProdat || isContrl
-  const rawSegments = structuredEnvelope ? source.segments.map(segment => segment.raw) : segments(raw)
+  const rawSegments = source.segments.map(segment => segment.raw)
   const sourceSegment = (tag: string) => source.segments.find(segment => segment.tag === tag)
   const sourcePart = (tag: string, index: number): string | null => {
     const parts = segmentComposite(sourceSegment(tag), index, source.una)
     return parts.length === 1 ? parts[0]?.trim() || null : null
   }
-  const unb = structuredEnvelope ? sourceSegment('UNB')?.raw ?? null : first(rawSegments, 'UNB+')
-  const unh = structuredEnvelope ? sourceSegment('UNH')?.raw ?? null : first(rawSegments, 'UNH+')
-  const bgm = structuredEnvelope ? sourceSegment('BGM')?.raw ?? null : first(rawSegments, 'BGM+')
-  const lin = first(rawSegments, 'LIN+')
+  const unb = sourceSegment('UNB')?.raw ?? null
+  const unh = sourceSegment('UNH')?.raw ?? null
+  const bgm = sourceSegment('BGM')?.raw ?? null
   const sourceSender = segmentComposite(sourceSegment('UNB'), 2, source.una)
   const sourceReceiver = segmentComposite(sourceSegment('UNB'), 3, source.una)
-  const sender = structuredEnvelope ? { id: sourceSender[0]?.trim() || null, subAddress: sourceSender[2]?.trim() || null } : splitParty(part(unb, 2))
-  const receiver = structuredEnvelope ? { id: sourceReceiver[0]?.trim() || null, subAddress: sourceReceiver[2]?.trim() || null } : splitParty(part(unb, 3))
-  const bgmCode = isProdat ? prodatDocumentValue('202', source.segments, source.una)?.toUpperCase() ?? null : parseBgmCode(bgm)
-  const inferredFamily = isProdat ? 'PRODAT' : isContrl ? 'CONTRL' : inferFamilyFromUnh(unh)
+  const sender = { id: sourceSender[0]?.trim() || null, subAddress: sourceSender[2]?.trim() || null }
+  const receiver = { id: sourceReceiver[0]?.trim() || null, subAddress: sourceReceiver[2]?.trim() || null }
+  const bgmCode = isProdat ? prodatDocumentValue('202', source.segments, source.una)?.toUpperCase() ?? null : segmentComposite(sourceSegment('BGM'), 1, source.una)[0]?.trim().toUpperCase() || null
+  const inferredFamily = (['PRODAT', 'UTILTS', 'APERAK', 'CONTRL', 'UTILTS_ERR'].includes(sourceFamily ?? '') ? sourceFamily : 'UNKNOWN') as EdielMessageFamily | 'UNKNOWN'
   const family = inferredFamily === 'UTILTS' && bgmCode === 'ERR' ? 'UTILTS_ERR' : inferredFamily
   const code = family === 'CONTRL' ? 'CONTRL' : family === 'APERAK' ? 'APERAK' : family === 'UTILTS_ERR' ? 'UTILTS_ERR' : bgmCode
-  const applicationReference = structuredEnvelope ? sourcePart('UNB', 7) : part(unb, 7)
-  const interchangeReference = structuredEnvelope ? sourcePart('UNB', 5) : part(unb, 5)
-  const messageReference = isProdat ? prodatDocumentValue('203', source.segments, source.una) : isContrl ? sourcePart('UNH', 1) : parseBgmReference(bgm) ?? part(unh, 1)
+  const applicationReference = sourcePart('UNB', 7)
+  const interchangeReference = sourcePart('UNB', 5)
+  const messageReference = isProdat ? prodatDocumentValue('203', source.segments, source.una) : isContrl ? sourcePart('UNH', 1) : segmentComposite(sourceSegment('BGM'), 2, source.una)[0] || sourcePart('UNH', 1)
   const tokenized = family === 'PRODAT' ? source : null
   const reference = (qualifier: string): string | null => tokenized
-    ? prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una) : extractRff(rawSegments, qualifier)
+    ? prodatReferenceByQualifier(qualifier, tokenized.segments, tokenized.una) : physicalRff(source, qualifier)
   const transactionReference = reference('TN') ?? reference('LI') ?? reference('ACW')
   const relatedReference = reference('ACW') ?? reference('AGO') ?? reference('E31')
   const facilityId = reference('Z05') ?? null
-  const meteringPointId = isProdat ? segmentComposite(sourceSegment('LIN'), 3, source.una)[0]?.trim() || null : lin?.split('+')[3]?.split(':')[0]?.trim() || null
+  const meteringPointId = segmentComposite(sourceSegment('LIN'), 3, source.una)[0]?.trim() || null
   const permissionId = family === 'PRODAT' ? reference('Z09') : reference('Z07') ?? reference('AHL')
   const processGroup = processGroupForMessage(family, code)
   const facts: Record<string, unknown> = {
     bgm,
     unh,
     unb,
-    nad: isProdat ? source.segments.filter(segment => segment.tag === 'NAD').map(segment => segment.raw) : all(rawSegments, 'NAD+'),
-    rff: isProdat ? source.segments.filter(segment => segment.tag === 'RFF').map(segment => segment.raw) : all(rawSegments, 'RFF+'),
-    dtm: isProdat ? source.segments.filter(segment => segment.tag === 'DTM').map(segment => segment.raw) : all(rawSegments, 'DTM+'),
+    nad: source.segments.filter(segment => segment.tag === 'NAD').map(segment => segment.raw),
+    rff: source.segments.filter(segment => segment.tag === 'RFF').map(segment => segment.raw),
+    dtm: source.segments.filter(segment => segment.tag === 'DTM').map(segment => segment.raw),
   }
   if (family === 'CONTRL') Object.assign(facts, parseContrlFacts(source))
-  if (family === 'APERAK') Object.assign(facts, parseAperakFacts(rawSegments))
-  if (family === 'UTILTS' || family === 'UTILTS_ERR') Object.assign(facts, parseUtiltsFacts(rawSegments))
+  if (family === 'APERAK') Object.assign(facts, parseAperakFacts(source))
+  if (family === 'UTILTS' || family === 'UTILTS_ERR') Object.assign(facts, parseUtiltsFacts(source))
 
   const errors: string[] = []
   const warnings: string[] = []
@@ -205,7 +139,7 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
   }
 
   const outcome = family === 'APERAK'
-    ? (all(rawSegments, 'ERC+').length > 0 ? 'negative' : 'positive')
+    ? (source.segments.some(segment => segment.tag === 'ERC') ? 'negative' : 'positive')
     : family === 'CONTRL'
       ? (facts.status === 'positive' ? 'positive' : facts.status === 'negative' ? 'negative' : null)
       : null
@@ -227,7 +161,7 @@ export function parseRulebookMessage(raw: string): ParsedRulebookMessage {
     facilityId,
     meteringPointId,
     permissionId,
-    period: extractDtm(rawSegments, '163') ?? extractDtm(rawSegments, '324') ?? null,
+    period: physicalDtm(source, '163') ?? physicalDtm(source, '324') ?? null,
     outcome,
     processGroup,
     rawSegments,
