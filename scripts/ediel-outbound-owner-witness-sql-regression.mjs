@@ -407,5 +407,18 @@ try {
  await assert.rejects(db.exec('update gridex_received_sources.prodat_application_facets set application_facts_text=application_facts_text'),/append_only/);checks++
  const ownAppAcl=(await db.query("select has_table_privilege('service_role','gridex_received_sources.prodat_application_facets','insert') write_facet,has_function_privilege('authenticated','public.ediel_read_prodat_application_objects_v1(uuid,uuid)','execute') user_read")).rows[0];assert.deepEqual(ownAppAcl,{write_facet:false,user_read:false});checks++
  await recordOwnApplication(null);await assert.rejects(db.query('select gridex_received_sources.require_prodat_application_objects_v1($1,$2)',[uid(1),uid(140)]),/original_owner_unavailable/);checks++
+ // The prospective envelope guard composes with the REAL already loaded
+ // canonical owner, national guide, source scope and original consume stack.
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001021545_ediel_fresh_ack_native_envelope_authority.sql',import.meta.url),'utf8'));checks++
+ const witnessCount=(await db.query('select count(*)::int n from gridex_ediel_outbound_owner.witnesses')).rows[0].n
+ await assert.rejects(prepareAck('312','T',ackRaw().replace('UNZ+1+OWN-AP','UNZ+1+OTHER')),/ediel_fresh_ack_envelope_invalid/)
+ assert.equal((await db.query('select count(*)::int n from gridex_ediel_outbound_owner.witnesses')).rows[0].n,witnessCount);checks++
+ await assert.rejects(db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload)values($1,$2,'test','outbound','APERAK','APERAK',$3)",[uid(199),uid(1),ackRaw().replace('UNZ+1+','UNZ+2+')]),/ediel_fresh_ack_envelope_invalid/)
+ assert.equal((await db.query('select count(*)::int n from ediel_messages where id=$1',[uid(199)])).rows[0].n,0);checks++
+ // The new birth guard does not replace the historical wire projector or
+ // move today's envelope validation ahead of immutable provider-entry replay.
+ assert.notEqual((await db.query('select gridex_ack_authority.wire_v1($1) r',[ackRaw().replace('UNZ+1+OWN-AP','UNZ+1+OTHER')])).rows[0].r,null);checks++
+ assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[{...positiveInput,action:'enter'}])).rows[0].r.proceed,false);checks++
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(151)]);checks++
  console.log(`Focused PostgreSQL outbound original owner seal/one-use atomic insertion/named version/raw scope/ACL/native Z08 binding checks: ${checks} PASS`)
 } catch(e){console.error(e.stack,e.where??'',e.position??'',e.routine??'');process.exitCode=1} finally{await db.close()}
