@@ -1,3 +1,4 @@
+import { tenantSelect } from "@/lib/supabase/tenantQuery";
 import {
   resolveEffectiveInvoiceDelivery,
   type InvoiceDeliveryContract,
@@ -304,11 +305,11 @@ async function loadInvoiceDeliveryCustomers(
   const byId = new Map<string, InvoiceDeliveryCustomer>();
   // query-loop-budget: chunked-in-filter max=ceil(customers/200)
   for (let index = 0; index < ids.length; index += 200) {
-    const { data, error } = await supabaseService
-      .from("customers")
-      .select("id,full_name,company_name,invoice_email,billing_street,billing_postal_code,billing_city")
-      .eq("company_id", companyId)
-      .in("id", ids.slice(index, index + 200));
+    const { data, error } = await tenantSelect(
+      companyId,
+      "customers",
+      "id,full_name,company_name,invoice_email,billing_street,billing_postal_code,billing_city",
+    ).in("id", ids.slice(index, index + 200));
     if (error) throw error;
     for (const row of (data ?? []) as Array<InvoiceDeliveryCustomer & { id: string }>) {
       byId.set(row.id, row);

@@ -1,4 +1,5 @@
 // Extracted from profile-actions.ts; keep public imports on the facade module.
+import { tenantUpdate } from "@/lib/supabase/tenantQuery"
 import { revalidatePath } from "next/cache"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -315,9 +316,7 @@ export async function saveCustomerProfileImpl(
     typeof before.company_id === "string" ? before.company_id : null,
   );
 
-  let updateQuery = supabaseService
-    .from("customers")
-    .update({
+  let updateQuery = tenantUpdate(companyId, "customers", {
       customer_type: customerType,
       status,
       first_name: firstName,
@@ -331,8 +330,7 @@ export async function saveCustomerProfileImpl(
       apartment_number: apartmentNumber,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", customerId)
-    .eq("company_id", companyId);
+    .eq("id", customerId);
   if (expectedUpdatedAt) {
     // Optimistic lock: a concurrent save between read and write updates zero rows.
     updateQuery = updateQuery.eq("updated_at", expectedUpdatedAt);
@@ -383,11 +381,8 @@ export async function saveCustomerProfileImpl(
       contactPatch,
     );
     if (Object.keys(contactChanges).length > 0) {
-      const { error: contactUpdateError } = await supabaseService
-        .from("customer_contacts")
-        .update(contactPatch)
+      const { error: contactUpdateError } = await tenantUpdate(companyId, "customer_contacts", contactPatch)
         .eq("id", existingPrimaryContact.id)
-        .eq("company_id", companyId)
         .eq("customer_id", customerId);
 
       if (contactUpdateError) throw contactUpdateError;

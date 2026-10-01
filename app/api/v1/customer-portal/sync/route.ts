@@ -1,4 +1,5 @@
 //app/api/v1/customer-portal/sync/route.ts
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import {
@@ -195,10 +196,7 @@ async function upsertIdentity(input: {
   matchMethod: string
   metadata: Record<string, unknown>
 }) {
-  const existing = await supabaseService
-    .from('customer_portal_identities')
-    .select('id,status,customer_id,auth_user_id,customer_portal_user_id')
-    .eq('company_id', input.companyId)
+  const existing = await tenantSelect(input.companyId, 'customer_portal_identities', 'id,status,customer_id,auth_user_id,customer_portal_user_id')
     .eq('provider', 'gridex_website')
     .eq('external_customer_id', input.externalCustomerId)
     .maybeSingle()

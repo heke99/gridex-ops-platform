@@ -1,3 +1,4 @@
+import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
@@ -120,24 +121,19 @@ async function updateCanonicalCustomerProfile(input: {
   })
   let contactChanges: Record<string, { from: unknown; to: unknown }> = {}
   if (Object.keys(contactPatch).length > 0) {
-    const contact = await supabaseService
-      .from('customer_contacts')
-      .select('id,email,phone')
-      .eq('company_id', input.companyId)
+    const contact = await tenantSelect(input.companyId, 'customer_contacts', 'id,email,phone')
       .eq('customer_id', input.customerId)
       .eq('is_primary', true)
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle()
     if (contact.error) throw contact.error
-    if (contact.data?.id) {
-      contactChanges = changedFields(contact.data as JsonRecord, contactPatch)
+    const primaryContact = contact.data as JsonRecord | null
+    if (primaryContact?.id) {
+      contactChanges = changedFields(primaryContact, contactPatch)
       if (Object.keys(contactChanges).length > 0) {
-        const contactUpdate = await supabaseService
-          .from('customer_contacts')
-          .update(contactPatch)
-          .eq('id', contact.data.id)
-          .eq('company_id', input.companyId)
+        const contactUpdate = await tenantUpdate(input.companyId, 'customer_contacts', contactPatch)
+          .eq('id', String(primaryContact.id))
           .eq('customer_id', input.customerId)
         if (contactUpdate.error) throw contactUpdate.error
       }
@@ -146,8 +142,7 @@ async function updateCanonicalCustomerProfile(input: {
 
   // Revision trace; fail-closed like the OPS path. The actor is the linked portal account acting
   // through the tenant API client, never a fabricated OPS user.
-  const audit = await supabaseService.from('audit_logs').insert({
-    company_id: input.companyId,
+  const audit = await tenantInsert(input.companyId, 'audit_logs', {
     actor_user_id: null,
     entity_type: 'customer',
     entity_id: input.customerId,

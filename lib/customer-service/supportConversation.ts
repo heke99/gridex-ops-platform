@@ -1,4 +1,4 @@
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { buildPortalDatabasePage, decodePortalCursor, portalPageLimit } from '@/lib/customer-portal/keysetPagination'
 import { createTenantSupportCase } from '@/lib/customer-cases/support'
@@ -145,10 +145,7 @@ export async function listCustomerSupportCases(
 ) {
   const limit = portalPageLimit(page.limit)
   const cursor = decodePortalCursor({ cursor: page.cursor, companyId: scope.companyId, customerId: scope.customerId, resource: 'support_cases' })
-  let query = supabaseService
-    .from('customer_cases')
-    .select(SUPPORT_CASE_SELECT)
-    .eq('company_id', scope.companyId)
+  let query = tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
     .eq('customer_id', scope.customerId)
     .eq('metadata->>support_case', 'true')
   if (cursor) {
@@ -176,10 +173,7 @@ export async function listCustomerSupportCases(
 export async function findCustomerSupportCase(scope: CustomerScope, caseReference: string): Promise<SupportCaseRow> {
   const reference = text(caseReference, 100)
   if (reference) {
-    const direct = await supabaseService
-      .from('customer_cases')
-      .select(SUPPORT_CASE_SELECT)
-      .eq('company_id', scope.companyId)
+    const direct = await tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
       .eq('customer_id', scope.customerId)
       .eq('metadata->>support_case', 'true')
       .eq('metadata->>support_public_reference', reference)
@@ -189,10 +183,7 @@ export async function findCustomerSupportCase(scope: CustomerScope, caseReferenc
     if (hit) return hit
 
     // Cases created before references were stored: bounded scan within this customer only.
-    const legacy = await supabaseService
-      .from('customer_cases')
-      .select(SUPPORT_CASE_SELECT)
-      .eq('company_id', scope.companyId)
+    const legacy = await tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
       .eq('customer_id', scope.customerId)
       .eq('metadata->>support_case', 'true')
       .order('created_at', { ascending: false })
@@ -208,10 +199,7 @@ export async function findCustomerSupportCase(scope: CustomerScope, caseReferenc
 
 /** Customer-visible messages only, filtered in the database before limiting. */
 export async function listCustomerSupportMessages(scope: CustomerScope, caseId: string) {
-  const { data, error } = await supabaseService
-    .from('customer_case_events')
-    .select('id,customer_case_id,event_type,message,payload,created_by,created_at')
-    .eq('company_id', scope.companyId)
+  const { data, error } = await tenantSelect(scope.companyId, 'customer_case_events', 'id,customer_case_id,event_type,message,payload,created_by,created_at')
     .eq('customer_id', scope.customerId)
     .eq('customer_case_id', caseId)
     .in('event_type', [...CUSTOMER_VISIBLE_SUPPORT_EVENT_TYPES])
@@ -234,10 +222,7 @@ async function insertSupportEvent(input: {
   payload: Record<string, unknown>
   actorUserId: string | null
 }): Promise<SupportEventRow> {
-  const { data, error } = await supabaseService
-    .from('customer_case_events')
-    .insert({
-      company_id: input.companyId,
+  const { data, error } = await tenantInsert(input.companyId, 'customer_case_events', {
       customer_case_id: input.caseId,
       customer_id: input.customerId,
       event_type: input.eventType,
@@ -287,18 +272,12 @@ export async function createCustomerSupportCase(input: CustomerScope & {
   // Steps after the case insert are repeatable: a retry with the same idempotency key after a crash
   // completes the missing reference/first message instead of creating a second case.
   if (row.metadata?.support_public_reference !== reference) {
-    const { error } = await supabaseService
-      .from('customer_cases')
-      .update({ metadata: { ...(row.metadata ?? {}), support_public_reference: reference } })
-      .eq('company_id', input.companyId)
+    const { error } = await tenantUpdate(input.companyId, 'customer_cases', { metadata: { ...(row.metadata ?? {}), support_public_reference: reference } })
       .eq('customer_id', input.customerId)
       .eq('id', row.id)
     if (error) throw error
   }
-  const firstMessage = await supabaseService
-    .from('customer_case_events')
-    .select('id')
-    .eq('company_id', input.companyId)
+  const firstMessage = await tenantSelect(input.companyId, 'customer_case_events', 'id')
     .eq('customer_case_id', row.id)
     .eq('event_type', SUPPORT_EVENT_TYPES.customerMessage)
     .limit(1)
@@ -345,10 +324,7 @@ export async function addCustomerSupportMessage(input: CustomerScope & {
 type StaffScope = CustomerScope & { caseId: string; actorUserId: string }
 
 async function loadStaffCase(scope: StaffScope): Promise<SupportCaseRow> {
-  const { data, error } = await supabaseService
-    .from('customer_cases')
-    .select(SUPPORT_CASE_SELECT)
-    .eq('company_id', scope.companyId)
+  const { data, error } = await tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
     .eq('customer_id', scope.customerId)
     .eq('id', scope.caseId)
     .maybeSingle()

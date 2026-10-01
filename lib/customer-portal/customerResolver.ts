@@ -1,3 +1,4 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
@@ -516,10 +517,7 @@ async function hasBlockedPortalLink(companyId: string, customerId: string, userI
     : ['external_account_id']
   // query-loop-budget: bounded-block-check max=3
   for (const field of accountFields) {
-    const { data, error } = await supabaseService
-      .from('customer_portal_accounts')
-      .select('id,customer_id,status,is_active')
-      .eq('company_id', companyId)
+    const { data, error } = await tenantSelect(companyId, 'customer_portal_accounts', 'id,customer_id,status,is_active')
       .eq(field, userId)
       .limit(20) as { data: Record<string, unknown>[] | null; error: unknown | null }
     if (error) {
@@ -532,10 +530,7 @@ async function hasBlockedPortalLink(companyId: string, customerId: string, userI
   const identities = await selectPortalIdentitiesByUser(companyId, userId)
   if (identities.some((row) => !activeIdentity(row))) return true
 
-  const { data, error } = await supabaseService
-    .from('customer_portal_identities')
-    .select('id,status,auth_user_id,customer_portal_user_id')
-    .eq('company_id', companyId)
+  const { data, error } = await tenantSelect(companyId, 'customer_portal_identities', 'id,status,auth_user_id,customer_portal_user_id')
     .eq('customer_id', customerId)
     .eq('provider', WEBSITE_PORTAL_PROVIDER)
     .limit(20) as { data: Record<string, unknown>[] | null; error: unknown | null }

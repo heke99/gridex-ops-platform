@@ -68,7 +68,7 @@ describe('OPS and API adapters use the shared rules', () => {
   })
 
   it('API writes a fail-closed audit row with machine/portal actor and version lock (F10)', () => {
-    expect(api).toContain("from('audit_logs')")
+    expect(api).toContain("tenantInsert(input.companyId, 'audit_logs'")
     expect(api).toContain("actor_type: 'customer_portal_account'")
     expect(api).toContain("profile_version_conflict")
   })
