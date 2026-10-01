@@ -99,7 +99,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     return { status: 'blocked', ackMessageId: lifecycle.existingAckId, lifecycleStatus: lifecycle.status, reason: lifecycle.message }
   }
 
-  const supersedeResult = utiltsSource?{blockedFinalAckId:null}:await supersedeWrongDraftsForDecision({
+  const supersedeResult = utiltsSource?{blockedFinalAckId:null,supersededIds:[]}:await supersedeWrongDraftsForDecision({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     desiredFamily,
