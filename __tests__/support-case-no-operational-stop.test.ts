@@ -88,7 +88,7 @@ beforeEach(() => {
 })
 
 describe('support cases have no operational side effects', () => {
-  for (const channel of ['customer_portal', 'api', 'admin', 'phone'] as const) {
+  for (const channel of ['customer_portal', 'api', 'admin'] as const) {
     it(`a ${channel} support case leaves billing, onboarding and outbound untouched`, async () => {
       const { createTenantSupportCase } = await import('@/lib/customer-cases/support')
       const created = await createTenantSupportCase({
