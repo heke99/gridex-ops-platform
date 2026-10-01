@@ -59,16 +59,16 @@ describe('outbound ACK replay consumes protected actual source and own ACK',()=>
  })
  it('rereads a fresh CONTRL unique race through the same protected actor/source port',async()=>{
   const e={environment:'test',sourceHash:createHash('sha256').update(source().raw_payload!).digest('hex')}
-  io.rpc.mockResolvedValueOnce({data:null,error:null}).mockResolvedValueOnce({data:{version:1,sourceMessage:source(),ackMessage:ack('CONTRL')},error:null})
+  io.rpc.mockResolvedValueOnce({data:null,error:null}).mockResolvedValueOnce({data:null,error:null}).mockResolvedValueOnce({data:{version:1,sourceMessage:source(),ackMessage:ack('CONTRL')},error:null})
   io.technical.mockResolvedValue(e);io.route.mockResolvedValue({route:{id:'route'},routeRuntime:{route_profile_id:'profile'}});io.validation.mockResolvedValue({fieldRuleSource:'technical_source',blocking:false,technicalSyntaxAckEvidence:e});io.create.mockRejectedValue({code:'23505'})
   expect((await createCanonicalAckMessage({actorUserId:actor,sourceMessage:source(),ackFamily:'CONTRL',outcome:'negative',draft:draft('CONTRL')})).id).toBe(ackId)
-  expect(io.rpc).toHaveBeenCalledTimes(2);expect(io.oldDuplicate).not.toHaveBeenCalled();expect(io.oldSequence).not.toHaveBeenCalled();expect(io.conflict).not.toHaveBeenCalled()
+  expect(io.rpc).toHaveBeenCalledTimes(3);expect(io.oldDuplicate).not.toHaveBeenCalled();expect(io.oldSequence).not.toHaveBeenCalled();expect(io.conflict).not.toHaveBeenCalled()
  })
  it('a fresh unique race cannot return an established ACK after native current grant revocation',async()=>{
   const e={environment:'test',sourceHash:createHash('sha256').update(source().raw_payload!).digest('hex')}
-  io.rpc.mockResolvedValueOnce({data:null,error:null}).mockResolvedValueOnce({data:null,error:Error('ediel_ack_replay_actor_not_authorized')})
+  io.rpc.mockResolvedValueOnce({data:null,error:null}).mockResolvedValueOnce({data:null,error:null}).mockResolvedValueOnce({data:null,error:Error('ediel_ack_replay_actor_not_authorized')})
   io.technical.mockResolvedValue(e);io.route.mockResolvedValue({route:{id:'route'},routeRuntime:{route_profile_id:'profile'}});io.validation.mockResolvedValue({fieldRuleSource:'technical_source',blocking:false,technicalSyntaxAckEvidence:e});io.create.mockRejectedValue({code:'23505'})
-  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source(),ackFamily:'CONTRL',outcome:'negative',draft:draft('CONTRL')})).rejects.toThrow('actor_not_authorized');expect(io.rpc).toHaveBeenCalledTimes(2);expect(io.conflict).not.toHaveBeenCalled();expect(io.oldDuplicate).not.toHaveBeenCalled()
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source(),ackFamily:'CONTRL',outcome:'negative',draft:draft('CONTRL')})).rejects.toThrow('actor_not_authorized');expect(io.rpc).toHaveBeenCalledTimes(3);expect(io.conflict).not.toHaveBeenCalled();expect(io.oldDuplicate).not.toHaveBeenCalled()
  })
  it('resolves tenant-unattributed CONTRL through protected source endpoint, never a global ACK',async()=>{
   const actual={...source(),company_id:null};protectedRow(actual,ack('CONTRL'))

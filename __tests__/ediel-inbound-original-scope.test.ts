@@ -21,7 +21,7 @@ vi.mock('@/lib/ediel/aiBiInboundReconciliation',()=>({prepareAiBiInboundReconcil
 import {buildInboundCanonicalIdentity,findInboundDuplicateByCanonicalIdentity} from '@/lib/ediel/core/dedupe'
 import {registerInboundCanonicalMessage} from '@/lib/ediel/core/kernelLegacy'
 import type {CreateEdielMessageInput} from '@/lib/ediel/types'
-const input:CreateEdielMessageInput={companyId:'company',environment:'test',direction:'inbound',messageStandard:'edifact',
+const input:CreateEdielMessageInput={actorUserId:'actor',companyId:'company',environment:'test',direction:'inbound',messageStandard:'edifact',
   messageFamily:'UTILTS',messageCode:'E66',receiverEdielId:'LOCAL',senderEdielId:'REMOTE',applicationReference:'APP',
   interchangeReference:'SAME-UNB',rawPayload:"UNB+UNOC:3+REMOTE:ZZ+LOCAL:ZZ+260930:1200+SAME-UNB++APP+++1'"}
 const row=(patch:Record<string,unknown>={})=>({id:'own-source',company_id:'company',environment:'test',direction:'inbound',

@@ -1,10 +1,20 @@
+import {createHash} from 'node:crypto'
 import {beforeEach,it,expect,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-const state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false}))
-vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>{if(state.registryFailure)throw Error('Injected registry failure');return {profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'}}}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))
+const state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false,sourceReceiptFailure:false}))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async importOriginal=>({...await importOriginal<Record<string,unknown>>(),resolveCanonicalRulePack:async()=>{if(state.registryFailure)throw Error('Injected registry failure');return (await import('./helpers/prodatInboundSourceFixture')).prodatFixtureRegistryResolution}}))
+vi.mock('@/lib/supabase/service',async()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')},rpc:(name:string,args:Record<string,unknown>)=>{
+ // Declared prospective external owner transport only. Actual producers and
+ // branded receipt checks run; this model is no native qualification proof.
+ if(name==='gridex_record_prodat_source_validation_v3'){
+  expect(args).toMatchObject({p_company_id:state.message.company_id,p_environment:state.message.environment,p_source_message_id:state.message.id,
+   p_source_payload_hash:createHash('sha256').update(state.message.raw_payload!).digest('hex')})
+  if(state.sourceReceiptFailure){const r=Promise.resolve({data:null,error:{message:'declared_current_source_receipt_failure'}});return Object.assign(r,{abortSignal:()=>r})}
+ }
+ return prodatFixtureSourceRpc(name,args)
+}}}))
 vi.mock('@/lib/ediel/db',()=>({getEdielMessageById:async()=>state.message,createEdielMessageEvent:async(p:Record<string,unknown>)=>{state.events.push(p)},updateEdielMessageStatus:async(p:{status:string;parsedPayload?:Record<string,unknown>;validationReport?:Record<string,unknown>})=>{state.message={...state.message,status:p.status,parsed_payload:p.parsedPayload??state.message.parsed_payload,validation_report:p.validationReport?JSON.parse(JSON.stringify(p.validationReport)):state.message.validation_report} as EdielMessageRow;return state.message},linkEdielMessage:async()=>{state.effects.push('link')},listAckMessagesForSource:async()=>[],getEdielRouteProfileByCommunicationRouteId:async()=>null,listEdielMessagesByIds:async()=>[]}))
-vi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:async()=>({status:'tenant_resolved',message:state.message,evidence:{companyId:'tenant'}})}))
+vi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:async()=>({status:'tenant_resolved',companyId:state.message.company_id,message:state.message,evidence:{companyId:state.message.company_id}})}))
 vi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:async(p:{ackFamily:string;draft:Record<string,unknown>})=>{state.drafts.push(p.draft);return {id:p.ackFamily,status:'sent'}}}))
 vi.mock('@/lib/ediel/actorTestingEngine',()=>({syncActorTestingForMessage:async()=>{state.effects.push('actor-auto');return null}}))
 vi.mock('@/lib/ediel/inbound/inboundFacilityRecognition',()=>({recognizeInboundFacilityData:async()=>{state.effects.push('facility');return null}}))
@@ -16,33 +26,46 @@ vi.mock('@/lib/ediel/operationalVerification',()=>({buildSafeMasterdataProposal:
 vi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielProcessingPipeline:async()=>null}))
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {prodatFixtureSourceRpc,withProdatFixtureInsertContext} from './helpers/prodatInboundSourceFixture'
 
 import {permissionAckMessage as message,permissionAckObject as object,alphabets,characteristic} from './fixtures/prodat-permission-ack'
-import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdielAperakApplicationError} from '@/lib/ediel/ack'
-beforeEach(()=>{state.effects=[];state.drafts=[];state.events=[];state.registryFailure=false})
-const run=(message:EdielMessageRow)=>{state.message={...message,status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow;return processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:message.id})}
-for(const a of alphabets)for(const [code,status,end,field] of [['Z14',"x:+?'",null,'322'],['Z15','A74',"x:+?'",'324'],['Z18',null,'X99','324']] as const)it(`persist/reload real draft ${code}/${a.join('')}`,async()=>{
+beforeEach(()=>{state.effects=[];state.drafts=[];state.events=[];state.registryFailure=false;state.sourceReceiptFailure=false})
+const run=(message:EdielMessageRow)=>{state.message=withProdatFixtureInsertContext({...message,status:'received',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow);return processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:message.id})}
+for(const a of alphabets)for(const [code,status,end,field] of [['Z14',"x:+",null,'322'],['Z15','A74',"x:+",'324'],['Z18',null,'X99','324']] as const)it(`persist/reload own field diagnosis and hold conflicting dual reference ${code}/${a.join('')}`,async()=>{
  const m=message(code,'S17',status,end,a);await run(m)
  const report=JSON.parse(JSON.stringify(state.message.validation_report)) as {responsePlan:{family:string;applicationErrors?:EdielAperakApplicationError[]}[]}
  const errors=report.responsePlan.flatMap(p=>p.applicationErrors??[]).filter(e=>e.fieldCode===field)
  expect(errors).toMatchObject([{ercCode:'42',fieldCode:field,prodatOccurrence:{lineIndex:0},prodatFieldDiagnostic:{kind:'field',fieldNumber:field},prodatAperakText:{kind:'ready'}}])
- const draft=state.drafts.find(d=>d.messageFamily==='APERAK')!,wire=tokenizeEdifact(String(draft.rawPayload))
- expect(wire.segments.filter(t=>t.tag==='FTX').map(t=>({field:segmentComposite(t,3,wire.una)[0],text:segmentComposite(t,4,wire.una)}))).toContainEqual({field,text:[errors[0].text]})
- expect(String(draft.rawPayload)).not.toContain('CACHED-UNRELATED');expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected'})
+ // Full96A has SG4 C1/RFF M1 while the Swedish source requires both
+ // original Z07 and LI. Preserve the typed own diagnosis and hold the wire;
+ // never drop correlation, duplicate ERC or exempt the directory guard.
+ expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
+ expect(state.events.some(e=>String(e.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)
+ expect(state.message.raw_payload).toBe(m.raw_payload);expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected'})
 })
 for(const [code,reason,status,end] of [['Z14','Z96','A76',null],['Z15','Z24','A74','E37'],['Z18','S17',null,'E37']] as const)it(`persisted positive ${code}/${reason}/${end}`,async()=>{
  await run(message(code,reason,status,end));expect(state.message.validation_report).toMatchObject({applicationDecision:'accepted',prodatProcessingDisposition:{kind:'continue'}})
- expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('ERC+100::260')
+ if(code==='Z14')expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('ERC+100::260')
+ else{expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([]);expect(state.events.some(e=>String(e.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)}
 })
 it('false322/324 remains accepted through stored response and raw evidence',async()=>{
- const m=message('Z13','S17',null,null,alphabets[0],[...object('Z13'),...characteristic('Z23','X99'),...characteristic('Z25','X99')]);await run(m)
+ const body=object('Z13'),refs=body.findIndex(segment=>segment[0]==='RFF')
+ const m=message('Z13','S17',null,null,alphabets[0],[...body.slice(0,refs),...characteristic('Z23','X99'),...characteristic('Z25','X99'),...body.slice(refs)]);await run(m)
  expect(state.message.raw_payload).toBe(m.raw_payload);expect(state.message.validation_report).toMatchObject({applicationDecision:'accepted',prodatProcessingDisposition:{kind:'continue'}})
  expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('ERC+100::260')
 })
-it('mixed text hold persists all evidence and sends only independently ready field errors',async()=>{
- await run(message('Z15','S17','X99','X'.repeat(80)))
- expect(state.message.validation_report).toMatchObject({prodatProcessingDisposition:{kind:'internal_review'}})
- const wire=state.drafts.map(d=>d.rawPayload).join('');expect(wire).toContain('FTX+AAO++322::260');expect(wire).not.toContain('FTX+AAO++324::260');expect(wire).not.toContain('ERC+100::260');expect(state.effects).not.toContain('business')
- expect(JSON.stringify(state.message.validation_report)).toContain('X'.repeat(80))
+it('oversize status is rejected by actual directory before application ACK and business',async()=>{
+ const m=message('Z15','S17','X99','X'.repeat(80));await run(m)
+ expect(state.message.raw_payload).toBe(m.raw_payload)
+ expect(state.message.validation_report).toMatchObject({applicationDecision:'not_applicable',responsePlan:[{family:'CONTRL',outcome:'negative'}]})
+ expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
+ expect(state.effects).not.toContain('business');expect(state.effects).not.toContain('facility');expect(state.effects).not.toContain('z14')
+ expect(JSON.stringify(state.message.validation_report)).toContain('UNSM_ELEMENT_LENGTH_INVALID')
+})
+
+it('missing prospective current source receipt denies before ACK or business',async()=>{
+ state.sourceReceiptFailure=true
+ await expect(run(message('Z14','Z96','A76',null))).rejects.toThrow('prodat_canonical_source_validation_unconfirmed')
+ expect(state.drafts).toEqual([]);expect(state.effects).toEqual([])
 })

@@ -2,6 +2,7 @@ import {execFileSync,spawn} from 'node:child_process'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {beforeEach,expect,it,vi} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
+import {projectEdielSeriesToBeneficiary} from '@/lib/ediel/services/projection'
 import {executeEdielServiceAdministration} from '@/lib/ediel/services/administration'
 import {archiveEdielServiceEvidence,reviewEdielServiceEvidence,readEdielServiceEvidenceBytes} from '@/lib/ediel/services/evidenceReview'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
@@ -103,7 +104,8 @@ async function qualify(f:Awaited<ReturnType<typeof seed>>){
  const prepared=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,preferredRouteId:f.ids.route})
  expect(prepared,JSON.stringify(prepared)).toMatchObject({status:'queued',message:{message_code:'Z13'},blockingReasons:[]})
  const queued=prepared.message as EdielMessageRow;expect(queued.raw_payload).toBeTruthy()
- await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'});expect(external.send).toHaveBeenCalledTimes(1)
+ const sendsBefore=external.send.mock.calls.length
+ await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'});expect(external.send).toHaveBeenCalledTimes(sendsBefore+1)
  const z13=(await getEdielMessageById(queued.id))!;expect(z13.status).toBe('sent');expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${lit(z13.id)}`)).toBe(true)
  const permission=sql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li) FROM public.metering_permissions WHERE company_id=${lit(f.ids.company)} AND source_z13_message_id=${lit(z13.id)}`)
  expect(permission.id).toMatch(/^[0-9a-f-]{36}$/)
@@ -122,7 +124,7 @@ async function qualify(f:Awaited<ReturnType<typeof seed>>){
 }
 it.each(['V','VH'] as const)('genuine archived/reviewed %s scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects',async mode=>{
  const f=await seed(mode),positive=await f.utilts('accepted','NATIVE-ESCO-'+mode),initial=f.effects()
- await expect(positive.persist()).rejects.toMatchObject({message:expect.stringContaining('utilts_esco_unique_current_grant_required')});expect(f.effects()).toEqual(initial)
+ await expect(positive.persist()).rejects.toMatchObject({message:expect.stringContaining('ediel_ack_service_scope_current_grant_required')});expect(f.effects()).toEqual(initial)
  // Protocol-defined E87 negative is allowed without positive data approval.
  const negative=await f.utilts('processability_rejected','NATIVE-ESCO-NEGATIVE-'+mode)
  expect(await negative.persist()).toMatchObject([{disposition:'processability_rejected',persistenceStatus:'not_applicable'}]);const negativeAck=await negative.ack();expect(negativeAck.message_family).toBe('UTILTS_ERR');expect(f.effects().series).toBe(0);expect(f.effects().contracts).toBe(0)
@@ -134,8 +136,8 @@ it.each(['V','VH'] as const)('genuine archived/reviewed %s scope, sent Z13, nati
  expect((await positive.ack()).id).toBe(own.id);expect(f.effects()).toEqual(stable)
  // Actual revocation is irreversible; no active/verified flag is restored.
  expect(await f.command({action:'revoke_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version,grantId:authority.grantId,expectedGrantVersion:sql<number>(`SELECT to_jsonb(version) FROM public.ediel_data_access_grants WHERE id=${lit(authority.grantId)}`)})).toMatchObject({status:'revoked'})
- await expect(positive.ack()).rejects.toMatchObject({message:expect.stringContaining('unique_current_grant_required')});expect(f.effects()).toEqual(stable)
- await expect(positive.persist()).rejects.toMatchObject({message:expect.stringContaining('unique_current_grant_required')});expect(f.effects()).toEqual(stable)
+ await expect(positive.ack()).rejects.toMatchObject({message:expect.stringMatching(/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)/)});expect(f.effects()).toEqual(stable)
+ await expect(positive.persist()).rejects.toMatchObject({message:expect.stringMatching(/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)/)});expect(f.effects()).toEqual(stable)
  await expect(assertUtiltsPositiveAckAuthorityForSend(own)).rejects.toThrow('utilts_positive_ack_storage_unavailable');expect(f.effects()).toEqual(stable)
  await expect(sendEdielMessageViaSmtp(own,{actorUserId:f.ids.actor})).rejects.toThrow('utilts_positive_ack_storage_unavailable');expect(f.effects()).toEqual(stable)
  expect(external.send).toHaveBeenCalledTimes(1)
@@ -147,7 +149,7 @@ it('real pending grant revocation wins before accepted storage and causes zero b
  blocker.stdin.write(`BEGIN;LOCK TABLE public.ediel_data_access_grants IN SHARE ROW EXCLUSIVE MODE;UPDATE public.ediel_data_access_grants SET status='revoked',revoked_at=now() WHERE id=${lit(authority.grantId)};SELECT 'grant-locked';\n`)
  await ready;const pending=positive.persist().then(value=>({value,error:null}),error=>({value:null,error}))
  try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%gridex_persist_utilts_consumption_v1%' AND pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'actual HTTP storage command is waiting behind genuine revocation').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
- expect((await pending).error).toMatchObject({message:expect.stringContaining('utilts_esco_unique_current_grant_required')});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
+ expect((await pending).error).toMatchObject({message:expect.stringContaining('ediel_ack_service_scope_current_grant_required')});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
 })
 
 it.each(['reviewer','role','issuer_representation','issuer_key'] as const)('retained actual ESCO ACK and storage deny current %s revocation without effects',async revoked=>{
@@ -156,7 +158,7 @@ it.each(['reviewer','role','issuer_representation','issuer_key'] as const)('reta
  if(revoked==='reviewer')sql(`UPDATE public.company_memberships SET is_active=false WHERE company_id=${lit(f.ids.company)} AND user_id=${lit(f.ids.reviewer)}`)
  if(revoked==='role')sql(`UPDATE public.tenant_actor_roles SET valid_to=now() WHERE company_id=${lit(f.ids.company)}`)
  if(revoked==='issuer_representation'||revoked==='issuer_key')sql(`INSERT INTO gridex_ediel_services.issuer_revocations(target_kind,target_id,source_reference,source_hash) VALUES(${lit(revoked==='issuer_key'?'key':'representation')},${lit(revoked==='issuer_key'?f.ids.key:authority.representationIds[0])},'SYNTHETIC DISPOSABLE EXTERNAL REVOCATION',${lit(authority.hash)})`)
- const pattern=revoked==='role'?/current_captured_role_unavailable/:/unique_current_grant_required/
+ const pattern=revoked==='role'?/current_captured_role_unavailable/:/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)/
  await expect(positive.ack()).rejects.toMatchObject({message:expect.stringMatching(pattern)});expect(f.effects()).toEqual(stable)
  await expect(positive.persist()).rejects.toMatchObject({message:expect.stringMatching(pattern)});expect(f.effects()).toEqual(stable);expect(external.send).toHaveBeenCalledTimes(1)
  await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toThrow('utilts_positive_ack_storage_unavailable');expect(f.effects()).toEqual(stable)
@@ -172,7 +174,7 @@ it.each(['own_actor','global_reviewer'] as const)('pending real %s DENY insertio
  await ready
  const pending=(target==='own_actor'?positive.ack():positive.persist()).then(value=>({value,error:null}),error=>({value:null,error}))
  try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND (query LIKE '%ediel_read_outbound_ack_replay_v1%' OR query LIKE '%gridex_persist_utilts_consumption_v1%') AND pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'genuine HTTP operation waits behind deny insertion before source/business locks').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
- expect((await pending).error).toMatchObject({message:expect.stringMatching(target==='own_actor'?/actor_not_authorized/:/unique_current_grant_required/)});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
+ expect((await pending).error).toMatchObject({message:expect.stringMatching(target==='own_actor'?/actor_not_authorized/:/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)/)});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
 })
 it('a genuine already accepted ACK transport journal replays after issuer revocation without a second SMTP call or fresh scope approval',async()=>{
  const f=await seed(),authority=await qualify(f),positive=await f.utilts('accepted','NATIVE-ESCO-SENT-ACK')
@@ -199,4 +201,61 @@ it('actual native resolver preserves positive rights and exact OID/ACL while cur
  // Bound only disposable current direct authority; private review/source/ACK
  // receipts are neither inserted nor rewritten by any native fixture.
  expect(f.effects().acks).toBe(0);expect(f.effects().series).toBe(0);expect(external.send).not.toHaveBeenCalled()
+})
+
+async function secondMission(f:Awaited<ReturnType<typeof seed>>){
+ const beneficiary=randomUUID(),key=randomUUID()
+ sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(beneficiary)},'Synthetic independently scoped second beneficiary','active')`)
+ const fields={...f.fields,beneficiary_company_id:beneficiary,purpose:'Synthetic separate second-purpose projection',field_sets:['reading_at','quantity','unit']}
+ const made=await f.command({action:'create_assignment',commandId:randomUUID(),fields});expect(made.status).toBe('held')
+ const assignment=String(made.assignmentId),current=()=>sql<ReturnType<typeof f.current>>(`SELECT jsonb_build_object('version',version,'basis',scope_basis_version,'scope',gridex_service_administration.scope_v1(a),'hash',encode(sha256(convert_to(gridex_service_administration.scope_v1(a)::text,'UTF8')),'hex')) FROM public.ediel_service_assignments a WHERE company_id=${lit(f.ids.company)} AND id=${lit(assignment)}`)
+ // This is another real assignment and real five-evidence archive/review chain.
+ // Only external issuer/legal facts are disposable synthetic bootstrap inputs.
+ return {...f,ids:{...f.ids,beneficiary,key},fields,assignment,current}
+}
+function beneficiaryActor(company:string){
+ const actor=randomUUID()
+ sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES(${lit(actor)},'authenticated','authenticated',${lit(actor+'@example.invalid')},now(),'{}','{}',now(),now(),false,false);INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${lit(actor)},${lit(actor+'@example.invalid')},'Synthetic isolated beneficiary reader','active') ON CONFLICT(id) DO UPDATE SET user_status='active';INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${lit(company)},${lit(actor)},'operations','active',now(),'{}','member',true,now(),'operations');INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${lit(actor)},${lit(company)},id,key FROM public.permissions WHERE key='metering.read'`)
+ return actor
+}
+function projection(f:Awaited<ReturnType<typeof seed>>,authority:Awaited<ReturnType<typeof qualify>>,sourceId:string){
+ const actor=beneficiaryActor(f.ids.beneficiary),series=sql<{id:string;start:string;end:string}>(`SELECT jsonb_build_object('id',id,'start',period_start,'end',period_end) FROM public.meter_reading_series WHERE company_id=${lit(f.ids.company)} AND source_ediel_message_id=${lit(sourceId)}`)
+ const request={beneficiaryCompanyId:f.ids.beneficiary,actorUserId:actor,grantId:authority.grantId,expectedGrantVersion:sql<number>(`SELECT to_jsonb(version) FROM public.ediel_data_access_grants WHERE id=${lit(authority.grantId)}`),purpose:f.fields.purpose,seriesId:series.id,fields:['reading_at','quantity'] as const,startInclusive:series.start,endExclusive:series.end,limit:100}
+ return {actor,request,read:()=>projectEdielSeriesToBeneficiary(request)}
+}
+function sealedScopes(company:string,ack:EdielMessageRow){return sql<{version:number;transactions:{scopes:{grant:{id:string};assignment:{beneficiary_company_id:string;purpose:string}}[]}[]}>(`SELECT projection FROM gridex_ediel_ack_replay.positive_service_scope_receipts WHERE company_id=${lit(company)} AND ack_raw_hash=encode(sha256(convert_to(${lit(ack.raw_payload)},'UTF8')),'hex')`)}
+it('SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions, with original replay and filtered isolated beneficiaries',async()=>{
+ const f=await seed(),firstAuthority=await qualify(f),first=await f.utilts('accepted','NATIVE-ESCO-FIRST-SEALED')
+ await first.persist();const original=await first.ack();await first.finalize(original)
+ const originalSeal=sealedScopes(f.ids.company,original);expect(originalSeal.version).toBe(2);expect(originalSeal.transactions[0].scopes.map(x=>x.grant.id)).toEqual([firstAuthority.grantId])
+ const second=await secondMission(f),secondAuthority=await qualify(second),afterMission=f.effects()
+ expect((await first.ack()).id).toBe(original.id);expect(sealedScopes(f.ids.company,original)).toEqual(originalSeal);expect(f.effects()).toEqual(afterMission)
+ const incoming=await f.utilts('accepted','NATIVE-ESCO-BOTH-MISSIONS'),before=f.effects()
+ await incoming.persist();const ack=await incoming.ack();await incoming.finalize(ack)
+ const nativeSeal=sealedScopes(f.ids.company,ack),grants=nativeSeal.transactions[0].scopes.map(x=>x.grant.id).sort()
+ expect(grants).toEqual([firstAuthority.grantId,secondAuthority.grantId].sort());expect(new Set(nativeSeal.transactions[0].scopes.map(x=>x.assignment.beneficiary_company_id))).toEqual(new Set([f.ids.beneficiary,second.ids.beneficiary]))
+ expect(f.effects().series).toBe(before.series+1);expect(f.effects().contracts).toBe(before.contracts+1)
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(incoming.source.id)} AND message_family='APERAK' AND ack_outcome='positive'`)).toBe(1)
+ const one=projection(f,firstAuthority,incoming.source.id),two=projection(second,secondAuthority,incoming.source.id),stable=f.effects()
+ for(const p of [one,two]){const page=await p.read();expect(page.rows.length).toBeGreaterThan(0);expect(page.grantId).toBe(p.request.grantId);expect(page.seriesId).toBe(p.request.seriesId);for(const row of page.rows)expect(Object.keys(row).sort()).toEqual(['quantity','reading_at'])}
+ expect(f.effects()).toEqual(stable)
+ await expect(projectEdielSeriesToBeneficiary({...one.request,grantId:secondAuthority.grantId,expectedGrantVersion:two.request.expectedGrantVersion})).rejects.toBeDefined()
+ await expect(projectEdielSeriesToBeneficiary({...two.request,purpose:f.fields.purpose})).rejects.toMatchObject({message:expect.stringContaining('ediel_projection_outside_grant')})
+ await expect(projectEdielSeriesToBeneficiary({...two.request,fields:['quality']})).rejects.toMatchObject({message:expect.stringContaining('ediel_projection_outside_grant')})
+ expect(f.effects()).toEqual(stable);expect((await incoming.ack()).id).toBe(ack.id);expect(f.effects()).toEqual(stable)
+ // Revoking second mission must not make the first mission's original receipt
+ // depend on a fresh beneficiary choice. The two-scope original does deny.
+ expect(await second.command({action:'revoke_grant',commandId:randomUUID(),assignmentId:second.assignment,expectedVersion:second.current().version,grantId:secondAuthority.grantId,expectedGrantVersion:two.request.expectedGrantVersion})).toMatchObject({status:'revoked'})
+ expect((await first.ack()).id).toBe(original.id);expect(sealedScopes(f.ids.company,original)).toEqual(originalSeal)
+ await expect(incoming.ack()).rejects.toMatchObject({message:expect.stringContaining('ediel_ack_service_scope_captured_grant_not_current')});expect(f.effects()).toEqual(stable);expect(external.send).toHaveBeenCalledTimes(2)
+})
+it.each(['company','global'] as const)('SC071 pending %s beneficiary DENY wins before real projection and leaks zero rows/effects',async scope=>{
+ const f=await seed(),authority=await qualify(f),positive=await f.utilts('accepted','NATIVE-ESCO-PROJECTION-DENY-'+scope)
+ await positive.persist();const p=projection(f,authority,positive.source.id);expect((await p.read()).rows.length).toBeGreaterThan(0);const before=f.effects()
+ const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
+ const ready=new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('native_projection_deny_lock_timeout')),10000);blocker.stdout.on('data',chunk=>{if(String(chunk).includes('projection-deny-locked')){clearTimeout(timeout);resolve()}});blocker.on('error',reject)})
+ blocker.stdin.write(`BEGIN;LOCK TABLE public.user_permission_overrides IN SHARE ROW EXCLUSIVE MODE;INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES(${lit(p.actor)},${scope==='company'?lit(f.ids.beneficiary):'NULL'},'metering.read','deny',true,now()-interval '1 minute',NULL);SELECT 'projection-deny-locked';\n`)
+ await ready;const pending=p.read().then(value=>({value,error:null}),error=>({value:null,error}))
+ try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity a JOIN pg_locks l ON l.pid=a.pid WHERE a.wait_event_type='Lock' AND a.query LIKE '%ediel_beneficiary_series_page_v1%' AND l.relation='public.user_permission_overrides'::regclass AND l.mode='ShareLock' AND NOT l.granted AND a.pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'real HTTP beneficiary read waits behind DENY fence before source/series').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
+ const result=await pending;expect(result.value).toBeNull();expect(result.error).toMatchObject({message:expect.stringContaining('ediel_beneficiary_forbidden')});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
 })

@@ -27,3 +27,21 @@ Native clean/upgrade replay and schema generation at the integrated candidate
 are **NOT RUN here** and remain mandatory. Other 20261001 role declarations were
 inspected: TR09 creates a publisher role without assigning schema/object
 ownership, so it does not have this specific SET ownership prerequisite.
+
+## Subsequent un-switched DDL prerequisite
+
+The next authentic clean/upgrade replay at `6a6ee8` passed SET ownership but
+failed 00500 CREATE TABLE: its remaining body runs as the migration principal
+without SET ROLE. CLI-created `20261001021000_ediel_retention_migration_schema_privileges.sql`
+is explicitly ordered as 00460 after 00459 and before immutable 00500. It enables
+INHERIT TRUE for this exact private owner and actual validated migrator only.
+There is no ADMIN option, application membership or operational/default grant.
+
+The bounded non-superuser regression now reproduces both failures: missing SET
+ownership and missing inherited schema CREATE. After 00459+00460 it executes
+REVOKE, CREATE TABLE, ALTER TABLE OWNER, CREATE FUNCTION, ALTER FUNCTION OWNER,
+function execution and idempotent reapplication without changing current role.
+All application roles remain non-members and lack private schema USAGE. The
+extended regression failed red at schema CREATE before 00460 and passed green
+after it. The entire genuine 00500 clean/upgrade replay remains **NOT RUN here**;
+PGlite does not supply Supabase/native acceptance evidence.

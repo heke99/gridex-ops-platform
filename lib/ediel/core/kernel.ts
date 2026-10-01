@@ -1,3 +1,4 @@
+import {supabaseService} from '@/lib/supabase/service'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
 import { persistAtomicOutboundAck } from '@/lib/ediel/core/atomicAckPersistence'
 import { readProtectedOutboundAckReplay } from '@/lib/ediel/core/ackPolicy'
@@ -310,13 +311,13 @@ export async function createCanonicalAckMessage(params: {
   const sequenceField = allowSequencedTransactionAck ? 'relatedTransactionReference' as const
     : allowSequencedUtiltsErr ? 'utiltsErrSequenceToken' as const : null
   const readReplay = () => readProtectedOutboundAckReplay({companyId,environment,actorUserId,
-    sourceMessage:params.sourceMessage,ackFamily:params.ackFamily,sequenceField,sequenceValue:sequenceToken})
+    sourceMessage:params.sourceMessage,ackFamily:params.ackFamily,sequenceField,sequenceValue:sequenceToken,requestedRawPayload:params.draft.rawPayload})
   const returnReplay = (duplicate:EdielMessageRow) => {
     const attemptedOutcome=params.outcome ?? null
     const payload=duplicate.parsed_payload ?? {}
     const existingOutcome=duplicate.ack_outcome==='positive'||duplicate.ack_outcome==='negative' ? duplicate.ack_outcome
       : payload.ackOutcome==='positive'||payload.ackOutcome==='negative' ? payload.ackOutcome : null
-    if(attemptedOutcome && existingOutcome && attemptedOutcome!==existingOutcome)throw new Error(isFinalCanonicalAckStatus(duplicate.status)
+    if(!(params.sourceMessage.message_family==='PRODAT'&&params.ackFamily==='APERAK') && attemptedOutcome && existingOutcome && attemptedOutcome!==existingOutcome)throw new Error(isFinalCanonicalAckStatus(duplicate.status)
       ? `blocked_final_ack_exists: Final ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras.`
       : `conflicting_ack_draft_exists: ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras tills den gamla draften ersätts.`)
     // Replay/conflict rejection produces no messages, witnesses, events or new
@@ -324,7 +325,16 @@ export async function createCanonicalAckMessage(params: {
     return duplicate
   }
   const duplicate=await readReplay()
+  if(params.sourceMessage.message_family==='PRODAT'&&params.ackFamily==='APERAK'){
+    const desired=readPhysicalAckSourceCorrelation({id:'requested-own-ack',environment,direction:'outbound',message_family:'APERAK',raw_payload:params.draft.rawPayload??null})
+    if(params.outcome&&params.outcome!==desired.classification.outcome)throw new Error('canonical_ack_draft_outcome_scope_mismatch')
+  }
   if(duplicate)return returnReplay(duplicate)
+  // Fresh use of the actual source bytes is independently retention gated.
+  // Established immutable ACK replay above never reconstructs purged content.
+  const requireBytes=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{error:unknown}>
+  const bytes=await requireBytes('ediel_require_source_bytes_available_v1',{p_company_id:companyId,p_source_message_id:params.sourceMessage.id})
+  if(bytes.error)throw bytes.error
   const persistAck=async(input:CreateEdielMessageInput,commonSmtp?:{from:string;host:string;port:number}):Promise<EdielMessageRow>=>{
     try{return returnReplay(await persistAtomicOutboundAck(input,{companyId,environment,actorUserId,sourceMessage:params.sourceMessage,ackFamily:params.ackFamily,sequenceField,sequenceValue:sequenceToken,outcome:params.outcome??input.ackOutcome??null,commonSmtp}))}catch(error){
       if(isPostgresUniqueViolation(error)){

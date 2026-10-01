@@ -26,7 +26,8 @@ import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { canonicalAckRuleForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import { resolveCanonicalMessagePolicy,type EdielMessageTimeOptions } from '@/lib/ediel/core/messagePolicy'
+import {readSourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {
@@ -396,7 +397,7 @@ function buildResult(params: {
   }
 }
 
-export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): CanonicalRuntimeDecision {
+export function resolveCanonicalRuntimeDecision(message: EdielMessageRow,options:EdielMessageTimeOptions={}): CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
     ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
@@ -449,7 +450,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
 
   let policy: CanonicalEdielPolicy | null = null
   try {
-    policy = resolveCanonicalMessagePolicy(message, canonical)
+    policy = resolveCanonicalMessagePolicy(message, canonical,options)
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
     issues.push(issue({
@@ -600,7 +601,16 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
 }
 
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message: EdielMessageRow): Promise<CanonicalRuntimeDecision> {
-  const base = resolveCanonicalRuntimeDecision(message)
+  let capability:Awaited<ReturnType<typeof readSourceQualifiedProdatBilateralCapability>>=null
+  // This read grants no success or storage authority. The complete original
+  // still traverses syntax, all canonical fields and every functional owner.
+  // Never call the capability owner for unknown international grammar.
+  const initial=resolveCanonicalRuntimeDecision(message)
+  const needsCapability=initial.canonical.family==='PRODAT'&&message.direction==='inbound'&&['A','D','H'].includes(initial.canonical.subtype??'')
+  if(needsCapability&&initial.syntaxDecision==='accepted'){
+    try{capability=await readSourceQualifiedProdatBilateralCapability(message)}catch{return initial}
+  }
+  const base=capability?resolveCanonicalRuntimeDecision(message,{prodatSourceCapability:capability}):initial
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
   if (base.policy.family === 'APERAK' || base.policy.family === 'CONTRL' || base.policy.family === 'UTILTS_ERR') {
     if(base.applicationDecision !== 'accepted')return base

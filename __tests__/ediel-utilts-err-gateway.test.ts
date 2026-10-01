@@ -73,6 +73,31 @@ vi.mock('@/lib/supabase/service', () => {
     }
   }
   return { supabaseService: { from: (table: string) => new Query(table), rpc: async (name: string, args: Row) => {
+      if(name==='ediel_require_source_bytes_available_v1'){
+        const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_source_message_id&&row.company_id===args.p_company_id&&row.direction==='inbound')
+        return {data:null,error:source&&typeof source.raw_payload==='string'&&source.raw_payload?null:{message:'finite_actual_source_bytes_unavailable'}}
+      }
+      if(name==='ediel_create_outbound_ack_atomic_v1'){
+        // Stateful mechanical native-port model. It is not a private source or
+        // native witness qualification; independent native tests own that proof.
+        const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_source_message_id&&row.company_id===args.p_company_id&&row.environment===args.p_environment&&row.direction==='inbound')
+        const member=database.tables.get('company_memberships')!.find(row=>row.company_id===args.p_company_id&&row.user_id===args.p_actor_user_id&&row.status==='active'&&row.is_active&&row.accepted_at)
+        if(!source||!member)return {data:null,error:{message:'finite_current_source_actor_unavailable'}}
+        expect(args.p_source_payload_hash).toBe(createHash('sha256').update(String(source.raw_payload)).digest('hex'))
+        const d=args.p_draft as Row,parsed:Row={...(d.parsedPayload as Row),ackFamily:args.p_ack_family,ackSourceId:source.id}
+        if(args.p_sequence_field)parsed[String(args.p_sequence_field)]=args.p_sequence_value
+        if(args.p_sequence_field==='relatedTransactionReference')parsed.ackScope='transaction'
+        if(args.p_ack_family==='UTILTS_ERR'&&database.failErrReference===args.p_sequence_value)throw Error('synthetic_interruption_after_first_err')
+        const message={...source,id:randomUUID(),direction:'outbound',message_family:args.p_ack_family,message_code:args.p_ack_family==='UTILTS_ERR'?'ERR':args.p_ack_family,
+          related_message_id:source.id,raw_payload:d.rawPayload,parsed_payload:parsed,status:'draft',ack_outcome:args.p_outcome,process_type:d.processType,
+          company_id:args.p_company_id,environment:args.p_environment,communication_route_id:d.communicationRouteId,route_profile_id:d.routeProfileId,source_operation_id:`ediel_ack:${source.id}:${args.p_ack_family}:${args.p_sequence_value??'message'}`}
+        if(args.p_ack_family==='UTILTS_ERR'&&database.raceErrReference===args.p_sequence_value){
+          if(database.raceCommitted)database.tables.get('ediel_messages')!.push(message)
+          return {data:null,error:{code:'23505',message:'synthetic_unique_ack_insert'}}
+        }
+        database.tables.get('ediel_messages')!.push(message)
+        return {data:{version:1,sourceMessage:source,ackMessage:message},error:null}
+      }
       if(name==='ediel_read_outbound_ack_replay_v1') {
         const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_source_message_id&&row.company_id===args.p_company_id&&row.environment===args.p_environment&&row.direction==='inbound')
         expect(source).toBeDefined()
@@ -110,7 +135,7 @@ vi.mock('@/lib/supabase/service', () => {
         return {data:{kind:'technical_syntax_ack_route',companyId:source!.company_id,environment:source!.environment,sourceMessageId:source!.id,sourceHash,route,routeRuntime,
           senderEdielId:originalUNB.receiver[0],senderQualifier:originalUNB.receiver[1]||null,senderSubAddress:originalUNB.receiver[2]||null,
           receiverEdielId:originalUNB.sender[0],receiverQualifier:originalUNB.sender[1]||null,receiverSubAddress:originalUNB.sender[2]||null,receiverMessageSubAddress:originalUNB.sender[2]||null,
-          applicationReference:originalUNB.applicationReference,senderEmail:'technical@synthetic.example',mailbox:'technical@synthetic.example',receiverEmail:'source@synthetic.example',routeKey:'synthetic-own-route',authorizesBusinessEffect:false},error:null}
+          applicationReference:originalUNB.applicationReference,smtpHost:'smtp.synthetic.example',smtpPort:587,senderEmail:'technical@synthetic.example',mailbox:'technical@synthetic.example',receiverEmail:'source@synthetic.example',routeKey:'synthetic-own-route',authorizesBusinessEffect:false},error:null}
       }
       if (name === 'ediel_read_source_rule_pack_basis_v1') {
         database.sourceBasisReads.push({...args,outboundCount:database.tables.get('ediel_messages')!.filter(row=>row.direction==='outbound').length})
@@ -122,7 +147,9 @@ vi.mock('@/lib/supabase/service', () => {
           rulePackId: source.canonical_rule_pack_id, messageProfileId: source.rule_profile_version_id,
           profileKey: source.rule_profile_key, version: source.rule_profile_version, sourceHash: source.rule_pack_checksum,
           snapshot: { profileKey: source.rule_profile_key, profileVersionId: source.rule_profile_version_id,
-            version: source.rule_profile_version, checksum: source.rule_pack_checksum },
+            version: source.rule_profile_version, checksum: source.rule_pack_checksum,
+            rulePack:{id:source.canonical_rule_pack_id,family:'UTILTS',guide_version:String(source.rule_profile_version).split(':r')[0],guide_revision:String(source.rule_profile_version).split(':r')[1],source_hash:source.rule_pack_checksum},
+            messageProfile:{id:source.rule_profile_version_id,rule_pack_id:source.canonical_rule_pack_id},guideSources:[] },
         } }, error: null }
       }
       if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error(`unexpected_rpc:${name}`)
@@ -159,10 +186,11 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
   const source = {
     ...utiltsErrGatewayFixture({ company, transactions, date }), id: randomUUID(),
     canonical_rule_pack_id: randomUUID(), rule_profile_key: 'synthetic-utilts-e66',
-    rule_profile_version_id: randomUUID(), rule_profile_version: 'E5SE5A-r3', rule_pack_checksum: 'a'.repeat(64),
+    rule_profile_version_id: randomUUID(), rule_profile_version: '25-A-4:r4', rule_pack_checksum: 'a'.repeat(64),
   } as EdielMessageRow
   if (transform) source.raw_payload = transform(source.raw_payload!)
   const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:source.message_code!,direction:'inbound',referenceDate:date,applicationReference:source.application_reference,mode:'parse'})
+  source.rule_profile_version=`${canonicalPolicy.guide.guideRevision}:r${canonicalPolicy.guide.guideRevision.split('-').at(-1)}`
   const runtime = runUtiltsRuntimeForMessage(source,{referenceDate:date,canonicalPolicy})
   const reservations: Row[] = runtime.transactionDispositions.map(row => ({
     id: randomUUID(), company_id: company, environment: 'test', source_message_id: source.id,

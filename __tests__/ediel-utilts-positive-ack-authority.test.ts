@@ -30,6 +30,21 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       // No prior own ACK exists in this fresh-only gateway harness.
       return {data:null,error:null}
     }
+    if(name==='ediel_require_source_bytes_available_v1'){
+      const source=state.sources.get(String(args.p_source_message_id))
+      return {data:null,error:source&&source.company_id===args.p_company_id&&source.raw_payload?null:{message:'finite_actual_source_bytes_unavailable'}}
+    }
+    if(name==='ediel_create_outbound_ack_atomic_v1'){
+      const source=state.sources.get(String(args.p_source_message_id)),draft=args.p_draft as Record<string,unknown>
+      if(!source||source.company_id!==args.p_company_id||state.actors.get(String(args.p_actor_user_id))!==args.p_company_id)return {data:null,error:{message:'finite_current_source_actor_unavailable'}}
+      expect(args.p_source_payload_hash).toBe(createHash('sha256').update(source.raw_payload!).digest('hex'))
+      expect(args).toMatchObject({p_ack_family:'APERAK',p_sequence_field:'relatedTransactionReference',p_sequence_value:'OWN-IDE',p_outcome:'positive'})
+      // Declared stateful RPC boundary only. Real native source/ACK witness,
+      // accepted series, grant and finalization remain independently native.
+      await state.create({companyId:source.company_id,canonicalRulePackId:source.canonical_rule_pack_id,relatedMessageId:source.id,rawPayload:draft.rawPayload})
+      return {data:{version:1,sourceMessage:source,ackMessage:{...source,id:'created',direction:'outbound',message_family:'APERAK',message_code:'312',related_message_id:source.id,
+        raw_payload:draft.rawPayload,ack_outcome:'positive',parsed_payload:{...(draft.parsedPayload as Record<string,unknown>),ackScope:'transaction',relatedTransactionReference:'OWN-IDE'}}},error:null}
+    }
     if(name==='gridex_actor_has_company_permission')return {data:args.p_permission==='communication.write'&&state.actors.get(String(args.p_actor_user_id))===args.p_company_id,error:null}
     if(name==='ediel_read_source_rule_pack_basis_v1') {
       const source=state.sources.get(String(args.p_message_id))
@@ -50,7 +65,9 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
 function sourceEvidence(source:EdielMessageRow){return {
   rulePackId:source.canonical_rule_pack_id,messageProfileId:source.rule_profile_version_id,profileKey:source.rule_profile_key,
   version:source.rule_profile_version,sourceHash:source.rule_pack_checksum,snapshot:{profileKey:source.rule_profile_key,
-    profileVersionId:source.rule_profile_version_id,version:source.rule_profile_version,checksum:source.rule_pack_checksum},
+    profileVersionId:source.rule_profile_version_id,version:source.rule_profile_version,checksum:source.rule_pack_checksum,
+    rulePack:{id:source.canonical_rule_pack_id,family:'UTILTS',guide_version:'25-A-4',guide_revision:'4',source_hash:source.rule_pack_checksum},
+    messageProfile:{id:source.rule_profile_version_id,rule_pack_id:source.canonical_rule_pack_id},guideSources:[]},
 }}
 vi.mock('@/lib/ediel/core/kernelLegacy', () => ({
   resolveCanonicalOutboundContext: async () => ({ route: { id: 'route' }, routeRuntime: { route_profile_id: 'profile' } }),
@@ -62,7 +79,7 @@ vi.mock('@/lib/ediel/db', () => ({ createEdielMessage: state.create, findSequenc
 function fixture() {
   const source = { ...utiltsErrGatewayFixture({ company: randomUUID(), transactions: [{ reference: 'OWN-IDE', outcome: 'accepted' }] }),
     id: randomUUID(), canonical_rule_pack_id: randomUUID(), rule_profile_key: 'source',
-    rule_profile_version_id: randomUUID(), rule_profile_version: 'E5SE5A-r3', rule_pack_checksum: 'a'.repeat(64),
+    rule_profile_version_id: randomUUID(), rule_profile_version: '25-A-4:r4', rule_pack_checksum: 'a'.repeat(64),
   } as EdielMessageRow
   const actor=randomUUID();state.actors.set(actor,source.company_id!);state.sources.set(source.id,source)
   const draft = buildAperakDraft({ actorUserId:actor,sourceMessage: source, outcome: 'positive', ackScope: 'transaction', relatedTransactionReference: 'OWN-IDE' })
@@ -91,11 +108,11 @@ function outbound(f: ReturnType<typeof fixture>): EdielMessageRow {
 }
 it('creates from committed storage while ACK finalization is still pending', async () => {
   const f = fixture(); state.rpc.mockResolvedValue(authority(f))
-  await expect(f.create()).resolves.toEqual({ id: 'created' })
+  await expect(f.create()).resolves.toMatchObject({id:'created',company_id:f.source.company_id,related_message_id:f.source.id,raw_payload:f.draft.rawPayload,ack_outcome:'positive'})
   expect(state.rpc.mock.calls).toHaveLength(1)
   expect(state.rpc.mock.calls[0][0]).toBe('gridex_require_utilts_positive_ack_authority_v1')
   expect(state.rpc.mock.calls[0][1]).toMatchObject({p_company_id:f.source.company_id,p_environment:'test',p_source_message_id:f.source.id,p_transaction_id:'OWN-IDE',p_ack_message_id:null})
-  expect(state.protectedCalls.filter(name=>name!=='ediel_read_outbound_ack_replay_v1')).toEqual(['gridex_actor_has_company_permission','ediel_read_source_rule_pack_basis_v1','gridex_require_utilts_positive_ack_authority_v1','ediel_prepare_outbound_owner_witness_v1'])
+  expect(state.protectedCalls.filter(name=>name!=='ediel_read_outbound_ack_replay_v1')).toEqual(['gridex_actor_has_company_permission','ediel_require_source_bytes_available_v1','ediel_read_source_rule_pack_basis_v1','gridex_require_utilts_positive_ack_authority_v1','ediel_create_outbound_ack_atomic_v1'])
   expect(state.create).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({companyId:f.source.company_id,canonicalRulePackId:f.source.canonical_rule_pack_id,relatedMessageId:f.source.id}))
 })
 it('holds transmission when accepted storage has no final binding to this ACK', async () => {

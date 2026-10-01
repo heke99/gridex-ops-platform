@@ -70,29 +70,36 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   return message({id:'protected-own-object-ack',direction:'outbound',related_message_id:sourceId,message_family:'APERAK',message_code:'12',
    raw_payload:ownDraft.rawPayload!,status:'failed',ack_outcome:outcome})
  }
- it('uses actual own LI scope before today\'s guide despite changed caller sequence caches',async()=>{
-  const own=objectDraft([{reference:'OWN-LI',positive:true}]),old=oldObjectAck(own,'positive');io.ackDuplicate.mockResolvedValue(old)
+ function protectedObjectReceipt(own:CreateEdielMessageInput,old:EdielMessageRow,results:{reference:string;positive:boolean}[]){
+  const scopes=results.map((r,index)=>({scope:'object',reference:String(index+7),physicalReference:{li:r.reference,lineIndex:index+7,id:'actual own point '+index},outcome:r.positive?'positive':'negative'}))
+  return {data:{version:2,sourceMessage:message(),ackMessage:old,requestedPayloadHash:createHash('sha256').update(own.rawPayload!).digest('hex'),requestedScopes:scopes,ackScopes:scopes},error:null}
+ }
+ it('uses the protected raw-scope source receipt before today\'s guide despite changed caller sequence caches',async()=>{
+  const results=[{reference:'OWN-LI',positive:true}],own=objectDraft(results),old=oldObjectAck(own,'positive')
+  io.replay.mockResolvedValue(protectedObjectReceipt(own,old,results))
   expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'positive',draft:own})).toBe(old)
-  expect(io.ackDuplicate).toHaveBeenCalledWith({sourceMessageId:sourceId,ackFamily:'APERAK',outcome:undefined,ackScope:'object',acknowledgedReferences:['OWN-LI']})
-  expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+  expect(io.replay).toHaveBeenCalledExactlyOnceWith('ediel_read_outbound_ack_scope_replay_v2',expect.objectContaining({p_company_id:company,p_source_message_id:sourceId,p_actor_user_id:actor,p_ack_raw_payload:own.rawPayload}))
+  expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })
- it('preserves an exact mixed original without reinterpreting all objects as negative',async()=>{
-  const own=objectDraft([{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}]),old=oldObjectAck(own,'negative');io.ackDuplicate.mockResolvedValue(old)
+ it('preserves a protected exact mixed original without reinterpreting all objects as negative',async()=>{
+  const results=[{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}],own=objectDraft(results),old=oldObjectAck(own,'negative')
+  io.replay.mockResolvedValue(protectedObjectReceipt(own,old,results))
   expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'negative',draft:own})).toBe(old)
-  expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+  expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })
- it('holds changed own group outcomes even when the whole mixed classification agrees',async()=>{
+ it('holds changed own group outcomes even when whole mixed classification agrees, with zero conflict events',async()=>{
   const desired=objectDraft([{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}])
-  const opposite=objectDraft([{reference:'OWN-POS',positive:false},{reference:'OWN-NEG',positive:true}]);io.ackDuplicate.mockResolvedValue(oldObjectAck(opposite,'negative'))
-  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'negative',draft:desired})).rejects.toThrow('blocked_final_ack_exists')
-  expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+  io.replay.mockResolvedValue({data:null,error:Error('ediel_prodat_ack_scope_conflicting_outcome')})
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'negative',draft:desired})).rejects.toThrow('scope_conflicting_outcome')
+  expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled();expect(io.conflict).not.toHaveBeenCalled()
  })
- it('recovers a concurrent technical INSERT only from the same protected original scope',async()=>{
+ it('recovers a concurrent technical INSERT only from the same protected original actor/source scope',async()=>{
   const old=message({id:'committed-own-contrl',direction:'outbound',message_family:'CONTRL',message_code:'CONTRL',related_message_id:sourceId,status:'failed',ack_outcome:'negative'})
-  io.ackDuplicate.mockResolvedValueOnce(null).mockResolvedValueOnce(old);io.validation.mockResolvedValue({fieldRuleSource:'technical_source',blocking:false,technicalSyntaxAckEvidence:evidence()})
+  let reads=0;io.replay.mockImplementation(async name=>name==='ediel_require_source_bytes_available_v1'?{data:null,error:null}:(++reads===1?{data:null,error:null}:{data:{version:1,sourceMessage:message(),ackMessage:old},error:null}))
+  io.validation.mockResolvedValue({fieldRuleSource:'technical_source',blocking:false,technicalSyntaxAckEvidence:evidence()})
   io.create.mockRejectedValue({code:'23505',message:'declared same-source insertion race'})
   expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'CONTRL',outcome:'negative',draft:{...ackDraft(),companyId:company}})).toBe(old)
-  expect(io.create).toHaveBeenCalledOnce();expect(io.sourcePack).not.toHaveBeenCalled()
+  expect(io.create).toHaveBeenCalledOnce();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.replay).toHaveBeenCalledTimes(3)
  })
  it('refuses altered source bytes or evidence environment before technical route or writes',async()=>{
   for(const patch of [{raw_payload:raw+'altered'},{environment:'production' as const}]){

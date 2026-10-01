@@ -66,6 +66,12 @@
     "20261001004953_ediel_current_company_permission_denies.sql": "3a83ea9f98a75c8bed50eed150fd6101df5e3ac3418696f79ccc88708bb9f665",
     "20261001010758_ediel_bilateral_customer_source_owner.sql": "828013f3136610440a174897505fbf3ae91c675c7c6bad9ea9c81c41113ae70c",
     "20261001000459_ediel_retention_migration_owner_prerequisite.sql": "df7d140a069a77fc959c69b876d8cd8c5cab1e76d32751e5ddee12635a48bbf5",
-    "20261001013836_ediel_customer_first_register_scope.sql": "d614d3b810889ab1ad46a068b7a0e1df3e3e47a361d1f551d095e869f307ad0a"
+    "20261001013836_ediel_customer_first_register_scope.sql": "d614d3b810889ab1ad46a068b7a0e1df3e3e47a361d1f551d095e869f307ad0a",
+    "20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql": "23fea06eff8434656ec9e24957f22a1fca166b4e0b601646926bb1c48312c329",
+    "20261001014735_ediel_protected_prodat_ack_raw_scope_replay_v2.sql": "534450647b2adc822e551a0ceff7b62108b9176911251c5c9354e94329eee034",
+    "20261001021918_ediel_ack_bilateral_receipt_graph_lock_prefix.sql": "c24c2f0539ba87d790fd594fef4d1677b0fd800c6093941cfd6cc1a3d172885e",
+    "20261001013034_ediel_bilateral_prodat_archived_profile_review.sql": "84ce3df5c80c5220df3ba4e15e7aade37d3671a09dabd730c8cd781638602b6e",
+    "20261001000460_ediel_retention_migration_schema_privileges.sql": "c9e401bfdb39147a8bea7a4d1ef55743027a8ad593681076a8fec6cec60c9098",
+    "20261001020013_ediel_bilateral_positive_source_and_ack_authority_receipts.sql": "90a4984301d0dd2c00607d372425381b47998b2af6655314d07f42b27020010d"
   }
 }

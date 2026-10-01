@@ -6,6 +6,7 @@ const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
 const { SourceTextModule } = require('node:vm')
 const { test } = require('node:test')
+const {sourceRuntimeBoundary,assertNoSourceBoundaryAttempts}=require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
 async function runtime() {
   const modules = new Map()
@@ -19,11 +20,13 @@ async function runtime() {
     export { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer';
   `, { identifier: path.join(root, 'lib/ediel/d-z04-source-test.ts') })
   await entry.link((specifier, parent) => {
+    const sourceBoundary=sourceRuntimeBoundary(specifier,modules,parent)
+    if(sourceBoundary)return sourceBoundary
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Only actual Ediel modules')
-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
+    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
     return modules.get(file)
   })
   await entry.evaluate()
@@ -121,3 +124,5 @@ test('new source row is immutable and unrelated unresolved D cells remain unreso
   assert(row); assert(Object.isFrozen(row)); assert(Object.isFrozen(row.outcomes))
   assert.equal(a.resolveProdatDependentCondition({messageCode:'Z06',fieldNumber:'210',facts:{canonicalSubtype:'F'}}).status,'undetermined')
 })
+
+test('source-only runtime attempted no external operation',async()=>{await api;assertNoSourceBoundaryAttempts()})

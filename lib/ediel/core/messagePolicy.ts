@@ -5,6 +5,7 @@ import { stockholmBusinessDate, type EdielMessageTimeAnchors } from '@/lib/ediel
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseCanonicalMessageRow, type CanonicalEdielMessage } from '@/lib/ediel/core/canonicalMessage'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {sourceQualifiedProdatBilateralCapability,type SourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
 
 // Shared protocol date selection; receipt/object matching must not reselect a guide.
 function normalizeDate(value: unknown): string | null {
@@ -18,7 +19,7 @@ function normalizeDate(value: unknown): string | null {
   return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day ? date : null
 }
 
-export type EdielMessageTimeOptions = Readonly<{ admissionAt?: string | Date; replayAt?: string | Date }>
+export type EdielMessageTimeOptions = Readonly<{ admissionAt?: string | Date; replayAt?: string | Date;prodatSourceCapability?:SourceQualifiedProdatBilateralCapability|null }>
 
 function instant(value: unknown, label: string): string | null {
   if (value === null || value === undefined || value === '') return null
@@ -133,7 +134,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     referenceDate: timeAnchors.admissionDate,
     associationAssignedCode: family === 'CONTRL' ? null : canonical.version,
     applicationReference: canonical.applicationReference,
-    bilateralCapabilityVerified: readBooleanFact(message, 'bilateralCapabilityVerified'),
+    bilateralCapabilityVerified: family==='PRODAT' ? Boolean(sourceQualifiedProdatBilateralCapability(message,options.prodatSourceCapability)) : readBooleanFact(message, 'bilateralCapabilityVerified'),
     prodatDependentFacts: family === 'PRODAT' ? {
       market: 'electricity',
       customerKind: readStringFact(message, 'customerKind') as 'private' | 'business' | undefined,
