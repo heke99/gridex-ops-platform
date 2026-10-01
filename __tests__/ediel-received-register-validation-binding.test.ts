@@ -66,3 +66,15 @@ test('retains an exact physical invalid agency only in a rejected or unavailable
  value.objects[1].disposition='unavailable';value.objects[1].reasons=['REGISTER_SCOPE_UNAVAILABLE']
  expect(bindReceivedRegisterValidation(value,raw)?.objects[1].disposition).toBe('unavailable')
 })
+
+test('the same actual runtime ignored-field facet remains outside frozen canonical facts',()=>{
+ const input=fixture(),before=build(input)
+ Object.assign(input.decision,{prodatIgnoredFields:[]})
+ const result=build(input)
+ expect(result).not.toBeNull();expect(result!.prodatIgnoredFields).toEqual([])
+ expect(result!.factsText).toBe(before!.factsText)
+ Object.assign(input.decision.validationReport,{prodatIgnoredFields:[{claimed:true}]})
+ expect(build(input)!.prodatIgnoredFields).toEqual([],'editable report cannot replace the actual runtime decision')
+ Object.assign(input.decision,{prodatIgnoredFields:[{claimed:true}]})
+ expect(build(input)).toBeNull()
+})

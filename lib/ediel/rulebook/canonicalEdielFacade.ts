@@ -210,3 +210,10 @@ export function canonicalRegisteredEdielGuideScopes(){
    canonicalGuideRevision:guide.guideRevision,associationAssignedCode:guide.associationAssignedCode,documentName:guide.documentName})
  }))
 }
+
+import {PRODAT_26A_FIELD_MATRIX} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+/** Physical field metadata only; no usage, dependency or revision decision. */
+export function canonicalProdatFieldWireDescriptor(fieldNumber:string):Readonly<{fieldNumber:string;fieldKey:string;segmentPath:string}>|null {
+ const row=PRODAT_26A_FIELD_MATRIX.find(item=>item.fieldNumber===fieldNumber)
+ return row?Object.freeze({fieldNumber:row.fieldNumber,fieldKey:row.fieldKey,segmentPath:row.segmentPath}):null
+}

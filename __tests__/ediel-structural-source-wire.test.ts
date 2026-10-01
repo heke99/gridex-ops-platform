@@ -23,9 +23,9 @@ describe('original-wire structural source scope',()=>{
     const {wire,scope}=fixture('Z06','E64')
     const projected=wire.replace("CAV+Z03'","CAV+Z03'CCI++Z14'CAV+:::L639Q'CCI++Z12'CAV+:::Q'CCI++Z15'CAV+Z32'")
     const actualScope=timelineFacts(projected).objects[0].object as SourceObjectScope
-    expect(readStructuralMeasurementProjection(projected,actualScope)).toEqual({productCode:'L639Q',measurementMethod:'Z03',reportingFrequency:'Q',settlementMethod:'Z32'})
+    expect(readStructuralMeasurementProjection(projected,actualScope,[])).toEqual({productCode:'L639Q',measurementMethod:'Z03',reportingFrequency:'Q',settlementMethod:'Z32'})
     expect(readStructuralSourceWire(projected,actualScope)).not.toHaveProperty('productCode')
-    expect(readStructuralMeasurementProjection(projected,{...scope,objectId:'FOREIGN'})).toBeNull()
+    expect(readStructuralMeasurementProjection(projected,{...scope,objectId:'FOREIGN'},[])).toBeNull()
   })
   it.each([
     ['Z04','E03','supply_baseline','210'],['Z06','E34','customer_only','216'],

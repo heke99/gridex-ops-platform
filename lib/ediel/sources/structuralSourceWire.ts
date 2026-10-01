@@ -5,6 +5,8 @@ import {parseProdatMessage, parsedProdatObjects} from '@/lib/ediel/prodat/parser
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
 import type {SourceObjectScope} from './sourceOwnerWire'
+import type {ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
+import {bindReceivedProdatIgnoredFields} from '@/lib/ediel/core/receivedProdatIgnoredFieldBinding'
 import {prodatCharacteristicValue} from '@/lib/ediel/prodat/prodatCharacteristicFields'
 
 export type StructuralSourceWire = {
@@ -31,16 +33,18 @@ export type StructuralMeasurementProjection = Readonly<{
 
 /** Lossless additional source fields. This is not a new approval marker: the
  * existing physical wire scope and dated owner selection must qualify it. */
-export function readStructuralMeasurementProjection(raw:string,scope:SourceObjectScope):StructuralMeasurementProjection|null {
-  if(!readStructuralSourceWire(raw,scope))return null
+export function readStructuralMeasurementProjection(raw:string,scope:SourceObjectScope,ignoredFields?:readonly ProdatIgnoredField[]):StructuralMeasurementProjection|null {
+  if(!readStructuralSourceWire(raw,scope)||ignoredFields===undefined||!bindReceivedProdatIgnoredFields(ignoredFields,raw))return null
   const parsed=parseProdatMessage(raw),object=parsedProdatObjects(parsed).find(item=>item.meteringPointId===scope.objectId&&item.identityAgency===scope.identityAgency)
   const ast=singleMessage(raw,'PRODAT')
   if(!object?.registers.length||!ast)return null
   const first=object.registers[0]
   const group=prodatRegisterGroups(ast.segments,ast.una).groups.find(item=>item.itemId===scope.objectId&&item.identityAgency===scope.identityAgency)
   if(!group)return null
-  return Object.freeze({productCode:first.timeSeriesProduct,measurementMethod:first.measuringMethod,reportingFrequency:first.reportingFrequency,
-    settlementMethod:prodatCharacteristicValue('254',group.effectiveSegments,ast.una)})
+  const usable=(field:string,value:string|null)=>ignoredFields.some(item=>item.fieldNumber===field&&item.occurrence.objectId===scope.objectId&&item.occurrence.identityAgency===scope.identityAgency
+    &&item.occurrence.messageReference===scope.messageReference&&item.occurrence.lineIndex===group.lineIndex)?null:value
+  return Object.freeze({productCode:usable('242',first.timeSeriesProduct),measurementMethod:usable('217',first.measuringMethod),reportingFrequency:usable('222',first.reportingFrequency),
+    settlementMethod:usable('254',prodatCharacteristicValue('254',group.effectiveSegments,ast.una))})
 }
 
 /** Original-wire structure only, never an approval or a completeness claim. */

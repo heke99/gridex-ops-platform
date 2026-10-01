@@ -27,7 +27,7 @@ export function withProdatFixtureInsertContext(row:EdielMessageRow):EdielMessage
  * checked against exact request fields by the real production adapters. */
 export function prodatFixtureSourceRpc(name:string,args:Record<string,unknown>) {
  let data:Record<string,unknown>
- if(name==='gridex_record_source_validation_v1')data={version:1,companyId:args.p_company_id,environment:args.p_environment,
+ if(name==='gridex_record_source_validation_v1'||name==='gridex_record_prodat_source_validation_v2')data={version:name==='gridex_record_prodat_source_validation_v2'?2:1,...(name==='gridex_record_prodat_source_validation_v2'?{ignoredFieldsHash:typeof args.p_ignored_fields_text==='string'?hash(args.p_ignored_fields_text):null}:{}),companyId:args.p_company_id,environment:args.p_environment,
   sourceMessageId:args.p_source_message_id,sourcePayloadHash:args.p_source_payload_hash,factsHash:hash(String(args.p_facts_text)),
   sourceDisposition:'not_established',assessmentId:id(34)}
  else if(name==='ediel_probe_source_rule_pack_capture_v1')data={status:'captured',evidence:protectedBasis}
