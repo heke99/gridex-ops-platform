@@ -74,6 +74,7 @@ export type StructuralSelection =
   | { status: 'unavailable'; reason: string }
   | { status: 'selected'; coverage: StructuralCoverage; states: SelectedStructure[];closure?:ClosureProvenance }
 
+function priorMeasurementProjection(value:SelectedStructure|null):SelectedStructure['measurements']{return value?.measurements}
 const unavailable = (reason: string): StructuralSelection => ({ status: 'unavailable', reason })
 const instant = parseSourceReceiptInstant
 const idsEqual = (left: readonly (string | null)[], right: readonly (string | null)[]) =>
@@ -206,7 +207,7 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
         }
       }
     }
-    const priorMeasurements:SelectedStructure['measurements']=state?.measurements
+    const priorMeasurements:SelectedStructure['measurements']=priorMeasurementProjection(state)
     const measurements:SelectedStructure['measurements']=version.measurements ? Object.fromEntries(Object.entries(version.measurements).map(([key,value])=>[key,
       value!==null ? {value,sourceMessageId:version.sourceMessageId}
         : priorMeasurements?.[key as keyof StructuralMeasurementProjection]??{value:null,sourceMessageId:null},
