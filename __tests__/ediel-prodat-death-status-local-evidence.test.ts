@@ -23,7 +23,11 @@ for(const code of ['Z05','Z06'] as const){
    expect(actual.issues.filter(i=>!i.code.startsWith('PRODAT_DEATH_STATUS_'))).toEqual(baseline.issues)
    expect(actual.issues).not.toContainEqual(expect.objectContaining({code:'PRODAT_REGISTER_EVIDENCE_INVALID'}))
    expect(actual.issues).not.toContainEqual(expect.objectContaining({code:'CANONICAL_POLICY_VALIDATION_FAILED'}))
-   expect(actual.issues.filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_'))).toEqual([expect.objectContaining({code:'PRODAT_DEATH_STATUS_EVIDENCE_INVALID',severity:'warning',blocking:false})])
+   const local=actual.issues.filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_'))
+   // The canonical and independent source validators both retain the local
+   // finding. Neither duplicate diagnostic can become inbound authority.
+   expect(local.length).toBeGreaterThan(0)
+   for(const finding of local)expect(finding).toMatchObject({code:'PRODAT_DEATH_STATUS_EVIDENCE_INVALID',severity:'warning',blocking:false})
    const policy=resolveCanonicalEdielPolicy(policyInput(code,deathStatus))
    expect(policy.prodatDependentConditions.find(c=>c.fieldNumber==='310')?.status).toBe('undetermined')
    expect(policy.prodatDependentFacts?.deathStatus).toEqual(bad) // Wire owner retains the invalid input for its warning.
@@ -41,7 +45,9 @@ for(const code of ['Z05','Z06'] as const){
     const rawPayload=deathRaw(code,deathBody(codeReason,[...parts]))
     const result=validateRulebookMessage({family:'PRODAT',code,rawPayload,direction:'inbound',mode:'parse',deathStatus})
     expect(result.issues.some(i=>['PRODAT_REGISTER_EVIDENCE_INVALID','CANONICAL_POLICY_VALIDATION_FAILED','PRODAT_DEATH_STATUS_REQUIRED'].includes(i.code))).toBe(false)
-    expect(result.issues.filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_')&&i.blocking).map(i=>i.code)).toEqual(expected?[expected]:[])
+    const findings=result.issues.filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_')&&i.blocking)
+    expect([...new Set(findings.map(i=>i.code))]).toEqual(expected?[expected]:[])
+    for(const finding of findings)expect(finding).toMatchObject({code:expected,severity:'error',blocking:true})
    }
   }
  })

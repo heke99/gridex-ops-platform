@@ -12,7 +12,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { alphabets, characteristic, raw, type Parts } from './fixtures/prodat-register'
 const target=(i:{scope?:string;description:string;code:string})=>(i.scope==='prodat_dependent'||i.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_'))&&i.description.includes('Z14:')
 function row(body:Parts[],environment:'test'|'production',alphabet:readonly string[]):EdielMessageRow {
-  return {message_family:'PRODAT',message_code:'Z14',direction:'outbound',environment,message_standard:'edifact',company_id:'synthetic',
+  return {message_family:'PRODAT',message_code:'Z14',direction:'outbound',environment,message_standard:'edifact',message_received_at:'2026-09-19T12:00:00.000Z',company_id:'synthetic',
     raw_payload:raw(body,'Z14',alphabet),application_reference:'23-DDQ-PRODAT',mime_type:'application/EDIFACT',
     validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
     parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{dependentConditionStatuses:[]}}} as unknown as EdielMessageRow

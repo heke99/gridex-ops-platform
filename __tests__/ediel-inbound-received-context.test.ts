@@ -1,142 +1,48 @@
-import { beforeEach, expect, it, vi } from 'vitest'
-import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
-import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
-import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
-import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
+import {beforeEach,expect,it,vi} from 'vitest'
+import {parseInboundEmailContent} from '@/lib/inbound-mail/edielEmailParser'
+import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {company,actor,mailId,parseId,oldId,newId,receivedAt,inboundReceptionBoundary} from './fixtures/inbound-reception-db'
+const io=vi.hoisted(()=>({from:vi.fn(),rpc:vi.fn()}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from,rpc:io.rpc}}))
+const wire="UNB+UNOC:3+27700:ZZ+21660:ZZ+260921:1200+SRC1'UNH+1+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+DOC1+9'UNT+3+1'UNZ+1+SRC1'"
+const parse=()=>{const p=parseInboundEmailContent({attachmentText:wire});if(!p)throw Error('real_parser_fixture_missing');return p}
+let db:ReturnType<typeof inboundReceptionBoundary>
+const input=()=>({companyId:company,actorUserId:actor,environment:db.state.environment,inboundEmailMessageId:mailId,parseResultId:parseId,parsed:parse()})
+beforeEach(()=>{vi.clearAllMocks();db=inboundReceptionBoundary(parse());io.from.mockImplementation(db.from);io.rpc.mockImplementation(db.rpc)})
+const noBusiness=()=>{for(const table of ['ediel_message_events','outbound_requests','metering_values','inbound_email_messages'])expect(db.writes(table)).toEqual([])}
 
-// Only external database/matching/task boundaries are substituted. Parser,
-// message writer, status updater and processor are the actual public modules.
-const io = vi.hoisted(() => ({
-  from: vi.fn(), tenant: vi.fn(), outbound: vi.fn(), metering: vi.fn(), task: vi.fn(),
-}))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }))
-vi.mock('@/lib/inbound-mail/inboundTenantResolver', () => ({ resolveTenantForInboundEdiel: io.tenant }))
-vi.mock('@/lib/inbound-mail/inboundMatcher', () => ({ matchOutboundRequestForInbound: io.outbound, matchMeteringPointForInbound: io.metering }))
-vi.mock('@/lib/inbound-mail/inboundTaskFactory', () => ({ createInboundMailTask: io.task }))
-
-type Call = { table: string; operation: string; payload?: Record<string, unknown>; filters: Array<[string, unknown]> }
-const calls: Call[] = []
-const source = "UNB+UNOC:3+27700:ZZ+21660:ZZ+260921:1200+SRC1'UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z01+DOC1+9'UNT+3+1'UNZ+1+SRC1'"
-let writeError: { code: string; message: string } | null
-let existingId: string | null
-let environment: string
-let existingEnvironment: string | null
-function missing(): InboundEntityMatch {
-  return { status: 'missing', entityType: null, entityId: null, confidence: 0, reasons: [], candidates: [] }
-}
-function matched(): InboundEntityMatch {
-  return { ...missing(), status: 'matched', entityType: 'outbound_request', entityId: 'request-1', candidates: [{ id: 'request-1' }] }
-}
-function parsed() {
-  const result = parseInboundEmailContent({ attachmentText: source })
-  if (!result) throw new Error('Expected the real parser to parse the fixture')
-  return result
-}
-function messageInput() {
-  return { companyId: 'company-a', environment, inboundEmailMessageId: 'email-1', parsed: parsed() }
-}
-function query(table: string) {
-  const call: Call = { table, operation: 'select', filters: [] }
-  calls.push(call)
-  const result = () => {
-    if (table === 'ediel_messages') {
-      if (call.operation === 'select') {
-        const environmentFilter = call.filters.find(([column]) => column === 'environment')
-        const compatible = !environmentFilter || environmentFilter[1] === existingEnvironment
-        return { data: existingId && compatible ? { id: existingId } : null, error: null }
-      }
-      return { data: writeError ? null : { id: existingId ?? 'source-new' }, error: writeError }
-    }
-    if (table === 'inbound_email_messages' && call.operation === 'select') {
-      return { data: { id: 'email-1', company_id: 'company-a', raw_edifact_payload: source,
-        ediel_mailboxes: { id: 'mailbox-1', environment } }, error: null }
-    }
-    if (table === 'inbound_email_attachments') return { data: [], error: null }
-    return { data: { id: 'diagnostic-1' }, error: null }
-  }
-  const builder = {
-    select: () => builder,
-    eq: (column: string, value: unknown) => { call.filters.push([column, value]); return builder },
-    order: () => builder, limit: () => builder,
-    insert: (payload: Record<string, unknown>) => { call.operation = 'insert'; call.payload = payload; return builder },
-    update: (payload: Record<string, unknown>) => { call.operation = 'update'; call.payload = payload; return builder },
-    maybeSingle: () => Promise.resolve(result()),
-    single: () => Promise.resolve(result()),
-    then: <T, U>(resolve: (value: ReturnType<typeof result>) => T | PromiseLike<T>, reject?: (reason: unknown) => U | PromiseLike<U>) => Promise.resolve(result()).then(resolve, reject),
-  }
-  return builder
-}
-const writes = (table: string) => calls.filter(call => call.table === table && call.operation !== 'select')
-function noBusinessSuccess() {
-  expect(writes('ediel_message_events')).toHaveLength(0)
-  expect(writes('outbound_requests')).toHaveLength(0)
-  expect(writes('metering_values')).toHaveLength(0)
-  expect(writes('inbound_email_messages')).toHaveLength(0)
-  expect(io.task).not.toHaveBeenCalled()
-}
-beforeEach(() => {
-  vi.clearAllMocks(); calls.length = 0; existingId = 'source-old'; writeError = null; environment = 'test'; existingEnvironment = null
-  io.from.mockImplementation(query)
-  io.tenant.mockResolvedValue({ status: 'resolved', companyId: 'company-a', reasons: [], candidates: [], shared: null })
-  io.outbound.mockResolvedValue(matched()); io.metering.mockResolvedValue(missing())
-  io.task.mockResolvedValue(null)
+// The original receive snapshot and clock are immutable for every read-only retry.
+it.each(['test','production'])('reads the exact original without rewriting its receive snapshot in %s',async env=>{
+ db.state.environment=env;db.state.existingEnvironment=env;const before=structuredClone(db.state.original)
+ await expect(createInboundEdielMessage(input())).resolves.toBe(oldId)
+ expect(db.writes('ediel_messages')).toEqual([]);expect(db.state.original).toEqual(before);noBusiness()
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
 })
-
-// Independent public-writer contract: a retry is not a new receipt.
-it.each(['test', 'production'])('does not send a new received timestamp on a PRODAT retry in %s', async env => {
-  environment = env
-  await expect(createInboundEdielMessage(messageInput())).resolves.toBe('source-old')
-  const update = writes('ediel_messages')[0]
-  expect(update.operation).toBe('update')
-  expect(update.payload).not.toHaveProperty('message_received_at')
-  expect(update.payload).not.toHaveProperty('execution_context_snapshot')
-  expect(update.payload).toMatchObject({ company_id: 'company-a', environment: env, raw_payload: source })
-  expect(update.payload?.parsed_at).toEqual(expect.any(String))
-  expect(update.payload?.updated_at).toEqual(expect.any(String))
+it('uses the real retained mail receipt for a fresh source instead of the current application clock',async()=>{
+ db.state.existing=false;await expect(createInboundEdielMessage(input())).resolves.toBe(newId)
+ const writes=db.writes('ediel_messages');expect(writes).toHaveLength(1)
+ expect(writes[0]).toMatchObject({operation:'insert',payload:{company_id:company,environment:'test',raw_payload:wire,message_received_at:receivedAt}})
+ expect(writes[0].payload).not.toHaveProperty('execution_context_snapshot');expect(writes[0].payload).not.toHaveProperty('immutable_payload_hash')
+ expect(db.writes('ediel_message_events')).toHaveLength(1);expect(db.writes('outbound_requests')).toEqual([])
 })
-it.each(['test', 'production'])('does not fabricate a receipt during the historical other-environment fallback into %s', async env => {
-  environment = env; existingEnvironment = env === 'test' ? 'production' : 'test'
-  await expect(createInboundEdielMessage({ ...messageInput(), inboundEmailMessageId: '' })).resolves.toBe('source-old')
-  expect(writes('ediel_messages')[0].payload).not.toHaveProperty('message_received_at')
-  expect(writes('ediel_messages')[0]).toMatchObject({ filters: [['id', 'source-old']], payload: { environment: env } })
+it.each(['protocol_duplicate','identity_conflict'] as const)('preserves old source clock/context and all business state when new native reception is %s',async classification=>{
+ db.state.classification=classification;const before=structuredClone(db.state.original)
+ await expect(createInboundEdielMessage(input())).rejects.toMatchObject({name:'InboundReceptionHeldError',reception:{classification,status:'held',businessEffectAuthorized:false}})
+ expect(db.state.original).toEqual(before);expect(db.writes('ediel_messages')).toEqual([]);noBusiness()
 })
-it('assigns a timestamp only for a fresh PRODAT insertion, never an application-owned receive snapshot', async () => {
-  existingId = null
-  await expect(createInboundEdielMessage(messageInput())).resolves.toBe('source-new')
-  const insert = writes('ediel_messages')[0]
-  expect(insert.operation).toBe('insert')
-  expect(insert.payload?.message_received_at).toEqual(expect.any(String))
-  expect(Number.isFinite(Date.parse(insert.payload?.message_received_at as string))).toBe(true)
-  expect(insert.payload).not.toHaveProperty('execution_context_snapshot')
+it.each(['immutable_ediel_received_context_cannot_change','immutable_ediel_receipt_time_cannot_change','received_ediel_context_cannot_be_backfilled'])('propagates exact physical receipt constraint %s without a success event',async message=>{
+ db.state.existing=false;db.state.error={code:'23514',message};const attempt=createInboundEdielMessage(input())
+ await expect(attempt).rejects.toThrow('INBOUND_PRODAT_SOURCE_CONFLICT');await expect(attempt).rejects.toMatchObject({cause:db.state.error});noBusiness()
+ expect(db.state.rpcCalls.filter(c=>c.name==='ediel_record_inbound_reception_v1')).toEqual([])
 })
-it.each(['APERAK', 'CONTRL'] as const)('does not change the existing %s timestamp contract', async family => {
-  const input = messageInput(); input.parsed.messageFamily = family
-  await expect(createInboundEdielMessage(input)).resolves.toBe('source-old')
-  expect(writes('ediel_messages')[0].payload?.message_received_at).toEqual(expect.any(String))
+it.each([{code:'42501',message:'immutable_ediel_receipt_time_cannot_change'},{code:'23514',message:'other: immutable_ediel_received_context_cannot_change'},{code:'23514',message:'received_ediel_context_cannot_be_backfilled suffix'}])('does not reclassify an unrelated receipt error $code/$message',async error=>{
+ db.state.existing=false;db.state.error=error;await expect(createInboundEdielMessage(input())).resolves.toBeNull();noBusiness()
 })
-it.each(['matched', 'missing'] as const)('preserves the original PRODAT receipt through the actual %s email processor', async status => {
-  io.outbound.mockResolvedValue(status === 'matched' ? matched() : missing())
-  await expect(processInboundEmailMessage({ inboundEmailMessageId: 'email-1' })).resolves.toMatchObject({ status: status === 'matched' ? 'processed' : 'manual_review' })
-  expect(writes('ediel_messages')).toHaveLength(1)
-  expect(writes('ediel_messages')[0].payload).not.toHaveProperty('message_received_at')
+it.each(['actor','parse'] as const)('requires the actual %s before original or reception writes',async missing=>{
+ const value=input();if(missing==='actor')value.actorUserId='';else value.parseResultId=''
+ await expect(createInboundEdielMessage(value)).rejects.toThrow('ediel_real_reception_actor_and_parse_required');expect(db.state.calls).toEqual([]);expect(db.state.rpcCalls).toEqual([])
 })
-it.each([
-  'immutable_ediel_received_context_cannot_change',
-  'immutable_ediel_receipt_time_cannot_change',
-  'received_ediel_context_cannot_be_backfilled',
-])('retains physical %s rejection before any success writes in the real email processor', async message => {
-  writeError = { code: '23514', message }
-  const attempt = processInboundEmailMessage({ inboundEmailMessageId: 'email-1' })
-  await expect(attempt).rejects.toThrow('INBOUND_PRODAT_SOURCE_CONFLICT')
-  await expect(attempt).rejects.toMatchObject({ cause: writeError })
-  noBusinessSuccess()
-})
-it.each([
-  { code: '42501', message: 'immutable_ediel_receipt_time_cannot_change' },
-  { code: '23514', message: 'other: immutable_ediel_received_context_cannot_change' },
-  { code: '23514', message: 'received_ediel_context_cannot_be_backfilled suffix' },
-])('does not overclassify unrelated receipt errors $code/$message', async error => {
-  writeError = error
-  await expect(createInboundEdielMessage(messageInput())).resolves.toBeNull()
-  expect(writes('ediel_message_events')).toHaveLength(0)
+it.each(['test','production'])('does not borrow an original receive clock from the other environment into %s',async env=>{
+ db.state.environment=env;db.state.existingEnvironment=env==='test'?'production':'test';await expect(createInboundEdielMessage(input())).resolves.toBe(newId)
+ expect(db.writes('ediel_messages')).toHaveLength(1);expect(db.writes('ediel_messages')[0].operation).toBe('insert');expect(db.state.original.message_received_at).toBe(receivedAt)
 })

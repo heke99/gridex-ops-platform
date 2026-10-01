@@ -29,6 +29,11 @@ async function resolver(row, error = null) {
   const entry = load(path.join(root, 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'))
   await entry.link((specifier, parent) => {
     if (specifier === '@/lib/supabase/service') return service
+    if (specifier === 'node:crypto') {
+      const key = 'real-public-crypto'
+      if (!modules.has(key)) modules.set(key, new SyntheticModule(['createHash'], function () { this.setExport('createHash', require('node:crypto').createHash) }))
+      return modules.get(key)
+    }
     if (specifier === '@/docs/ediel/masterplan-v2/registers/source_manifest.json') {
       const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/ediel/masterplan-v2/registers/source_manifest.json'), 'utf8'))
       return new SyntheticModule(['default'], function () { this.setExport('default', manifest) })

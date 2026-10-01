@@ -11,9 +11,12 @@ const receipt=()=>({version:1,owner:'immutable-bilateral-prodat-outbound-profile
 beforeEach(()=>rpc.mockReset())
 it('selects the native owner from physical H/LK reason fields, preserving ordinary Z03 and ACK paths',()=>{
  expect(requiresBilateralProdatOutboundOwner(draft)).toBe(true)
- expect(requiresBilateralProdatOutboundOwner({...draft,rawPayload:raw.replace('Z25','Z22'),parsedPayload:{bilateralCapabilityVerified:true}})).toBe(false)
- expect(requiresBilateralProdatOutboundOwner({...draft,messageFamily:'APERAK',rawPayload:raw.replace('PRODAT:D','APERAK:D')})).toBe(false)
- expect(requiresBilateralProdatOutboundOwner({...draft,messageCode:'Z08',rawPayload:raw.replace('Z03','Z08').replace('Z25','Z23')})).toBe(true)
+ const callerCache={...draft,rawPayload:raw.replace('Z25','Z22'),parsedPayload:{bilateralCapabilityVerified:true}}
+ const physicalAck={...draft,messageFamily:'APERAK',rawPayload:raw.replace('PRODAT:D','APERAK:D')}
+ const physicalLk={...draft,messageCode:'Z08',rawPayload:raw.replace('Z03','Z08').replace('Z25','Z23')}
+ expect(requiresBilateralProdatOutboundOwner(callerCache)).toBe(false)
+ expect(requiresBilateralProdatOutboundOwner(physicalAck)).toBe(false)
+ expect(requiresBilateralProdatOutboundOwner(physicalLk)).toBe(true)
 })
 it('redeems only an exact native read capability for the actual kernel actor and whole original',async()=>{
  rpc.mockResolvedValueOnce({data:receipt(),error:null} as never)
