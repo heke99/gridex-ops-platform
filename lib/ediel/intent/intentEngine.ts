@@ -4,6 +4,7 @@
 // persists intents, enforces idempotency and runs the pre-render validation
 // gate. It never renders or queues EDIFACT/XML.
 
+import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {AI_LIST_SOURCE_PROFILE,aiListDate} from '@/lib/ediel/aiListFormat'
 import { supabaseService } from '@/lib/supabase/service'
 import { collectPlaceholderViolations } from '@/lib/ediel/intent/noPlaceholderGuard'
@@ -253,7 +254,7 @@ export function evaluateIntentValidation(
     checks.message_code_supported=input.messageCode==='AI'&&(input.direction??'outbound')==='outbound'&&input.businessProcess==='reconciliation'
     checks.ai_technical_request=payload?.owner==='ai-list-export-request-v1'&&dates
       &&payload?.sourceSha256===AI_LIST_SOURCE_PROFILE.sourceSha256&&payload?.technicalVersion===AI_LIST_SOURCE_PROFILE.technicalVersion
-      &&Boolean(str(payload?.requestId))&&Boolean(str(input.customerId))&&Boolean(str(input.customerSiteId))
+      &&isEvidenceUuid(input.operationId)&&payload?.requestId===input.operationId&&Boolean(str(input.customerId))&&Boolean(str(input.customerSiteId))
     checks.ai_no_edifact_references=!str(input.applicationReference)&&!str(input.interchangeReference)&&!str(input.messageReference)&&!str(input.transactionReference)
     if(!checks.message_code_supported||!checks.ai_technical_request||!checks.ai_no_edifact_references)blockingReasons.push({
       code:'ai_list_intent_request_invalid',message:'AI-intent måste ange ett eget kund- och platsbundet tekniskt listuppdrag utan EDIFACT-referenser.',severity:'block',

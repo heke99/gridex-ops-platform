@@ -32,3 +32,18 @@ export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awai
  const history=projectAiListHistory({...input,legalSupplier:tenant.identity.legalEdielId,legalNetwork:gridOwner.ediel_id,cutoffAt},(periods??[]) as AiListSupplyPeriod[],inspectStructuralReadset({companyId:input.companyId,environment:input.environment,cutoffAt},snapshot))
  return {request:input,site,history,gridOwner}
 }
+
+export type AiListProspectiveOriginalReceipt={owner:'ai-list-private-original-v1';companyId:string;environment:'test'|'production';intentId:string;operationId:string;sourceHash:string;snapshotId:string;readsetHash:string;sourceSha256:string;technicalVersion:string;processingDecisionId:string;headerBasis:Record<string,unknown>}
+/** Fresh protected native read before ordinary message INSERT. No caller history,
+ * parsed metadata or EDIFACT rule-pack witness can substitute for this original. */
+export async function qualifyAiListProspectiveOriginal(input:{draft:import('@/lib/ediel/types').CreateEdielMessageInput;actorUserId:string}):Promise<AiListProspectiveOriginalReceipt>{
+ const d=input.draft
+ const {assertAiListOutboundMessage,AI_LIST_SOURCE_PROFILE}=await import('@/lib/ediel/aiListFormat')
+ const {isEvidenceUuid}=await import('@/lib/ediel/utilts/durableSourceDiscovery')
+ const {createHash}=await import('node:crypto')
+ if(!isEvidenceUuid(input.actorUserId)||!isEvidenceUuid(d.companyId)||!isEvidenceUuid(d.intentId)||!isEvidenceUuid(d.sourceOperationId)||d.actorUserId!==input.actorUserId)throw new Error('ai_list_prospective_actor_operation_required')
+ assertAiListOutboundMessage({message_standard:d.messageStandard,message_family:d.messageFamily,raw_payload:d.rawPayload,sender_ediel_id:d.senderEdielId,receiver_ediel_id:d.receiverEdielId,file_name:d.fileName,mime_type:d.mimeType})
+ const {data,error}=await supabaseService.rpc('gridex_ai_prepare_outbound_original_v1',{p_company_id:d.companyId,p_actor_user_id:input.actorUserId,p_intent_id:d.intentId,p_draft_text:JSON.stringify(d)}).abortSignal(AbortSignal.timeout(2000))
+ if(error||!data||data.owner!=='ai-list-private-original-v1'||data.companyId!==d.companyId||data.environment!==d.environment||data.intentId!==d.intentId||data.operationId!==d.sourceOperationId||data.sourceHash!==createHash('sha256').update(d.rawPayload??'','utf8').digest('hex')||data.sourceSha256!==AI_LIST_SOURCE_PROFILE.sourceSha256||data.technicalVersion!==AI_LIST_SOURCE_PROFILE.technicalVersion||!isEvidenceUuid(data.snapshotId)||!isEvidenceUuid(data.processingDecisionId)||!(/^[a-f0-9]{64}$/.test(String(data.readsetHash)))||!data.headerBasis||typeof data.headerBasis!=='object'||Array.isArray(data.headerBasis))throw new Error('ai_list_prospective_original_unconfirmed')
+ return data as AiListProspectiveOriginalReceipt
+}

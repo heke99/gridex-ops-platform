@@ -186,8 +186,8 @@ export const REQUIRED_INTENT_OUTBOX_FIELDS = [
  * Empty values encode their exact absence in the existing NOT NULL metadata
  * columns; the AI validation branch rejects fabricated envelope metadata. */
 export type CreateAiListMessageIntentInput = Omit<CreateEdielMessageIntentInput,
-  'messageFamily'|'messageCode'|'businessProcess'|'applicationReference'|'interchangeReference'|'messageReference'|'transactionReference'|'payload'> & {
-  messageFamily:'AI_LIST';messageCode:'AI';businessProcess:'reconciliation';
+  'messageFamily'|'messageCode'|'businessProcess'|'applicationReference'|'interchangeReference'|'messageReference'|'transactionReference'|'operationId'|'payload'> & {
+  messageFamily:'AI_LIST';messageCode:'AI';businessProcess:'reconciliation';operationId:string;
   applicationReference:'';interchangeReference:'';messageReference:'';transactionReference?:null;
   payload:{owner:'ai-list-export-request-v1';fromDate:string;toDate:string;sourceSha256:string;technicalVersion:string;requestId:string}
 }
