@@ -1627,7 +1627,10 @@ export async function applyZ14SnapshotToMeteringPermission(input: {
   if (!source || String(source.message_code ?? '').toUpperCase().slice(0, 3) !== 'Z14') throw new Error('z14_received_source_required');
   const result = await applyPermissionMarketSource({ actorUserId: input.actorUserId,
     message: source as EdielMessageRow, expectedPermissionId: input.permissionId });
-  if (!result.applied || result.permissionId !== input.permissionId) throw new Error(result.reason ?? 'z14_source_apply_not_confirmed');
+  const ownResult = result.permissionResults?.find(row => row.permissionId === input.permissionId);
+  const ownApplied = result.permissionResults ? ownResult?.applied === true
+    : result.applied && result.permissionId === input.permissionId;
+  if (!ownApplied) throw new Error(ownResult?.reason ?? result.reason ?? 'z14_source_apply_not_confirmed');
   const permission = await getMeteringPermissionById({ companyId: input.companyId, permissionId: input.permissionId });
   if (!permission) throw new Error('z14_permission_unavailable_after_apply');
   return permission;

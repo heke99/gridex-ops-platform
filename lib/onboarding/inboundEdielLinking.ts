@@ -1,4 +1,4 @@
-import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition'
+import { applyPermissionMarketSource, type PermissionMarketTransitionResult } from '@/lib/ediel/permissions/permissionMarketTransition'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
@@ -357,19 +357,21 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
 export async function applyInboundProdatZ14ToMeteringPermission(params: {
   actorUserId: string
   message: EdielMessageRow
-}): Promise<ApplyResult> {
+}): Promise<ApplyResult & Partial<PermissionMarketTransitionResult>> {
   if (String(params.message.message_code ?? '').toUpperCase().slice(0, 3) !== 'Z14') {
     return { applied: false, targetId: null, reason: 'not_z14' }
   }
   const result = await applyPermissionMarketSource(params)
   await createEdielMessageEvent({
     actorUserId: params.actorUserId, edielMessageId: params.message.id,
-    eventType: result.applied ? 'linked' : 'manual_note', eventStatus: result.applied ? 'success' : 'warning',
-    message: result.applied ? 'PRODAT Z14 applicerades atomiskt mot det källbundna tillståndet.'
+    eventType: result.applied ? 'linked' : 'manual_note',
+    eventStatus: result.applied && result.reviewRequired !== true ? 'success' : 'warning',
+    message: result.reviewRequired === true && result.applied ? 'PRODAT Z14 behandlades för styrkta objekt. Avvisade eller spärrade objekt kräver granskning.'
+      : result.applied ? 'PRODAT Z14 behandlades atomiskt mot det källbundna tillståndet; utfallet framgår per begäran.'
       : 'PRODAT Z14 inväntar verifierbar originalbegäran, aktör och tillståndskoppling.',
-    payload: { meteringPermissionId: result.permissionId, status: result.status, reason: result.reason, idempotent: result.idempotent },
+    payload: { ...result, meteringPermissionId: result.permissionId },
   })
-  return { applied: result.applied, targetId: result.permissionId, reason: result.reason }
+  return { ...result, targetId: result.permissionId }
 }
 
 export async function findActiveMeteringPermissionForUtiltsMessage(message: EdielMessageRow): Promise<MeteringPermissionRow | null> {
