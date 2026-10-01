@@ -45,7 +45,7 @@ export function pinnedProdatReadBoundary(input:{companyId:string;actorUserId:str
    return{data:{witnessId,qualification:qualification(row)},error:null}
   }
   if(name==='resolve_canonical_ediel_rule_pack_with_witness_v1'){
-   if(args.p_market!=='electricity'||args.p_family!=='PRODAT'||args.p_message_code!==input.code||args.p_transaction_subtype!==input.subtype||args.p_direction!=='outbound'||!['2026-08-01','2026-09-19','2026-10-01'].includes(String(args.p_business_date)))throw Error('pinned_profile_scope_changed')
+   if(args.p_market!=='electricity'||args.p_family!=='PRODAT'||args.p_message_code!==input.code||args.p_transaction_subtype!==input.subtype||args.p_direction!=='outbound'||!['2026-08-01','2026-09-19','2026-10-01',new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Stockholm'})].includes(String(args.p_business_date)))throw Error('pinned_profile_scope_changed')
    return{data:[structuredClone(activation)],error:null}
   }
   if(name==='ediel_prepare_outbound_owner_witness_v1'){
