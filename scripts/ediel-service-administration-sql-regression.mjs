@@ -36,6 +36,7 @@ try{
  await db.exec(`INSERT INTO companies VALUES('${uid(1)}'),('${uid(2)}');INSERT INTO customers VALUES('${uid(10)}','${uid(1)}');INSERT INTO auth.users VALUES('${uid(20)}');INSERT INTO user_profiles VALUES('${uid(20)}','active');INSERT INTO company_memberships VALUES('${uid(1)}','${uid(20)}','active',true,now());INSERT INTO platform_market_actors VALUES('${uid(30)}'),('${uid(31)}');INSERT INTO tenant_ediel_profiles VALUES('${uid(40)}','${uid(1)}','test','electricity',true,'2000-01-01',null);INSERT INTO tenant_actor_identifiers(company_id,actor_id,environment,identifier_type,identifier_value,valid_from) VALUES('${uid(1)}','${uid(30)}','test','EdielId','21660','2000-01-01');INSERT INTO tenant_actor_roles(company_id,actor_id,environment,role_code,valid_from) VALUES('${uid(1)}','${uid(30)}','test','energy_service_company','2000-01-01');
  INSERT INTO ediel_service_assignments(company_id,beneficiary_company_id,provider_actor_id,actor_profile_id,customer_id,dso_actor_id,environment,mode,purpose,object_ids,product_ids,field_sets,data_start,valid_from,status) VALUES('${uid(1)}','${uid(2)}','${uid(30)}','${uid(40)}','${uid(10)}','${uid(31)}','test','V','legacy',ARRAY['legacy'],ARRAY['product'],ARRAY['quantity'],'2000-01-01','2000-01-01','active');`)
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql',import.meta.url),'utf8'));checks++
  assert.equal((await db.query(`SELECT scope_basis_version FROM ediel_service_assignments`)).rows[0].scope_basis_version,null);checks++
  const fields={beneficiary_company_id:uid(2),provider_actor_id:uid(30),actor_profile_id:uid(40),customer_id:uid(10),dso_actor_id:uid(31),environment:'test',mode:'V',purpose:'analysis',object_ids:['point-a'],product_ids:['8716867000030'],field_sets:['quantity'],data_start:'2026-01-01',data_end:'2027-01-01',valid_from:'2000-01-01',valid_to:null}
  const create={action:'create_assignment',commandId:uid(100),fields}
@@ -47,8 +48,8 @@ try{
  assert.equal((await db.query(`SELECT scope_basis_version FROM ediel_service_assignments WHERE id='${aid}'`)).rows[0].scope_basis_version,1);checks++
  const approval={action:'approve_assignment',commandId:uid(102),assignmentId:aid,expectedVersion:1}
  assert.equal((await command(approval)).status,'held');assert.equal((await db.query(`SELECT version FROM ediel_service_assignments WHERE id='${aid}'`)).rows[0].version,1);checks++
- const evidence={action:'stage_evidence',commandId:uid(103),assignmentId:aid,expectedVersion:1,fields:{kind:'end_user_contract',source_reference:'SYNTHETIC pending claim',source_sha256:'a'.repeat(64),source_version:'fixture',valid_from:'2000-01-01',valid_to:null}}
- const pending=await command(evidence);assert.equal(pending.status,'pending');assert.equal(pending.approvalGranted,false);checks++
+ const evidence={action:'stage_evidence',commandId:uid(103),assignmentId:aid,expectedVersion:1,fields:{kind:'end_user_contract',permission_agreement_reference:'SOURCE-DECLARED-ANJ',source_reference:'SYNTHETIC pending claim',source_sha256:'a'.repeat(64),source_version:'fixture',valid_from:'2000-01-01',valid_to:null}}
+ const pending=await command(evidence);assert.equal(pending.status,'pending');assert.equal(pending.approvalGranted,false);assert.equal((await db.query(`SELECT permission_agreement_reference FROM ediel_service_evidence WHERE id='${pending.evidenceId}'`)).rows[0].permission_agreement_reference,'SOURCE-DECLARED-ANJ');checks++
  await assert.rejects(command({...evidence,commandId:uid(104),fields:{...evidence.fields,status:'verified',approved_by:uid(20)}}),/approval_field_forbidden/);checks++
  // Owner verification is an explicit fixture, never exposed by the staging API.
  await db.exec(`UPDATE ediel_service_evidence SET status='verified',approved_by='${uid(20)}',approved_at='2000-01-01',approved_assignment_version=1 WHERE id='${pending.evidenceId}';INSERT INTO ediel_service_evidence(company_id,assignment_id,kind,source_reference,source_sha256,source_version,valid_from,status,approved_by,approved_at,approved_assignment_version) SELECT '${uid(1)}','${aid}',kind,'SYNTHETIC NOT LEGAL APPROVAL',repeat('b',64),'fixture','2000-01-01','verified','${uid(20)}','2000-01-01',1 FROM unnest(ARRAY['dso_contract','service_contract','downstream_use','privacy_roles']) kind`)
@@ -79,5 +80,22 @@ try{
  await db.exec(`UPDATE ediel_service_assignments SET purpose='new purpose' WHERE id='${aid}'`);assert.equal((await db.query(`SELECT scope_basis_version,status FROM ediel_service_assignments WHERE id='${aid}'`)).rows[0].scope_basis_version,2);assert.equal((await db.query(`SELECT ediel_service_assignment_assessment_v1('${uid(1)}','${aid}') result`)).rows[0].result.status,'held');checks++
  await assert.rejects(db.exec('DELETE FROM gridex_service_administration.scope_versions'),/command_immutable/);checks++
  assert.equal((await db.query(`SELECT has_function_privilege('authenticated','public.ediel_service_administration_command_v1(uuid,uuid,jsonb)','EXECUTE') allowed`)).rows[0].allowed,false);checks++
+ // Named synthetic source-context port isolates the new source field qualifier;
+ // no actual issuer/document/approval is invented by this harness.
+ await db.exec(`CREATE TABLE fixture_agreement_basis(basis jsonb);INSERT INTO fixture_agreement_basis VALUES('{"status":"authorized","evidenceId":"${pending.evidenceId}","scopeBasisVersion":1}');CREATE OR REPLACE FUNCTION gridex_service_permission.context_before_agreement_reference_v1(c uuid,aid uuid,actor uuid,expected_version bigint,code text,pid uuid) RETURNS jsonb LANGUAGE sql AS 'SELECT basis FROM public.fixture_agreement_basis'`)
+ const agreementContext=()=>db.query(`SELECT gridex_service_permission.context_v1('${uid(1)}','${aid}','${uid(20)}',2,'Z13','${uid(202)}') result`)
+ assert.equal((await agreementContext()).rows[0].result.agreementReference,'SOURCE-DECLARED-ANJ');checks++
+ await assert.rejects(db.exec(`UPDATE ediel_service_evidence SET permission_agreement_reference='EDITED' WHERE id='${pending.evidenceId}'`),/new_source_record/);checks++
+ await db.exec(`INSERT INTO ediel_service_evidence(company_id,assignment_id,kind,source_reference,source_sha256,source_version,valid_from,status,approved_by,approved_at,approved_assignment_version,permission_agreement_reference) VALUES('${uid(1)}','${aid}','end_user_contract','SYNTHETIC CONFLICT',repeat('c',64),'fixture','2000-01-01','verified','${uid(20)}','2000-01-01',1,'CONFLICT-ANJ')`)
+ assert.equal((await agreementContext()).rows[0].result.status,'held');checks++
+ // Actual bounded parser tokens, not the earlier grammar fixture, qualify ANJ.
+ const root=process.env.EDIEL_SQL_REPOSITORY
+ if(!root)throw Error('EDIEL_SQL_REPOSITORY required for actual bounded decoder')
+ await db.exec('CREATE SCHEMA IF NOT EXISTS gridex_received_sources')
+ const decoder=readFileSync(root+'/supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','utf8');await db.exec(decoder.slice(decoder.indexOf('CREATE FUNCTION gridex_received_sources.wire_tokens_bounded_v1'),decoder.indexOf('-- Keep the existing closure budget')))
+ await db.exec(`INSERT INTO ediel_messages(id,company_id,message_code,raw_payload) VALUES('${uid(900)}','${uid(1)}','Z13',$wire$UNH+1+PRODAT:D:96B:UN:E2SE6A'BGM+Z13+SYNTHETIC+9'RFF+ANJ:SOURCE-DECLARED-ANJ'LIN+1'UNT+5+1'$wire$)`)
+ const checkWire=()=>db.query(`SELECT gridex_service_permission.require_agreement_reference_v1(m,'{"agreementReference":"SOURCE-DECLARED-ANJ"}') FROM ediel_messages m WHERE id='${uid(900)}'`)
+ await checkWire();checks++
+ for(const raw of ["UNH+1+PRODAT:D:96B:UN:E2SE6A'RFF+ANJ:FORGED-INTENT-ANJ'", "UNH+1+PRODAT:D:96B:UN:E2SE6A'LIN+1'", "UNH+1+PRODAT:D:96B:UN:E2SE6A'RFF+ANJ:SOURCE-DECLARED-ANJ'RFF+ANJ:SOURCE-DECLARED-ANJ'"]){await db.query('UPDATE ediel_messages SET raw_payload=$1 WHERE id=$2',[raw,uid(900)]);await assert.rejects(checkWire(),/authentic_agreement_reference_required/);checks++}
  console.log(`PASS ${checks} targeted service administration PostgreSQL checks; synthetic owner/helper fixtures, not native/legal evidence`)
 }finally{await db.close()}

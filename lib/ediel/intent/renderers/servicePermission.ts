@@ -33,6 +33,7 @@ export async function buildServicePermissionDraft(input: {
   const token = prodatMessageTypeToken(version)
   const external = text(i.payload.externalReference)
   const li = b.code === 'Z18' ? b.li : i.transactionReference
+  if (b.code === 'Z13' && !text(b.agreementReference)) throw new Error('ediel_permission_source_agreement_reference_required')
   if (!external || !li || !b.objects.length) throw new Error('ediel_permission_persisted_wire_references_required')
   const all: string[] = []
   const diagnostics = []
@@ -58,7 +59,7 @@ export async function buildServicePermissionDraft(input: {
         permissionEndReason: b.code === 'Z18' ? b.terminationReason : null,
         permissionId: b.code === 'Z18' ? object.permissionId : null,
         permissionEndDate: b.code === 'Z18' ? object.permissionEnd : null,
-        powerOfAttorneyReference: text(i.payload.authorizationReference),
+        powerOfAttorneyReference: b.code === 'Z13' ? text(b.agreementReference) : null,
         dependentConditionFacts: reportingFacts ? {market:'electricity',reportingPermission:reportingFacts} : {market:'electricity'},
       } })
     const line = rendered.segments.findIndex(segment => segment === 'LIN+1' || segment.startsWith('LIN+1+'))

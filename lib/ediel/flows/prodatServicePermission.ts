@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { generateEdielInterchangeReference, generateEdielTransactionReference } from '@/lib/ediel/core/referenceGenerator'
 import { supabaseService } from '@/lib/supabase/service'
 import { createOutboundRequest } from '@/lib/cis/db'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
@@ -35,16 +35,16 @@ async function prepare(input: PrepareServicePermissionParams, code: 'Z13' | 'Z18
   if (!routeProfileId) throw new Error('ediel_permission_canonical_route_profile_required')
   // Protocol references are independent random wire values persisted by the
   // existing idempotent intent engine; no internal beneficiary/tenant ID leaks.
-  const reference = randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()
+  const reference = generateEdielInterchangeReference()
   const intent = await createEdielMessageIntent({ companyId: basis.companyId, environment: basis.environment,
     market: 'electricity', messageFamily: 'PRODAT', messageCode: code, businessProcess: 'metering_permission',
     senderEdielId: route.senderEdielId, senderSubaddress: route.senderSubAddress,
     receiverEdielId: route.receiverEdielId, receiverSubaddress: route.receiverMessageSubAddress ?? route.receiverSubAddress,
     applicationReference, routeProfileId, communicationRouteId: route.route.id,
     customerId: basis.customerId, operationId: basis.permissionId,
-    interchangeReference: reference, messageReference: '1', transactionReference: basis.li ?? reference,
+    interchangeReference: reference, messageReference: '1', transactionReference: basis.li ?? generateEdielTransactionReference(code),
     idempotencyKey: `service-permission:${basis.permissionId}:${code}${code === 'Z18' ? `:${basis.evidenceId}:${basis.permissionStateVersion}` : ''}`,
-    payload: { sourcePermissionBasis: basis, actorRole: 'esco', externalReference: reference, authorizationReference: randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase() }, actorUserId: input.actorUserId,
+    payload: { sourcePermissionBasis: basis, actorRole: 'esco', externalReference: reference, authorizationReference: basis.agreementReference ?? null }, actorUserId: input.actorUserId,
     routeProfile: { actorRole: 'esco', applicationReference: route.applicationReference } })
   // Use an actual tenant-owned outbound request so canonical duplicate lookup
   // cannot fall through to an unrelated message of the same family/code.
