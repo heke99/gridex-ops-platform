@@ -1,5 +1,5 @@
-import { createCapwayApticClient } from '@/lib/integrations/billing/capway/client'
-import type { CapwayEnvironment, CapwayPurchaseRequest } from '@/lib/integrations/billing/capway/types'
+import { CapwayApticClient, createCapwayApticClient } from '@/lib/integrations/billing/capway/client'
+import type { CapwayConnectionConfig, CapwayEnvironment, CapwayPurchaseRequest } from '@/lib/integrations/billing/capway/types'
 
 export function buildPurchasePayload(input: {
   financingMode: string
@@ -30,8 +30,14 @@ export async function requestCapwayInvoicePurchase(input: {
   depositAmount?: number | null
   recourseDays?: number | null
   note?: string | null
+  /** Supplied only by a server owner whose durable claim bound this exact context. */
+  resolvedConfiguration?: CapwayConnectionConfig
 }) {
-  const client = await createCapwayApticClient({ companyId: input.companyId, environment: input.environment ?? 'test' })
+  const configuration = input.resolvedConfiguration
+  if (configuration && (configuration.companyId !== input.companyId || configuration.environment !== (input.environment ?? 'test')
+    || configuration.provider !== 'capway_aptic')) throw new Error('purchase_configuration_binding_invalid')
+  const client = configuration ? new CapwayApticClient(configuration)
+    : await createCapwayApticClient({ companyId: input.companyId, environment: input.environment ?? 'test' })
   const payload = buildPurchasePayload(input)
   return client.postPurchase(input.invoiceGuid, payload)
 }
