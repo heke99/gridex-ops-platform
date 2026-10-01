@@ -34,7 +34,10 @@ describe('AI14.A.3 positional supplier adapter',()=>{
   it('guards stored actual-send drafts against BI, parties, malformed data and supplier network fields',()=>{
     const row={message_standard:'ai_list',message_family:'AI_LIST',raw_payload:buildAiListCsv(input),sender_ediel_id:'12345',receiver_ediel_id:'54321',file_name:'AI.csv',mime_type:'text/csv'}
     expect(()=>assertAiListOutboundMessage(row)).not.toThrow()
-    expect(()=>assertAiListOutboundMessage({...row,receiver_ediel_id:'99999'})).toThrow('ai_list_outbound_party_scope_mismatch')
+    // The codec validates physical legal header and technical transport tokens;
+    // only the private source/original port can qualify their association.
+    expect(()=>assertAiListOutboundMessage({...row,sender_ediel_id:'HOST',receiver_ediel_id:'NETWORK-GATEWAY'})).not.toThrow()
+    expect(()=>assertAiListOutboundMessage({...row,receiver_ediel_id:'BAD PARTY'})).toThrow('ai_list_outbound_technical_parties_required')
     expect(()=>assertAiListOutboundMessage({...row,raw_payload:'BI;54321;Network;12345;Supplier;202609301200;20261001;;;Ver20140401'})).toThrow('ai_bi_outbound_network_role_required')
     const [header,line]=row.raw_payload.split('\n');const cells=line.split(';');cells[11]='NETWORK METER'
     expect(()=>assertAiListOutboundMessage({...row,raw_payload:[header,cells.join(';')].join('\n')})).toThrow('ai_list_supplier_network_fields_present')

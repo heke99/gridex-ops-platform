@@ -1,7 +1,9 @@
 /** Declared synthetic mechanical probe only. Legal-owner/network overrides below
  * are explicit test-only branches; no native/RLS/authentic-original claims. */
 import {readFileSync} from 'node:fs'
-import assert from 'node:assert/strict'
+import strictAssert from 'node:assert/strict'
+let probeCount=0
+const assert=new Proxy(strictAssert,{get(target,key){const method=Reflect.get(target,key);return typeof method==='function'?((...args)=>{probeCount++;return method.apply(target,args)}):method}})
 if(!process.env.PGLITE_MODULE_URL)throw Error('PGLITE_MODULE_URL required')
 const {PGlite}=await import(process.env.PGLITE_MODULE_URL),db=new PGlite()
 await db.exec(readFileSync(new URL('./fixtures/ediel-ai-source-embedded-schema.sql',import.meta.url),'utf8'))
@@ -38,9 +40,22 @@ CREATE FUNCTION gridex_customer_life_events.owner_proof_consistent_v1(party json
 for(const [file,name,namespace] of [['20260930164804_ediel_prodat_retry_correction_authority.sql','prodat_recovery_wire_v1','gridex_received_sources'],['20261001023512_ediel_partial_customer_life_event_source_effects.sql','wire_partition_v1','gridex_customer_life_events']]){const sql=readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8');await db.exec(sql.match(new RegExp('CREATE FUNCTION '+namespace+'\\.'+name+'[\\s\\S]*?\\$\\$;'))[0])}
 await db.exec(readFileSync(new URL('../supabase/migrations/20261001020309_ediel_customer_life_event_scoped_patches.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20261001021408_ediel_ai_customer_epoch_source_projection.sql',import.meta.url),'utf8'))
+// R registry-original/dispatch and readiness owner inputs below are declared
+// synthetic boundaries. The new actual AI party/original/source/row owners run
+// unchanged against them; this does not qualify an authentic registry/mandate.
+await db.exec(`CREATE TABLE public.tenant_counterparty_relations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,environment text,relation_type text,is_enabled boolean,valid_from timestamptz,valid_to timestamptz,counterparty_actor_id uuid);
+CREATE TABLE public.platform_actor_identifiers(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),actor_id uuid,identifier_type text,identifier_value text,valid_from date,valid_to date);
+CREATE TABLE public.ediel_route_profiles(id uuid PRIMARY KEY,company_id uuid,sender_ediel_id text);
+CREATE SCHEMA gridex_registry_import;
+CREATE FUNCTION gridex_registry_import.dispatch_source_v1(c uuid,communication uuid,profile uuid,env text,family text,application text) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('status','source_qualified','market','EL','legalEdielId','54321','legalName','Network','syntheticUnqualified',true,'wire',jsonb_build_object('family','AI','applicationReference',NULL,'interchangePartyId',coalesce(nullif(current_setting('gridex.synthetic_ai_network_transport',true),''),'54321')))$$;
+CREATE FUNCTION gridex_registry_import.current_el_actor_source_v1(uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('status','source_qualified','legalEdielId','12345','legalName','Supplier','syntheticUnqualified',true)$$;
+CREATE FUNCTION gridex_registry_import.require_message_market_v1(uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('status','source_qualified','legalEdielId','54321','syntheticUnqualified',true)$$;
+CREATE FUNCTION gridex_ediel_readiness.source_scope(m public.ediel_messages) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('actorId',m.company_id,'family',m.message_family,'code',m.message_code,'syntheticUnqualified',true)$$;`)
+await db.exec(readFileSync(new URL('../supabase/migrations/20261001061000_ediel_ai_legal_technical_party_scope.sql',import.meta.url),'utf8'))
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,company=id(1),actor=id(2),source=id(3),decision=id(4),intent=id(5),site=id(6),customer=id(7),snapshot=id(8),route=id(9),profileId=id(10)
 const csv='AI;54321;Network;12345;Supplier;202610011200;;20261001;20261101;Ver20140401\nNET;735123456789012345;9;;;;;Street;12345;Town;12345;;;;;;;199001011234;Person;;;'
 await db.query('INSERT INTO public.companies VALUES($1)',[company])
+await db.query("INSERT INTO public.ediel_route_profiles VALUES($1,$2,'12345')",[profileId,company])
 await db.query("INSERT INTO public.company_memberships VALUES($1,$2,'active',true,now())",[company,actor])
 await db.query("INSERT INTO public.user_profiles VALUES($1,'active')",[actor])
 await db.query('INSERT INTO public.customers VALUES($1,$2)',[customer,company])
@@ -236,10 +251,71 @@ await db.exec('RESET ROLE;')
 await db.query("UPDATE public.ediel_message_intents SET environment='test' WHERE id=$1",[intent])
 await db.exec("SET gridex.synthetic_permissions='all';")
 
+// Represented traffic keeps legal supplier/network in all historical/source
+// equality checks while technical sender/receiver remain the intent/message
+// tuple. The real mandate helper starts HELD. A test-only explicit owner
+// replacement below is a declared mechanical boundary, never activation.
+const represented=id(60),representedOperation=id(61),transportActor=id(62),representedMessage=id(63)
+await db.query("INSERT INTO public.ediel_message_intents SELECT (jsonb_populate_record(NULL::public.ediel_message_intents,to_jsonb(i)||jsonb_build_object('id',$2::uuid,'operation_id',$3::uuid,'sender_ediel_id','HOST','receiver_ediel_id','NETWORK-GATEWAY','payload',jsonb_set(i.payload,'{requestId}',to_jsonb($3::text))))).* FROM public.ediel_message_intents i WHERE i.id=$1",[intent,represented,representedOperation])
+await db.query("INSERT INTO public.tenant_counterparty_relations(company_id,environment,relation_type,is_enabled,valid_from,counterparty_actor_id) VALUES($1,'test','ediel_transport_agent',true,now()-interval '1 day',$2)",[company,transportActor])
+await db.query("INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value) VALUES($1,'EdielId','HOST')",[transportActor])
+await db.query("UPDATE public.ediel_route_profiles SET sender_ediel_id='HOST' WHERE id=$1",[profileId])
+await db.exec("SET gridex.synthetic_ai_network_transport='NETWORK-GATEWAY';SET ROLE service_role;")
+const readParty=()=>db.query('SELECT public.ediel_ai_outbound_party_basis_v1($1,$2,$3) AS result',[company,actor,represented])
+await assert.rejects(readParty,/ai_list_transport_mandate_source_unqualified/)
+await db.exec("RESET ROLE;CREATE OR REPLACE FUNCTION gridex_ai_processing.transport_mandate_basis_v1(c uuid,env text,legal_actor uuid,transport_actor uuid,relation_id uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('status','authorized','syntheticUnqualified',true)$$;SET ROLE service_role;")
+const representedParties=(await readParty()).rows[0].result
+assert.equal(representedParties.legalSupplier,'12345');assert.equal(representedParties.legalNetwork,'54321');assert.equal(representedParties.technicalSender,'HOST');assert.equal(representedParties.technicalReceiver,'NETWORK-GATEWAY')
+const representedRecord=(raw=csv,file='AI.csv')=>db.query('SELECT public.gridex_ai_record_outbound_original_v1($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',[company,actor,represented,snapshot,hash,raw,file,'text/csv; charset=utf-8',JSON.stringify(rowSources)])
+await assert.rejects(()=>representedRecord(csv.replace(';Supplier;',';Transport Label;')),/ai_list_original_legal_party_source_mismatch/)
+await assert.rejects(()=>representedRecord(csv.replace(';54321;Network;',';99999;Network;')),/ai_list_original_legal_party_source_mismatch/)
+assert.equal((await representedRecord()).rows[0].result.status,'original')
+const representedDraft={...draft,intentId:represented,sourceOperationId:representedOperation,senderEdielId:'HOST',receiverEdielId:'NETWORK-GATEWAY'}
+const representedProspective=(d=representedDraft)=>db.query('SELECT public.gridex_ai_prepare_outbound_original_v1($1,$2,$3,$4) AS result',[company,actor,represented,JSON.stringify(d)])
+assert.equal((await representedProspective()).rows[0].result.headerBasis.technicalReceiver,'NETWORK-GATEWAY')
+await assert.rejects(()=>representedProspective({...representedDraft,receiverEdielId:'54321'}),/ai_list_private_original_required/)
+await db.exec('RESET ROLE;')
+await db.query("INSERT INTO public.ediel_messages(id,company_id,created_by,direction,message_standard,message_family,message_code,message_version,raw_payload,sender_ediel_id,receiver_ediel_id,file_name,mime_type,intent_id,customer_id,site_id,communication_route_id,route_profile_id,source_operation_id,process_type) VALUES($1,$2,$3,'outbound','ai_list','AI_LIST','AI','Ver20140401',$4,'HOST','NETWORK-GATEWAY','AI.csv','text/csv; charset=utf-8',$5,$6,$7,$8,$9,$10,'ai_list_export')",[representedMessage,company,actor,csv,represented,customer,site,route,profileId,representedOperation])
+await db.exec("SET gridex.synthetic_permissions='send';")
+assert.equal((await db.query('SELECT gridex_ai_processing.require_ai_outbound_source_v1($1,$2,$3) AS result',[company,representedMessage,actor])).rows[0].result.headerBasis.technicalSender,'HOST')
+// Fresh phase remains preparation-only: a WRITE-only actor can create an
+// owned original, and a READ-only actor cannot originate a new personal export.
+const writeIntent=id(66),readNewIntent=id(68)
+for(const [newIntent,newOperation] of [[writeIntent,id(67)],[readNewIntent,id(69)]])await db.query("INSERT INTO public.ediel_message_intents SELECT (jsonb_populate_record(NULL::public.ediel_message_intents,to_jsonb(i)||jsonb_build_object('id',$2::uuid,'operation_id',$3::uuid,'payload',jsonb_set(i.payload,'{requestId}',to_jsonb($3::text))))).* FROM public.ediel_message_intents i WHERE i.id=$1",[represented,newIntent,newOperation])
+await db.exec("CREATE OR REPLACE FUNCTION public.gridex_actor_has_company_permission(uuid,uuid,text) RETURNS boolean LANGUAGE sql AS $$SELECT CASE current_setting('gridex.synthetic_permissions',true) WHEN 'read' THEN $3='communication.read' WHEN 'write' THEN $3='communication.write' ELSE true END$$;SET gridex.synthetic_permissions='write';SET ROLE service_role;")
+assert.equal((await db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3) AS result',[company,actor,writeIntent])).rows[0].result.status,'new')
+assert.equal((await db.query('SELECT public.gridex_ai_record_outbound_original_v1($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',[company,actor,writeIntent,snapshot,hash,csv,'AI.csv','text/csv; charset=utf-8',JSON.stringify(rowSources)])).rows[0].result.status,'original')
+await db.exec("RESET ROLE;SET gridex.synthetic_permissions='read';SET ROLE service_role;")
+await assert.rejects(()=>db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3)',[company,actor,readNewIntent]),/ediel_tenant_actor_forbidden/)
+await assert.rejects(()=>db.query('SELECT public.gridex_ai_record_outbound_original_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)',[company,actor,readNewIntent,snapshot,hash,csv,'AI.csv','text/csv; charset=utf-8',JSON.stringify(rowSources)]),/ediel_tenant_actor_forbidden/)
+await db.exec('RESET ROLE;')
+assert.equal((await db.query('SELECT count(*)::int AS n FROM gridex_ai_processing.outbound_origins WHERE intent_id=$1',[readNewIntent])).rows[0].n,0)
+// Current READ, fixed immutable original before current write/source/purpose
+// re-election. No actor, foreign tenant, wrong scope/hash/file stay rejected.
+await db.exec("CREATE OR REPLACE FUNCTION public.gridex_actor_has_company_permission(uuid,uuid,text) RETURNS boolean LANGUAGE sql AS $$SELECT CASE current_setting('gridex.synthetic_permissions',true) WHEN 'read' THEN $3='communication.read' WHEN 'none' THEN false WHEN 'send' THEN $3 IN('ediel.send','communication.send') ELSE true END$$;SET gridex.synthetic_permissions='read';SET ROLE service_role;")
+assert.equal((await db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3) AS result',[company,actor,represented])).rows[0].result.messageId,representedMessage)
+assert.equal((await representedRecord()).rows[0].result.status,'original')
+await assert.rejects(()=>representedRecord(csv,'different.csv'),/ai_list_original_conflict/)
+await assert.rejects(()=>representedProspective(),/ediel_tenant_actor_forbidden/)
+await assert.rejects(()=>db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3)',[company,null,represented]),/ediel_tenant_actor_forbidden/)
+await assert.rejects(()=>db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3)',[company,id(99),represented]),/ediel_tenant_actor_forbidden/)
+await db.exec("RESET ROLE;SET gridex.synthetic_permissions='none';SET ROLE service_role;")
+await assert.rejects(()=>db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3)',[company,actor,represented]),/ediel_tenant_actor_forbidden/)
+await db.exec("RESET ROLE;SET gridex.synthetic_permissions='read';")
+await db.query("UPDATE public.company_memberships SET status='revoked' WHERE company_id=$1 AND user_id=$2",[company,actor]);await db.exec('SET ROLE service_role;')
+await assert.rejects(()=>db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3)',[company,actor,represented]),/ediel_tenant_actor_forbidden/)
+await db.exec('RESET ROLE;');await db.query("UPDATE public.company_memberships SET status='active' WHERE company_id=$1 AND user_id=$2",[company,actor])
+await db.exec("CREATE OR REPLACE FUNCTION gridex_ai_processing.network_registry_basis_v1(network_id text,env text) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('status','held','blocker','ai_bi_network_registry_version_unqualified')$$;CREATE OR REPLACE FUNCTION gridex_registry_import.current_el_actor_source_v1(uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('status','held')$$;SET ROLE service_role;")
+assert.equal((await db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3) AS result',[company,actor,represented])).rows[0].result.messageId,representedMessage)
+assert.equal((await representedRecord()).rows[0].result.status,'original')
+await db.exec("RESET ROLE;CREATE OR REPLACE FUNCTION gridex_ai_processing.native_profile_v1() RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('technicalVersion','FUTURE_UNQUALIFIED','sourceSha256',repeat('f',64))$$;SET ROLE service_role;")
+assert.equal((await db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3) AS result',[company,actor,represented])).rows[0].result.messageId,representedMessage)
+assert.equal((await representedRecord()).rows[0].result.status,'original')
+await db.exec("RESET ROLE;SET gridex.synthetic_permissions='all';")
 await db.exec('SET ROLE service_role;')
 assert.equal((await db.query('SELECT public.gridex_ai_outbound_origin_status_v1($1,$2,$3) AS result',[company,actor,intent])).rows[0].result.messageId,source)
 await db.exec('RESET ROLE;')
 await assert.rejects(()=>db.exec("UPDATE gridex_ai_processing.outbound_origins SET payload_hash=repeat('b',64)"),/received_source_evidence_is_append_only/)
 assert.equal((await db.query("SELECT has_function_privilege('authenticated','public.gridex_ai_record_outbound_original_v1(uuid,uuid,uuid,uuid,text,text,text,text,text)','EXECUTE') AS allowed")).rows[0].allowed,false)
 await db.close()
-console.log('PASS: synthetic purpose-qualified AI intent/original/private complete snapshot/hash/atomic first-message binding/replay; every personal CSV cell compared to exact scoped original sources, caller history JSON never accepted. Native/actual-owner/semantic history acceptance NOT RUN.')
+console.log(`PASS: ${probeCount} declared synthetic assertions; purpose-qualified AI intent/original/private complete snapshot/hash/atomic first-message binding/replay; every personal CSV cell compared to exact scoped original sources, caller history JSON never accepted. Native/actual-owner/semantic history acceptance NOT RUN.`)
