@@ -123,7 +123,6 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   const contractId =
     switchRequest.customer_contract_id
     ?? switchRequest.contract_id
-    ?? (typeof switchRequest.metadata?.contract_id === 'string' ? switchRequest.metadata.contract_id : null)
   if (!contractId) throw new Error('PRODAT Z03 stoppades: switchärendet saknar exakt customer_contract_id.')
 
   const switchGate = await supabaseService.rpc('gridex_assert_supplier_switch_ready', {
@@ -273,6 +272,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
 
   const message = await renderAndQueueNormalSwitch({intentId:intent.id,actorUserId,outboundRequestId:outbound.id,routeContext,source:{
     actorUserId,
+    contractId,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,
     receiverEdielId: routeContext.receiverEdielId,

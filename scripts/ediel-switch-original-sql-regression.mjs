@@ -82,5 +82,52 @@ try{
  await db.exec('DELETE FROM gridex_negative_fixtures.positive_consumptions');await db.exec(`INSERT INTO gridex_negative_fixtures.negative_prepared_consumptions VALUES('${id(1)}','${id(30)}')`);await fixture();checks++
  await db.exec(`INSERT INTO gridex_negative_fixtures.positive_consumptions VALUES('${id(1)}','${id(30)}')`);await assert.rejects(fixture(),/ambiguous/);checks++
  assert.equal((await db.query("SELECT has_function_privilege('authenticated','public.ediel_bind_switch_original_v1(uuid,uuid,uuid,uuid)','execute') a")).rows[0].a,false);checks++
+ // P03 signed requested217 owner port: declared synthetic declaration data,
+ // not authentic agreement, issuer, legal activation or native-replay proof.
+ await db.exec(`CREATE SCHEMA gridex_metering_method_changes;
+ CREATE TABLE gridex_metering_method_changes.contract_request_declarations(id uuid PRIMARY KEY);
+ CREATE TABLE method_declaration_fixture(basis jsonb,prepare_ok bool,send_ok bool);
+ CREATE FUNCTION gridex_metering_method_changes.contract_request_basis_v1(c uuid,ct uuid,actor uuid,phase text,environment text) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE b jsonb;BEGIN
+ IF phase='prepare' AND (SELECT prepare_ok FROM public.method_declaration_fixture) IS NOT TRUE OR phase='send' AND (SELECT send_ok FROM public.method_declaration_fixture) IS NOT TRUE THEN RETURN '{"status":"held"}'::jsonb;END IF;
+ IF actor IS DISTINCT FROM '${id(20)}' OR c IS DISTINCT FROM '${id(1)}' OR ct IS DISTINCT FROM '${id(4)}' OR environment IS DISTINCT FROM 'test' THEN RETURN '{"status":"held"}'::jsonb;END IF;
+ SELECT basis INTO b FROM public.method_declaration_fixture;RETURN b;END$$;
+ INSERT INTO gridex_metering_method_changes.contract_request_declarations VALUES('${id(120)}');
+ INSERT INTO method_declaration_fixture SELECT jsonb_build_object('status','authorized','declarationId','${id(120)}','companyId','${id(1)}','environment','test','contractId','${id(4)}','protectedContractHash',gridex_received_sources.production_contract_hash_v1(ct),'customerId','${id(3)}','siteId','${id(7)}','meteringPointId','${id(5)}','pointId','735123456789012345','identityAgency','9','legalSenderId','12345','legalReceiverId','54321','gridArea','TES','requestedMethod','Z04'),true,true FROM customer_contracts ct;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930234708_ediel_normal_switch_signed_method_binding.sql',import.meta.url),'utf8'));checks++
+ const methodWire=wire('Z22').replace("RFF+LI:","CCI++Z04'CAV+Z04'RFF+LI:")
+ assert.equal((await db.query('SELECT gridex_received_sources.switch_requested_method_v1($1) m',[methodWire])).rows[0].m,'Z04');checks++
+ assert.equal((await db.query('SELECT gridex_received_sources.switch_requested_method_v1($1) m',[wire('Z22')])).rows[0].m,null);checks++
+ assert.equal((await db.query('SELECT gridex_received_sources.switch_requested_method_v1($1) m',[methodWire.replace("RFF+LI:","CCI++Z04'CAV+Z03'RFF+LI:")])).rows[0].m,null);checks++
+ assert.equal((await db.query('SELECT gridex_received_sources.switch_requested_method_v1($1) m',[wire('Z22').replace("DTM+92:","CCI++Z04'CAV+Z04'DTM+92:")])).rows[0].m,null);checks++
+ assert.equal((await correction()).rows[0].b.idempotent,true);assert.equal((await db.query('SELECT count(*) n FROM gridex_received_sources.switch_contract_request_bindings')).rows[0].n,0);checks++
+ assert.deepEqual((await db.query('SELECT gridex_ediel_transport.mutate_v1($1) b',[{action:'enter',companyId:id(1),messageId:id(53),actorUserId:id(20),frozen:true}])).rows[0].b,{proceed:false,providerReceipt:{frozen:true}});checks++
+ await assert.rejects(db.query('SELECT gridex_ediel_transport.mutate_v1($1)',[{action:'prepare',companyId:id(1),messageId:id(53),actorUserId:id(20)}]),/historical_requested_method_basis/);checks++
+ await db.exec(`INSERT INTO supplier_switch_requests SELECT '${id(126)}',company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,NULL,NULL,NULL,requested_start_date,false,'draft',request_type,prodat_variant,prodat_reason,updated_by,updated_at FROM supplier_switch_requests WHERE id='${id(6)}';
+ INSERT INTO ediel_message_intents VALUES('${id(127)}','${id(126)}','${id(126)}');
+ INSERT INTO outbound_requests VALUES('${id(129)}','${id(1)}','{"environment":"test"}','supplier_switch_request','${id(126)}','supplier_switch','${id(126)}','${id(3)}','${id(7)}','${id(5)}');`)
+ await db.query(`INSERT INTO ediel_messages VALUES($1,$2,'test','outbound','edifact','PRODAT','Z03','draft',$3,now(),encode(sha256(convert_to($3,'UTF8')),'hex'),$4,$5,$6::text,$6::uuid,$7,$8,$9,NULL)`,[id(128),id(1),methodWire,id(127),id(129),id(126),id(3),id(7),id(5)])
+ const bindMethod=()=>db.query('SELECT ediel_bind_switch_original_v1($1,$2,$3,$4) b',[id(1),id(126),id(128),id(20)])
+ await db.exec('UPDATE method_declaration_fixture SET prepare_ok=false');await assert.rejects(bindMethod(),/signed_new_agreement_requested_method/)
+ assert.equal((await db.query('SELECT outbound_z03_message_id FROM supplier_switch_requests WHERE id=$1',[id(126)])).rows[0].outbound_z03_message_id,null);assert.equal((await db.query('SELECT count(*) n FROM gridex_received_sources.switch_originals WHERE message_id=$1',[id(128)])).rows[0].n,0);checks++
+ await db.exec('UPDATE method_declaration_fixture SET prepare_ok=true');await db.query(`UPDATE ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2`,[methodWire.replace("CCI++Z04'CAV+Z04'","CCI++Z04'CAV+Z03'"),id(128)])
+ await assert.rejects(bindMethod(),/signed_new_agreement_requested_method/);checks++
+ await db.query(`UPDATE ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2`,[methodWire,id(128)])
+ assert.equal((await bindMethod()).rows[0].b.idempotent,false);assert.equal((await bindMethod()).rows[0].b.idempotent,true);checks++
+ assert.equal((await db.query('SELECT requested_method FROM gridex_received_sources.switch_contract_request_bindings WHERE message_id=$1',[id(128)])).rows[0].requested_method,'Z04');checks++
+ const enterMethod=()=>db.query('SELECT gridex_ediel_transport.mutate_v1($1) b',[{action:'enter',companyId:id(1),messageId:id(128),actorUserId:id(20)}])
+ assert.equal((await enterMethod()).rows[0].b.proceed,true);checks++
+ await db.exec('UPDATE method_declaration_fixture SET send_ok=false');const effectsBefore=(await db.query('SELECT count(*) n FROM native_effects')).rows[0].n;await assert.rejects(enterMethod(),/signed_new_agreement_requested_method/);assert.equal((await db.query('SELECT count(*) n FROM native_effects')).rows[0].n,effectsBefore);checks++;await db.exec('UPDATE method_declaration_fixture SET send_ok=true')
+ await db.exec(`UPDATE method_declaration_fixture SET basis=basis||'{"declarationId":"${id(999)}"}'::jsonb`);await assert.rejects(enterMethod(),/current_requested_method_declaration_changed/);checks++;await db.exec(`UPDATE method_declaration_fixture SET basis=basis||'{"declarationId":"${id(120)}"}'::jsonb`)
+ await assert.rejects(db.exec('DELETE FROM gridex_received_sources.switch_contract_request_bindings'),/immutable/);checks++
+ assert.equal((await db.query("SELECT has_table_privilege('service_role','gridex_received_sources.switch_contract_request_bindings','INSERT') a")).rows[0].a,false);checks++
+ // A new qualified correction must obtain its own exact agreement binding;
+ // failure rolls back the operative pointer and both new private authority rows.
+ const methodCorrection=methodWire.replace('Z03+DOC','Z03+NEW-DOC').replace('LI:EXACT-LI','LI:METHOD-NEW-LI')
+ await db.query(`INSERT INTO gridex_received_sources.prodat_recovery_operations VALUES($1,$2,'contrl_correction',$3,(SELECT immutable_payload_hash FROM ediel_messages WHERE id=$3),encode(sha256(convert_to($4,'UTF8')),'hex'),$4,'test')`,[id(150),id(1),id(128),methodCorrection]);
+ await db.exec(`INSERT INTO ediel_message_intents VALUES('${id(151)}','${id(150)}','${id(126)}');INSERT INTO outbound_requests VALUES('${id(152)}','${id(1)}','{"environment":"test"}','manual','${id(151)}','supplier_switch','${id(150)}','${id(3)}','${id(7)}','${id(5)}');INSERT INTO gridex_received_sources.prodat_recovery_messages VALUES('${id(150)}','${id(153)}');UPDATE supplier_switch_requests SET status='failed' WHERE id='${id(126)}';`)
+ await db.query(`INSERT INTO ediel_messages VALUES($1,$2,'test','outbound','edifact','PRODAT','Z03','draft',$3,now(),encode(sha256(convert_to($3,'UTF8')),'hex'),$4,$5,$6,$7,$8,$9,$10,$11)`,[id(153),id(1),methodCorrection,id(151),id(152),id(150),id(126),id(3),id(7),id(5),id(128)])
+ const correctMethod=()=>db.query('SELECT ediel_bind_switch_correction_v1($1,$2,$3) b',[id(1),id(153),id(20)])
+ await db.exec('UPDATE method_declaration_fixture SET prepare_ok=false');await assert.rejects(correctMethod(),/signed_new_agreement_requested_method/);assert.equal((await db.query('SELECT outbound_z03_message_id FROM supplier_switch_requests WHERE id=$1',[id(126)])).rows[0].outbound_z03_message_id,id(128));assert.equal((await db.query('SELECT count(*) n FROM gridex_received_sources.switch_originals WHERE message_id=$1',[id(153)])).rows[0].n,0);checks++
+ await db.exec('UPDATE method_declaration_fixture SET prepare_ok=true');assert.equal((await correctMethod()).rows[0].b.idempotent,false);assert.equal((await db.query('SELECT requested_method FROM gridex_received_sources.switch_contract_request_bindings WHERE message_id=$1',[id(153)])).rows[0].requested_method,'Z04');checks++
  console.log(`PASS ${checks} focused actual switch-original SQL qualification/whole rollback/UUID/immutable/replay/fixture-port checks; declared ports, not native replay`)
 }finally{await db.close()}
