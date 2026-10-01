@@ -21,13 +21,13 @@ describe('actual owned dated customer structure consumer',()=>{
   const baseline=version()
   const exchange=structuredClone(baseline)
   exchange.sourceMessageId=id(12);exchange.assessmentId=id(13)
-  exchange.wire.messageCode='Z06';exchange.wire.businessCase='meter_exchange';exchange.wire.documentReference='METER-EXCHANGE'
+  exchange.wire.messageCode='Z10';exchange.wire.businessCase='meter_exchange';exchange.wire.documentReference='METER-EXCHANGE'
   exchange.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610030000',utc:at('20261003')}
   exchange.wire.meterNumber='NEW';exchange.wire.oldMeterNumber='ACTUAL';exchange.wire.registers=[{position:1,registerId:'NEWREG'}]
   exchange.measurements={measurementMethod:'Z04',reportingFrequency:'D',productCode:'L639Q',settlementMethod:'Z32',balanceResponsibleId:'11111'}
   const change=structuredClone(exchange)
   change.sourceMessageId=id(14);change.assessmentId=id(15)
-  change.wire.businessCase='change_without_reading';change.wire.documentReference='LATER-METHOD-CHANGE'
+  change.wire.messageCode='Z06';change.wire.businessCase='change_without_reading';change.wire.documentReference='LATER-METHOD-CHANGE'
   change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')}
   change.wire.meterNumber=inheritMeter?null:'NEW';change.wire.oldMeterNumber=null
   change.wire.registers=[{position:1,registerId:inheritRegisters?null:'NEWREG'}]
