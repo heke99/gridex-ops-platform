@@ -53,23 +53,29 @@
     "covered_rule_ids": [
       "TR-04"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/inbound-mail/edielInboundProcessor.ts",
       "lib/inbound-mail/edielEmailParser.ts",
       "lib/inbound-mail/dsnDisposition.ts",
       "lib/inbound-mail/dsnTransportCandidates.ts",
-      "lib/ediel/transport/outboundAttempt.ts"
+      "lib/ediel/transport/outboundAttempt.ts",
+      "lib/inbound-mail/dsnObservationJournal.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
+      "app/api/admin/ediel/messages/[id]/route.ts"
     ],
-    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "confirmed_code_gap": null,
     "blockers": [
       "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
     ],
     "planned_tests": [
-      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable.",
+      "Native with actual SMTP/MIME archive must correlate source mailbox, archived RFC Message-ID, frozen recipient and entered attempt; reject ambiguous/foreign/absent configured mailbox and preserve both provider outcome and DSN observation immutably; own 23 embedded SQL probes and declared TS probes already ran, broad native/browser pending."
     ],
-    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
-    "commits": []
+    "assessment": "Own DSN source-correlated immutable journal, processor-before-original extraction, API/UI projection and actual current configured sending mailbox are integrated in d6bd145f. Ambiguous/foreign/missing mailbox or non-own entered-attempt reports stay unverified/quarantined. A report cannot alter provider/ACK/business truth or authorize retry. Other CALL08 tenant/AI scopes retain their separate actual owners. This is code-ready for this owned component only, not authenticated delivery proof.",
+    "commits": [
+      "d6bd145f"
+    ]
   },
   {
     "ids": [
@@ -79,23 +85,29 @@
     "covered_rule_ids": [
       "TR-04"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/inbound-mail/edielInboundProcessor.ts",
       "lib/inbound-mail/edielEmailParser.ts",
       "lib/inbound-mail/dsnDisposition.ts",
       "lib/inbound-mail/dsnTransportCandidates.ts",
-      "lib/ediel/transport/outboundAttempt.ts"
+      "lib/ediel/transport/outboundAttempt.ts",
+      "lib/inbound-mail/dsnObservationJournal.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
+      "app/api/admin/ediel/messages/[id]/route.ts"
     ],
-    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "confirmed_code_gap": null,
     "blockers": [
       "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
     ],
     "planned_tests": [
-      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable.",
+      "Native with actual SMTP/MIME archive must correlate source mailbox, archived RFC Message-ID, frozen recipient and entered attempt; reject ambiguous/foreign/absent configured mailbox and preserve both provider outcome and DSN observation immutably; own 23 embedded SQL probes and declared TS probes already ran, broad native/browser pending."
     ],
-    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
-    "commits": []
+    "assessment": "Own DSN source-correlated immutable journal, processor-before-original extraction, API/UI projection and actual current configured sending mailbox are integrated in d6bd145f. Ambiguous/foreign/missing mailbox or non-own entered-attempt reports stay unverified/quarantined. A report cannot alter provider/ACK/business truth or authorize retry. Other CALL08 tenant/AI scopes retain their separate actual owners. This is code-ready for this owned component only, not authenticated delivery proof.",
+    "commits": [
+      "d6bd145f"
+    ]
   },
   {
     "ids": [
@@ -105,23 +117,29 @@
     "covered_rule_ids": [
       "TR-04"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/inbound-mail/edielInboundProcessor.ts",
       "lib/inbound-mail/edielEmailParser.ts",
       "lib/inbound-mail/dsnDisposition.ts",
       "lib/inbound-mail/dsnTransportCandidates.ts",
-      "lib/ediel/transport/outboundAttempt.ts"
+      "lib/ediel/transport/outboundAttempt.ts",
+      "lib/inbound-mail/dsnObservationJournal.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
+      "app/api/admin/ediel/messages/[id]/route.ts"
     ],
-    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "confirmed_code_gap": null,
     "blockers": [
       "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
     ],
     "planned_tests": [
-      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable.",
+      "Native with actual SMTP/MIME archive must correlate source mailbox, archived RFC Message-ID, frozen recipient and entered attempt; reject ambiguous/foreign/absent configured mailbox and preserve both provider outcome and DSN observation immutably; own 23 embedded SQL probes and declared TS probes already ran, broad native/browser pending."
     ],
-    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
-    "commits": []
+    "assessment": "Own DSN source-correlated immutable journal, processor-before-original extraction, API/UI projection and actual current configured sending mailbox are integrated in d6bd145f. Ambiguous/foreign/missing mailbox or non-own entered-attempt reports stay unverified/quarantined. A report cannot alter provider/ACK/business truth or authorize retry. Other CALL08 tenant/AI scopes retain their separate actual owners. This is code-ready for this owned component only, not authenticated delivery proof.",
+    "commits": [
+      "d6bd145f"
+    ]
   },
   {
     "ids": [
@@ -131,23 +149,29 @@
     "covered_rule_ids": [
       "TR-04"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/inbound-mail/edielInboundProcessor.ts",
       "lib/inbound-mail/edielEmailParser.ts",
       "lib/inbound-mail/dsnDisposition.ts",
       "lib/inbound-mail/dsnTransportCandidates.ts",
-      "lib/ediel/transport/outboundAttempt.ts"
+      "lib/ediel/transport/outboundAttempt.ts",
+      "lib/inbound-mail/dsnObservationJournal.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
+      "app/api/admin/ediel/messages/[id]/route.ts"
     ],
-    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "confirmed_code_gap": null,
     "blockers": [
       "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
     ],
     "planned_tests": [
-      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable.",
+      "Native with actual SMTP/MIME archive must correlate source mailbox, archived RFC Message-ID, frozen recipient and entered attempt; reject ambiguous/foreign/absent configured mailbox and preserve both provider outcome and DSN observation immutably; own 23 embedded SQL probes and declared TS probes already ran, broad native/browser pending."
     ],
-    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
-    "commits": []
+    "assessment": "Own DSN source-correlated immutable journal, processor-before-original extraction, API/UI projection and actual current configured sending mailbox are integrated in d6bd145f. Ambiguous/foreign/missing mailbox or non-own entered-attempt reports stay unverified/quarantined. A report cannot alter provider/ACK/business truth or authorize retry. Other CALL08 tenant/AI scopes retain their separate actual owners. This is code-ready for this owned component only, not authenticated delivery proof.",
+    "commits": [
+      "d6bd145f"
+    ]
   },
   {
     "ids": [

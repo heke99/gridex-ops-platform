@@ -4,25 +4,29 @@
       "GOV-01"
     ],
     "owner": "/root/authority_grammar",
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/rulebook/guideRegistry.ts",
       "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
       "lib/ediel/core/ackSourceRulePackEvidence.ts",
-      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/core/receivedUtiltsTransactionValidation.ts",
+      "supabase/migrations/20260930193136_ediel_locked_original_rule_pack_witness.sql",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
     ],
-    "confirmed_code_gap": "Shared source authority is reused by runtime/send/ACK. Independent review found a pre-capture original-version witness gap: immutable inbound assessment had only IDs/hash; both public version and snapshot could change before first capture. Matrix/root own the correction; current named rows do not prove historical values.",
-    "blockers": [
-      "Original immutable accepted version/full named source snapshot witness correction pending matrix/root integration."
-    ],
+    "confirmed_code_gap": "Confirmed initial assessment lacked original version/full named-row witness before first capture and registry reconstructed current policy after complete prior-guide admission. Corrected by same-selected-policy registry wrapper with locked exact named version/full snapshot, immutable six-key received owner projection, original inherited ACK witness, and protected outbound owner seal (matrix co-owner).",
+    "blockers": [],
     "planned_tests": [
       "Own literal GOV-01: Requirement: Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning. Expected: Publicera immutabel regelversion med granskningsspår. Prohibited: Ej styrkt regel ska inte generera nya externa meddelanden eller påhittade felkoder.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Normative source: T §1.2,1.4; P §1.3. Fresh own assessment: Shared source authority is reused by runtime/send/ACK. Independent review found a pre-capture original-version witness gap: immutable inbound assessment had only IDs/hash; both public version and snapshot could change before first capture. Matrix/root own the correction; current named rows do not prove historical values.",
+    "assessment": "Fresh actual owner scope: runtime→canonicalRulePackRegistry same-selected guide→locked original named DB witness→immutable received facet/protected outbound owner seal→original ACK inheritance. Prospective rows preserve original version and full named sources; old missing witness held without backfill. Frozen source authority remains unchanged. Native seal temporal/ownERC corrections are independently owned by matrix; no formal verification or acceptance claim.",
     "commits": [
       "7ddc203b",
-      "d49121d6"
+      "d49121d6",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -92,11 +96,14 @@
       "Own literal GOV-04: Requirement: Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. Expected: Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik. Prohibited: Skicka inte gammal köpayload med ny versionsetikett.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Normative source: T §1.4 s.4. Fresh own assessment: Actual receipt/pre-send admission is distinct from sender DTM137. One selected guide/trace reaches the chain; finalized retry/ACK execution context remains immutable. Live resend must pass current admission and separate protected route/retry gates without rewriting what an earlier attempt sent.",
+    "assessment": "Normative source: T §1.4 s.4. Fresh own assessment: Actual receipt/pre-send admission is distinct from sender DTM137. One selected guide/trace reaches the chain; finalized retry/ACK execution context remains immutable. Live resend must pass current admission and separate protected route/retry gates without rewriting what an earlier attempt sent. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "7b60e241",
       "9e6596c4",
-      "164c824a"
+      "164c824a",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -118,10 +125,13 @@
       "Own literal GOV-05: Requirement: Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler. Expected: Använd ett komplett kompatibelt regelpaket per prövning, logga vald tolkning. Prohibited: Plocka inte gynnsamma enstaka kontroller från olika versioner; samma UNH-kod är inte revisionsbevis.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Normative source: T §1.4; U/UE omslag. Fresh own assessment: Complete current guide is tried first; only complete guide failure may qualify the immediately preceding guide inside the two-week grace. Functional failures never trigger fallback; explicit stored canonical authority is preserved.",
+    "assessment": "Normative source: T §1.4; U/UE omslag. Fresh own assessment: Complete current guide is tried first; only complete guide failure may qualify the immediately preceding guide inside the two-week grace. Functional failures never trigger fallback; explicit stored canonical authority is preserved. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "9e6596c4",
-      "08616e0d"
+      "08616e0d",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -144,11 +154,14 @@
       "Own literal GOV-06: Requirement: Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. Expected: För explicit versionsbeslut till utiltsEngine; inget nytt implicit now(). Prohibited: Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Normative source: CODE canonicalEdielPolicy/runtimeDecision; SYS. Fresh own assessment: Receipt/admission, business document date, delivery period and replay/execution anchor are separate typed facts. Missing local admission time is internal review, never synthetic national APERAK.",
+    "assessment": "Normative source: CODE canonicalEdielPolicy/runtimeDecision; SYS. Fresh own assessment: Receipt/admission, business document date, delivery period and replay/execution anchor are separate typed facts. Missing local admission time is internal review, never synthetic national APERAK. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "7b60e241",
       "9e6596c4",
-      "2ddd7280"
+      "2ddd7280",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -202,7 +215,7 @@
       "Own literal GOV-08: Requirement: Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. Expected: Bevara negativa referenser som negativa; dokumentera konflikt. Prohibited: Ändra inte referensen för att passa egen renderer.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Normative source: P §1.3; U §1.5; TGT lista. Fresh own assessment: Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks.",
+    "assessment": "Normative source: P §1.3; U §1.5; TGT lista. Fresh own assessment: Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks. Actual manual-file original path was traced: it has no authenticated source-owned run/role/case/revision/step linkage, so remains held; no metadata flag, guessed intent or fabricated original grants its negative fixture capability. Existing TGT draft consumers use opaque registered source qualifications and production guards have no systemTestAckSend boolean bypass.",
     "commits": [
       "620a3368",
       "faeef6b1",
@@ -251,7 +264,9 @@
       "lib/ediel/core/ackPreflight.ts",
       "lib/ediel/rulebook/messageParser.ts",
       "lib/ediel/contrlEngine.ts",
-      "lib/ediel/core/originalAckPartyIdentities.ts"
+      "lib/ediel/core/originalAckPartyIdentities.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "confirmed_code_gap": "Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
     "blockers": [],
@@ -259,13 +274,16 @@
       "Own literal ENV-02: Requirement: Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd. Expected: Positionsstabilt AST med span/segmentgrupp/objekt/register. Prohibited: Ingen split/filter(Boolean) som flyttar CAV-komponenter.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Normative source: T §4.1,6,7.5. Fresh own assessment: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
+    "assessment": "Normative source: T §4.1,6,7.5. Fresh own assessment: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
     "commits": [
       "7ed1bbdc",
       "36052618",
       "bb491ab8",
       "59021e7b",
-      "a0f13c05"
+      "a0f13c05",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ]
   },
   {
@@ -464,7 +482,9 @@
       "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
       "lib/ediel/prodat/render/segments.ts",
       "lib/ediel/core/canonicalEdifactAst.ts",
-      "lib/ediel/core/edifactEnvelopeCodec.ts"
+      "lib/ediel/core/edifactEnvelopeCodec.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "confirmed_code_gap": "Source-owned Z function and subtype reason registry exist, BGM suffix avoided; PRODAT owner reviewing producer/consumer negative boundary.",
     "blockers": [],
@@ -472,8 +492,12 @@
       "Own literal SC-001: Given: Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör. When: A beställer Z03L. Expected: Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22. Prohibited: Gridex-id ersätter inte A:s aktör; ingen data från B.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör. | when=A beställer Z03L. | expected=Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22. | prohibited=Gridex-id ersätter inte A:s aktör; ingen data från B. | Renderer serializes explicit legalFR/DO and canonical profile DDQ/Z03/L-Z22; transportidentity and beneficiary are separate actors-owner components. Legal/tenantA-B enforcement is not claimed fromcodec alone.",
-    "commits": []
+    "assessment": "Literalcontract given=Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör. | when=A beställer Z03L. | expected=Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22. | prohibited=Gridex-id ersätter inte A:s aktör; ingen data från B. | Renderer serializes explicit legalFR/DO and canonical profile DDQ/Z03/L-Z22; transportidentity and beneficiary are separate actors-owner components. Legal/tenantA-B enforcement is not claimed fromcodec alone. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
+    "commits": [
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
+    ]
   },
   {
     "ids": [
@@ -490,7 +514,9 @@
       "lib/ediel/core/edifactSerializer.ts",
       "lib/ediel/rulebook/messageParser.ts",
       "lib/ediel/contrlEngine.ts",
-      "lib/ediel/core/originalAckPartyIdentities.ts"
+      "lib/ediel/core/originalAckPartyIdentities.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "confirmed_code_gap": "Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
     "blockers": [],
@@ -498,13 +524,16 @@
       "Own literal SC-028: Given: Z13 eller Z14 innehåller generiskt energiprodukt-id, fält 506. When: Serialisera och parsa meddelandet. Expected: Den andra förekomsten av 7110 bevaras som femte komponent i CAV. Prohibited: Tomma komponenter får inte tas bort så att uppgiften flyttas till produktkod, fält 242.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Z13 eller Z14 innehåller generiskt energiprodukt-id, fält 506. | when=Serialisera och parsa meddelandet. | expected=Den andra förekomsten av 7110 bevaras som femte komponent i CAV. | prohibited=Tomma komponenter får inte tas bort så att uppgiften flyttas till produktkod, fält 242. | PRODAT prodatCharacteristicFields reads C502 then familyCAV value position; escape/transcode preserves five empty component slots beforegeneric506. Exact literal7110/fifthposition clauses reviewed, nofilter(Boolean) in physicaltokenizer/serializer. Fresh own correction: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
+    "assessment": "Literalcontract given=Z13 eller Z14 innehåller generiskt energiprodukt-id, fält 506. | when=Serialisera och parsa meddelandet. | expected=Den andra förekomsten av 7110 bevaras som femte komponent i CAV. | prohibited=Tomma komponenter får inte tas bort så att uppgiften flyttas till produktkod, fält 242. | PRODAT prodatCharacteristicFields reads C502 then familyCAV value position; escape/transcode preserves five empty component slots beforegeneric506. Exact literal7110/fifthposition clauses reviewed, nofilter(Boolean) in physicaltokenizer/serializer. Fresh own correction: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
     "commits": [
       "7ed1bbdc",
       "36052618",
       "bb491ab8",
       "59021e7b",
-      "a0f13c05"
+      "a0f13c05",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ]
   },
   {
@@ -522,7 +551,9 @@
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/messageParser.ts",
       "lib/ediel/contrlEngine.ts",
-      "lib/ediel/core/originalAckPartyIdentities.ts"
+      "lib/ediel/core/originalAckPartyIdentities.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "confirmed_code_gap": "Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
     "blockers": [],
@@ -530,13 +561,16 @@
       "Own literal SC-033: Given: Z04 eller Z10 innehåller flera mätarregister och två separata objekt. When: Bygg och behandla meddelandet. Expected: Globalt LIN-sekvensnummer, fält 314, och registerindex, fält 258, följer respektive regel. Register 2 och högre följer bilaga 2. Prohibited: Ett fel i andra registret får inte döljas av första. Alla basmatrisens R-fält ska inte krävas upprepade gånger utan stöd.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Z04 eller Z10 innehåller flera mätarregister och två separata objekt. | when=Bygg och behandla meddelandet. | expected=Globalt LIN-sekvensnummer, fält 314, och registerindex, fält 258, följer respektive regel. Register 2 och högre följer bilaga 2. | prohibited=Ett fel i andra registret får inte döljas av första. Alla basmatrisens R-fält ska inte krävas upprepade gånger utan stöd. | GlobalLINposition/registerindex remain distinct; canonicalPRODATregister groups preserve second+overlay and ownsourceproof. Envelope package does not collapse laterregisters. Nationalregisterclauses ownedPRODAT. Fresh own correction: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
+    "assessment": "Literalcontract given=Z04 eller Z10 innehåller flera mätarregister och två separata objekt. | when=Bygg och behandla meddelandet. | expected=Globalt LIN-sekvensnummer, fält 314, och registerindex, fält 258, följer respektive regel. Register 2 och högre följer bilaga 2. | prohibited=Ett fel i andra registret får inte döljas av första. Alla basmatrisens R-fält ska inte krävas upprepade gånger utan stöd. | GlobalLINposition/registerindex remain distinct; canonicalPRODATregister groups preserve second+overlay and ownsourceproof. Envelope package does not collapse laterregisters. Nationalregisterclauses ownedPRODAT. Fresh own correction: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
     "commits": [
       "7ed1bbdc",
       "36052618",
       "bb491ab8",
       "59021e7b",
-      "a0f13c05"
+      "a0f13c05",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ]
   },
   {
@@ -560,10 +594,13 @@
       "Own literal SC-041: Given: PRODAT, APERAK och CONTRL ska byggas. When: Serialisera respektive kuvert. Expected: UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN. Prohibited: BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=PRODAT, APERAK och CONTRL ska byggas. | when=Serialisera respektive kuvert. | expected=UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN. | prohibited=BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas. | Shared canonicalackmatrix+envelopecodec derive0031independentBGMAB, CONTRL:2:2:UN and no furtherACKrequest. Actualsyntax validatesallref/counts; ACKpreflight alternativeUNA still needs fix. Fresh own correction: One canonical ACK policy supplies UNB0031. CONTRL never requests or creates another CONTRL; BGM4343 remains separate.",
+    "assessment": "Literalcontract given=PRODAT, APERAK och CONTRL ska byggas. | when=Serialisera respektive kuvert. | expected=UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN. | prohibited=BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas. | Shared canonicalackmatrix+envelopecodec derive0031independentBGMAB, CONTRL:2:2:UN and no furtherACKrequest. Actualsyntax validatesallref/counts; ACKpreflight alternativeUNA still needs fix. Fresh own correction: One canonical ACK policy supplies UNB0031. CONTRL never requests or creates another CONTRL; BGM4343 remains separate. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "7ed1bbdc",
-      "7ddc203b"
+      "7ddc203b",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -590,13 +627,16 @@
       "Own literal SC-051: Given: Båda revisionerna använder UNH-koden E5SE5A men olika nationella regler gäller före och från 2026-10-01. When: Prova mottagning, sändning, omsändning och historisk återspelning. Expected: Ett sammanhållet, spårbart regelval per behandling. Nya 25-A-4-regler aktiveras inte före sin giltighet. Prohibited: Oberoende datumval i olika lager får inte ge två motstridiga regelrevisioner.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Båda revisionerna använder UNH-koden E5SE5A men olika nationella regler gäller före och från 2026-10-01. | when=Prova mottagning, sändning, omsändning och historisk återspelning. | expected=Ett sammanhållet, spårbart regelval per behandling. Nya 25-A-4-regler aktiveras inte före sin giltighet. | prohibited=Oberoende datumval i olika lager får inte ge två motstridiga regelrevisioner. | Admissiondate actualreceipt and immutable explicitpolicy consumed consistently acrosspolicy/guide-onlyutilts/runtime/report; onecompleteguidecandidate withinOct1-14grace, currentOct15; source137neverlocaladmission. Fresh own correction: Actual receipt/pre-send admission is distinct from sender DTM137. One selected guide/trace reaches the chain; finalized retry/ACK execution context remains immutable. Live resend must pass current admission and separate protected route/retry gates without rewriting what an earlier attempt sent. | Complete current guide is tried first; only complete guide failure may qualify the immediately preceding guide inside the two-week grace. Functional failures never trigger fallback; explicit stored canonical authority is preserved. | Receipt/admission, business document date, delivery period and replay/execution anchor are separate typed facts. Missing local admission time is internal review, never synthetic national APERAK.",
+    "assessment": "Literalcontract given=Båda revisionerna använder UNH-koden E5SE5A men olika nationella regler gäller före och från 2026-10-01. | when=Prova mottagning, sändning, omsändning och historisk återspelning. | expected=Ett sammanhållet, spårbart regelval per behandling. Nya 25-A-4-regler aktiveras inte före sin giltighet. | prohibited=Oberoende datumval i olika lager får inte ge två motstridiga regelrevisioner. | Admissiondate actualreceipt and immutable explicitpolicy consumed consistently acrosspolicy/guide-onlyutilts/runtime/report; onecompleteguidecandidate withinOct1-14grace, currentOct15; source137neverlocaladmission. Fresh own correction: Actual receipt/pre-send admission is distinct from sender DTM137. One selected guide/trace reaches the chain; finalized retry/ACK execution context remains immutable. Live resend must pass current admission and separate protected route/retry gates without rewriting what an earlier attempt sent. | Complete current guide is tried first; only complete guide failure may qualify the immediately preceding guide inside the two-week grace. Functional failures never trigger fallback; explicit stored canonical authority is preserved. | Receipt/admission, business document date, delivery period and replay/execution anchor are separate typed facts. Missing local admission time is internal review, never synthetic national APERAK. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "7b60e241",
       "9e6596c4",
       "164c824a",
       "08616e0d",
-      "2ddd7280"
+      "2ddd7280",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -646,7 +686,9 @@
       "lib/ediel/core/productionGuards.ts",
       "lib/ediel/testing/negativeFixtureAuthority.ts",
       "lib/ediel/testing/tgtAutopilot.ts",
-      "app/admin/ediel/actions.part-2.ts"
+      "app/admin/ediel/actions.part-2.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "confirmed_code_gap": "Test emits0035=1; production omits it. The old systemTestAckSend marker cannot bypass live test flag/portal/APP protection. Replay/test qualification never grants live transport. | Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks.",
     "blockers": [
@@ -656,12 +698,15 @@
       "Own literal SC-068: Given: En referensfil använder testidentitet eller ett beslut har läget historical_replay. When: Försök skapa automatisk produktionssändning eller kundändring. Expected: Ingen extern produktionssändning och ingen produktionsmutation. Prohibited: catalog_evidence får inte användas som operativ sändningsauktoritet.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=En referensfil använder testidentitet eller ett beslut har läget historical_replay. | when=Försök skapa automatisk produktionssändning eller kundändring. | expected=Ingen extern produktionssändning och ingen produktionsmutation. | prohibited=catalog_evidence får inte användas som operativ sändningsauktoritet. | catalog_evidence is static fieldinspection, cannotalone authorizeliveSMTP. Futurecapabilityexplicitrequestheld andfailedmetadata-bypass removed; transportmustretainactualtenant/readiness/bilateral/permissiongates. Fullactualnorouting/mutation criterion ownedroot transport. Fresh own correction: Test emits0035=1; production omits it. The old systemTestAckSend marker cannot bypass live test flag/portal/APP protection. Replay/test qualification never grants live transport. | Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks.",
+    "assessment": "Literalcontract given=En referensfil använder testidentitet eller ett beslut har läget historical_replay. | when=Försök skapa automatisk produktionssändning eller kundändring. | expected=Ingen extern produktionssändning och ingen produktionsmutation. | prohibited=catalog_evidence får inte användas som operativ sändningsauktoritet. | catalog_evidence is static fieldinspection, cannotalone authorizeliveSMTP. Futurecapabilityexplicitrequestheld andfailedmetadata-bypass removed; transportmustretainactualtenant/readiness/bilateral/permissiongates. Fullactualnorouting/mutation criterion ownedroot transport. Fresh own correction: Test emits0035=1; production omits it. The old systemTestAckSend marker cannot bypass live test flag/portal/APP protection. Replay/test qualification never grants live transport. | Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope. Actual manual-file original path was traced: it has no authenticated source-owned run/role/case/revision/step linkage, so remains held; no metadata flag, guessed intent or fabricated original grants its negative fixture capability. Existing TGT draft consumers use opaque registered source qualifications and production guards have no systemTestAckSend boolean bypass.",
     "commits": [
       "7ed1bbdc",
       "c517e458",
       "620a3368",
-      "faeef6b1"
+      "faeef6b1",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ]
   },
   {
@@ -681,7 +726,9 @@
       "lib/ediel/testing/tgtAutopilot.ts",
       "app/admin/ediel/actions.part-2.ts",
       "lib/ediel/rulebook/sendGuards.ts",
-      "lib/ediel/core/productionGuards.ts"
+      "lib/ediel/core/productionGuards.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "confirmed_code_gap": "Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks.",
     "blockers": [
@@ -691,11 +738,14 @@
       "Own literal SC-072: Given: Byggare och validator använder samma felaktiga fältmappning. When: Kör referenstest med facit från en oberoende, versionsriktig källa. Expected: Felet upptäcks även om egen serialisering och parsning ger en lyckad rundtur. Prohibited: Enbart rundtur med egen parser bevisar inte överensstämmelse med Ediel.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Byggare och validator använder samma felaktiga fältmappning. | when=Kör referenstest med facit från en oberoende, versionsriktig källa. | expected=Felet upptäcks även om egen serialisering och parsning ger en lyckad rundtur. | prohibited=Enbart rundtur med egen parser bevisar inte överensstämmelse med Ediel. | Actualnegative lexical/danglingrelease/count/multiphysicalenvelope cases are independent invariants beyondserializer-roundtrip. Fullowncriterion fullUNSM grammar remainsauthenticoriginalblocked; no claimownroundtripconformance. Fresh own correction: Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks.",
+    "assessment": "Literalcontract given=Byggare och validator använder samma felaktiga fältmappning. | when=Kör referenstest med facit från en oberoende, versionsriktig källa. | expected=Felet upptäcks även om egen serialisering och parsning ger en lyckad rundtur. | prohibited=Enbart rundtur med egen parser bevisar inte överensstämmelse med Ediel. | Actualnegative lexical/danglingrelease/count/multiphysicalenvelope cases are independent invariants beyondserializer-roundtrip. Fullowncriterion fullUNSM grammar remainsauthenticoriginalblocked; no claimownroundtripconformance. Fresh own correction: Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
     "commits": [
       "620a3368",
       "faeef6b1",
-      "c517e458"
+      "c517e458",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ]
   },
   {
@@ -703,25 +753,29 @@
       "AT-GOV-01"
     ],
     "owner": "/root/authority_grammar",
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/rulebook/guideRegistry.ts",
       "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
       "lib/ediel/core/ackSourceRulePackEvidence.ts",
-      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/core/receivedUtiltsTransactionValidation.ts",
+      "supabase/migrations/20260930193136_ediel_locked_original_rule_pack_witness.sql",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
     ],
-    "confirmed_code_gap": "Shared source authority is reused by runtime/send/ACK. Independent review found a pre-capture original-version witness gap: immutable inbound assessment had only IDs/hash; both public version and snapshot could change before first capture. Matrix/root own the correction; current named rows do not prove historical values.",
-    "blockers": [
-      "Original immutable accepted version/full named source snapshot witness correction pending matrix/root integration."
-    ],
+    "confirmed_code_gap": "Confirmed initial assessment lacked original version/full named-row witness before first capture and registry reconstructed current policy after complete prior-guide admission. Corrected by same-selected-policy registry wrapper with locked exact named version/full snapshot, immutable six-key received owner projection, original inherited ACK witness, and protected outbound owner seal (matrix co-owner).",
+    "blockers": [],
     "planned_tests": [
       "Own literal AT-GOV-01: Given: Alla profiler When: Publicering av regelpaket – prova både uppfyllt villkor och relevant fel-/gränsfall. Expected: Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning. → Publicera immutabel regelversion med granskningsspår. Prohibited: Ej styrkt regel ska inte generera nya externa meddelanden eller påhittade felkoder.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Alla profiler | when=Publicering av regelpaket – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning. → Publicera immutabel regelversion med granskningsspår. | prohibited=Ej styrkt regel ska inte generera nya externa meddelanden eller påhittade felkoder. | Individual literalcardreview sharednormativescope: Freshcomponent review: Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning. | Source T §1.2,1.4; P §1.3; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Shared source authority is reused by runtime/send/ACK. Independent review found a pre-capture original-version witness gap: immutable inbound assessment had only IDs/hash; both public version and snapshot could change before first capture. Matrix/root own the correction; current named rows do not prove historical values.",
+    "assessment": "Fresh actual owner scope: runtime→canonicalRulePackRegistry same-selected guide→locked original named DB witness→immutable received facet/protected outbound owner seal→original ACK inheritance. Prospective rows preserve original version and full named sources; old missing witness held without backfill. Frozen source authority remains unchanged. Native seal temporal/ownERC corrections are independently owned by matrix; no formal verification or acceptance claim.",
     "commits": [
       "7ddc203b",
-      "d49121d6"
+      "d49121d6",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -791,11 +845,14 @@
       "Own literal AT-GOV-04: Given: Utgående meddelande och omsändning When: Före varje extern sändning – prova både uppfyllt villkor och relevant fel-/gränsfall. Expected: Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. → Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik. Prohibited: Skicka inte gammal köpayload med ny versionsetikett.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Utgående meddelande och omsändning | when=Före varje extern sändning – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. → Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik. | prohibited=Skicka inte gammal köpayload med ny versionsetikett. | Individual literalcardreview sharednormativescope: Freshcomponent review: Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. | Source T §1.4 s.4; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Actual receipt/pre-send admission is distinct from sender DTM137. One selected guide/trace reaches the chain; finalized retry/ACK execution context remains immutable. Live resend must pass current admission and separate protected route/retry gates without rewriting what an earlier attempt sent.",
+    "assessment": "Literalcontract given=Utgående meddelande och omsändning | when=Före varje extern sändning – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. → Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik. | prohibited=Skicka inte gammal köpayload med ny versionsetikett. | Individual literalcardreview sharednormativescope: Freshcomponent review: Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. | Source T §1.4 s.4; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Actual receipt/pre-send admission is distinct from sender DTM137. One selected guide/trace reaches the chain; finalized retry/ACK execution context remains immutable. Live resend must pass current admission and separate protected route/retry gates without rewriting what an earlier attempt sent. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "7b60e241",
       "9e6596c4",
-      "164c824a"
+      "164c824a",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -817,10 +874,13 @@
       "Own literal AT-GOV-05: Given: Mottagning When: Ny anvisning börjar gälla – prova både uppfyllt villkor och relevant fel-/gränsfall. Expected: Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler. → Använd ett komplett kompatibelt regelpaket per prövning, logga vald tolkning. Prohibited: Plocka inte gynnsamma enstaka kontroller från olika versioner; samma UNH-kod är inte revisionsbevis.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Mottagning | when=Ny anvisning börjar gälla – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler. → Använd ett komplett kompatibelt regelpaket per prövning, logga vald tolkning. | prohibited=Plocka inte gynnsamma enstaka kontroller från olika versioner; samma UNH-kod är inte revisionsbevis. | Individual literalcardreview sharednormativescope: Freshcomponent review: Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler. | Source T §1.4; U/UE omslag; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Complete current guide is tried first; only complete guide failure may qualify the immediately preceding guide inside the two-week grace. Functional failures never trigger fallback; explicit stored canonical authority is preserved.",
+    "assessment": "Literalcontract given=Mottagning | when=Ny anvisning börjar gälla – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler. → Använd ett komplett kompatibelt regelpaket per prövning, logga vald tolkning. | prohibited=Plocka inte gynnsamma enstaka kontroller från olika versioner; samma UNH-kod är inte revisionsbevis. | Individual literalcardreview sharednormativescope: Freshcomponent review: Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler. | Source T §1.4; U/UE omslag; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Complete current guide is tried first; only complete guide failure may qualify the immediately preceding guide inside the two-week grace. Functional failures never trigger fallback; explicit stored canonical authority is preserved. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "9e6596c4",
-      "08616e0d"
+      "08616e0d",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -843,11 +903,14 @@
       "Own literal AT-GOV-06: Given: UTILTS When: Gemensam runtimevalidering – prova både uppfyllt villkor och relevant fel-/gränsfall. Expected: Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. → För explicit versionsbeslut till utiltsEngine; inget nytt implicit now(). Prohibited: Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=UTILTS | when=Gemensam runtimevalidering – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. → För explicit versionsbeslut till utiltsEngine; inget nytt implicit now(). | prohibited=Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod. | Individual literalcardreview sharednormativescope: Freshcomponent review: Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. | Source CODE canonicalEdielPolicy/runtimeDecision; SYS; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Receipt/admission, business document date, delivery period and replay/execution anchor are separate typed facts. Missing local admission time is internal review, never synthetic national APERAK.",
+    "assessment": "Literalcontract given=UTILTS | when=Gemensam runtimevalidering – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. → För explicit versionsbeslut till utiltsEngine; inget nytt implicit now(). | prohibited=Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod. | Individual literalcardreview sharednormativescope: Freshcomponent review: Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. | Source CODE canonicalEdielPolicy/runtimeDecision; SYS; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Receipt/admission, business document date, delivery period and replay/execution anchor are separate typed facts. Missing local admission time is internal review, never synthetic national APERAK. Follow-up actual registry lookup retains the already completely accepted guide; prior grace lookup uses its own last normative date without rewriting actual admission. Exact native registered version/full sources frozen in owner witness. Final UTILTS owner consumes same retained policy/witness without reselect/rerun.",
     "commits": [
       "7b60e241",
       "9e6596c4",
-      "2ddd7280"
+      "2ddd7280",
+      "377a8d1b",
+      "0aa2786e",
+      "d579c93f"
     ]
   },
   {
@@ -901,7 +964,7 @@
       "Own literal AT-GOV-08: Given: Referenser och TGT When: Inför acceptanstest – prova både uppfyllt villkor och relevant fel-/gränsfall. Expected: Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. → Bevara negativa referenser som negativa; dokumentera konflikt. Prohibited: Ändra inte referensen för att passa egen renderer.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Referenser och TGT | when=Inför acceptanstest – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. → Bevara negativa referenser som negativa; dokumentera konflikt. | prohibited=Ändra inte referensen för att passa egen renderer. | Individual literalcardreview sharednormativescope: Freshcomponent review: Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. | Source P §1.3; U §1.5; TGT lista; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks.",
+    "assessment": "Literalcontract given=Referenser och TGT | when=Inför acceptanstest – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. → Bevara negativa referenser som negativa; dokumentera konflikt. | prohibited=Ändra inte referensen för att passa egen renderer. | Individual literalcardreview sharednormativescope: Freshcomponent review: Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat. | Source P §1.3; U §1.5; TGT lista; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Independent code support is implemented: protected append-only exact original hash/tenant/run/role/case/revision/step/expected diagnostic registration and opaque proof. Actual TGT draft consumers use it; final clone and preflight checks retain failed test findings. Public metadata never opens production. Root integrates provider/orchestrator hooks. Actual manual-file original path was traced: it has no authenticated source-owned run/role/case/revision/step linkage, so remains held; no metadata flag, guessed intent or fabricated original grants its negative fixture capability. Existing TGT draft consumers use opaque registered source qualifications and production guards have no systemTestAckSend boolean bypass.",
     "commits": [
       "620a3368",
       "faeef6b1",
@@ -950,7 +1013,9 @@
       "lib/ediel/core/ackPreflight.ts",
       "lib/ediel/rulebook/messageParser.ts",
       "lib/ediel/contrlEngine.ts",
-      "lib/ediel/core/originalAckPartyIdentities.ts"
+      "lib/ediel/core/originalAckPartyIdentities.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "confirmed_code_gap": "Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
     "blockers": [],
@@ -958,13 +1023,16 @@
       "Own literal AT-ENV-02: Given: Alla EDIFACT When: Parse/render – prova både uppfyllt villkor och relevant fel-/gränsfall. Expected: Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd. → Positionsstabilt AST med span/segmentgrupp/objekt/register. Prohibited: Ingen split/filter(Boolean) som flyttar CAV-komponenter.",
       "NOT RUN: complete fixed-candidate full unit/native/replay/schema-type/security/browser/E2E/manual contract. Fast component regressions do not establish all multi-owner business/tenant/process clauses."
     ],
-    "assessment": "Literalcontract given=Alla EDIFACT | when=Parse/render – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd. → Positionsstabilt AST med span/segmentgrupp/objekt/register. | prohibited=Ingen split/filter(Boolean) som flyttar CAV-komponenter. | Individual literalcardreview sharednormativescope: Freshcomponent review: Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd. | Source T §4.1,6,7.5; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite.",
+    "assessment": "Literalcontract given=Alla EDIFACT | when=Parse/render – prova både uppfyllt villkor och relevant fel-/gränsfall. | expected=Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd. → Positionsstabilt AST med span/segmentgrupp/objekt/register. | prohibited=Ingen split/filter(Boolean) som flyttar CAV-komponenter. | Individual literalcardreview sharednormativescope: Freshcomponent review: Alternativa UNA-separatorer, releasechar och tomma komponentpositioner bevaras; releasechar räknas inte i fältlängd. | Source T §4.1,6,7.5; inherited NOT_VERIFIED was not treated as code defect. Fresh own correction: Alternate UNA/release characters retain empty positions, source spans and decoded length. Shared family parser, CONTRL, ACK route/legal projections use the central tokenizer. UTILTS owns corrected ACK preflight/correlation consumers; no NOT_VERIFIED-only rewrite. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
     "commits": [
       "7ed1bbdc",
       "36052618",
       "bb491ab8",
       "59021e7b",
-      "a0f13c05"
+      "a0f13c05",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ]
   },
   {
@@ -2282,16 +2350,21 @@
       "lib/ediel/core/failureDisposition.ts",
       "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/rulebook/validator.ts",
-      "lib/ediel/transport/inboundProcessor.ts"
+      "lib/ediel/transport/inboundProcessor.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "commits": [
       "2ddd7280",
       "7ddc203b",
       "6a8168c8",
-      "0c39065f"
+      "0c39065f",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ],
     "blockers": [],
-    "assessment": "Normative source: SYS. Own component/call-path assessment: Typed failure algebra prevents unknown local policy/context/registry errors becoming nationalAP42. Independent syntax and typed national negatives remain available, positive/business effects stay held. Parent async inbound catch and mandatory failure journal were independently reviewed: missing journal/writes do not silently disappear.",
+    "assessment": "Normative source: SYS. Own component/call-path assessment: Typed failure algebra prevents unknown local policy/context/registry errors becoming nationalAP42. Independent syntax and typed national negatives remain available, positive/business effects stay held. Parent async inbound catch and mandatory failure journal were independently reviewed: missing journal/writes do not silently disappear. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
     "planned_tests": [
       "Own literal OPS-05: Requirement: Skilj protocol_rejection från internal_failure, security_quarantine och unsupported_capability. Expected: Larma, bevara original och kvittensstatus och ge bara källstödda externa svar. Prohibited: Hitta inte på APERAK-fält42/xxx därför att den egna applikationen kraschar.",
       "NOT RUN: full fixed-candidate/native/replay/manual authentic-original behavior. Synthetic component/embedded SQL fixtures do not provide authentic certification or legal evidence."
@@ -2308,16 +2381,21 @@
       "lib/ediel/core/failureDisposition.ts",
       "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/rulebook/validator.ts",
-      "lib/ediel/transport/inboundProcessor.ts"
+      "lib/ediel/transport/inboundProcessor.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql"
     ],
     "commits": [
       "2ddd7280",
       "7ddc203b",
       "6a8168c8",
-      "0c39065f"
+      "0c39065f",
+      "f634dc99",
+      "d32d3286",
+      "d579c93f"
     ],
     "blockers": [],
-    "assessment": "Normative source: SYS. Own component/call-path assessment: Typed failure algebra prevents unknown local policy/context/registry errors becoming nationalAP42. Independent syntax and typed national negatives remain available, positive/business effects stay held. Parent async inbound catch and mandatory failure journal were independently reviewed: missing journal/writes do not silently disappear.",
+    "assessment": "Normative source: SYS. Own component/call-path assessment: Typed failure algebra prevents unknown local policy/context/registry errors becoming nationalAP42. Independent syntax and typed national negatives remain available, positive/business effects stay held. Parent async inbound catch and mandatory failure journal were independently reviewed: missing journal/writes do not silently disappear. Source-prescribed technical CONTRL now uses protected syntax-only endpoint authority through the same shared guide validator, separate from absent legal/business profiles. Original overlong transfer reference retains full diagnostics with source T p16 first14 UCI projection; native global-prefix uniqueness holds ambiguity. Persisted send reads actual ACK/raw/related original atomically; caller copies/pointers do not qualify. Qualified negative-only U facets may persist under typed registry hold without any accepted scope.",
     "planned_tests": [
       "Own literal AT-OPS-05: Given: Internt fel eller okänd kontext When: Runtimefel – prova både uppfyllt villkor och relevant fel-/gränsfall. Expected: Skilj protocol_rejection från internal_failure, security_quarantine och unsupported_capability. → Larma, bevara original och kvittensstatus och ge bara källstödda externa svar. Prohibited: Hitta inte på APERAK-fält42/xxx därför att den egna applikationen kraschar.",
       "NOT RUN: full fixed-candidate/native/replay/manual authentic-original behavior. Synthetic component/embedded SQL fixtures do not provide authentic certification or legal evidence."

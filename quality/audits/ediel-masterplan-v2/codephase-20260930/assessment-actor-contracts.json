@@ -777,8 +777,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -815,8 +815,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -853,8 +853,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -891,8 +891,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -929,8 +929,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -967,8 +967,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -1005,8 +1005,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -1043,8 +1043,8 @@
       "lib/ediel/permissions/z13RequestAccess.ts",
       "lib/ediel/permissions/z18RequestTermination.ts",
       "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
-      "lib/ediel/actors/parseActorRegistryXml.ts",
-      "lib/ediel/actors/importActorRegistry.ts"
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
     ],
     "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
     "blockers": [
@@ -1072,8 +1072,8 @@
     "owner": "actors_history",
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/ediel/actors/importActorRegistry.ts",
-      "app/(dashboard)/admin/ediel/actors/actions.ts",
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
       "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
       "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql"
     ],

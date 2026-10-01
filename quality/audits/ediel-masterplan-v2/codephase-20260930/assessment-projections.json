@@ -4,7 +4,7 @@
       "U-14"
     ],
     "owner": "matrix_projections",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "COORDINATION_BLOCKED",
     "code_paths": [
       "lib/ediel/utilts/positiveAckAuthority.ts",
       "lib/ediel/core/kernel.ts",
@@ -12,9 +12,16 @@
       "supabase/migrations/20260930143048_utilts_positive_ack_storage_authority.sql",
       "supabase/migrations/20260930150622_utilts_positive_ack_own_dm_scope.sql",
       "__tests__/ediel-utilts-positive-ack-authority.test.ts",
-      "scripts/ediel-utilts-err-gateway-native.test.ts"
+      "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200633_ediel_outbound_witness_ack_scope_and_time_guards.sql",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "scripts/generate-ediel-native-ack-guide-projection.cjs"
     ],
-    "confirmed_code_gap": "Baseline manual/canonical positive APERAK relied on runtime acceptance and had no durable accepted-series/contract reservation source authority. CREATE now verifies committed accepted storage; SEND requires exact immutable final ACK/own-IDE reservation binding. Malformed physical BGM312 profiles are held; every positive ACW is checked. Own ACK DM is distinct; DOC is source BGM. Genuine old/late accepted V1/V2 storage remains permitted without replacing current newer source.",
+    "confirmed_code_gap": "Baseline manual/canonical positive APERAK relied on runtime acceptance and had no durable accepted-series/contract reservation source authority. CREATE now verifies committed accepted storage; SEND requires exact immutable final ACK/own-IDE reservation binding. Malformed physical BGM312 profiles are held; every positive ACW is checked. Own ACK DM is distinct; DOC is source BGM. Genuine old/late accepted V1/V2 storage remains permitted without replacing current newer source. Independent native review found direct-RPC own ERC polarity/ACW group scope could contradict BGM312/313 and borrow sibling references. Coherent5bc80e73 CLI202616+204944 corrects native ownERC polarity/group membership with actual storage/planned/final and exact header-ownerfacet. The same source-generated guide checks real ERC/code/text/profile/physical source data. Integration/independent native-guide review is proceeding; no complete-code assertion until that actual chain review closes.",
     "blockers": [
       "Native actual storage/ACK/concurrency regression written but NOT RUN in this code phase. No production sending approval."
     ],
@@ -24,13 +31,16 @@
       "Own exact prohibited criterion: Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
       "Run native real positive consumer, actual stored ownDM≠DOC wire pair and direct source authority RPC.",
       "Native forged caller source/ACK bytes/tenant/ACW/uncommitted/final-failed reservation refusal before SMTP/archive/attempt.",
-      "Native V1 authentic existing retry and V2 exact decimal source storage both retain immutable accepted positive ACKs; old/late acceptance never changes newer series."
+      "Native V1 authentic existing retry and V2 exact decimal source storage both retain immutable accepted positive ACKs; old/late acceptance never changes newer series.",
+      "Own final native per-ERC-group positive/negative polarity cannot contradict312/313; every positiveACW has own accepted storage/reservation and uniqueDM; borrowed sibling scope rejected beforeatomic journal entry."
     ],
-    "assessment": "Fresh frozen U-14 and actual create/send source consumer paths checked against private receipts/contracts/public own reservations, including syntax before guide/function and per IDE scope. Focused TS26 tests passed; native proof pending.",
+    "assessment": "Fresh frozen U-14 and actual create/send source consumer paths checked against private receipts/contracts/public own reservations, including syntax before guide/function and per IDE scope. Focused TS26 tests passed; native proof pending. Forward193722+200633 actual one-use canonical owner seal and generic/H native CREATE/SEND reuse actual U14 durable storage authority. Focused embedded PostgreSQL41 checks include own ERC contradictions, missing group ACW, negative own planned/final reservations and authentic accepted replay. Boundary context/contract codecs declared fixtures; no native clean replay claim. Actual ownstorage/native guide focused harness42checksPASS; synthetic auth/header/codec boundaries declared. Shared canonical source projection --checkPASS with authorityc19. Full native migration/replay/source concurrency still NOT_RUN.",
     "commits": [
       "5aa5c85e",
       "40cb8adc",
-      "4b72225b"
+      "4b72225b",
+      "3c39d2fe",
+      "15f39e8b"
     ],
     "covered_rule_ids": [
       "U-14"
@@ -41,7 +51,7 @@
       "AT-U-14"
     ],
     "owner": "matrix_projections",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "COORDINATION_BLOCKED",
     "code_paths": [
       "lib/ediel/utilts/positiveAckAuthority.ts",
       "lib/ediel/core/kernel.ts",
@@ -49,9 +59,16 @@
       "supabase/migrations/20260930143048_utilts_positive_ack_storage_authority.sql",
       "supabase/migrations/20260930150622_utilts_positive_ack_own_dm_scope.sql",
       "__tests__/ediel-utilts-positive-ack-authority.test.ts",
-      "scripts/ediel-utilts-err-gateway-native.test.ts"
+      "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200633_ediel_outbound_witness_ack_scope_and_time_guards.sql",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "scripts/generate-ediel-native-ack-guide-projection.cjs"
     ],
-    "confirmed_code_gap": "Baseline manual/canonical positive APERAK relied on runtime acceptance and had no durable accepted-series/contract reservation source authority. CREATE now verifies committed accepted storage; SEND requires exact immutable final ACK/own-IDE reservation binding. Malformed physical BGM312 profiles are held; every positive ACW is checked. Own ACK DM is distinct; DOC is source BGM. Genuine old/late accepted V1/V2 storage remains permitted without replacing current newer source.",
+    "confirmed_code_gap": "Baseline manual/canonical positive APERAK relied on runtime acceptance and had no durable accepted-series/contract reservation source authority. CREATE now verifies committed accepted storage; SEND requires exact immutable final ACK/own-IDE reservation binding. Malformed physical BGM312 profiles are held; every positive ACW is checked. Own ACK DM is distinct; DOC is source BGM. Genuine old/late accepted V1/V2 storage remains permitted without replacing current newer source. Independent native review found direct-RPC own ERC polarity/ACW group scope could contradict BGM312/313 and borrow sibling references. Coherent5bc80e73 CLI202616+204944 corrects native ownERC polarity/group membership with actual storage/planned/final and exact header-ownerfacet. The same source-generated guide checks real ERC/code/text/profile/physical source data. Integration/independent native-guide review is proceeding; no complete-code assertion until that actual chain review closes.",
     "blockers": [
       "Native actual storage/ACK/concurrency regression written but NOT RUN in this code phase. No production sending approval."
     ],
@@ -61,13 +78,16 @@
       "Own exact prohibited criterion: Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
       "Run native real positive consumer, actual stored ownDM≠DOC wire pair and direct source authority RPC.",
       "Native forged caller source/ACK bytes/tenant/ACW/uncommitted/final-failed reservation refusal before SMTP/archive/attempt.",
-      "Native V1 authentic existing retry and V2 exact decimal source storage both retain immutable accepted positive ACKs; old/late acceptance never changes newer series."
+      "Native V1 authentic existing retry and V2 exact decimal source storage both retain immutable accepted positive ACKs; old/late acceptance never changes newer series.",
+      "Own final native per-ERC-group positive/negative polarity cannot contradict312/313; every positiveACW has own accepted storage/reservation and uniqueDM; borrowed sibling scope rejected beforeatomic journal entry."
     ],
-    "assessment": "Fresh frozen U-14 and actual create/send source consumer paths checked against private receipts/contracts/public own reservations, including syntax before guide/function and per IDE scope. Focused TS26 tests passed; native proof pending.",
+    "assessment": "Fresh frozen U-14 and actual create/send source consumer paths checked against private receipts/contracts/public own reservations, including syntax before guide/function and per IDE scope. Focused TS26 tests passed; native proof pending. Forward193722+200633 actual one-use canonical owner seal and generic/H native CREATE/SEND reuse actual U14 durable storage authority. Focused embedded PostgreSQL41 checks include own ERC contradictions, missing group ACW, negative own planned/final reservations and authentic accepted replay. Boundary context/contract codecs declared fixtures; no native clean replay claim. Actual ownstorage/native guide focused harness42checksPASS; synthetic auth/header/codec boundaries declared. Shared canonical source projection --checkPASS with authorityc19. Full native migration/replay/source concurrency still NOT_RUN.",
     "commits": [
       "5aa5c85e",
       "40cb8adc",
-      "4b72225b"
+      "4b72225b",
+      "3c39d2fe",
+      "15f39e8b"
     ],
     "covered_rule_ids": [
       "U-14"
@@ -392,7 +412,11 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
     "confirmed_code_gap": "Baseline typed context existed but could be unused authority. Prospective actual DB clock source persistence now captures own legal actor/profile/role and explicit transport representation immutably; no present-day historical identity reconstruction. Actual first-effect native supply/permission/UTILTS guards and generic provider entry are root/process/UTILTS coordinated integration pending. Authenticated prior immutable outcomes must return before fresh guards. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
     "blockers": [
@@ -406,7 +430,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Independent definition/type existence is not whole consumer completion; missing native first-effect guard integration remains concrete coordination work. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Independent definition/type existence is not whole consumer completion; missing native first-effect guard integration remains concrete coordination work. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Root actual new inbound syntax owner now precedes legaltenant resolution, records immutable endpoint/raw/common-syntax facet, creates only CONTRL through opaque protected port. Actual ACK/ordinary canonical creation seals original owner named snapshot atomically; full projection now comes from same seal. Source-only technical route DTO/RPC remains active authority package; normal all-negative UTILTS named source capture correction remains utility owner followup. Native source-specific accepted replay remains first. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -436,7 +460,11 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
     "confirmed_code_gap": "Baseline typed context existed but could be unused authority. Prospective actual DB clock source persistence now captures own legal actor/profile/role and explicit transport representation immutably; no present-day historical identity reconstruction. Actual first-effect native supply/permission/UTILTS guards and generic provider entry are root/process/UTILTS coordinated integration pending. Authenticated prior immutable outcomes must return before fresh guards. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
     "blockers": [
@@ -450,7 +478,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Independent definition/type existence is not whole consumer completion; missing native first-effect guard integration remains concrete coordination work. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Independent definition/type existence is not whole consumer completion; missing native first-effect guard integration remains concrete coordination work. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Root actual new inbound syntax owner now precedes legaltenant resolution, records immutable endpoint/raw/common-syntax facet, creates only CONTRL through opaque protected port. Actual ACK/ordinary canonical creation seals original owner named snapshot atomically; full projection now comes from same seal. Source-only technical route DTO/RPC remains active authority package; normal all-negative UTILTS named source capture correction remains utility owner followup. Native source-specific accepted replay remains first. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -487,7 +515,11 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
     "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
     "blockers": [
@@ -501,7 +533,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Root actual new inbound syntax owner now precedes legaltenant resolution, records immutable endpoint/raw/common-syntax facet, creates only CONTRL through opaque protected port. Actual ACK/ordinary canonical creation seals original owner named snapshot atomically; full projection now comes from same seal. Source-only technical route DTO/RPC remains active authority package; normal all-negative UTILTS named source capture correction remains utility owner followup. Native source-specific accepted replay remains first. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -538,7 +570,11 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
     "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
     "blockers": [
@@ -552,7 +588,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Root actual new inbound syntax owner now precedes legaltenant resolution, records immutable endpoint/raw/common-syntax facet, creates only CONTRL through opaque protected port. Actual ACK/ordinary canonical creation seals original owner named snapshot atomically; full projection now comes from same seal. Source-only technical route DTO/RPC remains active authority package; normal all-negative UTILTS named source capture correction remains utility owner followup. Native source-specific accepted replay remains first. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -585,7 +621,9 @@
       "lib/ediel/flows/inboundProcessing.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
       "lib/ediel/permissions/permissionMarketTransition.ts",
-      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
     "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending.",
     "blockers": [
@@ -598,7 +636,7 @@
       "Source trigger/given: A beställer Z03L. / Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör.",
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
     ],
-    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete.",
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -633,7 +671,9 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
     "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
     "blockers": [
@@ -647,7 +687,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -745,7 +785,9 @@
       "lib/ediel/flows/inboundProcessing.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
       "lib/ediel/permissions/permissionMarketTransition.ts",
-      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
     "confirmed_code_gap": "Common canonical source resolves DDQ supplier versus DGI ESCO business roles per physical BGM/reason and exact source APP; ordinary global actor default is not business authority. Supply versus permission source mutators admit distinct canonical codes and legal roles. Z14 cannot apply supply effects; Z04 cannot grant generic ESCO access. New immutable role basis guards strengthen direct SQL integration.",
     "blockers": [
@@ -757,7 +799,7 @@
       "Source trigger/given: A beställer Z03L. / Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör.",
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
     ],
-    "assessment": "Fresh exact role/App criterion reviewed; process transitions and actual dedicated service grant origination remain separately assessed by process/actors owners.",
+    "assessment": "Fresh exact role/App criterion reviewed; process transitions and actual dedicated service grant origination remain separately assessed by process/actors owners. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -934,9 +976,11 @@
       "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
       "lib/inbound-mail/inboundTenantResolver.ts",
       "lib/ediel/transport/tenantResolver.ts",
-      "lib/inbound-mail/edielInboundProcessor.ts"
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
-    "confirmed_code_gap": "Baseline existing company hint and generic business ref scoring could pick tenant without actual legal/transport/current role. Current own physical NAD+UNB decoded lookup verifies unique own legal/transport/current role; ACK original scope globally qualified before suppliedcompany check. Unknown/ambiguous source remains protected staging with no customer lookup guess; sealed existing company never rewritten.",
+    "confirmed_code_gap": "Baseline existing company hint and generic business ref scoring could pick tenant without actual legal/transport/current role. Current own physical NAD+UNB decoded lookup verifies unique own legal/transport/current role; ACK original scope globally qualified before suppliedcompany check. Unknown/ambiguous source remains protected staging with no customer lookup guess; sealed existing company never rewritten. Fresh commonP202 rootkernel routeconsumer Important remains: ordinaryactorresolver requires businessroles andgenericACKauto route ignores fullphysical original remote+APP whenselectingSMTPtarget. Root/authority allocated same protectedtechnicalroute reuse with exactlegalnamespace; freshnative guide also needs facade-owned exactoriginal registeredguide scope, not currentinstalledprojection alone.",
     "blockers": [
       "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
     ],
@@ -946,7 +990,7 @@
       "Source trigger/given: MIME/EDI behandlas. / Teknisk mottagning lyckas men legal/tenantkontext är oklar.",
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
     ],
-    "assessment": "Fresh actual source paths include mail ingest tenant resolver, direct Ediel core, raw UNA parser and protected unresolved queue; positive own current legal context/transport and wrong hint/shared legal ambiguity regressions passed.",
+    "assessment": "Fresh actual source paths include mail ingest tenant resolver, direct Ediel core, raw UNA parser and protected unresolved queue; positive own current legal context/transport and wrong hint/shared legal ambiguity regressions passed. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -976,9 +1020,13 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
-    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack. Fresh commonP202 rootkernel routeconsumer Important remains: ordinaryactorresolver requires businessroles andgenericACKauto route ignores fullphysical original remote+APP whenselectingSMTPtarget. Root/authority allocated same protectedtechnicalroute reuse with exactlegalnamespace; freshnative guide also needs facade-owned exactoriginal registeredguide scope, not currentinstalledprojection alone.",
     "blockers": [
       "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
       "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
@@ -990,7 +1038,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Root actual new inbound syntax owner now precedes legaltenant resolution, records immutable endpoint/raw/common-syntax facet, creates only CONTRL through opaque protected port. Actual ACK/ordinary canonical creation seals original owner named snapshot atomically; full projection now comes from same seal. Source-only technical route DTO/RPC remains active authority package; normal all-negative UTILTS named source capture correction remains utility owner followup. Native source-specific accepted replay remains first. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -1022,9 +1070,13 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql",
+      "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
-    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack. Fresh commonP202 rootkernel routeconsumer Important remains: ordinaryactorresolver requires businessroles andgenericACKauto route ignores fullphysical original remote+APP whenselectingSMTPtarget. Root/authority allocated same protectedtechnicalroute reuse with exactlegalnamespace; freshnative guide also needs facade-owned exactoriginal registeredguide scope, not currentinstalledprojection alone.",
     "blockers": [
       "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
       "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
@@ -1036,7 +1088,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Root actual new inbound syntax owner now precedes legaltenant resolution, records immutable endpoint/raw/common-syntax facet, creates only CONTRL through opaque protected port. Actual ACK/ordinary canonical creation seals original owner named snapshot atomically; full projection now comes from same seal. Source-only technical route DTO/RPC remains active authority package; normal all-negative UTILTS named source capture correction remains utility owner followup. Native source-specific accepted replay remains first. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -1064,9 +1116,11 @@
       "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
       "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
       "lib/ediel/flows/inboundProcessing.ts",
-      "lib/ediel/rulebook/mapEdielError.ts"
+      "lib/ediel/rulebook/mapEdielError.ts",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
-    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path.",
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. Fresh commonP202 rootkernel routeconsumer Important remains: ordinaryactorresolver requires businessroles andgenericACKauto route ignores fullphysical original remote+APP whenselectingSMTPtarget. Root/authority allocated same protectedtechnicalroute reuse with exactlegalnamespace; freshnative guide also needs facade-owned exactoriginal registeredguide scope, not currentinstalledprojection alone.",
     "blockers": [
       "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
       "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
@@ -1077,7 +1131,7 @@
       "Source trigger/given: MIME/EDI behandlas. / Teknisk mottagning lyckas men legal/tenantkontext är oklar.",
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
     ],
-    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure.",
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -1107,9 +1161,11 @@
       "lib/ediel/ack/technicalSyntaxAuthority.ts",
       "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
       "lib/ediel/core/outboundOwnerWitness.ts",
-      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql",
+      "supabase/migrations/20260930202616_ediel_native_aperak_own_erc_scope.sql",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql"
     ],
-    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack. Fresh commonP202 rootkernel routeconsumer Important remains: ordinaryactorresolver requires businessroles andgenericACKauto route ignores fullphysical original remote+APP whenselectingSMTPtarget. Root/authority allocated same protectedtechnicalroute reuse with exactlegalnamespace; freshnative guide also needs facade-owned exactoriginal registeredguide scope, not currentinstalledprojection alone.",
     "blockers": [
       "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
       "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
@@ -1121,7 +1177,7 @@
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
       "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
     ],
-    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper. Independent actual commonP202 native205320 protectedbinder/consume/journal scope reviewed: no open Critical/Important there, no businessprofile inferred. Actual source-only technical/common consumer integration and ERR source owner sidecar are separate in-progress scopes.",
     "commits": [
       "caed7dd9",
       "ec262944",
@@ -3024,6 +3080,405 @@
       "68a643b3",
       "5efd8124",
       "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-05"
+    ],
+    "owner": "matrix_projections_native_err",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/ack.ts",
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+      "supabase/migrations/20260930214323_ediel_native_utilts_err_own_functional_source_authority.sql",
+      "supabase/migrations/20260930212911_ediel_utilts_canonical_functional_response_facets.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs",
+      "supabase/migrations/20260930220632_ediel_native_utilts_err_explicit_own_response_scope.sql",
+      "lib/ediel/utilts/errSourceCopy.ts"
+    ],
+    "confirmed_code_gap": "Actual TS functional ERR builder/source scoping is implemented, but native direct owner witness/CREATE/provider RPC currently lacks a shared full ERR guide and exact national reason from actual latest committed own-IDE functional facet. Internal issueCodes are diagnostic IDs and cannot prove physical national STS reason. A direct native caller could choose unsupported/incorrect national ERR code or source transaction despite otherwise valid raw metadata. Utility is adding actual runtime.ackPlan.utiltsErrDetails immutable functional sidecar, authority a same-consumer frozen-source ERR constraints port, and this owner the source-generated native guide/own functional facet consumer. Independent work proceeds; this is feasible code work, not a historical NOT_VERIFIED inference. Native ownfunctional first-effect support nowimplemented af0d22b2/CLI214323 over real utility212911 agreedgetter;62focusedSQL checks PASS (actualfunctional sourcefacet/auth callbacks explicit separately-tested boundaries). Actual full ERR nationalguide/source-copy/precise originalguide scope port and root integration still in progress; remainingcode status retained until those complete. Sharedphysical renderer sourceIDE punctuation/70-value correction b4f8b7e8 is implemented byutility, not broadverified. Explicit global functional originalScope=NULL versus physical own responseReference support is now implemented in 50417b1b/new CLI220632;70focusedSQL boundary checks PASS. Actual utility V4 protected own issueCodes/getter dependency in progress; shared full ERR guide/copy and registered originalguide qualification remain independent code work.",
+    "verification_gap": "Full candidate native mixed IDE, direct RPC, replay/immutable accepted outcomes, browser/E2E and manual proof NOT_RUN. Existing SC044 formal historical ledger status preserved as its dated original proof, not completion of this new native component.",
+    "blockers": [
+      "Coordination dependency: utility actual functional sidecar/getter and authority shared ERR constraints port, both allocated and proceeding."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Godkänd anvisningskontroll men funktionsfel",
+      "Own exact expected criterion: Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak.",
+      "Own exact prohibited criterion: Skapa inte ERR på ERR eller APERAK på APERAK.",
+      "Native true own accepted-guide/processability-rejected transaction ERR binds exact actualnationalcode/fullphysical TN/ACW/DOC/originaltype and STS41; reject wrong IDE, borrowed sibling/global code, invented E-code or ERR-on-ERR; old established exact outcome replay remains immutable."
+    ],
+    "assessment": "Fresh independent native chain assessment found this direct-RPC consumer gap; no rulelink or old proof status was used as defect evidence. Actual ACK05 source copy field matrix pp66–68 freshreview confirmed optional-present ownLOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1/DTM324/STS7 omitted byoldactualrenderer. Utility allocated sameown copyport+renderer; native same-consumer derivative follows, no inferredcode readiness.",
+    "package": "Native shared ACK/ERR guide and immutable source facets",
+    "dependencies": [
+      "actual canonical ERR constraints owner",
+      "utility functional sidecar",
+      "root actual seal/SMTP consumers"
+    ],
+    "integration_owner": "root"
+  },
+  {
+    "ids": [
+      "AT-ACK-05"
+    ],
+    "owner": "matrix_projections_native_err",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/ack.ts",
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+      "supabase/migrations/20260930214323_ediel_native_utilts_err_own_functional_source_authority.sql",
+      "supabase/migrations/20260930212911_ediel_utilts_canonical_functional_response_facets.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs",
+      "supabase/migrations/20260930220632_ediel_native_utilts_err_explicit_own_response_scope.sql",
+      "lib/ediel/utilts/errSourceCopy.ts"
+    ],
+    "confirmed_code_gap": "Actual TS functional ERR builder/source scoping is implemented, but native direct owner witness/CREATE/provider RPC currently lacks a shared full ERR guide and exact national reason from actual latest committed own-IDE functional facet. Internal issueCodes are diagnostic IDs and cannot prove physical national STS reason. A direct native caller could choose unsupported/incorrect national ERR code or source transaction despite otherwise valid raw metadata. Utility is adding actual runtime.ackPlan.utiltsErrDetails immutable functional sidecar, authority a same-consumer frozen-source ERR constraints port, and this owner the source-generated native guide/own functional facet consumer. Independent work proceeds; this is feasible code work, not a historical NOT_VERIFIED inference. Native ownfunctional first-effect support nowimplemented af0d22b2/CLI214323 over real utility212911 agreedgetter;62focusedSQL checks PASS (actualfunctional sourcefacet/auth callbacks explicit separately-tested boundaries). Actual full ERR nationalguide/source-copy/precise originalguide scope port and root integration still in progress; remainingcode status retained until those complete. Sharedphysical renderer sourceIDE punctuation/70-value correction b4f8b7e8 is implemented byutility, not broadverified. Explicit global functional originalScope=NULL versus physical own responseReference support is now implemented in 50417b1b/new CLI220632;70focusedSQL boundary checks PASS. Actual utility V4 protected own issueCodes/getter dependency in progress; shared full ERR guide/copy and registered originalguide qualification remain independent code work.",
+    "verification_gap": "Full candidate native mixed IDE, direct RPC, replay/immutable accepted outcomes, browser/E2E and manual proof NOT_RUN. Existing SC044 formal historical ledger status preserved as its dated original proof, not completion of this new native component.",
+    "blockers": [
+      "Coordination dependency: utility actual functional sidecar/getter and authority shared ERR constraints port, both allocated and proceeding."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Godkänd anvisningskontroll men funktionsfel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "Own exact expected criterion: Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
+      "Own exact prohibited criterion: Skapa inte ERR på ERR eller APERAK på APERAK.",
+      "Native true own accepted-guide/processability-rejected transaction ERR binds exact actualnationalcode/fullphysical TN/ACW/DOC/originaltype and STS41; reject wrong IDE, borrowed sibling/global code, invented E-code or ERR-on-ERR; old established exact outcome replay remains immutable."
+    ],
+    "assessment": "Fresh independent native chain assessment found this direct-RPC consumer gap; no rulelink or old proof status was used as defect evidence. Actual ACK05 source copy field matrix pp66–68 freshreview confirmed optional-present ownLOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1/DTM324/STS7 omitted byoldactualrenderer. Utility allocated sameown copyport+renderer; native same-consumer derivative follows, no inferredcode readiness.",
+    "package": "Native shared ACK/ERR guide and immutable source facets",
+    "dependencies": [
+      "actual canonical ERR constraints owner",
+      "utility functional sidecar",
+      "root actual seal/SMTP consumers"
+    ],
+    "integration_owner": "root"
+  },
+  {
+    "ids": [
+      "ACK-08"
+    ],
+    "owner": "matrix_projections_native_err",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/ack.ts",
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+      "supabase/migrations/20260930214323_ediel_native_utilts_err_own_functional_source_authority.sql",
+      "supabase/migrations/20260930212911_ediel_utilts_canonical_functional_response_facets.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs",
+      "supabase/migrations/20260930220632_ediel_native_utilts_err_explicit_own_response_scope.sql",
+      "lib/ediel/utilts/errSourceCopy.ts"
+    ],
+    "confirmed_code_gap": "Actual TS functional ERR builder/source scoping is implemented, but native direct owner witness/CREATE/provider RPC currently lacks a shared full ERR guide and exact national reason from actual latest committed own-IDE functional facet. Internal issueCodes are diagnostic IDs and cannot prove physical national STS reason. A direct native caller could choose unsupported/incorrect national ERR code or source transaction despite otherwise valid raw metadata. Utility is adding actual runtime.ackPlan.utiltsErrDetails immutable functional sidecar, authority a same-consumer frozen-source ERR constraints port, and this owner the source-generated native guide/own functional facet consumer. Independent work proceeds; this is feasible code work, not a historical NOT_VERIFIED inference. Native ownfunctional first-effect support nowimplemented af0d22b2/CLI214323 over real utility212911 agreedgetter;62focusedSQL checks PASS (actualfunctional sourcefacet/auth callbacks explicit separately-tested boundaries). Actual full ERR nationalguide/source-copy/precise originalguide scope port and root integration still in progress; remainingcode status retained until those complete. Sharedphysical renderer sourceIDE punctuation/70-value correction b4f8b7e8 is implemented byutility, not broadverified. Explicit global functional originalScope=NULL versus physical own responseReference support is now implemented in 50417b1b/new CLI220632;70focusedSQL boundary checks PASS. Actual utility V4 protected own issueCodes/getter dependency in progress; shared full ERR guide/copy and registered originalguide qualification remain independent code work.",
+    "verification_gap": "Full candidate native mixed IDE, direct RPC, replay/immutable accepted outcomes, browser/E2E and manual proof NOT_RUN. Existing SC044 formal historical ledger status preserved as its dated original proof, not completion of this new native component.",
+    "blockers": [
+      "Coordination dependency: utility actual functional sidecar/getter and authority shared ERR constraints port, both allocated and proceeding."
+    ],
+    "planned_tests": [
+      "Own literal trigger: En del är fel",
+      "Own exact expected criterion: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+      "Own exact prohibited criterion: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Native true own accepted-guide/processability-rejected transaction ERR binds exact actualnationalcode/fullphysical TN/ACW/DOC/originaltype and STS41; reject wrong IDE, borrowed sibling/global code, invented E-code or ERR-on-ERR; old established exact outcome replay remains immutable."
+    ],
+    "assessment": "Fresh independent native chain assessment found this direct-RPC consumer gap; no rulelink or old proof status was used as defect evidence. Actual ACK05 source copy field matrix pp66–68 freshreview confirmed optional-present ownLOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1/DTM324/STS7 omitted byoldactualrenderer. Utility allocated sameown copyport+renderer; native same-consumer derivative follows, no inferredcode readiness.",
+    "package": "Native shared ACK/ERR guide and immutable source facets",
+    "dependencies": [
+      "actual canonical ERR constraints owner",
+      "utility functional sidecar",
+      "root actual seal/SMTP consumers"
+    ],
+    "integration_owner": "root"
+  },
+  {
+    "ids": [
+      "AT-ACK-08"
+    ],
+    "owner": "matrix_projections_native_err",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/ack.ts",
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+      "supabase/migrations/20260930214323_ediel_native_utilts_err_own_functional_source_authority.sql",
+      "supabase/migrations/20260930212911_ediel_utilts_canonical_functional_response_facets.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs",
+      "supabase/migrations/20260930220632_ediel_native_utilts_err_explicit_own_response_scope.sql",
+      "lib/ediel/utilts/errSourceCopy.ts"
+    ],
+    "confirmed_code_gap": "Actual TS functional ERR builder/source scoping is implemented, but native direct owner witness/CREATE/provider RPC currently lacks a shared full ERR guide and exact national reason from actual latest committed own-IDE functional facet. Internal issueCodes are diagnostic IDs and cannot prove physical national STS reason. A direct native caller could choose unsupported/incorrect national ERR code or source transaction despite otherwise valid raw metadata. Utility is adding actual runtime.ackPlan.utiltsErrDetails immutable functional sidecar, authority a same-consumer frozen-source ERR constraints port, and this owner the source-generated native guide/own functional facet consumer. Independent work proceeds; this is feasible code work, not a historical NOT_VERIFIED inference. Native ownfunctional first-effect support nowimplemented af0d22b2/CLI214323 over real utility212911 agreedgetter;62focusedSQL checks PASS (actualfunctional sourcefacet/auth callbacks explicit separately-tested boundaries). Actual full ERR nationalguide/source-copy/precise originalguide scope port and root integration still in progress; remainingcode status retained until those complete. Sharedphysical renderer sourceIDE punctuation/70-value correction b4f8b7e8 is implemented byutility, not broadverified. Explicit global functional originalScope=NULL versus physical own responseReference support is now implemented in 50417b1b/new CLI220632;70focusedSQL boundary checks PASS. Actual utility V4 protected own issueCodes/getter dependency in progress; shared full ERR guide/copy and registered originalguide qualification remain independent code work.",
+    "verification_gap": "Full candidate native mixed IDE, direct RPC, replay/immutable accepted outcomes, browser/E2E and manual proof NOT_RUN. Existing SC044 formal historical ledger status preserved as its dated original proof, not completion of this new native component.",
+    "blockers": [
+      "Coordination dependency: utility actual functional sidecar/getter and authority shared ERR constraints port, both allocated and proceeding."
+    ],
+    "planned_tests": [
+      "Own literal trigger: En del är fel – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "Own exact expected criterion: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Own exact prohibited criterion: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Native true own accepted-guide/processability-rejected transaction ERR binds exact actualnationalcode/fullphysical TN/ACW/DOC/originaltype and STS41; reject wrong IDE, borrowed sibling/global code, invented E-code or ERR-on-ERR; old established exact outcome replay remains immutable."
+    ],
+    "assessment": "Fresh independent native chain assessment found this direct-RPC consumer gap; no rulelink or old proof status was used as defect evidence. Actual ACK05 source copy field matrix pp66–68 freshreview confirmed optional-present ownLOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1/DTM324/STS7 omitted byoldactualrenderer. Utility allocated sameown copyport+renderer; native same-consumer derivative follows, no inferredcode readiness.",
+    "package": "Native shared ACK/ERR guide and immutable source facets",
+    "dependencies": [
+      "actual canonical ERR constraints owner",
+      "utility functional sidecar",
+      "root actual seal/SMTP consumers"
+    ],
+    "integration_owner": "root"
+  },
+  {
+    "ids": [
+      "SC-044"
+    ],
+    "owner": "matrix_projections_native_err",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/ack.ts",
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+      "supabase/migrations/20260930214323_ediel_native_utilts_err_own_functional_source_authority.sql",
+      "supabase/migrations/20260930212911_ediel_utilts_canonical_functional_response_facets.sql",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs",
+      "supabase/migrations/20260930220632_ediel_native_utilts_err_explicit_own_response_scope.sql",
+      "lib/ediel/utilts/errSourceCopy.ts"
+    ],
+    "confirmed_code_gap": "Actual TS functional ERR builder/source scoping is implemented, but native direct owner witness/CREATE/provider RPC currently lacks a shared full ERR guide and exact national reason from actual latest committed own-IDE functional facet. Internal issueCodes are diagnostic IDs and cannot prove physical national STS reason. A direct native caller could choose unsupported/incorrect national ERR code or source transaction despite otherwise valid raw metadata. Utility is adding actual runtime.ackPlan.utiltsErrDetails immutable functional sidecar, authority a same-consumer frozen-source ERR constraints port, and this owner the source-generated native guide/own functional facet consumer. Independent work proceeds; this is feasible code work, not a historical NOT_VERIFIED inference. Native ownfunctional first-effect support nowimplemented af0d22b2/CLI214323 over real utility212911 agreedgetter;62focusedSQL checks PASS (actualfunctional sourcefacet/auth callbacks explicit separately-tested boundaries). Actual full ERR nationalguide/source-copy/precise originalguide scope port and root integration still in progress; remainingcode status retained until those complete. Sharedphysical renderer sourceIDE punctuation/70-value correction b4f8b7e8 is implemented byutility, not broadverified. Explicit global functional originalScope=NULL versus physical own responseReference support is now implemented in 50417b1b/new CLI220632;70focusedSQL boundary checks PASS. Actual utility V4 protected own issueCodes/getter dependency in progress; shared full ERR guide/copy and registered originalguide qualification remain independent code work.",
+    "verification_gap": "Full candidate native mixed IDE, direct RPC, replay/immutable accepted outcomes, browser/E2E and manual proof NOT_RUN. Existing SC044 formal historical ledger status preserved as its dated original proof, not completion of this new native component.",
+    "blockers": [
+      "Coordination dependency: utility actual functional sidecar/getter and authority shared ERR constraints port, both allocated and proceeding."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Kör hela kontrollkedjan.",
+      "Own exact expected criterion: IDE 1 lagras och får positiv APERAK. IDE 2 får negativ APERAK. IDE 3 får UTILTS-ERR enligt tillämplig orsak.",
+      "Own exact prohibited criterion: En global klassificering får inte ersätta IDE 2:s anvisningsfel med ett senare funktionsfel.",
+      "Native true own accepted-guide/processability-rejected transaction ERR binds exact actualnationalcode/fullphysical TN/ACW/DOC/originaltype and STS41; reject wrong IDE, borrowed sibling/global code, invented E-code or ERR-on-ERR; old established exact outcome replay remains immutable."
+    ],
+    "assessment": "Fresh independent native chain assessment found this direct-RPC consumer gap; no rulelink or old proof status was used as defect evidence. Actual ACK05 source copy field matrix pp66–68 freshreview confirmed optional-present ownLOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1/DTM324/STS7 omitted byoldactualrenderer. Utility allocated sameown copyport+renderer; native same-consumer derivative follows, no inferredcode readiness.",
+    "package": "Native shared ACK/ERR guide and immutable source facets",
+    "dependencies": [
+      "actual canonical ERR constraints owner",
+      "utility functional sidecar",
+      "root actual seal/SMTP consumers"
+    ],
+    "integration_owner": "root"
+  },
+  {
+    "ids": [
+      "AI-01"
+    ],
+    "owner": "matrix_projections_ai_finalizer",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "app/admin/ediel/actions.part-4.ts"
+    ],
+    "confirmed_code_gap": "Fresh actual-consumer review: canonical outbound finalizer currently sends AI CSV through ordinary EDIFACT outbound-owner witness preparation. The actual separate Ver20140401 semicolon CSV source has no EDIFACT UNH/BGM/named business-pack witness, so legitimate prepared AI requests are held before actual creation/send. Independent source history and strict AI parser support do not close this actual integration gap. Root allocated a prospective AI technical source port to prodat and actual kernel/native-consumer wiring to root; no caller boolean or fabricated EDIFACT witness is permitted.",
+    "verification_gap": "Full literal candidate integration/native/replay/browser/manual tests NOT_RUN. Frozen original acceptance execution_status unchanged.",
+    "blockers": [
+      "Coordination: source-owned prospective AI technical witness and actual finalizer/native INSERT/provider consumer hook are allocated and in progress."
+    ],
+    "planned_tests": [
+      "Source technical CSV capability reaches actual native finalizer with its own qualified technical source witness, not an EDIFACT named-pack witness.",
+      "Export period projection stays exact and source-bound through prepare/API/native INSERT/outbox/provider.",
+      "Actual strict CSV source/request scope through canonical finalizer reaches independent AI INSERT/outbox/native provider path; forged request/version/source hash/country/role rejected before first effect."
+    ],
+    "assessment": "Fresh actual kernel prepareEdielOutboundOwnerWitness invocation compared with AI_LIST_SOURCE_PROFILE and AI request intent. AI historical/legal/retention external blockers remain separate owner components; current code gap is feasible and does not disappear beneath external status.",
+    "package": "api_ui_manual_readiness",
+    "dependencies": [
+      "prodat AI prospective technical source port",
+      "root AI canonical finalizer integration"
+    ],
+    "integration_owner": "/root",
+    "covered_rule_ids": [
+      "AI-01",
+      "AI-03"
+    ]
+  },
+  {
+    "ids": [
+      "AI-03"
+    ],
+    "owner": "matrix_projections_ai_finalizer",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "app/admin/ediel/actions.part-4.ts"
+    ],
+    "confirmed_code_gap": "Fresh actual-consumer review: canonical outbound finalizer currently sends AI CSV through ordinary EDIFACT outbound-owner witness preparation. The actual separate Ver20140401 semicolon CSV source has no EDIFACT UNH/BGM/named business-pack witness, so legitimate prepared AI requests are held before actual creation/send. Independent source history and strict AI parser support do not close this actual integration gap. Root allocated a prospective AI technical source port to prodat and actual kernel/native-consumer wiring to root; no caller boolean or fabricated EDIFACT witness is permitted.",
+    "verification_gap": "Full literal candidate integration/native/replay/browser/manual tests NOT_RUN. Frozen original acceptance execution_status unchanged.",
+    "blockers": [
+      "Coordination: source-owned prospective AI technical witness and actual finalizer/native INSERT/provider consumer hook are allocated and in progress."
+    ],
+    "planned_tests": [
+      "Source technical CSV capability reaches actual native finalizer with its own qualified technical source witness, not an EDIFACT named-pack witness.",
+      "Export period projection stays exact and source-bound through prepare/API/native INSERT/outbox/provider.",
+      "Actual strict CSV source/request scope through canonical finalizer reaches independent AI INSERT/outbox/native provider path; forged request/version/source hash/country/role rejected before first effect."
+    ],
+    "assessment": "Fresh actual kernel prepareEdielOutboundOwnerWitness invocation compared with AI_LIST_SOURCE_PROFILE and AI request intent. AI historical/legal/retention external blockers remain separate owner components; current code gap is feasible and does not disappear beneath external status.",
+    "package": "api_ui_manual_readiness",
+    "dependencies": [
+      "prodat AI prospective technical source port",
+      "root AI canonical finalizer integration"
+    ],
+    "integration_owner": "/root",
+    "covered_rule_ids": [
+      "AI-01",
+      "AI-03"
+    ]
+  },
+  {
+    "ids": [
+      "AT-AI-01"
+    ],
+    "owner": "matrix_projections_ai_finalizer",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "app/admin/ediel/actions.part-4.ts"
+    ],
+    "confirmed_code_gap": "Fresh actual-consumer review: canonical outbound finalizer currently sends AI CSV through ordinary EDIFACT outbound-owner witness preparation. The actual separate Ver20140401 semicolon CSV source has no EDIFACT UNH/BGM/named business-pack witness, so legitimate prepared AI requests are held before actual creation/send. Independent source history and strict AI parser support do not close this actual integration gap. Root allocated a prospective AI technical source port to prodat and actual kernel/native-consumer wiring to root; no caller boolean or fabricated EDIFACT witness is permitted.",
+    "verification_gap": "Full literal candidate integration/native/replay/browser/manual tests NOT_RUN. Frozen original acceptance execution_status unchanged.",
+    "blockers": [
+      "Coordination: source-owned prospective AI technical witness and actual finalizer/native INSERT/provider consumer hook are allocated and in progress."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Fil skapas eller läses – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "Own exact expected criterion: Använd separat semikolonformat Ver20140401, CSV från 2025-10-01 och huvud med nätföretag först/elhandelsföretag sedan. → Identifiera format och behörig avstämningsomfattning före bearbetning.",
+      "Own exact prohibited criterion: Skapa inte EDIFACT-kvittenser på en AI-fil.",
+      "Actual strict CSV source/request scope through canonical finalizer reaches independent AI INSERT/outbox/native provider path; forged request/version/source hash/country/role rejected before first effect."
+    ],
+    "assessment": "Fresh actual kernel prepareEdielOutboundOwnerWitness invocation compared with AI_LIST_SOURCE_PROFILE and AI request intent. AI historical/legal/retention external blockers remain separate owner components; current code gap is feasible and does not disappear beneath external status.",
+    "package": "api_ui_manual_readiness",
+    "dependencies": [
+      "prodat AI prospective technical source port",
+      "root AI canonical finalizer integration"
+    ],
+    "integration_owner": "/root",
+    "covered_rule_ids": [
+      "AI-01",
+      "AI-03"
+    ]
+  },
+  {
+    "ids": [
+      "AT-AI-03"
+    ],
+    "owner": "matrix_projections_ai_finalizer",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "app/admin/ediel/actions.part-4.ts"
+    ],
+    "confirmed_code_gap": "Fresh actual-consumer review: canonical outbound finalizer currently sends AI CSV through ordinary EDIFACT outbound-owner witness preparation. The actual separate Ver20140401 semicolon CSV source has no EDIFACT UNH/BGM/named business-pack witness, so legitimate prepared AI requests are held before actual creation/send. Independent source history and strict AI parser support do not close this actual integration gap. Root allocated a prospective AI technical source port to prodat and actual kernel/native-consumer wiring to root; no caller boolean or fabricated EDIFACT witness is permitted.",
+    "verification_gap": "Full literal candidate integration/native/replay/browser/manual tests NOT_RUN. Frozen original acceptance execution_status unchanged.",
+    "blockers": [
+      "Coordination: source-owned prospective AI technical witness and actual finalizer/native INSERT/provider consumer hook are allocated and in progress."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Historik projiceras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "Own exact expected criterion: Ta med alla relevanta anläggningar under [från,till). Delperioder och strukturändringar ger flera detaljrader. → Sortera objektrader i tid med tomt från först och tomt till sist. Skilj sökperiod från detaljens giltighet.",
+      "Own exact prohibited criterion: Endast dagens aktiva objekt eller ett enda värde per kund är inte tillräckligt.",
+      "Actual strict CSV source/request scope through canonical finalizer reaches independent AI INSERT/outbox/native provider path; forged request/version/source hash/country/role rejected before first effect."
+    ],
+    "assessment": "Fresh actual kernel prepareEdielOutboundOwnerWitness invocation compared with AI_LIST_SOURCE_PROFILE and AI request intent. AI historical/legal/retention external blockers remain separate owner components; current code gap is feasible and does not disappear beneath external status.",
+    "package": "api_ui_manual_readiness",
+    "dependencies": [
+      "prodat AI prospective technical source port",
+      "root AI canonical finalizer integration"
+    ],
+    "integration_owner": "/root",
+    "covered_rule_ids": [
+      "AI-01",
+      "AI-03"
+    ]
+  },
+  {
+    "ids": [
+      "SC-065"
+    ],
+    "owner": "matrix_projections_ai_finalizer",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "app/admin/ediel/actions.part-4.ts"
+    ],
+    "confirmed_code_gap": "Fresh actual-consumer review: canonical outbound finalizer currently sends AI CSV through ordinary EDIFACT outbound-owner witness preparation. The actual separate Ver20140401 semicolon CSV source has no EDIFACT UNH/BGM/named business-pack witness, so legitimate prepared AI requests are held before actual creation/send. Independent source history and strict AI parser support do not close this actual integration gap. Root allocated a prospective AI technical source port to prodat and actual kernel/native-consumer wiring to root; no caller boolean or fabricated EDIFACT witness is permitted.",
+    "verification_gap": "Full literal candidate integration/native/replay/browser/manual tests NOT_RUN. Frozen original acceptance execution_status unchanged.",
+    "blockers": [
+      "Coordination: source-owned prospective AI technical witness and actual finalizer/native INSERT/provider consumer hook are allocated and in progress."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Bygg AI-listans CSV.",
+      "Own exact expected criterion: Nätföretaget står först i huvudet. De sex leverantörstomma fälten lämnas tomma. Rätt kundidentitet, namn och avslutande semikolon används.",
+      "Own exact prohibited criterion: Inga interna UUID som GSRN och inget generiskt energiprodukt-id som tidsserieprodukt.",
+      "Actual strict CSV source/request scope through canonical finalizer reaches independent AI INSERT/outbox/native provider path; forged request/version/source hash/country/role rejected before first effect."
+    ],
+    "assessment": "Fresh actual kernel prepareEdielOutboundOwnerWitness invocation compared with AI_LIST_SOURCE_PROFILE and AI request intent. AI historical/legal/retention external blockers remain separate owner components; current code gap is feasible and does not disappear beneath external status.",
+    "package": "api_ui_manual_readiness",
+    "dependencies": [
+      "prodat AI prospective technical source port",
+      "root AI canonical finalizer integration"
+    ],
+    "integration_owner": "/root",
+    "covered_rule_ids": [
+      "AI-01",
+      "AI-03"
+    ]
+  },
+  {
+    "ids": [
+      "SC-066"
+    ],
+    "owner": "matrix_projections_ai_finalizer",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "app/admin/ediel/actions.part-4.ts"
+    ],
+    "confirmed_code_gap": "Fresh actual-consumer review: canonical outbound finalizer currently sends AI CSV through ordinary EDIFACT outbound-owner witness preparation. The actual separate Ver20140401 semicolon CSV source has no EDIFACT UNH/BGM/named business-pack witness, so legitimate prepared AI requests are held before actual creation/send. Independent source history and strict AI parser support do not close this actual integration gap. Root allocated a prospective AI technical source port to prodat and actual kernel/native-consumer wiring to root; no caller boolean or fabricated EDIFACT witness is permitted.",
+    "verification_gap": "Full literal candidate integration/native/replay/browser/manual tests NOT_RUN. Frozen original acceptance execution_status unchanged.",
+    "blockers": [
+      "Coordination: source-owned prospective AI technical witness and actual finalizer/native INSERT/provider consumer hook are allocated and in progress."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Exportera perioduppgifterna och läs in avstämningen.",
+      "Own exact expected criterion: Rätt detaljrader och giltighetsperioder. Avvikelser leder till utredning.",
+      "Own exact prohibited criterion: Ingen automatisk överskrivning av grunddata från AI-listan.",
+      "Actual strict CSV source/request scope through canonical finalizer reaches independent AI INSERT/outbox/native provider path; forged request/version/source hash/country/role rejected before first effect."
+    ],
+    "assessment": "Fresh actual kernel prepareEdielOutboundOwnerWitness invocation compared with AI_LIST_SOURCE_PROFILE and AI request intent. AI historical/legal/retention external blockers remain separate owner components; current code gap is feasible and does not disappear beneath external status.",
+    "package": "api_ui_manual_readiness",
+    "dependencies": [
+      "prodat AI prospective technical source port",
+      "root AI canonical finalizer integration"
+    ],
+    "integration_owner": "/root",
+    "covered_rule_ids": [
+      "AI-01",
+      "AI-03"
     ]
   }
 ]
