@@ -38,6 +38,10 @@ try{
  const header=file('20260930205320_ediel_prodat_common_header_rejection_authority.sql'),a=header.indexOf('CREATE OR REPLACE FUNCTION gridex_ediel_transport.mutate_before_positive_storage_v1'),b=header.indexOf('$$;',a)+3
  await db.exec(header.slice(a,b));await db.exec(`CREATE FUNCTION gridex_ediel_transport.mutate_v1(i jsonb)RETURNS jsonb LANGUAGE sql AS $$SELECT gridex_ediel_transport.mutate_before_positive_storage_v1(i)$$;`)
  await db.exec(`CREATE FUNCTION gridex_ediel_transport.accepted_source_basis_v1(public.ediel_messages)RETURNS jsonb LANGUAGE sql AS $$SELECT NULL::jsonb$$;`);await db.exec(file('20261001061029_ediel_prodat_recovery_execution_phase_authority.sql'));checks++
+ // Compose the new common bridge with an explicit source-only boundary. Real
+ // service source factoring is tested separately in the 62832 owner harness.
+ await db.exec(`CREATE FUNCTION gridex_service_permission.require_original_source_current_v1(c uuid,m uuid) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$BEGIN IF EXISTS(SELECT FROM public.declared_service_source WHERE message_id=m AND NOT current) THEN RAISE EXCEPTION 'current_service_origin_held';END IF;END$$;CREATE OR REPLACE FUNCTION gridex_service_permission.require_original_current_v1(c uuid,m uuid) RETURNS void LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'historical_editor_requires_write';END$$;`)
+ await db.exec(file('20261001065415_ediel_recovery_current_service_source_bridge.sql'));checks++
  // Restore the authentic public service reader wrapper on new private delegate.
  await db.exec(fn('public.ediel_prodat_recovery_original_basis_v1','20260930181909_ediel_source_consumer_authority_bridges.sql'))
  await db.query('INSERT INTO public.companies VALUES($1)',[id(1)])
