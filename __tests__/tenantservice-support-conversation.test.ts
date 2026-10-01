@@ -234,8 +234,17 @@ describe('OPS adapters', () => {
     expect(actions).toContain('expected_company_id')
     expect(actions.match(/assertFormTenant\(/g)?.length).toBeGreaterThanOrEqual(3)
   })
-  it('API handlers are not mounted as undocumented public routes before the OpenAPI release', async () => {
-    const { existsSync } = await import('node:fs')
-    expect(existsSync('app/api/v1/customer/support')).toBe(false)
+  it('API routes are thin adapters mounted with the 2026-10-01.1 contract release', async () => {
+    const route = readFileSync('app/api/v1/customer/support/cases/route.ts', 'utf8')
+    expect(route).toContain("from '@/lib/customer-service/supportApiHandlers'")
+    const spec = JSON.parse(readFileSync('docs/openapi/customer-portal-v1.json', 'utf8'))
+    expect(spec.info.version).toBe('2026-10-01.1')
+    expect(Object.keys(spec.paths)).toEqual(expect.arrayContaining([
+      '/api/v1/customer/support/cases',
+      '/api/v1/customer/support/cases/{reference}',
+      '/api/v1/customer/support/cases/{reference}/messages',
+    ]))
+    const serialized = JSON.stringify(spec.components.schemas.CustomerSupportMessage)
+    expect(serialized).not.toContain('internal')
   })
 })

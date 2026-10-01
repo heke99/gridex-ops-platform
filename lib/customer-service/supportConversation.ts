@@ -113,7 +113,7 @@ export function publicSupportCase(row: SupportCaseRow) {
     channel: typeof metadata.support_channel === 'string' ? metadata.support_channel : null,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    resolved_at: row.resolved_at,
+    resolved_at: row.resolved_at ?? null,
   }
 }
 

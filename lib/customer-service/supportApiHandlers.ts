@@ -1,9 +1,7 @@
 /**
  * Customer support API handlers (tenant portal → OPS support cases).
  *
- * Not yet mounted as public routes: the public API surface is release-locked by the versioned
- * OpenAPI contract. The route files under app/api/v1/customer/support/** are added together with
- * the next OpenAPI release (tenantservice P6), so no undocumented endpoint is reachable.
+ * Mounted at app/api/v1/customer/support/cases/** (contract release 2026-10-01.1).
  */
 import { NextRequest } from 'next/server'
 import { executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'

@@ -186,3 +186,36 @@
 - Browser verification on mobile and with the keyboard (needs a running app with a DB; blocked in this session).
 
 **Pre-existing red script on base (not caused here):** `scripts/gridex-customer-operation-events-regression.cjs`.
+
+## P6 (contract release 2026-10-01.1)
+**Release:**
+- `scripts/release-openapi-2026-10-01.1.cjs` is deterministic and re-runnable. It:
+  - bumps the version in both specs;
+  - keeps the 2026-08-22.2 catalogue entry unchanged and adds 2026-10-01.1;
+  - adds the support operations with closed schemas.
+- `npm run api:materialize` produced the immutable artefacts and routes. Nothing was edited by hand.
+- New routes are mounted as thin adapters to `lib/customer-service/supportApiHandlers.ts`. The registry has 76 routes, with OpenAPI/runtime parity.
+- Constants, guides, fixture and test expectations were bumped. `api:docs`, `api:compatibility`, `api:release:verify`, `api:runtime:parity` and `api:error-registry` pass.
+- Route tests in `__tests__/tenantservice-support-api-routes.test.ts`:
+  - create / list / read with no internal IDs, response fields equal to the published schema;
+  - binding requirement (403), explicit scope, mandatory Idempotency-Key;
+  - another customer gets 404.
+
+## F16 – CRITICAL (fixed, T): support cases stopped billing and onboarding
+**Defect:**
+- `createTenantSupportCase` → `createCustomerCase` assessed every non-withdrawal case as `billingBlocked=true`.
+- Every support case was therefore created with `status=billing_blocked`.
+- It also ran `applyCustomerCaseOperationalStops`, which:
+  - cancelled `customer_info_requests`, `metering_permissions`, `outbound_requests` and `partner_exports`;
+  - marked **all** of the customer's `billing_underlays` as blocked.
+
+**Reachable** on main from the customer API (`customer.support` events), from OPS (support form) and from the new support API.
+
+**Proof:** `__tests__/support-case-no-operational-stop.test.ts` fails 4/4 on the old code and passes after the fix.
+
+**Fix:** `operationalImpact: 'none'` for support cases. Withdrawal and lifecycle cases keep their stops unchanged.
+
+**Production follow-up (P8, needs a live read):**
+- Find historical support cases with `billing_blocked=true`, i.e. `source like 'tenant_support_%'` or `metadata->>support_case='true'`.
+- Find underlays/requests stopped by them (`billing_blocked_by_case_id` / `failure_reason`).
+- Every unblock is a separate, reviewed operator decision. Nothing is unblocked automatically.
