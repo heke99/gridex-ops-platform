@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
-import { applyActorRegistryRecords, decodeRegistryUpload } from '@/lib/actor-registry/importActorRegistry'
+import { applyActorRegistryRecords, decodeRegistryUpload, readActorRegistryPriorResult } from '@/lib/actor-registry/importActorRegistry'
 import type { ParsedActorRegistryActor } from '@/lib/actor-registry/types'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -233,6 +233,21 @@ async function buildActorImportPreview(records: ActorImportRecord[]): Promise<Ac
   }
 
   for (const record of records) {
+    const sourceDiagnostics = record.sourceRecord?.registryDiagnostics
+    if (Array.isArray(sourceDiagnostics)) for (const diagnostic of sourceDiagnostics) {
+      if (!diagnostic || typeof diagnostic !== 'object' || typeof diagnostic.code !== 'string') continue
+      summary.issues.push({
+        recordName: record.name,
+        issueType: diagnostic.code,
+        severity: 'blocking',
+        message: diagnostic.code === 'actor_registry_source_market_conflict' || diagnostic.code === 'actor_registry_source_country_conflict'
+          ? 'Marknad eller land motsägs av deklarationerna i Market och Company. Aktören hålls utan att välja mellan dem.'
+          : diagnostic.code === 'actor_registry_source_country_required'
+          ? 'Källan saknar land. Aktören hålls utan gissat land.'
+          : 'Källan saknar uttrycklig familj, juridisk/teknisk routeidentitet eller transportuppgifter. Ingen route skapas från kontakt- eller postadress.',
+        metadata: { sourceDiagnostic: diagnostic, edielId: record.edielId },
+      })
+    }
     const roles = new Set(record.roles)
     if (roles.has('grid_owner')) summary.gridOwners += 1
     if (roles.has('electricity_supplier')) summary.electricitySuppliers += 1
@@ -369,6 +384,16 @@ export async function importPlatformActorsAction(formData: FormData) {
   if(fileName.toLowerCase().endsWith('.txt')||format==='txt')throw new Error('actor_registry_txt_authentic_source_adapter_required')
   const importType = format === 'csv' || fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'companies_xml'
   const sourceBytes=Buffer.from(await file.arrayBuffer())
+  if(mode==='apply') {
+    if(confirmApply!=='IMPORTERA')throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
+    const prior=await readActorRegistryPriorResult({sourceBytes,sourceKind:importType,actorUserId:context.userId})
+    if(prior) {
+      await logAdminActionAndUsage({companyId:null,actorUserId:context.userId,entityType:'platform_actor_import_run',entityId:prior.uiRunId,
+        action:'actor_import.reused',label:'Registerimportens tidigare resultat läst',billable:false,billingUnit:'actor_import',metadata:{source,fileName,result:prior,activation:prior.activation}})
+      revalidatePath('/admin/ediel/actors');revalidatePath('/admin/ediel/auto-readiness');revalidatePath('/admin/customers/intake')
+      return
+    }
+  }
   const textContent=decodeRegistryUpload(sourceBytes,importType)
   const parsed = format === 'csv' || fileName.toLowerCase().endsWith('.csv')
     ? parseActorCsv(textContent)

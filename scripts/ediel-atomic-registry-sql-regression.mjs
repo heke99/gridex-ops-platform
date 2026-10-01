@@ -9,7 +9,8 @@ const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href)
 const uid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const sqlText=s=>"'"+s.replaceAll("'","''")+"'"
 let checks=0
-async function apply(bytes,records,actor=uid(1),hash=createHash('sha256').update(bytes).digest('hex')){await db.exec('SET ROLE service_role');try{return(await db.query(`SELECT ediel_apply_actor_registry_v1('${actor}',${sqlText(Buffer.from(bytes).toString('base64'))},'${hash}','companies_xml','synthetic.xml',${sqlText(JSON.stringify(records))}::jsonb) result`)).rows[0].result}finally{await db.exec('RESET ROLE')}}
+ async function apply(bytes,records,actor=uid(1),hash=createHash('sha256').update(bytes).digest('hex')){await db.exec('SET ROLE service_role');try{return(await db.query(`SELECT ediel_apply_actor_registry_v1('${actor}',${sqlText(Buffer.from(bytes).toString('base64'))},'${hash}','companies_xml','synthetic.xml',${sqlText(JSON.stringify(records))}::jsonb) result`)).rows[0].result}finally{await db.exec('RESET ROLE')}}
+async function readPrior(bytes,actor=uid(1),hash=createHash('sha256').update(bytes).digest('hex'),kind='companies_xml'){await db.exec('SET ROLE service_role');try{return(await db.query(`SELECT ediel_read_actor_registry_batch_v1('${actor}',${sqlText(Buffer.from(bytes).toString('base64'))},'${hash}',${sqlText(kind)}) result`)).rows[0].result}finally{await db.exec('RESET ROLE')}}
 const actor=(ediel,name='Synthetic actor',org='SYNTHETIC-ORG')=>({name,legalName:name,orgNumber:org,edielId:ediel,eic:null,svkId:null,market:'EL',countryCode:'SE',roles:['energy_service_company'],routes:[{messageFamily:'PRODAT',environment:'production',communicationType:'smtp',communicationAddress:'synthetic@example.invalid',partyId:ediel,interchangePartyId:ediel,applicationReference:'SYNTHETIC-APP'}],certificates:[],raw:{fixture:true}})
 try{
  await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE SCHEMA auth;CREATE TABLE auth.users(id uuid primary key);CREATE TABLE user_profiles(id uuid,user_status text);CREATE TABLE admin_users(user_id uuid);CREATE TABLE user_roles(id uuid,user_id uuid);CREATE FUNCTION canonical_actor_is_platform_admin(uuid) RETURNS bool LANGUAGE sql AS 'SELECT $1=''${uid(1)}''::uuid';INSERT INTO auth.users VALUES('${uid(1)}');INSERT INTO user_profiles VALUES('${uid(1)}','active');INSERT INTO admin_users VALUES('${uid(1)}');`)
@@ -84,6 +85,31 @@ try{
  await assert.rejects(apply('SYNTHETIC ZERO ROUTES BAD HASH',[{...actor('ZERO-BAD-HASH'),routes:[]}],uid(1),'a'.repeat(64)),/exact_source_hash/);checks++
  const mixed=await apply('SYNTHETIC MIXED LEGAL SOURCE',[{...actor('MIXED-NO-ROUTE'),routes:[]},actor('MIXED-OWN-ROUTE')])
  assert.equal(mixed.created,2);assert.equal(mixed.routeIds.length,1);assert.equal(mixed.activation,'held_pending_current_source_readiness');checks++
+ const priorIncomplete=actor('LEGACY-PARTIAL-ROUTE');delete priorIncomplete.routes[0].interchangePartyId
+ const oldIncomplete=await apply('SYNTHETIC PRIOR PARTIAL ROUTE',[priorIncomplete])
+ await db.exec(readFileSync(new URL('20261001031233_ediel_registry_declared_route_source_fields.sql',root),'utf8'));checks++
+ assert.deepEqual(await apply('SYNTHETIC PRIOR PARTIAL ROUTE',[priorIncomplete]),{...oldIncomplete,reusedExistingRun:true});checks++
+ assert.deepEqual(await readPrior('SYNTHETIC PRIOR PARTIAL ROUTE'),{...oldIncomplete,reusedExistingRun:true});checks++
+ assert.equal(await readPrior('SYNTHETIC UNKNOWN NEW SOURCE'),null);checks++
+ await assert.rejects(readPrior('SYNTHETIC PRIOR PARTIAL ROUTE',uid(99)),/platform_actor_required/);checks++
+ await assert.rejects(readPrior('SYNTHETIC CHANGED SOURCE',uid(1),createHash('sha256').update('SYNTHETIC PRIOR PARTIAL ROUTE').digest('hex')),/exact_source_hash/);checks++
+ await assert.rejects(readPrior('SYNTHETIC PRIOR PARTIAL ROUTE',uid(1),createHash('sha256').update('SYNTHETIC PRIOR PARTIAL ROUTE').digest('hex'),'csv'),/exact_original_source/);checks++
+ await assert.rejects(apply('SYNTHETIC PRIOR PARTIAL ROUTE',[actor('DIFFERENT-NORMALIZED-RECORD')]),/normalization_conflict/);checks++
+ assert.equal((await db.query(`SELECT has_function_privilege('authenticated','public.ediel_read_actor_registry_batch_v1(uuid,text,text,text)','EXECUTE') allowed`)).rows[0].allowed,false);checks++
+ const beforeMissingFields=await counts()
+ for(const field of ['partyId','interchangePartyId','communicationType','communicationAddress']){
+  const missing=actor(`MISSING-${field}`);delete missing.routes[0][field]
+  await assert.rejects(apply(`SYNTHETIC MISSING ${field}`,[missing]),/declared_transport_source_required/)
+  assert.deepEqual(await counts(),beforeMissingFields);checks++
+ }
+ const noCountry={...actor('MISSING-SOURCE-COUNTRY'),countryCode:null}
+ await assert.rejects(apply('SYNTHETIC MISSING SOURCE COUNTRY',[noCountry]),/zero_routes_source_held/)
+ assert.deepEqual(await counts(),beforeMissingFields);checks++
+ const exactSource=actor('EXACT-DECLARED-TRANSPORT');exactSource.routes[0].applicationReference=null
+ const exactResult=await apply('SYNTHETIC EXACT DECLARED TRANSPORT',[exactSource])
+ assert.equal(exactResult.routeIds.length,1)
+ const exactRoute=(await db.query(`SELECT party_id,interchange_party_id,application_reference,communication_type,is_verified,auto_send_allowed FROM platform_actor_routes WHERE party_id='EXACT-DECLARED-TRANSPORT'`)).rows[0]
+ assert.deepEqual(exactRoute,{party_id:'EXACT-DECLARED-TRANSPORT',interchange_party_id:'EXACT-DECLARED-TRANSPORT',application_reference:null,communication_type:'smtp',is_verified:false,auto_send_allowed:false});checks++
  assert.equal((await db.query(`SELECT has_function_privilege('authenticated','public.ediel_apply_actor_registry_v1(uuid,text,text,text,text,jsonb)','EXECUTE') allowed`)).rows[0].allowed,false);checks++
  console.log(`PASS ${checks} targeted atomic registry PostgreSQL checks; synthetic source/authorization fixture, not native/issuer evidence`)
 }finally{await db.close()}

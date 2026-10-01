@@ -13,7 +13,7 @@ describe('actor source identities', () => {
     expect(actors[1].routes[0]).toMatchObject({status:'blocked', isVerified:false})
   })
   it('preserves a generic explicitly different transport party', () => {
-    const actors = parseActorRegistryXml('<Actors><Actor><Name>X</Name><EdielId>1</EdielId><Route><MessageFamily>PRODAT</MessageFamily><PartyId>1</PartyId><InterchangePartyId>2</InterchangePartyId><Email>x@example.se</Email></Route></Actor></Actors>')
+    const actors = parseActorRegistryXml('<Actors><Actor><Name>X</Name><EdielId>1</EdielId><Route><MessageFamily>PRODAT</MessageFamily><PartyId>1</PartyId><InterchangePartyId>2</InterchangePartyId><CommunicationType>SMTP</CommunicationType><Email>x@example.se</Email></Route></Actor></Actors>')
     expect(actors[0].routes[0].interchangePartyId).toBe('2')
     expect(actors[0].routes[0]).toMatchObject({isVerified:false,status:'needs_review'})
   })
@@ -35,5 +35,37 @@ describe('actor source identities', () => {
   })
   it('rejects DTD/entity sources before import creates records', () => {
     expect(() => parseActorRegistryXml('<!DOCTYPE companies [<!ENTITY x SYSTEM "file:///etc/passwd">]><Companies/>')).toThrow('actor_registry_xml_unsafe_declaration')
+  })
+  it.each([
+    '<Email>contact@example.invalid</Email>',
+    '<Address><Street>Source street</Street><Email>postal@example.invalid</Email></Address>',
+    '<EDIFACTDetails><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress Type="SMTP">edi@example.invalid</CommunicationAddress></EDIFACTDetails>',
+    '<EDIFACTDetails Type="PRODAT"><PartyId>21660</PartyId><CommunicationAddress Type="SMTP">edi@example.invalid</CommunicationAddress></EDIFACTDetails>',
+    '<EDIFACTDetails Type="PRODAT"><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress Type="SMTP">edi@example.invalid</CommunicationAddress></EDIFACTDetails>',
+    '<EDIFACTDetails Type="PRODAT"><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress>edi@example.invalid</CommunicationAddress></EDIFACTDetails>',
+  ])('retains incomplete source fragments and diagnostics without inventing a route from %s', (route) => {
+    const actors=parseActorRegistryXml(`<Market Code="EL" Country="SE"><Company><Name>Synthetic</Name><Key Type="EdielId">21660</Key>${route}</Company></Market>`)
+    expect(actors[0].routes).toEqual([])
+    expect(actors[0].raw.sourceFragment).toContain(route)
+    expect(actors[0].raw.registryDiagnostics).toContainEqual(expect.objectContaining({code:'actor_registry_declared_route_source_required'}))
+  })
+  it('preserves absent country and exact explicit family/application/technical identity as separate source facts', () => {
+    const [actor]=parseActorRegistryXml('<Market Code="EL"><Company><Name>Synthetic</Name><Key Type="EdielId">21660</Key><EDIFACTDetails Type="UTILTS"><ApplicationReference>SOURCE-APP</ApplicationReference><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress Type="SMTP">edi@example.invalid</CommunicationAddress></EDIFACTDetails></Company></Market>')
+    expect(actor.countryCode).toBeNull();expect(actor.raw.originalCountry).toBeNull()
+    expect(actor.raw.registryDiagnostics).toContainEqual({code:'actor_registry_source_country_required',missingFields:['countryCode']})
+    expect(actor.routes[0]).toMatchObject({messageFamily:'UTILTS',applicationReference:'SOURCE-APP',partyId:'21660',interchangePartyId:'99888',communicationType:'SMTP',metadata:{originalFamily:'UTILTS'}})
+  })
+  it('does not manufacture application identity from family or discard a separate complete route', () => {
+    const [actor]=parseActorRegistryXml('<Market Code="EL" Country="FI"><Company><Name>Synthetic</Name><Key Type="EdielId">21660</Key><EDIFACTDetails Type="PRODAT"><PartyId>21660</PartyId><CommunicationAddress Type="SMTP">held@example.invalid</CommunicationAddress></EDIFACTDetails><EDIFACTDetails Type="UTILTS"><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress Type="SMTP">own@example.invalid</CommunicationAddress></EDIFACTDetails></Company></Market>')
+    expect(actor.countryCode).toBe('FI');expect(actor.routes).toHaveLength(1)
+    expect(actor.routes[0]).toMatchObject({messageFamily:'UTILTS',applicationReference:null,interchangePartyId:'99888',communicationAddress:'own@example.invalid'})
+    expect(actor.raw.registryDiagnostics).toContainEqual(expect.objectContaining({missingFields:['interchangePartyId']}))
+  })
+  it('holds conflicting parent and Company market/country instead of silently choosing one', () => {
+    const [actor]=parseActorRegistryXml('<Market Code="EL" Country="SE"><Company Market="GAS" Country="FI"><Name>Synthetic</Name><Key Type="EdielId">21660</Key><EDIFACTDetails Type="PRODAT"><PartyId>21660</PartyId><InterchangePartyId>21660</InterchangePartyId><CommunicationAddress Type="SMTP">edi@example.invalid</CommunicationAddress></EDIFACTDetails></Company></Market>')
+    expect(actor).toMatchObject({market:null,countryCode:null,raw:{originalParentMarket:'EL',originalCompanyMarket:'GAS',originalParentCountry:'SE',originalCompanyCountry:'FI'}})
+    expect(actor.raw.registryDiagnostics).toContainEqual(expect.objectContaining({code:'actor_registry_source_market_conflict'}))
+    expect(actor.raw.registryDiagnostics).toContainEqual(expect.objectContaining({code:'actor_registry_source_country_conflict'}))
+    expect(actor.routes[0]).toMatchObject({market:null,isVerified:false,status:'needs_review'})
   })
 })
