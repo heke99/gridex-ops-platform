@@ -6,6 +6,7 @@ export type CustomerLifeEventExportProjection = {
   status: 'authorized'
   companyId: string
   customerId: string
+  asOf?: string
   sourceMessageId: string | null
   customerVersion: number | null
   effectiveVersionCount: number
@@ -26,11 +27,14 @@ export async function readCustomerLifeEventExportProjection(input: {
   companyId: string
   customerId: string
   actorUserId?: string | null
+  asOf?: string
 }): Promise<CustomerLifeEventExportProjection | null> {
-  const { data, error } = await supabaseService.rpc('ediel_customer_life_event_export_projection_v1', {
+  if (input.asOf !== undefined && (!/(?:Z|[+-]\d{2}:\d{2})$/.test(input.asOf) || !Number.isFinite(Date.parse(input.asOf)))) throw new Error('customer_life_event_export_date_required')
+  const { data, error } = await supabaseService.rpc(input.asOf === undefined ? 'ediel_customer_life_event_export_projection_v1' : 'ediel_customer_life_event_export_at_v1', {
     p_company_id: input.companyId,
     p_customer_id: input.customerId,
     p_actor_user_id: input.actorUserId ?? null,
+    ...(input.asOf === undefined ? {} : { p_as_of: input.asOf }),
   })
   if (error) throw error
   if (data?.status === 'not_applicable') return null
@@ -38,6 +42,7 @@ export async function readCustomerLifeEventExportProjection(input: {
   const fields = ['name', 'full_name', 'company_name', 'org_number', 'personal_number']
   const address = ['name', 'street', 'postCode', 'city', 'country']
   if (data?.status !== 'authorized' || data.companyId !== input.companyId || data.customerId !== input.customerId
+    || (input.asOf !== undefined && (!data.asOf || Date.parse(data.asOf) !== Date.parse(input.asOf)))
     || !Number.isSafeInteger(data.effectiveVersionCount) || data.effectiveVersionCount < 0
     || !data.customerFields || typeof data.customerFields !== 'object' || Array.isArray(data.customerFields)
     || Object.keys(data.customerFields).some(key => !fields.includes(key))

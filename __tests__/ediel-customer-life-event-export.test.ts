@@ -26,3 +26,18 @@ it.each([{ companyId: 'other' }, { customerId: 'other' }, { customerFields: { bi
   rpc.mockResolvedValue({ data: { ...projection, ...changed }, error: null })
   await expect(readCustomerLifeEventExportProjection(input)).rejects.toThrow('customer_life_event_export_projection_invalid')
 })
+
+
+it('uses the exact requested source date and checks native projection parity', async () => {
+  const asOf = '2026-09-30T11:00:00Z'
+  rpc.mockResolvedValue({ data: { ...projection, asOf: '2026-09-30T12:00:00+01:00' }, error: null })
+  expect(await readCustomerLifeEventExportProjection({ ...input, asOf })).toEqual({ ...projection, asOf: '2026-09-30T12:00:00+01:00' })
+  expect(rpc).toHaveBeenCalledWith('ediel_customer_life_event_export_at_v1', { p_company_id: input.companyId, p_customer_id: input.customerId, p_actor_user_id: input.actorUserId, p_as_of: asOf })
+  rpc.mockResolvedValue({ data: { ...projection, asOf: '2026-10-01T11:00:00Z' }, error: null })
+  await expect(readCustomerLifeEventExportProjection({ ...input, asOf })).rejects.toThrow('projection_invalid')
+})
+
+it.each(['2026-09-30', 'invalid'])('rejects an unbound source date %s before reading', async asOf => {
+  await expect(readCustomerLifeEventExportProjection({ ...input, asOf })).rejects.toThrow('export_date_required')
+  expect(rpc).not.toHaveBeenCalled()
+})

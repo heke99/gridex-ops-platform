@@ -41,6 +41,7 @@ try{
  await db.exec(fn('../supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql','gridex_received_sources.prodat_recovery_wire_v1'))
  const append=readFileSync(new URL('../supabase/migrations/20260923114703_ediel_reviewed_closure_source.sql',import.meta.url),'utf8'),a=append.indexOf('CREATE OR REPLACE FUNCTION gridex_received_sources.append_object_assessment'),b=append.indexOf('$$;',a);await db.exec(append.slice(a,b+3))
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930233247_ediel_customer_life_event_source_authority.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001010530_ediel_customer_life_event_dated_projection.sql',import.meta.url),'utf8'));checks++
  const basis={qualified:true,periodId:id(6),companyId:id(1),customerId:id(3),siteId:id(7),meteringPointId:id(5),sourceMessageId:id(8),payloadHash:'a'.repeat(64),marketStateVersion:1,legalActorId:id(21),dsoEdielId:'54321',sourceObjects:[{point:'POINT',identityAgency:'9',gridArea:'TES',customerIdentity:'5566778899'}]}
  await db.query('INSERT INTO basis_ports VALUES($1,$2)',[id(6),basis]);
  const mkSource=async(n,raw)=>{await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,immutable_payload_hash,message_received_at) VALUES($1,$2,'test','inbound','edifact','PRODAT','Z06',$3,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[id(n),id(1),raw]);await db.query('INSERT INTO legal_ports VALUES($1,$2)',[id(n),{companyId:id(1),environment:'test',direction:'inbound',actorRole:'electricity_supplier',legalActorId:id(21),legalEdielId:'12345',family:'PRODAT',code:'Z06',observedAt:new Date().toISOString()}])}
@@ -64,11 +65,18 @@ try{
  await db.exec('SET ROLE service_role');assert.equal((await projection()).rows[0].b.status,'held');checks++;await db.exec('RESET ROLE')
  await db.query('INSERT INTO gridex_received_sources.object_availability_witnesses SELECT id,company_id,environment,source_message_id,facts_hash FROM gridex_received_sources.object_assessments WHERE id=$1',[id(230)])
  await db.exec('SET ROLE service_role');const projected=(await projection()).rows[0].b;assert.equal(projected.status,'authorized');assert.equal(projected.customerFields.full_name,'New name');assert.deepEqual(projected.endUserMasterdata.street,['End user street']);assert.equal('billing_street'in projected.customerFields,false);checks++;await db.exec('RESET ROLE')
+ const atProjection=at=>db.query('SELECT ediel_customer_life_event_export_at_v1($1,$2,$3,$4) b',[id(1),id(3),id(20),at])
+ await db.exec('SET ROLE service_role');
+ const dated=(await atProjection('2026-09-30T11:00:00Z')).rows[0].b;assert.equal(dated.status,'authorized');assert.equal(dated.customerFields.full_name,'New name');assert.equal(new Date(dated.asOf).toISOString(),'2026-09-30T11:00:00.000Z');checks++;
+ assert.equal((await atProjection('2026-09-30T10:59:59Z')).rows[0].b.status,'held');checks++;
+ await assert.rejects(atProjection('infinity'),/export_date_required/);checks++;
+ await db.exec('RESET ROLE');
  // A future source records its confirmed version and task, but neither changes
  // today's public customer nor hides the effective witnessed source projection.
  const future=wire('Z06').replace('202609301200','209901011200').replace('New name','Future name')
  await mkSource(34,future);await facet(34);await db.exec('SET ROLE service_role');assert.equal((await apply(34)).rows[0].b.applied,true);assert.equal((await projection()).rows[0].b.customerFields.full_name,'New name');checks++;await db.exec('RESET ROLE')
  assert.equal((await db.query('SELECT full_name FROM customers WHERE id=$1',[id(3)])).rows[0].full_name,'New name');assert.equal((await db.query('SELECT count(*) n FROM gridex_customer_life_events.customer_versions')).rows[0].n,2);checks++
+ await db.exec('SET ROLE service_role');assert.equal((await atProjection('2099-01-01T11:00:00Z')).rows[0].b.status,'held');checks++;await db.exec('RESET ROLE')
  const duplicate=wire('Z06').replace("UNT+14+1'", "LIN+2++POINT:::9'CCI++Z13'CAV+E34'RFF+LI:DIFFERENT'UNT+18+1'")
  assert.equal((await db.query('SELECT gridex_customer_life_events.wire_v1($1) b',[duplicate])).rows[0].b,null);checks++
  const missingDate=wire('Z06').replace("DTM+157:202609301200:203'",'');assert.equal((await db.query('SELECT gridex_customer_life_events.wire_v1($1) b',[missingDate])).rows[0].b,null);checks++
