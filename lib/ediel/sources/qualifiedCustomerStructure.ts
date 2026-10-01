@@ -43,7 +43,10 @@ export async function readQualifiedCustomerStructure(input:DatedCustomerStructur
   // A dated parser/business proposal is not an applied structural change.
   // Check each selected state and inherited field source against its actual
   // immutable receipt in this SAME protected snapshot, without choosing dates.
-  const selectedSourceIds=new Set(selected.states.flatMap(state=>[state.sourceMessageId,...Object.values(state.measurements??{}).flatMap(field=>field.sourceMessageId?[field.sourceMessageId]:[])]))
+  const selectedSourceIds=new Set(selected.states.flatMap(state=>[
+   state.sourceMessageId,state.meterSourceMessageId,state.registerSourceMessageId,
+   ...Object.values(state.measurements??{}).map(field=>field.sourceMessageId),
+  ].filter((sourceMessageId):sourceMessageId is string=>sourceMessageId!==null)))
   let applied=true
   for(const sourceMessageId of selectedSourceIds){
    const version=readset.versions.find(item=>item.sourceMessageId===sourceMessageId&&item.wire.object.objectId===object.objectId&&item.wire.object.identityAgency===object.identityAgency)
