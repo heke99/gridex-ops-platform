@@ -4,7 +4,9 @@
 // reason projection execute unchanged.
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
-import {PGlite} from '/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js'
+import {pathToFileURL} from 'node:url'
+if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required; pinned @electric-sql/pglite@0.3.14')
+const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href)
 const db=new PGlite();let checks=0
 try{
  await db.exec(`create role anon;create role authenticated;create role service_role;create schema gridex_ediel_ack_guide;create schema gridex_received_sources;
