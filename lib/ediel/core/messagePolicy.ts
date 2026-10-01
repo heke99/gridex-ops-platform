@@ -1,3 +1,4 @@
+import {assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -116,10 +117,12 @@ function readStringFact(message: EdielMessageRow, key: string): string | undefin
   return typeof value === 'string' ? value.trim() : undefined
 }
 
-export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions = {}): CanonicalEdielPolicy | null {
+export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions & {deathStatusContext?:DeathStatusValidationContext} = {}): CanonicalEdielPolicy | null {
   if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR' && canonical.family !== 'APERAK' && canonical.family !== 'CONTRL') return null
   if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
 
+  const deathStatusContext=options.deathStatusContext
+  if(deathStatusContext)assertDeathStatusContextMatches(message,deathStatusContext)
   const family = canonical.family
   const messageCode = canonical.messageCode
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
@@ -133,9 +136,11 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     referenceDate: timeAnchors.admissionDate,
     associationAssignedCode: family === 'CONTRL' ? null : canonical.version,
     applicationReference: canonical.applicationReference,
-    bilateralCapabilityVerified: readBooleanFact(message, 'bilateralCapabilityVerified'),
+    bilateralCapabilityVerified: deathStatusContext?.bilateralCapabilityVerified ?? readBooleanFact(message, 'bilateralCapabilityVerified'),
+    businessContext:deathStatusContext?.businessContext,
     prodatDependentFacts: family === 'PRODAT' ? {
       market: 'electricity',
+      ...(deathStatusContext?{deathStatus:deathStatusContext.selection,businessContext:deathStatusContext.businessContext}:{}),
       customerKind: readStringFact(message, 'customerKind') as 'private' | 'business' | undefined,
       meterReadingsSentInUtilts: readBooleanFact(message, 'meterReadingsSentInUtilts'),
       multipleMeterRegisters: readBooleanFact(message, 'multipleMeterRegisters'),

@@ -360,5 +360,27 @@ try {
  await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(121)]);checks++
  const facetAcl=(await db.query("select has_table_privilege('service_role','gridex_received_sources.prodat_response_facets','insert') write_facet,has_function_privilege('service_role','gridex_received_sources.require_prodat_responses_v1(uuid,uuid)','execute') read_private")).rows[0];assert.deepEqual(facetAcl,{write_facet:false,read_private:false});checks++
  await assert.rejects(db.exec('update gridex_received_sources.prodat_response_facets set response_facts_text=response_facts_text'),/append_only/);checks++
+ // Prospective V4 complete application facet: actual existing V3 owner and
+ // all physical groups, not a borrowed register/ACK business verdict.
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql',import.meta.url),'utf8'));checks++
+ const ownApplication={version:1,owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',headerDecision:'accepted',sourcePayloadHash:partialHash,
+  objects:partialRegister.objects.map((row,index)=>{const {disposition,reasons,...scope}=row;return {...scope,applicationDecision:index===0?'rejected':'accepted',reasonCodes:index===0?['FIXTURE_SAME_OWNER_QUALIFIED_FIELD_209']:[]}})}
+ const recordOwnApplication=async(facet=ownApplication,canonical=partialFacts,response=partialFacet)=>{await db.exec('set role service_role');try{return(await db.query('select public.gridex_record_prodat_source_validation_v4($1,$2,$3,$4,$5,$6,$7,$8) r',[uid(1),'test',uid(140),partialHash,JSON.stringify(canonical),null,JSON.stringify(response),facet===null?null:JSON.stringify(facet)])).rows[0].r}finally{await db.exec('reset role')}}
+ const appReceipt=await recordOwnApplication();assert.equal(appReceipt.version,4);assert.ok(appReceipt.applicationFactsHash);checks++
+ const ownApp=(await db.query('select gridex_received_sources.require_prodat_application_objects_v1($1,$2) r',[uid(1),uid(140)])).rows[0].r
+ assert.deepEqual(ownApp.objects.map(row=>row.applicationDecision),['rejected','accepted']);checks++
+ const {disposition:unusedDisposition,reasons:unusedReasons,...goodScope}=partialRegister.objects[1]
+ assert.equal((await db.query('select gridex_received_sources.prodat_application_object_accepted_v1($1,$2,$3,$4) ok',[uid(1),uid(140),appReceipt.assessmentId,goodScope])).rows[0].ok,true);checks++
+ assert.equal((await db.query('select gridex_received_sources.prodat_application_object_accepted_v1($1,$2,$3,$4) ok',[uid(1),uid(140),appReceipt.assessmentId,{...goodScope,objectId:'SIBLING'}])).rows[0].ok,false);checks++
+ const beforeAppCount=(await db.query('select count(*)::int n from gridex_received_sources.validation_assessments where source_message_id=$1',[uid(140)])).rows[0].n
+ for(const facet of [{...ownApplication,sourcePayloadHash:'f'.repeat(64)},{...ownApplication,objects:[ownApplication.objects[1]]},{...ownApplication,objects:[ownApplication.objects[1],ownApplication.objects[1]]},
+  {...ownApplication,headerDecision:'rejected'},{...ownApplication,objects:ownApplication.objects.map(row=>({...row,applicationDecision:'accepted',reasonCodes:[]}))},
+  {...ownApplication,objects:ownApplication.objects.map(row=>({...row,businessAccepted:true}))}]){
+  await assert.rejects(recordOwnApplication(facet),/same_owner_required/);assert.equal((await db.query('select count(*)::int n from gridex_received_sources.validation_assessments where source_message_id=$1',[uid(140)])).rows[0].n,beforeAppCount);checks++
+ }
+ await assert.rejects(recordOwnApplication(ownApplication,{...partialFacts,functionalDecision:'manual_review'}),/same_owner_required/);checks++
+ await assert.rejects(db.exec('update gridex_received_sources.prodat_application_facets set application_facts_text=application_facts_text'),/append_only/);checks++
+ const ownAppAcl=(await db.query("select has_table_privilege('service_role','gridex_received_sources.prodat_application_facets','insert') write_facet,has_function_privilege('authenticated','public.ediel_read_prodat_application_objects_v1(uuid,uuid)','execute') user_read")).rows[0];assert.deepEqual(ownAppAcl,{write_facet:false,user_read:false});checks++
+ await recordOwnApplication(null);await assert.rejects(db.query('select gridex_received_sources.require_prodat_application_objects_v1($1,$2)',[uid(1),uid(140)]),/original_owner_unavailable/);checks++
  console.log(`Focused PostgreSQL outbound original owner seal/one-use atomic insertion/named version/raw scope/ACL/native Z08 binding checks: ${checks} PASS`)
 } catch(e){console.error(e.stack,e.where??'',e.position??'',e.routine??'');process.exitCode=1} finally{await db.close()}
