@@ -4,6 +4,7 @@ import { createEdielMessageEvent } from '@/lib/ediel/db'
 import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { buildSafeMasterdataProposal, type EdielMasterdataChangeProposal } from '@/lib/ediel/operationalVerification'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
 
 export type EdielSafeApplyReviewStatus = 'pending' | 'applied' | 'rejected' | 'no_changes'
 
@@ -24,109 +25,14 @@ export type EdielSafeApplyDecisionResult = {
   summary: string
 }
 
-type EntityType = EdielMasterdataChangeProposal['entityType']
-type Patch = Record<string, string | number | boolean | null>
-
-type PreparedChange = {
-  change: EdielMasterdataChangeProposal
-  column: string | null
-  value: string | number | boolean | null
-  skipReason: string | null
-}
-
 const SAFE_APPLY_CODES = ['Z06', 'Z10'] as const
 const SAFE_APPLY_EVENT_MESSAGE = 'Safe apply-förslag'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
-
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-function numberOrNull(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string' && value.trim()) {
-    const parsed = Number(value.replace(',', '.'))
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
-function normalizeText(value: unknown): string | null {
-  return stringOrNull(value)
-}
-
-function normalizePriceArea(value: unknown): 'SE1' | 'SE2' | 'SE3' | 'SE4' | null {
-  const normalized = stringOrNull(value)?.toUpperCase() ?? null
-  return normalized === 'SE1' || normalized === 'SE2' || normalized === 'SE3' || normalized === 'SE4'
-    ? normalized
-    : null
-}
-
-function normalizeReadingFrequency(value: unknown): 'hourly' | 'daily' | 'monthly' | 'manual' | null {
-  const normalized = stringOrNull(value)?.toLowerCase().replace(/[-\s]/g, '_') ?? null
-  if (!normalized) return null
-  if (normalized === 'hourly' || normalized === 'tim' || normalized === 'hour' || normalized === 'quarter_hourly' || normalized === 'quarterhourly') return 'hourly'
-  if (normalized === 'daily' || normalized === 'day' || normalized === 'dygn') return 'daily'
-  if (normalized === 'monthly' || normalized === 'month' || normalized === 'månad' || normalized === 'manad') return 'monthly'
-  if (normalized === 'manual') return 'manual'
-  return null
-}
-
-function normalizeMeasurementType(value: unknown): 'consumption' | 'production' | 'mixed' | null {
-  const normalized = stringOrNull(value)?.toLowerCase() ?? null
-  if (!normalized) return null
-  if (normalized.includes('production') || normalized.includes('producerad')) return 'production'
-  if (normalized.includes('mixed') || normalized.includes('both') || normalized.includes('komb')) return 'mixed'
-  if (normalized.includes('consumption') || normalized.includes('förbruk') || normalized.includes('forbruk')) return 'consumption'
-  return null
-}
-
-function normalizeMeteringPointStatus(value: unknown): 'draft' | 'active' | 'pending_validation' | 'inactive' | 'closed' | null {
-  const normalized = stringOrNull(value)?.toLowerCase().replace(/[-\s]/g, '_') ?? null
-  if (!normalized) return null
-  if (normalized === 'draft') return 'draft'
-  if (normalized === 'active' || normalized === 'aktiv') return 'active'
-  if (normalized === 'pending_validation' || normalized === 'pending') return 'pending_validation'
-  if (normalized === 'inactive' || normalized === 'inaktiv') return 'inactive'
-  if (normalized === 'closed' || normalized === 'stängd' || normalized === 'stangd') return 'closed'
-  return null
-}
-
-function mapChangeToColumn(change: EdielMasterdataChangeProposal): PreparedChange {
-  const label = change.label.toLowerCase()
-
-  if (change.entityType === 'customer_site') {
-    if (label.includes('anläggnings-id')) return { change, column: 'facility_id', value: normalizeText(change.proposedValue), skipReason: null }
-    if (label.includes('prisområde')) return { change, column: 'price_area_code', value: normalizePriceArea(change.proposedValue), skipReason: normalizePriceArea(change.proposedValue) ? null : 'Ogiltigt prisområde.' }
-    if (label.includes('anläggningsadress')) return { change, column: 'street', value: normalizeText(change.proposedValue), skipReason: null }
-    if (label.includes('postnummer')) return { change, column: 'postal_code', value: normalizeText(change.proposedValue), skipReason: null }
-    if (label.includes('ort')) return { change, column: 'city', value: normalizeText(change.proposedValue), skipReason: null }
-    if (label.includes('årsförbrukning')) {
-      const value = numberOrNull(change.proposedValue)
-      return { change, column: 'annual_consumption_kwh', value, skipReason: value === null ? 'Ogiltig årsförbrukning.' : null }
-    }
-  }
-
-  if (change.entityType === 'metering_point') {
-    if (label.includes('mätpunkts-id')) return { change, column: 'meter_point_id', value: normalizeText(change.proposedValue), skipReason: null }
-    if (label.includes('avläsningsfrekvens')) {
-      const value = normalizeReadingFrequency(change.proposedValue)
-      return { change, column: 'reading_frequency', value, skipReason: value ? null : 'Ogiltig avläsningsfrekvens.' }
-    }
-    if (label.includes('mättyp')) {
-      const value = normalizeMeasurementType(change.proposedValue)
-      return { change, column: 'measurement_type', value, skipReason: value ? null : 'Ogiltig mättyp.' }
-    }
-    if (label.includes('mätpunktsstatus')) {
-      const value = normalizeMeteringPointStatus(change.proposedValue)
-      return { change, column: 'status', value, skipReason: value ? null : 'Ogiltig mätpunktsstatus.' }
-    }
-  }
-
-  return { change, column: null, value: null, skipReason: 'Fältet är inte mappat till en säker DB-kolumn.' }
 }
 
 function getProposalChangesFromEvent(event: EdielMessageEventRow | null): EdielMasterdataChangeProposal[] {
@@ -220,135 +126,29 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
   return items
 }
 
-async function fetchEntitySnapshot(entityType: EntityType, entityId: string): Promise<Record<string, unknown> | null> {
-  const table = entityType === 'customer_site' ? 'customer_sites' : 'metering_points'
-  const { data, error } = await supabaseService
-    .from(table)
-    .select('*')
-    .eq('id', entityId)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as Record<string, unknown> | null) ?? null
-}
-
-async function updateEntity(params: {
-  actorUserId: string
-  entityType: EntityType
-  entityId: string
-  patch: Patch
-  edielMessageId: string
-}) {
-  const table = params.entityType === 'customer_site' ? 'customer_sites' : 'metering_points'
-  const before = await fetchEntitySnapshot(params.entityType, params.entityId)
-  if (!before) return { applied: false, before: null, after: null }
-
-  const { data, error } = await supabaseService
-    .from(table)
-    .update({
-      ...params.patch,
-      updated_by: params.actorUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', params.entityId)
-    .select('*')
-    .single()
-
-  if (error) throw error
-
-  await supabaseService.from('audit_logs').insert({
-    actor_user_id: params.actorUserId,
-    entity_type: params.entityType,
-    entity_id: params.entityId,
-    action: 'ediel_safe_apply_approved',
-    old_values: before,
-    new_values: data as Record<string, unknown>,
-    metadata: {
-      edielMessageId: params.edielMessageId,
-      batch: '6C',
-      source: 'ediel_safe_apply_review',
-      changedColumns: Object.keys(params.patch),
-    },
-  })
-
-  return { applied: true, before, after: data as Record<string, unknown> }
-}
-
+/** Approval consumes the original source owner, never mutable proposal labels
+ * or parsed values. The native boundary commits the entire source atomically
+ * and preserves its original receipt on retry. */
 export async function approveSafeMasterdataChanges(params: {
   actorUserId: string
   edielMessageId: string
 }): Promise<EdielSafeApplyDecisionResult> {
   const { getEdielMessageById } = await import('@/lib/ediel/db')
   const message = await getEdielMessageById(params.edielMessageId)
-  if (!message) throw new Error('Ediel-meddelandet hittades inte.')
-  if (!isSafeApplyCandidate(message)) throw new Error('Meddelandet är inte en Z06/Z10-safe-apply-kandidat.')
-
-  const changes = await buildSafeMasterdataProposal(message)
-  const prepared = changes.map(mapChangeToColumn)
-  const skipped = prepared.filter((item) => item.skipReason || !item.column || item.value === null)
-  const applicable = prepared.filter((item) => !item.skipReason && item.column && item.value !== null)
-
-  const grouped = new Map<string, { entityType: EntityType; entityId: string; patch: Patch }>()
-  for (const item of applicable) {
-    const column = item.column
-    if (!column) continue
-    const key = `${item.change.entityType}:${item.change.entityId}`
-    const existing = grouped.get(key) ?? {
-      entityType: item.change.entityType,
-      entityId: item.change.entityId,
-      patch: {},
-    }
-    existing.patch[column] = item.value
-    grouped.set(key, existing)
-  }
-
-  let appliedCount = 0
-  const appliedEntities: Array<Record<string, unknown>> = []
-
-  for (const group of grouped.values()) {
-    if (Object.keys(group.patch).length === 0) continue
-    const result = await updateEntity({
-      actorUserId: params.actorUserId,
-      entityType: group.entityType,
-      entityId: group.entityId,
-      patch: group.patch,
-      edielMessageId: params.edielMessageId,
-    })
-    if (result.applied) {
-      appliedCount += Object.keys(group.patch).length
-      appliedEntities.push({ entityType: group.entityType, entityId: group.entityId, patch: group.patch })
-    }
-  }
-
-  await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.edielMessageId,
-    eventType: 'manual_note',
-    eventStatus: appliedCount > 0 ? 'success' : 'warning',
-    message: appliedCount > 0 ? 'Safe apply godkändes och applicerades av admin.' : 'Safe apply godkändes men inga säkra ändringar kunde appliceras.',
-    payload: {
-      batch: '6C',
-      safeApply: true,
-      safeApplyDecision: 'applied',
-      appliedAutomatically: false,
-      appliedCount,
-      skippedCount: skipped.length,
-      appliedEntities,
-      skippedChanges: skipped.map((item) => ({ change: item.change, reason: item.skipReason })),
-      proposedChanges: changes,
-    },
+  if (!message?.company_id || !isSafeApplyCandidate(message)) throw new Error('structural_apply_source_required')
+  await assertEdielTenantActor({ companyId: message.company_id, actorUserId: params.actorUserId, permission: 'metering.write' })
+  const { data, error } = await supabaseService.rpc('ediel_apply_reviewed_structure_v1', {
+    p_company_id: message.company_id, p_source_message_id: message.id, p_actor_user_id: params.actorUserId,
   })
-
-  return {
-    messageId: params.edielMessageId,
-    status: appliedCount > 0 ? 'applied' : 'skipped',
-    appliedCount,
-    skippedCount: skipped.length,
-    summary:
-      appliedCount > 0
-        ? `${appliedCount} fält applicerades. ${skipped.length} ändringar hoppades över.`
-        : `Inga säkra ändringar applicerades. ${skipped.length} ändringar kräver manuell hantering.`,
-  }
+  if (error) throw error
+  if (!isRecord(data) || typeof data.applied !== 'boolean') throw new Error('structural_apply_receipt_invalid')
+  // Actual admin actions await this function without reading its return value;
+  // a held source must surface its blocker, never look like a successful apply.
+  if (!data.applied) throw new Error(typeof data.reason === 'string' ? data.reason : 'structural_apply_original_review_required')
+  if (data.sourceMessageId !== message.id || !Number.isSafeInteger(data.appliedCount) || Number(data.appliedCount) < 1
+    || !Array.isArray(data.objects) || !data.objects.length) throw new Error('structural_apply_receipt_invalid')
+  return { messageId: message.id, status: 'applied', appliedCount: Number(data.appliedCount), skippedCount: 0,
+    summary: `${data.appliedCount} registerversioner har källbunden strukturhistorik.` }
 }
 
 export async function rejectSafeMasterdataChanges(params: {
@@ -358,7 +158,8 @@ export async function rejectSafeMasterdataChanges(params: {
 }): Promise<EdielSafeApplyDecisionResult> {
   const { getEdielMessageById } = await import('@/lib/ediel/db')
   const message = await getEdielMessageById(params.edielMessageId)
-  if (!message) throw new Error('Ediel-meddelandet hittades inte.')
+  if (!message?.company_id || !isSafeApplyCandidate(message)) throw new Error('structural_apply_source_required')
+  await assertEdielTenantActor({ companyId: message.company_id, actorUserId: params.actorUserId, permission: 'metering.write' })
 
   const changes = await buildSafeMasterdataProposal(message)
 

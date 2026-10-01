@@ -1,5 +1,6 @@
 import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInventory'
 import type { StructuralSourceWire } from './structuralSourceWire'
+import type { StructuralMeasurementProjection } from './structuralSourceWire'
 import {boundCoverageByClosures,closureBlockerMatches,correctionContextBlockerMatches,type ClosureVersion,type ScopedClosureBlocker,type ClosureProvenance} from './closureSelection'
 import type {CorrectionContextBlockerV1} from './correctionContextImpact'
 
@@ -31,6 +32,7 @@ export type StructuralVersion = {
   wire: StructuralSourceWire
   coverage: StructuralCoverage | null
   replaces: StructuralReplacement | null
+  measurements?: StructuralMeasurementProjection
 }
 export type StructuralSelectionInput = {
   ledgerStartedAt: string
@@ -66,6 +68,7 @@ export type SelectedStructure = {
   registerIds: (string | null)[]
   meterSourceMessageId: string | null
   registerSourceMessageId: string | null
+  measurements?: Readonly<Record<keyof StructuralMeasurementProjection,{value:string|null;sourceMessageId:string|null}>>
 }
 export type StructuralSelection =
   | { status: 'unavailable'; reason: string }
@@ -203,9 +206,15 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
         }
       }
     }
+    const priorMeasurements:SelectedStructure['measurements']=state?.measurements
+    const measurements=version.measurements ? Object.fromEntries(Object.entries(version.measurements).map(([key,value])=>[key,
+      value!==null ? {value,sourceMessageId:version.sourceMessageId}
+        : priorMeasurements?.[key as keyof StructuralMeasurementProjection]??{value:null,sourceMessageId:null},
+    ])) as SelectedStructure['measurements'] : undefined
     state = { sourceMessageId: version.sourceMessageId, assessmentId: version.assessmentId!, payloadHash: version.payloadHash,
       effectiveFrom: wire.effectiveFrom.utc, meterNumber, registerIds,
-      meterSourceMessageId: meterSource, registerSourceMessageId: registerSource }
+      meterSourceMessageId: meterSource, registerSourceMessageId: registerSource,
+      ...(measurements?{measurements}:{}) }
     if (beforeStart(at)) { states.splice(0, states.length, state) }
     else states.push(state)
   }

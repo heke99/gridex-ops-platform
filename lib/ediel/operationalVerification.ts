@@ -265,24 +265,26 @@ function addProposalIfChanged(params: {
   })
 }
 
-async function getCurrentSite(siteId: string | null): Promise<CustomerSiteRow | null> {
-  if (!siteId) return null
+async function getCurrentSite(companyId:string|null,siteId: string | null): Promise<CustomerSiteRow | null> {
+  if (!companyId || !siteId) return null
   const { data, error } = await supabaseService
     .from('customer_sites')
     .select('*')
     .eq('id', siteId)
+    .eq('company_id', companyId)
     .maybeSingle()
 
   if (error) throw error
   return (data as CustomerSiteRow | null) ?? null
 }
 
-async function getCurrentMeteringPoint(meteringPointId: string | null): Promise<MeteringPointRow | null> {
-  if (!meteringPointId) return null
+async function getCurrentMeteringPoint(companyId:string|null,meteringPointId: string | null): Promise<MeteringPointRow | null> {
+  if (!companyId || !meteringPointId) return null
   const { data, error } = await supabaseService
     .from('metering_points')
     .select('*')
     .eq('id', meteringPointId)
+    .eq('company_id', companyId)
     .maybeSingle()
 
   if (error) throw error
@@ -291,8 +293,8 @@ async function getCurrentMeteringPoint(meteringPointId: string | null): Promise<
 
 export async function buildSafeMasterdataProposal(message: EdielMessageRow): Promise<EdielMasterdataChangeProposal[]> {
   const payload = asRecord(message.parsed_payload)
-  const site = await getCurrentSite(message.site_id)
-  const meteringPoint = await getCurrentMeteringPoint(message.metering_point_id)
+  const site = await getCurrentSite(message.company_id,message.site_id)
+  const meteringPoint = await getCurrentMeteringPoint(message.company_id,message.metering_point_id)
   const proposals: EdielMasterdataChangeProposal[] = []
 
   addProposalIfChanged({
