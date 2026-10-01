@@ -120,13 +120,17 @@ export async function readPersistedEdielTechnicalContrlBasis(input: {
   environment: 'test' | 'production'
   ackMessageId: string
   expectedRawPayload: string
+  actorUserId: string
+  phase: 'prepare' | 'read' | 'send'
 }): Promise<{ ackMessage: EdielMessageRow; evidence: TechnicalSyntaxAckEvidence }> {
-  const { data, error } = await supabaseService.rpc('ediel_read_persisted_technical_contrl_basis_v1', {
+  if (!input.actorUserId || !['prepare','read','send'].includes(input.phase)) throw new Error('ediel_technical_ack_current_actor_required')
+  const { data, error } = await supabaseService.rpc('ediel_read_persisted_technical_contrl_basis_v2', {
     p_company_id: input.companyId, p_environment: input.environment, p_ack_message_id: input.ackMessageId,
+    p_actor_user_id: input.actorUserId, p_phase: input.phase,
   })
-  const result = data as { version?: unknown; ackMessage?: Partial<EdielMessageRow>; technicalSyntaxAckEvidence?: unknown } | null
+  const result = data as { version?: unknown; executionActorUserId?: unknown; executionPhase?: unknown; ackMessage?: Partial<EdielMessageRow>; technicalSyntaxAckEvidence?: unknown } | null
   const ack = result?.ackMessage
-  if (error || result?.version !== 1 || !ack || ack.id !== input.ackMessageId || ack.company_id !== input.companyId
+  if (error || result?.version !== 2 || result.executionActorUserId !== input.actorUserId || result.executionPhase !== input.phase || !ack || ack.id !== input.ackMessageId || ack.company_id !== input.companyId
     || ack.environment !== input.environment || ack.direction !== 'outbound' || ack.message_family !== 'CONTRL'
     || ack.raw_payload !== input.expectedRawPayload) throw new Error('ediel_technical_ack_basis_required', { cause: error })
   const evidence = decodeTechnicalEvidence(result.technicalSyntaxAckEvidence)

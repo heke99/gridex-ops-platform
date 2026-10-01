@@ -245,6 +245,8 @@ export async function findOutboundEdielMessageDuplicate(params: {
 }
 
 export async function hasCanonicalAckDuplicate(params: {
+  actorUserId?: string
+  phase?: 'prepare'|'read'|'send'
   sourceMessageId: string
   ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'

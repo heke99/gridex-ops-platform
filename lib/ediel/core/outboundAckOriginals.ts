@@ -8,10 +8,11 @@ export type OutboundAckOriginal=Readonly<{status:'qualified'|'held';message:Edie
 /** Internal service read after the ACK gateway's actor/source access gate.
  * Protected born evidence supplies authority; public status/outcome does not.
  * This deliberately neither captures a missing basis nor selects today's pack. */
-export async function readOutboundAckOriginals(sourceMessageId:string,ackFamily:AckFamily,expectedSource?:EdielMessageRow,expectedTechnicalCompanyId?:string):Promise<OutboundAckOriginal[]> {
- const {data,error}=await supabaseService.rpc('gridex_read_outbound_acks_for_source_v1',{p_source_message_id:sourceMessageId,p_ack_family:ackFamily})
- const result=data as {version?:unknown;sourceMessageId?:unknown;sourcePayloadHash?:unknown;environment?:unknown;companyId?:unknown;originals?:unknown}|null
- if(error||!result||result.version!==1||result.sourceMessageId!==sourceMessageId||typeof result.sourcePayloadHash!=='string'||!/^[a-f0-9]{64}$/.test(result.sourcePayloadHash)
+export async function readOutboundAckOriginals(sourceMessageId:string,ackFamily:AckFamily,expectedSource?:EdielMessageRow,expectedTechnicalCompanyId?:string,authorization?:{actorUserId:string;phase:'prepare'|'read'|'send'}):Promise<OutboundAckOriginal[]> {
+ if(!authorization?.actorUserId||!['prepare','read','send'].includes(authorization.phase))throw new Error('ediel_existing_ack_original_current_actor_required')
+ const {data,error}=await supabaseService.rpc('gridex_read_outbound_acks_for_source_v2',{p_source_message_id:sourceMessageId,p_ack_family:ackFamily,p_actor_user_id:authorization.actorUserId,p_phase:authorization.phase})
+ const result=data as {version?:unknown;executionActorUserId?:unknown;executionPhase?:unknown;sourceMessageId?:unknown;sourcePayloadHash?:unknown;environment?:unknown;companyId?:unknown;originals?:unknown}|null
+ if(error||!result||result.version!==2||result.executionActorUserId!==authorization.actorUserId||result.executionPhase!==authorization.phase||result.sourceMessageId!==sourceMessageId||typeof result.sourcePayloadHash!=='string'||!/^[a-f0-9]{64}$/.test(result.sourcePayloadHash)
   ||!['test','production'].includes(String(result.environment))||!Array.isArray(result.originals)) throw new Error('ediel_existing_ack_original_read_unavailable',{cause:error})
  if(expectedTechnicalCompanyId && (!expectedSource || expectedSource.company_id!==null))throw new Error('ediel_existing_ack_original_source_mismatch')
  if(expectedSource && (expectedSource.id!==sourceMessageId || expectedSource.direction!=='inbound' || (expectedSource.company_id??expectedTechnicalCompanyId)!==result.companyId || expectedSource.environment!==result.environment

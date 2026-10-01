@@ -610,7 +610,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   if(familyValue==='CONTRL'&&input.mode==='send'&&input.messageRow){
     try{
       if(!input.companyId||(input.environment!=='test'&&input.environment!=='production')||!input.rawPayload)throw new Error('ediel_technical_ack_basis_required')
-      const {evidence}=await readPersistedEdielTechnicalContrlBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload})
+      const {evidence}=await readPersistedEdielTechnicalContrlBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload,actorUserId:input.executionActorUserId??'',phase:'send'})
       return qualifyTechnicalContrl({...input,technicalSyntaxAckEvidence:evidence},result)
     }catch(error){
       return {...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:error instanceof Error?error.message:String(error)})]}
