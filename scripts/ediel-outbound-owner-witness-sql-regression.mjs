@@ -227,5 +227,29 @@ try {
  // A new stricter original-guide qualifier cannot reopen or deny established
  // provider entry whose immutable wrapper already returns proceed=false.
  assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[{...positiveInput,action:'enter'}])).rows[0].r.proceed,false);checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930225819_ediel_original_response_scope_opaque_version.sql',import.meta.url),'utf8'));checks++
+ const opaqueEvidence={...registeredEvidence,version:'authentic-original-opaque-version',snapshot:{...registeredEvidence.snapshot,version:'authentic-original-opaque-version'}}
+ assert.equal((await db.query("select gridex_ediel_ack_guide.require_registered_basis_v1(m,'national',$2,$3) is null ok from ediel_messages m where id=$1",[uid(98),opaqueEvidence,projection])).rows[0].ok,false);checks++
+ await assert.rejects(db.query("select gridex_ediel_ack_guide.require_registered_basis_v1(m,'national',$2,$3) from ediel_messages m where id=$1",[uid(98),{...opaqueEvidence,snapshot:{...opaqueEvidence.snapshot,version:'changed'}},projection]),/ediel_registered_original_guide_unavailable/);checks++
+ // Genuine ERR is logically UTILTS_ERR but its physical UNH and named inherited
+ // pack both belong to UTILTS. No caller metadata becomes a new guide choice.
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','UTILTS_ERR','ERR',$3,now())",[uid(110),uid(1),qualifiedErr]);
+ await db.query("select gridex_ediel_ack_guide.require_registered_basis_v1(m,'national',$2,$3) from ediel_messages m where id=$1",[uid(110),opaqueEvidence,projection]);checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930225411_ediel_source_generated_technical_expectation_plan.sql',import.meta.url),'utf8'));checks++
+ const technicalProjection=(await db.query('select projection from gridex_ediel_transport.technical_expectation_editions')).rows[0].projection
+ const originalGuide=technicalProjection.scopes.find(scope=>scope.version===registeredEvidence.version)
+ const technicalPlan={...technicalProjection.constraints,policy:{guideRevision:originalGuide.canonicalGuideRevision,referenceDate:'2026-09-30',profileKey:technicalProjection.profiles.find(p=>p.family==='UTILTS_ERR').profileKey,sourceTrace:[{authority:'guide',document:originalGuide.documentName,section:'effective-dated guide registry'},{authority:'acknowledgement',document:originalGuide.documentName,section:'UTILTS/APERAK/UTILTS_ERR acknowledgement rules'}]}}
+ // The protected basis getter is the explicitly declared earlier fixture. This
+ // probe checks the actual derivative/helper, not original witness generation.
+ await db.exec(`create function gridex_ediel_transport.fixture_plan(p jsonb,b jsonb default null,f text default 'UTILTS_ERR') returns jsonb language plpgsql as $$declare m public.ediel_messages;begin select * into m from ediel_messages where id='${uid(98)}';m.direction:='outbound';m.message_family:=f;m.message_code:=case when f='UTILTS_ERR' then 'ERR' when f='APERAK' then 'APERAK' when f='CONTRL' then 'CONTRL' else m.message_code end;if b is not null then return gridex_ediel_transport.require_technical_expectation_binding_v1(m,b);end if;return gridex_ediel_transport.require_technical_expectation_plan_v1(m,p);end$$`)
+ const planCheck=async(plan=technicalPlan,binding=null,family='UTILTS_ERR')=>(await db.query('select gridex_ediel_transport.fixture_plan($1,$2,$3) r',[plan,binding,family])).rows[0].r
+ assert.deepEqual(await planCheck(),technicalPlan);checks++
+ for(const plan of [null,{...technicalPlan,offset:technicalPlan.offset+1},{...technicalPlan,remoteReceiptKnown:true},{...technicalPlan,clock:'caller-clock'},{...technicalPlan,policy:{...technicalPlan.policy,profileKey:'sibling-profile'}},{...technicalPlan,policy:{...technicalPlan.policy,guideRevision:'999'}},{...technicalPlan,policy:{...technicalPlan.policy,referenceDate:'2026-02-30'}},{...technicalPlan,policy:{...technicalPlan.policy,sourceTrace:[{authority:'guide',document:'invented',section:'missing basis'}]}}]){await assert.rejects(planCheck(plan),/ediel_technical_expectation/);checks++}
+ const admissionDecision={version:1,family:'UTILTS_ERR',code:'ERR',profileKey:technicalPlan.policy.profileKey,referenceDate:technicalPlan.policy.referenceDate,guide:{guideRevision:technicalPlan.policy.guideRevision},sourceTrace:technicalPlan.policy.sourceTrace}
+ const technicalBinding={technicalExpectationPlan:technicalPlan,admissionDecision};assert.deepEqual(await planCheck(technicalPlan,technicalBinding),technicalBinding);checks++
+ await assert.rejects(planCheck(technicalPlan,{...technicalBinding,admissionDecision:{...admissionDecision,referenceDate:'2026-09-29'}}),/ediel_technical_expectation_same_admission_required/);checks++
+ assert.equal(await planCheck(null,null,'CONTRL'),null);checks++;await assert.rejects(planCheck(technicalPlan,null,'CONTRL'),/ediel_technical_expectation_not_applicable/);checks++
+ const technicalAcl=(await db.query("select has_function_privilege('service_role','gridex_ediel_transport.require_technical_expectation_plan_v1(public.ediel_messages,jsonb)','execute') private_exec,has_table_privilege('service_role','gridex_ediel_transport.technical_expectation_editions','insert') mutate_edition")).rows[0];assert.deepEqual(technicalAcl,{private_exec:false,mutate_edition:false});checks++
+ await assert.rejects(db.exec('update gridex_ediel_transport.technical_expectation_editions set projection=projection'),/received_source_evidence_is_append_only/);checks++
  console.log(`Focused PostgreSQL outbound original owner seal/one-use atomic insertion/named version/raw scope/ACL/native Z08 binding checks: ${checks} PASS`)
 } catch(e){console.error(e.stack,e.where??'',e.position??'',e.routine??'');process.exitCode=1} finally{await db.close()}
