@@ -137,6 +137,7 @@ export async function createTenantSupportCase(input: CreateTenantSupportCaseInpu
     description,
     reasonCategory: category,
     source: `tenant_support_${input.channel}`,
+    operationalImpact: 'none',
     nextAction: 'Supportärendet ska triageras inom tenantens ordinarie ärendeflöde.',
     actorUserId: input.actorUserId ?? null,
     metadata: {
