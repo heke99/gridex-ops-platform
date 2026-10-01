@@ -26,13 +26,14 @@ await db.exec(`create role anon;create role authenticated;create role service_ro
  create table platform_market_actors(id uuid primary key,status text,match_status text);create table platform_actor_roles(id uuid primary key,actor_id uuid,actor_role text,is_active bool);
  create table platform_actor_identifiers(id uuid primary key,actor_id uuid,identifier_type text,identifier_value text,is_verified bool,valid_from date,valid_to date);
  create table ediel_message_intents(id uuid primary key,company_id uuid,environment text,message_family text,message_code text,customer_id uuid,metering_point_id text,operation_id uuid);
- create table outbound_requests(id uuid primary key,company_id uuid,customer_id uuid,source_type text,source_id text,request_type text);
+ create table outbound_requests(id uuid primary key,company_id uuid,customer_id uuid,source_type text,source_id uuid,request_type text);
  create table ediel_messages(id uuid primary key,intent_id uuid,company_id uuid,environment text,direction text,message_family text,message_code text,source_operation_id text,outbound_request_id uuid,customer_id uuid,metering_point_id uuid,raw_payload text);`)
 await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.wire_tokens_bounded_v1'))
 await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.closure_wire_tokens_v2'))
 await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.permission_transition_immutable_v1'))
 await db.exec(fn('../supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql','gridex_received_sources.prodat_recovery_wire_v1'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql',import.meta.url),'utf8'));checks++
+ const repair=readFileSync(new URL('../supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql',import.meta.url),'utf8'),a=repair.indexOf('CREATE OR REPLACE FUNCTION public.ediel_reserve_production_contract_origin_v1'),b=repair.indexOf('$$;',a);await db.exec(repair.slice(a,b+3));checks++
 await db.exec(`insert into companies values('${uid(1)}');insert into auth.users values('${uid(2)}');insert into user_profiles values('${uid(2)}','active');insert into company_memberships values('${uid(20)}','${uid(1)}','${uid(2)}','active',true,now());insert into customers values('${uid(3)}','${uid(1)}');
  insert into customer_contracts values('${uid(4)}','${uid(1)}','${uid(3)}','${uid(5)}','1','1','2026-09-30T10:01:23Z','{}');
  insert into metering_points values('${uid(5)}','${uid(1)}','${uid(3)}','production','A','54321','TES');
