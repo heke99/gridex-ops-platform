@@ -18,7 +18,7 @@ describe('canonical own UTILTS transaction facet',()=>{
   })
   it('preserves one negative functional own scope and an accepted sibling without whole positivity',()=>{
     const source=energyHandoffMessage(),lines=source.raw_payload!.split('\n'),start=lines.findIndex(line=>line.startsWith('IDE+')),end=lines.findIndex(line=>line.startsWith('UNT+'))
-    source.raw_payload=recountEdifactUnt([...lines.slice(0,end),...lines.slice(start,end).map(line=>line.replaceAll('GRIDEX2607E66001','SECOND').replace('QTY+136:500','QTY+136:500.0001')),...lines.slice(end)].join('\n'))
+    source.raw_payload=recountEdifactUnt([...lines.slice(0,end),...lines.slice(start,end).map(line=>line.replaceAll('GRIDEX2607E66001','SECOND').replace('QTY+136:500',"QTY+136:500'\nQTY+136:500")),...lines.slice(end)].join('\n'))
     const runtime=runUtiltsRuntimeForMessage(source),facet=buildReceivedUtiltsTransactionValidation({source,transactions:runtime.transactionDispositions})!
     expect(runtime.validation.classification).toBe('functional_rejected')
     expect(facet.transactions.map(item=>[item.transactionId,item.disposition])).toEqual([['GRIDEX2607E66001','accepted'],['SECOND','processability_rejected']])

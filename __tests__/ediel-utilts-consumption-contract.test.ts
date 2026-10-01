@@ -1,5 +1,5 @@
 import {recountEdifactUnt} from './helpers/recountEdifactUnt'
-import { canonicalUtiltsDecimal, sumUtiltsDecimals, retainedV1NumberDecimal } from '@/lib/ediel/utilts/exactDecimal'
+import { canonicalUtiltsDecimal, sumUtiltsDecimals, retainedV1NumberDecimal, utiltsEnergyQuantityKwh } from '@/lib/ediel/utilts/exactDecimal'
 import { bindingRpcRows } from './helpers/utiltsBoundFixture'
 import { expect, it, vi } from 'vitest'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
@@ -93,10 +93,12 @@ it('accepts only authentic same-source immutable V1 retry comparison, never a ne
   expect(()=>validateUtiltsPersistenceResults(input,response)).toThrow('source_binding')
 })
 
-it.each([['MWH','500000'],['GWH','500000000']] as const)('converts own transaction %s energy exactly into consumer kWh', async(unit,expected)=>{
+it.each([['MWH','500000'],['GWH','500000000']] as const)('represents %s conversion exactly while holding ordinary source admission without exception grounds', async(unit,expected)=>{
+  expect(utiltsEnergyQuantityKwh('500',unit)).toBe(expected)
   const result=await preparedEnergy('E66',raw=>raw.replace('MEA+AAZ++KWH',`MEA+AAZ++${unit}`))
-  expect(result.runtime.transactionDispositions[0].disposition).toBe('accepted')
-  expect(result.contracts[0].observations[0].quantity).toBe(expected)
+  expect(result.runtime.transactionDispositions[0].disposition).toBe('processability_rejected')
+  expect(result.runtime.ackPlan.utiltsErrCodes).toContain('E73')
+  expect(result.contracts[0].observations).toEqual([])
 })
 it('rejects an own SEQ unit override at its guide before billing preparation',async()=>{
   const result=await preparedEnergy('E66',raw=>recountEdifactUnt(raw.replace("SEQ++1'","SEQ++1'\nMEA+AAZ++MWH'")))
@@ -116,7 +118,12 @@ it('keeps conflicting own-SEQ unit rejection separate from an accepted IDE sibli
 })
 
 it('retains an authentic pre-conversion V1 MWH result without rewriting historical kWh content',async()=>{
-  const {input}=await preparedEnergy('E66',raw=>raw.replace('MEA+AAZ++KWH','MEA+AAZ++MWH'))
+  // Model a previously committed interpretation, independently of fresh
+  // admission, which now holds MWH without genuine exception evidence.
+  const {input}=await preparedEnergy('E66')
+  input.rawPayload=input.rawPayload.replace('MEA+AAZ++KWH','MEA+AAZ++MWH')
+  input.contracts[0].observations[0].quantity='500000'
+  input.transactions[0].unit='MWH'
   expect(input.contracts[0].observations[0].quantity).toBe('500000')
   const legacy=legacyUtiltsRetryComparison(input.contracts[0] as UtiltsConsumptionContractV2,input.rawPayload)
   expect(legacy.observations[0].quantity).toBe(500)

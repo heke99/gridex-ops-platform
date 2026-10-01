@@ -2,6 +2,9 @@ import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/edi
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { utiltsQuantityUnitGuideIssues } from '@/lib/ediel/utilts/quantityUnitScope'
+import {utiltsDecimalGuideIssues,utiltsPrecisionFunctionalIssues} from '@/lib/ediel/utilts/quantityPrecision'
+import {takeQualifiedUtiltsRuntimeOwner} from '@/lib/ediel/utilts/qualifyReceivedStructure'
+import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
 import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
@@ -44,6 +47,20 @@ export type UtiltsRuntimeReferenceOptions = {
 }
 
 const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
+
+const runtimeOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy}>()
+export function utiltsRuntimeOwnerFingerprint(message:EdielMessageRow,runtime:UtiltsRuntimeResult):{sourceHash:string;resultHash:string} {
+  return {sourceHash:evidenceHash(JSON.stringify(message)),resultHash:evidenceHash(JSON.stringify(runtime))}
+}
+/** One-use actual engine/structural-owner handoff. A copied or mutated runtime,
+ * a different source context/policy, or a guide-only candidate has no owner. */
+export function takeUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy):UtiltsRuntimeResult|null {
+  const owner=runtimeOwners.get(runtime)
+  runtimeOwners.delete(runtime)
+  if(!owner) return takeQualifiedUtiltsRuntimeOwner(runtime,message,policy)
+  const scope=utiltsRuntimeOwnerFingerprint(message,runtime)
+  return owner.policy===policy && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
+}
 
 function runtimeValidationMessage(message: EdielMessageRow): EdielMessageRow {
   const companyId = String(message.company_id ?? '').trim()
@@ -736,7 +753,7 @@ function applyCanonicalE66PersistencePayload(result: UtiltsRuntimeResult): Utilt
   }
 }
 
-export function runUtiltsRuntimeForMessage(
+function runUtiltsRuntimeForMessageCore(
   message: EdielMessageRow,
   options?: UtiltsRuntimeReferenceOptions,
 ): UtiltsRuntimeResult {
@@ -812,7 +829,7 @@ export function runUtiltsRuntimeForMessage(
     aperakErcCode:'42',aperakFieldCode:violation.field,aperakText:'INCORRECT DATA',referenceQualifier:transaction.transactionId ? 'ACW' : null,
     referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId,
   })))
-  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
+  const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
   const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   if (options?.guideOnly) return guided
   const eligible = new Set(guided.transactionDispositions
@@ -829,6 +846,14 @@ export function runUtiltsRuntimeForMessage(
   const functionalEffective = applyUtiltsEffectiveDatePolicyToRuntimeResult({
     message, result: functionalCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
-  const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional')]
+  const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional'),...utiltsPrecisionFunctionalIssues(message.raw_payload ?? '',eligible)]
   return applyCanonicalE66PersistencePayload(rebuildUtiltsRuntimeResult({ message, result: guided, issues }))
+}
+
+export function runUtiltsRuntimeForMessage(message:EdielMessageRow,options?:UtiltsRuntimeReferenceOptions):UtiltsRuntimeResult {
+  const runtime=runUtiltsRuntimeForMessageCore(message,options)
+  // Final effect paths always provide their retained policy. Guide candidates
+  // and diagnostic calls with no source-qualified retained policy cannot seal.
+  if(options?.canonicalPolicy && !options.guideOnly) runtimeOwners.set(runtime,{...utiltsRuntimeOwnerFingerprint(message,runtime),policy:options.canonicalPolicy})
+  return runtime
 }
