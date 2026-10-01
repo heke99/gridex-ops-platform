@@ -4,6 +4,8 @@ import {parseProdatMessage,parsedProdatObjects} from '@/lib/ediel/prodat/parser'
 import {prodatMarketMinuteToUtc,prodatNowDate203} from '@/lib/ediel/prodat/render/dates'
 import {selectStructuralSources} from '@/lib/ediel/sources/structuralSourceSelection'
 import {reviewedBusinessFor,type StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import type {CustomerLifeEventPatch} from '@/lib/ediel/production/customerLifeEventPatches'
+import {composeAiListCustomerEpochs} from '@/lib/ediel/aiListCustomerEpochs'
 
 export type AiListSupplyPeriod={id:string;company_id:string;customer_id:string;metering_point_id:string;start_date:string;end_date:string|null;actual_start_date?:string|null;actual_end_date?:string|null}
 export type AiListHistoryScope={companyId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;legalSupplier:string;legalNetwork:string;fromDate:string;toDate:string;cutoffAt:string}
@@ -17,7 +19,7 @@ const min=(a:string,b:string)=>a<b?a:b
 /** Pure dated projection, not an approval capability. The server consumer opens
  * the existing service-owned immutable snapshot only after tenant/site access.
  * Mutable today's site/customer/meter fields never manufacture historical rows. */
-export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly AiListSupplyPeriod[],readset:StructuralReadset):AiListHistoricalProjection {
+export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly AiListSupplyPeriod[],readset:StructuralReadset,customerPatches?:readonly CustomerLifeEventPatch[]):AiListHistoricalProjection {
   const from=aiListDate(scope.fromDate),to=aiListDate(scope.toDate)
   if(from>=to)hold('search_period_invalid')
   const timeline=readset.timeline
@@ -42,12 +44,12 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
     if(owners.some(item=>item.version.wire.object.objectId!==object.objectId||item.version.wire.object.identityAgency!==object.identityAgency))hold('supply_object_ambiguous')
     const start=max(from,periodFrom),end=min(to,periodTo??to)
     const endUtc=prodatMarketMinuteToUtc(minuteForDay(end))!
-    // A customer-only change has a separate business owner. Structural approval
-    // cannot silently authorize its national customer/name fields or retain an
-    // obsolete name. Existing source evidence is a hold until that owner exists.
+    // A customer-only change needs its actual separate customer effect owner.
+    // Accepted structural/register/ACK metadata is not that authority.
     if(readset.versions.some(version=>version.wire.object.objectId===object.objectId&&version.wire.object.identityAgency===object.identityAgency
       &&version.wire.legalSender===scope.legalNetwork&&version.wire.legalReceiver===scope.legalSupplier&&version.wire.businessCase==='customer_only'
-      &&version.disposition!=='rejected'&&(version.wire.functionCode==='5'||version.wire.effectiveFrom.utc>=first.coverage!.validFrom&&version.wire.effectiveFrom.utc<endUtc)))hold('dated_customer_change_owner_missing')
+      &&version.disposition!=='rejected'&&(version.wire.functionCode==='5'||version.wire.effectiveFrom.utc>=first.coverage!.validFrom&&version.wire.effectiveFrom.utc<endUtc)
+      &&!customerPatches?.some(patch=>patch.sourceMessageId===version.sourceMessageId&&patch.sourcePayloadHash===version.payloadHash&&Date.parse(patch.effectiveAt)===Date.parse(version.wire.effectiveFrom.utc))))hold('dated_customer_change_owner_missing')
     const selected=selectStructuralSources({companyId:scope.companyId,environment:scope.environment,customerId:scope.customerId,supplyPeriodId:period.id,
       ledgerStartedAt:timeline.ledgerStartedAt,cutoffAt:scope.cutoffAt,readComplete:true,unresolvedSources:false,versions:readset.versions,
       closures:readset.closures,closureBlockers:readset.closureBlockers,correctionContextBlockers:readset.correctionContextBlockers,
@@ -76,12 +78,16 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
       sourceIds.add(state.sourceMessageId)
       if(rowEnd<=start)continue
       if(rowStart>=rowEnd)hold('dated_row_boundary_invalid')
-      rowSources.push({sourceMessageId:state.sourceMessageId,baselineSourceMessageId:baseline.sourceMessageId,addressSourceMessageId,supplyPeriodId:period.id})
-      details.push({anlaggningsId:object.objectId!,kodlista:object.identityAgency!,natavrakningsomrade:parsed.gridAreaId,
-        balansansvarsId:parsed.balanceResponsibleId,elanvandarId:customer.endUserId,elanvandarNamn:customer.endUserName,
+      const epochs=composeAiListCustomerEpochs({baselineId:customer.endUserId,baselineName:customer.endUserName,baselineFrom:periodFrom,from:rowStart,to:rowEnd,cutoff:scope.cutoffAt,patches:customerPatches??[]})
+      for(const epoch of epochs){
+       rowSources.push({sourceMessageId:state.sourceMessageId,baselineSourceMessageId:baseline.sourceMessageId,addressSourceMessageId,supplyPeriodId:period.id})
+       details.push({anlaggningsId:object.objectId!,kodlista:object.identityAgency!,natavrakningsomrade:parsed.gridAreaId,
+        balansansvarsId:parsed.balanceResponsibleId,elanvandarId:epoch.identity,elanvandarNamn:epoch.name,
         anlaggningsAdress:previous.installationAddress,postnummer:previous.installationPostcode,ort:previous.installationCity,
-        franDatum:rowStart===from?null:rowStart,tillDatum:rowEnd===to?null:rowEnd,
+        franDatum:epoch.from===from?null:epoch.from,tillDatum:epoch.to===to?null:epoch.to,
         matarNummer:null,avrakningsmetod:null,arsforbrukningKwh:null,rapporteringsfrekvens:null,matmetod:null,produktkod:null})
+       epoch.sourceMessageIds.forEach(id=>sourceIds.add(id))
+      }
       sourceIds.add(state.sourceMessageId)
     }
     sourceIds.add(baseline.sourceMessageId)

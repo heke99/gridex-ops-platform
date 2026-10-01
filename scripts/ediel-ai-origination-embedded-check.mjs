@@ -26,11 +26,24 @@ for(const file of ['20260930165219_ediel_ai_processing_decision_consumer.sql','2
 const effectSql=readFileSync(new URL('../supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql',import.meta.url),'utf8')
 await db.exec(effectSql.match(/CREATE OR REPLACE FUNCTION gridex_received_sources\.structural_effect_matches_v1[\s\S]*?\$\$;/)[0])
 await db.exec(readFileSync(new URL('../supabase/migrations/20261001015237_ediel_ai_applied_structure_history_fence.sql',import.meta.url),'utf8'))
+// Run the real protected source-only E patch projection. Its first-effect
+// proof port is explicitly synthetic and source-bound; it does not authenticate
+// a real owner, legal approval or historical availability.
+await db.exec(`CREATE SCHEMA gridex_customer_life_events;
+CREATE TABLE gridex_customer_life_events.customer_versions(company_id uuid,customer_id uuid,source_message_id uuid,effective_at timestamptz,version bigint);
+CREATE TABLE gridex_customer_life_events.transitions(company_id uuid,source_message_id uuid,payload_hash text,recorded_at timestamptz,approved_scope jsonb,source_objects jsonb);
+ALTER TABLE gridex_received_sources.object_assessments ADD COLUMN previous_assessment_id uuid,ADD COLUMN assessed_at timestamptz DEFAULT '2000-01-01Z';
+CREATE TABLE gridex_received_sources.object_availability_witnesses(assessment_id uuid,company_id uuid,environment text,source_message_id uuid,facts_hash text,observed_at timestamptz);
+CREATE FUNCTION gridex_customer_life_events.owner_proof_consistent_v1(party jsonb,business jsonb,source_id uuid) RETURNS boolean LANGUAGE sql AS $$SELECT business->>'syntheticUnqualified'='true' AND business->>'sourceMessageId'=source_id::text$$;`)
+for(const [file,name,namespace] of [['20260930164804_ediel_prodat_retry_correction_authority.sql','prodat_recovery_wire_v1','gridex_received_sources'],['20261001023512_ediel_partial_customer_life_event_source_effects.sql','wire_partition_v1','gridex_customer_life_events']]){const sql=readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8');await db.exec(sql.match(new RegExp('CREATE FUNCTION '+namespace+'\\.'+name+'[\\s\\S]*?\\$\\$;'))[0])}
+await db.exec(readFileSync(new URL('../supabase/migrations/20261001020309_ediel_customer_life_event_scoped_patches.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20261001021408_ediel_ai_customer_epoch_source_projection.sql',import.meta.url),'utf8'))
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,company=id(1),actor=id(2),source=id(3),decision=id(4),intent=id(5),site=id(6),customer=id(7),snapshot=id(8),route=id(9),profileId=id(10)
 const csv='AI;54321;Network;12345;Supplier;202610011200;;20261001;20261101;Ver20140401\nNET;735123456789012345;9;;;;;Street;12345;Town;12345;;;;;;;199001011234;Person;;;'
 await db.query('INSERT INTO public.companies VALUES($1)',[company])
 await db.query("INSERT INTO public.company_memberships VALUES($1,$2,'active',true,now())",[company,actor])
 await db.query("INSERT INTO public.user_profiles VALUES($1,'active')",[actor])
+await db.query('INSERT INTO public.customers VALUES($1,$2)',[customer,company])
 await db.query('INSERT INTO public.customer_sites VALUES($1,$2,$3)',[site,company,customer])
 await db.query("INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) VALUES($1,'test','electricity',true,now()-interval '1 day')",[company])
 await db.query("INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES($1,'test',$2,'EdielId','12345',now()-interval '1 day')",[company,actor])
@@ -39,7 +52,7 @@ const profile=(await db.query('SELECT gridex_ai_processing.native_profile_v1() A
 await db.query("INSERT INTO public.ediel_message_intents(id,company_id,environment,message_family,message_code,business_process,direction,validation_status,customer_id,customer_site_id,metering_point_id,communication_route_id,route_profile_id,sender_ediel_id,receiver_ediel_id,application_reference,interchange_reference,message_reference,transaction_reference,payload,created_at,operation_id) VALUES($1,$2,'test','AI_LIST','AI','reconciliation','outbound','validated',$3,$4,NULL,$5,$6,'12345','54321','','','',NULL,$7,now()-interval '1 minute',$8)",[intent,company,customer,site,route,profileId,{owner:'ai-list-export-request-v1',fromDate:'20261001',toDate:'20261101',sourceSha256:profile.sourceSha256,technicalVersion:profile.technicalVersion,requestId:id(11)},id(11)])
 const rowSources=[{sourceMessageId:id(12),baselineSourceMessageId:id(12),addressSourceMessageId:id(12),supplyPeriodId:id(14)}]
 const record=(snap=snapshot,raw=csv,refs=rowSources,rowHash=hash)=>db.query('SELECT public.gridex_ai_record_outbound_original_v1($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',[company,actor,intent,snap,rowHash,raw,'AI.csv','text/csv; charset=utf-8',JSON.stringify(refs)])
-const baselineRaw="UNB+UNOC:3+54321:14+12345:14+261001:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z04+BASE+9'NAD+FR+54321:160:SVK'NAD+DO+12345:160:SVK'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'RFF+Z05:NET'NAD+UD+199001011234:SE2:260++Person'NAD+IT+735123456789012345::9+++Street+Town++12345+SE'NAD+Z02+12345:160:SVK'UNT+10+M'UNZ+1+I'"
+const baselineRaw="UNB+UNOC:3+54321:14+12345:14+261001:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z04+BASE+9'NAD+FR+54321:160:SVK'NAD+DO+12345:160:SVK'LIN+1++735123456789012345:::9'DTM+92:202610010000:203'RFF+Z05:NET'RFF+LI:CASE'NAD+UD+199001011234:SE2:260++Person'NAD+IT+735123456789012345::9+++Street+Town++12345+SE'NAD+Z02+12345:160:SVK'UNT+10+M'UNZ+1+I'"
 const sha=async text=>(await db.query("SELECT encode(sha256(convert_to($1,'UTF8')),'hex') AS hash",[text])).rows[0].hash
 const multiPartyRaw=baselineRaw.replace('++Person','++ Person : Second Name').replace('+++Street','+++ First Street : : Third Street ')
 const partyProjection=(await db.query("SELECT gridex_ai_processing.party_text_v1(t,CASE WHEN t#>>'{elements,1,0}'='UD' THEN 4 ELSE 5 END,CASE WHEN t#>>'{elements,1,0}'='UD' THEN 2 ELSE 3 END) AS value FROM jsonb_array_elements(gridex_received_sources.closure_wire_tokens_v2($1)) t WHERE t->>'tag'='NAD' AND t#>>'{elements,1,0}' IN('UD','IT') ORDER BY t#>>'{elements,1,0}'",[multiPartyRaw])).rows
@@ -102,7 +115,7 @@ await db.exec('RESET ROLE;')
 const checkRows=()=>db.query("SELECT gridex_ai_processing.require_original_row_sources_v1($1::jsonb,now(),(SELECT i FROM public.ediel_message_intents i WHERE id=$2),$3,$4) AS refs",[multiText,intent,twoCsv,JSON.stringify(twoRefs)])
 await assert.rejects(checkRows,/ai_list_applied_structural_source_unconfirmed/)
 await db.query("INSERT INTO gridex_received_sources.sources VALUES($1,$2,'test',$3,$4)",[id(15),company,changeHash,changeRaw])
-await db.query("INSERT INTO gridex_received_sources.object_assessments VALUES($1,$2,$3,'test',$4,$5,$6,$7)",[id(16),company,id(15),changeHash,id(21),changeFactsText,await sha(changeFactsText)])
+await db.query("INSERT INTO gridex_received_sources.object_assessments(id,company_id,source_message_id,environment,source_payload_hash,canonical_assessment_id,facts_text,facts_hash) VALUES($1,$2,$3,'test',$4,$5,$6,$7)",[id(16),company,id(15),changeHash,id(21),changeFactsText,await sha(changeFactsText)])
 const changeObject=changeFacts.objects[0],effect={object:changeObject.object,meteringPointId:id(20),siteId:site,wire:changeObject.business.wire}
 const putEffect=(value=effect,appliedAt='2000-01-01Z')=>db.query("INSERT INTO gridex_received_sources.structural_object_apply_receipts VALUES($1,$2,'test',$3,$4,$5,$6,$7)",[id(15),company,changeHash,id(16),id(21),value,appliedAt])
 await putEffect({...effect,siteId:id(99)})
@@ -119,6 +132,64 @@ await assert.rejects(checkRows,/ai_list_applied_structural_source_unconfirmed/)
 await db.exec('DELETE FROM gridex_received_sources.structural_object_apply_receipts;')
 await db.query("INSERT INTO gridex_received_sources.structural_apply_receipts VALUES($1,$2,'test',$3,$4,$5,$6,'2000-01-01Z')",[id(15),company,changeHash,id(16),id(21),[effect]])
 assert.equal((await checkRows()).rows[0].refs.length,2)
+// Actual E patch owner composes over the same qualified original Z04; repeated
+// structural refs are legal only for genuine source-approved customer epochs.
+const eventId=id(30),eventAssessment=id(31),eventVersionAt='2026-10-09T23:00:00Z'
+const eventRaw=baselineRaw.replace('BGM+Z04+BASE','BGM+Z06+CUSTOMER').replace('DTM+92:202610010000','DTM+157:202610100000').replace('199001011234','198001011234').replace('++Person',"++Updated Person").replace('RFF+Z05',"CCI++Z13'CAV+E34'RFF+Z05")
+const eventHash=await sha(eventRaw)
+const eventFactsText=JSON.stringify({objects:[{object:{objectId:'735123456789012345',identityAgency:'9'},disposition:'accepted',party:{syntheticUnqualified:true},business:{syntheticUnqualified:true,sourceMessageId:eventId,customerId:customer}}]})
+const eventFactsHash=await sha(eventFactsText)
+await db.query("INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload) VALUES($1,$2,'test','inbound','edifact','PRODAT','Z06',$3)",[eventId,company,eventRaw])
+await db.query("INSERT INTO gridex_received_sources.object_assessments(id,company_id,source_message_id,environment,source_payload_hash,facts_text,facts_hash) VALUES($1,$2,$3,'test',$4,$5,$6)",[eventAssessment,company,eventId,eventHash,eventFactsText,eventFactsHash])
+await db.query("INSERT INTO gridex_received_sources.object_availability_witnesses VALUES($1,$2,'test',$3,$4,'2000-01-01Z')",[eventAssessment,company,eventId,eventFactsHash])
+await db.query('INSERT INTO gridex_customer_life_events.customer_versions VALUES($1,$2,$3,$4,1)',[company,customer,eventId,eventVersionAt])
+await db.query("INSERT INTO gridex_customer_life_events.transitions VALUES($1,$2,$3,'2000-01-01Z',$4,$5)",[company,eventId,eventHash,[{customerId:customer,effectiveAt:eventVersionAt,pointId:'735123456789012345',identityAgency:'9',allowedFields:['227','228']}],[{point:'735123456789012345',identityAgency:'9',customerParty:['198001011234','SE2','260'],name:['Updated Person']} ]])
+const epochFirst=[...csvLines[1].split(';')],epochSecond=[...epochFirst],epochThird=[...epochFirst]
+epochFirst[20]='20261010';epochSecond[17]='198001011234';epochSecond[18]='Updated Person';epochSecond[19]='20261010';epochSecond[20]='20261015'
+epochThird[17]='198001011234';epochThird[18]='Updated Person';epochThird[19]='20261015';epochThird[7]='NewStreet'
+const epochCsv=[csvLines[0],epochFirst.join(';'),epochSecond.join(';'),epochThird.join(';')].join('\n'),epochRefs=[rowSources[0],rowSources[0],twoRefs[1]]
+const eventUniverse=JSON.parse(multiText);eventUniverse.sources.push({sourceMessageId:eventId,rawPayload:eventRaw,payloadHash:eventHash,assessments:[{id:eventAssessment,previousAssessmentId:null,availabilityWitnessId:id(34),availableAt:'2000-01-01Z',factsText:eventFactsText,factsHash:eventFactsHash}]})
+const eventUniverseText=JSON.stringify(eventUniverse)
+const customerRows=(raw=epochCsv,refs=epochRefs)=>db.query("SELECT gridex_ai_processing.require_original_row_sources_v1($1::jsonb,now(),(SELECT i FROM public.ediel_message_intents i WHERE id=$2),$3,$4) AS refs",[eventUniverseText,intent,raw,JSON.stringify(refs)])
+assert.equal((await customerRows()).rows[0].refs.length,3)
+// Genuine own E remains usable in a mixed source with a separate physical F/G.
+// The second scope is not this row's point and grants it no structural approval.
+const mixedGoodRaw=eventRaw.replace('UNT+',"LIN+2++735123456789012346:::9'DTM+157:202610100000:203'CCI++Z13'CAV+E32'RFF+LI:OTHER'UNT+")
+const mixedGoodHash=await sha(mixedGoodRaw),mixedGoodUniverse=JSON.parse(eventUniverseText);Object.assign(mixedGoodUniverse.sources[2],{rawPayload:mixedGoodRaw,payloadHash:mixedGoodHash})
+await db.query('UPDATE gridex_customer_life_events.transitions SET payload_hash=$1 WHERE source_message_id=$2',[mixedGoodHash,eventId]);await db.query('UPDATE gridex_received_sources.object_assessments SET source_payload_hash=$1 WHERE source_message_id=$2',[mixedGoodHash,eventId])
+assert.equal((await db.query("SELECT gridex_ai_processing.require_original_row_sources_v1($1::jsonb,now(),(SELECT i FROM public.ediel_message_intents i WHERE id=$2),$3,$4) AS refs",[JSON.stringify(mixedGoodUniverse),intent,epochCsv,JSON.stringify(epochRefs)])).rows[0].refs.length,3)
+const mixedRaw=eventRaw.replace('LIN+1++735123456789012345','LIN+1++735123456789012346').replace("UNT+","LIN+2++735123456789012345:::9'DTM+157:202610100000:203'CCI++Z13'CAV+E32'RFF+LI:UNKNOWN'UNT+")
+const mixedHash=await sha(mixedRaw),mixedUniverse=JSON.parse(eventUniverseText);Object.assign(mixedUniverse.sources[2],{rawPayload:mixedRaw,payloadHash:mixedHash})
+await db.query('UPDATE gridex_customer_life_events.transitions SET payload_hash=$1 WHERE source_message_id=$2',[mixedHash,eventId]);await db.query('UPDATE gridex_received_sources.object_assessments SET source_payload_hash=$1 WHERE source_message_id=$2',[mixedHash,eventId])
+await assert.rejects(()=>db.query("SELECT gridex_ai_processing.require_original_row_sources_v1($1::jsonb,now(),(SELECT i FROM public.ediel_message_intents i WHERE id=$2),$3,$4)",[JSON.stringify(mixedUniverse),intent,epochCsv,JSON.stringify(epochRefs)]),/ai_list_original_dated_source_owner_missing/)
+await db.query('UPDATE gridex_customer_life_events.transitions SET payload_hash=$1 WHERE source_message_id=$2',[eventHash,eventId]);await db.query('UPDATE gridex_received_sources.object_assessments SET source_payload_hash=$1 WHERE source_message_id=$2',[eventHash,eventId])
+
+await assert.rejects(()=>customerRows(twoCsv,twoRefs),/ai_list_original_row_source_mismatch/)
+await assert.rejects(()=>customerRows(epochCsv.replace('Updated Person','WRONG')),/ai_list_original_row_source_mismatch/)
+await assert.rejects(()=>customerRows(epochCsv.replace('20261010','20261011')),/ai_list_original_row_source_mismatch/)
+await assert.rejects(()=>customerRows([csvLines[0],epochFirst.join(';'),epochThird.join(';')].join('\n'),[rowSources[0],twoRefs[1]]),/ai_list_original_supply_epoch_omitted/)
+await db.query("UPDATE gridex_received_sources.object_availability_witnesses SET observed_at='2100-01-01Z' WHERE assessment_id=$1",[eventAssessment])
+await assert.rejects(customerRows,/ai_list_original_customer_patch_owner_required/)
+await db.query("UPDATE gridex_received_sources.object_availability_witnesses SET observed_at='2000-01-01Z' WHERE assessment_id=$1",[eventAssessment])
+await db.query("UPDATE gridex_customer_life_events.customer_versions SET effective_at=effective_at+interval '1 microsecond' WHERE source_message_id=$1",[eventId])
+await db.query("UPDATE gridex_customer_life_events.transitions SET approved_scope=jsonb_set(approved_scope,'{0,effectiveAt}',to_jsonb($1::timestamptz)) WHERE source_message_id=$2",['2026-10-09T23:00:00.000001Z',eventId])
+await assert.rejects(customerRows,/ai_list_date_only_customer_boundary_unrepresentable/)
+await db.query('UPDATE gridex_customer_life_events.customer_versions SET effective_at=$1 WHERE source_message_id=$2',[eventVersionAt,eventId]);await db.query("UPDATE gridex_customer_life_events.transitions SET approved_scope=jsonb_set(approved_scope,'{0,effectiveAt}',to_jsonb($1::timestamptz)) WHERE source_message_id=$2",[eventVersionAt,eventId])
+// Seal the actual E-derived original under another genuine validated intent.
+const epochIntent=id(32)
+await db.query("INSERT INTO public.ediel_message_intents SELECT (i).* FROM public.ediel_message_intents i WHERE false")
+await db.query("INSERT INTO public.ediel_message_intents SELECT (jsonb_populate_record(NULL::public.ediel_message_intents,to_jsonb(i)||jsonb_build_object('id',$2::uuid,'operation_id',$3::uuid,'payload',jsonb_set(i.payload,'{requestId}',to_jsonb($3::text))))).* FROM public.ediel_message_intents i WHERE i.id=$1",[intent,epochIntent,id(33)])
+await db.exec('SET ROLE service_role;')
+await db.query('SELECT public.gridex_ai_record_outbound_original_v1($1,$2,$3,$4,$5,$6,$7,$8,$9)',[company,actor,epochIntent,id(17),multiHash,epochCsv,'AI.csv','text/csv; charset=utf-8',JSON.stringify(epochRefs)])
+await db.exec('RESET ROLE;')
+const frozenEpoch=(await db.query('SELECT customer_history_basis,source_ids FROM gridex_ai_processing.outbound_origins WHERE intent_id=$1',[epochIntent])).rows[0]
+assert.equal(frozenEpoch.customer_history_basis.authorizesInitialCustomer,false);assert.equal(frozenEpoch.customer_history_basis.patches[0].sourceMessageId,eventId);assert.ok(frozenEpoch.source_ids.includes(eventId))
+await db.query("UPDATE gridex_received_sources.object_availability_witnesses SET observed_at='2100-01-01Z' WHERE assessment_id=$1",[eventAssessment]);await db.exec('SET ROLE service_role;')
+assert.equal((await db.query('SELECT public.gridex_ai_record_outbound_original_v1($1,$2,$3,$4,$5,$6,$7,$8,$9) AS result',[company,actor,epochIntent,id(17),multiHash,epochCsv,'AI.csv','text/csv; charset=utf-8',JSON.stringify(epochRefs)])).rows[0].result.status,'original')
+await db.exec('RESET ROLE;')
+// Remove these deliberately mutable synthetic E fixtures before old no-change
+// probes. Authentic transitions and outcomes are immutable in the real schema.
+await db.exec('DELETE FROM gridex_customer_life_events.customer_versions;DELETE FROM gridex_customer_life_events.transitions;')
 await db.exec('SET ROLE service_role;')
 await record()
 await assert.rejects(()=>record(snapshot,csv.replace('Person','DIFFERENT')),/ai_list_original_conflict/)
