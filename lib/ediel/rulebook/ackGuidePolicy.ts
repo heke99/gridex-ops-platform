@@ -6,6 +6,8 @@ import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS,prodatAperakFi
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {utiltsErrSourceCopyViolations} from '@/lib/ediel/utilts/errSourceCopy'
 import {UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,validUtiltsLegalIdentity} from '@/lib/ediel/utilts/headerIdentityGuide'
+import {UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY} from './utilts25A4'
+import {canonicalRegisteredEdielGuideScopes} from './canonicalEdielFacade'
 
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 /** Source projection port for native admission. The TS guide consumer below
@@ -33,6 +35,25 @@ export const CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS=Object.freeze({
  forbiddenSegments:Object.freeze(['ERC','FTX','DOC','LIN','SEQ','QTY','MEA','CCI','CAV']),
  source:Object.freeze({id:'U',section:'3.7.4',pages:Object.freeze([66,68]),reasonField:'531',validityPages:Object.freeze([122,126]),availableBasis:'authentic_original'}),
 })
+/** Authentic prior U SHA fad5cf4f... p131 field531 includes E19; p138
+ * describes its own meter-reading comparison. The existing dated overlay
+ * removes E19. A reply inherits the original guide, rather than its send date.
+ * Native consumers project this same data against protected named originals. */
+export const CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES=Object.freeze(canonicalRegisteredEdielGuideScopes()
+ .filter(scope=>scope.family==='UTILTS').map(scope=>{
+  const processability=[UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY].find(policy=>policy.guideRevision===scope.canonicalGuideRevision)
+  if(!processability)throw new Error('canonical_err_reason_guide_scope_unavailable')
+  const base=[...CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS.allowedReasons,...UTILTS_25_A_4_POLICY.removedRejectionReasonCodes]
+  return Object.freeze({...scope,allowedReasons:Object.freeze(base.filter(reason=>!processability.removedRejectionReasonCodes.includes(reason))),
+   source:Object.freeze({document:processability.source.document,sha256:processability.structuralComparisonSource.sha256,
+    field:'531',pages:Object.freeze(processability===UTILTS_25_A_3_POLICY?[131,138]:[126,132])})})
+ }))
+export function canonicalUtiltsErrReasonsForPolicy(policy:CanonicalEdielPolicy):readonly string[]|null {
+ if(policy.family!=='UTILTS_ERR')return null
+ const scope=CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES.find(scope=>scope.canonicalGuideRevision===policy.guide.guideRevision
+  &&scope.associationAssignedCode===policy.associationAssignedCode)
+ return scope?.allowedReasons??null
+}
 type Wire=ReturnType<typeof tokenizeEdifact>
 const equal=(a:readonly string[],b:readonly string[])=>JSON.stringify(a)===JSON.stringify(b)
 function value(wire:Wire,segment:EdifactTokenizedSegment | undefined,index:number){return segmentComposite(segment,index,wire.una)[0] ?? ''}
@@ -66,6 +87,8 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
  }
  if(input.policy.family==='UTILTS_ERR'){
   const cfg=CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS
+  const allowedReasons=canonicalUtiltsErrReasonsForPolicy(input.policy)
+  if(!allowedReasons)add('ACK_UTILTS_ERR_ORIGINAL_GUIDE_UNQUALIFIED','ERR ska använda en styrkt originalanvisnings avvisningsorsaker.','STS/531')
   if(!equal(type,[...cfg.technicalProfile.slice(0,4),input.policy.associationAssignedCode??'']))add('ACK_UTILTS_ERR_PROFILE_INVALID','UTILTS-ERR ska använda det faktiska originalets tekniska UTILTS-version.','UNH/S009')
   const bgms=all('BGM'),bgm=bgms[0],name=segmentComposite(bgm,1,wire.una),id=segmentComposite(bgm,2,wire.una)
   if(bgms.length!==1||name[0]!==cfg.documentCode||name[2]!==cfg.documentAgency||!cfg.optionalDocumentCodeLists.includes(name[1]??'')||name.slice(3).some(Boolean))add('ACK_UTILTS_ERR_DOCUMENT_CODE_INVALID','UTILTS-ERR ska ha dokumentnamn ERR och kodlistansvarig260.','BGM/202')
@@ -90,7 +113,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   for(const group of groups){
    const own=segmentComposite(group[0],2,wire.una),responses=group.filter(t=>t.tag==='STS'&&value(wire,t,1)===cfg.responseQualifier),response=responses[0],status=segmentComposite(response,2,wire.una),reason=segmentComposite(response,3,wire.una),tn=references(wire,group,cfg.referenceQualifier)
    if(value(wire,group[0],1)!==cfg.transactionQualifier||!own[0]||own[0].length>cfg.ownTransactionIdMax||own.length!==1||ids.includes(own[0]))add('ACK_UTILTS_ERR_OWN_TRANSACTION_INVALID','ERR-transaktionsnumret ska vara eget och unikt.','IDE/505');ids.push(own[0]??'')
-   if(responses.length!==1||!equal(segmentComposite(response,1,wire.una),[cfg.responseQualifier,'',cfg.agency])||!equal(status,[cfg.responseStatus])||!cfg.allowedReasons.includes(reason[0]??'')||!equal(reason,[reason[0]??'','',cfg.agency])||response?.elements.slice(4).some(Boolean))add('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID','ERR ska ange STS41 och en faktisk nationell avvisningsorsak med kodlistansvarig260.','STS/528/531')
+   if(responses.length!==1||!equal(segmentComposite(response,1,wire.una),[cfg.responseQualifier,'',cfg.agency])||!equal(status,[cfg.responseStatus])||!allowedReasons?.includes(reason[0]??'')||!equal(reason,[reason[0]??'','',cfg.agency])||response?.elements.slice(4).some(Boolean))add('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID','ERR ska ange STS41 och en faktisk nationell avvisningsorsak med kodlistansvarig260.','STS/528/531')
    if(!one(tn)||tn[0].length>cfg.originalTransactionIdMax||group.filter(t=>t.tag==='RFF'&&value(wire,t,1)===cfg.referenceQualifier).some(t=>segmentComposite(t,1,wire.una).length!==2))add('ACK_UTILTS_ERR_ORIGINAL_TRANSACTION_INVALID','ERR ska referera exakt ett fullständigt transaktionsnummer i originalet.','RFF/529')
    const scope=`${tn[0]??''}|${reason[0]??''}`;if(scopes.includes(scope))add('ACK_UTILTS_ERR_OWN_RESPONSE_DUPLICATE','Samma ursprungstransaktion och avvisningsorsak får inte dupliceras.','RFF/529');scopes.push(scope)
    const docs=group.filter(t=>t.tag==='RFF'&&cfg.originalMessageCodes.includes(value(wire,t,1)))

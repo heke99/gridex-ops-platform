@@ -342,6 +342,11 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
       policy,
       sourceMessageFamily,
     })
+    if(input.ackSourceQualification){
+      const qualification=sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
+      if(!qualification||dir!=='outbound')throw new Error('ack_source_qualification_required')
+      return sourceBoundAckCanonicalPolicy({qualification,policy})
+    }
   }
 
   if (familyValue !== 'PRODAT' || input.mode !== 'send') return policy
@@ -361,7 +366,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   return { ...policy, prodatDependentConditions: snapshot }
 }
 
-function canonicalValidation(input: RulebookValidationInput): RulebookValidationResult {
+function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?:CanonicalEdielPolicy): RulebookValidationResult {
   const parsed = parse(input)
   const family = normalize(input.family ?? parsed?.family)
   const code = normalize(input.code ?? parsed?.code)
@@ -376,7 +381,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
   }
 
   try {
-    const policy = policyForValidation(input, parsed)
+    const policy = inheritedAckPolicy ?? policyForValidation(input, parsed)
     if (input.processGroup && policy.processGroup && String(input.processGroup).trim() !== policy.processGroup) {
       parserIssues.push(issue({
         severity: 'error',
@@ -387,6 +392,11 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     }
 
     let fieldIssues = validateCanonicalPolicyFields({reportingContext:input.reportingContext, policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
+    if(input.ackSourceQualification&&isSourceBoundAckFamily(policy.family as ActiveCanonicalFamily)){
+      const qualification=sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
+      if(!qualification)throw new Error('ack_source_qualification_required')
+      fieldIssues.push(...validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:qualification.sourceMessage.raw_payload}))
+    }
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
         entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && entry.scope !== 'prodat_register' && entry.scope !== 'prodat_dependent'
@@ -524,7 +534,11 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   const result = canonicalValidation({ ...input, parsed })
   if(input.prodatCommonHeaderRejectionEvidence)return qualifyCommonHeaderNegativeAck(input,result)
   if(input.technicalSyntaxAckEvidence)return qualifyTechnicalContrl(input,result)
-  if (!parsed || result.blocking) return result
+  // A source-bound response's national guide comes from the protected original.
+  // Today's reason catalogue must not reject a genuine retained-guide reply
+  // before that original is read. The same parser/guide checks run on the
+  // inherited policy below; business-family blocking behavior is unchanged.
+  if (!parsed || (result.blocking&&!isSourceBoundAckFamily(familyValue)) || !result.canonicalPolicy) return result
   const dir = direction(input)
   if (!dir) return { ...result, ok: false, blocking: true, issues: [...result.issues, issue({ severity: 'error', code: 'CANONICAL_EVIDENCE_DIRECTION_REQUIRED', title: 'Riktning saknas', description: 'Rule-pack evidence kräver explicit inbound/outbound-riktning.' })] }
 
@@ -560,8 +574,9 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
         const qualification=await readSourceBoundAckRulePackEvidence(input.messageRow),{sourceMessage,evidence}=qualification
         const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
         const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
-        const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
-        return {...result,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+        const inherited=canonicalValidation({...input,parsed},policy)
+        const issues=[...inherited.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+        return {...inherited,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
       }catch(error){
         const issues=[...result.issues,issue({severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description:error instanceof Error?error.message:String(error)})]
         return {...result,ok:false,blocking:true,issues,fieldRuleSource:'static',rulePackSnapshot:null}
@@ -575,8 +590,9 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       const {sourceMessage,evidence}=qualification
       const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
       const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
-      const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
-      return {...result,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+      const inherited=canonicalValidation({...input,parsed},policy)
+      const issues=[...inherited.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+      return {...inherited,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
     }catch(error){
       const issues = [...result.issues, issue({
         severity: 'error',
