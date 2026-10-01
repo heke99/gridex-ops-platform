@@ -42,6 +42,7 @@
     "20260930161718_ediel_utilts_e30_energy_source_and_null_quality.sql": "646b376d2a6cc46144c7ada19fbb3280d34ab8c8ddfbfb82078aea0311d089b1",
     "20260930161907_ediel_readiness_current_source_scope.sql": "1f568cd7cb6d36d771caaf01ec0f68dac8a209427929b828ba838d0d1053c177",
     "20260930165148_ediel_monotonic_route_security_dependencies.sql": "60e0afa6a3716ffb0e3610014045e95b64205f9dfed2f5c7b878d3ba48e64dcc",
-    "20260930170047_ediel_readiness_current_source_provenance.sql": "5e8ec1d4fc1a9cfb52a84fa2a35ae65a20b288314924f93c6cbad27e175f5846"
+    "20260930170047_ediel_readiness_current_source_provenance.sql": "5e8ec1d4fc1a9cfb52a84fa2a35ae65a20b288314924f93c6cbad27e175f5846",
+    "20260930171116_ediel_wire_reference_namespace.sql": "c6bbd57e0236fd5ea24b08a895e289ac71b83dc95a0ff34e4d0c60aa55c15d57"
   }
 }
