@@ -1,13 +1,13 @@
 import { requireAdminActionAccess, type GuardResult } from "@/lib/admin/guards";
-import { isPlatformAdminRole, normalizeRoleKey } from "@/lib/rbac/roleKeys";
+import { normalizeRoleKey } from "@/lib/rbac/roleKeys";
 
 const DELEGATABLE_CONTRACT_ROLES = new Set([
   "pricing_manager",
   "contract_manager",
 ]);
 
-export function isContractSuperAdmin(context: Pick<GuardResult, "roles">): boolean {
-  return context.roles.some(isPlatformAdminRole);
+export function isContractSuperAdmin(context: Pick<GuardResult, "isPlatformAdmin">): boolean {
+  return context.isPlatformAdmin === true;
 }
 
 export async function requireContractPermissionAction(permission: string): Promise<GuardResult> {

@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
+import { currentSupportSession } from "@/lib/customer-operations/supportSession"
+import { changeCustomerLegalProfile, LegalProfileCommandError } from "@/lib/customer-operations/legalProfileCommand"
+import { closeCustomerLifecycle, CustomerLifecycleCommandError } from "@/lib/customer-operations/lifecycleCommand"
+import { PlatformSchemaNotReadyError } from "@/lib/platform/schemaReadiness"
 import { supabaseService } from "@/lib/supabase/service"
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
-import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
-import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates"
-import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger"
+import { logAdminActionAndUsage } from "@/lib/audit/actionLogger"
 import type { CustomerActionState } from "./customer-action-state"
 
 export class CustomerActionError extends Error {
@@ -62,7 +64,7 @@ export async function runCustomerCardAction(
       };
     }
 
-    console.error("[customer-card-action] Unexpected error", error);
+    console.error("[customer-card-action] Unexpected error", { code: 'unexpected' });
     return {
       status: "error",
       code: "unexpected",
@@ -198,136 +200,77 @@ export async function saveCustomerProfileAction(
 export async function saveCustomerProfileImpl(
   formData: FormData,
 ): Promise<CustomerActionState> {
-  const actorUserId = await getActorUserId();
-
-  const customerId = getString(formData, "customer_id");
-  if (!customerId) {
-    throw new CustomerActionError("missing_customer", "Kund-id saknas.");
-  }
-
-  const customerType = normalizeCustomerType(
-    getNullableString(formData, "customer_type"),
-  );
-  const firstName = normalizeOptionalString(
-    getNullableString(formData, "first_name"),
-  );
-  const lastName = normalizeOptionalString(
-    getNullableString(formData, "last_name"),
-  );
-  const companyNameInput = normalizeOptionalString(
-    getNullableString(formData, "company_name"),
-  );
-  const personalNumberInput = normalizeOptionalString(
-    getNullableString(formData, "personal_number"),
-  );
-  const orgNumberInput = normalizeOptionalString(
-    getNullableString(formData, "org_number"),
-  );
+  const guard = await requireAdminActionAccess(['customers.write']);
+  const actorUserId = guard.userId;
   if (formData.has("email") || formData.has("phone")) {
-    throw new CustomerActionError(
-      "contact_command_required",
-      "E-post och telefon ändras under Kontakter med sparad kontaktrevision.",
-    );
+    throw new CustomerActionError("contact_command_required", "E-post och telefon ändras under Kontakter med sparad kontaktrevision.");
   }
-  const apartmentNumber = normalizeOptionalString(
-    getNullableString(formData, "apartment_number"),
-  );
-  const status = getNullableString(formData, "status") ?? "draft";
-
-  requireValue(
-    firstName,
-    customerType === "private"
-      ? "Privatkund kräver förnamn"
-      : "Företag eller förening kräver kontaktperson förnamn",
-  );
-  requireValue(
-    lastName,
-    customerType === "private"
-      ? "Privatkund kräver efternamn"
-      : "Företag eller förening kräver kontaktperson efternamn",
-  );
-
-  const companyName = customerType === "private" ? null : companyNameInput;
-  const personalNumber =
-    customerType === "private" ? personalNumberInput : null;
-  const orgNumber = customerType === "private" ? null : orgNumberInput;
-
-  if (customerType !== "private") {
-    requireValue(companyName, "Företag eller förening kräver namn");
-    requireValue(
-      orgNumber,
-      "Företag eller förening kräver organisationsnummer",
-    );
+  const allowed = new Set(["customer_id", "customer_type", "first_name", "last_name", "company_name", "personal_number", "org_number", "apartment_number", "status", "expected_legal_profile_revision", "idempotency_key"]);
+  if (Array.from(formData.keys()).some(key => !allowed.has(key) && !key.startsWith("$ACTION_"))) {
+    throw new CustomerActionError("invalid_legal_profile_command", "Formuläret innehåller uppgifter som inte kan ändras med den juridiska kundprofilen.");
   }
-
-  const fullName =
-    customerType === "private"
-      ? [firstName, lastName].filter(Boolean).join(" ").trim() || null
-      : companyName ||
-        [firstName, lastName].filter(Boolean).join(" ").trim() ||
-        null;
-
+  const customerId = getString(formData, "customer_id");
+  const revisionText = getString(formData, "expected_legal_profile_revision");
+  const expectedRevision = Number(revisionText);
+  const idempotencyKey = getString(formData, "idempotency_key");
+  if (!customerId || !/^[0-9]{1,16}$/.test(revisionText) || !Number.isSafeInteger(expectedRevision) ||
+      !/^[A-Za-z0-9._:+~-]{8,200}$/.test(idempotencyKey)) {
+    throw new CustomerActionError("invalid_legal_profile_command", "Sparad juridisk profilrevision och försöksnyckel krävs. Läs om kundkortet före ett nytt försök.");
+  }
+  const customerType = getString(formData, "customer_type");
+  if (!["private", "business", "association"].includes(customerType)) {
+    throw new CustomerActionError("invalid_legal_profile_command", "Välj en giltig kundtyp.");
+  }
   const { data: before, error: beforeError } = await supabaseService
-    .from("customers")
-    .select("*")
-    .eq("id", customerId)
-    .single();
-
+    .from("customers").select("id,company_id,status,legal_profile_revision").eq("id", customerId).single();
   if (beforeError) throw beforeError;
-
-  if (String((before as Record<string, unknown>).status ?? '').toLowerCase() === "archived") {
-    throw new CustomerActionError(
-      "customer_archived_profile_locked",
-      "Arkiverad kund kan inte återaktiveras eller ändras via vanlig profil. Öppna arkivläget eller använd en separat återställningsåtgärd.",
-    );
+  if (!before || ((!guard.isPlatformAdmin || guard.companyId) && guard.companyId !== before.company_id)) {
+    throw new CustomerActionError('forbidden', 'Kunden tillhör inte den aktuella arbetsytan.');
+  }
+  if (!before || before.status === "archived") {
+    throw new CustomerActionError("customer_archived_profile_locked", "Arkiverad kund kan inte ändras via vanlig profil.");
+  }
+  if (formData.has("status") && getString(formData, "status") !== before.status) {
+    throw new CustomerActionError("legal_lifecycle_command_required", "Kundstatus ändras genom en separat livscykelåtgärd, med kontroll av avtal och anläggningar.");
+  }
+  const companyId = await assertUserCanOperateCompany(actorUserId, typeof before.company_id === "string" ? before.company_id : null);
+  try {
+    const session = await currentSupportSession('ops', actorUserId);
+    const result = await changeCustomerLegalProfile({
+      companyId, customerId,
+      actor: { kind: 'ops', userId: session.userId, sessionId: session.sessionId, reason: 'OPS legal customer profile' },
+      expectedRevision, idempotencyKey,
+      changes: {
+        customer_type: customerType as 'private' | 'business' | 'association',
+        first_name: getNullableString(formData, "first_name"), last_name: getNullableString(formData, "last_name"),
+        company_name: getNullableString(formData, "company_name"), personal_number: getNullableString(formData, "personal_number"),
+        org_number: getNullableString(formData, "org_number"), apartment_number: getNullableString(formData, "apartment_number"),
+      },
+    });
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath(`/admin/customers/${customerId}/profile`);
+    revalidatePath("/admin/customers");
+    revalidatePath("/admin/customers/segments");
+    return { status: "success", message: result.changed ? "Den juridiska kundprofilen har sparats." : "Den juridiska kundprofilen är redan sparad.", ...result };
+  } catch (error) {
+    if (isNextControlFlowError(error)) throw error;
+    if (error instanceof LegalProfileCommandError) {
+      const message = error.status === 409
+        ? "Kundprofilen eller försöket har ändrats. Ditt utkast är kvar. Läs om och jämför aktuell revision före ett nytt försök."
+        : error.status === 403 ? "Du saknar aktuell behörighet att ändra kundens juridiska profil."
+        : "Kontrollera kundtyp, namn och juridiska uppgifter. Ändringen kunde inte bekräftas.";
+      throw new CustomerActionError(error.code, message);
+    }
+    if (error instanceof PlatformSchemaNotReadyError) {
+      throw new CustomerActionError(error.code, "Juridisk profiländring är tillfälligt blockerad av databasversionen. Ditt utkast är kvar.");
+    }
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'support_session_revoked') {
+      throw new CustomerActionError('legal_profile_actor_forbidden', "Din aktuella session kan inte verkställa ändringen. Logga in igen och jämför sparade uppgifter.");
+    }
+    // A canonical command error rolls back. Never expose raw SQL/identity details.
+    throw new CustomerActionError('legal_profile_command_failed', "Ändringen kunde inte bekräftas. Ditt utkast och försöksnyckel är kvar. Kontrollera sparade uppgifter före ett nytt försök.");
   }
 
-  const companyId = await assertUserCanOperateCompany(
-    actorUserId,
-    typeof before.company_id === "string" ? before.company_id : null,
-  );
-
-  const { data: updated, error: updateError } = await supabaseService
-    .from("customers")
-    .update({
-      customer_type: customerType,
-      status,
-      first_name: firstName,
-      last_name: lastName,
-      full_name: fullName,
-      company_name: companyName,
-      personal_number: personalNumber,
-      org_number: orgNumber,
-      apartment_number: apartmentNumber,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", customerId)
-    .eq("company_id", companyId)
-    .select("*")
-    .single();
-
-  if (updateError) throw updateError;
-
-  await insertAuditLog({
-    actorUserId,
-    entityType: "customer",
-    entityId: customerId,
-    action: "customer_profile_updated",
-    companyId,
-    oldValues: before,
-    newValues: updated,
-    metadata: {
-      companyId,
-      contactFields: "managed_by_atomic_contact_command",
-    },
-  });
-
-  revalidatePath(`/admin/customers/${customerId}`);
-  revalidatePath(`/admin/customers/${customerId}/profile`);
-  revalidatePath("/admin/customers");
-  revalidatePath("/admin/customers/segments");
-
-  return { status: "success", message: "Kundprofilen har sparats." };
 }
 
 export function normalizeLifecycleMode(
@@ -369,375 +312,74 @@ export async function closeCustomerLifecycleAction(
 export async function closeCustomerLifecycleImpl(
   formData: FormData,
 ): Promise<CustomerActionState> {
-  const actorUserId = await getActorUserId();
-  const customerId = getString(formData, "customer_id");
-  const confirmText = getString(formData, "confirm_close");
-  const mode = normalizeLifecycleMode(
-    getNullableString(formData, "lifecycle_mode"),
-  );
-  const moveOutDate = normalizeIsoDateOrToday(
-    getNullableString(formData, "move_out_date"),
-  );
-  const reason = getNullableString(formData, "reason");
-  const createFollowUpTask =
-    getString(formData, "create_follow_up_task") === "on";
-
-  if (!customerId) {
-    throw new CustomerActionError("missing_customer", "Kund-id saknas.");
+  const guard = await requireAdminActionAccess(['customers.write']);
+  const actorUserId = guard.userId;
+  const allowed = new Set(['customer_id', 'confirm_close', 'lifecycle_mode', 'move_out_date', 'reason',
+    'create_follow_up_task', 'expected_lifecycle_revision', 'idempotency_key']);
+  if (Array.from(formData.keys()).some(key => !allowed.has(key) && !key.startsWith('$ACTION_'))) {
+    throw new CustomerActionError('invalid_lifecycle_command', 'Formuläret innehåller otillåtna livscykelfält.');
   }
-  if (confirmText !== "AVSLUTA") {
-    throw new CustomerActionError(
-      "confirm_mismatch",
-      "Skriv AVSLUTA för att bekräfta mjukt avslut/flytt av kunden.",
-    );
+  const customerId = getString(formData, 'customer_id');
+  const revisionText = getString(formData, 'expected_lifecycle_revision');
+  const expectedRevision = Number(revisionText);
+  const idempotencyKey = getString(formData, 'idempotency_key');
+  const mode = getString(formData, 'lifecycle_mode');
+  const moveOutDate = getString(formData, 'move_out_date');
+  const reason = getString(formData, 'reason');
+  const date = new Date(`${moveOutDate}T00:00:00.000Z`);
+  if (!customerId || !/^[0-9]{1,16}$/.test(revisionText) || !Number.isSafeInteger(expectedRevision) ||
+      !/^[A-Za-z0-9._:+~-]{8,200}$/.test(idempotencyKey) || !['move_out', 'terminate'].includes(mode) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(moveOutDate) || !Number.isFinite(date.getTime()) ||
+      date.toISOString().slice(0, 10) !== moveOutDate || !reason || reason.length > 200 ||
+      (formData.has('create_follow_up_task') && getString(formData, 'create_follow_up_task') !== 'on')) {
+    throw new CustomerActionError('invalid_lifecycle_command', 'Sparad livscykelrevision, försöksnyckel, giltigt datum och orsak krävs.');
   }
-
-  const { data: customerBefore, error: customerError } = await supabaseService
-    .from("customers")
-    .select("*")
-    .eq("id", customerId)
-    .single();
-
-  if (customerError) throw customerError;
-
-  const companyId = await assertUserCanOperateCompany(
-    actorUserId,
-    typeof customerBefore.company_id === "string"
-      ? customerBefore.company_id
-      : null,
-  );
-
-  const { data: sitesBefore, error: sitesError } = await supabaseService
-    .from("customer_sites")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId);
-
-  if (sitesError) throw sitesError;
-
-  const siteIds = (sitesBefore ?? [])
-    .map((row: { id?: string }) => row.id)
-    .filter((value): value is string => Boolean(value));
-
-  const { data: meteringPointsBefore, error: pointsError } =
-    siteIds.length > 0
-      ? await supabaseService
-          .from("metering_points")
-          .select("*")
-          .eq("company_id", companyId)
-          .in("site_id", siteIds)
-      : { data: [], error: null };
-
-  if (pointsError) throw pointsError;
-
-  const { data: contractsBefore, error: contractsError } = await supabaseService
-    .from("customer_contracts")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId)
-    .in("status", ["draft", "pending_signature", "signature_failed", "signed", "active"]);
-
-  if (contractsError) throw contractsError;
-
-  const { data: switchRequestsBefore, error: switchError } =
-    await supabaseService
-      .from("supplier_switch_requests")
-      .select("*")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("status", ["draft", "queued", "submitted", "accepted"]);
-
-  if (switchError) throw switchError;
-
-  const nowIso = new Date().toISOString();
-  const customerStatus = mode === "terminate" ? "terminated" : "moved";
-  const note = buildMoveOutNote({ moveOutDate, reason, mode });
-  const lifecycleMetadata = {
-    mode,
-    moveOutDate,
-    reason,
-    source: "admin_customer_card",
-    legalHandling:
-      "Soft close only. Customer records are retained for Ediel, metering, billing and audit traceability.",
-  };
-
-  const { data: customerAfter, error: updateCustomerError } =
-    await supabaseService
-      .from("customers")
-      .update({
-        status: customerStatus,
-        moved_out_at: moveOutDate,
-        lifecycle_closed_at: nowIso,
-        lifecycle_closed_by: actorUserId,
-        lifecycle_status_reason: reason,
-        updated_at: nowIso,
-      })
-      .eq("id", customerId)
-      .eq("company_id", companyId)
-      .select("*")
-      .single();
-
-  if (updateCustomerError) throw updateCustomerError;
-
-  if (siteIds.length > 0) {
-    const { error: updateSitesError } = await supabaseService
-      .from("customer_sites")
-      .update({
-        status: "closed",
-        move_out_date: moveOutDate,
-        closed_at: nowIso,
-        closed_reason:
-          reason ??
-          (mode === "terminate" ? "Kund avslutad." : "Kunden har flyttat."),
-        updated_by: actorUserId,
-      })
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("id", siteIds);
-
-    if (updateSitesError) throw updateSitesError;
-
-    const { error: updatePointsError } = await supabaseService
-      .from("metering_points")
-      .update({
-        status: "closed",
-        end_date: moveOutDate,
-        closed_at: nowIso,
-        closed_reason:
-          reason ??
-          (mode === "terminate" ? "Kund avslutad." : "Kunden har flyttat."),
-        updated_by: actorUserId,
-      })
-      .eq("company_id", companyId)
-      .in("site_id", siteIds);
-
-    if (updatePointsError) throw updatePointsError;
+  if (getString(formData, 'confirm_close') !== 'AVSLUTA') {
+    throw new CustomerActionError('confirm_mismatch', 'Skriv AVSLUTA för att bekräfta mjukt avslut/flytt av kunden.');
   }
-
-  const contracts = (contractsBefore ?? []) as Array<{
-    id: string;
-    company_id?: string | null;
-    customer_id: string;
-    status?: string | null;
-  }>;
-
-  for (const contract of contracts) {
-    const eventType =
-      contract.status === "signed" || contract.status === "active"
-        ? "terminated"
-        : "cancelled";
-    await addCustomerContractEvent({
-      companyId: contract.company_id ?? companyId,
-      customerContractId: contract.id,
-      customerId,
-      eventType,
-      happenedAt: nowIso,
-      note:
-        mode === "terminate"
-          ? `${eventType === "terminated" ? "Avtalet avslutades" : "Avtalsprocessen avbröts"} via kundens livscykelåtgärd.`
-          : `${eventType === "terminated" ? "Avtalet avslutades" : "Avtalsprocessen avbröts"} eftersom kunden registrerades som utflyttad.`,
-      metadata: {
-        ...lifecycleMetadata,
-        ends_at: moveOutDate,
-        termination_notice_date: nowIso,
-        termination_reason: "move_out",
-      },
-      actorUserId,
+  const { data: customer, error } = await supabaseService.from('customers')
+    .select('id,company_id,status,lifecycle_revision').eq('id', customerId).single();
+  if (error) throw error;
+  if (!customer || ((!guard.isPlatformAdmin || guard.companyId) && guard.companyId !== customer.company_id)) {
+    throw new CustomerActionError('forbidden', 'Kunden tillhör inte den aktuella arbetsytan.');
+  }
+  const companyId = await assertUserCanOperateCompany(actorUserId,
+    typeof customer.company_id === 'string' ? customer.company_id : null);
+  try {
+    const session = await currentSupportSession('ops', actorUserId);
+    const result = await closeCustomerLifecycle({
+      companyId, customerId, actor: { kind: 'ops', userId: session.userId, sessionId: session.sessionId },
+      expectedRevision, idempotencyKey, mode: mode as 'move_out' | 'terminate', moveOutDate, reason,
+      createFollowUpTask: getString(formData, 'create_follow_up_task') === 'on',
     });
+    // The RPC owns local effects, canonical audit and the pending confirmation
+    // intent. A replay never sends mail or re-executes separate domain writers.
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath(`/admin/customers/${customerId}/profile`);
+    revalidatePath('/admin/customers');
+    revalidatePath('/admin/customers/segments');
+    revalidatePath('/admin/operations');
+    revalidatePath('/admin/controltower');
+    return { status: 'success', message: result.replayed
+      ? 'Det tidigare avslutet har återlästs. Historiken sparas.'
+      : mode === 'terminate' ? 'Kundrelationen har avslutats. Historiken sparas.'
+      : 'Flytt/avslut har registrerats. Historiken sparas.', ...result };
+  } catch (error) {
+    if (isNextControlFlowError(error)) throw error;
+    if (error instanceof CustomerLifecycleCommandError) {
+      throw new CustomerActionError(error.code, error.status === 409
+        ? 'Kundens livscykel eller försöket har ändrats. Ditt utkast är kvar. Läs om och jämför aktuell revision.'
+        : error.status === 403 ? 'Du saknar aktuell behörighet att avsluta kundrelationen.'
+        : 'Avslutet kunde inte bekräftas. Kontrollera datum, orsak och sparade uppgifter före ett nytt försök.');
+    }
+    if (error instanceof PlatformSchemaNotReadyError) {
+      throw new CustomerActionError(error.code, 'Livscykelåtgärden är tillfälligt blockerad av databasversionen. Ditt utkast är kvar.');
+    }
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'support_session_revoked') {
+      throw new CustomerActionError('lifecycle_actor_forbidden', 'Din aktuella session kan inte verkställa ändringen. Logga in igen och jämför sparade uppgifter.');
+    }
+    throw new CustomerActionError('lifecycle_command_failed', 'Avslutet kunde inte bekräftas. Ditt utkast och försöksnyckel är kvar. Kontrollera sparade uppgifter före ett nytt försök.');
   }
-
-  const activeSwitchIds = (
-    (switchRequestsBefore ?? []) as Array<{ id: string }>
-  ).map((row) => row.id);
-  if (activeSwitchIds.length > 0) {
-    const { error: switchUpdateError } = await supabaseService
-      .from("supplier_switch_requests")
-      .update({
-        status: "failed",
-        failed_at: nowIso,
-        failure_reason:
-          mode === "terminate"
-            ? "Kunden avslutades innan switchen slutfördes."
-            : "Kunden registrerades som utflyttad innan switchen slutfördes.",
-        updated_by: actorUserId,
-      })
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("id", activeSwitchIds);
-
-    if (switchUpdateError) throw switchUpdateError;
-
-    await supabaseService.from("customer_operation_tasks").insert({
-      company_id: companyId,
-      customer_id: customerId,
-      site_id: siteIds[0] ?? null,
-      metering_point_id: null,
-      task_type: "supplier_switch_stopped_followup",
-      status: "open",
-      priority: "high",
-      title:
-        mode === "terminate"
-          ? "Följ upp stoppat leverantörsbyte vid avslut"
-          : "Följ upp stoppat leverantörsbyte vid flytt",
-      description:
-        reason ??
-        (mode === "terminate"
-          ? "Kunden avslutades innan leverantörsbytet slutfördes."
-          : "Kunden flyttade innan leverantörsbytet slutfördes."),
-      metadata: { lifecycleMetadata, activeSwitchIds },
-      created_by: actorUserId,
-      updated_by: actorUserId,
-    }).then(({ error }) => {
-      if (error) throw error;
-    });
-
-    await logUsageEvent({
-      companyId,
-      actorUserId,
-      customerId,
-      entityType: "supplier_switch_request",
-      entityId: customerId,
-      eventKey: "switch.cancelled",
-      actionLabel: "Leverantörsbyte stoppat vid kundavslut",
-      source: "customer_lifecycle_close",
-      billable: true,
-      billableQuantity: activeSwitchIds.length,
-      billingUnit: "switch_request",
-      metadata: { lifecycleMetadata, activeSwitchIds },
-    });
-  }
-
-  const customerEmail =
-    typeof customerAfter.email === "string" && customerAfter.email.trim()
-      ? customerAfter.email.trim()
-      : null;
-  await queueTenantTemplateEmail("move_out_confirmation", {
-    companyId,
-    customerId,
-    customerEmail,
-    customerName:
-      typeof customerAfter.full_name === "string"
-        ? customerAfter.full_name
-        : typeof customerAfter.company_name === "string"
-          ? customerAfter.company_name
-          : null,
-    nextAction:
-      mode === "terminate"
-        ? "Vi har registrerat avslutet och säkerställer slutunderlag."
-        : "Vi har registrerat flytten och säkerställer slutunderlag.",
-    actorUserId,
-  }).catch(() => null);
-
-  const { error: taskCancelError } = await supabaseService
-    .from("customer_operation_tasks")
-    .update({
-      status: "cancelled",
-      resolved_at: nowIso,
-      updated_by: actorUserId,
-    })
-    .eq("company_id", companyId)
-    .eq("customer_id", customerId)
-    .in("status", ["open", "in_progress", "blocked"]);
-
-  if (taskCancelError) throw taskCancelError;
-
-  if (createFollowUpTask) {
-    const { error: followUpError } = await supabaseService
-      .from("customer_operation_tasks")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        site_id: siteIds[0] ?? null,
-        metering_point_id: null,
-        task_type: "move_out_confirmation_pending",
-        status: "open",
-        priority: "high",
-        title: "Följ upp utflytt och slutunderlag",
-        description:
-          "Bekräfta att nätägaren har registrerat utflytt/avslut, invänta Z05LK vid relevant flöde och säkerställ slutliga mätvärden/faktureringsunderlag.",
-        metadata: lifecycleMetadata,
-        created_by: actorUserId,
-        updated_by: actorUserId,
-      });
-
-    if (followUpError) throw followUpError;
-  }
-
-  const { error: noteError } = await supabaseService
-    .from("customer_internal_notes")
-    .insert({
-      company_id: companyId,
-      customer_id: customerId,
-      body: note,
-      created_by: actorUserId,
-      updated_by: actorUserId,
-    });
-
-  if (noteError) throw noteError;
-
-  const { error: lifecycleEventError } = await supabaseService
-    .from("customer_lifecycle_events")
-    .insert({
-      company_id: companyId,
-      customer_id: customerId,
-      event_type: mode,
-      event_status: "completed",
-      effective_date: moveOutDate,
-      reason,
-      payload: {
-        ...lifecycleMetadata,
-        affectedSites: siteIds.length,
-        affectedMeteringPoints: (meteringPointsBefore ?? []).length,
-        terminatedContracts: contracts.length,
-        cancelledSwitchRequests: activeSwitchIds.length,
-        followUpTaskCreated: createFollowUpTask,
-      },
-      created_by: actorUserId,
-    });
-
-  if (lifecycleEventError) throw lifecycleEventError;
-
-  await insertAuditLog({
-    actorUserId,
-    entityType: "customer",
-    entityId: customerId,
-    action:
-      mode === "terminate"
-        ? "customer_soft_terminated"
-        : "customer_move_out_registered",
-    companyId,
-    oldValues: {
-      customer: customerBefore,
-      sites: sitesBefore ?? [],
-      meteringPoints: meteringPointsBefore ?? [],
-      contracts: contractsBefore ?? [],
-      switchRequests: switchRequestsBefore ?? [],
-    },
-    newValues: {
-      customer: customerAfter,
-      lifecycle: lifecycleMetadata,
-    },
-    metadata: {
-      companyId,
-      retainedData: true,
-      hardDelete: false,
-      note: "Kunden har inte raderats permanent. Historik sparas för spårbarhet, fakturering, mätvärden och Ediel-kedjor.",
-    },
-  });
-
-  revalidatePath(`/admin/customers/${customerId}`);
-  revalidatePath("/admin/customers");
-  revalidatePath("/admin/customers/segments");
-  revalidatePath("/admin/operations");
-  revalidatePath("/admin/controltower");
-
-  return {
-    status: "success",
-    message:
-      mode === "terminate"
-        ? "Kundrelationen har avslutats. Historiken sparas."
-        : "Flytt/avslut har registrerats. Historiken sparas.",
-  };
 }
 
 export async function selectIds(

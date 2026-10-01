@@ -224,6 +224,10 @@ const reviewedServiceClientFiles = new Set([
   // likewise resolve the operational company and assert entity tenant scope
   // before any service-role read/write; mutations have their own write guard.
   "app/admin/billing/integrations/actions.ts",
+  // Reviewed 2026-09-30: canonical billing read guard and matched selected
+  // company precede invoice-derived customer owner reads; the command has
+  // separate current session/export permission/proof checks.
+  "app/admin/billing/invoices/[id]/redelivery/page.tsx",
   "app/admin/customers/[id]/contracts/[contractId]/signature/actions.ts",
   "app/admin/customers/[id]/contracts/[contractId]/signature/page.tsx",
   "app/admin/customers/[id]/layout.tsx",
@@ -286,6 +290,7 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/platform/data-cleanup/actions.ts",
   "app/admin/system/auth-diagnostics/page.tsx",
   "app/admin/system-health/page.tsx",
+  "app/admin/system-health/actions.ts",
   "app/admin/outbound/unresolved/actions.ts",
   "app/admin/users/[id]/actions.ts",
   "app/admin/users/actions.ts",
@@ -294,6 +299,101 @@ const reviewedServiceClientFiles = new Set([
 ]);
 
 const serviceClientFiles = [];
+// Exact current platform actor and scoped conditional recovery reviewed with actual exported Action tests.
+const incidentAction = "app/admin/system-health/actions.ts";
+mustContain(incidentAction, "const context = await requirePlatformAdminActionAccess()");
+mustContain(incidentAction, "actorUserId(context.userId)");
+mustContain(incidentAction, "if (error || !user || user.id !== expectedUserId)");
+mustContain(incidentAction, "outboxKind !== 'tenant' && outboxKind !== 'manual'");
+mustContain(incidentAction, ".from(outboxTable)");
+mustContain(incidentAction, ".select('id,company_id,status')");
+mustContain(incidentAction, ".eq('id', outboxId)");
+mustContain(incidentAction, ".eq('company_id', companyId)");
+mustContain(incidentAction, "current.id !== outboxId");
+mustContain(incidentAction, "current.company_id !== companyId");
+mustContain(incidentAction, "current.status !== 'delivery_uncertain'");
+mustContain(incidentAction, "companyId: current.company_id");
+mustContain(incidentAction, "unstable_rethrow(error)");
+
+const agreementDocumentRoute = "app/admin/agreements/grid-owners/documents/route.ts";
+mustContain(agreementDocumentRoute, "const context = await requirePlatformAdminAccess()");
+mustContain(agreementDocumentRoute, "parseGridOwnerAgreementDocumentKey(documentPath, agreementBucket)");
+mustContain(agreementDocumentRoute, "agreementBucket === 'customer-support-quarantine'");
+mustContain(agreementDocumentRoute, "parsed.bucket !== agreementBucket");
+mustContain(agreementDocumentRoute, "authClient.auth.getUser()");
+mustContain(agreementDocumentRoute, "authError || !authData.user || authData.user.id !== context.userId");
+mustContain(agreementDocumentRoute, ".from('grid_owner_access_agreements')");
+mustContain(agreementDocumentRoute, ".select('id,document_path')");
+mustContain(agreementDocumentRoute, ".eq('document_path', documentPath)");
+mustContain(agreementDocumentRoute, "agreement.document_path !== documentPath");
+mustContain(agreementDocumentRoute, "createSignedUrl(parsed.path, 60)");
+mustContain(agreementDocumentRoute, "unstable_rethrow(error)");
+
+// Reviewed 2026-10-01: agreement writes have a canonical global actor/session
+// and an explicit company UUID or NULL global owner. The SQL command checks
+// that same binding; the worker only removes a currently sealed leased key.
+// These source gates retain the reviewed owners. They do not certify live
+// Auth, Storage, RLS, all callers or an aggregate service-role count.
+const agreementAction = "app/admin/agreements/grid-owners/actions.ts";
+mustContain(agreementAction, "const admin = await requirePlatformAdminActionAccess()");
+mustContain(agreementAction, "const actor = await currentSupportSession('ops', admin.userId)");
+mustContain(agreementAction, "current.company_id !== companyId");
+mustContain(agreementAction, "const expectedRevision = current?.revision ?? 0");
+mustContain(agreementAction, "await prepareAgreementDocumentUpload(command, bucket)");
+mustContain(agreementAction, "await executeAgreementCommand(command, intent)");
+mustContain(agreementAction, "await reconcileAgreementUpload(command, intent)");
+mustContain(agreementAction, "companyId: current.company_id, expectedRevision: current.revision");
+
+const agreementCommand = "lib/routes/gridOwnerAgreements.ts";
+mustContain(agreementCommand, "actorUserId: input.actor.userId, sessionId: input.actor.sessionId, companyId: input.companyId ?? null");
+mustContain(agreementCommand, "supabaseService.rpc('gridex_grid_owner_agreement_command_v1', { p_command: command })");
+mustContain(agreementCommand, "parsed.data.agreement.company_id !== command.companyId");
+
+const agreementCleanupRoute = "app/api/internal/grid-owner-agreements/cleanup/route.ts";
+mustContain(agreementCleanupRoute, "process.env.GRIDEX_AGREEMENT_CLEANUP_SECRET");
+mustContain(agreementCleanupRoute, "timingSafeEqual(supplied, configured)");
+mustContain(agreementCleanupRoute, "agreementCleanupInput.safeParse(await boundedBody(request))");
+mustContain(agreementCleanupRoute, "await processAgreementCleanup(input.data)");
+
+const agreementCleanup = "lib/routes/gridOwnerAgreementCleanup.ts";
+mustContain(agreementCleanup, "companyId: z.string().uuid().nullable()");
+mustContain(agreementCleanup, "p_company_id: parsed.data.companyId, p_claim_token: token, p_limit: parsed.data.limit");
+mustContain(agreementCleanup, "receipt.companyId !== parsed.data.companyId || receipt.claimToken !== token");
+mustContain(agreementCleanup, "receipt.bucket === 'customer-support-quarantine'");
+mustContain(agreementCleanup, "rpc('gridex_validate_agreement_cleanup_v1', { p_receipt: receipt })");
+mustContain(agreementCleanup, "if (current.data !== true) { result.stale++; continue }");
+mustContain(agreementCleanup, "storage.from(receipt.bucket).remove([receipt.path])");
+mustContain(agreementCleanup, "rpc('gridex_finish_agreement_cleanup_v1', { p_receipt: receipt, p_outcome: outcome })");
+
+// Reviewed 2026-10-01: this scheduled global worker claims only a bounded
+// tenant-fair SQL receipt and repeats current policy/payload checks before
+// transport. Completion and recovery retain exact company/item/worker/token
+// bindings. These source gates do not qualify native workers or delivery.
+const manualEmailWorker = "lib/email/manualEmailOutbox.ts";
+mustContain(manualEmailWorker, "const limit = manualEmailClaimLimit(input?.limit)");
+mustContain(manualEmailWorker, "await recoverStaleManualSendingRows(companyFilter, limit)");
+mustContain(manualEmailWorker, "await claimManualEmailRows(companyFilter, limit, workerId)");
+mustContain(manualEmailWorker, "const transportDecision = await getTenantOperationDecision(companyId, 'email.send')");
+mustContain(manualEmailWorker, "if (!await recheckManualEmailClaim(row))");
+mustContain(manualEmailWorker, "providerAccepted = true");
+mustContain(manualEmailWorker, "if (providerAccepted && !deliveryPersisted)");
+mustContain(manualEmailWorker, "await finishManualEmailClaim(row, {");
+
+const manualEmailClaim = "lib/email/manualEmailFairClaim.ts";
+mustContain(manualEmailClaim, "p_company_id: companyId, p_limit: limit, p_worker_id: workerId, p_claim_token: token");
+mustContain(manualEmailClaim, "(companyId && row.company_id !== companyId)");
+mustContain(manualEmailClaim, "payloadFields.some(key => !isDeepStrictEqual(data[0][key], row[key]))");
+mustContain(manualEmailClaim, "p_company_id: row.company_id, p_item_id: row.id, p_worker_id: row.locked_by, p_claim_token: row.claim_token");
+mustContain(manualEmailClaim, "if (data !== true) throw new Error('manual_email_live_completion_not_saved')");
+
+const redeliveryPage = "app/admin/billing/invoices/[id]/redelivery/page.tsx";
+mustContain(redeliveryPage, "requireAdminPageKeyAccess('billing.workspace')");
+mustContain(redeliveryPage, "getOperationalCompanyScope(guard.userId)");
+mustContain(redeliveryPage, "guard.companyId !== scope.companyId");
+mustContain(redeliveryPage, "invoiceExportItemId: id");
+mustContain(redeliveryPage, ".eq('company_id', scope.companyId).eq('customer_id', customerId)");
+mustContain(redeliveryPage, ".eq('role', 'owner').eq('status', 'active').eq('is_active', true)");
+mustContain(redeliveryPage, ".eq('id', scope.companyId)");
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (

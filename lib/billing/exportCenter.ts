@@ -1,8 +1,11 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
+import { technicalErrorDiagnostic } from "@/lib/logging/technicalError";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
 import { assertOutboundAllowed } from "@/lib/platform/outboundFreeze";
 import { withAutomationLock } from "@/lib/automation/locks";
+import { readQualifiedLockedBillingProfile } from "@/lib/billing/billingConfigurationSnapshot";
+import { evaluateBillingMonthInvoiceReadiness } from "@/lib/billing/invoiceReadiness";
 import type {
   BillingUnderlayRow,
   MeteringValueRow,
@@ -176,14 +179,24 @@ function buildInvoiceSnapshot(params: {
   underlay: BillingUnderlayRow;
   contract: CustomerContractRow | null;
 }) {
+  const underlay = params.underlay as unknown as Record<string, unknown>;
+  const billing = readQualifiedLockedBillingProfile(underlay.billing_configuration_snapshot, {
+    companyId: params.underlay.company_id ?? '', customerId: params.underlay.customer_id ?? '',
+    contractId: contractTextField(params.contract, 'id') ?? '',
+    snapshotSha256: underlay.billing_configuration_snapshot_sha256,
+  });
   const invoiceAddress = {
-    recipient: contractTextField(params.contract, "invoice_recipient"),
-    email: contractTextField(params.contract, "invoice_email"),
-    reference: contractTextField(params.contract, "invoice_reference"),
-    street: contractTextField(params.contract, "billing_street"),
-    postalCode: contractTextField(params.contract, "billing_postal_code"),
-    city: contractTextField(params.contract, "billing_city"),
-    country: contractTextField(params.contract, "billing_country") ?? "SE",
+    recipient: billing?.recipient ?? null,
+    email: billing?.email ?? null,
+    reference: billing?.reference ?? null,
+    street: billing?.address.street ?? null,
+    postalCode: billing?.address.postalCode ?? null,
+    city: billing?.address.city ?? null,
+    country: billing?.address.country ?? null,
+    distributionMethod: billing?.distributionMethod ?? null,
+    profileRevision: billing?.profileRevision ?? null,
+    contractOverrideRevision: billing?.contractOverrideRevision ?? null,
+    sources: billing?.sources ?? null,
   };
 
   const siteAddress = {
@@ -201,6 +214,7 @@ function buildInvoiceSnapshot(params: {
   };
 
   return {
+    profileQualified: Boolean(billing),
     invoiceRecipient: invoiceAddress.recipient,
     invoiceEmail: invoiceAddress.email,
     invoiceReference: invoiceAddress.reference,
@@ -280,7 +294,7 @@ async function createBlockedBillingCasesForItems(params: {
         .eq("id", item.id);
       if (itemUpdateError) throw itemUpdateError;
     } catch (error) {
-      console.warn("Billing blocker task could not be created", error);
+      console.warn("Billing blocker task could not be created", technicalErrorDiagnostic(error));
     }
   }
 }
@@ -299,6 +313,8 @@ export async function createBillingExportRun(input: {
   idempotencyKey?: string | null;
 }) {
   await requireCompanyOperationalForWrites(input.companyId);
+  const invoiceReadiness = await evaluateBillingMonthInvoiceReadiness({ companyId: input.companyId, billingMonth: input.periodMonth });
+  const invoiceReadyIds = new Set(invoiceReadiness.readyUnderlayIds);
 
   const idempotencyKey = input.idempotencyKey?.trim() || null;
 
@@ -398,13 +414,17 @@ export async function createBillingExportRun(input: {
           },
         ]
       : [];
+    const invoiceSnapshot = buildInvoiceSnapshot({ underlay, contract });
     const blockerReasons = [
       ...canonicalBlockers,
       ...pricingWarnings,
       ...pricingBlockers,
       ...missingContractIssue,
+      ...(!invoiceReadyIds.has(underlay.id) ? [{ code: 'invoice_readiness_blocked', severity: 'blocked',
+        title: 'Faktureringsberedskap blockerad', description: 'Underlaget har inte passerat den fullständiga faktureringskontrollen.' }] : []),
+      ...(!invoiceSnapshot.profileQualified ? [{ code: 'billing_profile_snapshot_missing', severity: 'blocked',
+        title: 'Faktureringsprofil saknas', description: 'Underlaget saknar en kvalificerad, revisionslåst faktureringsprofil.' }] : []),
     ];
-    const invoiceSnapshot = buildInvoiceSnapshot({ underlay, contract });
     const itemIdempotencySeed = `billing:${input.companyId}:${underlay.id}:${input.periodMonth}`;
 
     items.push({
@@ -421,7 +441,7 @@ export async function createBillingExportRun(input: {
         canonicalReadiness?.is_exportable === true &&
         contract &&
         pricing.status === "success" &&
-        pricing.locked
+        pricing.locked && invoiceSnapshot.profileQualified && invoiceReadyIds.has(underlay.id)
           ? "ready"
           : "blocked",
       readiness_status: canonicalReadiness?.status ?? "blocked",

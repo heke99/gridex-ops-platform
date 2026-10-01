@@ -7,7 +7,9 @@ const fixture = vi.hoisted(() => ({
   customerTenant: 'tenant-b',
   customerStatus: 'active',
   commands: [] as Array<Record<string, unknown>>,
+  addressCommands: [] as Array<Record<string, unknown>>,
   commandRevision: 7,
+  sessionRevoked: false,
 }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/admin/guards', () => ({
@@ -27,6 +29,19 @@ vi.mock('@/lib/customer-operations/contactCommand', () => ({
     fixture.commands.push(input)
     if (input.expectedRevision !== fixture.commandRevision) throw new Error('contact_revision_conflict')
     return { revision: 1, changed: true, replayed: false }
+  },
+}))
+vi.mock('@/lib/customer-operations/addressCommand', () => ({
+  AddressCommandError: class extends Error {},
+  changeCustomerAddress: async (input: Record<string, unknown>) => {
+    fixture.addressCommands.push(input)
+    return { addressId: 'address-b', revision: 8, changed: true, replayed: false }
+  },
+}))
+vi.mock('@/lib/customer-operations/supportSession', () => ({
+  currentSupportSession: async (kind: string, expectedUserId: string) => {
+    if (kind !== 'ops' || expectedUserId !== 'actor-a' || fixture.sessionRevoked) throw new Error('support_session_revoked')
+    return { userId: 'actor-a', sessionId: 'trusted-session-a' }
   },
 }))
 vi.mock('@/lib/supabase/service', () => ({
@@ -64,7 +79,9 @@ describe('OPS customer-card contact and address authorization', () => {
     fixture.customerTenant = 'tenant-b'
     fixture.customerStatus = 'active'
     fixture.commands = []
+    fixture.addressCommands = []
     fixture.commandRevision = 7
+    fixture.sessionRevoked = false
   })
   it('denies a forged cross-tenant primary contact before any service-role write', async () => {
     fixture.mutations = []
@@ -109,7 +126,7 @@ describe('OPS customer-card contact and address authorization', () => {
     expect(fixture.mutations).toEqual([])
     expect(fixture.commands).toEqual([{
       companyId: 'tenant-a', customerId: 'customer-b', contactId: null,
-      actor: { kind: 'ops', userId: 'actor-a', reason: 'OPS customer contact form' },
+      actor: { kind: 'ops', userId: 'actor-a', sessionId: 'trusted-session-a', reason: 'OPS customer contact form' },
       expectedRevision: 7, idempotencyKey: 'p2-ops-repeatable-key',
       changes: { name: 'Example', title: null, email: null, phone: '0700000000' },
     }])
@@ -138,16 +155,35 @@ describe('OPS customer-card contact and address authorization', () => {
     expect(fixture.commands).toEqual([{
       companyId: 'tenant-a', customerId: 'customer-b', contactId: null,
       contactTarget: 'secondary', contactType: 'billing',
-      actor: { kind: 'ops', userId: 'actor-a', reason: 'OPS customer contact form' },
+      actor: { kind: 'ops', userId: 'actor-a', sessionId: 'trusted-session-a', reason: 'OPS customer contact form' },
       expectedRevision: 7, idempotencyKey: 'secondary-create-key',
       changes: { name: 'Billing contact', title: null, email: 'billing@example.invalid', phone: null },
     }])
   })
 
-  it('scopes address insertion and audit to the authorized tenant', async () => {
+  it('passes address fields, saved revision and actual session to one authorized tenant command', async () => {
     fixture.mutations = []
     fixture.customerTenant = 'tenant-a'
-    await saveCustomerAddressAction(form({ customer_id: 'customer-b', street_1: 'Example' }))
-    expect(fixture.mutations.map((mutation) => mutation.payload.company_id)).toEqual(['tenant-a', 'tenant-a'])
+    await saveCustomerAddressAction(form({ customer_id: 'customer-b', street_1: 'Example',
+      expected_address_revision: '7', idempotency_key: 'address-repeatable-key', is_active: 'on' }))
+    expect(fixture.mutations).toEqual([])
+    expect(fixture.addressCommands).toEqual([{
+      companyId: 'tenant-a', customerId: 'customer-b', addressId: null,
+      actor: { kind: 'ops', userId: 'actor-a', sessionId: 'trusted-session-a', reason: 'OPS customer address-book form' },
+      expectedRevision: 7, idempotencyKey: 'address-repeatable-key',
+      changes: { type: 'registered', street_1: 'Example', street_2: null, postal_code: null, city: null,
+        country: 'SE', municipality: null, moved_in_at: null, moved_out_at: null, is_active: true },
+    }])
+  })
+
+  it('rejects a revoked session before invoking the contact command even with client-selected actor fields', async () => {
+    fixture.customerTenant = 'tenant-a'
+    fixture.sessionRevoked = true
+    await expect(saveCustomerContactAction(form({
+      customer_id: 'customer-b', name: 'Example', is_primary: 'on',
+      expected_revision: '7', idempotency_key: 'revoked-key', user_id: 'other-actor', session_id: 'forged-session',
+    }))).rejects.toThrow('support_session_revoked')
+    expect(fixture.commands).toEqual([])
+    expect(fixture.mutations).toEqual([])
   })
 })

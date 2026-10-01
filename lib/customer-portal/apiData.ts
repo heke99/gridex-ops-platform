@@ -3,6 +3,7 @@ import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   buildPortalDatabasePage,
   decodePortalCursor,
@@ -228,12 +229,10 @@ async function portalTablePage(input: {
 }
 
 export function portalQueryErrorMetadata(error: unknown): Record<string, unknown> {
-  const maybe = error as { code?: string; message?: string; details?: string; hint?: string } | null
   return {
-    code: maybe?.code ?? null,
-    message: maybe?.message ?? String(error ?? 'unknown_error'),
-    details: maybe?.details ?? null,
-    hint: maybe?.hint ?? null,
+    ...technicalErrorDiagnostic(error),
+    details: null,
+    hint: null,
   }
 }
 
@@ -303,7 +302,8 @@ export async function listPortalContractsPage(
   })
 }
 
-const SITE_SELECT = 'id,facility_reference,customer_id,status,site_name,facility_id,normalized_facility_id,site_type,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,resolution_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at'
+const SITE_CURRENT_SELECT = 'id,facility_reference,customer_id,status,site_name,facility_id,normalized_facility_id,site_type,street,postal_code,city,country,price_area_code,grid_area_code,grid_owner_id,resolution_status,move_in_date,move_out_date,annual_consumption_kwh,metadata,created_at'
+const SITE_SELECT = `${SITE_CURRENT_SELECT},care_of,apartment_number,address_revision`
 const SITE_LEGACY_SELECT = 'id,customer_id,status,site_name,facility_id,site_type,street,postal_code,city,country,price_area_code,grid_owner_id,move_in_date,move_out_date,annual_consumption_kwh,created_at'
 const SITE_MINIMAL_SELECT = 'id,customer_id,status,site_name,facility_id,street,postal_code,city,country,price_area_code,created_at'
 
@@ -313,6 +313,13 @@ export async function listPortalSites(context: PortalCustomerContext, route = '/
     async () => await supabaseService
       .from('customer_sites')
       .select(SITE_SELECT)
+      .eq('company_id', context.companyId)
+      .eq('customer_id', context.customerId)
+      .order('created_at', { ascending: false })
+      .limit(100) as ListResult,
+    async () => await supabaseService
+      .from('customer_sites')
+      .select(SITE_CURRENT_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .order('created_at', { ascending: false })
@@ -342,7 +349,7 @@ export async function listPortalSitesPage(
   await logPortalAccess({ context, route, action: 'read_sites_page' })
   return portalTablePage({
     context, page, resource: 'sites', table: 'customer_sites',
-    selects: [SITE_SELECT, SITE_LEGACY_SELECT, SITE_MINIMAL_SELECT], orderColumn: 'created_at',
+    selects: [SITE_SELECT, SITE_CURRENT_SELECT, SITE_LEGACY_SELECT, SITE_MINIMAL_SELECT], orderColumn: 'created_at',
   })
 }
 
@@ -811,7 +818,7 @@ export async function listPortalEventsPage(
   const cursor = decodePortalCursor({
     cursor: page.cursor, companyId: context.companyId, customerId: context.customerId, resource: 'events',
   })
-  const { data, error } = await supabaseService.rpc('portal_customer_events_page_v1', {
+  const { data, error } = await supabaseService.rpc('portal_customer_events_page_v2', {
     p_company_id: context.companyId,
     p_customer_id: context.customerId,
     p_cursor_occurred_at: cursor?.orderValue ?? null,

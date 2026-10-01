@@ -13,6 +13,7 @@ function text(value: unknown): string | null {
 }
 
 function numberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
   const parsed = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
@@ -26,6 +27,51 @@ function scalar(
       .filter((key) => Object.prototype.hasOwnProperty.call(source, key))
       .map((key) => [key, source[key] ?? null]),
   )
+}
+
+export class PortalProfileResultError extends Error {
+  readonly code = 'profile_result_invalid'
+  readonly status = 503
+  constructor() { super('Profilresultatet kunde inte verifieras.'); this.name = 'PortalProfileResultError' }
+}
+
+/** Profile replay preserves the saved business result, never historical private
+ * address objects or internal fields that older adapters persisted. */
+export function publicPortalProfileUpdateResult(body: unknown): JsonRecord {
+  const data = record(record(body).data)
+  const invalid = () => { throw new PortalProfileResultError() }
+  if (!['accepted', 'submitted'].includes(String(data.status)) || typeof data.status !== 'string' ||
+      typeof data.profile_updated !== 'boolean' || typeof data.facility_updated !== 'boolean' ||
+      !Object.prototype.hasOwnProperty.call(data, 'address_result')) invalid()
+  const projected: JsonRecord = { status: data.status, profile_updated: data.profile_updated, facility_updated: data.facility_updated }
+  for (const field of ['completion_reference', 'created_at']) {
+    if (!Object.prototype.hasOwnProperty.call(data, field)) continue
+    const value = data[field]
+    if (typeof value !== 'string' || !value || value.length > 200 ||
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) invalid()
+    projected[field] = value
+  }
+  for (const field of ['contact_revision', 'billing_revision', 'profile_revision', 'address_revision', 'affected_contract_count']) {
+    if (!Object.prototype.hasOwnProperty.call(data, field)) continue
+    const value = data[field]
+    if (value !== null && (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)) invalid()
+    projected[field] = value
+  }
+  if (data.address_result === null) projected.address_result = null
+  else {
+    if (!data.address_result || typeof data.address_result !== 'object' || Array.isArray(data.address_result)) invalid()
+    const address = record(data.address_result)
+    if (typeof address.status !== 'string' || !['updated', 'unchanged', 'incomplete', 'conflict'].includes(address.status)) invalid()
+    const hash = Object.prototype.hasOwnProperty.call(address, 'address_hash') ? address.address_hash : address.addressHash
+    if (hash !== null && (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash))) invalid()
+    const publicAddress: JsonRecord = { status: address.status, address_hash: hash }
+    if (Object.prototype.hasOwnProperty.call(address, 'reason')) {
+      if (typeof address.reason !== 'string' || !['missing_site_address_fields', 'verified_address_conflict'].includes(address.reason)) invalid()
+      publicAddress.reason = address.reason
+    }
+    projected.address_result = publicAddress
+  }
+  return { data: projected }
 }
 
 export function publicPortalCustomer(
@@ -53,11 +99,19 @@ export function publicPortalCustomer(
     first_name: text(row.first_name),
     last_name: text(row.last_name),
     company_name: text(row.company_name),
-    email: text(row.email) ?? text(identity.email),
+    email: text(row.email),
     phone: text(row.phone),
     contact_revision: typeof row.contact_revision === 'number' &&
       Number.isSafeInteger(row.contact_revision) && row.contact_revision >= 0
       ? row.contact_revision : null,
+    billing_revision: typeof row.billing_profile_revision === 'number' &&
+      Number.isSafeInteger(row.billing_profile_revision) && row.billing_profile_revision >= 0
+      ? row.billing_profile_revision : null,
+    profile_revision: typeof row.profile_revision === 'number' &&
+      Number.isSafeInteger(row.profile_revision) && row.profile_revision >= 0
+      ? row.profile_revision : null,
+    language_code: text(row.preferred_language),
+    timezone: text(row.portal_timezone),
     created_at: text(row.created_at),
   }
 }
@@ -135,9 +189,13 @@ export function publicPortalSite(
     status: text(row.status),
     name: text(row.site_name),
     facility_type: text(row.site_type),
+    address_revision: typeof row.address_revision === 'number' &&
+      Number.isSafeInteger(row.address_revision) && row.address_revision >= 0
+      ? row.address_revision : null,
     address: {
       street: text(row.street),
       care_of: text(row.care_of),
+      apartment_number: text(row.apartment_number),
       postal_code: text(row.postal_code),
       city: text(row.city),
       country: text(row.country) ?? 'SE',
@@ -287,10 +345,15 @@ export function publicPortalEvent(
   value: unknown,
 ): JsonRecord {
   const row = record(value)
+  const version = numberOrNull(row.event_version)
+  const id = text(row.id)
+  const sourceTable = text(row.source_table)
+  const referenceId = id && (sourceTable === 'customer_events' || sourceTable === 'domain_events')
+    ? `${sourceTable}:${id}` : id
   return {
-    event_reference: publicReference('event', companyId, row.id),
+    event_reference: publicReference('event', companyId, referenceId),
     event_type: text(row.event_type),
-    event_version: numberOrNull(row.event_version) ?? 1,
+    event_version: version !== null && Number.isInteger(version) && version > 0 ? version : null,
     occurred_at: text(row.occurred_at) ?? text(row.created_at),
     source: text(row.source),
   }

@@ -76,7 +76,7 @@ for (const file of files) {
       operation.description = contract.description
       operation['x-required-scopes'] = contract.scopes
       operation['x-scope-mode'] = contract.path === '/api/v1/customer/profile-update'
-        ? 'any-per-request; both required when both operations are present'
+        ? 'any-per-request; profile changes require customer_contact.write; facility changes require customer_facility_data.write'
         : contract.path === '/api/v1/website/legal-bundle'
           ? 'any'
           : 'all'

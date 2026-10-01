@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeCapwayFinanceStatus, normalizeCapwayInvoiceStatus } from '@/lib/integrations/billing/capway/statusMapper'
-import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 type JsonRecord = Record<string, unknown>
 
@@ -59,20 +59,6 @@ const EVENT_TYPE_STATE_MAP: Record<string, ProviderInvoiceState> = {
   registered: 'registered',
 }
 
-const STATE_RANK: Record<ProviderInvoiceState, number> = {
-  unknown: -1,
-  registered: 0,
-  unpaid: 1,
-  partially_paid: 2,
-  overdue: 3,
-  reminder_sent: 4,
-  collection: 5,
-  paid: 10,
-  disputed: 11,
-  cancelled: 12,
-  credited: 13,
-}
-
 export function resolveProviderInvoiceState(eventType: string | null, payload: JsonRecord): ProviderInvoiceState {
   const typeKey = (eventType ?? '').trim().toLowerCase().replace(/[^a-z0-9_.]/g, '_')
   if (typeKey && EVENT_TYPE_STATE_MAP[typeKey]) return EVENT_TYPE_STATE_MAP[typeKey]
@@ -88,22 +74,6 @@ export function resolveProviderInvoiceState(eventType: string | null, payload: J
     if (EVENT_TYPE_STATE_MAP[normalized]) return EVENT_TYPE_STATE_MAP[normalized]
   }
   return 'unknown'
-}
-
-function portalInvoiceStatus(state: ProviderInvoiceState): string | null {
-  if (state === 'paid') return 'paid'
-  if (state === 'credited') return 'credited'
-  if (state === 'cancelled') return 'cancelled'
-  if (['overdue', 'reminder_sent', 'collection'].includes(state)) return 'overdue'
-  if (['registered', 'unpaid', 'partially_paid'].includes(state)) return 'sent'
-  return null
-}
-
-function exportItemStatus(state: ProviderInvoiceState, currentStatus: string): string | null {
-  if (state === 'credited') return 'credited'
-  if (state === 'disputed') return 'disputed'
-  if (state === 'cancelled' && currentStatus !== 'sent') return 'cancelled'
-  return null
 }
 
 type ProcessEventResult = {
@@ -138,192 +108,48 @@ async function markEvent(input: {
   if (!response.data) throw new Error('Providerhändelsen kunde inte slutföras med rätt claim.')
 }
 
-async function upsertPortalInvoice(input: {
-  companyId: string
-  item: JsonRecord
-  state: ProviderInvoiceState
-  payload: JsonRecord
-}) {
-  const status = portalInvoiceStatus(input.state)
-  if (!status) return
-  const providerGuid = text(input.item.provider_invoice_guid)
-  const exportItemId = text(input.item.id)
-  const customerId = text(input.item.customer_id)
-  const customerContractId = text(input.item.customer_contract_id)
-  if (!providerGuid || !exportItemId || !customerId || !customerContractId) {
-    throw new Error('Providerfakturan saknar canonical export-, kund-, avtals- eller provideridentitet.')
-  }
-  const metadata = object(input.item.metadata)
-  const billingMonth = text(metadata.billing_month)
-  const paidAt = input.state === 'paid'
-    ? text(input.payload.paid_at) ?? text(input.payload.paidAt) ?? new Date().toISOString()
-    : null
-  const response = await supabaseService
-    .from('customer_invoices')
-    .upsert({
-      company_id: input.companyId,
-      customer_id: customerId,
-      customer_contract_id: customerContractId,
-      contract_id: customerContractId,
-      billing_underlay_id: text(input.item.billing_underlay_id),
-      partner_export_id: exportItemId,
-      invoice_export_item_id: exportItemId,
-      canonical_export_item_id: exportItemId,
-      partner_invoice_reference: providerGuid,
-      invoice_number: text(input.item.provider_invoice_number),
-      period_start: text(input.item.period_start) ?? (billingMonth ? `${billingMonth}-01` : null),
-      period_end: text(input.item.period_end),
-      total_kwh: number(input.item.total_kwh),
-      amount_ex_vat: number(input.item.amount_ex_vat),
-      vat_amount: number(input.item.vat_amount),
-      amount_inc_vat: number(input.item.amount_inc_vat),
-      status,
-      ...(paidAt ? { paid_at: paidAt } : {}),
-      source_system: 'canonical_invoice_export',
-      raw_payload: input.payload,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'company_id,invoice_export_item_id' })
-    .select('id')
-    .maybeSingle()
-  if (response.error) throw response.error
-  if (!response.data) throw new Error('Kundportalens fakturaspegel kunde inte uppdateras.')
-}
-
 async function processSingleEvent(event: JsonRecord, token: string): Promise<ProcessEventResult> {
   const eventId = text(event.id)
   const companyId = text(event.company_id)
-  const itemId = text(event.matched_invoice_export_item_id)
-  const provider = text(event.provider)
-  const environment = text(event.environment)
-  const invoiceGuid = text(event.provider_invoice_guid)
-  if (!eventId || !companyId || !itemId || !provider || !environment || !invoiceGuid) {
-    if (eventId && companyId) await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'provider_event_identity_incomplete' })
-    return { eventId: eventId ?? 'unknown', outcome: 'needs_review', reason: 'provider_event_identity_incomplete' }
-  }
-
-  const itemResult = await supabaseService
-    .from('invoice_export_items')
-    .select('*')
-    .eq('id', itemId)
-    .eq('company_id', companyId)
-    .eq('provider', provider)
-    .eq('environment', environment)
-    .eq('provider_invoice_guid', invoiceGuid)
-    .maybeSingle()
-  if (itemResult.error) throw itemResult.error
-  const item = (itemResult.data as JsonRecord | null) ?? null
-  if (!item) {
-    await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'no_matching_export_item' })
-    return { eventId, outcome: 'needs_review', reason: 'no_matching_export_item' }
-  }
-
+  if (!eventId || !companyId) throw new Error('provider_event_identity_incomplete')
   const payload = object(event.payload)
-  const payloadAmount =
-    number(payload.amount_inc_vat)
-    ?? number(payload.amountIncVat)
-    ?? number(payload.total_amount)
-  const expectedAmount = number(item.amount_inc_vat)
-  const payloadCurrency = text(payload.currency)
-  const expectedCurrency = text(item.currency) ?? 'SEK'
-  if (
-    (payloadAmount !== null &&
-      expectedAmount !== null &&
-      Math.abs(payloadAmount - expectedAmount) > 0.01) ||
-    (payloadCurrency && payloadCurrency.toUpperCase() !== expectedCurrency.toUpperCase())
-  ) {
-    await markEvent({
-      eventId,
-      companyId,
-      token,
-      status: 'needs_review',
-      reason: 'provider_amount_or_currency_mismatch',
-    })
-    return {
-      eventId,
-      outcome: 'needs_review',
-      reason: 'provider_amount_or_currency_mismatch',
-    }
-  }
-  const state = resolveProviderInvoiceState(text(event.event_type), payload)
-  if (state === 'unknown') {
-    await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'unknown_provider_state' })
-    return { eventId, outcome: 'needs_review', reason: 'unknown_provider_state' }
-  }
-  const currentProviderState = (text(item.provider_status) as ProviderInvoiceState | null) ?? 'unknown'
-  if (STATE_RANK[state] < STATE_RANK[currentProviderState]) {
-    await markEvent({ eventId, companyId, token, status: 'processed', reason: 'stale_provider_state_ignored' })
-    return { eventId, outcome: 'processed', reason: 'stale_provider_state_ignored' }
-  }
-
-  const currentStatus = String(item.status ?? '')
-  const nextStatus = exportItemStatus(state, currentStatus)
-  const statusPayload = object(item.status_payload)
-  const update: JsonRecord = {
-    provider_status: state,
-    status_payload: {
-      ...statusPayload,
-      last_provider_event_id: eventId,
-      last_provider_event_type: text(event.event_type),
-      last_provider_state: state,
-      last_provider_event_at: new Date().toISOString(),
-    },
-    last_reconciled_at: new Date().toISOString(),
-    reconciliation_status: 'matched',
-    updated_at: new Date().toISOString(),
-  }
-  if (nextStatus) update.status = nextStatus
   const financeStatus = text(payload.finance_status) ?? text(payload.financeStatus)
-  if (financeStatus) update.purchase_status = normalizeCapwayFinanceStatus(financeStatus)
-  const providerInvoiceNumber = text(payload.invoice_number) ?? text(payload.invoiceNumber)
-  if (providerInvoiceNumber) update.provider_invoice_number = providerInvoiceNumber
-  const providerOcr = text(payload.ocr) ?? text(payload.payment_reference) ?? text(payload.paymentReference)
-  if (providerOcr) update.provider_ocr = providerOcr
-
-  const itemUpdate = await supabaseService
-    .from('invoice_export_items')
-    .update(update)
-    .eq('company_id', companyId)
-    .eq('id', itemId)
-    .eq('provider_invoice_guid', invoiceGuid)
-    .select('id')
-    .maybeSingle()
-  if (itemUpdate.error) throw itemUpdate.error
-  if (!itemUpdate.data) throw new Error('Providerstatus kunde inte uppdateras tenant-säkert.')
-
-  await upsertPortalInvoice({ companyId, item: { ...item, ...update }, state, payload })
-  await markEvent({ eventId, companyId, token, status: 'processed' })
-  await emitDomainEvent({
-    companyId,
-    eventType: `invoice.provider.${state}`,
-    aggregateType: 'invoice_export_item',
-    aggregateId: itemId,
-    subjectCustomerId: text(item.customer_id),
-    source: 'billing_provider_webhook',
-    payload: { provider, environment, provider_invoice_guid: invoiceGuid, provider_state: state, export_item_status: nextStatus ?? currentStatus },
-    idempotencyKey: `invoice-provider-state:${companyId}:${eventId}`,
+  const response = await supabaseService.rpc('gridex_apply_invoice_provider_event_v1', {
+    p_company_id: companyId,
+    p_event_id: eventId,
+    p_processing_token: token,
+    p_event_type: typeof event.event_type === 'string' ? event.event_type : null,
+    p_payload: payload,
+    p_state: resolveProviderInvoiceState(text(event.event_type), payload),
+    p_finance_status: financeStatus ? normalizeCapwayFinanceStatus(financeStatus) : null,
+    p_amount: number(payload.amount_inc_vat) ?? number(payload.amountIncVat) ?? number(payload.total_amount),
+    p_currency: text(payload.currency),
   })
-  const publicEventType = state === 'paid'
-    ? 'invoice.paid'
-    : state === 'disputed'
-      ? 'invoice.disputed'
-      : null
-  if (publicEventType) {
-    await emitDomainEvent({
-      companyId,
-      eventType: publicEventType,
-      aggregateType: 'invoice_export_item',
-      aggregateId: itemId,
-      subjectCustomerId: text(item.customer_id),
-      source: 'billing_provider_webhook',
-      payload: {
-        provider_invoice_guid: invoiceGuid,
-        invoice_number: text(item.provider_invoice_number),
-        provider_state: state,
-      },
-      idempotencyKey: `invoice-public-state:${companyId}:${eventId}:${publicEventType}`,
-    })
+  if (response.error) throw response.error
+  const result = object(response.data)
+  if (result.eventId !== eventId || !['processed', 'needs_review', 'skipped'].includes(String(result.outcome))
+    || (result.reason !== null && result.reason !== undefined && typeof result.reason !== 'string')) {
+    throw new Error('provider_event_atomic_result_invalid')
   }
-  return { eventId, outcome: 'processed' }
+  return { eventId, outcome: result.outcome as ProcessEventResult['outcome'],
+    ...(typeof result.reason === 'string' ? { reason: result.reason } : {}) }
+}
+
+const INTERNAL_PROVIDER_FAILURE_REASONS = new Set([
+  'provider_event_identity_incomplete', 'provider_event_atomic_result_invalid',
+])
+
+function providerFailureReason(error: unknown): string {
+  const details = object(error)
+  const diagnostic = technicalErrorDiagnostic({ code: details.code })
+  if (diagnostic.message === 'database_error' && diagnostic.code?.length === 5) {
+    return `provider_event_database_${diagnostic.code}`
+  }
+  const message = error instanceof Error ? error.message : text(details.message)
+  if (message && INTERNAL_PROVIDER_FAILURE_REASONS.has(message)) return message
+  // Supabase returns plain error objects. Preserve a safe actionable failure
+  // category rather than losing every such failure as unknown_error.
+  return 'provider_event_persistence_failed'
 }
 
 async function claimEvents(input: {
@@ -358,10 +184,12 @@ async function processClaimed(token: string, events: JsonRecord[]) {
           companyId,
           token,
           status: 'failed',
-          reason: error instanceof Error ? error.message : 'unknown_error',
-        }).catch((markError) => console.error('[invoice-provider-events] failed to mark event', { eventId, error: markError }))
+          reason: providerFailureReason(error),
+        }).catch((markError) => console.error('[invoice-provider-events] failed to mark event', {
+          eventId, reason: providerFailureReason(markError),
+        }))
       }
-      results.push({ eventId, outcome: 'skipped', reason: error instanceof Error ? error.message : 'unknown_error' })
+      results.push({ eventId, outcome: 'skipped', reason: providerFailureReason(error) })
     }
   }
   return results

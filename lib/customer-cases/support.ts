@@ -1,10 +1,23 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { createCustomerCase, listCustomerCases } from '@/lib/customer-cases/db'
+import { listCustomerCases } from '@/lib/customer-cases/db'
 import type { CustomerCaseListRow, CustomerCasePriority, CustomerCaseRow } from '@/lib/customer-cases/types'
+import type { SupportActor } from '@/lib/customer-operations/supportCommand'
 
 type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'operations_automation'
 
 export type TenantSupportCustomerOption = { id: string; label: string }
+export type TenantSupportMessage = { id: string; body: string; visibility: 'customer' | 'internal'; author_kind: 'customer' | 'staff'; actor_user_id: string | null; channel: 'ops' | 'phone' | 'portal' | 'api'; caller_verification: 'unverified' | 'not_applicable'; revision: number; created_at: string }
+
+export async function listTenantSupportMessages(input: { companyId: string; customerId: string; caseId: string; offset?: number; limit?: number }) {
+  const limit = Math.min(Math.max(input.limit ?? 25, 1), 100)
+  const offset = Math.max(0, input.offset ?? 0)
+  const { data, error } = await supabaseService.from('customer_support_messages')
+    .select('id,body,visibility,author_kind,actor_user_id,channel,caller_verification,revision,created_at')
+    .eq('company_id', input.companyId).eq('customer_id', input.customerId).eq('customer_case_id', input.caseId)
+    .order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit)
+  if (error) throw error
+  return { items: ((data ?? []) as TenantSupportMessage[]).slice(0, limit), hasMore: (data?.length ?? 0) > limit }
+}
 
 type CreateTenantSupportCaseInput = {
   companyId: string
@@ -19,80 +32,11 @@ type CreateTenantSupportCaseInput = {
   idempotencyKey?: string | null
   actorUserId?: string | null
   metadata?: Record<string, unknown>
+  actor?: SupportActor
+  interactionChannel?: 'ops' | 'phone'
 }
 
-function text(value: unknown, maxLength = 4_000): string | null {
-  if (typeof value !== 'string') return null
-  const normalized = value.trim()
-  return normalized ? normalized.slice(0, maxLength) : null
-}
-
-function supportPriority(value: unknown): CustomerCasePriority {
-  return ['low', 'normal', 'high', 'urgent'].includes(String(value ?? '').toLowerCase())
-    ? String(value).toLowerCase() as CustomerCasePriority
-    : 'normal'
-}
-
-async function assertSupportGraph(input: {
-  companyId: string
-  customerId: string
-  siteId?: string | null
-  meteringPointId?: string | null
-}) {
-  const { data: customer, error: customerError } = await supabaseService
-    .from('customers')
-    .select('id,company_id')
-    .eq('id', input.customerId)
-    .eq('company_id', input.companyId)
-    .maybeSingle()
-  if (customerError) throw customerError
-  if (!customer?.id) throw new Error('support_customer_not_found_in_tenant')
-
-  if (input.siteId) {
-    const { data: site, error: siteError } = await supabaseService
-      .from('customer_sites')
-      .select('id,company_id,customer_id')
-      .eq('id', input.siteId)
-      .eq('company_id', input.companyId)
-      .eq('customer_id', input.customerId)
-      .maybeSingle()
-    if (siteError) throw siteError
-    if (!site?.id) throw new Error('support_site_not_found_in_customer_graph')
-  }
-
-  if (input.meteringPointId) {
-    let query = supabaseService
-      .from('metering_points')
-      .select('id,company_id,customer_id,customer_site_id')
-      .eq('id', input.meteringPointId)
-      .eq('company_id', input.companyId)
-      .eq('customer_id', input.customerId)
-    if (input.siteId) query = query.eq('customer_site_id', input.siteId)
-    const { data: meteringPoint, error: meteringPointError } = await query.maybeSingle()
-    if (meteringPointError) throw meteringPointError
-    if (!meteringPoint?.id) throw new Error('support_metering_point_not_found_in_customer_graph')
-  }
-}
-
-async function findIdempotentSupportCase(input: {
-  companyId: string
-  customerId: string
-  idempotencyKey: string
-}): Promise<CustomerCaseRow | null> {
-  const { data, error } = await supabaseService
-    .from('customer_cases')
-    .select('*')
-    .eq('company_id', input.companyId)
-    .eq('customer_id', input.customerId)
-    .contains('metadata', { support_idempotency_key: input.idempotencyKey })
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw error
-  return (data as CustomerCaseRow | null) ?? null
-}
-
-export async function listTenantSupportCustomerOptions(companyId: string): Promise<TenantSupportCustomerOption[]> {
+export async function listTenantSupportCustomerOptions(companyId: string, selectedCustomerId?: string | null): Promise<TenantSupportCustomerOption[]> {
   const { data, error } = await supabaseService
     .from('customers')
     .select('id,customer_number,full_name,first_name,last_name,company_name')
@@ -100,7 +44,17 @@ export async function listTenantSupportCustomerOptions(companyId: string): Promi
     .order('created_at', { ascending: false })
     .limit(200)
   if (error) throw error
-  return (data ?? []).map((row) => {
+  const rows = [...(data ?? [])]
+  // A customer-card/search link may target an older customer outside the first
+  // option page. Resolve only that exact customer within this tenant.
+  if (selectedCustomerId && !rows.some(row => row.id === selectedCustomerId)) {
+    const selected = await supabaseService.from('customers')
+      .select('id,customer_number,full_name,first_name,last_name,company_name')
+      .eq('company_id', companyId).eq('id', selectedCustomerId).maybeSingle()
+    if (selected.error) throw selected.error
+    if (selected.data) rows.push(selected.data)
+  }
+  return rows.map((row) => {
     const person = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
     const name = row.full_name ?? (person || row.company_name || row.customer_number || row.id)
     return { id: String(row.id), label: `${name}${row.customer_number ? ` · ${row.customer_number}` : ''}` }
@@ -108,48 +62,30 @@ export async function listTenantSupportCustomerOptions(companyId: string): Promi
 }
 
 export async function createTenantSupportCase(input: CreateTenantSupportCaseInput): Promise<{ case: CustomerCaseRow; reused: boolean }> {
-  const title = text(input.title, 180)
-  if (!title) throw new Error('support_title_required')
-  const description = text(input.description, 8_000)
-  const category = text(input.category, 120) ?? 'support'
-  const idempotencyKey = text(input.idempotencyKey, 200)
-
-  await assertSupportGraph({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    siteId: input.siteId ?? null,
-    meteringPointId: input.meteringPointId ?? null,
-  })
-
-  if (idempotencyKey) {
-    const existing = await findIdempotentSupportCase({ companyId: input.companyId, customerId: input.customerId, idempotencyKey })
-    if (existing) return { case: existing, reused: true }
+  const { executeSupportCommand, SupportCommandError } = await import('@/lib/customer-operations/supportCommand')
+  if (!input.actor || input.channel === 'operations_automation' ||
+      (input.channel === 'admin' && input.actor.kind !== 'ops') ||
+      (input.channel === 'customer_portal' && input.actor.kind !== 'portal') ||
+      (input.channel === 'api' && input.actor.kind !== 'api') ||
+      (input.actorUserId && (input.actor.kind === 'api' || input.actorUserId !== input.actor.userId))) {
+    throw new SupportCommandError('support_actor_forbidden', 403)
   }
-
-  const row = await createCustomerCase({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    siteId: input.siteId ?? null,
-    meteringPointId: input.meteringPointId ?? null,
-    caseType: 'other',
-    priority: input.priority ?? 'normal',
-    title,
-    description,
-    reasonCategory: category,
-    source: `tenant_support_${input.channel}`,
-    nextAction: 'Supportärendet ska triageras inom tenantens ordinarie ärendeflöde.',
-    actorUserId: input.actorUserId ?? null,
-    metadata: {
-      support_case: true,
-      support_channel: input.channel,
-      support_idempotency_key: idempotencyKey,
-      ...(input.metadata ?? {}),
-    },
-  })
-
-  return { case: row, reused: false }
+  if (input.metadata) throw new SupportCommandError('invalid_support_command', 422)
+  const result = await executeSupportCommand({ companyId: input.companyId, customerId: input.customerId,
+    ...(input.siteId ? { siteId: input.siteId } : {}), ...(input.meteringPointId ? { meteringPointId: input.meteringPointId } : {}),
+    ...(input.interactionChannel ? { interactionChannel: input.interactionChannel } : {}),
+    actor: input.actor, operation: 'create', expectedRevision: 0,
+    idempotencyKey: input.idempotencyKey ?? '',
+    payload: { title: input.title, body: input.description?.trim() || 'Ingen ytterligare beskrivning lämnad.',
+      ...(input.actor.kind === 'ops' ? { priority: input.priority ?? 'normal', category: input.category?.trim() || 'support' } : {}) } })
+  const { data, error } = await supabaseService.from('customer_cases').select('*')
+    .eq('id', result.caseId).eq('company_id', input.companyId).eq('customer_id', input.customerId).single()
+  if (error) throw error
+  return { case: data as CustomerCaseRow, reused: result.replayed }
 }
 
+/** Legacy website events are machine intake, never customer authorization.
+ * New support writes use the exact-action customer cases routes. */
 export async function createSupportCaseFromCustomerEvent(input: {
   companyId: string
   customerId: string
@@ -160,29 +96,9 @@ export async function createSupportCaseFromCustomerEvent(input: {
   channel?: SupportChannel
   apiClientId?: string | null
 }) {
-  const title = text(input.data.title, 180)
-    ?? text(input.data.subject, 180)
-    ?? text(input.data.message, 180)
-    ?? 'Supportärende från API'
-  const description = text(input.data.description, 8_000) ?? text(input.data.message, 8_000)
-  const category = text(input.data.category, 120) ?? input.eventType.replace(/^customer\./, '')
-
-  return createTenantSupportCase({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    title,
-    description,
-    category,
-    priority: supportPriority(input.data.priority),
-    channel: input.channel ?? 'api',
-    idempotencyKey: input.idempotencyKey,
-    metadata: {
-      event_type: input.eventType,
-      event_reference: input.eventReference,
-      api_client_id: input.apiClientId ?? null,
-      source_event_data: input.data,
-    },
-  })
+  const { SupportCommandError } = await import('@/lib/customer-operations/supportCommand')
+  void input
+  throw new SupportCommandError('support_event_delegation_required', 403)
 }
 
 export async function listTenantSupportCases(input: {
@@ -191,6 +107,8 @@ export async function listTenantSupportCases(input: {
   status?: string | null
   limit?: number
   offset?: number
+  query?: string | null
+  caseId?: string | null
 }): Promise<CustomerCaseListRow[]> {
   const rows = await listCustomerCases({
     companyId: input.companyId,
@@ -199,6 +117,8 @@ export async function listTenantSupportCases(input: {
     limit: Math.min(Math.max(input.limit ?? 100, 1), 200),
     offset: Math.max(0, Math.floor(input.offset ?? 0)),
     supportOnly: true,
+    query: input.query ?? null,
+    caseId: input.caseId ?? null,
   })
   // Keep this guard even when the database filter is in place; only the exact
   // support predicate is permitted to leave this service boundary.

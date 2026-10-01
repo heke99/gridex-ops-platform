@@ -1,6 +1,12 @@
 # Gridex Website Integration API
 
-Current contract: **2026-08-22.2**
+Current contract: **2026-10-01.1** (release candidate)
+
+Paired release 2026-10-01.1 adds required nullable `author_reference` to customer
+support messages. It is the saved opaque `support_staff_` reference, or null for
+customer messages and unknown historical staff authors. Strict2026-09-30.3
+response clients must update that model; request paths/scopes are unchanged.
+Prior immutable releases remain available.
 
 The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable website contract is published at `/api/v1/openapi/website-integration-v1.json`.
 

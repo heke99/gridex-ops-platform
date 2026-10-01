@@ -1,9 +1,11 @@
 {
-  "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-09-30T15:22:39Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-run36734905474-artifact11106997870",
+  "project_id": "gridex-ops-platform",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-run36863477286-job110373137760-artifact11163217587",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "53f36a5fe9bbe446dfc9cc7aaf4c891eb70ba31dc9446f4a58f7d8d67c75db3c",
-  "latest_migration": "20260930142815_customer_notification_read_atomic_command.sql",
-  "latest_migration_schema_effect": "Indexed generated canonical notification references and service-only atomic mark-read command. Authentic clean replay of draft #418 head ac57248b5db52d67b71013156cb97e00f7a640d2 (OPS36734905474 clean109953940935 artifact11106997870) passed notification native7/7, concurrency3/3 and all retained contact/case/Ediel browser/native checks. It stopped only at the deliberately stale generated-types hash. Exact generated types/schema/fingerprint bytes adopted; semantic fingerprint6818f94cfee31124b54647b3b37a456997cb7828c6dea7efaaf63674a8f6b419. New exact-head CI remains required; no full masterplan or production qualification."
+  "sha256": "6706ca2a163263331a19c9a2b278b8d2c551ac45192433ddb985bd611448183d",
+  "latest_migration": "20261001094830_manual_purchase_intent_reconstructed.sql",
+  "latest_migration_schema_effect": "Authentic CLI-generated and existing-nullability-postprocessed types, schema and fingerprint captured before native tests on #422 head 62e36228899a5a4c8a9dd497f06622c49ce14365, exact tree 467e1e770a495253cb8113962961c28b94b0f057; actual CI merge 838da5261735ab3edf578cdff91021c6e54ff587 has the same tree and parents ae56ee0a plus 62e36228. Both new forwards 20261001094820 and 20261001094830 actually applied. ZIP SHA256 478b6933107a6024353b6702d14d7a12af56472f6ee3abe3220a409f88311f8e; schema SHA256 7a93276b3c528712a6f313246164370c4c752bc14907acf033c22a86fc417057; fingerprint file SHA256 dead982b191865834c0a7ad6418ad02d23b217423dde943f0b3b4ec532ca7f24; canonical fingerprint 6dbfd427eb07654035b322d4dae37ef3adef301af116c47c11421f7eb2c0f216. Account native4 PASS; purchase suite import failed server-only before all15 cases. Upgrade/actual pg_dump/pg_restore/catalog/Auth/data/owner/ACL/commands/zero-effects witnesses PASS but final committed-schema comparison FAIL; pinned-old rollback ALL_PASS and fresh-old backfill8 PASS. The failed job is retained. This adoption qualifies generated schema capture only; changed-head native/browser/restore/CI and original75 acceptance remain pending.",
+  "source_kind": "disposable_local_supabase_cli_replay",
+  "generation_timestamp_evidence": "Observed existing-nullability-postprocessing completion log: 2026-10-01T12:44:38.2423702Z Applied Supabase types nullability overrides: rem002-database.types.ts. This is completion evidence, not exact file creation time. Earlier schema fingerprint 6dbfd427eb07654035b322d4dae37ef3adef301af116c47c11421f7eb2c0f216 logged at 2026-10-01T12:44:30.7704306Z. Archive fingerprint includes no generation timestamp.",
+  "generated_at": "2026-10-01T12:44:38.2423702Z"
 }

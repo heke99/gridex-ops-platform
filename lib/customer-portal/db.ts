@@ -475,7 +475,7 @@ export async function listPortalCases(
   // and never trim a mixed internal list before applying publication scope.
   const { data, error } = await (tenantDb(context.companyId)
     .from('customer_case_publications')
-    .select('id,customer_case_id,customer_id,revision,public_status,public_title,public_body,published_at') as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
+    .select('id,customer_case_id,customer_id,revision,public_status,public_title,public_body,published_at,channel,author_user_id') as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
     .in('customer_id', context.customerIds)
     .is('revoked_at', null)
     .order('published_at', { ascending: false })

@@ -8,11 +8,9 @@ import {captureCorrectionContext} from '@/lib/ediel/sources/correctionContextCap
 import {archiveInvoiceTestCustomerSafely} from '@/lib/ediel/testing/invoiceTestCenterArchive'
 import {signInvoiceTestContractCanonically} from '@/lib/ediel/testing/invoiceTestContractLifecycle'
 import {addCustomerContractEvent} from '@/lib/customer-contracts/db'
-import {createTenantSupportCase} from '@/lib/customer-cases/support'
-import {updateCustomerCaseStatus} from '@/lib/customer-cases/db'
-import {enqueue} from '@/lib/customer-operations/automation.part-1'
 import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvents'
 import {createSupplierSwitchEvent} from '@/lib/operations/db'
+import {registerLegacySupportBoundaryNative} from './helpers/ediel-support-boundary-native-20261001'
 const literal=(v:unknown)=>"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 function sql<T>(query:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
@@ -1590,50 +1588,7 @@ it('the canonical legacy contract-event writer captures one committed immutable 
     operation:'INSERT',company:f.companyId,customer:customerId,contract:contractId,eventType:'note',
    }])
 })
-it('the actual support case and operation enqueue writers capture linked case, event and job facts',async()=>{
- const f=await seed(),customerId=randomUUID(),key=randomUUID()
- sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
-  VALUES(${literal(customerId)},${literal(f.companyId)},'Synthetic','Support');`)
- const created=await createTenantSupportCase({companyId:f.companyId,customerId,
-  title:'Synthetic native support case',channel:'admin',idempotencyKey:key,actorUserId:f.actorUserId})
- expect(created.reused).toBe(false)
- expect((await createTenantSupportCase({companyId:f.companyId,customerId,
-  title:'Synthetic native support case',channel:'admin',idempotencyKey:key,actorUserId:f.actorUserId})).reused).toBe(true)
- const caseId=created.case.id
- expect(sql(`SELECT jsonb_agg(jsonb_build_object('table',table_name,'operation',operation,
-  'company',company_id,'customer',new_fact->>'customer_id',
-  'eventType',new_fact->>'event_type') ORDER BY id)
-  FROM gridex_correction_process.facts WHERE table_name IN ('customer_cases','customer_case_events')
-   AND (row_id=${literal(caseId)} OR new_fact->>'customer_case_id'=${literal(caseId)})`))
- .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId,eventType:null},
-   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'created'},
-   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'operational_stop_applied'}])
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='cases.write'`)).toBe(1)
- const initialStatus=sql<string>(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)
- await expect(updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',actorUserId:f.actorUserId}))
-  .rejects.toThrow(/customer_case_status_actor_not_authorized/)
- expect(sql(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)).toBe(initialStatus)
- sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
-  SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions
-  WHERE key='cases.write';`)
- expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'cases.write'))`)).toBe(true)
- const changed=await updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',
-  message:'Synthetic follow up',actorUserId:f.actorUserId})
- expect(changed.status).toBe('action_required')
- expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
-  WHERE table_name='customer_cases' AND row_id=${literal(caseId)} AND operation='UPDATE'
-   AND new_fact->>'status'='action_required'`)).toBe(1)
- const job=await enqueue({companyId:f.companyId,customerId,actorUserId:f.actorUserId,
-  jobType:'request_customer_data',idempotencyKey:`native:${key}`,payload:{caseId}})
- expect(job.duplicate).toBe(false)
- expect(await enqueue({companyId:f.companyId,customerId,actorUserId:f.actorUserId,
-  jobType:'request_customer_data',idempotencyKey:`native:${key}`,payload:{caseId}})).toMatchObject({id:job.id,duplicate:true})
- expect(sql(`SELECT jsonb_build_object('operation',operation,'company',company_id,
-  'customer',new_fact->>'customer_id','jobType',new_fact->>'job_type')
-  FROM gridex_correction_process.facts WHERE table_name='customer_operation_jobs'
-   AND row_id=${literal(job.id)} AND operation='INSERT'`))
-  .toEqual({operation:'INSERT',company:f.companyId,customer:customerId,jobType:'request_customer_data'})
-})
+registerLegacySupportBoundaryNative({sql,literal,limitedActor,seed})
 it('a rolled-back process deletion leaves the producer and immutable facts unchanged',async()=>{
  const f=await seed(),taskId=randomUUID()
  sql(`INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)

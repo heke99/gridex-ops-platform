@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { canonicalApiError } from '@/lib/api/apiError'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
 import { loadWebsiteCustomerApplicationStatus, WebsiteCustomerApplicationStatusError } from '@/lib/website/customerApplicationStatus'
 
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest, { params }: Props) {
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: error.status, startedAt, errorCode: error.code })
       return customerPortalJson(canonicalApiError({ code: error.code, message: error.message, requestId }), { status: error.status })
     }
-    console.error('[website-customer-application-status] failed', { requestId, applicationNumber, error })
+    console.error('[website-customer-application-status] failed', { requestId, error: technicalErrorDiagnostic(error) })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'application_status_unavailable' })
     return customerPortalJson(canonicalApiError({ code: 'application_status_unavailable', message: 'Kundansökans status kunde inte hämtas.', requestId }), { status: 500 })
   }

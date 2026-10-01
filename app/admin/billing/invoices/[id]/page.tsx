@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ id: string }> }
 type Row = Record<string, unknown>
+const distributionNames: Record<string, string> = { email: 'E-post', paper: 'Post', e_invoice: 'E-faktura', direct_debit: 'Autogiro' }
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -21,6 +22,10 @@ function num(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null
   }
   return null
+}
+
+function revision(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null
 }
 
 function money(value: unknown) {
@@ -42,15 +47,25 @@ function customerName(row: Row) {
 }
 
 export default async function InvoiceReviewDetailPage({ params }: Props) {
-  await requirePermissionServer('billing_underlay.read')
+  const guard = await requirePermissionServer('billing_underlay.read')
   const { id } = await params
   const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user || user.id !== guard.userId) {
+    return <main className="p-6"><p role="alert">Aktuell inloggning kunde inte bekräftas. Läs in sidan igen.</p></main>
+  }
   const scope = user ? await getOperationalCompanyScope(user.id) : null
   const companyId = scope?.companyId ?? null
-  if (!companyId) throw new Error('Välj en tenant innan fakturan granskas.')
+  if (!companyId || (!guard.isPlatformAdmin && companyId !== guard.companyId)) {
+    return <main className="p-6"><p role="alert">Tenantkontexten har ändrats eller saknas. Välj bolag och läs in sidan igen.</p></main>
+  }
   const detail = await getInvoiceReviewDetail({ companyId, invoiceExportItemId: id })
   const invoice: Row = detail.invoice ?? {}
+  const invoiceAddress = invoice.invoice_address_snapshot && typeof invoice.invoice_address_snapshot === 'object' && !Array.isArray(invoice.invoice_address_snapshot)
+    ? invoice.invoice_address_snapshot as Row : {}
+  const profileRevision = revision(invoiceAddress.profile_revision)
+  const overrideRevision = revision(invoiceAddress.contract_override_revision)
+  const distribution = distributionNames[text(invoiceAddress.distribution_method) ?? '']
   const calculation = invoice.calculation_snapshot && typeof invoice.calculation_snapshot === 'object' && !Array.isArray(invoice.calculation_snapshot)
     ? invoice.calculation_snapshot as Row
     : {}
@@ -76,6 +91,13 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
           </span>
         </div>
 
+        {detail.lifecycleStage === 'dispatched' && guard.userId === user?.id
+          && (guard.isPlatformAdmin || (guard.companyId === companyId && guard.permissions.includes('billing_underlay.export'))) ? (
+          <Link href={`/admin/billing/invoices/${id}/redelivery`} className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800">
+            Separat beslut om omleverans
+          </Link>
+        ) : null}
+
         {awaitingProjection ? (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950 shadow-sm">
             <h2 className="font-semibold">Fakturaprojektion pågår</h2>
@@ -97,6 +119,24 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
               <p className="mt-2 text-lg font-semibold text-slate-950">{value}</p>
             </div>
           ))}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="font-semibold text-slate-950">Fakturans sparade mottagare</h2>
+          <p className="mt-1 text-sm text-slate-600">Uppgifterna tillhör den här fakturan och ändras inte när kundstandarden ändras.</p>
+          {awaitingProjection ? <p className="mt-3 text-sm text-slate-600">Faktureringsuppgifter visas när fakturan har projicerats.</p>
+            : profileRevision === null || overrideRevision === null ? <p className="mt-3 text-sm text-amber-800">Äldre fakturagrund saknar sparad faktureringsrevision. Aktuell kundrevision ersätter inte fakturans uppgifter.</p> : null}
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              ['Mottagare', text(invoiceAddress.recipient) ?? 'Saknas'],
+              ['Faktura-e-post', text(invoiceAddress.email) ?? 'Saknas'],
+              ['Distribution', distribution ?? 'Saknas'],
+              ['Fakturaadress', [text(invoiceAddress.street), text(invoiceAddress.postal_code), text(invoiceAddress.city), text(invoiceAddress.country)].filter(Boolean).join(', ') || 'Saknas'],
+              ['Fakturareferens', text(invoiceAddress.reference) ?? 'Saknas'],
+              ['Profilrevision', profileRevision === null ? 'Saknas' : String(profileRevision)],
+              ['Undantagsrevision', overrideRevision === null ? 'Saknas' : String(overrideRevision)],
+            ].map(([label, value]) => <div key={label}><dt className="text-xs font-medium text-slate-500">{label}</dt><dd className="mt-1 break-all font-medium text-slate-800">{value}</dd></div>)}
+          </dl>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">

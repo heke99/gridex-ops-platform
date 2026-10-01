@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { isValidIdempotencyKey } from '@/lib/api/idempotencyKey'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export class IntegrationWriteIdempotencyError extends Error {
   readonly status: number
@@ -77,7 +78,10 @@ function normalizeIdempotencyKey(
 function databaseCode(error: unknown): string | null {
   if (!error || typeof error !== 'object') return null
   const code = (error as { code?: unknown }).code
-  return typeof code === 'string' ? code : null
+  const diagnostic = technicalErrorDiagnostic(error)
+  // The claim path has always required the exact 23505 code. Do not turn a
+  // padded/free provider value into a collision by normalizing its spelling.
+  return typeof code === 'string' && code === diagnostic.code ? diagnostic.code : null
 }
 
 export async function claimIntegrationWriteIdempotency(input: {

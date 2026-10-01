@@ -11,7 +11,8 @@ import Link from "next/link"
 
 
 
-import { createCustomerInternalNoteAction, registerCustomerLifecycleDecisionAction, savePowerOfAttorneyScopeAction } from "./actions"
+import { createCustomerInternalNoteReceiptAction, registerCustomerLifecycleDecisionAction, savePowerOfAttorneyScopeAction } from "./actions"
+import CustomerInternalNoteForm from "@/components/admin/customers/CustomerInternalNoteForm"
 import type { AuditLogRow, CustomerInternalNoteRow, CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types"
 
 import type { PowerOfAttorneyRow, CustomerBlockerRow } from "@/lib/operations/types"
@@ -456,14 +457,19 @@ export function PowerOfAttorneyScopesSection({
 export function NotesSection({
   customerId,
   notes,
+  canWrite,
 }: {
   customerId: string;
   notes: CustomerInternalNoteRow[];
+  canWrite?: boolean;
 }) {
   return (
     <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-      <form
-        action={createCustomerInternalNoteAction}
+      <CustomerInternalNoteForm
+        key={customerId}
+        customerId={customerId}
+        canWrite={canWrite}
+        action={createCustomerInternalNoteReceiptAction}
         className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm "
       >
         <div className="mb-5">
@@ -490,12 +496,7 @@ export function NotesSection({
           />
         </label>
 
-        <div className="mt-6 flex justify-end">
-          <button className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 ">
-            Spara anteckning
-          </button>
-        </div>
-      </form>
+      </CustomerInternalNoteForm>
 
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
         <div className="border-b border-slate-200 px-6 py-4 ">

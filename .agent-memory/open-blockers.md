@@ -1,3 +1,143 @@
+## Current API/UI merge candidate — process completion and main preservation, 2026-10-01
+
+Combined main53 local verification: focused real-process/persisted-ACK/runtime/persistence110/110 PASS; Node22 app, scripts and tests TypeScript4GiB PASS; scoped ESLint0 errors (one inherited unused facilityRecognition warning in main source); source budget and git diff --check PASS. Independent read-only integration review PASS: exact main blobs, all14 nonmemory paths, complete base/API/main markdown histories and zero nonconflicting checkpoint value losses; original main active context preserved. Full new-head genuine CI remains pending.
+
+Published #422 head79bbbe219569eb17b2c20553cf18997e646b0894/treeaffb5450b04d1f871e18d0b565696b4245089b87, OPS36889321218: verify and quality-release-gates, including build and seven contract state/binding controls, are SUCCESS. Clean replay failed earlier in residual tenant queues: 13/14 PASS, concurrent approved_invoice_retry returned exit0 before final stdout was available, causing JSON.parse(undefined). Current source-owner, agreement, later HTTP/browser/schema proof were NOT_REACHED in this run; earlier c019 agreement proof remains historical. Upgrade/restore for79 was still running at the last read. This candidate is not merge-qualified.
+
+The actual shared native subprocess helper resolved on exit before stdio closure. A real Node child/grandchild regression with gated inherited output reproduced RED1FAIL/2PASS; awaiting close gives GREEN3PASS, independently rerun3PASS. Strict psql arguments, real output, nonzero/missing executable rejection, claim SQL and all native assertions remain intact. No native gate is skipped, weakened or replaced.
+
+Current main53bf989b0ad402bb2ce151c186eea31f1ec9cf03 is integrated from the actual common base d7eaa4b0b880b7280d8f164630a6cdb51baabba8 by normal per-file three-way merge. All 14 non-memory main files are byte-identical to main53, including the physical BGM202/204 boundaries, persisted ACK regressions and unresolved field202 policy hold. Both markdown histories are retained; structured checkpoint merging preserves nonconflicting fields and records the competing main active context separately. The remote successor must genuinely have both79 and main53 as parents. Main itself is unchanged. See api-ui-current-main-integration-20261001.json.
+
+Next: complete targeted combined-candidate verification and independent integration review; commit/freeze/non-force publish the two-parent candidate; require genuine current-head native/HTTP/browser/schema/restore and other applicable CI before #422 into #418, then freshly qualify combined #418 before main merge. User authorizes the current package commit and merge. Original75 remain31PARTIAL/44NOT_VERIFIED/0 final acceptances, P0–P8 OPEN; saved WIP and inherited gridex_get_user_roles callers remain separate continuation work. Historical receipts below are preserved.
+
+## API/UI merge gates — genuine c019 result and next correction, 2026-10-01
+
+The current package is explicitly authorized for commit/save/merge. Published #422 c019c7b68161af63860becfefd87087820f53151/tree27f901ccb3ed373c7ae988cea637335eac31a5d6, OPS36879502677: verify, quality7733/533+build, actual upgrade/backup/restore/pinned-old rollback/fresh-old backfill PASS. Account4/purchase15 PASS. The actual private agreement browser1, post-browser proof1 and cleanup1 now PASS; the guard correction is genuinely exercised. FullE2E smoke/coverage/certificate, tenant/Ediel/public browser PASS; full/staging/nightly/crawler SKIPPED.
+
+Clean replay subsequently fails source-owner/correction suite43/377, with334PASS. Forty-two source-owner cases stop at inbound_switch_resource_scope_mismatch because the earlier draft fixture omits the current required contract/aliases/network Ediel ID/origin binding. One explicit withdrawal leaves contractdraft: cancelled_by_customer/manual_review are invalid canonical contract states, and the legacy helper hides23514. Following suites remain NOT_REACHED, not accepted or externally blocked.
+
+The bounded next correction aligns the withdrawal writer with the installed contract state machine: before-send cancelled plus ended_at/customer_withdrawal; later review retains status and sets billing_blocked_by_case_id. Contract database errors propagate. Actual exported writer against actual schema table/state function RED6 gives4 expected failures/2 controlsPASS, GREEN6PASS. Independent review then reproduced the additional installed canonical binding requirement (extended RED6:2FAIL/4PASS). The final actual state+binding core7PASS, including rejection of an unbound legacy draft; retained closure11PASS, app/scripts TypeScript4GiB and scoped lint/diff PASS. The new PostgreSQL-core quality runner reuses the existing isolated pinned PGlite dependency; no lock/dependency/schema/production-grant changes. Native withdrawal now asserts canonicalcancelled plus case/reason/end evidence; remaining financial/switch/lifecycle assertions retained.
+
+Source-owner successor fixture binds a genuinely test-signed canonical contract and same-company aliases, legal network ID, originating queued Z03 with reversed physical/legal wire and stored switch IDs. A real service Data API UPDATE creates the installed database-owned dispatch witness, after genuine agreement/PDF/POA readiness, followed by the existing local updateSupplierSwitchRequestStatus writer to record submitted status/time/event; no private receipt is inserted and no production trigger/policy is disabled. This proves only the DB service-capture boundary, not the full producer/MIME/SMTP/Storage chain. That separate genuine native suite remains mandatory in the same replay. Native support/withdrawal fixture obtains genuine canonical version bindings through the unsigned prefix of the existing positive-site offer/legal/publication helper. It adds inert disposable tenant publication-readiness rows and four exact company grants to the separate catalog-preparation actor; the limited support actor remains unchanged. No signature, delivery or customer acceptance is fabricated. The core test qualifies state/nullability only; genuine native CI must exercise the full binding/FK/quote/publication graph. Bounded independent review is complete for this correction; new actual native/CI results remain required.
+
+Current non-force candidate95c6e24fca094142cf3d4e6672179c1de5dfa07c/tree875340f3132909da08f53bee9d86f303cb6fd19c, OPS36886973537: verify, quality/build and upgrade/backup/restore are SUCCESS; clean native remains pending. Continued independent review reproduced a further actual submit-readiness rejection23514 supplier_switch_not_ready for its bare draft source fixture. That candidate cannot qualify merge. The successor now uses the existing genuine test signature RPCs, legal acceptances, signed PDF archive/download/hash verification and exact POA before the submitted writer; it asserts actual installed lifecycle-readiness fields. The original signing/PDF/Storage/POA tail is preserved byte-for-byte. Active fixture profile/membership, strict test-customer marker, current facility/meter/SE3/grid area and four exact preparation grants/catalog prerequisites remain disposable test setup. No acceptance receipt or successful lifecycle result is directly supplied; native CI still owns full qualification.
+
+Bounded independent review of the latest source fixture finds no remaining definite prerequisite blocker. The actual installed submit guard RED23514 enumerated seven missing agreement/facility/meter/PDF/POA/start prerequisites; the successor now establishes these through genuine existing owners and asserts the real readiness view. Reviewer-run actual state+binding core7/7 PASS (21.90s); original signing/PDF/Storage/POA tail is byte-identical to base9b14. Native current-head and combined-stack CI remain pending. This is bounded review, not whole original75 or production acceptance.
+
+All seven earlier dirty worktrees are committed and remotely preserved in exact-tree WIP branches; manifest worktree-save-publication-20261001.json is under continuation-20260930. No WIP is silently imported here. Original75 remain31PARTIAL/44NOT_VERIFIED/0 final acceptances; P0–P8 OPEN. The inherited gridex_get_user_roles proxy/scope path remains a separate unqualified caller. Main53bf updates must be retained.
+
+Next: finish bounded independent review; commit/freeze and non-force publish this correction over unchanged #422/c019; inspect genuine first failure and every later applicable native/HTTP/browser/schema/restore gate. Merge the reviewed stacked #422 into #418 only after current gates pass, then qualify the combined #418 against current main before main merge. Record actual remote merge/head and hand off remaining original75 work. Historical facts below are retained.
+
+## API/UI current-package save and merge — 2026-10-01
+
+The user explicitly requests committing/saving and merging the current package, then a prompt for remaining work. This supersedes the earlier no-main-merge boundary for this reviewed package only. Original75/P0–P8 remain OPEN; production migrations, credentials, provider/customer communication and market activation stay separate.
+
+Actual preceding #422 head1d8fa083606b811c090d74a6eba31767e18d10a8/treee48d2412b2bb626f49e833f6193e59c5e4da6d69, OPS36874763327: verify/quality7721/532+build/upgrade/backup/restore/old rollback/backfill PASS. Native account4/purchase15 genuinely PASS. The next first failure is private agreement browser redirect307 to dashboard200 before form selection; later browser/native/HTTP are NOT_REACHED. The active admin_users-only fixture receives canonical platform=true with empty roles/permissions, but the TypeScript guard incorrectly derived isAdmin=false. Fresh actual-guard RED12 gave5 expected failures/7 denialsPASS. Minimal authoritative-flag fix GREEN12 plus retained current-company29 =41PASS, app TypeScript4GiB and scoped lint/diff PASS. No SQL/grant/seed/native assertion/generated bytes/workflow/dependency change.
+
+All seven dirty worktrees are now local commits and exact-tree GitHub WIP snapshot branches; see worktree-save-publication-20261001.json under continuation-20260930. These are preserved implementation input, not accepted packages. Older account/purchase/admin branches contain already integrated predecessors; compare semantically. U07, claim-attempt and mounted account remain continuation work.
+
+Next: complete independent bounded authorization review and tests types; commit/freeze this correction, non-force publish over current #422/1d8fa only after fresh ownership/head check. Inspect genuine browser and every subsequent native/HTTP/CI outcome. Merge the reviewed stacked #422/#418 package only after all applicable current integration gates pass, preserve main updates, then hand off remaining original75 work. No rollback to older trees or gate weakening.
+
+Report: quality/audits/tenantservice-api-ops-20260928/continuation-20260930/api-ui-merge-guard-20261001.md. Historical facts below are retained and superseded only for current work/merge authorization.
+
+## API/UI resumed CI and billing fixture correction — 2026-10-01
+
+Published949dfe60440d5f70c713971ae26c83152bebad94/treea2623cc6e71cd5d062e75d653899278c2d02d850; genuine OPS36871357216 checked out12945f22e2fffbb2044252afa77d8b768594b215/same tree. Verify/golden, ordinary7721/532+build, strict upgrade/backup/restore, pinned-old rollback ALL_PASS and fresh-old backfill PASS. FullE2E smoke/coverage/certificate, tenant/Ediel/publicbrowser PASS; full/staging/nightly SKIPPED. Loader/schema defects are genuinely cleared.
+
+Purchase15 now execute but all fail shared customer_sql/P0001 during fixture preparation; they are not business acceptance. Source seed selects billing.write/export without creating missing product catalog rows. Actual extracted seed SQL against authentic permissions/roles/role_permissions DDL reproduces P0001 when0/1 exist; the2-existing control passes. Minimal fixture correction materializes only these two prerequisites ON CONFLICT DO NOTHING and grants only its synthetic role. Original count/authority/business assertions remain. Genuine corrected native15 is PENDING; no claim of a complete native PASS. Node22 actual PostgreSQL core+new catalog preservation checks32/32 PASS, scripts types/scoped native lint and collection15 PASS. Production code/migrations/workflows/dependencies/generated33/original75 untouched by this second correction.
+
+Next: Publish the bounded native billing-catalog fixture correction non-force over #422/949dfe6 only after fresh ref/base ownership checks; inspect genuine new native15 and subsequent private browser/HTTP steps. Then integrate preserved U07, rejected claim-attempt and mounted-account packets, continuing all original75/P0-P8.
+
+All75 original31PARTIAL/44NOT_VERIFIED/0 final acceptance and P0–P8 remain OPEN. Existing unpublished worktrees are preserved; no main/production/provider/customer/key/market/#310/#421 action. See continuation-20260930/api-ui-unblock-20261001.md. Historical receipts remain below.
+
+## API/UI first CI stop recovered — 2026-10-01
+
+Source62e actual OPS36863477286 accountnative4PASS; purchase15 NOT_REACHED because the isolated config could not resolve server-only. This bounded correction adds only the exact installed-Next test alias and adopts genuine33 types/schema/fingerprint from artifact11163217587 byte-exact. Fresh Node22: loader RED→GREEN15 collected/native0, targeted51, app4GiB/scripts1.5GiB types, lint/diff, integrity686/590 and types33-tail PASS. No migration/runtime/lock/workflow/native assertion/original75 bytes changed. All75 original31PARTIAL/44NOT_VERIFIED and P0–P8 remain OPEN. Current new-head native/browser/restore/CI is still pending; preceding failures stay recorded. See continuation-20260930/api-ui-unblock-20261001.md.
+
+Next: Inspect genuine changed-head #422 OPS after purchase loader and authentic33 adoption: execute native15, private agreement browser diagnostics and later native/HTTP/browser/strict restore parity; fix first actual failure; then integrate preserved next11 U07/claim-attempt/mounted-account packets and continue every original75/P0-P8 effect chain under sole publication ownership.
+
+## Final33 candidate boundary
+
+LocalfullsourcegatesPASS; honestgenerated31→33 typesgateFAIL untilauthenticcapture. Newnative4/15=0, actual9e browserfailureCAUSE_UNKNOWN withlaterNOT_REACHED. Sanitizeddiagnostic45PASS alone doesnotclosebrowser. U07local38/core12PASS separate, remaininginternalchainsOPEN. Original75/P0–P8OPEN; no blanketexternalblock.
+
+## Current boundaries — actual9e first browser failure and next33 qualification
+
+Agreementcleanup3 genuinePASS. Actual browser1 fails selectOption10000, cause NOT_AVAILABLE_IN_CAPTURE; later native/HTTP/browser NOT_REACHED. Diagnostics pending, no guessed seed/guard fix. Reconstructed source local qualification does not close native4/15, mounted forms, provider/producer or whole requirements. Real types-manifest31→33 failure requires authentic CI artifact adoption, not a gate change. U07 corpus/latest-state8RED is internal actionable work; no blanket external blocker. CLI followup auto-review rejected; no retry/telemetry path, local existingforward implementation authorized by original explicit masterplan mandate. All75/P0–P8 remain OPEN.
+
+## Current agreement boundary — local protocol qualified, native pending
+
+Published6c cleanup3 remains terminalFAIL/customer_sqlUNKNOWN, primary text unavailable. Independently actual-generator/PG-row-output/strict-parser extra-stdout defect is corrected and local14PASS, but new genuine native/Auth/business/provider0. Later native/browser were NOT_REACHED, not externally blocked. Isolated reconstructed account/purchase/admin and U07 register implementation continue. All75/P0–P8OPEN.
+
+## Current full API/tenantservice/OPS masterplan — published6c CI, 2026-10-01
+
+Current first CI stop: agreementcleanup3 customer_sql/UNKNOWN, primary text unavailable. Later native/HTTP/browser NOT_REACHED; protocol correction under active local qualification. Literal-backslash newline claim withdrawn as FALSE_POSITIVE. No broad database/restore blocker: current restore/pinned-old rollback/backfill8 actuallyPASS on6c.
+
+Account/purchase/admin reconstructions still internal implementable work; new native/realAuth/ordinary/provider/browser qualification not inferred from local modeled cores. Purchase missing legacy approval/capture/hash/date forms and uncertain/rejected-intent reconciliation remain INTERNAL pending, not external blockers. Full OPS action semantic denominator148 remains unresolved, all75/P0–P8OPEN. Exact GitGuardianAUTH, earlier general-PRODAT auto-review and issuer/phone/scanner/partner/deployedconsumer/hostedPITR/monitor/pilot/externalowner boundaries keep their scoped meaning.
+
+## Active exact0778 first-failure correction — local qualification ready, 2026-10-01
+
+Root source-gate35/35, actual cleanup8/8, full golden-path terminalPASS, scripts types, scoped native/new-CJS lint, file budget and workflow4jobs/52Bash syntax PASS. Independent source/cleanup peers accepted bounded scopes; cleanup8 was personally repeated. All three lifecycle business test bodies remain byte-identical. Cleanup retains automatic published legal/parent rows and asserts four mutable tables empty; no guard/status/grant/schema/runtime changes. New source-chain controls are wired. Corrected full native still0 until genuine new CI; published0778 sourcebinding3 remains FAILED afterEach/P0001, laternative NOT_REACHED. Report continuation/ci-first-failures-correction-20261001.md.
+
+Next exact root action: freeze explicit correction tree over published0778, fresh ownership/ref check and non-force publish to422, verify actual head/merge/tree, inspect fresh CI first failure. Keep incomplete account/purchase reconstructions isolated and continue original75/P0–P8; no whole-row closure or blanket external blocker. Historical receipts remain below.
+
+## Current API/tenantservice/OPS masterplan — actual0778 CI and next first failures, 2026-10-01
+
+Published #422 head0778df202b8b46d4ae92a51ffcc24cc25176edaa/tree61964676807b680d8133496c4b9cd6bd68cc444a, actualcheckout4b699b7db45b8a4098e7da7e0ed122b8ea80b113/same tree. OPS36843544066 terminalFAIL: quality7624/527+buildPASS; current restore/pinned-old rollback ALL_PASS/fresh-old backfill8PASS; corrected manual native6PASS, then sourcebinding3afterEachFAIL stage lifecycle_cleanup_companies/P0001. Their three body checkpoints are bounded evidence, not terminalPASS. Verify failed stale TS-local enqueue gate; actual atomic chain investigation and lifecycle company/legal cleanup reproduction are active. FullE2E36843544076 smoke/coverage/PR certificatePASS, full/staging/nightlySKIPPED. Authentic artifact11152512775 three generated outputs byte-identical tracked31. See continuation/ci-native-correction-0778-outcome-20261001.md.
+
+One active item remains the complete original masterplan; root owns CI followup at exact0778 in an isolated worktree, preserves frozen root checkout and future account/purchase worktrees. Genuine CLI2.101.0 allocated account20261001094820 and purchase20261001094830; these missing prior packets are newly RECONSTRUCTED with fresh tests/review, never recovered or historicalPASS. All75 original requirements and P0–P8 remain OPEN. Exact earlier scanner AUTH/general-PRODAT auto-review and external qualification boundaries remain scoped; internal pending work continues. No main/production/provider/customer/key/market/#310/#421 action. Root sole non-force422 publisher.
+
+Historical entries below retain their receipts and are superseded only for current publication/CI facts above.
+
+## Current API/tenantservice/OPS masterplan — CI correction and source recovery, 2026-10-01
+
+Root alone publishes non-force to existing draft #422. Latest verified published predecessor is0cf30cce687f7dfc76094fe51201ca14ab0a117c/treecdb89ea6f09b701016f5203d9d669de2b20cab4c; pinned #418ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8. Actual ninth OPS36827867458 checked out144893684d0b9497a2df020b565e49d7d1cc5abb with the same tree. Quality7613/526 passed; verify failed stale29-generation tail; current restore/command/replay/ownerACL passed before older schema comparison; first6 manual-mail native cases failed42601 in snapshot SQL; old pinned rollback failedP0001 at old_authenticated_raw_write_denial. Later native/HTTP/browser chains were NOT_REACHED.
+
+After environment interruption, earlier working directories and unpublished next10 bytes are NOT_AVAILABLE in this environment. Published source is fully recovered:5990 paths/130416041 bytes individually SHA/size verified from exact0cf public Git objects; all original653 ae56 migration SQL bytes are unchanged. Ongoing owned correction files were preserved. Prior worktree-preservation receipts remain historical; current missing paths do not prove permanent loss. Only3 known account raw object IDs were probed and were unavailable; manifest SHA256 alone cannot recover code. Existing atomic-account/purchase receipts18/8 and28/19/74 remain historical, not claims for reconstructed bytes.
+
+Authentic31-forward generation from artifact11145833501/run36827867458/job110257511446 is adopted byte-exact (types818eb034…, schemaac510fea…, fingerprintJSONb3794be…/canonical06132835…). No forward or production policy/grant/role assignment is changed. Manual snapshot uses properly quoted full predicate literals; all native fixture/callback/cleanup assertions from function fixture onward remain byte-exact. Pinned-old rollback uses an exact-row transaction-local member fixture, visible unchanged target, zero affected rows or42501 only, full membership restoration before unchanged service command and final rollback/fingerprint checks. Unexpected P0001 stays fatal. Closed diagnostic namespaces/stages cannot print five-letter customer text. Scope includes pure8-oracle CI wiring; native correction remains pending genuine new CI.
+
+Fresh bounded checks: actual snapshotSQL6PASS; actual native wrapper11PASS; old wrapper diagnostic11PASS; pure raw-oracle8PASS; scopedtypes/lint/syntax passed. Final correction gates:7624/527 ordinary units, app/tests/scripts types, wholelint0errors101historical warnings, integrity684/588, actual31-tail generated-types check PASS. Two independent bounded source reviews PASS; corrected native/restore/HTTP/browser remain pending genuine new CI. No masterplan acceptance is inferred: all75 original T01–T55/U01–U20 and P0–P8 remain OPEN. GitGuardian BLOCKED_AUTH and earlier general-PRODAT BLOCKED_AUTO_REVIEW retain their exact boundaries; internal pending chains remain actionable.
+
+Next: freeze the reviewed correction with final local gates, publish identical source non-force to #422, inspect genuine new CI first failure, and continue the remaining original effect chains. See continuation/ci-correction-and-recovery-20261001.md. No main/production/provider/customer/key/market/#310/#421 action.
+
+Historical entries below retain their receipts and are superseded only for current source availability/publication/CI facts above.
+
+## Current full tenantservice masterplan blockers — 2026-10-01
+
+Ninth source local gates passed but publication/newnative/current31-forward authentic generation remain internal pending. Actual8 lifecycle3 cleanup FAIL/rawcause NOT_AVAILABLE; pinned-old authenticated P0001 FAIL/finecause unavailable; strict older schema cmp stops later checks. New diagnostics retain exact failures/assertions. Native agreement/notes/legacy/source-owner/scanner/support/billing/HTTP/browser prepared or NOT_REACHED cannot be called PASS or externally blanket blocked. All75 rows OPEN. Specific GitGuardian AUTH and prior generalPRODAT auto-review exercise remain blocked; precise external qualification keys and internally implementable steps are retained in original75-next-priorities. See integration-pass9-20261001.md.
+
+## API next package — confirmed scope, 2026-09-30
+
+Notification atomicity/indexed-reference/legacy-claim compatibility, real legal/metering HTTP/native qualification and missing legal/metering503 documentation remain open. The parallel execution plan is prepared; no remediation or new native acceptance is claimed. Read-proof fixtures need actual legal parent chains, valid customer_portal source, metering composite parents/non-null quantity and post-seed snapshots; legacy schema fallback stays separate. Root owns integration and generated artifacts.
+
+## API #422 event-v2 — VERIFIED, 2026-09-30
+
+Event-v2 SQL/HTTP/native and exact-head CI are resolved; no open code finding remains in this bounded package. Notification transaction safety, native legal/metering, deployed issuer/release and full-phase/scanner qualification remain open; see final PR receipt. Older event-v2 pending statements below are superseded.
+
+## Current API #422 — event-v2 publication candidate, 2026-09-30
+
+HTTP/native event-v2 has not yet executed for this new API candidate. Formal GitGuardian scanning is unavailable: ggshield is not installed/configured; no scanner success is claimed. Deployed issuer/customer integration, previous transactional notification concerns and full T/U acceptance remain outside this package. Previous #418 browser/audit blockers are resolved by the verified prerequisite.
+
+## Current — 2026-09-28 PR #420 normative import correction
+
+First outgoing 41/42/202 blocker remains real diagnostic source ownership: PRODAT_UNKNOWN/Z99 cannot bind a code-specific canonical profile. On 470625da Full E2E normative guard failed for direct matrix import; locally corrected through canonical field projection, unpublished. OPS native pending; older 203/IDE505, LOC+175, E035, grammar and market gates remain open.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+First blocker for field202 outbound 41/42: actual mailbox stores `PRODAT_UNKNOWN` or `Z99`; database requires exactly one matching code-specific profile and rejects the inbound source, so no tenant/legal-actor-bound durable owner/snapshot exists. Borrowed Z04 cannot authorize positive CONTRL or APERAK. Native correction and final gates pending. ERC40/100 not inferred. Historical field203/IDE505 uniqueness, positive LOC+175, E035 coverage/retention/deletion, grammar and external gates remain open.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 typed negative P-APERAK 41/42 field202 is locally verified for missing/unlisted physical code; durable native owner/route/retry and exact-head CI pending. ERC40/100 still lacks evidence of an actually documented but unimplemented function. Historical 203/IDE505, positive LOC+175, E035 and external activation remain open. Earlier current below SUPERSEDED.
+
+## Current — 2026-09-28 boundaries
+
+Missing/unlisted PRODAT field202 has a local policy fail-close fix; its native persisted CONTRL/route/retry and exact-head CI are pending. A negative P-APERAK field202 ERC41/42 still needs a typed, physical-source-bound error and original ACW with durable route/actor proof; ERC40/100 applies only to a documented but unimplemented function, which is not established by Z99. Historical field203/IDE505 uniqueness, positive LOC+175 owner/mandate/sink/retry, E035 history/retention/deletion, full grammar and remaining phases remain open. No market activation. Older blocks below are historical; #310 remains paused.
+
 ## Current — header206 verification and wider gates
 206 missing/invalid local ACK/consumer is a code candidate; actual native stored ACK/outbox/retry, clean replay, schema/type parity and PR review remain pending. 203/505 historical issuer uniqueness, positive LOC175 registry/mandate/sink, E035 history/retention, G06 grammar and E66/DDQ live activation gate remain open. PR310 paused.
 
@@ -612,3 +752,10 @@ UG-123-2/3 NAD agency/qualifier accepted bounded, not market activated. SVK five
 The local environment has no `psql` or Supabase CLI; newly added native stored ACK/outbox/tenant/no-business/retry cases must run in OPS clean replay on the published head. `9d76377a` is green only for the preceding 206 criterion. Historical 203/IDE505 issuer scope, positive LOC+175 owner/mandate/sink, E035 history/retention, full grammar and formal per-capability market gates remain open. #310 paused.
 ## 2026-09-27 — PR #416 final-head native pending after review fix
 `63244be9` is superseded for merge by the locally verified lowercase-313 correction. Three added native variants require new-head OPS clean replay and schema/type parity; no local DB CLI. Formal 121/231 acceptance and all market gates remain open. PR #310 paused.
+
+## 2026-10-01 final ninth private-request qualification
+
+Actual source6bcb8f79 full7613/526units + fresh fulltestTypesPASS, oldidentical app/scripts/RBAC/API/integrity gates retained. Privateactual19 controls/CLI nonzero/no raw cause or capabilities PASS; initial ProcessEnv env{} TS2769 fixed onlycontrolled NODE_ENV=test. Browser/native0; published c4ab unchanged pending9. All75OPEN. See integration-pass9-20261001.md.
+
+## Current — 2026-09-28 #417 remaining gates
+Optional P header204's invalid supplied value is implemented and locally verified on draft #417, but stored native ACK/outbox/retry, clean replay, generated schema/type parity and all exact-head CI are pending. ACK-02/ACK-10 remain partial; historical field203/IDE505 legal-actor uniqueness, positive LOC+175 mandate/object/sink, E035 pre-ledger coverage and retention/deletion, full grammar and external first-capability activation gates remain open. No staging, TGT/AGT, counterparty or live traffic. #310 paused.

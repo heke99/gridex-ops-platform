@@ -11,6 +11,10 @@ export type DashboardAlertInput = {
 }
 
 export async function createDashboardAlert(input: DashboardAlertInput): Promise<void> {
+  // PostgreSQL's existing unique key treats NULL values as distinct. Give
+  // company-wide aggregates a complete identity so a refresh updates its
+  // existing open alert. Preserve caller-supplied entity identities.
+  const companyAggregate = input.entityType == null && input.entityId == null
   const { error } = await supabaseService
     .from('dashboard_alerts')
     .upsert({
@@ -19,8 +23,8 @@ export async function createDashboardAlert(input: DashboardAlertInput): Promise<
       severity: input.severity ?? 'info',
       title: input.title,
       message: input.message ?? null,
-      entity_type: input.entityType ?? null,
-      entity_id: input.entityId ?? null,
+      entity_type: companyAggregate ? 'company_aggregate' : input.entityType ?? null,
+      entity_id: companyAggregate ? input.companyId : input.entityId ?? null,
       status: 'open',
       resolved_at: null,
     }, { onConflict: 'company_id,alert_type,entity_type,entity_id,status' })

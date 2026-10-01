@@ -1,0 +1,387 @@
+[
+  {
+    "worktree": "/workspace/scratch/b08749f7eca6/gridex-next10-account",
+    "base": "0778df202b8b46d4ae92a51ffcc24cc25176edaa",
+    "base_tree": "61964676807b680d8133496c4b9cd6bd68cc444a",
+    "paths": [
+      {
+        "path": "__tests__/customer-account-completion-reconstructed-20261001.test.ts",
+        "sha256": "175353777c6a2ac6ed0c6d262da73a0437609d74a98a049366d3838a030186f9",
+        "bytes": 11579
+      },
+      {
+        "path": "lib/customer-portal/accountCompletion.ts",
+        "sha256": "62feae0bd6e4a29aade54278efbb684cfc2b5c2cdcf7f4a83ea3e498d10f5582",
+        "bytes": 3897
+      },
+      {
+        "path": "lib/customer-portal/claim.ts",
+        "sha256": "d99ea2a74524025ff2051f2daa848f84273853cdeadd50c849a3b75026791f02",
+        "bytes": 20347
+      },
+      {
+        "path": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/customer-account-completion-reconstructed-20261001.md",
+        "sha256": "d4644bb460eeee039524b4f0b550fbd132790e103fe838f12948d77e11c0553e",
+        "bytes": 14091
+      },
+      {
+        "path": "scripts/customer-account-completion-reconstructed-20261001-native.config.ts",
+        "sha256": "606c47617ebdfcd3c36586390ac5445a71878d8c4755d0ff611173b45cfb4fce",
+        "bytes": 1061
+      },
+      {
+        "path": "scripts/customer-account-completion-reconstructed-20261001-native.test.ts",
+        "sha256": "db3888f935315c14f7b78b05228b9cf40bc0daa0bf32a1a660db1121a3d737d7",
+        "bytes": 9877
+      },
+      {
+        "path": "scripts/customer-account-completion-reconstructed-20261001.core.cjs",
+        "sha256": "a51abbacbe65bc8a452c53f87009c0e9f54cb6841f9f825c989ccd954272c267",
+        "bytes": 15743
+      },
+      {
+        "path": "scripts/customer-account-completion-reconstructed-20261001.postgres.test.cjs",
+        "sha256": "7d595e065f294e7f700d88a22092cdbe4a4ffb0f771cd9b266b466d5d2195c70",
+        "bytes": 13199
+      },
+      {
+        "path": "scripts/customer-account-role-preservation-20261001.test.ts",
+        "sha256": "94d87e6368db57ce1b76d8aa9ebfa208ee27c926256b5133c2b91dc906c13920",
+        "bytes": 19015
+      },
+      {
+        "path": "supabase/migrations/20261001094820_customer_account_completion_reconstructed.sql",
+        "sha256": "2f229b292c1a1827b2ca3c21892b4298d6ca3ea388eca325733ac4147fe44c34",
+        "bytes": 29441
+      }
+    ],
+    "secret_pattern_hits": [],
+    "diff_check_exit": 0,
+    "diff_check_output": "",
+    "local_commit": "a4886b8ad483b0fab9aa3598715a9f8d7cf1e62c",
+    "local_tree": "451b02e2b2d9e469ba1cd33cf94a8126b0e6c7b4",
+    "publication_parent": "0778df202b8b46d4ae92a51ffcc24cc25176edaa",
+    "remote_branch": "codex/handoff-20261001-next10-account",
+    "remote_commit": "b6e785adbdb5432ae151ab7ea95ed6c1e24f6e19"
+  },
+  {
+    "worktree": "/workspace/scratch/b08749f7eca6/gridex-next10-customer-registry-20261001",
+    "base": "9e59b013d3f7ad4f445d6ed9805705f168c2ec14",
+    "base_tree": "9875bb5a3b499426fae675c9a3e15062609ae82b",
+    "paths": [
+      {
+        "path": "__tests__/customer-registry-full-corpus-u07-20261001.test.ts",
+        "sha256": "e97bf2d6cad1c6fa703f83d09aa8f9f9759a33b53ee8f48cd73340795c47fe45",
+        "bytes": 31170
+      },
+      {
+        "path": "app/admin/customers/page.part-2.tsx",
+        "sha256": "9f83a7b866da1d20140908a3505b568f4d1bd81ebb8369f6cff26ca67e073b69",
+        "bytes": 34847
+      },
+      {
+        "path": "lib/customers/customerRegistryPageRead.ts",
+        "sha256": "7246c3d3cb7122fcb83c8c530b7e13c95be21082063d14d64149d6b97c25cf09",
+        "bytes": 5718
+      },
+      {
+        "path": "lib/customers/getCustomers.ts",
+        "sha256": "2b31a526fe0f5e70608e8e7fe12e9cb76fbe0f412a403e85fa32e60b9feffcbb",
+        "bytes": 16494
+      },
+      {
+        "path": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/customer-registry-full-corpus-u07-20261001.md",
+        "sha256": "6b8315fcea9275f6cff1cb8fef6093d0673c36122e400475e146c43ff67aaaac",
+        "bytes": 27451
+      },
+      {
+        "path": "scripts/customer-registry-full-corpus-u07-20261001-native.config.ts",
+        "sha256": "4bc7dbfe012bed3734e0769353555c0efad03f1e8de3acf57e68b23b8f2d66f0",
+        "bytes": 939
+      },
+      {
+        "path": "scripts/customer-registry-full-corpus-u07-20261001-native.fixture.ts",
+        "sha256": "7b451f5918440f0e7d94db743fde2df5cc292fa6e318478e50ee37b164316296",
+        "bytes": 12727
+      },
+      {
+        "path": "scripts/customer-registry-full-corpus-u07-20261001-native.test.ts",
+        "sha256": "fd201e777b592a63e9cf021045118c610990fe57ae5b8e59c611c593348d791e",
+        "bytes": 10392
+      },
+      {
+        "path": "scripts/customer-registry-full-corpus-u07-20261001.postgres.test.cjs",
+        "sha256": "8aa6599346defd60354b35a114e1a589f3d0e853d6c572c7f736903e9cb00ff6",
+        "bytes": 15306
+      },
+      {
+        "path": "supabase/migrations/20261001114832_customer_registry_full_corpus_u07.sql",
+        "sha256": "5e9a91861d50fa8ddf203c76ad05cd8813706c8205cc1848276f8954db1a396a",
+        "bytes": 12026
+      }
+    ],
+    "secret_pattern_hits": [],
+    "diff_check_exit": 0,
+    "diff_check_output": "",
+    "local_commit": "85c32c0b1a4f2104146ac4d1d3692af1a4baba82",
+    "local_tree": "d58dee745778cab05eab2d9064552616669a6579",
+    "publication_parent": "9e59b013d3f7ad4f445d6ed9805705f168c2ec14",
+    "remote_branch": "codex/handoff-20261001-next10-customer-registry",
+    "remote_commit": "8fcf29cba97ed2237312df18b1acd3a633faa66d"
+  },
+  {
+    "worktree": "/workspace/scratch/b08749f7eca6/gridex-next10-portal-admin",
+    "base": "6c5cca0edc1e58e90e979a45d3efc093ae91ca33",
+    "base_tree": "f8d852570b6a190132feffee631d906b46176a76",
+    "paths": [
+      {
+        "path": "__tests__/customer-portal-admin-projection-20261001.test.ts",
+        "sha256": "f5bf1bb9a125693793dba1eae68a3d5c1dbe18a59908cd2376445078627df049",
+        "bytes": 14511
+      },
+      {
+        "path": "components/admin/customers/CustomerPortalAccessCard.tsx",
+        "sha256": "100cff454a3af4f03499f65fd4146cfe10d23b576031e4826b3edf650cea545e",
+        "bytes": 6711
+      },
+      {
+        "path": "lib/customer-portal/admin.ts",
+        "sha256": "b638fedbedadf7f39b537fe69d1fca07d194f169afbe73340e4a6e026754fafd",
+        "bytes": 2385
+      },
+      {
+        "path": "lib/customer-portal/adminProjection.ts",
+        "sha256": "42c254f7c03072febe757a5b88deecb4170b7b9069cc98479f91b1e92a21f5fa",
+        "bytes": 4816
+      },
+      {
+        "path": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/customer-portal-admin-projection-20261001.md",
+        "sha256": "a995957b1c3713f6a38c4c0bbcff13a51d7059285505b768401be15ae537f8aa",
+        "bytes": 10798
+      }
+    ],
+    "secret_pattern_hits": [],
+    "diff_check_exit": 0,
+    "diff_check_output": "",
+    "local_commit": "49bae498f5d2870adeaf14f7181e608e795d7c72",
+    "local_tree": "0f7792e08349af539efbf213b6f725b399e53e89",
+    "publication_parent": "6c5cca0edc1e58e90e979a45d3efc093ae91ca33",
+    "remote_branch": "codex/handoff-20261001-next10-portal-admin",
+    "remote_commit": "1effb7973f821cef893fbd026e48ab88a42026c8"
+  },
+  {
+    "worktree": "/workspace/scratch/b08749f7eca6/gridex-next10-purchase",
+    "base": "0778df202b8b46d4ae92a51ffcc24cc25176edaa",
+    "base_tree": "61964676807b680d8133496c4b9cd6bd68cc444a",
+    "paths": [
+      {
+        "path": "__tests__/manual-purchase-intent-reconstructed-20261001.test.ts",
+        "sha256": "5c3e82f612e9c354d3a3655748f3446755f1d36d63c878715f8598c7e1270e62",
+        "bytes": 17367
+      },
+      {
+        "path": "__tests__/manual-purchase-token-context-reconstructed-20261001.test.ts",
+        "sha256": "b27dfd5a9fee2849cf8cb0a31772bc29e7918b9df5d5367ad378af8625b0d1da",
+        "bytes": 2568
+      },
+      {
+        "path": "app/api/internal/invoices/[id]/provider-status/route.ts",
+        "sha256": "a86612f7bba90dc67cd61d90510837317f0e6df7a97121ecf7dfe07860a27a4d",
+        "bytes": 3235
+      },
+      {
+        "path": "app/api/internal/invoices/[id]/purchase/route.ts",
+        "sha256": "787311930f1e4350f66347bc71dd6937ec07994be999f863213ab8814ea1db50",
+        "bytes": 4762
+      },
+      {
+        "path": "lib/billing/manualPurchaseIntentReconstructed.ts",
+        "sha256": "a14baaa71a4e1f0992822cce084ed4a20e676ea2590a5f730a24f45b1d663f32",
+        "bytes": 5986
+      },
+      {
+        "path": "lib/integrations/billing/capway/auth.ts",
+        "sha256": "c8f7324f09563021988dbce04e7ae5dbdce634e500577033d5209f582efb1656",
+        "bytes": 8831
+      },
+      {
+        "path": "lib/integrations/billing/capway/purchase.ts",
+        "sha256": "5924f147655f2c8ae0eeb9eb65084845e0b8b0515332708ed6ae65c2dedc5f18",
+        "bytes": 1985
+      },
+      {
+        "path": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/manual-purchase-intent-reconstructed-20261001.md",
+        "sha256": "459a95771dda810547dcf800100e3c212b089e7dc3c485dbd92046a23b18ee5c",
+        "bytes": 21365
+      },
+      {
+        "path": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/manual-purchase-intent-reconstructed-native-20261001.md",
+        "sha256": "f5ac2e27325c1d20bb7600f4874560d3fcea562fc64164b869e5d1d148059c90",
+        "bytes": 14288
+      },
+      {
+        "path": "scripts/manual-purchase-intent-reconstructed-20261001-core.cjs",
+        "sha256": "31c8ea2b4d2aaf69c09cab34313ff8964b7243b57495d00f2b0730a1e6353be0",
+        "bytes": 11793
+      },
+      {
+        "path": "scripts/manual-purchase-intent-reconstructed-20261001-native.config.ts",
+        "sha256": "b253fe0448de5a8b92f94c3577919d7acaf3e9647cba37e315a5bb507a90b303",
+        "bytes": 1391
+      },
+      {
+        "path": "scripts/manual-purchase-intent-reconstructed-20261001-native.fixture.ts",
+        "sha256": "1c409fc35ec3d12af99e2adde5ed00e34ad0d3e80d5bc9a57be7131c10d95e1c",
+        "bytes": 17831
+      },
+      {
+        "path": "scripts/manual-purchase-intent-reconstructed-20261001-native.test.ts",
+        "sha256": "b71e504b9e5644d1e6abcc34d966280cf9237399cd17e8c8b56f0a74ce60d87e",
+        "bytes": 14144
+      },
+      {
+        "path": "scripts/manual-purchase-intent-reconstructed-20261001.postgres.test.cjs",
+        "sha256": "77ae907e02d4f2901b4549e7a3215ec12b22b8f8c4ec962aaf0c537c7443878c",
+        "bytes": 14872
+      },
+      {
+        "path": "supabase/migrations/20261001094830_manual_purchase_intent_reconstructed.sql",
+        "sha256": "7b5aca028938ce508bd5600b2cbcaa99dc8f197ed3b39e8efbca016ec64416c2",
+        "bytes": 35667
+      }
+    ],
+    "secret_pattern_hits": [],
+    "diff_check_exit": 0,
+    "diff_check_output": "",
+    "local_commit": "fec4e5008b8c81ced9845cadbdd7926d8923f6cc",
+    "local_tree": "65df6161a16b22b9b4cad42a1c0a6e3fcb98ced7",
+    "publication_parent": "0778df202b8b46d4ae92a51ffcc24cc25176edaa",
+    "remote_branch": "codex/handoff-20261001-next10-purchase",
+    "remote_commit": "3c86b26d57b94dc529fdc22bc500404ac75f0005"
+  },
+  {
+    "worktree": "/workspace/scratch/b08749f7eca6/gridex-next11-account-mounted-20261001",
+    "base": "7187bd048030a47fa31de6891ae93dd06c3bcc93",
+    "base_tree": "467e1e770a495253cb8113962961c28b94b0f057",
+    "paths": [
+      {
+        "path": "e2e/browser/customer-account-completion-mounted-20261001.spec.mjs",
+        "sha256": "f1a6bbd75f0b3e1ec34d9004588e6edc26e4db82a0a5986c291160422b312a96",
+        "bytes": 13563
+      },
+      {
+        "path": "scripts/customer-account-completion-mounted-20261001-native.config.ts",
+        "sha256": "ed081b7d940faf18c59d6ce0a8d056b8a2f7da96e17a4ec6794f2be35e407af0",
+        "bytes": 1645
+      },
+      {
+        "path": "scripts/customer-account-completion-mounted-20261001-native.test.ts",
+        "sha256": "501d03e29bee955d8926ce24072c14f229dd298aaf928eb3f1ccc618fd55e0ce",
+        "bytes": 17920
+      }
+    ],
+    "secret_pattern_hits": [],
+    "diff_check_exit": 0,
+    "diff_check_output": "",
+    "local_commit": "f64c52a3ad4ee88f113ef34d685815aaf1f10798",
+    "local_tree": "96b84579a8fe7e2702143ee0e7c7d3a317b2bb9a",
+    "publication_parent": "62e36228899a5a4c8a9dd497f06622c49ce14365",
+    "remote_branch": "codex/handoff-20261001-next11-account-mounted",
+    "remote_commit": "344ba574de1f726805c3aa701e7345d853cf73fe"
+  },
+  {
+    "worktree": "/workspace/scratch/b08749f7eca6/gridex-next11-claim-attempt-20261001",
+    "base": "7187bd048030a47fa31de6891ae93dd06c3bcc93",
+    "base_tree": "467e1e770a495253cb8113962961c28b94b0f057",
+    "paths": [
+      {
+        "path": "__tests__/customer-portal-claim-attempt-evidence-20261001.test.ts",
+        "sha256": "b95b8ef1972ba4d4b7b6a25722e005d45884bf5c08f6108cd388baf05dc703aa",
+        "bytes": 15229
+      },
+      {
+        "path": "lib/customer-portal/adminProjection.ts",
+        "sha256": "5a08b9a5f2f47c02762f3857d8ea1319dfc969e4bebc5b61f5d5266424718e5c",
+        "bytes": 4924
+      },
+      {
+        "path": "lib/customer-portal/claim.ts",
+        "sha256": "834211ee7883bc0a31220573611cb53d7fe7d1ca63148ab09c3b5862c097afd5",
+        "bytes": 19584
+      },
+      {
+        "path": "lib/customer-portal/claimAttemptEvidence.ts",
+        "sha256": "5570c60cbba69fc1b5c19e2eafd74f7aee12ea3dba363005046995f4e08f1c67",
+        "bytes": 6081
+      },
+      {
+        "path": "scripts/customer-portal-claim-attempt-evidence-20261001.core.cjs",
+        "sha256": "b2b18573dd6275a56286ad45c8de52f2203a7e827dba72f8a68d05345be96536",
+        "bytes": 7426
+      },
+      {
+        "path": "scripts/customer-portal-claim-attempt-evidence-20261001.postgres.test.cjs",
+        "sha256": "9aeac6d4f8b1a04676b437f6bc602777ef7c934475af7c710e2312547960135e",
+        "bytes": 4154
+      }
+    ],
+    "secret_pattern_hits": [],
+    "diff_check_exit": 0,
+    "diff_check_output": "",
+    "local_commit": "1cb824f134eaf7fa588fdbf69d2188848e5528ac",
+    "local_tree": "4bffc1899db74e50d62696908671d62f61df2879",
+    "publication_parent": "62e36228899a5a4c8a9dd497f06622c49ce14365",
+    "remote_branch": "codex/handoff-20261001-next11-claim-attempt",
+    "remote_commit": "dff947804dbf8cb945db99456aab1f8c068894aa"
+  },
+  {
+    "worktree": "/workspace/scratch/b08749f7eca6/gridex-next11-integration-20261001",
+    "base": "62e36228899a5a4c8a9dd497f06622c49ce14365",
+    "base_tree": "467e1e770a495253cb8113962961c28b94b0f057",
+    "paths": [
+      {
+        "path": "__tests__/customer-registry-full-corpus-u07-20261001.test.ts",
+        "sha256": "e97bf2d6cad1c6fa703f83d09aa8f9f9759a33b53ee8f48cd73340795c47fe45",
+        "bytes": 31170
+      },
+      {
+        "path": "app/admin/customers/page.part-2.tsx",
+        "sha256": "9f83a7b866da1d20140908a3505b568f4d1bd81ebb8369f6cff26ca67e073b69",
+        "bytes": 34847
+      },
+      {
+        "path": "lib/customers/customerRegistryPageRead.ts",
+        "sha256": "7246c3d3cb7122fcb83c8c530b7e13c95be21082063d14d64149d6b97c25cf09",
+        "bytes": 5718
+      },
+      {
+        "path": "lib/customers/getCustomers.ts",
+        "sha256": "2b31a526fe0f5e70608e8e7fe12e9cb76fbe0f412a403e85fa32e60b9feffcbb",
+        "bytes": 16494
+      },
+      {
+        "path": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/customer-registry-full-corpus-u07-20261001.md",
+        "sha256": "6b8315fcea9275f6cff1cb8fef6093d0673c36122e400475e146c43ff67aaaac",
+        "bytes": 27451
+      },
+      {
+        "path": "scripts/customer-registry-full-corpus-u07-20261001.postgres.test.cjs",
+        "sha256": "8aa6599346defd60354b35a114e1a589f3d0e853d6c572c7f736903e9cb00ff6",
+        "bytes": 15306
+      },
+      {
+        "path": "supabase/migrations/20261001114832_customer_registry_full_corpus_u07.sql",
+        "sha256": "5e9a91861d50fa8ddf203c76ad05cd8813706c8205cc1848276f8954db1a396a",
+        "bytes": 12026
+      }
+    ],
+    "secret_pattern_hits": [],
+    "diff_check_exit": 0,
+    "diff_check_output": "",
+    "local_commit": "6be7c185edca59f85b619496f23d80bc46b0b5f6",
+    "local_tree": "26e58f4f4447b6886e7ac444620a1bac9576a57c",
+    "publication_parent": "62e36228899a5a4c8a9dd497f06622c49ce14365",
+    "remote_branch": "codex/handoff-20261001-next11-integration",
+    "remote_commit": "ef63c631ef960ef0e78d9ca107f2f874706a3877"
+  }
+]

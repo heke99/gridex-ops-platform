@@ -19,6 +19,7 @@ type AdminSidebarProps = {
   preferredMode?: AdminNavigationMode
   selectedCompanyId?: string | null
   companyOptions?: Array<{ id: string; name: string; status?: string | null }>
+  compact?: boolean
 }
 
 const EXACT_MATCH_ITEMS = new Set([
@@ -48,6 +49,7 @@ export default function AdminSidebar({
   preferredMode = 'platform_view',
   selectedCompanyId = null,
   companyOptions = [],
+  compact = false,
 }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -71,14 +73,14 @@ export default function AdminSidebar({
   }
 
   return (
-    <aside className="flex h-screen w-full flex-col border-r border-emerald-100/80 bg-gradient-to-b from-white via-[#fbfdfb] to-[#f7fbf8] text-slate-900 shadow-sm shadow-emerald-950/5">
-      <div className="border-b border-emerald-100/80 bg-white/90 px-5 py-5 backdrop-blur-xl">
+    <aside aria-label={mode === 'platform_view' ? 'Plattformens arbetsyta' : 'Tenantens arbetsyta'} className={`flex ${compact ? 'max-h-[75dvh] overflow-y-auto overscroll-contain' : 'h-dvh'} w-full flex-col border-r border-emerald-100/80 bg-gradient-to-b from-white via-[#fbfdfb] to-[#f7fbf8] text-slate-900 shadow-sm shadow-emerald-950/5`}>
+      <div className="shrink-0 border-b border-emerald-100/80 bg-white/90 px-5 py-5 backdrop-blur-xl">
         <Link
           href="/admin"
           prefetch={false}
           onPointerEnter={() => prefetchOnIntent('/admin')}
           onFocus={() => prefetchOnIntent('/admin')}
-          className="group flex items-center gap-3 rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 transition hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-950/10"
+          className="group flex items-center gap-3 rounded-3xl border border-emerald-100 bg-white p-3 shadow-sm shadow-emerald-950/5 transition hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-950/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-base font-bold text-white shadow-sm shadow-emerald-700/20">
             {initial}
@@ -97,10 +99,10 @@ export default function AdminSidebar({
           <div className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
             {mode === 'platform_view' ? 'Plattformskontroll' : 'Bolagsyta'}
           </div>
-          <h1 className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
+          <p className="mt-3 text-lg font-semibold tracking-tight text-slate-950">
             {mode === 'platform_view' ? 'Kontrollcenter' : 'Driftcenter'}
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-700">
+          </p>
+          <p className={`${compact ? 'hidden' : 'mt-2'} text-sm leading-6 text-slate-700`}>
             {mode === 'platform_view'
               ? 'Teknisk drift, tenants, Ediel, routes och governance samlat under färre menyer.'
               : isCompanyLiveEnabled
@@ -115,7 +117,8 @@ export default function AdminSidebar({
                 type="submit"
                 name="mode"
                 value="platform"
-                className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
+                aria-pressed={mode === 'platform_view'}
+                className={`min-h-11 rounded-xl px-3 py-2 text-center text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
                   mode === 'platform_view'
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
                     : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
@@ -127,7 +130,8 @@ export default function AdminSidebar({
                 type="submit"
                 name="mode"
                 value="company"
-                className={`rounded-xl px-3 py-2 text-center text-xs font-semibold transition ${
+                aria-pressed={mode === 'company_view'}
+                className={`min-h-11 rounded-xl px-3 py-2 text-center text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
                   mode === 'company_view'
                     ? 'bg-emerald-700 text-white shadow-sm shadow-emerald-700/20'
                     : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
@@ -138,7 +142,7 @@ export default function AdminSidebar({
             </form>
           ) : null}
 
-          {isPlatformAdmin && mode === 'company_view' && companyOptions.length > 0 ? (
+          {mode === 'company_view' && companyOptions.length > (isPlatformAdmin ? 0 : 1) ? (
             <form action={updateAdminNavigationPreference} className="mt-3 block">
               <input type="hidden" name="mode" value="company" />
               <label>
@@ -149,7 +153,7 @@ export default function AdminSidebar({
                   name="company_id"
                   value={selectedCompanyId ?? ''}
                   onChange={(event) => event.currentTarget.form?.requestSubmit()}
-                  className="mt-1 w-full rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900"
+                  className="mt-1 min-h-11 w-full rounded-2xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
                 >
                   <option value="">Välj bolag</option>
                   {companyOptions.map((company) => (
@@ -164,7 +168,7 @@ export default function AdminSidebar({
         </div>
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
+      <nav aria-label={mode === 'platform_view' ? 'Plattformsnavigation' : 'Tenantnavigation'} className={`${compact ? 'shrink-0' : 'min-h-0 flex-1 overflow-y-auto'} space-y-5 px-4 py-5`}>
         {visibleGroups.map((group) => (
           <section key={group.key} className="rounded-3xl border border-transparent p-1">
             <div className="px-2">
@@ -186,7 +190,7 @@ export default function AdminSidebar({
                     onPointerEnter={() => prefetchOnIntent(item.href)}
                     onFocus={() => prefetchOnIntent(item.href)}
                     aria-current={active ? 'page' : undefined}
-                    className={`group relative block rounded-2xl border px-3 py-3 transition duration-150 ${
+                    className={`group relative block rounded-2xl border px-3 py-3 transition duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 ${
                       active
                         ? 'border-emerald-200 bg-white text-slate-950 shadow-sm shadow-emerald-950/5 ring-1 ring-emerald-100'
                         : 'border-transparent text-slate-700 hover:border-emerald-100 hover:bg-white/85 hover:text-slate-950 hover:shadow-sm hover:shadow-emerald-950/5'

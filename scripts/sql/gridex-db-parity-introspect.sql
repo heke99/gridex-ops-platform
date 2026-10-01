@@ -4,6 +4,12 @@
 -- parity engine compares. Structure only: no table data is read.
 --
 -- Requires psql variable :schemas, a Postgres text[] literal, e.g. '{public}'.
+-- Deparsers qualify names according to the session search_path. Pin the same
+-- catalog-only path on both connections rather than comparing environment-
+-- dependent spelling. QUIET suppresses the SET command tag, preserving the
+-- single JSON document expected by every existing caller.
+\set QUIET on
+set search_path to pg_catalog;
 with nsp as (
   select n.oid, n.nspname
   from pg_namespace n
@@ -19,7 +25,12 @@ rels as (
   where c.relkind in ('r', 'p', 'v', 'm', 'f')
 ),
 cols as (
-  select r.nspname, r.relname, a.attnum, a.attname,
+  -- pg_dump omits dropped columns and recreates visible columns in order.
+  -- Compare that complete logical order, not holes in heap attribute numbering.
+  -- All type/default/nullability/identity/generated fields remain compared.
+  select r.nspname, r.relname,
+         row_number() over (partition by r.oid order by a.attnum) as attnum,
+         a.attname,
          format_type(a.atttypid, a.atttypmod) as data_type,
          t.typname as udt_name,
          not a.attnotnull as is_nullable,
@@ -82,7 +93,8 @@ pol as (
          coalesce((
            select array_agg(case when role_oid = 0 then 'PUBLIC'
                                  else pg_get_userbyid(role_oid) end
-                            order by 1)
+                            order by case when role_oid = 0 then 'PUBLIC'
+                                          else pg_get_userbyid(role_oid) end)
            from unnest(p.polroles) as role_oid
          ), '{}'::text[]) as roles
   from pg_policy p

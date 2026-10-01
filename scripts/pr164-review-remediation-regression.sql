@@ -16,9 +16,6 @@ declare
   v_company_id uuid := '91000000-0000-4000-8000-000000000001'::uuid;
   v_customer_id uuid := '91000000-0000-4000-8000-000000000002'::uuid;
   v_job_id uuid := '91000000-0000-4000-8000-000000000003'::uuid;
-  v_capped_job_id uuid := '91000000-0000-4000-8000-000000000004'::uuid;
-  v_claimed public.customer_operation_jobs%rowtype;
-  v_claim_count integer;
   v_start timestamptz;
   v_end timestamptz;
 begin
@@ -203,6 +200,23 @@ begin
   ) values (
     v_job_id,v_company_id,v_customer_id,'pr164_regression','queued',-32768,'pr164:claim',0,3,now()-interval '1 minute'
   );
+end;
+$regression$;
+
+-- The production SECURITY INVOKER claim function permits only the worker's
+-- service_role. Keep privileged pricing/seed setup separate and transaction
+-- local: the final ROLLBACK restores both fixture rows and the caller role.
+set local role service_role;
+
+do $claim_regression$
+declare
+  v_company_id uuid := '91000000-0000-4000-8000-000000000001'::uuid;
+  v_customer_id uuid := '91000000-0000-4000-8000-000000000002'::uuid;
+  v_job_id uuid := '91000000-0000-4000-8000-000000000003'::uuid;
+  v_capped_job_id uuid := '91000000-0000-4000-8000-000000000004'::uuid;
+  v_claimed public.customer_operation_jobs%rowtype;
+  v_claim_count integer;
+begin
 
   select * into v_claimed
   from public.gridex_claim_customer_operation_jobs('pr164-worker',1)
@@ -264,6 +278,6 @@ begin
     raise exception 'pr164_queued_retry_ceiling_not_terminalized';
   end if;
 end;
-$regression$;
+$claim_regression$;
 
 rollback;

@@ -16471,6 +16471,7 @@ export type Database = {
           source_ediel_message_id: string | null
           status: string
           supplier_switch_request_id: string | null
+          support_revision: number
           switch_can_be_stopped: boolean
           technical_details_visible_to_tenant: boolean
           tenant_visible: boolean
@@ -16520,6 +16521,7 @@ export type Database = {
           source_ediel_message_id?: string | null
           status?: string
           supplier_switch_request_id?: string | null
+          support_revision?: number
           switch_can_be_stopped?: boolean
           technical_details_visible_to_tenant?: boolean
           tenant_visible?: boolean
@@ -16569,6 +16571,7 @@ export type Database = {
           source_ediel_message_id?: string | null
           status?: string
           supplier_switch_request_id?: string | null
+          support_revision?: number
           switch_can_be_stopped?: boolean
           technical_details_visible_to_tenant?: boolean
           tenant_visible?: boolean
@@ -18226,6 +18229,8 @@ export type Database = {
           billing_eligible_at: string | null
           billing_level: string | null
           billing_postal_code: string | null
+          billing_profile_override: Json
+          billing_profile_override_revision: number
           billing_ready_status: string | null
           billing_street: string | null
           binding_months: number | null
@@ -18361,6 +18366,8 @@ export type Database = {
           billing_eligible_at?: string | null
           billing_level?: string | null
           billing_postal_code?: string | null
+          billing_profile_override?: Json
+          billing_profile_override_revision?: number
           billing_ready_status?: string | null
           billing_street?: string | null
           binding_months?: number | null
@@ -18496,6 +18503,8 @@ export type Database = {
           billing_eligible_at?: string | null
           billing_level?: string | null
           billing_postal_code?: string | null
+          billing_profile_override?: Json
+          billing_profile_override_revision?: number
           billing_ready_status?: string | null
           billing_street?: string | null
           binding_months?: number | null
@@ -21963,9 +21972,13 @@ export type Database = {
           customer_id: string
           decision_type: string
           id: string
+          notes: string | null
           reason: string
+          received_at: string | null
+          received_channel: string | null
           scope_id: string | null
           scope_type: string
+          source_customer_case_id: string | null
         }
         Insert: {
           billing_blocked?: boolean
@@ -21975,9 +21988,13 @@ export type Database = {
           customer_id: string
           decision_type: string
           id?: string
+          notes?: string | null
           reason: string
+          received_at?: string | null
+          received_channel?: string | null
           scope_id?: string | null
           scope_type?: string
+          source_customer_case_id?: string | null
         }
         Update: {
           billing_blocked?: boolean
@@ -21987,9 +22004,13 @@ export type Database = {
           customer_id?: string
           decision_type?: string
           id?: string
+          notes?: string | null
           reason?: string
+          received_at?: string | null
+          received_channel?: string | null
           scope_id?: string | null
           scope_type?: string
+          source_customer_case_id?: string | null
         }
         Relationships: [
           {
@@ -27194,6 +27215,7 @@ export type Database = {
           address_quality_status: string | null
           address_quality_warnings: Json
           address_received_at: string | null
+          address_revision: number
           address_source: string | null
           address_source_reference: string | null
           address_status: string
@@ -27261,6 +27283,7 @@ export type Database = {
           resolution_status: string | null
           selected_grid_owner_id: string | null
           site_name: string
+          site_revision: number
           site_type: string
           status: string
           street: string | null
@@ -27277,6 +27300,7 @@ export type Database = {
           address_quality_status?: string | null
           address_quality_warnings?: Json
           address_received_at?: string | null
+          address_revision?: number
           address_source?: string | null
           address_source_reference?: string | null
           address_status?: string
@@ -27344,6 +27368,7 @@ export type Database = {
           resolution_status?: string | null
           selected_grid_owner_id?: string | null
           site_name?: string
+          site_revision?: number
           site_type?: string
           status?: string
           street?: string | null
@@ -27360,6 +27385,7 @@ export type Database = {
           address_quality_status?: string | null
           address_quality_warnings?: Json
           address_received_at?: string | null
+          address_revision?: number
           address_source?: string | null
           address_source_reference?: string | null
           address_status?: string
@@ -27427,6 +27453,7 @@ export type Database = {
           resolution_status?: string | null
           selected_grid_owner_id?: string | null
           site_name?: string
+          site_revision?: number
           site_type?: string
           status?: string
           street?: string | null
@@ -28027,11 +28054,323 @@ export type Database = {
           },
         ]
       }
+      customer_support_attachments: {
+        Row: {
+          actor_user_id: string | null
+          api_client_id: string | null
+          byte_size: number
+          channel: string
+          company_id: string
+          content_sha256: string
+          created_at: string
+          customer_case_id: string
+          customer_id: string
+          file_name: string
+          id: string
+          intake_key: string
+          media_type: string
+          object_key: string
+          request_hash: string
+          revision: number | null
+          scan_status: string
+          storage_bucket: string
+          uploaded_at: string | null
+          visibility: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          api_client_id?: string | null
+          byte_size: number
+          channel: string
+          company_id: string
+          content_sha256: string
+          created_at?: string
+          customer_case_id: string
+          customer_id: string
+          file_name: string
+          id?: string
+          intake_key: string
+          media_type: string
+          object_key: string
+          request_hash: string
+          revision?: number | null
+          scan_status?: string
+          storage_bucket?: string
+          uploaded_at?: string | null
+          visibility: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          api_client_id?: string | null
+          byte_size?: number
+          channel?: string
+          company_id?: string
+          content_sha256?: string
+          created_at?: string
+          customer_case_id?: string
+          customer_id?: string
+          file_name?: string
+          id?: string
+          intake_key?: string
+          media_type?: string
+          object_key?: string
+          request_hash?: string
+          revision?: number | null
+          scan_status?: string
+          storage_bucket?: string
+          uploaded_at?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_support_attachments_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_support_attachments_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_support_attachments_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "customer_support_attachments_case_owner_fk"
+            columns: ["customer_case_id", "company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_cases"
+            referencedColumns: ["id", "company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_support_attachments_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_attachments_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_attachments_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_attachments_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+        ]
+      }
+      customer_support_messages: {
+        Row: {
+          actor_user_id: string | null
+          api_client_id: string | null
+          author_kind: string
+          body: string
+          caller_verification: string
+          channel: string
+          company_id: string
+          created_at: string
+          customer_case_id: string
+          customer_id: string
+          id: string
+          publication_id: string | null
+          revision: number
+          visibility: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          api_client_id?: string | null
+          author_kind: string
+          body: string
+          caller_verification: string
+          channel: string
+          company_id: string
+          created_at?: string
+          customer_case_id: string
+          customer_id: string
+          id?: string
+          publication_id?: string | null
+          revision: number
+          visibility: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          api_client_id?: string | null
+          author_kind?: string
+          body?: string
+          caller_verification?: string
+          channel?: string
+          company_id?: string
+          created_at?: string
+          customer_case_id?: string
+          customer_id?: string
+          id?: string
+          publication_id?: string | null
+          revision?: number
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_support_messages_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_case_owner_fk"
+            columns: ["customer_case_id", "company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_cases"
+            referencedColumns: ["id", "company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_messages_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "customer_case_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_support_threads: {
+        Row: {
+          company_id: string
+          created_at: string
+          customer_id: string
+          customer_title: string | null
+          id: string
+          public_reference: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          customer_id: string
+          customer_title?: string | null
+          id: string
+          public_reference: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          customer_id?: string
+          customer_title?: string | null
+          id?: string
+          public_reference?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_support_threads_case_owner_fk"
+            columns: ["id", "company_id", "customer_id"]
+            isOneToOne: true
+            referencedRelation: "customer_cases"
+            referencedColumns: ["id", "company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_support_threads_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_threads_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_threads_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_threads_customer_owner_fk"
+            columns: ["customer_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id", "company_id"]
+          },
+          {
+            foreignKeyName: "customer_support_threads_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "customer_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           acquisition_channel: string | null
           activated_at: string | null
           active_sites: number
+          address_book_revision: number
           anonymized_at: string | null
           anonymized_by: string | null
           apartment_number: string | null
@@ -28039,8 +28378,10 @@ export type Database = {
           archived_at: string | null
           archived_by: string | null
           billing_city: string | null
-          billing_country: string
+          billing_country: string | null
           billing_postal_code: string | null
+          billing_profile: Json
+          billing_profile_revision: number
           billing_street: string | null
           blocked_sites: number
           campaign_id: string | null
@@ -28064,10 +28405,17 @@ export type Database = {
           intake_quality_score: number | null
           intake_status: string | null
           intake_warnings: string[]
+          invoice_email: string | null
           is_test_data: boolean
           last_name: string | null
           latest_customer_action: string | null
+          legal_profile_revision: number
+          lifecycle_closed_at: string | null
+          lifecycle_closed_by: string | null
+          lifecycle_revision: number
+          lifecycle_status_reason: string | null
           metadata: Json
+          moved_out_at: string | null
           name: string | null
           next_action: string | null
           normalized_email: string | null
@@ -28084,6 +28432,7 @@ export type Database = {
           phone: string | null
           preferred_language: string | null
           process_summary: Json
+          profile_revision: number
           ready_for_billing_at: string | null
           sales_agent_id: string | null
           source: string | null
@@ -28095,6 +28444,7 @@ export type Database = {
           acquisition_channel?: string | null
           activated_at?: string | null
           active_sites?: number
+          address_book_revision?: number
           anonymized_at?: string | null
           anonymized_by?: string | null
           apartment_number?: string | null
@@ -28102,8 +28452,10 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           billing_city?: string | null
-          billing_country?: string
+          billing_country?: string | null
           billing_postal_code?: string | null
+          billing_profile?: Json
+          billing_profile_revision?: number
           billing_street?: string | null
           blocked_sites?: number
           campaign_id?: string | null
@@ -28127,10 +28479,17 @@ export type Database = {
           intake_quality_score?: number | null
           intake_status?: string | null
           intake_warnings?: string[]
+          invoice_email?: string | null
           is_test_data?: boolean
           last_name?: string | null
           latest_customer_action?: string | null
+          legal_profile_revision?: number
+          lifecycle_closed_at?: string | null
+          lifecycle_closed_by?: string | null
+          lifecycle_revision?: number
+          lifecycle_status_reason?: string | null
           metadata?: Json
+          moved_out_at?: string | null
           name?: string | null
           next_action?: string | null
           normalized_email?: string | null
@@ -28147,6 +28506,7 @@ export type Database = {
           phone?: string | null
           preferred_language?: string | null
           process_summary?: Json
+          profile_revision?: number
           ready_for_billing_at?: string | null
           sales_agent_id?: string | null
           source?: string | null
@@ -28158,6 +28518,7 @@ export type Database = {
           acquisition_channel?: string | null
           activated_at?: string | null
           active_sites?: number
+          address_book_revision?: number
           anonymized_at?: string | null
           anonymized_by?: string | null
           apartment_number?: string | null
@@ -28165,8 +28526,10 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           billing_city?: string | null
-          billing_country?: string
+          billing_country?: string | null
           billing_postal_code?: string | null
+          billing_profile?: Json
+          billing_profile_revision?: number
           billing_street?: string | null
           blocked_sites?: number
           campaign_id?: string | null
@@ -28190,10 +28553,17 @@ export type Database = {
           intake_quality_score?: number | null
           intake_status?: string | null
           intake_warnings?: string[]
+          invoice_email?: string | null
           is_test_data?: boolean
           last_name?: string | null
           latest_customer_action?: string | null
+          legal_profile_revision?: number
+          lifecycle_closed_at?: string | null
+          lifecycle_closed_by?: string | null
+          lifecycle_revision?: number
+          lifecycle_status_reason?: string | null
           metadata?: Json
+          moved_out_at?: string | null
           name?: string | null
           next_action?: string | null
           normalized_email?: string | null
@@ -28210,6 +28580,7 @@ export type Database = {
           phone?: string | null
           preferred_language?: string | null
           process_summary?: Json
+          profile_revision?: number
           ready_for_billing_at?: string | null
           sales_agent_id?: string | null
           source?: string | null
@@ -47929,6 +48300,218 @@ export type Database = {
           },
         ]
       }
+      grid_owner_access_agreements: {
+        Row: {
+          agreement_reference: string | null
+          agreement_scope: string
+          agreement_type: string
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          document_id: string | null
+          document_path: string | null
+          external_agreement_number: string | null
+          grid_owner_id: string | null
+          id: string
+          metadata: Json
+          preferred_application_reference: string | null
+          preferred_message_version: string | null
+          preferred_receiver_ediel_id: string | null
+          preferred_receiver_sub_address: string | null
+          preferred_route_id: string | null
+          reference_requirements: Json
+          requires_customer_authorization: boolean
+          requires_customer_personal_number: boolean
+          requires_facility_id: boolean
+          requires_metering_point_id: boolean
+          requires_report_period: boolean
+          revision: number
+          signed_at: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          agreement_reference?: string | null
+          agreement_scope?: string
+          agreement_type?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id?: string | null
+          document_path?: string | null
+          external_agreement_number?: string | null
+          grid_owner_id?: string | null
+          id?: string
+          metadata?: Json
+          preferred_application_reference?: string | null
+          preferred_message_version?: string | null
+          preferred_receiver_ediel_id?: string | null
+          preferred_receiver_sub_address?: string | null
+          preferred_route_id?: string | null
+          reference_requirements?: Json
+          requires_customer_authorization?: boolean
+          requires_customer_personal_number?: boolean
+          requires_facility_id?: boolean
+          requires_metering_point_id?: boolean
+          requires_report_period?: boolean
+          revision?: number
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          agreement_reference?: string | null
+          agreement_scope?: string
+          agreement_type?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id?: string | null
+          document_path?: string | null
+          external_agreement_number?: string | null
+          grid_owner_id?: string | null
+          id?: string
+          metadata?: Json
+          preferred_application_reference?: string | null
+          preferred_message_version?: string | null
+          preferred_receiver_ediel_id?: string | null
+          preferred_receiver_sub_address?: string | null
+          preferred_route_id?: string | null
+          reference_requirements?: Json
+          requires_customer_authorization?: boolean
+          requires_customer_personal_number?: boolean
+          requires_facility_id?: boolean
+          requires_metering_point_id?: boolean
+          requires_report_period?: boolean
+          revision?: number
+          signed_at?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "grid_owner_access_agreements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       grid_owner_contact_channels: {
         Row: {
           channel_type: string
@@ -53052,6 +53635,88 @@ export type Database = {
           },
         ]
       }
+      invoice_manual_purchase_intents: {
+        Row: {
+          actor_user_id: string
+          audit_event_id: string | null
+          company_id: string
+          completed_at: string | null
+          connection_sha256: string
+          created_at: string
+          financing_mode: string
+          id: string
+          invoice_export_item_id: string
+          item_binding: Json
+          observation: Json | null
+          purchase_event_id: string | null
+          purchase_payload: Json
+          request_hash: string
+          session_id: string
+          snapshot_sha256: string
+          status: string
+        }
+        Insert: {
+          actor_user_id: string
+          audit_event_id?: string | null
+          company_id: string
+          completed_at?: string | null
+          connection_sha256: string
+          created_at?: string
+          financing_mode: string
+          id?: string
+          invoice_export_item_id: string
+          item_binding: Json
+          observation?: Json | null
+          purchase_event_id?: string | null
+          purchase_payload: Json
+          request_hash: string
+          session_id: string
+          snapshot_sha256: string
+          status: string
+        }
+        Update: {
+          actor_user_id?: string
+          audit_event_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          connection_sha256?: string
+          created_at?: string
+          financing_mode?: string
+          id?: string
+          invoice_export_item_id?: string
+          item_binding?: Json
+          observation?: Json | null
+          purchase_event_id?: string | null
+          purchase_payload?: Json
+          request_hash?: string
+          session_id?: string
+          snapshot_sha256?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_manual_purchase_inten_company_id_invoice_export_it_fkey"
+            columns: ["company_id", "invoice_export_item_id"]
+            isOneToOne: true
+            referencedRelation: "invoice_export_items"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "invoice_manual_purchase_intents_audit_event_id_fkey"
+            columns: ["audit_event_id"]
+            isOneToOne: false
+            referencedRelation: "domain_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_manual_purchase_intents_purchase_event_id_fkey"
+            columns: ["purchase_event_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_purchase_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_provider_events: {
         Row: {
           attempt_count: number
@@ -53403,6 +54068,105 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoice_export_items"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_redelivery_decisions: {
+        Row: {
+          account_id: string
+          actor_user_id: string
+          audit_event_id: string
+          billing_profile_revision: number
+          company_id: string
+          contract_override_revision: number
+          created_at: string
+          customer_id: string
+          delivery_status: string
+          destination_email: string
+          document_references_sha256: string
+          email_confirmed_at: string
+          email_source: string
+          environment: string
+          financial_snapshot_sha256: string
+          id: string
+          idempotency_key: string
+          invoice_id: string
+          original_provider_guid: string
+          provider: string
+          reason: string
+          request_hash: string
+          session_id: string
+          status: string
+          verified_auth_user_id: string
+        }
+        Insert: {
+          account_id: string
+          actor_user_id: string
+          audit_event_id: string
+          billing_profile_revision: number
+          company_id: string
+          contract_override_revision: number
+          created_at?: string
+          customer_id: string
+          delivery_status?: string
+          destination_email: string
+          document_references_sha256: string
+          email_confirmed_at: string
+          email_source: string
+          environment: string
+          financial_snapshot_sha256: string
+          id?: string
+          idempotency_key: string
+          invoice_id: string
+          original_provider_guid: string
+          provider: string
+          reason: string
+          request_hash: string
+          session_id: string
+          status?: string
+          verified_auth_user_id: string
+        }
+        Update: {
+          account_id?: string
+          actor_user_id?: string
+          audit_event_id?: string
+          billing_profile_revision?: number
+          company_id?: string
+          contract_override_revision?: number
+          created_at?: string
+          customer_id?: string
+          delivery_status?: string
+          destination_email?: string
+          document_references_sha256?: string
+          email_confirmed_at?: string
+          email_source?: string
+          environment?: string
+          financial_snapshot_sha256?: string
+          id?: string
+          idempotency_key?: string
+          invoice_id?: string
+          original_provider_guid?: string
+          provider?: string
+          reason?: string
+          request_hash?: string
+          session_id?: string
+          status?: string
+          verified_auth_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_redelivery_decisions_audit_event_id_fkey"
+            columns: ["audit_event_id"]
+            isOneToOne: false
+            referencedRelation: "domain_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_redelivery_decisions_company_id_invoice_id_fkey"
+            columns: ["company_id", "invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["company_id", "id"]
           },
         ]
       }
@@ -88376,6 +89140,24 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_apply_inbound_switch_lifecycle_v1: {
+        Args: { p_actor_user_id?: string; p_source_message_id: string }
+        Returns: Json
+      }
+      gridex_apply_invoice_provider_event_v1: {
+        Args: {
+          p_amount: number
+          p_company_id: string
+          p_currency: string
+          p_event_id: string
+          p_event_type: string
+          p_finance_status: string
+          p_payload: Json
+          p_processing_token: string
+          p_state: string
+        }
+        Returns: Json
+      }
       gridex_apply_public_contract_backfill_v1: {
         Args: {
           p_actor_user_id?: string
@@ -88444,6 +89226,14 @@ export type Database = {
         }
         Returns: string
       }
+      gridex_assert_contract_company_permission: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_permission: string
+        }
+        Returns: undefined
+      }
       gridex_assert_contract_permission: {
         Args: { p_actor_user_id: string; p_permission: string }
         Returns: undefined
@@ -88468,6 +89258,15 @@ export type Database = {
       gridex_assert_utilts_transaction_coverage: {
         Args: { p_source_message_id: string }
         Returns: undefined
+      }
+      gridex_assess_support_attachment_scan_v1: {
+        Args: {
+          p_attachment_id: string
+          p_context: Json
+          p_trust: Json
+          p_witness?: Json
+        }
+        Returns: Json
       }
       gridex_attach_portfolio_settlement_to_invoice: {
         Args: {
@@ -88511,6 +89310,10 @@ export type Database = {
           p_portfolio_monthly_settlement_id: string
         }
         Returns: Json
+      }
+      gridex_bind_support_attachment_scan_claim_v1: {
+        Args: { p_claim_token: string; p_intent_id: string; p_nonce_id: string }
+        Returns: boolean
       }
       gridex_build_canonical_address: {
         Args: {
@@ -88560,9 +89363,54 @@ export type Database = {
           revision: number
         }[]
       }
+      gridex_change_customer_address_book_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_change_customer_billing_profile_api_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_change_customer_billing_profile_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_change_customer_contact_v1: {
         Args: { p_command: Json }
         Returns: Json
+      }
+      gridex_change_customer_contact_v2: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_change_customer_facility_profile_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_change_customer_legal_profile_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_change_customer_profile_preferences_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_check_ediel_resume_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_intent_id: string
+          p_phase: string
+        }
+        Returns: boolean
+      }
+      gridex_claim_agreement_cleanup_v1: {
+        Args: { p_claim_token: string; p_company_id: string; p_limit: number }
+        Returns: Json
+      }
+      gridex_claim_approved_invoice_retries_fair_v1: {
+        Args: { p_claim_token: string; p_company_id: string; p_limit: number }
+        Returns: Json[]
       }
       gridex_claim_billing_automation_jobs: {
         Args: { p_limit?: number; p_worker_id: string }
@@ -88642,6 +89490,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_claim_ediel_resume_intents_fair_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_limit: number
+          p_phase: string
+        }
+        Returns: Json
+      }
       gridex_claim_invoice_provider_events: {
         Args: {
           p_company_id: string
@@ -88677,6 +89534,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_claim_manual_email_outbox_fair_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_limit: number
+          p_worker_id: string
+        }
+        Returns: Json[]
+      }
+      gridex_claim_manual_invoice_purchase_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_claim_spot_price_import_job: {
         Args: {
           p_calendar_date: string
@@ -88693,6 +89563,103 @@ export type Database = {
           id: string
           status: string
         }[]
+      }
+      gridex_claim_support_attachment_scans_v1: {
+        Args: { p_claim_token: string; p_company_id: string; p_limit: number }
+        Returns: Json[]
+      }
+      gridex_claim_tenant_email_outbox_fair_v1: {
+        Args: { p_claim_token: string; p_company_id: string; p_limit: number }
+        Returns: {
+          attachments: Json
+          attempts: number | null
+          blocked_at: string | null
+          blocked_reason: string | null
+          branding_snapshot: Json
+          communication_log_id: string | null
+          company_id: string
+          company_status_snapshot: string | null
+          created_at: string
+          created_by: string | null
+          customer_case_id: string | null
+          customer_id: string | null
+          dead_letter_at: string | null
+          delivery_uncertain_at: string | null
+          email_type: string
+          failed_at: string | null
+          failure_reason: string | null
+          from_email: string | null
+          html_body: string
+          id: string
+          last_error: string | null
+          lock_token: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number | null
+          next_attempt_at: string | null
+          provider_idempotency_key: string | null
+          provider_message_id: string | null
+          redirect_url: string | null
+          reply_to_email: string | null
+          request_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          text_body: string | null
+          to_email: string
+          trace_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tenant_email_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      gridex_claim_webhook_deliveries_fair_v1: {
+        Args: { p_claim_token: string; p_limit: number }
+        Returns: {
+          attempts: number
+          blocked_at: string | null
+          blocked_reason: string | null
+          company_id: string
+          company_status_snapshot: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_uncertain_at: string | null
+          domain_event_id: string
+          event_type: string
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          idempotency_key: string
+          last_attempt_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          manual_note: string | null
+          manual_status: string | null
+          max_attempts: number
+          next_attempt_at: string
+          operation_decision_snapshot: Json | null
+          payload: Json
+          public_delivery_id: string | null
+          request_body_hash: string | null
+          resent_at: string | null
+          resent_by: string | null
+          response_body: string | null
+          response_status: number | null
+          status: string
+          target_url: string | null
+          updated_at: string
+          webhook_subscription_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "webhook_deliveries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       gridex_cleanup_orphan_contract_pricing: {
         Args: { p_company_id: string; p_older_than?: string }
@@ -88713,6 +89680,10 @@ export type Database = {
           p_offer_id: string
           p_reason: string
         }
+        Returns: Json
+      }
+      gridex_close_customer_lifecycle_v1: {
+        Args: { p_command: Json }
         Returns: Json
       }
       gridex_commit_customer_application_provisioning: {
@@ -88755,6 +89726,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      gridex_commit_support_attachment_scan_callback_v1: {
+        Args: { p_claim_token: string; p_nonce_id: string; p_proof: Json }
+        Returns: Json
+      }
       gridex_company_go_live_readiness: {
         Args: { p_company_id: string }
         Returns: Json
@@ -88765,6 +89740,10 @@ export type Database = {
       }
       gridex_company_legal_profile_defaults: {
         Args: { p_company: Json }
+        Returns: Json
+      }
+      gridex_complete_customer_portal_account_v1: {
+        Args: { p_command: Json }
         Returns: Json
       }
       gridex_complete_facility_response: {
@@ -88786,6 +89765,10 @@ export type Database = {
       }
       gridex_complete_grid_owner_readiness: {
         Args: { p_source?: string }
+        Returns: Json
+      }
+      gridex_complete_manual_invoice_purchase_v1: {
+        Args: { p_command: Json }
         Returns: Json
       }
       gridex_complete_unreferenced_internal_invoice_fee_tasks: {
@@ -88984,6 +89967,14 @@ export type Database = {
       gridex_contact_has_channel: { Args: { p_value: Json }; Returns: boolean }
       gridex_contract_actor_can_operate_company: {
         Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: boolean
+      }
+      gridex_contract_actor_has_company_permission: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_permission: string
+        }
         Returns: boolean
       }
       gridex_contract_actor_has_permission: {
@@ -89285,6 +90276,15 @@ export type Database = {
         Args: { p_attempts: number; p_max_attempts: number; p_status: string }
         Returns: string
       }
+      gridex_customer_ops_command_capabilities_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       gridex_customer_status_counts_v1: {
         Args: {
           p_company_id?: string
@@ -89432,6 +90432,10 @@ export type Database = {
           total_messages: number
         }[]
       }
+      gridex_ediel_portal_test_graph_access_v1: {
+        Args: { p_company_id: string; p_session_id: string; p_user_id: string }
+        Returns: boolean
+      }
       gridex_edifact_cci_cav_value: {
         Args: { p_cci_code: string; p_raw: string }
         Returns: string
@@ -89537,6 +90541,39 @@ export type Database = {
             }
             Returns: Json
           }
+      gridex_finish_agreement_cleanup_v1: {
+        Args: { p_outcome: string; p_receipt: Json }
+        Returns: Json
+      }
+      gridex_finish_ediel_resume_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_intent_id: string
+          p_outcome: string
+          p_phase: string
+          p_reason?: string
+        }
+        Returns: boolean
+      }
+      gridex_finish_manual_email_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_item_id: string
+          p_patch: Json
+          p_worker_id: string
+        }
+        Returns: boolean
+      }
+      gridex_finish_support_attachment_read_v1: {
+        Args: { p_context: Json; p_nonce_id: string; p_witness?: Json }
+        Returns: Json
+      }
+      gridex_finish_support_attachment_scan_claim_v1: {
+        Args: { p_claim_token: string; p_intent_id: string; p_outcome: string }
+        Returns: boolean
+      }
       gridex_fk_reference_blockers: {
         Args: {
           p_ignored_relations?: string[]
@@ -89600,6 +90637,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_get_support_attachment_read_nonce_v1: {
+        Args: { p_context: Json; p_nonce_id: string }
+        Returns: Json
+      }
+      gridex_get_support_attachment_scan_callback_v1: {
+        Args: { p_nonce_id: string }
+        Returns: Json
+      }
       gridex_get_user_permissions: {
         Args: { p_user_id: string }
         Returns: string[]
@@ -89655,6 +90700,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string[]
+      }
+      gridex_grid_owner_agreement_command_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_grid_owner_name_key: { Args: { p_name: string }; Returns: string }
       gridex_has_permission: {
@@ -89864,6 +90913,18 @@ export type Database = {
         Returns: {
           data: Json
         }[]
+      }
+      gridex_lock_billing_configuration_v2: {
+        Args: {
+          p_company_id: string
+          p_expected_override_revision: number
+          p_expected_profile_revision: number
+          p_snapshot: Json
+          p_snapshot_json: string
+          p_snapshot_sha256: string
+          p_underlay_id: string
+        }
+        Returns: Json
       }
       gridex_lock_pricing_run: {
         Args: {
@@ -90225,6 +91286,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_prepare_support_attachment_read_v1: {
+        Args: { p_attachment_id: string; p_context: Json }
+        Returns: Json
+      }
       gridex_preview_delete_unused_contract: {
         Args: { p_company_id: string; p_offer_id: string }
         Returns: Json
@@ -90366,39 +91431,6 @@ export type Database = {
         }
         Returns: Json
       }
-      gridex_publish_customer_case_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_body: string
-          p_case_id: string
-          p_channel?: string
-          p_company_id: string
-          p_expected_revision: number
-          p_status: string
-          p_title: string
-        }
-        Returns: {
-          author_user_id: string
-          channel: string
-          company_id: string
-          customer_case_id: string
-          customer_id: string
-          id: string
-          public_body: string
-          public_status: string
-          public_title: string
-          published_at: string
-          revision: number
-          revoked_at: string | null
-          revoked_by: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "customer_case_publications"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       gridex_publish_internal_contract_version: {
         Args: {
           p_actor_user_id: string
@@ -90501,6 +91533,60 @@ export type Database = {
         Args: { p_company_id: string; p_cutoff: string; p_environment: string }
         Returns: Json
       }
+      gridex_recheck_manual_email_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_item_id: string
+          p_worker_id: string
+        }
+        Returns: {
+          actual_recipient_email: string | null
+          attachments: Json
+          attempts: number
+          blocked_at: string | null
+          blocked_reason: string | null
+          body_html: string
+          body_text: string | null
+          bounced_at: string | null
+          company_id: string
+          company_status_snapshot: string | null
+          complained_at: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_status: string | null
+          delivery_uncertain_at: string | null
+          external_delivery: boolean
+          failed_at: string | null
+          from_email: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          last_error_code: string | null
+          locked_at: string | null
+          locked_by: string | null
+          next_attempt_at: string | null
+          operation_decision_snapshot: Json | null
+          provider: string
+          provider_idempotency_key: string | null
+          provider_message_id: string | null
+          queued_at: string
+          recipient_resolution: Json | null
+          reply_to: string | null
+          request_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          to_email: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "manual_email_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       gridex_reconcile_company_onboarding_tasks_v1: {
         Args: { p_company_id: string }
         Returns: Json
@@ -90552,6 +91638,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_record_customer_operation_event_v1: {
+        Args: { p_event: Json }
+        Returns: Json
+      }
       gridex_record_invoice_fee_remediation: {
         Args: {
           p_blocker_code: string
@@ -90563,6 +91653,10 @@ export type Database = {
           p_status: string
         }
         Returns: undefined
+      }
+      gridex_record_invoice_redelivery_decision_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_record_legacy_api_key_use_v1: {
         Args: { p_api_client_id: string; p_route: string }
@@ -90599,6 +91693,14 @@ export type Database = {
           p_source_payload_hash: string
         }
         Returns: Json
+      }
+      gridex_record_support_attachment_scan_v1: {
+        Args: { p_nonce_id: string; p_proof: Json }
+        Returns: Json
+      }
+      gridex_recover_stale_manual_email_outbox_v1: {
+        Args: { p_company_id: string; p_limit: number }
+        Returns: Json[]
       }
       gridex_refresh_actor_certificate_statuses: {
         Args: { p_run_type?: string }
@@ -90651,6 +91753,16 @@ export type Database = {
           p_source_value_id: string
         }
         Returns: string
+      }
+      gridex_release_approved_invoice_retry_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_item_id: string
+          p_outcome?: string
+          p_reason?: string
+        }
+        Returns: boolean
       }
       gridex_release_automation_lock: {
         Args: { p_lock_key: string; p_lock_token: string }
@@ -90757,6 +91869,10 @@ export type Database = {
             }
             Returns: string[]
           }
+      gridex_reserve_support_attachment_scan_v1: {
+        Args: { p_attachment_id: string; p_company_id: string; p_trust: Json }
+        Returns: Json
+      }
       gridex_resolve_contract_lifecycle_graph: {
         Args: { p_company_id: string; p_offer_id: string }
         Returns: Json
@@ -90818,15 +91934,6 @@ export type Database = {
         Args: { p_actor_user_id: string; p_company_id: string }
         Returns: Json
       }
-      gridex_revoke_customer_case_publication_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_case_id: string
-          p_company_id: string
-          p_expected_revision: number
-        }
-        Returns: boolean
-      }
       gridex_revoke_portfolio_settlement_permission: {
         Args: { p_actor_user_id: string; p_grant_id: string; p_reason: string }
         Returns: undefined
@@ -90853,6 +91960,7 @@ export type Database = {
         Args: { p_value: string }
         Returns: number
       }
+      gridex_save_customer_site_v1: { Args: { p_command: Json }; Returns: Json }
       gridex_save_portfolio_area_price_drafts: {
         Args: {
           p_actor_user_id: string
@@ -90980,6 +92088,34 @@ export type Database = {
       }
       gridex_submit_customer_move_out_v1: {
         Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_support_attachment_intake_v1: {
+        Args: { p_context: Json; p_intake: Json }
+        Returns: Json
+      }
+      gridex_support_attachment_read_v1: {
+        Args: { p_context: Json; p_query: Json }
+        Returns: Json
+      }
+      gridex_support_case_command_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      gridex_support_case_publication_v1: {
+        Args: { p_context: Json; p_publication: Json }
+        Returns: Json
+      }
+      gridex_support_case_read_v1: {
+        Args: { p_context: Json; p_query: Json }
+        Returns: Json
+      }
+      gridex_support_ops_read_access_v1: {
+        Args: { p_company_id: string; p_session_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      gridex_support_sensitive_contact_v1: {
+        Args: { p_command: Json; p_proof: Json }
         Returns: Json
       }
       gridex_supported_price_areas_v1: {
@@ -91184,6 +92320,10 @@ export type Database = {
         Returns: boolean
       }
       gridex_user_is_platform_admin: { Args: never; Returns: boolean }
+      gridex_validate_agreement_cleanup_v1: {
+        Args: { p_receipt: Json }
+        Returns: boolean
+      }
       gridex_validate_commercial_model_v1: {
         Args: { p_company_id: string; p_contract_product_version_id: string }
         Returns: Json

@@ -66,6 +66,25 @@ jobs:
       - run: npm run typecheck:tests
       - run: bash quality/mechanical/verify.sh
       - run: npx vitest run --config quality/vitest.config.ts
+      - run: npx vitest run --config scripts/customer-account-role-preservation-20261001.config.ts --reporter=verbose
+      - name: Pinned baseline raw-write oracle controls
+        run: node --test scripts/tenantservice-baseline-raw-write-oracle-20261001.test.cjs
+      - name: Canonical inbound notification source-chain controls
+        run: node --test scripts/customer-application-inbound-notification-source-20261001.test.cjs
+      - name: Agreement fixture single-receipt protocol controls
+        run: |
+          npm install --prefix "$RUNNER_TEMP/agreement-protocol-deps" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.5.8
+          NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/agreement-cleanup-native-protocol-20261001.test.cjs
+      - name: Reconstructed account and purchase PostgreSQL core controls
+        run: |
+          NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/customer-account-completion-reconstructed-20261001.postgres.test.cjs
+          NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/manual-purchase-intent-reconstructed-20261001.postgres.test.cjs
+      - name: Agreement company INSERT projection controls
+        run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/grid-owner-agreement-runtime-company-projection-20261001.postgres.test.cjs
+      - name: Agreement Page and guard company rendering controls
+        run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" npx vitest run --config scripts/grid-owner-agreement-runtime-company-render-20261001.config.ts --reporter=verbose
+      - name: Customer-case actual contract state controls
+        run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" npx vitest run --config scripts/customer-case-contract-stop-schema-20261001.config.ts --reporter=verbose
       - run: npm test
       - run: npm run api:docs
       - run: npm run api:compatibility
@@ -78,7 +97,9 @@ jobs:
 
   clean-migration-replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The private agreement proof retains genuine 15m/2m/1h TTL fallback if
+    # owned scheduling changes are refused. No assertion or guard is relaxed.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -141,16 +162,98 @@ jobs:
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
-          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
-          # Shared atomic notification command: real rollback, legacy replay and concurrent sessions.
-          npx vitest run --config scripts/customer-notification-read-native.config.ts
-          npx vitest run --config scripts/customer-notification-read-concurrency-native.config.ts
+          # This proof requires an empty eligible manual queue before every
+          # owned producer. It never deletes or reclassifies pre-existing work.
+          npx vitest run --config scripts/manual-email-fair-claim-20261001-native.config.ts --reporter=verbose
+          # Fairness owns an initially empty due queue and cleans its own rows.
+          npx vitest run --config scripts/webhook-fair-claim-continuation-native.config.ts
+          npx vitest run --config scripts/residual-tenant-queues-20260930-native.config.ts
+          npx vitest run --config scripts/partner-queue-continuation-20260930-native.config.ts
+          # This proof owns an initially empty eligible Ediel resume queue.
+          # Run it after the other global fair-queue proofs and before producers.
+          npx vitest run --config scripts/ediel-resume-tenant-progress-20261001-native.config.ts --reporter=verbose
+          npx vitest run --config scripts/contract-authority-continuation-native.config.ts
+          npx vitest run --config scripts/customer-operation-lifecycle-atomic-20260930.native.config.ts
+          # Actual existing case producer, source-bound decision and persisted
+          # duplicate recovery; preserve the legacy withdrawal decision=1 gate.
+          npx vitest run --config scripts/customer-lifecycle-source-binding-20261001.native.config.ts --reporter=verbose
+          # Independent owned transaction fixtures, with exact private current
+          # agreement/upload/CAS behavior on the reconstructed schema.
+          npx vitest run --config scripts/grid-owner-agreement-atomic-20261001.native.config.ts --reporter=verbose
+          npx vitest run --config scripts/grid-owner-agreement-cleanup-20261001.native.config.ts --reporter=verbose
+          # Disposable GoTrue/PostgREST command proofs precede the independent
+          # browser fixture. Provider/producer boundaries remain explicit in
+          # their reports; no physical provider transport is invoked here.
+          npx vitest run --config scripts/customer-account-completion-reconstructed-20261001-native.config.ts --reporter=verbose
+          npx vitest run --config scripts/manual-purchase-intent-reconstructed-20261001-native.config.ts --reporter=verbose
+          # Private owned GoTrue/Storage/Next agreement fixture. The secret is
+          # local and ephemeral, and is exported before this fresh Next server.
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
           export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
           [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
+          unset GRIDEX_E2E_BROWSER_BASE_URL
+          export GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH="$RUNNER_TEMP/grid-owner-agreement-runtime-20261001.json"
+          export GRIDEX_AGREEMENT_RUNTIME_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          export GRIDEX_AGREEMENT_CLEANUP_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64url"))')"
+          npx playwright install --with-deps chromium
+          agreement_runtime_result=0
+          GRIDEX_AGREEMENT_RUNTIME_PHASE=seed npx vitest run --config scripts/grid-owner-agreement-runtime-20261001.native.config.ts --reporter=verbose || agreement_runtime_result=$?
+          if [[ "$agreement_runtime_result" -eq 0 ]]; then
+            GRIDEX_AGREEMENT_RUNTIME_LOCAL_E2E=1 npx playwright test e2e/browser/grid-owner-agreement-runtime-20261001.spec.mjs --config=playwright.config.mjs --project=chromium || agreement_runtime_result=$?
+          fi
+          if [[ "$agreement_runtime_result" -eq 0 ]]; then
+            GRIDEX_AGREEMENT_RUNTIME_PHASE=post-browser npx vitest run --config scripts/grid-owner-agreement-runtime-20261001.native.config.ts --reporter=verbose || agreement_runtime_result=$?
+          fi
+          if [[ -s "$GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH" ]]; then
+            agreement_cleanup_result=0
+            GRIDEX_AGREEMENT_RUNTIME_PHASE=cleanup npx vitest run --config scripts/grid-owner-agreement-runtime-20261001.native.config.ts --reporter=verbose || agreement_cleanup_result=$?
+            if [[ "$agreement_cleanup_result" -eq 0 ]]; then
+              rm -f "$GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH"
+            elif [[ "$agreement_runtime_result" -eq 0 ]]; then
+              agreement_runtime_result="$agreement_cleanup_result"
+            fi
+          fi
+          unset GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH GRIDEX_AGREEMENT_RUNTIME_PASSWORD GRIDEX_AGREEMENT_CLEANUP_SECRET
+          [[ "$agreement_runtime_result" -eq 0 ]] || exit "$agreement_runtime_result"
+          npx vitest run --config scripts/ediel-source-owner-native.config.ts
+          # Atomic notifier command faults/concurrency use independent fixtures.
+          npx vitest run --config scripts/customer-notification-read-native.config.ts
+          npx vitest run --config scripts/customer-notification-read-concurrency-native.config.ts
+          npx vitest run --config scripts/customer-profile-commands-native.config.ts
+          npx vitest run --config scripts/customer-address-command-native.config.ts
+          npx vitest run --config scripts/ediel-portal-address-command-native.config.ts
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-site-command-native.sql
+          npx vitest run --config scripts/customer-site-command-native.config.ts
+          npx vitest run --config scripts/customer-site-continuation-20260930.native.config.ts
+          # Actual signed legal/PDF/POA and canonical held-route prerequisites;
+          # no sender is called by the positive continuation proof.
+          npx vitest run --config scripts/customer-site-positive-continuation-20260930.native.config.ts
+          # Only the outer SMTP transport is controlled. Canonical preparation,
+          # dispatch witness, CONTRL/APERAK classification and atomic ACK owners
+          # execute against this actual local reconstructed database.
+          npx vitest run --config scripts/customer-inbound-lifecycle-atomic-20261001.native.config.ts
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-ops-capabilities-native.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-authoritative-writer-fences-native.sql
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-support-command-native.sql
+          npx vitest run --config scripts/customer-support-continuation-20260930-native.config.ts
+          npx vitest run --config scripts/support-sensitive-contact-20260930-native.config.ts
+          # Actual intake/Storage lineage and signed controlled verdicts remain
+          # quarantined: an approved release provider is absent by default.
+          npx vitest run --config scripts/support-attachment-scan-20260930-native.config.ts
+          npx vitest run --config scripts/support-attachment-consumer-20261001-native.config.ts
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-billing-command-native.sql
+          npx vitest run --config scripts/customer-billing-concurrency-native.config.ts
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/invoice-redelivery-decision-20260930-native.sql
+          npx vitest run --config scripts/invoice-redelivery-concurrency-20260930-native.config.ts
+          export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
+          [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
+          export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
+          [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
+          npx vitest run --config scripts/billing-recipient-revision-continuation-20260930-native.config.ts
           npx vitest run --config scripts/customer-contact-concurrency-native.config.ts
           # Exercise the contact browser/API path before the independent case
           # publication browser fixture, so its own replay result is observable.
@@ -162,10 +265,180 @@ jobs:
           [[ -s "$GRIDEX_CONTACT_FIXTURE_PATH" ]] || exit 1
           export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_CONTACT_FIXTURE_PATH,"utf8")).trust)')"
           npx playwright install --with-deps chromium
+          npx playwright test e2e/browser/api-release-local.spec.mjs --config=playwright.config.mjs --project=chromium
           npx playwright test e2e/browser/customer-contact-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          # Real forms, conflict/retry, navigation, mobile and zoom interactions
+          # use an independent customer, then verify persisted state natively.
+          npx playwright test e2e/browser/tenantservice-customer-ui-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_TENANTSERVICE_UI_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           GRIDEX_CONTACT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/customer-contact-browser-native.config.ts
           rm -f "$GRIDEX_CONTACT_FIXTURE_PATH"
           unset GRIDEX_CONTACT_TEST_PASSWORD GRIDEX_CONTACT_LOCAL_E2E GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # Independent real reference client, current credentials, and a
+          # downstream response loss after an observed committed mutation.
+          # Each Playwright invocation starts a new server in CI with this trust.
+          export GRIDEX_REFERENCE_RUNTIME_LOCAL_E2E=1
+          export GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH="$RUNNER_TEMP/customer-reference-runtime-fixture.json"
+          npx vitest run --config scripts/customer-reference-runtime-20260930.native.config.ts
+          [[ -s "$GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-reference-runtime-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_REFERENCE_RUNTIME_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-reference-runtime-20260930.native.config.ts
+          rm -f "$GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH"
+          unset GRIDEX_REFERENCE_RUNTIME_LOCAL_E2E GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # Anonymous intake and independent configured issuers use their own
+          # current local accounts and private trust, then verify zero foreign effects.
+          export GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH="$RUNNER_TEMP/customer-intake-identity-security-20260930.json"
+          npx vitest run --config scripts/customer-intake-identity-security-20260930.native.config.ts
+          [[ -s "$GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -e 'const fs=require("fs"); const f=JSON.parse(fs.readFileSync(process.env.GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH,"utf8")); process.stdout.write(JSON.stringify(f.trust))')"
+          GRIDEX_INTAKE_IDENTITY_SECURITY_LOCAL_E2E=1 npx playwright test e2e/browser/customer-intake-identity-security-20260930.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_INTAKE_IDENTITY_SECURITY_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-intake-identity-security-20260930.native.config.ts
+          unset GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          rm -f "$GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH"
+          unset GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH
+          # Company settings use independent disposable Auth/company fixtures.
+          export GRIDEX_SETTINGS_LOCAL_E2E=1
+          export GRIDEX_SETTINGS_FIXTURE_PATH="$RUNNER_TEMP/company-settings-browser-fixture.json"
+          export GRIDEX_SETTINGS_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          npx vitest run --config scripts/company-settings-browser-native.config.ts
+          [[ -s "$GRIDEX_SETTINGS_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/tenantservice-company-settings-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_SETTINGS_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/company-settings-browser-native.config.ts
+          rm -f "$GRIDEX_SETTINGS_FIXTURE_PATH"
+          unset GRIDEX_SETTINGS_TEST_PASSWORD GRIDEX_SETTINGS_LOCAL_E2E GRIDEX_SETTINGS_FIXTURE_PATH
+          # Actual OPS integration outcomes and attachment download bytes use
+          # isolated local Auth/tenant rows. Missing mandatory connection
+          # configuration rejects before any provider network operation.
+          export GRIDEX_OPS_EFFECT_LOCAL_E2E=1
+          export GRIDEX_OPS_EFFECT_FIXTURE_PATH="$RUNNER_TEMP/ops-effect-browser-fixture.json"
+          export GRIDEX_OPS_EFFECT_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          npx vitest run --config scripts/ops-effect-browser-native.config.ts
+          [[ -s "$GRIDEX_OPS_EFFECT_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/ops-effect-download-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_OPS_EFFECT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ops-effect-browser-native.config.ts
+          rm -f "$GRIDEX_OPS_EFFECT_FIXTURE_PATH"
+          unset GRIDEX_OPS_EFFECT_LOCAL_E2E GRIDEX_OPS_EFFECT_FIXTURE_PATH GRIDEX_OPS_EFFECT_PASSWORD
+          # Current company-scoped controls and the actual compatible loaders;
+          # this proof owns separate GoTrue users, rows and whole-graph digests.
+          export GRIDEX_WEBHOOK_UI_LOCAL_E2E=1
+          export GRIDEX_WEBHOOK_UI_FIXTURE_PATH="$RUNNER_TEMP/webhook-readonly-controls-20261001.json"
+          export GRIDEX_WEBHOOK_UI_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          GRIDEX_WEBHOOK_UI_FIXTURE_PHASE=seed npx vitest run --config scripts/webhook-readonly-controls-20261001-native.config.ts
+          [[ -s "$GRIDEX_WEBHOOK_UI_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/webhook-readonly-controls-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_WEBHOOK_UI_FIXTURE_PHASE=post-browser npx vitest run --config scripts/webhook-readonly-controls-20261001-native.config.ts
+          GRIDEX_WEBHOOK_UI_FIXTURE_PHASE=cleanup npx vitest run --config scripts/webhook-readonly-controls-20261001-native.config.ts
+          rm -f "$GRIDEX_WEBHOOK_UI_FIXTURE_PATH"
+          unset GRIDEX_WEBHOOK_UI_LOCAL_E2E GRIDEX_WEBHOOK_UI_FIXTURE_PATH GRIDEX_WEBHOOK_UI_PASSWORD
+          # The real billing forms own a fresh local fixture. Readiness,
+          # immutable invoices and both sender paths are separately tested above.
+          export GRIDEX_BILLING_RECIPIENT_LOCAL_E2E=1
+          export GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH="$RUNNER_TEMP/billing-recipient-revision-fixture.json"
+          export GRIDEX_BILLING_RECIPIENT_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          GRIDEX_BILLING_RECIPIENT_PHASE=browser-seed npx vitest run --config scripts/billing-recipient-revision-continuation-20260930-native.config.ts
+          [[ -s "$GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/billing-recipient-revision-runtime-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_BILLING_RECIPIENT_PHASE=browser-postcheck npx vitest run --config scripts/billing-recipient-revision-continuation-20260930-native.config.ts
+          # Read current customer revision and immutable saved invoice revision
+          # in the actual list/card/invoice pages after the real form journey.
+          export GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH="$RUNNER_TEMP/billing-revision-views-fixture.json"
+          npx vitest run --config scripts/billing-revision-views-continuation-20261001-native.config.ts
+          [[ -s "$GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH" ]] || exit 1
+          GRIDEX_BILLING_REVISION_VIEWS_LOCAL_E2E=1 npx playwright test e2e/browser/billing-revision-views-runtime-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_BILLING_REVISION_VIEWS_POSTCHECK=1 npx vitest run --config scripts/billing-revision-views-continuation-20261001-native.config.ts
+          rm -f "$GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH"
+          unset GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH
+          rm -f "$GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH"
+          unset GRIDEX_BILLING_RECIPIENT_LOCAL_E2E GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH GRIDEX_BILLING_RECIPIENT_PASSWORD
+          # Real GoTrue and isolated Next attachment denial journey, after both
+          # issued billing fixtures; private trust/session material is never uploaded.
+          export GRIDEX_SUPPORT_NEXT_FIXTURE="$RUNNER_TEMP/support-attachment-next-denial-20261001.json"
+          GRIDEX_SUPPORT_NEXT_PHASE=seed npx vitest run --config scripts/support-attachment-next-denial-20261001.native.config.ts
+          GRIDEX_SUPPORT_NEXT_BROWSER=1 npx playwright test --config=e2e/browser/support-attachment-next-denial-20261001.config.mjs --project=chromium
+          GRIDEX_SUPPORT_NEXT_PHASE=postcheck npx vitest run --config scripts/support-attachment-next-denial-20261001.native.config.ts
+          rm -f "$GRIDEX_SUPPORT_NEXT_FIXTURE"
+          unset GRIDEX_SUPPORT_NEXT_FIXTURE
+          # Independent real OPS redelivery form and qualified saved decision;
+          # every browser phase verifies its own persisted financial boundaries.
+          export GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH="$RUNNER_TEMP/invoice-redelivery-navigation-fixture.json"
+          export GRIDEX_REDELIVERY_NAVIGATION_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-seed npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
+          [[ -s "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_NOTE_UNSAVED_SNAPSHOT_PATH="$RUNNER_TEMP/customer-internal-note-unsaved-20261001.json"
+          GRIDEX_NOTE_UNSAVED_PHASE=baseline npx vitest run --config scripts/customer-internal-note-unsaved-20261001-native.config.ts --reporter=verbose
+          # Traverse genuine Next history against the fresh zero-decision fixture
+          # before the existing journey deliberately saves its single decision.
+          GRIDEX_REDELIVERY_HISTORY_LOCAL_E2E=1 npx playwright test e2e/browser/invoice-redelivery-history-traversal-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_REDELIVERY_NAVIGATION_LOCAL_E2E=1 npx playwright test e2e/browser/invoice-redelivery-unsaved-navigation-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-postcheck npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
+          GRIDEX_NOTE_UNSAVED_LOCAL_E2E=1 npx playwright test e2e/browser/customer-internal-note-unsaved-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_NOTE_UNSAVED_PHASE=post-browser npx vitest run --config scripts/customer-internal-note-unsaved-20261001-native.config.ts --reporter=verbose
+          rm -f "$GRIDEX_NOTE_UNSAVED_SNAPSHOT_PATH"
+          unset GRIDEX_NOTE_UNSAVED_SNAPSHOT_PATH
+          rm -f "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH"
+          unset GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH GRIDEX_REDELIVERY_NAVIGATION_PASSWORD
+          # Actual customer events HTTP -> v2 RPC on this same disposable stack.
+          export GRIDEX_EVENT_V2_LOCAL_E2E=1
+          export GRIDEX_EVENT_V2_FIXTURE_PATH="$RUNNER_TEMP/customer-event-v2-fixture.json"
+          npx vitest run --config scripts/customer-event-v2-native.config.ts
+          [[ -s "$GRIDEX_EVENT_V2_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_EVENT_V2_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-event-v2-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_EVENT_V2_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-event-v2-native.config.ts
+          rm -f "$GRIDEX_EVENT_V2_FIXTURE_PATH"
+          unset GRIDEX_EVENT_V2_LOCAL_E2E GRIDEX_EVENT_V2_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          export GRIDEX_NOTIFICATION_READ_LOCAL_E2E=1
+          export GRIDEX_NOTIFICATION_READ_FIXTURE_PATH="$RUNNER_TEMP/customer-notification-read-fixture.json"
+          npx vitest run --config scripts/customer-notification-http-native.config.ts
+          [[ -s "$GRIDEX_NOTIFICATION_READ_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NOTIFICATION_READ_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-notification-read-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_NOTIFICATION_READ_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-notification-http-native.config.ts
+          rm -f "$GRIDEX_NOTIFICATION_READ_FIXTURE_PATH"
+          unset GRIDEX_NOTIFICATION_READ_LOCAL_E2E GRIDEX_NOTIFICATION_READ_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # A current operator reviews one uncertain local delivery and its
+          # tenant-scoped alarm, with an independent quiet tenant retained.
+          export GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH="$RUNNER_TEMP/analytics-incident-fixture.json"
+          npx vitest run --config scripts/analytics-incident-20261001.native.config.ts
+          [[ -s "$GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH" ]] || exit 1
+          export OPS_HEALTH_CRON_SECRET="$(node -e 'const fs=require("fs"); const f=JSON.parse(fs.readFileSync(process.env.GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH,"utf8")); process.stdout.write(f.secret)')"
+          GRIDEX_ANALYTICS_INCIDENT_LOCAL_E2E=1 npx playwright test e2e/browser/analytics-incident-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_ANALYTICS_INCIDENT_PHASE=verify_after_http npx vitest run --config scripts/analytics-incident-20261001.native.config.ts
+          GRIDEX_ANALYTICS_INCIDENT_PHASE=cleanup npx vitest run --config scripts/analytics-incident-20261001.native.config.ts
+          rm -f "$GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH"
+          unset OPS_HEALTH_CRON_SECRET GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH
+          # Genuine HTTP/Data API qualification; these request specs are not
+          # counted as interactive UI evidence. Every proof owns its fixtures.
+          export GRIDEX_LEGAL_READ_LOCAL_E2E=1
+          export GRIDEX_LEGAL_READ_FIXTURE_PATH="$RUNNER_TEMP/customer-legal-read-fixture.json"
+          npx vitest run --config scripts/customer-legal-read-native.config.ts
+          [[ -s "$GRIDEX_LEGAL_READ_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_LEGAL_READ_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-legal-read-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_LEGAL_READ_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-legal-read-native.config.ts
+          rm -f "$GRIDEX_LEGAL_READ_FIXTURE_PATH"
+          unset GRIDEX_LEGAL_READ_LOCAL_E2E GRIDEX_LEGAL_READ_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          npx vitest run --config scripts/customer-legal-read-native.legacy.config.ts
+          export GRIDEX_METERING_READ_LOCAL_E2E=1
+          export GRIDEX_METERING_READ_FIXTURE_PATH="$RUNNER_TEMP/customer-metering-read-fixture.json"
+          npx vitest run --config scripts/customer-metering-read-native.config.ts
+          [[ -s "$GRIDEX_METERING_READ_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_METERING_READ_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-metering-read-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_METERING_READ_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-metering-read-native.config.ts
+          rm -f "$GRIDEX_METERING_READ_FIXTURE_PATH"
+          unset GRIDEX_METERING_READ_LOCAL_E2E GRIDEX_METERING_READ_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          npx vitest run --config scripts/customer-metering-read-native.legacy.config.ts
+          export GRIDEX_SUPPORT_HTTP_LOCAL_E2E=1
+          export GRIDEX_SUPPORT_HTTP_FIXTURE_PATH="$RUNNER_TEMP/customer-support-http-fixture.json"
+          npx vitest run --config scripts/customer-support-http-native.config.ts
+          [[ -s "$GRIDEX_SUPPORT_HTTP_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -p 'JSON.stringify(JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_SUPPORT_HTTP_FIXTURE_PATH,"utf8")).trust)')"
+          npx playwright test e2e/browser/customer-support-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_SUPPORT_HTTP_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-support-http-native.config.ts
+          rm -f "$GRIDEX_SUPPORT_HTTP_FIXTURE_PATH"
+          unset GRIDEX_SUPPORT_HTTP_LOCAL_E2E GRIDEX_SUPPORT_HTTP_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
           unset GRIDEX_E2E_BROWSER_BASE_URL
           export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
           export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
@@ -223,4 +496,79 @@ jobs:
             rem002-database.types.ts
             rem002-schema-snapshot/
             e2e-artifacts/customer-contact-saved.png
+            e2e-artifacts/invoice-redelivery-history-*.png
+            e2e-artifacts/invoice-redelivery-unsaved-*.png
+            e2e-artifacts/customer-internal-note-*.png
+            e2e-artifacts/billing-revision-*.png
+            e2e-artifacts/playwright-results/**/tenantservice-*.png
+            e2e-artifacts/playwright-results/**/support-interactive-*.png
+            e2e-artifacts/playwright-results/**/webhook-readonly-controls-*.png
+            e2e-artifacts/playwright-results/**/ops-effect-*.png
+            e2e-artifacts/playwright-results/**/sanitized-agreement-runtime-precondition.json
+          if-no-files-found: error
+
+  upgrade-backup-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install matching PostgreSQL backup and restore clients
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          echo "GRIDEX_PG_RESTORE=/usr/lib/postgresql/$server_major/bin/pg_restore" >> "$GITHUB_ENV"
+      - name: Upgrade real older schema and restore an actual isolated backup
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          bash scripts/tenantservice-upgrade-restore.sh 2>&1 | tee tenantservice-upgrade-restore.log
+      - name: Restore the pre-forward backup and qualify baseline rollback
+        if: always() && !cancelled()
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          bash scripts/tenantservice-baseline-rollback-20261001.sh 2>&1 | tee tenantservice-baseline-rollback.log
+      - name: Qualify backfill against a separate fresh pinned old schema
+        if: always() && !cancelled()
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          CI: 'true'
+          GRIDEX_BACKFILL_NATIVE_ALLOW_NEW_STACK: '1'
+        run: |
+          set -euo pipefail
+          # Both prior restore wrappers have disposed their own stacks. The
+          # backfill wrapper refuses any existing project/port before creation.
+          node node_modules/vitest/vitest.mjs run --config scripts/canonical-multitenant-backfill-20261001-native.config.ts --reporter=verbose 2>&1 | tee tenantservice-backfill-native.log
+      - name: Upload sanitized upgrade and restore proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tenantservice-upgrade-restore-proof
+          path: |
+            tenantservice-upgrade-restore.log
+            tenantservice-baseline-rollback.log
+            tenantservice-backfill-native.log
           if-no-files-found: error

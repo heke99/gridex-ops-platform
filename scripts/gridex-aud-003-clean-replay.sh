@@ -37,6 +37,7 @@ REPLAY_POSTGRES_VERSION="17.6.1.155"
 REPLAY_PG_VERSION_PATH="$SUPABASE/.temp/postgres-version"
 REPLAY_PG_VERSION_BACKUP=""
 REPLAY_PG_VERSION_PINNED=""
+REPLAY_START_LOG=""
 # Clean replay normally runs against the local Supabase stack. Where Docker is
 # unavailable, GRIDEX_REPLAY_DB_URL points at an already-created empty database
 # that this script provisions with the Supabase-compatible surface instead. The
@@ -65,6 +66,7 @@ cleanup(){
   rm -f "$MIGRATIONS"/*.sql
   cp -a "$HOLD"/. "$MIGRATIONS"/ 2>/dev/null || true
   cp "$SEED_BACKUP" "$SEED" 2>/dev/null || true
+  if [[ -n "${REPLAY_START_LOG:-}" ]]; then rm -f "$REPLAY_START_LOG"; fi
   rm -rf "$HOLD" "$LEDGER_MARKERS" "$SEED_BACKUP" "$FOUNDATION_EXEC" "$TIMESTAMP_EXEC"
 }
 trap cleanup EXIT
@@ -299,7 +301,19 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   REPLAY_PG_VERSION_PINNED=1
   printf '%s' "$REPLAY_POSTGRES_VERSION" > "$REPLAY_PG_VERSION_PATH"
   echo "local_replay_postgres_image=$REPLAY_POSTGRES_VERSION"
-  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+  # Startup prints local publishable/secret keys. Keep the complete diagnostics
+  # private until this sourced shell's existing EXIT cleanup, outside the log
+  # and artifact allowlist. Preserve the CLI failure status without echoing raw
+  # startup content or the private diagnostic path.
+  REPLAY_START_LOG="$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gridex-replay-start.XXXXXX")"
+  chmod 600 "$REPLAY_START_LOG"
+  if supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector > "$REPLAY_START_LOG" 2>&1; then
+    echo '[GRIDEX-REM-002 replay] local Supabase startup PASS'
+  else
+    REPLAY_START_STATUS="$?"
+    echo '[GRIDEX-REM-002 replay] local Supabase startup FAILED' >&2
+    exit "$REPLAY_START_STATUS"
+  fi
 else
   # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
   # official ledger is deliberately left untouched: writing it by hand would

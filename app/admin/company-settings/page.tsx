@@ -1,5 +1,7 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import CompanyUserInviteForm from "@/components/admin/companies/CompanyUserInviteForm";
+import CompanySettingsForm from "@/components/admin/companies/CompanySettingsForms";
+import { getCompanyProductionStatus } from "@/lib/tenant/companyProductionStatus";
 import { requireAdminPageKeyAccess } from "@/lib/admin/guards";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 import {
@@ -13,25 +15,12 @@ import {
 import { getTenantLegalProfile } from "@/lib/contracts/canonical";
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import {
-  COMPANY_MEMBERSHIP_ROLE_OPTIONS,
   COMPANY_USER_ROLE_OPTIONS,
   getCompanyMembershipRoleLabel,
   getCompanyUserRoleLabel,
 } from "@/lib/tenant/companyUserRoles";
 
 export const dynamic = "force-dynamic";
-
-const emptyState = { ok: false, message: "" };
-
-async function updateCompanySettingsFormAction(formData: FormData) {
-  "use server";
-  await updateCompanySettingsAction(emptyState, formData);
-}
-
-async function updateResponsibleUserFormAction(formData: FormData) {
-  "use server";
-  await updateCompanyResponsibleUserAction(emptyState, formData);
-}
 
 function getBrandingValue(
   branding: Record<string, unknown> | null | undefined,
@@ -56,17 +45,17 @@ export default async function CompanySettingsPage() {
     company?.branding && typeof company.branding === "object"
       ? company.branding
       : null;
-  const isLiveApproved = Boolean(
-    company?.live_ediel_enabled === true &&
-    company?.production_status === "live" &&
-    company?.live_approved_at,
+  const productionStatus = companyId ? await getCompanyProductionStatus(companyId) : null;
+  const isLiveApproved = productionStatus?.productionApproved === true;
+  const canManageCompany = context.isPlatformAdmin || context.permissions.some((permission) =>
+    ["tenants.invite", "users.write"].includes(permission),
   );
 
   return (
     <div className="min-h-screen">
       <AdminHeader
         title="Bolagsinställningar"
-        subtitle="Uppdatera bolagets kontaktuppgifter, bolagsansvariga och inloggningsuppgifter inom ditt bolag."
+        subtitle="Uppdatera bolagets uppgifter och behörigheter inom ditt bolag."
         userEmail={context.email}
       />
 
@@ -90,9 +79,10 @@ export default async function CompanySettingsPage() {
                   </p>
                 </div>
               </div>
-              <form
+              <CompanySettingsForm
                 id="company-profile"
-                action={updateCompanySettingsFormAction}
+                action={updateCompanySettingsAction}
+                disabled={!canManageCompany}
                 className="mt-5 grid gap-4 lg:grid-cols-2"
               >
                 <input type="hidden" name="company_id" value={companyId} />
@@ -455,16 +445,8 @@ export default async function CompanySettingsPage() {
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Miljö</span>
-                      <input
-                        type="hidden"
-                        name="operating_environment"
-                        value={
-                          isLiveApproved
-                            ? (company.operating_environment ?? "test")
-                            : "test"
-                        }
-                      />
                       <select
+                        name="operating_environment"
                         disabled={!isLiveApproved}
                         defaultValue={
                           isLiveApproved
@@ -491,7 +473,7 @@ export default async function CompanySettingsPage() {
                     Spara bolagsuppgifter
                   </button>
                 </div>
-              </form>
+              </CompanySettingsForm>
 
               <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridisk status · read-only</p>
@@ -520,7 +502,7 @@ export default async function CompanySettingsPage() {
                 Lägg till en ny användare i bolaget och välj roll direkt.
                 Användaren visas i listan efter att kontot har skapats/kopplats.
               </p>
-              <CompanyUserInviteForm companyId={companyId} />
+              {canManageCompany ? <CompanyUserInviteForm companyId={companyId} /> : <p className="mt-4 text-sm text-amber-800">Du saknar behörighet att bjuda in användare.</p>}
             </section>
 
             <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -529,8 +511,8 @@ export default async function CompanySettingsPage() {
                   Bolagets användare och roller
                 </h2>
                 <p className="mt-1 text-sm text-slate-700">
-                  Ändra namn, telefon, login-e-post och roll för alla användare
-                  i bolaget.
+                  Ändra användarens behörighet i detta bolag. Namn, telefon och
+                  inloggning ändras av användaren via sitt verifierade kontoflöde.
                 </p>
               </div>
 
@@ -541,10 +523,11 @@ export default async function CompanySettingsPage() {
                   </p>
                 ) : (
                   users.map((user) => (
-                    <form
+                    <CompanySettingsForm
                       key={user.membershipId}
-                      action={updateResponsibleUserFormAction}
-                      className="grid gap-4 px-6 py-6 xl:grid-cols-[1fr_1fr_150px_160px_190px]"
+                      action={updateCompanyResponsibleUserAction}
+                      disabled={!canManageCompany}
+                      className="grid gap-4 px-6 py-6 xl:grid-cols-[1fr_1fr_150px_190px]"
                     >
                       <input
                         type="hidden"
@@ -555,7 +538,7 @@ export default async function CompanySettingsPage() {
                       <label className="grid gap-2 text-sm">
                         <span className="font-medium text-slate-700">Namn</span>
                         <input
-                          name="full_name"
+                          readOnly
                           defaultValue={user.fullName ?? ""}
                           className="rounded-2xl border border-slate-300 px-4 py-3"
                         />
@@ -566,9 +549,10 @@ export default async function CompanySettingsPage() {
                         </span>
                         <input
                           name="email"
+                          readOnly
                           type="email"
                           required
-                          defaultValue={user.email ?? user.invitedEmail ?? ""}
+                          defaultValue={user.authEmail ?? user.email ?? user.invitedEmail ?? ""}
                           className="rounded-2xl border border-slate-300 px-4 py-3"
                         />
                       </label>
@@ -577,29 +561,15 @@ export default async function CompanySettingsPage() {
                           Telefon
                         </span>
                         <input
-                          name="phone"
+                          readOnly
+                          aria-label="Telefon ändras i användarens konto"
+                          defaultValue="Visas i användarens konto"
                           className="rounded-2xl border border-slate-300 px-4 py-3"
                         />
                       </label>
                       <label className="grid gap-2 text-sm">
                         <span className="font-medium text-slate-700">
-                          Bolagsroll
-                        </span>
-                        <select
-                          name="membership_role"
-                          defaultValue={user.membershipRole}
-                          className="rounded-2xl border border-slate-300 px-4 py-3"
-                        >
-                          {COMPANY_MEMBERSHIP_ROLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-slate-700">
-                          Systemroll
+                          Roll i bolaget
                         </span>
                         <select
                           name="role_key"
@@ -613,17 +583,17 @@ export default async function CompanySettingsPage() {
                           ))}
                         </select>
                       </label>
-                      <div className="xl:col-span-5 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                      <div className="xl:col-span-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                         <span>
                           {roleLabel(user.membershipRole)} ·{" "}
                           {getCompanyUserRoleLabel(user.roleKey)} ·{" "}
-                          {user.email ?? user.userId}
+                          {user.authEmail ?? user.email ?? user.userId}
                         </span>
                         <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-black">
-                          Uppdatera ansvarig
+                          Spara bolagsbehörighet
                         </button>
                       </div>
-                    </form>
+                    </CompanySettingsForm>
                   ))
                 )}
               </div>

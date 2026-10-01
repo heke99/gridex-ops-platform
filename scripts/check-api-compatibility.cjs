@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const version = '2026-08-22.2'
+const version = '2026-10-01.1'
 const website = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
@@ -119,4 +119,17 @@ assert(
   'legacy consent fallback is still published',
 )
 
-console.log(`OpenAPI compatibility gate passed for ${version}.`)
+const previousVersion = '2026-09-30.3'
+const previousPortal = JSON.parse(fs.readFileSync(`docs/openapi/releases/${previousVersion}/customer-portal-v1.json`, 'utf8'))
+const previousMessage = previousPortal.components.schemas.CustomerSupportMessage
+const currentMessage = portal.components.schemas.CustomerSupportMessage
+assert(currentMessage?.additionalProperties === false, 'support message response must remain closed')
+assert(currentMessage?.required?.includes('author_reference'), 'saved staff author_reference is mandatory, including null')
+assert(JSON.stringify(currentMessage.properties.author_reference.type) === JSON.stringify(['string', 'null']), 'saved staff reference must be nullable string')
+assert(currentMessage.properties.author_reference.pattern === '^support_staff_[A-Za-z0-9_-]{32}$', 'saved staff reference must retain the exact opaque shape')
+assert(JSON.stringify(Object.keys(currentMessage.properties).filter(key => key !== 'author_reference')) === JSON.stringify(Object.keys(previousMessage.properties)), 'support release unexpectedly removes/reorders prior fields')
+assert(JSON.stringify(currentMessage.required.filter(key => key !== 'author_reference')) === JSON.stringify(previousMessage.required), 'support release unexpectedly changes prior required fields')
+for (const [key, schema] of Object.entries(previousMessage.properties)) {
+  assert(JSON.stringify(currentMessage.properties[key]) === JSON.stringify(schema), `support release changes previous field ${key}`)
+}
+console.log(`OpenAPI compatibility gate passed for ${version}; prior ${previousVersion} message fields preserved, required nullable staff reference requires strict response-client update.`)

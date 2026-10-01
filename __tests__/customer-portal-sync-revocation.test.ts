@@ -9,16 +9,21 @@ const fixture = vi.hoisted(() => ({
   upsertError: null as { code: string; message: string } | null,
   failed: vi.fn(async () => undefined),
   completed: vi.fn(async () => undefined),
+  claimed: vi.fn(),
+  queries: [] as string[],
 }))
 
 vi.mock('@/lib/api/strictRequest', async (importOriginal) => ({
   ...await importOriginal<typeof import('@/lib/api/strictRequest')>(),
-  claimPortalWriteIdempotency: async () => ({
-    replay: fixture.replay,
-    recordId: 'claim-a',
-    statusCode: 200,
-    responseBody: { data: { status: 'linked', access_granted: true } },
-  }),
+  claimPortalWriteIdempotency: async () => {
+    fixture.claimed()
+    return {
+      replay: fixture.replay,
+      recordId: 'claim-a',
+      statusCode: 200,
+      responseBody: { data: { status: 'linked', access_granted: true, portal_role: 'owner' } },
+    }
+  },
   failPortalWriteIdempotency: fixture.failed,
   completePortalWriteIdempotency: fixture.completed,
 }))
@@ -41,6 +46,7 @@ vi.mock('@/lib/customer-portal/externalApi', () => ({
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     from(table: string) {
+      fixture.queries.push(table)
       const filters: Record<string, unknown> = {}
       let writing = false
       const query = {
@@ -59,9 +65,9 @@ vi.mock('@/lib/supabase/service', () => ({
       }
       function rows(): Record<string, unknown>[] {
         const source: Record<string, unknown>[] = table === 'customer_portal_identities'
-          ? [{ status: fixture.identityStatus, company_id: '00000000-0000-4000-8000-00000000a001', provider: 'gridex_website', external_customer_id: 'EXT-1', auth_user_id: '00000000-0000-4000-8000-00000000a301' }]
+          ? [{ status: fixture.identityStatus, customer_id: 'customer-a', company_id: '00000000-0000-4000-8000-00000000a001', provider: 'gridex_website', external_customer_id: 'EXT-1', auth_user_id: '00000000-0000-4000-8000-00000000a301' }]
           : table === 'customer_portal_accounts'
-            ? [{ status: fixture.accountStatus, is_active: fixture.accountActive, company_id: '00000000-0000-4000-8000-00000000a001' }]
+            ? [{ id: 'account-a', customer_id: 'customer-a', user_id: '00000000-0000-4000-8000-00000000a301', portal_user_id: '00000000-0000-4000-8000-00000000a301', role: 'owner', status: fixture.accountStatus, is_active: fixture.accountActive, company_id: '00000000-0000-4000-8000-00000000a001' }]
             : table === 'customers'
               ? [{ id: 'customer-a', company_id: '00000000-0000-4000-8000-00000000a001', customer_number: 'C-1', email: 'customer@example.test', personal_number: null, org_number: null }]
               : []
@@ -74,15 +80,17 @@ vi.mock('@/lib/supabase/service', () => ({
 
 import { POST } from '@/app/api/v1/customer-portal/sync/route'
 
-function request() {
+function request(omittedHeaders: string[] = []) {
+  const headers = new Headers({
+    'content-type': 'application/json',
+    'idempotency-key': 'retry-0001',
+    'x-gridex-customer-portal-user-id': '00000000-0000-4000-8000-00000000a301',
+    'x-gridex-auth-user-id': '00000000-0000-4000-8000-00000000a301',
+  })
+  for (const name of omittedHeaders) headers.delete(name)
   return new NextRequest('https://gridex.test/api/v1/customer-portal/sync', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'idempotency-key': 'retry-0001',
-      'x-gridex-customer-portal-user-id': '00000000-0000-4000-8000-00000000a301',
-      'x-gridex-auth-user-id': '00000000-0000-4000-8000-00000000a301',
-    },
+    headers,
     body: JSON.stringify({
       external_customer_id: 'EXT-1',
       customer_portal_user_id: '00000000-0000-4000-8000-00000000a301',
@@ -100,6 +108,21 @@ beforeEach(() => {
   fixture.upsertError = null
   fixture.failed.mockClear()
   fixture.completed.mockClear()
+  fixture.claimed.mockClear()
+  fixture.queries.length = 0
+})
+
+it.each([
+  ['x-gridex-customer-portal-user-id'],
+  ['x-gridex-auth-user-id'],
+  ['x-gridex-customer-portal-user-id', 'x-gridex-auth-user-id'],
+])('rejects omitted identity headers %j before idempotency or customer reads despite valid body UUIDs', async (...omittedHeaders) => {
+  const response = await POST(request(omittedHeaders))
+  expect(response.status).toBe(422)
+  expect(await response.json()).toMatchObject({ code: 'portal_identity_mismatch' })
+  expect(fixture.claimed).not.toHaveBeenCalled()
+  expect(fixture.queries).toHaveLength(0)
+  expect(fixture.completed).not.toHaveBeenCalled()
 })
 
 it('rejects a completed linked replay after identity revocation without invalidating the completed idempotency record', async () => {

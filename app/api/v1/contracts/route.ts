@@ -9,6 +9,7 @@ import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors
 import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 import { supabaseService } from '@/lib/supabase/service'
 import { ifNoneMatchMatches, loadPublicationRevision } from '@/lib/website/publicContractApi'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   API_CONTRACT_RESPONSE_SCHEMA_VERSION,
   mapContractPublicationToPublicDto,
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
 
   const auth = await requireIntegrationApiAccess(request, ['api_contracts.read'])
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     const headers = new Headers(contractHeaders(requestId))
     if (auth.retryAfterSeconds) {
       headers.set('Retry-After', String(auth.retryAfterSeconds))
@@ -113,6 +114,7 @@ export async function GET(request: NextRequest) {
     }
     if (ifNoneMatchMatches(request, revision.etag)) {
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: 304,
@@ -148,26 +150,20 @@ export async function GET(request: NextRequest) {
       } catch (mappingError) {
         rejectedContracts += 1
         firstMappingError ??= mappingError
-        const mapping = mappingError as {
-          name?: unknown
-          code?: unknown
-          path?: unknown
-        }
+        const mappingDiagnostic = technicalErrorDiagnostic(mappingError)
+        const mappingClassification = classifyPublicContractsError(mappingError)
         console.error('[api-contracts] rejected malformed publication', {
           requestId,
           companyId: auth.context.companyId,
           tenantReference: tenant.tenant_reference,
           apiClientId: auth.client.id,
           channel: 'api',
-          offerReference:
-            publication && typeof publication.offer_reference === 'string'
-              ? publication.offer_reference
-              : null,
           contractVersion: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
           schema: 'website-integration-v1.json',
-          errorName: typeof mapping.name === 'string' ? mapping.name : null,
-          errorCode: typeof mapping.code === 'string' ? mapping.code : null,
-          errorPath: typeof mapping.path === 'string' ? mapping.path : null,
+          errorName: mappingDiagnostic.message,
+          errorCode: mappingClassification.code,
+          databaseCode: mappingDiagnostic.code,
+          errorPath: null,
         })
       }
     }
@@ -176,6 +172,7 @@ export async function GET(request: NextRequest) {
     }
 
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client,
       request,
       statusCode: 200,
@@ -211,6 +208,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(responseBody, { status: 200, headers })
   } catch (error) {
     const classified = classifyPublicContractsError(error)
+    const diagnostic = technicalErrorDiagnostic(error)
     console.error('[api-contracts] failed', {
       requestId,
       companyId: auth.context.companyId,
@@ -218,16 +216,14 @@ export async function GET(request: NextRequest) {
       endpoint: '/api/v1/public-contracts',
       channel: 'api',
       errorCode: classified.code,
-      errorPath: classified.path,
-      databaseCode: classified.databaseCode,
+      errorPath: null,
+      databaseCode: diagnostic.code,
       contractVersion: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
       schema: 'website-integration-v1.json',
-      errorName:
-        error && typeof error === 'object' && 'name' in error
-          ? String((error as { name?: unknown }).name ?? '')
-          : null,
+      errorName: diagnostic.message,
     })
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client,
       request,
       statusCode: classified.status,
@@ -236,8 +232,8 @@ export async function GET(request: NextRequest) {
       metadata: {
         request_id: requestId,
         channel: 'api',
-        database_code: classified.databaseCode,
-        error_path: classified.path,
+        database_code: diagnostic.code,
+        error_path: null,
       },
     })
     return customerPortalJson(

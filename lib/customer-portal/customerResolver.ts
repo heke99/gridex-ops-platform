@@ -31,7 +31,8 @@ export type PortalCustomerResolution =
   | { ok: true; customer: ResolvedPortalCustomer }
   | { ok: false; status: number; error: string; code: string; identifiers: CustomerPortalIdentifiers }
 
-const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,contact_revision,created_at,intake_status,intake_missing_fields,intake_quality_score'
+const CUSTOMER_CONTACT_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,contact_revision,created_at,intake_status,intake_missing_fields,intake_quality_score'
+const CUSTOMER_SELECT = `${CUSTOMER_CONTACT_SELECT},billing_profile_revision,profile_revision,preferred_language,portal_timezone:metadata->>portal_timezone`
 const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at'
 const CUSTOMER_MINIMAL_SELECT = 'id,company_id,customer_number,status,email,phone,created_at'
 const IDENTITY_SELECT = 'id,company_id,customer_id,external_customer_id,external_account_id,customer_number,email,status,match_strength,match_method,provider,auth_user_id,customer_portal_user_id'
@@ -146,8 +147,8 @@ function activeAccount(row: Record<string, unknown>): boolean {
 }
 
 async function fetchCustomer(companyId: string, customerId: string): Promise<Record<string, unknown> | null> {
-  // query-loop-budget: bounded-schema-fallback max=3
-  for (const select of [CUSTOMER_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]) {
+  // query-loop-budget: bounded-schema-fallback max=4
+  for (const select of [CUSTOMER_SELECT, CUSTOMER_CONTACT_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]) {
     const customer = await supabaseService
       .from('customers')
       .select(select)
@@ -260,8 +261,8 @@ async function linkedByExternal(companyId: string, externalCustomerId: string): 
 }
 
 async function customerByField(companyId: string, field: 'external_customer_id' | 'customer_number' | 'email', value: string, method: string): Promise<ResolvedPortalCustomer | null> {
-  const selects = [CUSTOMER_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]
-  // query-loop-budget: bounded-schema-fallback max=3
+  const selects = [CUSTOMER_SELECT, CUSTOMER_CONTACT_SELECT, CUSTOMER_FALLBACK_SELECT, CUSTOMER_MINIMAL_SELECT]
+  // query-loop-budget: bounded-schema-fallback max=4
   for (const select of selects) {
     const result = await supabaseService
       .from('customers')

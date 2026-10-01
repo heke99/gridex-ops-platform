@@ -3,13 +3,30 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 import {OWNER,ownerRows,ownerSource,ownerId} from './helpers/sourceOwnerFixtures'
 const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false,
   message:{} as EdielMessageRow,drafts:[] as Record<string,unknown>[],events:[] as Record<string,unknown>[],correlated:true}))
-vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
+vi.mock('@/lib/supabase/service',async()=>{
+ const database=(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)
+ return {supabaseService:{...database,rpc:(name:string,args:Record<string,unknown>)=>{
+  if(name!=='gridex_apply_inbound_switch_lifecycle_v1')return database.rpc(name,args)
+  io.calls.push({name,args})
+  expect(args).toEqual({p_source_message_id:OWNER.source,p_actor_user_id:ownerId(50)})
+  const sw=io.rows.supplier_switch_requests[0],sp=io.rows.customer_supply_periods[0]
+  // Model the new command's outer persistence result, after the real processor
+  // has persisted its correlation. No canonical/source-owner producer is mocked.
+  if(io.message.switch_request_id!==sw.id || !io.message.customer_id)return Promise.resolve({data:null,error:new Error('inbound_switch_resource_scope_mismatch')})
+  if(io.failTable==='customer_supply_periods')return Promise.resolve({data:null,error:new Error('injected database failure')})
+  Object.assign(sw,{status:'accepted',confirmed_start_date:'2026-10-01'})
+  Object.assign(sp,{status:'confirmed_by_grid_owner'})
+  return Promise.resolve({data:{outcome:'supplier_switch_accepted',tenantMessage:'Confirmed',reviewRequired:false,
+   updated:['supplier_switch_requests','customer_supply_periods'],metadata:{},switchRequestId:sw.id,
+   supplyPeriodId:sp.id,caseId:null,replayed:false},error:null})
+ }}}
+})
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>({profileKey:'prodat-test',sourceHash:'a'.repeat(64),messageProfileId:'00000000-0000-4000-8000-000000000011',rulePackId:'00000000-0000-4000-8000-000000000012'})}))
 vi.mock('@/lib/ediel/db',()=>({
  getEdielMessageById:async()=>io.message,createEdielMessageEvent:async(p:Record<string,unknown>)=>{io.events.push(p)},
  updateEdielMessageStatus:async(p:{status:string;parsedPayload?:Record<string,unknown>;validationReport?:Record<string,unknown>})=>{
  io.message={...io.message,status:p.status,parsed_payload:p.parsedPayload??io.message.parsed_payload,validation_report:p.validationReport??io.message.validation_report} as EdielMessageRow;return io.message},
- linkEdielMessage:async()=>null,listAckMessagesForSource:async()=>[],getEdielRouteProfileByCommunicationRouteId:async()=>null,listEdielMessagesByIds:async()=>[],
+ linkEdielMessage:async(p:{switchRequestId:string|null})=>{io.message={...io.message,switch_request_id:p.switchRequestId};return io.message},listAckMessagesForSource:async()=>[],getEdielRouteProfileByCommunicationRouteId:async()=>null,listEdielMessagesByIds:async()=>[],
 }))
 vi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:async()=>({status:'tenant_resolved',companyId:'00000000-0000-4000-8000-000000000002',message:io.message,evidence:{companyId:'00000000-0000-4000-8000-000000000002'}})}))
 vi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:async(p:{ackFamily:string;draft:Record<string,unknown>})=>{io.drafts.push(p.draft);return{id:p.ackFamily,status:'sent'}}}))
@@ -36,7 +53,11 @@ it('actual processor hands its fresh canonical owner through the real successful
  expect(io.calls.filter(c=>c.name==='gridex_witness_source_objects_v1')).toHaveLength(1)
  expect(io.rows.supplier_switch_requests[0].status).toBe('accepted');expect(io.rows.customer_supply_periods[0].status).toBe('confirmed_by_grid_owner')
 })
-it('actual processor stores unavailable evidence when no business operation was correlated',async()=>{io.correlated=false;await run();expect(facts()?.objects[0].disposition).toBe('unavailable')})
+it('actual processor stores unavailable evidence when no business operation was correlated',async()=>{
+ io.correlated=false;await expect(run()).rejects.toThrow('inbound_switch_resource_scope_mismatch')
+ expect(facts()?.objects[0].disposition).toBe('unavailable')
+ expect(io.rows.supplier_switch_requests[0].status).toBe('draft');expect(io.rows.customer_supply_periods[0].status).toBe('draft')
+})
 it('normal ACK and business outcomes are identical when the new evidence store fails',async()=>{
  await run();const baseline={drafts:structuredClone(io.drafts),switch:structuredClone(io.rows.supplier_switch_requests[0]),supply:structuredClone(io.rows.customer_supply_periods[0])}
  reset();io.badReceipt='gridex_record_source_object_decisions_v1';await run()

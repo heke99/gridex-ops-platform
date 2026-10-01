@@ -1,12 +1,16 @@
 // Extracted from actions.ts; keep public imports on the facade module.
 import { revalidatePath } from "next/cache"
+import { unstable_rethrow } from "next/navigation"
+import { currentSupportSession } from "@/lib/customer-operations/supportSession"
+import { saveCustomerSiteCommand, SiteCommandError } from "@/lib/customer-operations/siteCommand"
+import type { CustomerEditResponse } from "@/components/admin/customers/CustomerEditForm"
 
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { assertCustomerSiteTenant, assertPowerOfAttorneyTenant } from "@/lib/tenant/entityGuards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
-import { getCustomerSiteById, getMeteringPointById, saveCustomerSite, saveMeteringPoint } from "@/lib/masterdata/db"
+import { getCustomerSiteById, getMeteringPointById, saveMeteringPoint } from "@/lib/masterdata/db"
 import { customerSiteInputSchema, meteringPointInputSchema, parseCheckbox } from "@/lib/masterdata/validators"
 import { supabaseService } from "@/lib/supabase/service"
 
@@ -25,10 +29,9 @@ import type { BusinessProcess } from "@/lib/routes/routeDecisionTypes"
 import { logAdminActionAndUsage } from "@/lib/audit/actionLogger"
 import { emitCustomerOperationEvent } from "@/lib/customers/customerOperationEvents"
 
-import { applyCustomerSiteAddressCandidate } from "@/lib/customer-sites/addressIntake"
-import { enqueueCustomerDataRequestAutomation } from "@/lib/customer-operations/automation"
 import { reconcileSupplierSwitchAfterCustomerDataChange } from "@/lib/customer-operations/supplierSwitchOrchestration"
 import { normalizeUuidOrNull } from "@/lib/validation/uuid"
+import { technicalErrorDiagnostic } from "@/lib/logging/technicalError"
 
 
 import { requireCustomerMutationContext } from './actions.part-4'
@@ -626,18 +629,33 @@ export function isBillableCustomerAction(action: string): boolean {
 
 export async function saveCustomerSiteAction(
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerEditResponse> {
+ try {
   const guard = await requireAdminActionAccess({
     anyOf: ["sites.write", "customers.write"],
   });
-  const actor = { id: guard.userId };
+  const actor = await currentSupportSession("ops", guard.userId);
   const supabase = await createSupabaseServerClient();
   const customerId = formValue(formData, "customer_id") ?? "";
   const siteId = formValue(formData, "id") || undefined;
   const { companyId } = await requireCustomerMutationContext(customerId, guard);
-  const siteFlowType = normalizeSwitchRequestType(
-    formValue(formData, "site_flow_type"),
-  );
+  const siteFlowType = formValue(formData, "site_flow_type") || "switch";
+  if (!["switch", "move_in", "move_out_takeover"].includes(siteFlowType)) throw new SiteCommandError("invalid_site_flow", 422);
+
+  const allowedFields = new Set(["customer_id", "id", "expected_site_revision", "idempotency_key", "site_flow_type",
+    "site_name", "facility_id", "site_type", "status", "grid_owner_id", "price_area_code", "new_grid_owner_name",
+    "move_in_date", "annual_consumption_kwh", "current_supplier_name", "current_supplier_org_number",
+    "street", "care_of", "postal_code", "city", "country", "moved_from_street", "moved_from_postal_code",
+    "moved_from_city", "moved_from_supplier_name", "internal_notes"]);
+  for (const key of formData.keys()) {
+    if (!key.startsWith("$ACTION_") && (!allowedFields.has(key) || formData.getAll(key).length !== 1)) {
+      throw new SiteCommandError("invalid_site_command", 422);
+    }
+  }
+  const revisionText = formValue(formData, "expected_site_revision") ?? "";
+  const idempotencyKey = formValue(formData, "idempotency_key") ?? "";
+  if (!/^[0-9]{1,16}$/.test(revisionText) || !Number.isSafeInteger(Number(revisionText)) ||
+      !/^[A-Za-z0-9._:+~-]{8,200}$/.test(idempotencyKey)) throw new SiteCommandError("invalid_site_command", 422);
 
   const before = siteId
     ? await getCustomerSiteById(supabase, siteId, { companyId })
@@ -722,83 +740,32 @@ export async function saveCustomerSiteAction(
     internal_notes: formValue(formData, "internal_notes") || undefined,
   });
 
-  const savedSite = await saveCustomerSite(supabase, parsed);
-
-  const addressResult = await applyCustomerSiteAddressCandidate({
-    companyId,
-    customerId,
-    siteId: savedSite.id,
-    address: {
-      street,
-      postalCode,
-      city,
-      country: formValue(formData, "country") || "SE",
-      careOf: formValue(formData, "care_of"),
-      source: "manual_intake",
-      sourceReference: savedSite.id,
-      actorUserId: actor.id,
-      claimedGridOwnerId: selectedGridOwnerId,
-      metadata: {
-        manual_price_area_hint: normalizePriceAreaOrNull(formValue(formData, "price_area_code")),
-        source: "customer_site_form",
-      },
-    },
+  const { id: _id, company_id: _company, customer_id: _customer, grid_owner_id: _owner, price_area_code: _priceArea, ...changes } = parsed;
+  void _id; void _company; void _customer; void _owner; void _priceArea;
+  const saved = await saveCustomerSiteCommand({
+    companyId, customerId, siteId: siteId ?? null,
+    actor: { kind: "ops", userId: actor.userId, sessionId: actor.sessionId, reason: "OPS customer site form" },
+    expectedRevision: Number(revisionText), idempotencyKey,
+    siteFlowType: siteFlowType as "switch" | "move_in" | "move_out_takeover", changes,
+    addressHints: { claimedGridOwnerId: selectedGridOwnerId, claimedPriceAreaCode: normalizePriceAreaOrNull(formValue(formData, "price_area_code")) },
   });
-
-  if (addressResult.status === "updated" || addressResult.status === "unchanged") {
-    await enqueueCustomerDataRequestAutomation({
-      companyId,
-      customerId,
-      siteId: savedSite.id,
-      actorUserId: actor.id,
-    });
-  }
-
-  await createMissingCustomerDataTasks({
-    companyId,
-    customerId,
-    customerSiteId: savedSite.id,
-    facilityId: savedSite.facility_id,
-    gridOwnerId: savedSite.grid_owner_id,
-    actorUserId: actor.id,
-  });
-
-  const readiness = await syncCustomerOperationsForSite(supabase, {
-    customerId,
-    siteId: savedSite.id,
-  });
-  const supplierSwitchReconcile = await reconcileSupplierSwitchAfterCustomerDataChange({
-    companyId,
-    customerId,
-    siteId: savedSite.id,
-    actorUserId: actor.id,
-    source: "customer_site_saved",
-  }).catch((error) => {
-    console.warn("Supplier switch reconcile after site save failed", error);
-    return null;
-  });
-
-  await insertAuditLog({
-    actorUserId: actor.id,
-    entityType: "customer_site",
-    entityId: savedSite.id,
-    action: before ? "customer_site_updated" : "customer_site_created",
-    oldValues: before,
-    newValues: savedSite,
-    metadata: {
-      customerId,
-      companyId,
-      siteId: savedSite.id,
-      siteFlowType,
-      addressResult,
-      readiness,
-      supplierSwitchReconcile,
-    },
-  });
-
+  // Address provenance/history, result, audit, missing-data tasks and durable
+  // worker intent are committed together. No resolver or dispatch runs in the
+  // form request; the existing worker rechecks its facility and routing gates.
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath("/admin/operations");
   revalidatePath("/admin/operations/tasks");
+  const notice = saved.addressStatus === "conflict"
+    ? "Adressförslaget är sparat för granskning. Den tidigare verifierade adressen gäller tills förslaget har godkänts."
+    : saved.addressStatus === "incomplete"
+      ? "Anläggningsuppgifterna är sparade. Komplettera en fullständig svensk anläggningsadress innan automatisk kontroll kan fortsätta."
+      : undefined;
+  return { ...saved, ...(notice ? { notice } : {}) };
+ } catch (error) {
+  unstable_rethrow(error);
+  if (error instanceof SiteCommandError) return { error: true, code: error.code };
+  return { error: true, code: "site_save_unconfirmed" };
+ }
 }
 
 export async function saveMeteringPointAction(
@@ -941,9 +908,39 @@ export async function saveMeteringPointAction(
   revalidatePath("/admin/operations/tasks");
 }
 
-export async function createCustomerInternalNoteAction(
+export type CustomerInternalNoteReceipt = {
+  noteId: string;
+  customerId: string;
+  companyId: string;
+  actorUserId: string;
+};
+
+function customerInternalNoteReceipt(
+  row: unknown,
+  expected: Omit<CustomerInternalNoteReceipt, "noteId"> & { noteId?: string },
+): CustomerInternalNoteReceipt {
+  const stored = row && typeof row === "object"
+    ? row as Record<string, unknown>
+    : null;
+  let noteId: string | null;
+  try {
+    noteId = normalizeUuidOrNull(stored?.id);
+  } catch {
+    throw new Error("Anteckningens sparade resultat kunde inte verifieras.");
+  }
+  if (!noteId || stored?.customer_id !== expected.customerId ||
+      stored.company_id !== expected.companyId ||
+      stored.created_by !== expected.actorUserId ||
+      (expected.noteId && noteId !== expected.noteId)) {
+    throw new Error("Anteckningens sparade resultat kunde inte verifieras.");
+  }
+  return { noteId, customerId: expected.customerId,
+    companyId: expected.companyId, actorUserId: expected.actorUserId };
+}
+
+async function createGuardedCustomerInternalNote(
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerInternalNoteReceipt> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
   const customerId = formValue(formData, "customer_id") ?? "";
@@ -954,6 +951,11 @@ export async function createCustomerInternalNoteAction(
   }
 
   const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  // masterdata.write belongs to the current canonical company receipt. Keep
+  // legitimate non-owner operators and the authoritative global path intact.
+  if (guard.isPlatformAdmin !== true && guard.companyId !== companyId) {
+    throw new Error("Forbidden");
+  }
 
   const { data, error } = await supabaseService
     .from("customer_internal_notes")
@@ -968,11 +970,14 @@ export async function createCustomerInternalNoteAction(
     .single();
 
   if (error) throw error;
+  const receipt = customerInternalNoteReceipt(data, {
+    customerId, companyId, actorUserId: actor.id,
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: "customer_internal_note",
-    entityId: data.id,
+    entityId: receipt.noteId,
     action: "customer_internal_note_created",
     newValues: data,
     metadata: {
@@ -981,7 +986,42 @@ export async function createCustomerInternalNoteAction(
     },
   });
 
-  revalidatePath(`/admin/customers/${customerId}`);
+  return receipt;
+}
+
+export async function createCustomerInternalNoteAction(
+  formData: FormData,
+): Promise<void> {
+  const receipt = await createGuardedCustomerInternalNote(formData);
+  revalidatePath(`/admin/customers/${receipt.customerId}`);
+}
+
+export async function createCustomerInternalNoteReceiptAction(
+  formData: FormData,
+): Promise<CustomerInternalNoteReceipt> {
+  const receipt = await createGuardedCustomerInternalNote(formData);
+  const { data, error } = await supabaseService
+    .from("customer_internal_notes")
+    .select("id, customer_id, company_id, created_by")
+    .eq("id", receipt.noteId)
+    .eq("customer_id", receipt.customerId)
+    .eq("company_id", receipt.companyId)
+    .eq("created_by", receipt.actorUserId)
+    .maybeSingle();
+  if (error) throw error;
+  const confirmed = customerInternalNoteReceipt(data, receipt);
+
+  // The note and required audit have already persisted and the exact stored
+  // tuple was read again. A cache fault does not undo that qualified receipt.
+  try {
+    revalidatePath(`/admin/customers/${receipt.customerId}`);
+  } catch (error) {
+    unstable_rethrow(error);
+    console.warn("[customer-internal-note] Cache refresh unavailable", {
+      code: technicalErrorDiagnostic(error).code,
+    });
+  }
+  return confirmed;
 }
 
 export async function createPowerOfAttorneyAction(

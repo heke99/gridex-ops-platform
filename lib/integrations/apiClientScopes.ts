@@ -11,6 +11,26 @@ export type ApiPermissionGroup = {
 
 export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
   {
+    groupKey: 'customer_billing_profile',
+    label: 'Ändra kundens faktureringsstandard',
+    description: 'Ändra endast faktureringsstandarden genom ett separat revisionskontrollerat kommando. Kontaktmandat ger inte faktureringsmandat.',
+    category: 'portal',
+    scopes: ['customer_billing.write'],
+    recommendedDefault: false,
+    riskLevel: 'high',
+    sortOrder: 36,
+  },
+  {
+    groupKey: 'customer_support_cases',
+    label: 'Kundens supportärenden',
+    description: 'Läs och fortsätt endast den verifierade kundens egna ärenden. Kräver uttryckligt mandat; äldre portalalias ger inte dessa rättigheter.',
+    category: 'portal',
+    scopes: ['customer_cases.read', 'customer_cases.write'],
+    recommendedDefault: false,
+    riskLevel: 'normal',
+    sortOrder: 35,
+  },
+  {
     groupKey: 'integration_context',
     label: 'Verifiera tenantidentitet',
     description: 'Integrationen får verifiera API-nyckelns opaka tenant_reference utan att exponera internt company_id.',
@@ -185,6 +205,9 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
 ]
 
 export const CUSTOMER_PORTAL_SCOPES = [
+  'customer_billing.write',
+  'customer_cases.read',
+  'customer_cases.write',
   'integration_context.read',
   'website_quotes.write',
   'website_quotes.validate',

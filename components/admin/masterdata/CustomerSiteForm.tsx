@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { useFormStatus } from 'react-dom'
 import type {
  CustomerSiteRow,
  GridOwnerRow,
  PriceAreaRow,
 } from '@/lib/masterdata/types'
 import { saveCustomerSiteAction } from '@/app/admin/customers/[id]/actions'
+import CustomerEditForm from '@/components/admin/customers/CustomerEditForm'
+import { useAdminDraftMemory } from '@/components/admin/AdminUnsavedChanges'
 
 type CustomerSiteFormProps = {
  customerId: string
@@ -16,27 +17,10 @@ type CustomerSiteFormProps = {
  priceAreas: PriceAreaRow[]
  site?: CustomerSiteRow | null
  cancelHref?: string
+ commandKey?: string
 }
 
 type SiteFlowType = 'switch' | 'move_in' | 'move_out_takeover'
-
-function SubmitButton({ isEditing }: { isEditing: boolean }) {
- const { pending } = useFormStatus()
-
- return (
- <button
- type="submit"
- disabled={pending}
- className="inline-flex items-center justify-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 "
- >
- {pending
- ? 'Sparar...'
- : isEditing
- ? 'Spara ändringar'
- : 'Spara anläggning'}
- </button>
- )
-}
 
 function Input({
  name,
@@ -90,13 +74,27 @@ export default function CustomerSiteForm({
  priceAreas,
  site,
  cancelHref,
+ commandKey,
 }: CustomerSiteFormProps) {
  const isEditing = Boolean(site)
- const [siteFlowType, setSiteFlowType] = useState<SiteFlowType>(inferFlowType(site))
+ const revision = isEditing ? site?.site_revision : 0
+ const hasCommandContext = Number.isSafeInteger(revision) && Number(revision) >= 0 && Boolean(commandKey)
+ const draftKey = `site:${customerId}:${site?.id ?? 'new'}`
+ const draftMemory = useAdminDraftMemory()
+ const [siteFlowType, setSiteFlowType] = useState<SiteFlowType>(() => {
+   const restoredFlow = draftMemory.get(draftKey)?.find((field) => field.name === 'site_flow_type')?.value
+   return restoredFlow === 'move_in' || restoredFlow === 'move_out_takeover' || restoredFlow === 'switch'
+     ? restoredFlow : inferFlowType(site)
+ })
 
 
  const selectedGridOwner =
  gridOwners.find((owner) => owner.id === (site?.grid_owner_id ?? '')) ?? null
+ const metadata = site && 'metadata' in site && site.metadata && typeof site.metadata === 'object' && !Array.isArray(site.metadata)
+   ? site.metadata as Record<string, unknown> : {}
+ const priceAreaHint = 'claimed_price_area_code' in metadata
+   ? (['SE1', 'SE2', 'SE3', 'SE4'].includes(String(metadata.claimed_price_area_code)) ? String(metadata.claimed_price_area_code) : '')
+   : site?.price_area_code ?? ''
 
  const flowSummary = useMemo(() => {
  if (siteFlowType === 'move_in') {
@@ -128,8 +126,12 @@ export default function CustomerSiteForm({
  siteFlowType === 'move_in' || siteFlowType === 'move_out_takeover'
 
  return (
- <form
+ <fieldset disabled={!hasCommandContext} className="min-w-0">
+ <CustomerEditForm
  action={saveCustomerSiteAction}
+ submitLabel={isEditing ? 'Spara ändringar' : 'Spara anläggning'}
+ draftKey={draftKey}
+ onCancel={() => setSiteFlowType(inferFlowType(site))}
  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm "
  >
  <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -154,6 +156,10 @@ export default function CustomerSiteForm({
 
  <input type="hidden" name="id" value={site?.id ?? ''} />
  <input type="hidden" name="customer_id" value={customerId} />
+ <input type="hidden" name="expected_site_revision" value={revision ?? ''} />
+ <input type="hidden" name="idempotency_key" defaultValue={commandKey ?? ''} />
+ {!hasCommandContext ? <p role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Sparade revisionsuppgifter saknas. Läs om sidan innan du ändrar anläggningen.</p> : null}
+ <fieldset disabled={!hasCommandContext} className="min-w-0 space-y-4">
 
  <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ">
  <div className="font-semibold text-slate-900 ">
@@ -271,7 +277,7 @@ export default function CustomerSiteForm({
  </span>
  <select
  name="price_area_code"
- defaultValue={site?.price_area_code ?? ''}
+ defaultValue={priceAreaHint}
  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 "
  >
  <option value="">Låt systemet avgöra</option>
@@ -367,8 +373,9 @@ export default function CustomerSiteForm({
  Tillbaka
  </Link>
  ) : null}
- <SubmitButton isEditing={isEditing} />
  </div>
- </form>
+ </fieldset>
+ </CustomerEditForm>
+ </fieldset>
  )
 }

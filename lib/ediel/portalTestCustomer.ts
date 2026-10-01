@@ -1,4 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
+import { changeCustomerAddress } from '@/lib/customer-operations/addressCommand'
+import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import {
   EDIEL_TGT_PRODAT_APPLICATION_REFERENCE,
   EDIEL_TGT_PRODAT_ESCO_APPLICATION_REFERENCE,
@@ -24,6 +27,7 @@ type PortalRegister = {
 
 export type CreateEdielPortalTestCustomerInput = {
   actorUserId: string
+  actorSessionId: string
   companyId: string
   testSuite: EdielTestSuite
   roleCode: EdielTestRoleCode
@@ -792,7 +796,9 @@ async function ensureCustomerAddress(
   params: {
     companyId: string
     customerId: string
-    type: 'registered' | 'billing' | 'facility'
+    actorUserId: string
+    actorSessionId: string
+    type: 'registered' | 'billing'
     street: string | null
     postalCode: string | null
     city: string | null
@@ -816,11 +822,23 @@ async function ensureCustomerAddress(
 
   if (existing) return
 
-  const { error } = await supabase
-    .from('customer_addresses')
-    .insert({
-      company_id: params.companyId,
-      customer_id: params.customerId,
+  const customer = await maybeSingle<AnyRow>(
+    supabase.from('customers').select('address_book_revision')
+      .eq('id', params.customerId).eq('company_id', params.companyId).maybeSingle()
+  )
+  const revision = customer?.address_book_revision
+  if (typeof revision !== 'number' || !Number.isSafeInteger(revision) || revision < 0) {
+    throw new Error('address_book_revision_unavailable')
+  }
+
+  await changeCustomerAddress({
+    companyId: params.companyId,
+    customerId: params.customerId,
+    actor: { kind: 'ops', userId: params.actorUserId, sessionId: params.actorSessionId,
+      reason: 'Ediel portal test customer address' },
+    expectedRevision: revision,
+    idempotencyKey: `ediel.portal.address.${randomUUID()}`,
+    changes: {
       type: params.type,
       street_1: params.street ?? '',
       street_2: null,
@@ -831,9 +849,8 @@ async function ensureCustomerAddress(
       moved_in_at: null,
       moved_out_at: null,
       is_active: true,
-    })
-
-  if (error) throw error
+    },
+  })
 }
 
 async function ensureBillingContact(
@@ -1240,6 +1257,16 @@ export async function createEdielPortalTestCustomerGraph(
 ): Promise<CreateEdielPortalTestCustomerResult> {
   const data = buildPortalTestData(input)
   const companyId = input.companyId
+  // Resolve all write rights for the selected company and the actual current
+  // session before the legacy graph's first mutation. This preflight is not a
+  // transaction token: the address command rechecks live authority under locks.
+  const access = await supabase.rpc('gridex_ediel_portal_test_graph_access_v1', {
+    p_company_id: companyId, p_user_id: input.actorUserId, p_session_id: input.actorSessionId,
+  })
+  if (access.error && ['42883', 'PGRST202'].includes(String(access.error.code))) {
+    throw new PlatformSchemaNotReadyError('Ediel-testkundens aktuella behörighetsgräns är ännu inte tillgänglig.')
+  }
+  if (access.error || access.data !== true) throw new Error('ediel_portal_test_graph_forbidden')
   const gridOwner = await ensureGridOwner(supabase, data, companyId, input.actorUserId)
   const route = await ensureRoute(supabase, gridOwner, data, companyId, input.actorUserId)
   const customer = await ensureCustomer(supabase, data, companyId, input.actorUserId)
@@ -1248,6 +1275,8 @@ export async function createEdielPortalTestCustomerGraph(
   await ensureCustomerAddress(supabase, {
     companyId,
     customerId,
+    actorUserId: input.actorUserId,
+    actorSessionId: input.actorSessionId,
     type: 'registered',
     street: data.customerAddress,
     postalCode: data.customerPostalCode,
@@ -1257,6 +1286,8 @@ export async function createEdielPortalTestCustomerGraph(
   await ensureCustomerAddress(supabase, {
     companyId,
     customerId,
+    actorUserId: input.actorUserId,
+    actorSessionId: input.actorSessionId,
     type: 'billing',
     street: data.billingRecipientAddress,
     postalCode: data.billingRecipientPostalCode,

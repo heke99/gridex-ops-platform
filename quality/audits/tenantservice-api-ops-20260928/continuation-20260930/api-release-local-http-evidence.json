@@ -1,0 +1,1396 @@
+{
+  "scope": "actual local Next HTTP and response-boundary serialization; not hosted/exact-head acceptance",
+  "node": "22.23.3",
+  "next": "16.3.8",
+  "bundler": "webpack via temporary local config; existing CI config remains unchanged",
+  "red_result": "3 failed, 1 passed; 48 of 50 immutable HTTP bodies differ from frozen artifacts",
+  "after_serializer_result": "3 passed, 1 failed; 50 of 50 immutable HTTP bodies equal frozen artifacts; two guide path mismatches remain",
+  "historical_artifact_hashes_unchanged_between_runs": true,
+  "red": {
+    "API_RELEASE_ACTIVE_HTTP_EVIDENCE": [
+      {
+        "contract": "website",
+        "artifact_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+        "canonical_sha256": "920a4dca5bd2f0b73483685e491148e02d324a19eeb0dc1f74221213ecefc5cd",
+        "immutable_sha256": "920a4dca5bd2f0b73483685e491148e02d324a19eeb0dc1f74221213ecefc5cd",
+        "manifest_sha256": "920a4dca5bd2f0b73483685e491148e02d324a19eeb0dc1f74221213ecefc5cd"
+      },
+      {
+        "contract": "customer_portal",
+        "artifact_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+        "canonical_sha256": "45b54b6adf4c93f88abfb877f629b731cca680ee22724dcd355357df60fc064a",
+        "immutable_sha256": "45b54b6adf4c93f88abfb877f629b731cca680ee22724dcd355357df60fc064a",
+        "manifest_sha256": "45b54b6adf4c93f88abfb877f629b731cca680ee22724dcd355357df60fc064a"
+      }
+    ],
+    "API_RELEASE_HISTORICAL_HTTP_EVIDENCE": {
+      "paired_routes": 50,
+      "mismatches": 48,
+      "records": [
+        {
+          "path": "/api/v1/openapi/2026-08-02.1/website-integration-v1.json",
+          "artifact_sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+          "served_sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-02.1/customer-portal-v1.json",
+          "artifact_sha256": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779",
+          "served_sha256": "61d65069a44c9ae5cfde8f3f5a1b4d88da8e1ec89c97bac7f6d66df1154c4f9a",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-03.1/website-integration-v1.json",
+          "artifact_sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+          "served_sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-03.1/customer-portal-v1.json",
+          "artifact_sha256": "6bd12b1bd36b219737e3a3630471e2d7c5cc9a3bcdf049ce370bee9842e180f4",
+          "served_sha256": "6bec57d38c6a64af9c54088f0412531291392333674e565a040f8a31daad82a0",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.1/website-integration-v1.json",
+          "artifact_sha256": "c895d14ac0c309a9d0fb7b4d8a63d705d8122bbcb9797c56235c5883d7e3fa96",
+          "served_sha256": "93929f9090f0768215c46175faec30c7f78d6b5c5ee994524173c3e7645e66a6",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.1/customer-portal-v1.json",
+          "artifact_sha256": "2bb81f17bea1740fe4e63bcacd830df3fa2fcd3179b166b624092b43acd3c39e",
+          "served_sha256": "d46123d2d938a9bd3a2848ee9563c3a7286023a07c6d3a5c965d6b0f2679f9de",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.2/website-integration-v1.json",
+          "artifact_sha256": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6",
+          "served_sha256": "2788aac4d981ed2e7443d50ffe406148d620dc855c5d97a2623cc3160b90249c",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.2/customer-portal-v1.json",
+          "artifact_sha256": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d",
+          "served_sha256": "4d4e837f2404046db7ab1df7e1707c2bce7cedbb0a8cec4c067a1c51d672f9dd",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.3/website-integration-v1.json",
+          "artifact_sha256": "cb646455421d1c56bd94ce11c970ad73560d88b72a9c9940c405ac754c0a6595",
+          "served_sha256": "98065ad6b7109bd88320b472183f24839c7c41b208d420b6d083e96d2ddbac62",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.3/customer-portal-v1.json",
+          "artifact_sha256": "16187883ad4df64ac8e67b9352753d2492369978961c3c84cef0eadb8739d922",
+          "served_sha256": "78bf3f685bc151ef47a9763612592d9a7ba2a4f5aef5acba118afde2df664a4d",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.1/website-integration-v1.json",
+          "artifact_sha256": "341aff52313d55acf7a688a3611482df5ed0a9684ea546c34ba78d99a8ea14d8",
+          "served_sha256": "29090387b008c9bb7cdfd390727948bfee78d7f899730fbaf35cfe0c834a62ae",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.1/customer-portal-v1.json",
+          "artifact_sha256": "038d039aec7a1cec0ccd5a89410b44bc94e9f0876f815d4504f648cae943a06f",
+          "served_sha256": "610d560de333ad6f28019a8c1ca191e7c64852cbadbd7472db62ec8825a96e70",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.2/website-integration-v1.json",
+          "artifact_sha256": "f35131378c66d8364a17b03e6e063287dbe88c82454a61f724c74f08401a8349",
+          "served_sha256": "bca75245a96b3c1cfe8758139aa33e944626937d1f02174232e2706fcb157a79",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.2/customer-portal-v1.json",
+          "artifact_sha256": "2a998b7b8be3780fc9793ab1de742912915a9d4925bfb3246d84b2f1c3d9f65e",
+          "served_sha256": "a2b8c452983308d0d90b45fe379125197b1b03d4e920275388e39d9692d88944",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-10.1/website-integration-v1.json",
+          "artifact_sha256": "0dbe7cd7fb3f14f97fa8785c8809b9d6549ab6e05435757b77b4f010a233519b",
+          "served_sha256": "1f0741696b0b898dff74e1991d2bd67de4e429fe891ec8e76ab679f56986a8d2",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-10.1/customer-portal-v1.json",
+          "artifact_sha256": "5543676bd67f4b55183e2618bb4f9af541936293395b8c650947992b523fb675",
+          "served_sha256": "c39bd3b48166f3807d0ec9032705201333ce763572d0f098eddc741a2243e9bf",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-14.1/website-integration-v1.json",
+          "artifact_sha256": "6726e9d2350d440d15b150afbe1ca5ed3e67ac14a07bd3b29da5c74636865bcd",
+          "served_sha256": "15fe33ae0a5d56e67db0b8f59b86837bd5b46ce5999f6638bc96577058befa1c",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-14.1/customer-portal-v1.json",
+          "artifact_sha256": "e6e667565b9e4760c9590dc02cb130a277edd0b3d5eb4178ed95fccd60df9de5",
+          "served_sha256": "324a2bdd41e3d3dc915c8b5d75e144d37e4401c6688375dfb6b707340a3bd518",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.1/website-integration-v1.json",
+          "artifact_sha256": "f1b6d672e8db8a89056c2a4c353dc74cc8b50a886b38c12d7dcc730630c0b446",
+          "served_sha256": "f1ae22013c65ed303f6b6b52f1460234ebcfd53d73f50c3e5e6137d6182c30cc",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.1/customer-portal-v1.json",
+          "artifact_sha256": "e922976f77636c30839dffbce0235482acaae3cb53e220a3e7990d51983a7783",
+          "served_sha256": "eb665e515456e2d8bcb7eca8481778e27ef75bca7f27e74251f857de6f959e81",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.2/website-integration-v1.json",
+          "artifact_sha256": "43bf200e4f8f5a0d57ad745dcf26d8eb07bd9cbb9ed9e6e98c7d8161f510e7e2",
+          "served_sha256": "0cf1141657063a86266737ce658518e14456ed8a19c6e32590aeb6efa22cce17",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.2/customer-portal-v1.json",
+          "artifact_sha256": "61cbb18bf7897bcd5f0de25ead109dacfbd4f9253b5697739e492b46d64a8503",
+          "served_sha256": "9601ec30bfb47632f2cced96281211a669d5a8cdd5309a839d547d7352e6b0e6",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.1/website-integration-v1.json",
+          "artifact_sha256": "837a2c1beb861265811765446c2ee64c035a51db5eaa1d164f96b067d0b34854",
+          "served_sha256": "1d5f8853842af8a0b34a42a433045adb32a750e8190b4e3124cd07565d831720",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.1/customer-portal-v1.json",
+          "artifact_sha256": "a25bed60e40716f8b99578ce8cb7f3f06318c5ecad0973d913e2bf9e127c9a2b",
+          "served_sha256": "7b10bc3bf6e1e777aece6308d0c27eccd8e124801426e7b23d75e1ce391e2506",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.2/website-integration-v1.json",
+          "artifact_sha256": "35c20cb4d5ce0757557f170f656f13434a9f1c61c31ccc0f368ef81c503eaa29",
+          "served_sha256": "c3f44ca1ec805f219a8b940a6c05b90f32c6399aef48318ea1b61da9d819d8ab",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.2/customer-portal-v1.json",
+          "artifact_sha256": "f061d0023544718fa49204b16ab943bdefc283d3aa6eb273504395f8a2cadc9d",
+          "served_sha256": "cf115699988680e167cde55543994294c7000e58c52d5aaebb9f2a02f268d08b",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.1/website-integration-v1.json",
+          "artifact_sha256": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2",
+          "served_sha256": "e702b5c0ed254737a3a8e97935e57b2a50270cde6d98aac55442000d4fb7a2e0",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.1/customer-portal-v1.json",
+          "artifact_sha256": "e4fc3961b4f7b16e81e23547ba9fbe983c4bb80837a585aed16b8e6b46e9f65a",
+          "served_sha256": "4424cc7d922a37fcd41e1f3abca7915809a49f28ac964aa9011760241efd0065",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.2/website-integration-v1.json",
+          "artifact_sha256": "b5866e352c7c211c98e7f6cb65d2b77b7168ca4667fc7826e1347ef69ae642b9",
+          "served_sha256": "f89637e6138621acd7e4d25d2d7e025ce4b56a68d12b2f984b49d44adfce6dbb",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.2/customer-portal-v1.json",
+          "artifact_sha256": "882c4f203567e9dc28ce27caff9cb5d692674a0f54df3d07b506b7fa03051456",
+          "served_sha256": "f5c8909c37a88eece134a3c4db8f885e2f1a1699c58e5fe987c5b5fa4d61caf8",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.1/website-integration-v1.json",
+          "artifact_sha256": "49efba567e8d8b67a24a62dd195355e546fbc43933b966e1f46878fa5c91dcac",
+          "served_sha256": "f394d7ec21e5c4f20492c616c2b219f9b76a92b8d7aacfaa7e16b563e5689756",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.1/customer-portal-v1.json",
+          "artifact_sha256": "c3d5500a84baa2d12cac3f4ad210ab52998988b1da247699755149bb47a42434",
+          "served_sha256": "304f9d0f0d052008750e7260d21b51057fc823bf72766c818325af33084fcfac",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.2/website-integration-v1.json",
+          "artifact_sha256": "2e5a4b5c3838921f77de372e098f9d755f73e476e6259df22d4a7f0542302898",
+          "served_sha256": "64c0ec67b97742b15955b772ede318c9d0a825805f26ba4c6a58330af7764695",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.2/customer-portal-v1.json",
+          "artifact_sha256": "e417efa75e9def5e266f5de1c44c510ee198de4ab2b19690515ce7768e626e6f",
+          "served_sha256": "71f1d6e1d921458781b1d1620f4e8b533a89ea040b039c75bac26633dcffc64d",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.3/website-integration-v1.json",
+          "artifact_sha256": "db2de3253fe2f1e0444b2cea136bb787d9712bfa0e5b23c960ee25c8db3bab34",
+          "served_sha256": "99ce1038a6e283da899887d021bf533406380e5e5d580fd237a497fe2d11a314",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.3/customer-portal-v1.json",
+          "artifact_sha256": "7a766b66a7cee19b3abd0eaaa846426f313e8a109b6368bbd313a1d0c74c822b",
+          "served_sha256": "8d31b6115c166c3ce5039641768d977759532853f4eca0a0b4fd9e78b7b0ef48",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.4/website-integration-v1.json",
+          "artifact_sha256": "fe69b84e32aef04c8036b898fae5661687aa111ce36775a5dc406030c07d9c80",
+          "served_sha256": "51aaac69947ce2378e89aea68fd6359ef4e2bbda869b93f66ec22064c8ced50a",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.4/customer-portal-v1.json",
+          "artifact_sha256": "075ba2eb5a6c356c206adc1bcbc6dd5da64e4c3a00007a4828aae6c50750e6fe",
+          "served_sha256": "4256db886246974206d145264d457593c60adcefa16c3511655f47a177595d56",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.5/website-integration-v1.json",
+          "artifact_sha256": "7fcdd7d74cb9fd471f5c81c972ad172dd9436b18c0a6640d9b724f6050810c91",
+          "served_sha256": "26adefbb7d0c5e3162691e77017ca2ec14690f51b327cba3f3583df717a3749b",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.5/customer-portal-v1.json",
+          "artifact_sha256": "8a0e53c0c10d8d3901120bde6750a34adbba96f8db2957bf52e76b0c6e1f2361",
+          "served_sha256": "8a8d8c6427696b3c0a03d7da289809a850d5c953b4748b1f12ea8f669054f351",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.6/website-integration-v1.json",
+          "artifact_sha256": "8f5c8c880fbf0ef8a67abfad8e1a110944047cb703acb20bf4100be456bebc23",
+          "served_sha256": "97d87af4e6261761bdfd3efc1474f64bf57c8b0d4021b4bf710fc126c28ce5a3",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.6/customer-portal-v1.json",
+          "artifact_sha256": "9a9bcb31e3a7b9312562d7edd98489da8b934a3a13fc68c0f6eb8765adfda5c4",
+          "served_sha256": "599e7ec71741d0390e3dfd580f419223b0567af7e5fd0f7b90fe1dfae08d44f8",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.7/website-integration-v1.json",
+          "artifact_sha256": "282fc7587bd91e54298b659b8c74e0267cca0600c0eff45b58deef645e3e6061",
+          "served_sha256": "4ac639dfea8482b2f58dc005be09dd8fde17b1bd5d0f1928d299e5e4f525bc38",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.7/customer-portal-v1.json",
+          "artifact_sha256": "746f80bc11ad83bbef926545af46896067efb5b5d666384ee94d911d62a8a720",
+          "served_sha256": "17cf6e07e962c1b25729ef3784f15bb3adbad2e7dee1de2d08214d0c77c9a7c7",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.8/website-integration-v1.json",
+          "artifact_sha256": "3cdf3f8fb4de8aeefd23078844930adbff833110a87691a2eca3a92c6f29cb7b",
+          "served_sha256": "ed1aa0331dad698801484df10c6e2c02b386e54507e59c13cd987a874dcae324",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.8/customer-portal-v1.json",
+          "artifact_sha256": "529e4ae5cc2519dfd4036d15c86a59a580019cba94b6a81cfd0633412542b257",
+          "served_sha256": "7c968e5cc33b83b75042a70fdba21cd03d8d2ed0f9cf120c988e771468c23e92",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.1/website-integration-v1.json",
+          "artifact_sha256": "a1e78bb1098dbd7736f4d80c3d292cfcc4c5c1928d457ab612960d55318b16cc",
+          "served_sha256": "33c91f5d5a78673a3c53da57903c036f506802e4c645e321b085e109bdb6aa4b",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.1/customer-portal-v1.json",
+          "artifact_sha256": "e667516da52aa2f01e0c1e7f7d50f466540ff2a7579c7644d3a3ce6d6842e67d",
+          "served_sha256": "4111327c836b7cd2be7fb70607b93c3ea35992abb9628b1ec4c9f0f8e6717cb8",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.2/website-integration-v1.json",
+          "artifact_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+          "served_sha256": "920a4dca5bd2f0b73483685e491148e02d324a19eeb0dc1f74221213ecefc5cd",
+          "exact_bytes": false
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.2/customer-portal-v1.json",
+          "artifact_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+          "served_sha256": "45b54b6adf4c93f88abfb877f629b731cca680ee22724dcd355357df60fc064a",
+          "exact_bytes": false
+        }
+      ]
+    },
+    "passed_markers": [
+      "API_RELEASE_REFERENCE_CLIENT_RUNTIME_HTTP_PASS source=actual_client server=actual_local_next status=401 error=malformed_authorization release_envelope=true authenticated_journey_not_claimed=true"
+    ],
+    "API_RELEASE_GUIDE_CLIENT_HTTP_EVIDENCE": {
+      "version": "2026-09-30.2",
+      "rendered_portal": [
+        "GET /api/v1/customer/cases",
+        "GET /api/v1/customer/cases/{reference}/attachments",
+        "GET /api/v1/customer/cases/{reference}/messages",
+        "GET /api/v1/customer/contracts",
+        "GET /api/v1/customer/documents",
+        "GET /api/v1/customer/events",
+        "GET /api/v1/customer/invoices",
+        "GET /api/v1/customer/invoices/[id]",
+        "GET /api/v1/customer/legal-acceptances",
+        "GET /api/v1/customer/me",
+        "GET /api/v1/customer/metering-values",
+        "GET /api/v1/customer/notifications",
+        "GET /api/v1/customer/portal-bundle",
+        "GET /api/v1/customer/powers-of-attorney",
+        "GET /api/v1/customer/sites",
+        "POST /api/v1/customer-portal/sync",
+        "POST /api/v1/customer/cases",
+        "POST /api/v1/customer/cases/{reference}/attachments",
+        "POST /api/v1/customer/cases/{reference}/messages",
+        "POST /api/v1/customer/move-out",
+        "POST /api/v1/customer/notifications/read",
+        "POST /api/v1/customer/portal-bundle",
+        "POST /api/v1/customer/profile-update",
+        "POST /api/v1/customer/sync"
+      ],
+      "expected_portal": [
+        "GET /api/v1/customer/cases",
+        "GET /api/v1/customer/cases/{reference}/attachments",
+        "GET /api/v1/customer/cases/{reference}/messages",
+        "GET /api/v1/customer/contracts",
+        "GET /api/v1/customer/documents",
+        "GET /api/v1/customer/events",
+        "GET /api/v1/customer/invoices",
+        "GET /api/v1/customer/invoices/{id}",
+        "GET /api/v1/customer/legal-acceptances",
+        "GET /api/v1/customer/me",
+        "GET /api/v1/customer/metering-values",
+        "GET /api/v1/customer/notifications",
+        "GET /api/v1/customer/portal-bundle",
+        "GET /api/v1/customer/powers-of-attorney",
+        "GET /api/v1/customer/sites",
+        "POST /api/v1/customer-portal/sync",
+        "POST /api/v1/customer/cases",
+        "POST /api/v1/customer/cases/{reference}/attachments",
+        "POST /api/v1/customer/cases/{reference}/messages",
+        "POST /api/v1/customer/move-out",
+        "POST /api/v1/customer/notifications/read",
+        "POST /api/v1/customer/portal-bundle",
+        "POST /api/v1/customer/profile-update",
+        "POST /api/v1/customer/sync"
+      ],
+      "rendered_website": [
+        "GET /api/v1/events",
+        "GET /api/v1/integration/context",
+        "GET /api/v1/openapi/customer-portal-v1.json",
+        "GET /api/v1/openapi/release-manifest.json",
+        "GET /api/v1/openapi/website-integration-v1.json",
+        "GET /api/v1/public-contracts",
+        "GET /api/v1/website/customer-applications/[application_number]",
+        "GET /api/v1/website/legal-bundle",
+        "GET /api/v1/website/portfolio-prices",
+        "GET /api/v1/website/public-contracts",
+        "GET /api/v1/website/switch-status",
+        "POST /api/v1/events",
+        "POST /api/v1/website/customer-applications",
+        "POST /api/v1/website/customer-events",
+        "POST /api/v1/website/energy-area/resolve",
+        "POST /api/v1/website/market-price/current",
+        "POST /api/v1/website/quote",
+        "POST /api/v1/website/quote/validate"
+      ],
+      "expected_website": [
+        "GET /api/v1/events",
+        "GET /api/v1/integration/context",
+        "GET /api/v1/openapi/customer-portal-v1.json",
+        "GET /api/v1/openapi/release-manifest.json",
+        "GET /api/v1/openapi/website-integration-v1.json",
+        "GET /api/v1/public-contracts",
+        "GET /api/v1/website/customer-applications/{application_number}",
+        "GET /api/v1/website/legal-bundle",
+        "GET /api/v1/website/portfolio-prices",
+        "GET /api/v1/website/public-contracts",
+        "GET /api/v1/website/switch-status",
+        "POST /api/v1/events",
+        "POST /api/v1/website/customer-applications",
+        "POST /api/v1/website/customer-events",
+        "POST /api/v1/website/energy-area/resolve",
+        "POST /api/v1/website/market-price/current",
+        "POST /api/v1/website/quote",
+        "POST /api/v1/website/quote/validate"
+      ],
+      "client_resource_paths": [
+        "/api/v1/customer/cases",
+        "/api/v1/customer/cases/{reference}/attachments",
+        "/api/v1/customer/cases/{reference}/messages",
+        "/api/v1/customer/contracts",
+        "/api/v1/customer/documents",
+        "/api/v1/customer/events",
+        "/api/v1/customer/invoices",
+        "/api/v1/customer/invoices/{reference}",
+        "/api/v1/customer/legal-acceptances",
+        "/api/v1/customer/me",
+        "/api/v1/customer/metering-values",
+        "/api/v1/customer/notifications",
+        "/api/v1/customer/notifications/read",
+        "/api/v1/customer/powers-of-attorney",
+        "/api/v1/customer/profile-update",
+        "/api/v1/customer/sites"
+      ],
+      "actual_rendered_guide": true,
+      "client_authenticated_journey_not_claimed": true
+    }
+  },
+  "after_serializer": {
+    "API_RELEASE_ACTIVE_HTTP_EVIDENCE": [
+      {
+        "contract": "website",
+        "artifact_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+        "canonical_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+        "immutable_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+        "manifest_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19"
+      },
+      {
+        "contract": "customer_portal",
+        "artifact_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+        "canonical_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+        "immutable_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+        "manifest_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976"
+      }
+    ],
+    "passed_markers": [
+      "API_RELEASE_ACTIVE_HTTP_PASS exact_artifacts=true canonical_immutable_manifest=true etag_304=true",
+      "API_RELEASE_HISTORICAL_HTTP_PASS paired_routes=50 exact_artifacts=true frozen_inputs_unchanged=true",
+      "API_RELEASE_REFERENCE_CLIENT_RUNTIME_HTTP_PASS source=actual_client server=actual_local_next status=401 error=malformed_authorization release_envelope=true authenticated_journey_not_claimed=true"
+    ],
+    "API_RELEASE_HISTORICAL_HTTP_EVIDENCE": {
+      "paired_routes": 50,
+      "mismatches": 0,
+      "records": [
+        {
+          "path": "/api/v1/openapi/2026-08-02.1/website-integration-v1.json",
+          "artifact_sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+          "served_sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-02.1/customer-portal-v1.json",
+          "artifact_sha256": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779",
+          "served_sha256": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-03.1/website-integration-v1.json",
+          "artifact_sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+          "served_sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-03.1/customer-portal-v1.json",
+          "artifact_sha256": "6bd12b1bd36b219737e3a3630471e2d7c5cc9a3bcdf049ce370bee9842e180f4",
+          "served_sha256": "6bd12b1bd36b219737e3a3630471e2d7c5cc9a3bcdf049ce370bee9842e180f4",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.1/website-integration-v1.json",
+          "artifact_sha256": "c895d14ac0c309a9d0fb7b4d8a63d705d8122bbcb9797c56235c5883d7e3fa96",
+          "served_sha256": "c895d14ac0c309a9d0fb7b4d8a63d705d8122bbcb9797c56235c5883d7e3fa96",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.1/customer-portal-v1.json",
+          "artifact_sha256": "2bb81f17bea1740fe4e63bcacd830df3fa2fcd3179b166b624092b43acd3c39e",
+          "served_sha256": "2bb81f17bea1740fe4e63bcacd830df3fa2fcd3179b166b624092b43acd3c39e",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.2/website-integration-v1.json",
+          "artifact_sha256": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6",
+          "served_sha256": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.2/customer-portal-v1.json",
+          "artifact_sha256": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d",
+          "served_sha256": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.3/website-integration-v1.json",
+          "artifact_sha256": "cb646455421d1c56bd94ce11c970ad73560d88b72a9c9940c405ac754c0a6595",
+          "served_sha256": "cb646455421d1c56bd94ce11c970ad73560d88b72a9c9940c405ac754c0a6595",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.3/customer-portal-v1.json",
+          "artifact_sha256": "16187883ad4df64ac8e67b9352753d2492369978961c3c84cef0eadb8739d922",
+          "served_sha256": "16187883ad4df64ac8e67b9352753d2492369978961c3c84cef0eadb8739d922",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.1/website-integration-v1.json",
+          "artifact_sha256": "341aff52313d55acf7a688a3611482df5ed0a9684ea546c34ba78d99a8ea14d8",
+          "served_sha256": "341aff52313d55acf7a688a3611482df5ed0a9684ea546c34ba78d99a8ea14d8",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.1/customer-portal-v1.json",
+          "artifact_sha256": "038d039aec7a1cec0ccd5a89410b44bc94e9f0876f815d4504f648cae943a06f",
+          "served_sha256": "038d039aec7a1cec0ccd5a89410b44bc94e9f0876f815d4504f648cae943a06f",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.2/website-integration-v1.json",
+          "artifact_sha256": "f35131378c66d8364a17b03e6e063287dbe88c82454a61f724c74f08401a8349",
+          "served_sha256": "f35131378c66d8364a17b03e6e063287dbe88c82454a61f724c74f08401a8349",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.2/customer-portal-v1.json",
+          "artifact_sha256": "2a998b7b8be3780fc9793ab1de742912915a9d4925bfb3246d84b2f1c3d9f65e",
+          "served_sha256": "2a998b7b8be3780fc9793ab1de742912915a9d4925bfb3246d84b2f1c3d9f65e",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-10.1/website-integration-v1.json",
+          "artifact_sha256": "0dbe7cd7fb3f14f97fa8785c8809b9d6549ab6e05435757b77b4f010a233519b",
+          "served_sha256": "0dbe7cd7fb3f14f97fa8785c8809b9d6549ab6e05435757b77b4f010a233519b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-10.1/customer-portal-v1.json",
+          "artifact_sha256": "5543676bd67f4b55183e2618bb4f9af541936293395b8c650947992b523fb675",
+          "served_sha256": "5543676bd67f4b55183e2618bb4f9af541936293395b8c650947992b523fb675",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-14.1/website-integration-v1.json",
+          "artifact_sha256": "6726e9d2350d440d15b150afbe1ca5ed3e67ac14a07bd3b29da5c74636865bcd",
+          "served_sha256": "6726e9d2350d440d15b150afbe1ca5ed3e67ac14a07bd3b29da5c74636865bcd",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-14.1/customer-portal-v1.json",
+          "artifact_sha256": "e6e667565b9e4760c9590dc02cb130a277edd0b3d5eb4178ed95fccd60df9de5",
+          "served_sha256": "e6e667565b9e4760c9590dc02cb130a277edd0b3d5eb4178ed95fccd60df9de5",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.1/website-integration-v1.json",
+          "artifact_sha256": "f1b6d672e8db8a89056c2a4c353dc74cc8b50a886b38c12d7dcc730630c0b446",
+          "served_sha256": "f1b6d672e8db8a89056c2a4c353dc74cc8b50a886b38c12d7dcc730630c0b446",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.1/customer-portal-v1.json",
+          "artifact_sha256": "e922976f77636c30839dffbce0235482acaae3cb53e220a3e7990d51983a7783",
+          "served_sha256": "e922976f77636c30839dffbce0235482acaae3cb53e220a3e7990d51983a7783",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.2/website-integration-v1.json",
+          "artifact_sha256": "43bf200e4f8f5a0d57ad745dcf26d8eb07bd9cbb9ed9e6e98c7d8161f510e7e2",
+          "served_sha256": "43bf200e4f8f5a0d57ad745dcf26d8eb07bd9cbb9ed9e6e98c7d8161f510e7e2",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.2/customer-portal-v1.json",
+          "artifact_sha256": "61cbb18bf7897bcd5f0de25ead109dacfbd4f9253b5697739e492b46d64a8503",
+          "served_sha256": "61cbb18bf7897bcd5f0de25ead109dacfbd4f9253b5697739e492b46d64a8503",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.1/website-integration-v1.json",
+          "artifact_sha256": "837a2c1beb861265811765446c2ee64c035a51db5eaa1d164f96b067d0b34854",
+          "served_sha256": "837a2c1beb861265811765446c2ee64c035a51db5eaa1d164f96b067d0b34854",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.1/customer-portal-v1.json",
+          "artifact_sha256": "a25bed60e40716f8b99578ce8cb7f3f06318c5ecad0973d913e2bf9e127c9a2b",
+          "served_sha256": "a25bed60e40716f8b99578ce8cb7f3f06318c5ecad0973d913e2bf9e127c9a2b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.2/website-integration-v1.json",
+          "artifact_sha256": "35c20cb4d5ce0757557f170f656f13434a9f1c61c31ccc0f368ef81c503eaa29",
+          "served_sha256": "35c20cb4d5ce0757557f170f656f13434a9f1c61c31ccc0f368ef81c503eaa29",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.2/customer-portal-v1.json",
+          "artifact_sha256": "f061d0023544718fa49204b16ab943bdefc283d3aa6eb273504395f8a2cadc9d",
+          "served_sha256": "f061d0023544718fa49204b16ab943bdefc283d3aa6eb273504395f8a2cadc9d",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.1/website-integration-v1.json",
+          "artifact_sha256": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2",
+          "served_sha256": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.1/customer-portal-v1.json",
+          "artifact_sha256": "e4fc3961b4f7b16e81e23547ba9fbe983c4bb80837a585aed16b8e6b46e9f65a",
+          "served_sha256": "e4fc3961b4f7b16e81e23547ba9fbe983c4bb80837a585aed16b8e6b46e9f65a",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.2/website-integration-v1.json",
+          "artifact_sha256": "b5866e352c7c211c98e7f6cb65d2b77b7168ca4667fc7826e1347ef69ae642b9",
+          "served_sha256": "b5866e352c7c211c98e7f6cb65d2b77b7168ca4667fc7826e1347ef69ae642b9",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.2/customer-portal-v1.json",
+          "artifact_sha256": "882c4f203567e9dc28ce27caff9cb5d692674a0f54df3d07b506b7fa03051456",
+          "served_sha256": "882c4f203567e9dc28ce27caff9cb5d692674a0f54df3d07b506b7fa03051456",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.1/website-integration-v1.json",
+          "artifact_sha256": "49efba567e8d8b67a24a62dd195355e546fbc43933b966e1f46878fa5c91dcac",
+          "served_sha256": "49efba567e8d8b67a24a62dd195355e546fbc43933b966e1f46878fa5c91dcac",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.1/customer-portal-v1.json",
+          "artifact_sha256": "c3d5500a84baa2d12cac3f4ad210ab52998988b1da247699755149bb47a42434",
+          "served_sha256": "c3d5500a84baa2d12cac3f4ad210ab52998988b1da247699755149bb47a42434",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.2/website-integration-v1.json",
+          "artifact_sha256": "2e5a4b5c3838921f77de372e098f9d755f73e476e6259df22d4a7f0542302898",
+          "served_sha256": "2e5a4b5c3838921f77de372e098f9d755f73e476e6259df22d4a7f0542302898",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.2/customer-portal-v1.json",
+          "artifact_sha256": "e417efa75e9def5e266f5de1c44c510ee198de4ab2b19690515ce7768e626e6f",
+          "served_sha256": "e417efa75e9def5e266f5de1c44c510ee198de4ab2b19690515ce7768e626e6f",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.3/website-integration-v1.json",
+          "artifact_sha256": "db2de3253fe2f1e0444b2cea136bb787d9712bfa0e5b23c960ee25c8db3bab34",
+          "served_sha256": "db2de3253fe2f1e0444b2cea136bb787d9712bfa0e5b23c960ee25c8db3bab34",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.3/customer-portal-v1.json",
+          "artifact_sha256": "7a766b66a7cee19b3abd0eaaa846426f313e8a109b6368bbd313a1d0c74c822b",
+          "served_sha256": "7a766b66a7cee19b3abd0eaaa846426f313e8a109b6368bbd313a1d0c74c822b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.4/website-integration-v1.json",
+          "artifact_sha256": "fe69b84e32aef04c8036b898fae5661687aa111ce36775a5dc406030c07d9c80",
+          "served_sha256": "fe69b84e32aef04c8036b898fae5661687aa111ce36775a5dc406030c07d9c80",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.4/customer-portal-v1.json",
+          "artifact_sha256": "075ba2eb5a6c356c206adc1bcbc6dd5da64e4c3a00007a4828aae6c50750e6fe",
+          "served_sha256": "075ba2eb5a6c356c206adc1bcbc6dd5da64e4c3a00007a4828aae6c50750e6fe",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.5/website-integration-v1.json",
+          "artifact_sha256": "7fcdd7d74cb9fd471f5c81c972ad172dd9436b18c0a6640d9b724f6050810c91",
+          "served_sha256": "7fcdd7d74cb9fd471f5c81c972ad172dd9436b18c0a6640d9b724f6050810c91",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.5/customer-portal-v1.json",
+          "artifact_sha256": "8a0e53c0c10d8d3901120bde6750a34adbba96f8db2957bf52e76b0c6e1f2361",
+          "served_sha256": "8a0e53c0c10d8d3901120bde6750a34adbba96f8db2957bf52e76b0c6e1f2361",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.6/website-integration-v1.json",
+          "artifact_sha256": "8f5c8c880fbf0ef8a67abfad8e1a110944047cb703acb20bf4100be456bebc23",
+          "served_sha256": "8f5c8c880fbf0ef8a67abfad8e1a110944047cb703acb20bf4100be456bebc23",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.6/customer-portal-v1.json",
+          "artifact_sha256": "9a9bcb31e3a7b9312562d7edd98489da8b934a3a13fc68c0f6eb8765adfda5c4",
+          "served_sha256": "9a9bcb31e3a7b9312562d7edd98489da8b934a3a13fc68c0f6eb8765adfda5c4",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.7/website-integration-v1.json",
+          "artifact_sha256": "282fc7587bd91e54298b659b8c74e0267cca0600c0eff45b58deef645e3e6061",
+          "served_sha256": "282fc7587bd91e54298b659b8c74e0267cca0600c0eff45b58deef645e3e6061",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.7/customer-portal-v1.json",
+          "artifact_sha256": "746f80bc11ad83bbef926545af46896067efb5b5d666384ee94d911d62a8a720",
+          "served_sha256": "746f80bc11ad83bbef926545af46896067efb5b5d666384ee94d911d62a8a720",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.8/website-integration-v1.json",
+          "artifact_sha256": "3cdf3f8fb4de8aeefd23078844930adbff833110a87691a2eca3a92c6f29cb7b",
+          "served_sha256": "3cdf3f8fb4de8aeefd23078844930adbff833110a87691a2eca3a92c6f29cb7b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.8/customer-portal-v1.json",
+          "artifact_sha256": "529e4ae5cc2519dfd4036d15c86a59a580019cba94b6a81cfd0633412542b257",
+          "served_sha256": "529e4ae5cc2519dfd4036d15c86a59a580019cba94b6a81cfd0633412542b257",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.1/website-integration-v1.json",
+          "artifact_sha256": "a1e78bb1098dbd7736f4d80c3d292cfcc4c5c1928d457ab612960d55318b16cc",
+          "served_sha256": "a1e78bb1098dbd7736f4d80c3d292cfcc4c5c1928d457ab612960d55318b16cc",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.1/customer-portal-v1.json",
+          "artifact_sha256": "e667516da52aa2f01e0c1e7f7d50f466540ff2a7579c7644d3a3ce6d6842e67d",
+          "served_sha256": "e667516da52aa2f01e0c1e7f7d50f466540ff2a7579c7644d3a3ce6d6842e67d",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.2/website-integration-v1.json",
+          "artifact_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+          "served_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.2/customer-portal-v1.json",
+          "artifact_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+          "served_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+          "exact_bytes": true
+        }
+      ]
+    },
+    "API_RELEASE_GUIDE_CLIENT_HTTP_EVIDENCE": {
+      "version": "2026-09-30.2",
+      "rendered_portal": [
+        "GET /api/v1/customer/cases",
+        "GET /api/v1/customer/cases/{reference}/attachments",
+        "GET /api/v1/customer/cases/{reference}/messages",
+        "GET /api/v1/customer/contracts",
+        "GET /api/v1/customer/documents",
+        "GET /api/v1/customer/events",
+        "GET /api/v1/customer/invoices",
+        "GET /api/v1/customer/invoices/[id]",
+        "GET /api/v1/customer/legal-acceptances",
+        "GET /api/v1/customer/me",
+        "GET /api/v1/customer/metering-values",
+        "GET /api/v1/customer/notifications",
+        "GET /api/v1/customer/portal-bundle",
+        "GET /api/v1/customer/powers-of-attorney",
+        "GET /api/v1/customer/sites",
+        "POST /api/v1/customer-portal/sync",
+        "POST /api/v1/customer/cases",
+        "POST /api/v1/customer/cases/{reference}/attachments",
+        "POST /api/v1/customer/cases/{reference}/messages",
+        "POST /api/v1/customer/move-out",
+        "POST /api/v1/customer/notifications/read",
+        "POST /api/v1/customer/portal-bundle",
+        "POST /api/v1/customer/profile-update",
+        "POST /api/v1/customer/sync"
+      ],
+      "expected_portal": [
+        "GET /api/v1/customer/cases",
+        "GET /api/v1/customer/cases/{reference}/attachments",
+        "GET /api/v1/customer/cases/{reference}/messages",
+        "GET /api/v1/customer/contracts",
+        "GET /api/v1/customer/documents",
+        "GET /api/v1/customer/events",
+        "GET /api/v1/customer/invoices",
+        "GET /api/v1/customer/invoices/{id}",
+        "GET /api/v1/customer/legal-acceptances",
+        "GET /api/v1/customer/me",
+        "GET /api/v1/customer/metering-values",
+        "GET /api/v1/customer/notifications",
+        "GET /api/v1/customer/portal-bundle",
+        "GET /api/v1/customer/powers-of-attorney",
+        "GET /api/v1/customer/sites",
+        "POST /api/v1/customer-portal/sync",
+        "POST /api/v1/customer/cases",
+        "POST /api/v1/customer/cases/{reference}/attachments",
+        "POST /api/v1/customer/cases/{reference}/messages",
+        "POST /api/v1/customer/move-out",
+        "POST /api/v1/customer/notifications/read",
+        "POST /api/v1/customer/portal-bundle",
+        "POST /api/v1/customer/profile-update",
+        "POST /api/v1/customer/sync"
+      ],
+      "rendered_website": [
+        "GET /api/v1/events",
+        "GET /api/v1/integration/context",
+        "GET /api/v1/openapi/customer-portal-v1.json",
+        "GET /api/v1/openapi/release-manifest.json",
+        "GET /api/v1/openapi/website-integration-v1.json",
+        "GET /api/v1/public-contracts",
+        "GET /api/v1/website/customer-applications/[application_number]",
+        "GET /api/v1/website/legal-bundle",
+        "GET /api/v1/website/portfolio-prices",
+        "GET /api/v1/website/public-contracts",
+        "GET /api/v1/website/switch-status",
+        "POST /api/v1/events",
+        "POST /api/v1/website/customer-applications",
+        "POST /api/v1/website/customer-events",
+        "POST /api/v1/website/energy-area/resolve",
+        "POST /api/v1/website/market-price/current",
+        "POST /api/v1/website/quote",
+        "POST /api/v1/website/quote/validate"
+      ],
+      "expected_website": [
+        "GET /api/v1/events",
+        "GET /api/v1/integration/context",
+        "GET /api/v1/openapi/customer-portal-v1.json",
+        "GET /api/v1/openapi/release-manifest.json",
+        "GET /api/v1/openapi/website-integration-v1.json",
+        "GET /api/v1/public-contracts",
+        "GET /api/v1/website/customer-applications/{application_number}",
+        "GET /api/v1/website/legal-bundle",
+        "GET /api/v1/website/portfolio-prices",
+        "GET /api/v1/website/public-contracts",
+        "GET /api/v1/website/switch-status",
+        "POST /api/v1/events",
+        "POST /api/v1/website/customer-applications",
+        "POST /api/v1/website/customer-events",
+        "POST /api/v1/website/energy-area/resolve",
+        "POST /api/v1/website/market-price/current",
+        "POST /api/v1/website/quote",
+        "POST /api/v1/website/quote/validate"
+      ],
+      "client_resource_paths": [
+        "/api/v1/customer/cases",
+        "/api/v1/customer/cases/{reference}/attachments",
+        "/api/v1/customer/cases/{reference}/messages",
+        "/api/v1/customer/contracts",
+        "/api/v1/customer/documents",
+        "/api/v1/customer/events",
+        "/api/v1/customer/invoices",
+        "/api/v1/customer/invoices/{reference}",
+        "/api/v1/customer/legal-acceptances",
+        "/api/v1/customer/me",
+        "/api/v1/customer/metering-values",
+        "/api/v1/customer/notifications",
+        "/api/v1/customer/notifications/read",
+        "/api/v1/customer/powers-of-attorney",
+        "/api/v1/customer/profile-update",
+        "/api/v1/customer/sites"
+      ],
+      "actual_rendered_guide": true,
+      "client_authenticated_journey_not_claimed": true
+    }
+  },
+  "verified_source_sha256": {
+    "lib/integrations/openApiResponse.ts": "4fbe3950812708cd193aef992fd7aeede0665ea9184745437bcda6492e0d1c37",
+    "__tests__/openapi-immutable-serialization-20260930.test.ts": "76c23aacff6e7466f48b2f15db6b571bb81effb69e27da9315f6b94259cbbbb9",
+    "__tests__/openapi-release-metadata.test.ts": "b951933bfe93d6a4250a679f7b088f2c5b967ca91df90b675381164b8ef5ef92",
+    "e2e/browser/api-release-local.spec.mjs": "fd87ff791d7e9909981e09c5984e4fa2fc87ea1e544fba19ec4acbdabce5d903"
+  },
+  "final_release_result": "4 passed (40.9s); 52/52 exact immutable routes; active/manifest hashes, actual guide24+18/client16 parity and actual configured client401 envelope pass",
+  "final_release_2026_09_30_3": {
+    "API_RELEASE_ACTIVE_HTTP_EVIDENCE": [
+      {
+        "contract": "website",
+        "artifact_sha256": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812",
+        "canonical_sha256": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812",
+        "immutable_sha256": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812",
+        "manifest_sha256": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812"
+      },
+      {
+        "contract": "customer_portal",
+        "artifact_sha256": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547",
+        "canonical_sha256": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547",
+        "immutable_sha256": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547",
+        "manifest_sha256": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547"
+      }
+    ],
+    "API_RELEASE_HISTORICAL_HTTP_EVIDENCE": {
+      "paired_routes": 52,
+      "mismatches": 0,
+      "records": [
+        {
+          "path": "/api/v1/openapi/2026-08-02.1/website-integration-v1.json",
+          "artifact_sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+          "served_sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-02.1/customer-portal-v1.json",
+          "artifact_sha256": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779",
+          "served_sha256": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-03.1/website-integration-v1.json",
+          "artifact_sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+          "served_sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-03.1/customer-portal-v1.json",
+          "artifact_sha256": "6bd12b1bd36b219737e3a3630471e2d7c5cc9a3bcdf049ce370bee9842e180f4",
+          "served_sha256": "6bd12b1bd36b219737e3a3630471e2d7c5cc9a3bcdf049ce370bee9842e180f4",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.1/website-integration-v1.json",
+          "artifact_sha256": "c895d14ac0c309a9d0fb7b4d8a63d705d8122bbcb9797c56235c5883d7e3fa96",
+          "served_sha256": "c895d14ac0c309a9d0fb7b4d8a63d705d8122bbcb9797c56235c5883d7e3fa96",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.1/customer-portal-v1.json",
+          "artifact_sha256": "2bb81f17bea1740fe4e63bcacd830df3fa2fcd3179b166b624092b43acd3c39e",
+          "served_sha256": "2bb81f17bea1740fe4e63bcacd830df3fa2fcd3179b166b624092b43acd3c39e",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.2/website-integration-v1.json",
+          "artifact_sha256": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6",
+          "served_sha256": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.2/customer-portal-v1.json",
+          "artifact_sha256": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d",
+          "served_sha256": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.3/website-integration-v1.json",
+          "artifact_sha256": "cb646455421d1c56bd94ce11c970ad73560d88b72a9c9940c405ac754c0a6595",
+          "served_sha256": "cb646455421d1c56bd94ce11c970ad73560d88b72a9c9940c405ac754c0a6595",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-04.3/customer-portal-v1.json",
+          "artifact_sha256": "16187883ad4df64ac8e67b9352753d2492369978961c3c84cef0eadb8739d922",
+          "served_sha256": "16187883ad4df64ac8e67b9352753d2492369978961c3c84cef0eadb8739d922",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.1/website-integration-v1.json",
+          "artifact_sha256": "341aff52313d55acf7a688a3611482df5ed0a9684ea546c34ba78d99a8ea14d8",
+          "served_sha256": "341aff52313d55acf7a688a3611482df5ed0a9684ea546c34ba78d99a8ea14d8",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.1/customer-portal-v1.json",
+          "artifact_sha256": "038d039aec7a1cec0ccd5a89410b44bc94e9f0876f815d4504f648cae943a06f",
+          "served_sha256": "038d039aec7a1cec0ccd5a89410b44bc94e9f0876f815d4504f648cae943a06f",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.2/website-integration-v1.json",
+          "artifact_sha256": "f35131378c66d8364a17b03e6e063287dbe88c82454a61f724c74f08401a8349",
+          "served_sha256": "f35131378c66d8364a17b03e6e063287dbe88c82454a61f724c74f08401a8349",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-05.2/customer-portal-v1.json",
+          "artifact_sha256": "2a998b7b8be3780fc9793ab1de742912915a9d4925bfb3246d84b2f1c3d9f65e",
+          "served_sha256": "2a998b7b8be3780fc9793ab1de742912915a9d4925bfb3246d84b2f1c3d9f65e",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-10.1/website-integration-v1.json",
+          "artifact_sha256": "0dbe7cd7fb3f14f97fa8785c8809b9d6549ab6e05435757b77b4f010a233519b",
+          "served_sha256": "0dbe7cd7fb3f14f97fa8785c8809b9d6549ab6e05435757b77b4f010a233519b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-10.1/customer-portal-v1.json",
+          "artifact_sha256": "5543676bd67f4b55183e2618bb4f9af541936293395b8c650947992b523fb675",
+          "served_sha256": "5543676bd67f4b55183e2618bb4f9af541936293395b8c650947992b523fb675",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-14.1/website-integration-v1.json",
+          "artifact_sha256": "6726e9d2350d440d15b150afbe1ca5ed3e67ac14a07bd3b29da5c74636865bcd",
+          "served_sha256": "6726e9d2350d440d15b150afbe1ca5ed3e67ac14a07bd3b29da5c74636865bcd",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-14.1/customer-portal-v1.json",
+          "artifact_sha256": "e6e667565b9e4760c9590dc02cb130a277edd0b3d5eb4178ed95fccd60df9de5",
+          "served_sha256": "e6e667565b9e4760c9590dc02cb130a277edd0b3d5eb4178ed95fccd60df9de5",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.1/website-integration-v1.json",
+          "artifact_sha256": "f1b6d672e8db8a89056c2a4c353dc74cc8b50a886b38c12d7dcc730630c0b446",
+          "served_sha256": "f1b6d672e8db8a89056c2a4c353dc74cc8b50a886b38c12d7dcc730630c0b446",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.1/customer-portal-v1.json",
+          "artifact_sha256": "e922976f77636c30839dffbce0235482acaae3cb53e220a3e7990d51983a7783",
+          "served_sha256": "e922976f77636c30839dffbce0235482acaae3cb53e220a3e7990d51983a7783",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.2/website-integration-v1.json",
+          "artifact_sha256": "43bf200e4f8f5a0d57ad745dcf26d8eb07bd9cbb9ed9e6e98c7d8161f510e7e2",
+          "served_sha256": "43bf200e4f8f5a0d57ad745dcf26d8eb07bd9cbb9ed9e6e98c7d8161f510e7e2",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-19.2/customer-portal-v1.json",
+          "artifact_sha256": "61cbb18bf7897bcd5f0de25ead109dacfbd4f9253b5697739e492b46d64a8503",
+          "served_sha256": "61cbb18bf7897bcd5f0de25ead109dacfbd4f9253b5697739e492b46d64a8503",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.1/website-integration-v1.json",
+          "artifact_sha256": "837a2c1beb861265811765446c2ee64c035a51db5eaa1d164f96b067d0b34854",
+          "served_sha256": "837a2c1beb861265811765446c2ee64c035a51db5eaa1d164f96b067d0b34854",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.1/customer-portal-v1.json",
+          "artifact_sha256": "a25bed60e40716f8b99578ce8cb7f3f06318c5ecad0973d913e2bf9e127c9a2b",
+          "served_sha256": "a25bed60e40716f8b99578ce8cb7f3f06318c5ecad0973d913e2bf9e127c9a2b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.2/website-integration-v1.json",
+          "artifact_sha256": "35c20cb4d5ce0757557f170f656f13434a9f1c61c31ccc0f368ef81c503eaa29",
+          "served_sha256": "35c20cb4d5ce0757557f170f656f13434a9f1c61c31ccc0f368ef81c503eaa29",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-20.2/customer-portal-v1.json",
+          "artifact_sha256": "f061d0023544718fa49204b16ab943bdefc283d3aa6eb273504395f8a2cadc9d",
+          "served_sha256": "f061d0023544718fa49204b16ab943bdefc283d3aa6eb273504395f8a2cadc9d",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.1/website-integration-v1.json",
+          "artifact_sha256": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2",
+          "served_sha256": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.1/customer-portal-v1.json",
+          "artifact_sha256": "e4fc3961b4f7b16e81e23547ba9fbe983c4bb80837a585aed16b8e6b46e9f65a",
+          "served_sha256": "e4fc3961b4f7b16e81e23547ba9fbe983c4bb80837a585aed16b8e6b46e9f65a",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.2/website-integration-v1.json",
+          "artifact_sha256": "b5866e352c7c211c98e7f6cb65d2b77b7168ca4667fc7826e1347ef69ae642b9",
+          "served_sha256": "b5866e352c7c211c98e7f6cb65d2b77b7168ca4667fc7826e1347ef69ae642b9",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-08-22.2/customer-portal-v1.json",
+          "artifact_sha256": "882c4f203567e9dc28ce27caff9cb5d692674a0f54df3d07b506b7fa03051456",
+          "served_sha256": "882c4f203567e9dc28ce27caff9cb5d692674a0f54df3d07b506b7fa03051456",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.1/website-integration-v1.json",
+          "artifact_sha256": "49efba567e8d8b67a24a62dd195355e546fbc43933b966e1f46878fa5c91dcac",
+          "served_sha256": "49efba567e8d8b67a24a62dd195355e546fbc43933b966e1f46878fa5c91dcac",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.1/customer-portal-v1.json",
+          "artifact_sha256": "c3d5500a84baa2d12cac3f4ad210ab52998988b1da247699755149bb47a42434",
+          "served_sha256": "c3d5500a84baa2d12cac3f4ad210ab52998988b1da247699755149bb47a42434",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.2/website-integration-v1.json",
+          "artifact_sha256": "2e5a4b5c3838921f77de372e098f9d755f73e476e6259df22d4a7f0542302898",
+          "served_sha256": "2e5a4b5c3838921f77de372e098f9d755f73e476e6259df22d4a7f0542302898",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.2/customer-portal-v1.json",
+          "artifact_sha256": "e417efa75e9def5e266f5de1c44c510ee198de4ab2b19690515ce7768e626e6f",
+          "served_sha256": "e417efa75e9def5e266f5de1c44c510ee198de4ab2b19690515ce7768e626e6f",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.3/website-integration-v1.json",
+          "artifact_sha256": "db2de3253fe2f1e0444b2cea136bb787d9712bfa0e5b23c960ee25c8db3bab34",
+          "served_sha256": "db2de3253fe2f1e0444b2cea136bb787d9712bfa0e5b23c960ee25c8db3bab34",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.3/customer-portal-v1.json",
+          "artifact_sha256": "7a766b66a7cee19b3abd0eaaa846426f313e8a109b6368bbd313a1d0c74c822b",
+          "served_sha256": "7a766b66a7cee19b3abd0eaaa846426f313e8a109b6368bbd313a1d0c74c822b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.4/website-integration-v1.json",
+          "artifact_sha256": "fe69b84e32aef04c8036b898fae5661687aa111ce36775a5dc406030c07d9c80",
+          "served_sha256": "fe69b84e32aef04c8036b898fae5661687aa111ce36775a5dc406030c07d9c80",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.4/customer-portal-v1.json",
+          "artifact_sha256": "075ba2eb5a6c356c206adc1bcbc6dd5da64e4c3a00007a4828aae6c50750e6fe",
+          "served_sha256": "075ba2eb5a6c356c206adc1bcbc6dd5da64e4c3a00007a4828aae6c50750e6fe",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.5/website-integration-v1.json",
+          "artifact_sha256": "7fcdd7d74cb9fd471f5c81c972ad172dd9436b18c0a6640d9b724f6050810c91",
+          "served_sha256": "7fcdd7d74cb9fd471f5c81c972ad172dd9436b18c0a6640d9b724f6050810c91",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.5/customer-portal-v1.json",
+          "artifact_sha256": "8a0e53c0c10d8d3901120bde6750a34adbba96f8db2957bf52e76b0c6e1f2361",
+          "served_sha256": "8a0e53c0c10d8d3901120bde6750a34adbba96f8db2957bf52e76b0c6e1f2361",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.6/website-integration-v1.json",
+          "artifact_sha256": "8f5c8c880fbf0ef8a67abfad8e1a110944047cb703acb20bf4100be456bebc23",
+          "served_sha256": "8f5c8c880fbf0ef8a67abfad8e1a110944047cb703acb20bf4100be456bebc23",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.6/customer-portal-v1.json",
+          "artifact_sha256": "9a9bcb31e3a7b9312562d7edd98489da8b934a3a13fc68c0f6eb8765adfda5c4",
+          "served_sha256": "9a9bcb31e3a7b9312562d7edd98489da8b934a3a13fc68c0f6eb8765adfda5c4",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.7/website-integration-v1.json",
+          "artifact_sha256": "282fc7587bd91e54298b659b8c74e0267cca0600c0eff45b58deef645e3e6061",
+          "served_sha256": "282fc7587bd91e54298b659b8c74e0267cca0600c0eff45b58deef645e3e6061",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.7/customer-portal-v1.json",
+          "artifact_sha256": "746f80bc11ad83bbef926545af46896067efb5b5d666384ee94d911d62a8a720",
+          "served_sha256": "746f80bc11ad83bbef926545af46896067efb5b5d666384ee94d911d62a8a720",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.8/website-integration-v1.json",
+          "artifact_sha256": "3cdf3f8fb4de8aeefd23078844930adbff833110a87691a2eca3a92c6f29cb7b",
+          "served_sha256": "3cdf3f8fb4de8aeefd23078844930adbff833110a87691a2eca3a92c6f29cb7b",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-29.8/customer-portal-v1.json",
+          "artifact_sha256": "529e4ae5cc2519dfd4036d15c86a59a580019cba94b6a81cfd0633412542b257",
+          "served_sha256": "529e4ae5cc2519dfd4036d15c86a59a580019cba94b6a81cfd0633412542b257",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.1/website-integration-v1.json",
+          "artifact_sha256": "a1e78bb1098dbd7736f4d80c3d292cfcc4c5c1928d457ab612960d55318b16cc",
+          "served_sha256": "a1e78bb1098dbd7736f4d80c3d292cfcc4c5c1928d457ab612960d55318b16cc",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.1/customer-portal-v1.json",
+          "artifact_sha256": "e667516da52aa2f01e0c1e7f7d50f466540ff2a7579c7644d3a3ce6d6842e67d",
+          "served_sha256": "e667516da52aa2f01e0c1e7f7d50f466540ff2a7579c7644d3a3ce6d6842e67d",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.2/website-integration-v1.json",
+          "artifact_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+          "served_sha256": "ba55cb3f1dcd1ffa9bec17dd6cd272606e3a95ecb6288ab11be5462135370c19",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.2/customer-portal-v1.json",
+          "artifact_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+          "served_sha256": "ba3f7d901a9bc794f26ce2012e37e56e4dfa4831d8e8835e6be33491aeead976",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.3/website-integration-v1.json",
+          "artifact_sha256": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812",
+          "served_sha256": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812",
+          "exact_bytes": true
+        },
+        {
+          "path": "/api/v1/openapi/2026-09-30.3/customer-portal-v1.json",
+          "artifact_sha256": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547",
+          "served_sha256": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547",
+          "exact_bytes": true
+        }
+      ]
+    },
+    "API_RELEASE_GUIDE_CLIENT_HTTP_EVIDENCE": {
+      "version": "2026-09-30.3",
+      "rendered_portal": [
+        "GET /api/v1/customer/cases",
+        "GET /api/v1/customer/cases/{reference}/attachments",
+        "GET /api/v1/customer/cases/{reference}/messages",
+        "GET /api/v1/customer/contracts",
+        "GET /api/v1/customer/documents",
+        "GET /api/v1/customer/events",
+        "GET /api/v1/customer/invoices",
+        "GET /api/v1/customer/invoices/{id}",
+        "GET /api/v1/customer/legal-acceptances",
+        "GET /api/v1/customer/me",
+        "GET /api/v1/customer/metering-values",
+        "GET /api/v1/customer/notifications",
+        "GET /api/v1/customer/portal-bundle",
+        "GET /api/v1/customer/powers-of-attorney",
+        "GET /api/v1/customer/sites",
+        "POST /api/v1/customer-portal/sync",
+        "POST /api/v1/customer/cases",
+        "POST /api/v1/customer/cases/{reference}/attachments",
+        "POST /api/v1/customer/cases/{reference}/messages",
+        "POST /api/v1/customer/move-out",
+        "POST /api/v1/customer/notifications/read",
+        "POST /api/v1/customer/portal-bundle",
+        "POST /api/v1/customer/profile-update",
+        "POST /api/v1/customer/sync"
+      ],
+      "expected_portal": [
+        "GET /api/v1/customer/cases",
+        "GET /api/v1/customer/cases/{reference}/attachments",
+        "GET /api/v1/customer/cases/{reference}/messages",
+        "GET /api/v1/customer/contracts",
+        "GET /api/v1/customer/documents",
+        "GET /api/v1/customer/events",
+        "GET /api/v1/customer/invoices",
+        "GET /api/v1/customer/invoices/{id}",
+        "GET /api/v1/customer/legal-acceptances",
+        "GET /api/v1/customer/me",
+        "GET /api/v1/customer/metering-values",
+        "GET /api/v1/customer/notifications",
+        "GET /api/v1/customer/portal-bundle",
+        "GET /api/v1/customer/powers-of-attorney",
+        "GET /api/v1/customer/sites",
+        "POST /api/v1/customer-portal/sync",
+        "POST /api/v1/customer/cases",
+        "POST /api/v1/customer/cases/{reference}/attachments",
+        "POST /api/v1/customer/cases/{reference}/messages",
+        "POST /api/v1/customer/move-out",
+        "POST /api/v1/customer/notifications/read",
+        "POST /api/v1/customer/portal-bundle",
+        "POST /api/v1/customer/profile-update",
+        "POST /api/v1/customer/sync"
+      ],
+      "rendered_website": [
+        "GET /api/v1/events",
+        "GET /api/v1/integration/context",
+        "GET /api/v1/openapi/customer-portal-v1.json",
+        "GET /api/v1/openapi/release-manifest.json",
+        "GET /api/v1/openapi/website-integration-v1.json",
+        "GET /api/v1/public-contracts",
+        "GET /api/v1/website/customer-applications/{application_number}",
+        "GET /api/v1/website/legal-bundle",
+        "GET /api/v1/website/portfolio-prices",
+        "GET /api/v1/website/public-contracts",
+        "GET /api/v1/website/switch-status",
+        "POST /api/v1/events",
+        "POST /api/v1/website/customer-applications",
+        "POST /api/v1/website/customer-events",
+        "POST /api/v1/website/energy-area/resolve",
+        "POST /api/v1/website/market-price/current",
+        "POST /api/v1/website/quote",
+        "POST /api/v1/website/quote/validate"
+      ],
+      "expected_website": [
+        "GET /api/v1/events",
+        "GET /api/v1/integration/context",
+        "GET /api/v1/openapi/customer-portal-v1.json",
+        "GET /api/v1/openapi/release-manifest.json",
+        "GET /api/v1/openapi/website-integration-v1.json",
+        "GET /api/v1/public-contracts",
+        "GET /api/v1/website/customer-applications/{application_number}",
+        "GET /api/v1/website/legal-bundle",
+        "GET /api/v1/website/portfolio-prices",
+        "GET /api/v1/website/public-contracts",
+        "GET /api/v1/website/switch-status",
+        "POST /api/v1/events",
+        "POST /api/v1/website/customer-applications",
+        "POST /api/v1/website/customer-events",
+        "POST /api/v1/website/energy-area/resolve",
+        "POST /api/v1/website/market-price/current",
+        "POST /api/v1/website/quote",
+        "POST /api/v1/website/quote/validate"
+      ],
+      "client_resource_paths": [
+        "/api/v1/customer/cases",
+        "/api/v1/customer/cases/{reference}/attachments",
+        "/api/v1/customer/cases/{reference}/messages",
+        "/api/v1/customer/contracts",
+        "/api/v1/customer/documents",
+        "/api/v1/customer/events",
+        "/api/v1/customer/invoices",
+        "/api/v1/customer/invoices/{reference}",
+        "/api/v1/customer/legal-acceptances",
+        "/api/v1/customer/me",
+        "/api/v1/customer/metering-values",
+        "/api/v1/customer/notifications",
+        "/api/v1/customer/notifications/read",
+        "/api/v1/customer/powers-of-attorney",
+        "/api/v1/customer/profile-update",
+        "/api/v1/customer/sites"
+      ],
+      "actual_rendered_guide": true,
+      "client_authenticated_journey_not_claimed": true
+    },
+    "passed_markers": [
+      "API_RELEASE_ACTIVE_HTTP_PASS exact_artifacts=true canonical_immutable_manifest=true etag_304=true",
+      "API_RELEASE_HISTORICAL_HTTP_PASS paired_routes=52 exact_artifacts=true frozen_inputs_unchanged=true",
+      "API_RELEASE_GUIDE_CLIENT_HTTP_PASS version=2026-09-30.3 portal_operations=24 website_operations=18 client_resource_paths=16 actual_rendered_guide=true client_authenticated_journey_not_claimed=true",
+      "API_RELEASE_REFERENCE_CLIENT_RUNTIME_HTTP_PASS source=actual_client server=actual_local_next status=401 error=malformed_authorization release_envelope=true authenticated_journey_not_claimed=true"
+    ],
+    "result": "4 passed (40.9s)",
+    "version": "2026-09-30.3",
+    "original_50_artifact_hashes_unchanged": true,
+    "generated_artifact_metadata": {
+      "website-integration-v1": {
+        "info.version": "2026-09-30.3",
+        "x-contract-schema-version": "2026-09-30.3",
+        "x-gridex-release-version": "2026-09-30.3"
+      },
+      "customer-portal-v1": {
+        "info.version": "2026-09-30.3",
+        "x-contract-schema-version": "2026-09-30.3",
+        "x-gridex-release-version": "2026-09-30.3"
+      }
+    },
+    "source_sha256_before": {
+      "lib/integrations/openApiResponse.ts": "4fbe3950812708cd193aef992fd7aeede0665ea9184745437bcda6492e0d1c37",
+      "lib/integrations/websiteIntegrationContract.ts": "66b0cb6d059830d2cb129d2efa6ff74457a03dc78bc7b45dbeae86697fb15302",
+      "lib/integrations/openApiReleaseManifest.ts": "a7226127d2fbae4571a5e731ae9967653985f94521fc539c7b80fceaa8085b27",
+      "lib/api/publicRouteRegistry.ts": "e8099c2bf473096c5bdbeabcf5fd2972e13d91a9d7359ce4b8dd7ce48ffc78c5",
+      "app/developers/customer-portal-api/page.tsx": "ff80b1dbeff5db1cfc4c47070bb5564c6e760ac5c73b1abc94b6913b2642cb31",
+      "e2e/browser/api-release-local.spec.mjs": "fd87ff791d7e9909981e09c5984e4fa2fc87ea1e544fba19ec4acbdabce5d903",
+      "docs/openapi/releases/2026-09-30.3/website-integration-v1.json": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812",
+      "docs/openapi/releases/2026-09-30.3/customer-portal-v1.json": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547"
+    },
+    "source_sha256_after": {
+      "lib/integrations/openApiResponse.ts": "4fbe3950812708cd193aef992fd7aeede0665ea9184745437bcda6492e0d1c37",
+      "lib/integrations/websiteIntegrationContract.ts": "66b0cb6d059830d2cb129d2efa6ff74457a03dc78bc7b45dbeae86697fb15302",
+      "lib/integrations/openApiReleaseManifest.ts": "a7226127d2fbae4571a5e731ae9967653985f94521fc539c7b80fceaa8085b27",
+      "lib/api/publicRouteRegistry.ts": "e8099c2bf473096c5bdbeabcf5fd2972e13d91a9d7359ce4b8dd7ce48ffc78c5",
+      "app/developers/customer-portal-api/page.tsx": "ff80b1dbeff5db1cfc4c47070bb5564c6e760ac5c73b1abc94b6913b2642cb31",
+      "e2e/browser/api-release-local.spec.mjs": "fd87ff791d7e9909981e09c5984e4fa2fc87ea1e544fba19ec4acbdabce5d903",
+      "docs/openapi/releases/2026-09-30.3/website-integration-v1.json": "75ec5b3b8af477fdfa2e4825e9d1c3faf716609d5b811c17865a39dc46d34812",
+      "docs/openapi/releases/2026-09-30.3/customer-portal-v1.json": "80a0d27f8d999acd8ccc581a0737677b7ad4b3d4ba2b3e3f9b5903cd00fec547"
+    },
+    "source_unchanged_during_run": true,
+    "report_checkpoint_git_head_not_exact_head_qualification": "97c81f8f66a2725b4fe4570c461d47850a73b124"
+  }
+}

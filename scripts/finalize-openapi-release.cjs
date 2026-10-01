@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-08-22.2'
+const version = '2026-10-01.1'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -19,8 +19,8 @@ const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
-const priorVersion = '2026-08-20.2'
-const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', priorVersion, version]
+const priorVersion = '2026-09-30.3'
+const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', '2026-08-20.2', '2026-08-22.2', '2026-09-29.1', '2026-09-29.3', '2026-09-29.4', '2026-09-29.5', '2026-09-29.6', '2026-09-29.7', '2026-09-29.8', '2026-09-30.1', '2026-09-30.2', priorVersion, version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
   'customer_profile.read',
@@ -99,12 +99,22 @@ function setRequest(spec, path, schema, method = 'post') {
 }
 
 function setResponse(spec, path, schema, method = 'get', status = '200') {
-  spec.paths[path][method].responses[status].content['application/json'].schema = schema
+  const operation = spec.paths[path][method]
+  operation.responses = operation.responses ?? {}
+  const response = operation.responses[status] ?? {}
+  operation.responses[status] = response
+  if (typeof response.description !== 'string' || !response.description.trim()) {
+    response.description = status === '201' ? 'Created resource or replayed result.' : 'Successful response.'
+  }
+  response.content = response.content ?? {}
+  response.content['application/json'] = response.content['application/json'] ?? {}
+  response.content['application/json'].schema = schema
 }
 
 function normalizeContractVersionMetadata(document) {
   document.info.version = version
   document['x-contract-schema-version'] = version
+  document['x-gridex-release-version'] = version
 
   function walk(value) {
     if (!value || typeof value !== 'object') return
@@ -1559,21 +1569,20 @@ portal.components.parameters.CustomerPortalUserId = {
   name: 'x-gridex-customer-portal-user-id',
   in: 'header',
   required: true,
-  schema: uuid,
+  schema: { ...uuid, description: 'Required portal user UUID. Must match x-gridex-auth-user-id and both customer_portal_user_id and auth_user_id in the sync body.' },
 }
 portal.components.schemas.ErrorResponse = portal.components.schemas.ApiError
 portal.components.schemas.CustomerContract = {
   type: 'object',
   additionalProperties: false,
-  required: ['contract_reference', 'status'],
   properties: {
-    contract_reference: string,
+    contract_reference: nullableString,
     contract_number: nullableString,
     offer_reference: nullableString,
     contract_name: nullableString,
     contract_type: nullableString,
     energy_direction: string,
-    status: string,
+    status: nullableString,
     start_date: nullableString,
     end_date: nullableString,
     signed_at: nullableString,
@@ -1590,6 +1599,7 @@ portal.components.schemas.CustomerContract = {
     created_at: nullableString,
   },
 }
+portal.components.schemas.CustomerContract.required = Object.keys(portal.components.schemas.CustomerContract.properties)
 portal.components.schemas.CustomerInvoice = {
   type: 'object',
   additionalProperties: false,
@@ -1619,7 +1629,7 @@ portal.components.parameters.AuthUserId = {
   name: 'x-gridex-auth-user-id',
   in: 'header',
   required: true,
-  schema: uuid,
+  schema: { ...uuid, description: 'Required auth user UUID. Must match x-gridex-customer-portal-user-id and both customer_portal_user_id and auth_user_id in the sync body.' },
 }
 
 for (const [path, item] of Object.entries(portal.paths)) {

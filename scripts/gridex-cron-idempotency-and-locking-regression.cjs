@@ -15,12 +15,16 @@ function mustInclude(file, needle, why) {
   if (!read(file).includes(needle)) failures.push(`Missing "${needle}" in ${file} (${why})`)
 }
 
-const automation = 'lib/customer-operations/automation.ts'
+const automationFacade = 'lib/customer-operations/automation.ts'
+const automation = 'lib/customer-operations/automation.part-3.ts'
 const resume = 'lib/ediel/intent/resumeStuckIntents.ts'
+const resumeHelper = 'lib/ediel/intent/edielResumeFairClaim.ts'
+const resumeClaim = 'supabase/migrations/20261001012959_ediel_resume_tenant_fair_claim.sql'
 const migration = 'supabase/migrations/20260707120000_gridex_pipeline_hardening_guards.sql'
 const spotCron = 'app/api/cron/pricing/spot-prices/route.ts'
 
 // Worker error persistence: full technical context, never a collapsed message.
+mustInclude(automationFacade, "export { processCustomerOperationJobs } from './automation.part-3'", 'the public worker facade must bind the actual characterized implementation')
 for (const needle of [
   'technical_error: technicalError',
   'stage: job.job_type',
@@ -42,8 +46,34 @@ if (/last_error:\s*reviewTerminal\s*\?\s*null/.test(automationSrc)) {
 }
 
 // Resume sweep claim semantics.
-mustInclude(resume, 'Optimistic claim', 'resume sweep must claim intents before dispatching')
-mustInclude(resume, ".eq('updated_at', row.updated_at)", 'compare-and-set claim on the stuck state')
+mustInclude(resume, "await claimEdielResumeIntents({phase:'validated'", 'validated work must originate from the fair atomic claim')
+mustInclude(resume, "await claimEdielResumeIntents({phase:'draft'", 'draft work must originate from the fair atomic claim')
+mustInclude(resume, 'await checkEdielResumeClaim(claim)', 'the current token, phase and public intent stamp must qualify before work')
+mustInclude(resume, 'await finishEdielResumeClaim(claim,outcome)', 'completion must remain tied to the actual claimed token')
+const resumeSrc = read(resume)
+const currentCheck = resumeSrc.indexOf('await checkEdielResumeClaim(claim)')
+for (const dispatcher of ['dispatchFacilityLookupEdifact({', 'prepareAndQueueProdatSwitch({', 'prepareAndQueueProdatZ01FromDataRequest({', 'prepareAndQueueUtiltsE66({', 'prepareAndQueueUtiltsE73({']) {
+  const dispatch = resumeSrc.indexOf(dispatcher)
+  if (currentCheck < 0 || dispatch < currentCheck) failures.push(`current resume claim check must precede ${dispatcher}`)
+}
+for (const rpc of ['gridex_claim_ediel_resume_intents_fair_v1', 'gridex_check_ediel_resume_claim_v1', 'gridex_finish_ediel_resume_claim_v1']) {
+  mustInclude(resumeHelper, `supabaseService.rpc('${rpc}'`, 'the actual adapter must use the atomic service-only claim corridor')
+}
+for (const binding of ['p_company_id:claim.intent.company_id', 'p_intent_id:claim.intent.id', 'p_phase:claim.phase', 'p_claim_token:claim.claimToken']) {
+  mustInclude(resumeHelper, binding, 'check/completion must bind the actual company, resource, phase and token')
+}
+for (const boundary of [
+  "current_user<>'service_role'",
+  "c.status in('active','onboarding')",
+  'for update of i skip locked',
+  'where ediel_resume_claims.company_id=excluded.company_id',
+  'ediel_resume_claims.finished_at is not null or ediel_resume_claims.expires_at<v_now',
+  'v_lease.phase=p_phase and v_lease.claim_token=p_claim_token and v_lease.finished_at is null',
+  'v_lease.expires_at>=clock_timestamp() and v_lease.intent_updated_at=v_intent.updated_at',
+  'v_lease.claim_token is distinct from p_claim_token',
+]) {
+  mustInclude(resumeClaim, boundary, 'the real SQL claim/check/completion must preserve current ownership, stamp, token and active-lease CAS')
+}
 
 // Existing strong locks remain (claim RPCs with SKIP LOCKED).
 mustInclude('supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql', 'skip locked', 'customer operation job claim RPC keeps FOR UPDATE SKIP LOCKED')

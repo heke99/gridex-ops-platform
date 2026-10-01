@@ -3,14 +3,12 @@ import { NextRequest } from 'next/server'
 import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
 import { canonicalApiError } from '@/lib/api/apiError'
 import { listDomainEventsForCompany } from '@/lib/events/domainEvents'
-import { customerPortalJson } from '@/lib/customer-portal/externalApi'
+import { customerPortalJson, logPortalRequestTelemetry } from '@/lib/customer-portal/externalApi'
 import { resolvePortalCustomer } from '@/lib/customer-portal/customerResolver'
 import { isSupportEvent, parseCustomerEventPayload, recordWebsiteCustomerEvent } from '@/lib/customer-portal/customerEvents'
-import { createSupportCaseFromCustomerEvent } from '@/lib/customer-cases/support'
 import { buildPublicWebhookPayload } from '@/lib/integrations/webhooks'
 import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import {
-  logIntegrationApiRequest,
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
 
@@ -48,7 +46,7 @@ export async function GET(request: NextRequest) {
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['events.read'])
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logPortalRequestTelemetry({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson(canonicalApiError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
   }
   try {
@@ -63,15 +61,15 @@ export async function GET(request: NextRequest) {
       listDomainEventsForCompany({ companyId: auth.context.companyId, eventType: query.eventType, customerId, cursorOccurredBefore: query.before, limit: query.limit }),
       loadExternalTenantReference(auth.context.companyId),
     ])
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { result_count: events.length, request_id: requestId } })
+    await logPortalRequestTelemetry({ client: auth.client, request, statusCode: 200, startedAt, metadata: { result_count: events.length, request_id: requestId } })
     return customerPortalJson({ data: events.map((event) => buildPublicWebhookPayload(event, tenantReference)), next_before: events.at(-1)?.occurred_at ?? null, request_id: requestId, correlation_id: requestId })
   } catch (error) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500
     const code = controlled ? error.code : 'events_read_failed'
     const message = controlled ? error.message : 'Events are temporarily unavailable.'
-    console.error('[events-read] failed', { requestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
+    console.error('[events-read] failed', { requestId, code })
+    await logPortalRequestTelemetry({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
     return customerPortalJson(canonicalApiError({ code, message, requestId, field: controlled ? error.field : null }), { status })
   }
 }
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_events.write'])
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logPortalRequestTelemetry({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson(canonicalApiError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
   }
   try {
@@ -89,34 +87,32 @@ export async function POST(request: NextRequest) {
     const parsed = parseCustomerEventPayload(body)
     if (!parsed.success) throw new ApiInputError(parsed.error.issues[0]?.message ?? 'Invalid customer event.', 'validation_error', 422, parsed.error.issues[0]?.path.join('.') || null)
 
-    const data = await recordWebsiteCustomerEvent({ request, client: auth.client, payload: parsed.data, operation: '/api/v1/events', source: 'website' })
-    const { _internal_customer_id: internalCustomerId, ...responseData } = data
-    let supportCaseReused: boolean | null = null
     if (isSupportEvent(parsed.data.event_type)) {
-      const idempotencyKey = request.headers.get('idempotency-key')?.trim()
-      if (!idempotencyKey) throw new ApiInputError('Idempotency-Key is required.', 'idempotency_key_required', 400, 'Idempotency-Key')
-      const supportCase = await createSupportCaseFromCustomerEvent({
-        companyId: auth.context.companyId,
-        customerId: internalCustomerId,
-        eventType: parsed.data.event_type,
-        eventReference: parsed.data.event_reference,
-        data: parsed.data.data,
-        idempotencyKey,
-        channel: 'api',
-        apiClientId: auth.client.id,
-      })
-      supportCaseReused = supportCase.reused
+      throw new ApiInputError(
+        'Supportärenden kräver delegerat kundmandat och den gemensamma ärendevägen /api/v1/customer/cases.',
+        'support_event_delegation_required', 403,
+      )
     }
 
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { event_reference: data.event_reference, event_type: data.event_type, customer_id: internalCustomerId, idempotency_replay: data.replayed, support_case_reused: supportCaseReused } })
+    const data = await recordWebsiteCustomerEvent({ request, client: auth.client, payload: parsed.data, operation: '/api/v1/events', source: 'website' })
+    const responseData = {
+      event_reference: data.event_reference,
+      event_resource_reference: data.event_resource_reference,
+      event_type: data.event_type,
+      customer_reference: data.customer_reference,
+      status: data.status,
+      occurred_at: data.occurred_at,
+      replayed: data.replayed,
+    }
+    await logPortalRequestTelemetry({ client: auth.client, request, statusCode: 200, startedAt, metadata: { event_type: data.event_type, idempotency_replay: data.replayed } })
     return customerPortalJson({ data: responseData, request_id: requestId, correlation_id: requestId })
   } catch (error) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500
     const code = controlled ? error.code : 'customer_event_failed'
     const message = controlled ? error.message : 'The customer event could not be processed at this time.'
-    console.error('[events-write] failed', { requestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
+    console.error('[events-write] failed', { requestId, code })
+    await logPortalRequestTelemetry({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
     return customerPortalJson(canonicalApiError({ code, message, requestId, field: controlled ? error.field : null }), { status })
   }
 }

@@ -311,6 +311,7 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
     meteringPointId: job.metering_point_id,
     customerOperationJobId: job.id,
     operationId,
+    status: waiting ? 'waiting_response' : 'needs_review',
     actionUrl: `/admin/customers/${job.customer_id}?tab=data-requests`,
     payload: { customer_info_request_id: request.id, operation_id: operationId, dispatch, blocker: dispatchBlocker },
     idempotencyKey: `customer-data-dispatch:${job.id}:${dispatch.status}`,

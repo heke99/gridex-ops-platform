@@ -33,6 +33,7 @@ import {
 import type { SupplierSwitchRequestRow } from "@/lib/operations/types";
 import { syncCustomerCaseCancellationAck } from "@/lib/customer-cases/db";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
+import { applyInboundSwitchLifecycleAtomically, getStoredInboundSwitchAckSource } from './inboundSwitchLifecycleAtomic';
 
 type InboundAckFamily = Extract<
   EdielMessageFamily,
@@ -968,6 +969,17 @@ export async function processInboundAckMessage(params: {
 
   if (!isInboundAckFamily(ackMessage.message_family)) {
     throw new Error(`Meddelande ${ackMessage.id} är inte inbound ack-family.`);
+  }
+
+  const storedSwitch = await getStoredInboundSwitchAckSource(ackMessage.id);
+  if (storedSwitch) {
+    const receipt = await applyInboundSwitchLifecycleAtomically({ sourceMessageId: storedSwitch.ack.id, actorUserId });
+    if (!['positive', 'negative'].includes(String(receipt.ackOutcome)) || typeof receipt.finalAckReached !== 'boolean'
+      || receipt.sourceMessageId !== storedSwitch.origin.id) throw new Error('inbound_switch_ack_receipt_invalid');
+    const currentSource = await getEdielMessageById(storedSwitch.origin.id, { companyId: storedSwitch.ack.company_id! });
+    return { ackMessage: storedSwitch.ack, sourceMessage: currentSource, outcome: receipt.ackOutcome!,
+      finalAckReached: receipt.finalAckReached, outboundRequestId: receipt.outboundRequestId ?? null,
+      switchRequestId: receipt.switchRequestId, gridOwnerDataRequestId: null };
   }
 
   const outcome = inferInboundAckOutcome(ackMessage);

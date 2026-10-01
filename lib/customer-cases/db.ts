@@ -78,6 +78,7 @@ export async function listCustomerCases(options: {
   query?: string | null
   limit?: number
   offset?: number
+  caseId?: string | null
 } = {}): Promise<CustomerCaseListRow[]> {
   let query = supabaseService
     .from('customer_cases')
@@ -90,6 +91,7 @@ export async function listCustomerCases(options: {
   }
 
   if (options.companyId) query = query.eq('company_id', options.companyId)
+  if (options.caseId) query = query.eq('id', options.caseId)
   if (options.customerId) query = query.eq('customer_id', options.customerId)
   if (options.status && options.status !== 'all') query = query.eq('status', options.status)
   if (options.statuses) query = query.in('status', [...options.statuses])
@@ -101,7 +103,10 @@ export async function listCustomerCases(options: {
     query = query.or('metadata->support_case.eq.true,source.match.^tenant_support_')
   }
   if (options.query?.trim()) {
-    query = query.or(`title.ilike.%${options.query.trim()}%,description.ilike.%${options.query.trim()}%,reason_category.ilike.%${options.query.trim()}%`)
+    // Escape PostgREST control tokens rather than concatenating arbitrary
+    // search text into a filter expression. This is still parameterized SQL.
+    const search = options.query.trim().replace(/[\\%_(),."']/g, ' ').replace(/\s+/g, ' ').slice(0, 180).trim()
+    if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,reason_category.ilike.%${search}%`)
   }
 
   const { data, error } = await query

@@ -136,24 +136,9 @@ export async function createLifecycleDecisionFromCase(
     caseRow.customer_contract_id ??
     null
 
-  const { data: existing, error: existingError } = await supabase
-    .from('customer_lifecycle_decisions')
-    .select('id')
-    .eq('company_id', caseRow.company_id)
-    .eq('customer_id', caseRow.customer_id)
-    .eq('decision_type', decisionType)
-    .eq('scope_type', scopeType)
-    .eq('reason', `Kundärende ${caseRow.id}: ${caseRow.title}`)
-    .limit(1)
-    .maybeSingle()
-
-  if (existingError) {
-    if (databaseShapeMissing(existingError)) return null
-    throw existingError
-  }
-
-  if (existing?.id) return String(existing.id)
-
+  // Attempt the write first so the database locks and checks the current case
+  // and resource binding even for a replay. Case identity, rather than its
+  // mutable title/reason, is the durable idempotency boundary.
   const { data, error } = await supabase
     .from('customer_lifecycle_decisions')
     .insert({
@@ -174,6 +159,20 @@ export async function createLifecycleDecisionFromCase(
     .single()
 
   if (error) {
+    if (error.code === '23505') {
+      let query = supabase
+        .from('customer_lifecycle_decisions')
+        .select('id')
+        .eq('source_customer_case_id', caseRow.id)
+        .eq('company_id', caseRow.company_id)
+        .eq('customer_id', caseRow.customer_id)
+        .eq('decision_type', decisionType)
+        .eq('scope_type', scopeType)
+      query = scopeId ? query.eq('scope_id', scopeId) : query.is('scope_id', null)
+      const { data: existing, error: existingError } = await query.limit(1).maybeSingle()
+      if (existingError) throw existingError
+      if (existing?.id) return String(existing.id)
+    }
     if (databaseShapeMissing(error)) return null
     throw error
   }

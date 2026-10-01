@@ -62,6 +62,14 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     ],
   },
   {
+    key: 'support',
+    title: 'Ärenden',
+    description: 'Kundservice och sammanhängande dialog',
+    items: [
+      { key: 'customer.cases', label: 'Kundärenden', href: '/admin/customer-cases', description: 'Sök ärenden och fortsätt kundens dialog', requiredPermissions: ['cases.read'] },
+    ],
+  },
+  {
     key: 'operations',
     title: 'Operations',
     description: 'Byten, mätvärden och underlag',
@@ -136,6 +144,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundregister, intag och prisvillkor',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
+      { key: 'customer.cases', label: 'Kundärenden', href: '/admin/customer-cases', description: 'Kundsynliga svar och interna anteckningar', requiredPermissions: ['cases.read'] },
       { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Externa kundansökningar från hemsida/API, blockerare och redo-kontroll', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, anläggning och fullmakt', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog och kampanjer', pageKey: 'contracts.catalog' },

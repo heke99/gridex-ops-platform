@@ -13,6 +13,7 @@ import {
   userActorUuid,
 } from '@/lib/ediel/intent/intentEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
+import {claimEdielResumeIntents,checkEdielResumeClaim,finishEdielResumeClaim} from './edielResumeFairClaim'
 
 type StuckIntentRow = {
   id: string
@@ -176,48 +177,8 @@ export async function resumeStuckEdielIntents(input: {
   limit?: number
   actorUserId?: string | null
 } = {}): Promise<ResumeStuckIntentsResult> {
-  const limit = Math.min(Math.max(input.limit ?? 10, 1), 50)
-  let query = supabaseService
-    .from('ediel_message_intents')
-    .select(
-      [
-        'id',
-        'company_id',
-        'environment',
-        'business_process',
-        'grid_owner_information_request_id',
-        'supplier_switch_request_id',
-        'customer_info_request_id',
-        'message_family',
-        'message_code',
-        'communication_route_id',
-        'operation_id',
-        'facility_id',
-        'metering_point_id',
-        'payload',
-        'validation_status',
-        'render_status',
-        'outbox_status',
-        'created_by',
-        'updated_at',
-      ].join(','),
-    )
-    .eq('validation_status', 'validated')
-    .in('render_status', ['not_rendered', 'failed'])
-    .eq('outbox_status', 'not_queued')
-    .order('updated_at', { ascending: true })
-    .limit(limit)
-  if (input.companyId) query = query.eq('company_id', input.companyId)
-
-  const { data, error } = await query
-  if (error) {
-    if (isMissingSchema(error)) {
-      return { candidates: 0, resumed: 0, blocked: 0, skipped: 0, errors: ['ediel_message_intents_schema_missing'] }
-    }
-    throw error
-  }
-
-  const rows = ((data ?? []) as unknown) as StuckIntentRow[]
+  const limit = Math.min(Math.max(Math.floor(Number.isFinite(input.limit) ? input.limit! : 10), 1), 50)
+  const claims = await claimEdielResumeIntents({phase:'validated',companyId:input.companyId,limit})
 
   let resumed = 0
   let blocked = 0
@@ -225,7 +186,8 @@ export async function resumeStuckEdielIntents(input: {
   const errors: string[] = []
 
   const seen = new Set<string>()
-  for (const row of rows) {
+  for (const claim of claims) {
+    const row = claim.intent as unknown as StuckIntentRow
     const actorUserId =
       userActorUuid(input.actorUserId) ?? userActorUuid(row.created_by)
     const process = text(row.business_process) ?? 'unknown'
@@ -238,30 +200,9 @@ export async function resumeStuckEdielIntents(input: {
     }
     seen.add(dedupeKey)
 
-    // Optimistic claim: two concurrent sweeps must not resume the same intent.
-    // The claim is an updated_at compare-and-set on the exact stuck state; the
-    // loser sees zero updated rows and skips this cycle.
-    if (row.updated_at) {
-      const claim = await supabaseService
-        .from('ediel_message_intents')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', row.id)
-        .eq('validation_status', 'validated')
-        .eq('outbox_status', 'not_queued')
-        .eq('updated_at', row.updated_at)
-        .select('id')
-      if (claim.error && !isMissingSchema(claim.error)) {
-        errors.push(`${row.id}: claim failed: ${claim.error.message}`)
-        skipped += 1
-        continue
-      }
-      if (!claim.error && (claim.data ?? []).length === 0) {
-        skipped += 1
-        continue
-      }
-    }
-
+    let outcome:'processed'|'failed'|'skipped'='processed'
     try {
+      if(!await checkEdielResumeClaim(claim)){skipped++;outcome='skipped';continue}
       // HARD FACILITY GUARD (resume layer): a customer_masterdata or
       // supplier_switch intent without facility/metering identity must never be
       // revived into a render/send. Mark it blocked with the canonical reason
@@ -427,9 +368,12 @@ export async function resumeStuckEdielIntents(input: {
         message: `Resume-dispatcher saknas ännu för outbound business_process=${process}.`,
       })
       blocked += 1
-    } catch (resumeError) {
-      errors.push(`${row.id}: ${resumeError instanceof Error ? resumeError.message : String(resumeError)}`)
+    } catch {
+      errors.push(`${row.id}: ediel_resume_dispatch_failed`)
       blocked += 1
+      outcome='failed'
+    } finally {
+      try{await finishEdielResumeClaim(claim,outcome)}catch{errors.push(`${row.id}: ediel_resume_completion_unavailable`)}
     }
   }
 
@@ -441,7 +385,7 @@ export async function resumeStuckEdielIntents(input: {
   const draftSweep = await sweepDraftIntents({ companyId: input.companyId ?? null, limit, errors })
   blocked += draftSweep.blocked
 
-  return { candidates: rows.length + draftSweep.candidates, resumed, blocked, skipped, errors }
+  return { candidates: claims.length + draftSweep.candidates, resumed, blocked, skipped, errors }
 }
 
 async function sweepDraftIntents(input: {
@@ -449,31 +393,16 @@ async function sweepDraftIntents(input: {
   limit: number
   errors: string[]
 }): Promise<{ candidates: number; blocked: number }> {
-  let query = supabaseService
-    .from('ediel_message_intents')
-    .select('id')
-    .eq('validation_status', 'draft')
-    .eq('direction', 'outbound')
-    .is('ediel_message_id', null)
-    .eq('outbox_status', 'not_queued')
-    .order('updated_at', { ascending: true })
-    .limit(input.limit)
-  if (input.companyId) query = query.eq('company_id', input.companyId)
-
-  const { data, error } = await query
-  if (error) {
-    if (isMissingSchema(error)) return { candidates: 0, blocked: 0 }
-    input.errors.push(`draft_sweep: ${error.message}`)
-    return { candidates: 0, blocked: 0 }
-  }
-
-  const ids = ((data ?? []) as Array<{ id: string }>).map((row) => row.id)
+  const claims=await claimEdielResumeIntents({phase:'draft',companyId:input.companyId,limit:input.limit})
   let blocked = 0
-  for (const id of ids) {
+  for (const claim of claims) {
+    const id=claim.intent.id
+    let outcome:'processed'|'failed'|'skipped'='processed'
     try {
+      if(!await checkEdielResumeClaim(claim)){outcome='skipped';continue}
       const { getEdielMessageIntentById, evaluateIntentValidation } = await import('@/lib/ediel/intent/intentEngine')
       const intent = await getEdielMessageIntentById(id)
-      if (!intent) continue
+      if (!intent){outcome='skipped';continue}
       const validation = evaluateIntentValidation(intent)
       await updateIntentLifecycle(id, {
         actorUserId: null,
@@ -482,9 +411,12 @@ async function sweepDraftIntents(input: {
         validationResult: { ...validation, source: 'resume_draft_sweep', system_actor: 'ediel_intent_resume_cron' } as unknown as Record<string, unknown>,
       })
       if (validation.status === 'blocked') blocked += 1
-    } catch (sweepError) {
-      input.errors.push(`draft_sweep:${id}: ${sweepError instanceof Error ? sweepError.message : String(sweepError)}`)
+    } catch {
+      input.errors.push(`draft_sweep:${id}: ediel_resume_draft_failed`)
+      outcome='failed'
+    } finally {
+      try{await finishEdielResumeClaim(claim,outcome)}catch{input.errors.push(`draft_sweep:${id}: ediel_resume_completion_unavailable`)}
     }
   }
-  return { candidates: ids.length, blocked }
+  return { candidates: claims.length, blocked }
 }

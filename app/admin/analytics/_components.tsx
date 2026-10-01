@@ -256,7 +256,7 @@ export function ReportsList({ reports, month }: { reports: ReportDefinition[]; m
         <div key={report.key} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-black text-slate-950">{report.label}</h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{report.description}</p>
-          <Link href={`/admin/analytics/export?report=${report.key}&month=${month.slice(0, 7)}`} className="mt-4 inline-flex rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
+          <Link download href={`/admin/analytics/export?report=${report.key}&month=${month.slice(0, 7)}`} className="mt-4 inline-flex rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
             Exportera CSV
           </Link>
         </div>

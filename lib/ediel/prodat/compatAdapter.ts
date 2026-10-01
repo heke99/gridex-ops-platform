@@ -69,6 +69,7 @@ export type ProdatSwitchValidationResult = {
 type BaseSwitchOutboundInput = {
   actorUserId?: string | null
   senderEdielId: string
+  legalSenderEdielId?: string | null
   senderName?: string | null
   receiverEdielId: string
   receiverName?: string | null
@@ -449,6 +450,7 @@ function renderProdatSegments(params: {
   meteringPoint: MeteringPointRow
   gridOwner?: GridOwnerRow | null
   senderEdielId: string
+  legalSenderEdielId?: string | null
   receiverEdielId: string
 }): {
   segments: string[]
@@ -475,7 +477,7 @@ function renderProdatSegments(params: {
       code: params.code,
       bgmReference: params.bgmReference,
       transactionReference: params.transactionReference || params.bgmReference,
-      senderEdielId: params.senderEdielId,
+      senderEdielId: params.code === 'Z03' ? (params.legalSenderEdielId ?? params.senderEdielId) : params.senderEdielId,
       receiverEdielId: params.receiverEdielId,
       customerName,
       customerId: portalPartyText(portalData, 'customerId'),
@@ -608,6 +610,7 @@ function buildProdatSwitchOutboundDraft(
       meteringPoint: input.meteringPoint,
       gridOwner: input.gridOwner ?? null,
       senderEdielId: input.senderEdielId,
+      legalSenderEdielId: input.legalSenderEdielId,
       receiverEdielId: input.receiverEdielId,
     })
 
@@ -699,6 +702,9 @@ function buildProdatSwitchOutboundDraft(
       transactionReference,
       communicationRouteId: input.communicationRouteId ?? null,
       switchRequestId: input.switchRequest.id,
+      ...(code === 'Z03' ? {
+        sourceOperationId: input.switchRequest.operation_id ?? `supplier_switch_request:${input.switchRequest.id}`,
+      } : {}),
       customerId: input.switchRequest.customer_id,
       siteId: input.switchRequest.site_id,
       meteringPointId: input.switchRequest.metering_point_id,

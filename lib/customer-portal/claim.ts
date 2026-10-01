@@ -1,9 +1,10 @@
 'use server'
 
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { AccountCompletionError, completeNativePortalAccount } from '@/lib/customer-portal/accountCompletion'
 
 type CustomerCandidate = {
   id: string
@@ -16,6 +17,8 @@ type CustomerCandidate = {
   email: string | null
   personal_number: string | null
   customer_number: string | null
+  profile_revision: number | string
+  contact_revision: number | string
 }
 
 type CustomerContactCandidate = {
@@ -36,12 +39,19 @@ type CustomerSiteCandidate = {
   street: string | null
   postal_code: string | null
   city: string | null
+  site_revision: number | string
+  address_revision: number | string
 }
 
 type MeteringPointCandidate = {
   id: string
   site_id: string | null
   meter_point_id: string | null
+  metering_point_id: string | null
+  customer_site_id: string | null
+  company_id: string | null
+  customer_id: string | null
+  updated_at: string
 }
 
 export type PortalClaimActionState = {
@@ -207,7 +217,7 @@ async function findMatchingInstallations(params: {
 
   const { data: sites, error: siteError } = await supabaseService
     .from('customer_sites')
-    .select('id,company_id,customer_id,facility_id,site_name,street,postal_code,city')
+    .select('id,company_id,customer_id,facility_id,site_name,street,postal_code,city,site_revision,address_revision')
     .in('customer_id', customerIds)
     .in('company_id', companyIds)
 
@@ -218,7 +228,7 @@ async function findMatchingInstallations(params: {
 
   const { data: points, error: pointError } = await supabaseService
     .from('metering_points')
-    .select('id,site_id,meter_point_id')
+    .select('id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,updated_at')
     .in('site_id', siteIds)
     .in('meter_point_id', variants)
     .limit(1)
@@ -300,28 +310,6 @@ async function insertClaim(params: {
   if (error) throw error
 }
 
-async function insertPortalEvent(params: {
-  customerId: string
-  companyId?: string | null
-  userId: string
-  userEmail: string | null
-  eventType: string
-  message: string
-  metadata?: Record<string, unknown>
-}) {
-  const { error } = await supabaseService.from('customer_portal_events').insert({
-    company_id: params.companyId ?? null,
-    customer_id: params.customerId,
-    user_id: params.userId,
-    event_type: params.eventType,
-    message: params.message,
-    metadata: params.metadata ?? {},
-  })
-
-  // Do not block account linking if an older environment lacks event columns/table shape.
-  if (error && error.code !== '42P01' && error.code !== '42703') throw error
-}
-
 export async function claimPortalCustomerAction(
   _prevState: PortalClaimActionState,
   formData: FormData
@@ -329,9 +317,10 @@ export async function claimPortalCustomerAction(
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  if (userError || !user) redirect('/login')
 
   const authEmail = normalizeEmail(user.email)
   const inputEmail = normalizeEmail(text(formData.get('email')))
@@ -379,7 +368,7 @@ export async function claimPortalCustomerAction(
 
   let candidateQuery = supabaseService
     .from('customers')
-    .select('id,company_id,customer_type,first_name,last_name,full_name,company_name,email,personal_number,customer_number')
+    .select('id,company_id,customer_type,first_name,last_name,full_name,company_name,email,personal_number,customer_number,profile_revision,contact_revision')
     .in('personal_number', pnVariants)
     .limit(10)
 
@@ -525,69 +514,37 @@ export async function claimPortalCustomerAction(
   }
 
   if (fullMatches.length === 1) {
-    const { customer, matchSnapshot, installationMatch } = fullMatches[0]
-    const now = new Date().toISOString()
-
-    const { error: accountError } = await supabaseService
-      .from('customer_portal_accounts')
-      .upsert(
-        {
-          company_id: customer.company_id,
-          user_id: user.id,
-          user_email: authEmail,
-          customer_id: customer.id,
-          role: 'owner',
-          is_active: true,
-          activated_at: now,
-          verified_at: now,
-          match_method: 'self_claim_strict_identity',
-          verified_identity_snapshot: {
-            ...matchSnapshot,
-            userEmail: authEmail,
-            personalNumberLast4: normalizeDigits(personalNumber).slice(-4),
-            inputName: fullName || [firstName, lastName].filter(Boolean).join(' '),
-            inputInstallationId: installationId,
-          },
-          updated_at: now,
+    const { customer, installationMatch } = fullMatches[0]
+    const site = installationMatch.site, point = installationMatch.meteringPoint
+    if (!customer.company_id || !site) return { ok: false, message: DEFAULT_ERROR }
+    const contacts = (contactsByCustomerId.get(customer.id) ?? []).filter(contact => contact.company_id === customer.company_id)
+    try {
+      await completeNativePortalAccount({
+        companyId: customer.company_id, customerId: customer.id, expectedUserId: user.id, authEmail,
+        input: { email: inputEmail, personalNumber, firstName, lastName, fullName, installationId, companySlug },
+        source: {
+          customer: { id: customer.id, companyId: customer.company_id, customerType: customer.customer_type,
+            firstName: customer.first_name, lastName: customer.last_name, fullName: customer.full_name,
+            companyName: customer.company_name, email: customer.email, personalNumber: customer.personal_number,
+            customerNumber: customer.customer_number, profileRevision: String(customer.profile_revision), contactRevision: String(customer.contact_revision) },
+          contacts: contacts.map(contact => ({ id: contact.id, companyId: contact.company_id, customerId: contact.customer_id,
+            name: contact.name, email: contact.email })).sort((a, b) => a.id.localeCompare(b.id)),
+          site: { id: site.id, companyId: site.company_id, customerId: site.customer_id, facilityId: site.facility_id,
+            siteRevision: String(site.site_revision), addressRevision: String(site.address_revision) },
+          point: point ? { id: point.id, companyId: point.company_id, customerId: point.customer_id, siteId: point.site_id,
+            customerSiteId: point.customer_site_id, meterPointId: point.meter_point_id, meteringPointId: point.metering_point_id, updatedAt: point.updated_at } : null,
         },
-        { onConflict: 'user_id,customer_id' }
-      )
-
-    if (accountError) throw accountError
-
-    await insertClaim({
-      userId: user.id,
-      userEmail: authEmail,
-      companyId: customer.company_id,
-      customerId: customer.id,
-      status: 'approved',
-      personalNumber,
-      inputSnapshot,
-      matchSnapshot,
-      flags: {
-        emailMatched: true,
-        nameMatched: true,
-        personalNumberMatched: true,
-        installationMatched: true,
-      },
-      matchedSiteId: installationMatch.site?.id ?? null,
-      matchedMeteringPointId: installationMatch.meteringPoint?.id ?? null,
-    })
-
-    await insertPortalEvent({
-      customerId: customer.id,
-      companyId: customer.company_id,
-      userId: user.id,
-      userEmail: authEmail,
-      eventType: 'portal_account_verified',
-      message: 'Kundportal kopplades automatiskt via personnummer, e-post, namn och anläggnings-ID.',
-      metadata: matchSnapshot,
-    })
-
-    revalidatePath('/portal')
-    revalidatePath('/portal/fakturor')
-    revalidatePath('/portal/forbrukning')
-    revalidatePath('/portal/anlaggningar')
+      })
+    } catch (error) {
+      unstable_rethrow(error)
+      if (!(error instanceof AccountCompletionError)) throw error
+      return { ok: false, message: DEFAULT_ERROR }
+    }
+    // A refresh failure cannot erase a confirmed saved/current relationship.
+    // Preserve actual Next control-flow errors and the mounted redirect.
+    for (const path of ['/portal', '/portal/fakturor', '/portal/forbrukning', '/portal/anlaggningar']) {
+      try { revalidatePath(path) } catch (error) { unstable_rethrow(error) }
+    }
     redirect('/portal?kopplad=1')
   }
 

@@ -1,0 +1,1365 @@
+{
+  "schemaVersion": 1,
+  "classificationDate": "2026-10-01",
+  "frozenPagesFile": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ops-ui-semantic-pages-20260930.jsonl",
+  "frozenPagesSha256": "3e28ad4b72e073cf37d63a17493caf3b6826d35dfa46d315b1faa0f2ab23c60a",
+  "manualFile": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ops-ui-page-manual-dispositions-20261001.json",
+  "manualSha256": "74b61f1c2c6d8b1a6373ea17b4162fc12ea63a1d1c98d1c96fcacb228651d708",
+  "frozenSourceHashesFile": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ops-ui-semantic-source-hashes-20260930.jsonl.gz",
+  "frozenSourceHashesSha256": "5dd92a29333d3b9d8bcde70e8c3326b8d4759f8b1f95488d4c279fc54a7b5153",
+  "generatorFile": "scripts/tenantservice/ops-ui-page-dispositions-20261001.mjs",
+  "generatorSha256": "1e1c8f78e9219d74d657cd96b19880a4b1072305b70d878c00b9826bcaaebd82",
+  "exactFrozenPages": 148,
+  "manuallyDisposedPages": 148,
+  "dispositionCounts": {
+    "DELEGATED_SAME_PAGE_IMPLEMENTATION_RUNTIME_OPEN": 2,
+    "MANUAL_ROLE_RESOURCE_STATE_SOURCE_CLASSIFIED_RUNTIME_OPEN": 143,
+    "REDIRECT_TO_EXISTING_PAGE_RUNTIME_OPEN": 3
+  },
+  "resourceScopeCounts": {
+    "OPTIONAL_COMPANY_FILTER": 21,
+    "PAGE_ALIAS": 2,
+    "PLATFORM_GLOBAL": 52,
+    "PLATFORM_SELECTED_OPTIONAL": 15,
+    "PLATFORM_TARGET_COMPANY": 11,
+    "PLATFORM_TARGET_RESOURCE": 5,
+    "REDIRECT": 3,
+    "SELECTED_COMPANY_CONDITIONAL_EMPTY": 7,
+    "SELECTED_COMPANY_REQUIRED": 12,
+    "SELECTED_OR_PLATFORM_GLOBAL": 9,
+    "TARGET_IN_SELECTED_COMPANY": 7,
+    "WHITELABEL_MEMBERSHIP": 3,
+    "WHITELABEL_TARGET_MEMBERSHIP": 1
+  },
+  "effectiveAuthorityCounts": {
+    "canonicalPlatformOnly": 83,
+    "currentAdminPlusPermissions": 62,
+    "inheritedRedirectTarget": 3
+  },
+  "sourceFilesHashed": 322,
+  "sourceManifest": [
+    {
+      "file": "app/admin/agreements/grid-owners/page.tsx",
+      "sha256": "649dbd55bf33d021d15939a097c3c7cc545061b3ffaaee87961031326b315118"
+    },
+    {
+      "file": "app/admin/analytics/_components.tsx",
+      "sha256": "34f2fdaea20b1c4e1b5998ad4aa88c10e0be9429be3b7da2281032e2ee4b2c9f"
+    },
+    {
+      "file": "app/admin/analytics/deviations/page.tsx",
+      "sha256": "80c4635de2efa44619e254b29cc60e01a86bf5693d0af52ebd19313b106afa8b"
+    },
+    {
+      "file": "app/admin/analytics/forecast/page.tsx",
+      "sha256": "8c304b90adfff813307cbd43737d151e1be39c3e7b8bcae817395765386065c3"
+    },
+    {
+      "file": "app/admin/analytics/page.tsx",
+      "sha256": "ac5e37ed070d26dd52c8eed7dcd438e012af6e58a3dc26e81ee25ce7b7130fb8"
+    },
+    {
+      "file": "app/admin/analytics/reports/page.tsx",
+      "sha256": "61f210422ccaceee18a6520af70e8735f74fef39680e1b5ba52b53546bb26034"
+    },
+    {
+      "file": "app/admin/audit/page.tsx",
+      "sha256": "eb819cc80da0297c62ca38aee72b38ad5f569cba5b9f42e4598369b61baf9b4e"
+    },
+    {
+      "file": "app/admin/billing/ai-parser/page.tsx",
+      "sha256": "315d70e305713a04c6f1abbdc8342e192d57fd1e68e88e05dcaf360ebba980e4"
+    },
+    {
+      "file": "app/admin/billing/export-center/page.tsx",
+      "sha256": "03e695f24c6d70373b1cf76d95b47ed0f8928ca718635cc25d67351236d863e2"
+    },
+    {
+      "file": "app/admin/billing/import/page.tsx",
+      "sha256": "befbda984b213d750ba57b99d971833913f1502028c6227eaeefa5030cf078c7"
+    },
+    {
+      "file": "app/admin/billing/integrations/page.tsx",
+      "sha256": "fe6cf3194cdc1c9530fb56df04ef098daf4beed2b3b3f3e6bcea1623d9fbda0f"
+    },
+    {
+      "file": "app/admin/billing/invoices/[id]/page.tsx",
+      "sha256": "59c9aa8750a680a02b5bda0779c93a895d5e6839035547431a938d7b0f9f604a"
+    },
+    {
+      "file": "app/admin/billing/invoices/[id]/redelivery/RedeliveryDecisionForm.tsx",
+      "sha256": "3766387af4a9bce3a5050bdbbdf4b57301cafcf5177e2efbb5fed277d91b4f18"
+    },
+    {
+      "file": "app/admin/billing/invoices/[id]/redelivery/page.tsx",
+      "sha256": "d29c8e4b284db697bb549404d0012d11a2ef66609cc2adb85abb160640ce7ed6"
+    },
+    {
+      "file": "app/admin/billing/page.tsx",
+      "sha256": "783bf4282e2b252910db5be2bf4eed17b39fb850951bec0091503cb92edecbf2"
+    },
+    {
+      "file": "app/admin/billing/partner-invoices/page.tsx",
+      "sha256": "3517fbc3fd8655ab9f3c44d7d54a1f49061ed7616768cbae357b36f7ccae9811"
+    },
+    {
+      "file": "app/admin/billing/quality/page.tsx",
+      "sha256": "aedfa48682497d7f5c77b05df4edce71ec887e8dd57528465b68b1c097fbe4de"
+    },
+    {
+      "file": "app/admin/billing/underlays/[id]/page.tsx",
+      "sha256": "e5d58a0c32368fb46c10f21c936de502452502d76fd570748512da41150595e2"
+    },
+    {
+      "file": "app/admin/billing/underlays/page.tsx",
+      "sha256": "4b01e4263c1083041aa0aa11aa1554ddee791b334ebdb9817e0270a2fa51e480"
+    },
+    {
+      "file": "app/admin/companies/[id]/TenantPlatformControls.tsx",
+      "sha256": "785021820e5a628971cf3742ad2f4af006bd318241ce44cf92f074ee776ae4e7"
+    },
+    {
+      "file": "app/admin/companies/[id]/page.tsx",
+      "sha256": "7d1a456116550131d2800876771d011b021d8c8f30c81ec568f05d21ea05ae3c"
+    },
+    {
+      "file": "app/admin/companies/[id]/users/page.tsx",
+      "sha256": "5ff3bf1ed982d1afb339ee224a8f03f70b064cdc96dac524b83f7f0fce13fd1e"
+    },
+    {
+      "file": "app/admin/companies/page.tsx",
+      "sha256": "ddf492ba86282070b173de69f4282d0f8dd6f4f47070359f7fa152b149259fa0"
+    },
+    {
+      "file": "app/admin/company-actor-status/page.tsx",
+      "sha256": "07eb083a05e75f4b0dc38e7b306fd0d4746042164d0a5598fd8790ed0c5e2a03"
+    },
+    {
+      "file": "app/admin/company-settings/page.tsx",
+      "sha256": "a655254fc9b0f39618d087ade89ca73389def973413726dd95fb2fd2fa0f6070"
+    },
+    {
+      "file": "app/admin/contracts/page.tsx",
+      "sha256": "44142f2e199cf6d824032115b2de8b1b10a2fa5bba03c58a66116d5fbe515eb0"
+    },
+    {
+      "file": "app/admin/controltower/page.tsx",
+      "sha256": "c126407fac9f3e90906fa88344302db447aaee9496d0d5aaa8e2cc140dd1d988"
+    },
+    {
+      "file": "app/admin/customer-applications/page.tsx",
+      "sha256": "3625e4eadaa6881e84f86fd024bfe92b68220788ec9982f3ec3d994fc1441a70"
+    },
+    {
+      "file": "app/admin/customer-cases/SubmitActionButton.tsx",
+      "sha256": "4f60e931d41b19c1e4dfc6679fad6aebc299ed2a3b5b545e20517fab96dfe2cc"
+    },
+    {
+      "file": "app/admin/customer-cases/page.tsx",
+      "sha256": "9d09a59f1476aeda751862ee885d18d23c4836aa28ed7c18d114d4c2558389e2"
+    },
+    {
+      "file": "app/admin/customer-info-requests/page.tsx",
+      "sha256": "232c367c1c73c829396ef9ea1618a4d204a3a4d1663c2faec0a75bd2d9dbac62"
+    },
+    {
+      "file": "app/admin/customers/[id]/contracts/[contractId]/signature/page.tsx",
+      "sha256": "31bcb04ec7dfbdffe2f045968a088754ed5bb6e4771c12732688e0724c9a459d"
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-1.tsx",
+      "sha256": "f342deae3d33d48aedbb245a75f5a9eaa27055b526f81a76d7ccaea96352a842"
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-2.tsx",
+      "sha256": "76c7c3256d8482196da1f60a707e7b3c8bbfc80328a03c33d4342662a153c68a"
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-3.tsx",
+      "sha256": "fc215b68fa4b40e2129fd9b701d0099b319069792b57fc34a462f819c7c3796d"
+    },
+    {
+      "file": "app/admin/customers/[id]/page.part-4.tsx",
+      "sha256": "39dce6ffd57951889b4c731223e2e76fb8fb5c2eee098596b03d41476eac862d"
+    },
+    {
+      "file": "app/admin/customers/[id]/page.tsx",
+      "sha256": "6880091426c4c6ea4986d0f870f4cd99e25e1d2ae7dc59bde031fe9f3d9e048f"
+    },
+    {
+      "file": "app/admin/customers/duplicates/page.tsx",
+      "sha256": "4ba311afce9c5a84fce436cda72b879b5946d4ff8377e017aa8dc1a24e05b4b1"
+    },
+    {
+      "file": "app/admin/customers/imports/page.tsx",
+      "sha256": "0e10c729179f955d9158f8ceba0c317ac4eaff0b0823e81488a907e33fc801f5"
+    },
+    {
+      "file": "app/admin/customers/intake/page.tsx",
+      "sha256": "4e75def73faad9d2aa67ffd17b1d8bd66efee1ed7f9072456fcf857c211caa37"
+    },
+    {
+      "file": "app/admin/customers/page.part-1.tsx",
+      "sha256": "c56b805d718ec5102442121c21c26ad77840e42799416572ac0fababe9385494"
+    },
+    {
+      "file": "app/admin/customers/page.part-2.tsx",
+      "sha256": "6c1668d98b49282e3bbe3db0aaf686017ff5df05a55a1ba32a01766075303685"
+    },
+    {
+      "file": "app/admin/customers/page.tsx",
+      "sha256": "cc3fbb622a0ffe19db537983743d9f4b4d6795dd494233bed619c0296e1057b3"
+    },
+    {
+      "file": "app/admin/customers/segments/page.tsx",
+      "sha256": "8a7d122179379bb860d1470a7ca8f41f0e1375e572ca786eb3532d55747d9ecd"
+    },
+    {
+      "file": "app/admin/customers/tenant-test/page.tsx",
+      "sha256": "31fa7483a03c19834e65076af3c847d6b191b74fa792bcb6cdfe38aa899f6549"
+    },
+    {
+      "file": "app/admin/data-quality/page.tsx",
+      "sha256": "c75a3722bf0b88435bab08dfcc4208ea807780a77c6c6a9e8385f93aab3c8aa8"
+    },
+    {
+      "file": "app/admin/ediel/actors/page.tsx",
+      "sha256": "698e9a7a175c81c52c912b8a5e7a252d27271e8c4718513d76b2d352007bfb4b"
+    },
+    {
+      "file": "app/admin/ediel/agt/[testCaseCode]/page.tsx",
+      "sha256": "da3d9c50db99cc243860f3ff2ccbba95826f37742ae77ece64d61347c23a75fb"
+    },
+    {
+      "file": "app/admin/ediel/agt/page.tsx",
+      "sha256": "f9ed04da61bf0b521078471262228413a7f2d2090f5d32a3942edfb2e01df740"
+    },
+    {
+      "file": "app/admin/ediel/ai-list/page.tsx",
+      "sha256": "ecfdaa6c05c183502dd7a719d4271d603c2c8ce76f46e71086ae9eb00c0411c8"
+    },
+    {
+      "file": "app/admin/ediel/anvisningar/page.tsx",
+      "sha256": "9a5b8fa9300176b2eb7bba6ad1d4a2988cf9c52356b31167318bc31d12ac64ec"
+    },
+    {
+      "file": "app/admin/ediel/auto-readiness/page.tsx",
+      "sha256": "9e06ac6814b1ba397538be81956252908d13a72da770db9bc5a8a28a7a7f4862"
+    },
+    {
+      "file": "app/admin/ediel/automation/page.tsx",
+      "sha256": "5bcea0d1ed961d9a597d9173b632f338cb8145110a9e2ea1b323feea4191a50b"
+    },
+    {
+      "file": "app/admin/ediel/certificates/page.tsx",
+      "sha256": "c724be35b970cada82059b4bbd116c5eae227c4b7fead2863065c26646ae4013"
+    },
+    {
+      "file": "app/admin/ediel/certification/page.tsx",
+      "sha256": "fb1f2bd75e4e39f9c0cb3f3b6b5ced53ec922e3a23f42fd4e70b565a6a71a7f4"
+    },
+    {
+      "file": "app/admin/ediel/control-tower/page.tsx",
+      "sha256": "31c1382de6663de60c65cf8c2edd880bf3df47b6c3db3e7b70aad117c57deafb"
+    },
+    {
+      "file": "app/admin/ediel/mail-readiness/page.tsx",
+      "sha256": "12b185d0a32db0be3230d973a80a811bdb9dbc8a57a0b300ab494fa552cbcc89"
+    },
+    {
+      "file": "app/admin/ediel/mailboxes/page.tsx",
+      "sha256": "e6f2830f3d7a90c54eb26b37dce73da6f6a77ad35140c9ffd16d5b9a087c3c4f"
+    },
+    {
+      "file": "app/admin/ediel/masterdata-reconciliation/page.tsx",
+      "sha256": "6b5fb4cebcd45323a4712329255ee1785a865bcacbeb243f920e30c8f8b66257"
+    },
+    {
+      "file": "app/admin/ediel/messages/[id]/page.tsx",
+      "sha256": "e4173ac644b0fc714b375b33a4e7c7b76341852df6859be463cbd3c368902aa1"
+    },
+    {
+      "file": "app/admin/ediel/messages/page.tsx",
+      "sha256": "4891cb77e656c416af844feadfeead1a699ab7ab3c1be877741b9e510b94fc9f"
+    },
+    {
+      "file": "app/admin/ediel/operational-cases/page.tsx",
+      "sha256": "8a3b92209892c80164b2661f16c46795ebd1af9586fd8c28754c4c8fad6732f7"
+    },
+    {
+      "file": "app/admin/ediel/outbox/page.tsx",
+      "sha256": "3ce244f5d43d3ae360b163747fcb763385af9925d8035e6319fc6e1f116c58a0"
+    },
+    {
+      "file": "app/admin/ediel/page.tsx",
+      "sha256": "b579b0f8ee95bc41fd44ba7a9926865de25bf4dfe41ef3a5a4a9d300bf903939"
+    },
+    {
+      "file": "app/admin/ediel/portal-feedback/page.tsx",
+      "sha256": "d7e67f8965d172d1a907a6267cb6bd961768cbbee61bfc2aebfd5731f54bff9b"
+    },
+    {
+      "file": "app/admin/ediel/readiness/page.tsx",
+      "sha256": "5327295fe18781eb741a69870b310c35ca5b37bcc5c8a3995af1019529677d19"
+    },
+    {
+      "file": "app/admin/ediel/route-readiness/page.tsx",
+      "sha256": "6ebf4aad10336c65c73ace5c8e2a51ec8b857bc01b4c4be725cf4017a862d66e"
+    },
+    {
+      "file": "app/admin/ediel/routes/legacy/page.tsx",
+      "sha256": "d43269e65ea0cd65ea2d67f86fa388e53669af41758e75a00bddb36b1a9a84da"
+    },
+    {
+      "file": "app/admin/ediel/routes/page.tsx",
+      "sha256": "5e244c90feb46dd2d4c9dab8bf2f13f4ee79bd8805e790ac93004877e91bf6f8"
+    },
+    {
+      "file": "app/admin/ediel/rule-profiles/page.tsx",
+      "sha256": "4aaf136b69c65a85959dc1235f002c9f62c42dd3314706ce6470f3613a9fad38"
+    },
+    {
+      "file": "app/admin/ediel/settings/page.tsx",
+      "sha256": "d05493ea072d5ce8a83475c2b2f56c70e261e95eab754ca4d212c83ada5d412f"
+    },
+    {
+      "file": "app/admin/ediel/system-tests/EdielReportingPermissionForm.tsx",
+      "sha256": "ea1e6c3778c49496b52752deac43e87946d9d7cedeb3b7877ce843fb4b43fb7c"
+    },
+    {
+      "file": "app/admin/ediel/system-tests/cases/[id]/page.tsx",
+      "sha256": "1d7d96dcba0d09951480a1bed63d5ab4ae42aaa00adf25d70cd29bad28b63bd4"
+    },
+    {
+      "file": "app/admin/ediel/system-tests/page.tsx",
+      "sha256": "d7faf21a07e138ebf2052e18e1cded1d5703b64dbd9e8cd165649f9fee414ed4"
+    },
+    {
+      "file": "app/admin/ediel/test-center/invoice-test/InvoiceTestCustomerForm.tsx",
+      "sha256": "d6b01ea6980afcf09c81d2a6aeb88c6e06102b2cf8302cd515da8d683cd076ef"
+    },
+    {
+      "file": "app/admin/ediel/test-center/invoice-test/page.tsx",
+      "sha256": "1e0a43ea1c58fe6f11fdf2cf2b9d72f20b92ef87eec351c9e3db41bad24c662e"
+    },
+    {
+      "file": "app/admin/ediel/test-center/metering-to-invoice/page.tsx",
+      "sha256": "ff476aedd012b5486076bbaa7d3f479a0ef0692d57ea7b7ec6dcb74a5b13230c"
+    },
+    {
+      "file": "app/admin/ediel/test-center/metering-to-invoice/trace/[edielMessageId]/page.tsx",
+      "sha256": "274ed48fc2a0bab0814cad970f5d2e1abe388c60a7223cd705b9ecd6d6f3a3de"
+    },
+    {
+      "file": "app/admin/ediel/test-center/page.tsx",
+      "sha256": "160a99545dbbea41c21cc2396bfec623a1332979fe67f37b57c1d0ff13c544e5"
+    },
+    {
+      "file": "app/admin/ediel/unresolved/page.tsx",
+      "sha256": "d86898e8b2da25d4133d93982a9535f83b4c524ba13848035840041eb47055f5"
+    },
+    {
+      "file": "app/admin/electricity-suppliers/page.tsx",
+      "sha256": "f74d3d27aef86fec7823a49cd7ac23a33d92296d1c5754e930144251f2daec60"
+    },
+    {
+      "file": "app/admin/events/page.tsx",
+      "sha256": "9b8540f64d74e532f1631e3869168f1fd33aafb1101d0488c1ba90ebfe12aaa1"
+    },
+    {
+      "file": "app/admin/external-contract-intakes/page.tsx",
+      "sha256": "b3fcd3cdfac57388329ae37719051ea5504371ec20761122e6b0071f420d6126"
+    },
+    {
+      "file": "app/admin/facility-requests/page.tsx",
+      "sha256": "57815747d87a23f71318372233105678995f21acc41911c49bd81989510b459e"
+    },
+    {
+      "file": "app/admin/inbound-mail/[id]/InboundManualReviewForm.tsx",
+      "sha256": "2881dcfa4b643ac3dbb0cb7c989e693071cbb1a646fa129fd50d5a3a7eb4c5f4"
+    },
+    {
+      "file": "app/admin/inbound-mail/[id]/page.tsx",
+      "sha256": "e0a8934196763d675c2596cb08ba851ff6b1a409370abe885c64ecb509ec37b0"
+    },
+    {
+      "file": "app/admin/inbound-mail/diagnostics/page.tsx",
+      "sha256": "897e5fc5f87e1f658db9849472f950f98e9b15f5a1afacf90fa8dd49d3239a34"
+    },
+    {
+      "file": "app/admin/inbound-mail/page.tsx",
+      "sha256": "744e7e153a2f85987bd91b34ef472894f2d8f9dc7b9ee7c931e0bb8ce47e70bd"
+    },
+    {
+      "file": "app/admin/integrations/routes/page.tsx",
+      "sha256": "b8752aa0bdedbc7c1abd9323c5da75d2e7fec473bf5ecfd63522d35d8570647e"
+    },
+    {
+      "file": "app/admin/layout.tsx",
+      "sha256": "9fd3bd4b572ff4e822662e2e5f5094b3db56a9339aaef65afe955db71f084a2b"
+    },
+    {
+      "file": "app/admin/manual-mailboxes/page.tsx",
+      "sha256": "f6289818d0e02eb4e092c6d253c6f9a9c69cdf3d17fe56a4eaed03f9d3b5380c"
+    },
+    {
+      "file": "app/admin/manual-requests/page.tsx",
+      "sha256": "33ce46b5961b090f79a465b669f4a2f06e4f9665115fa2888b70ce17c7cb16a0"
+    },
+    {
+      "file": "app/admin/messages/[id]/page.tsx",
+      "sha256": "11288a138ce951e5e45a1c4fde40a7640f13d4e8047604acb46a48ce94d501d2"
+    },
+    {
+      "file": "app/admin/messages/page.tsx",
+      "sha256": "0181386cde4b0489edfca83e0dc33ee56c99ca726bef6b03db083fadc84d82e1"
+    },
+    {
+      "file": "app/admin/metering/_components.tsx",
+      "sha256": "adc1cef5aebad17e41e594478661d179cf62efcbffce48940d7d62178c3ba2be"
+    },
+    {
+      "file": "app/admin/metering/page.tsx",
+      "sha256": "87280651f38e2e684b2f6703422bbc4059246e00c68e55e4238be1dcd0db5b28"
+    },
+    {
+      "file": "app/admin/network-owners/[id]/contact-channels/page.tsx",
+      "sha256": "2419cc56a65e1fdaa0c1471c0d5d42c6842e6c7a81515539dd305d595dad7c5c"
+    },
+    {
+      "file": "app/admin/network-owners/page.tsx",
+      "sha256": "c7925f8c0e1f375b64dba59d03b92c4d1e1364dc9b38e0cc27ce1f1c21c91145"
+    },
+    {
+      "file": "app/admin/operations/automation/page.tsx",
+      "sha256": "c1328f7a8918b081ccb1f8d444369f3f59b35e4a68d3374b82f7800144659174"
+    },
+    {
+      "file": "app/admin/operations/grid-owner-requests/[id]/page.tsx",
+      "sha256": "5fc3043f40e3fb53572272b8b0200c37bb1ff7bb241044fdd653fc8b2ea76d85"
+    },
+    {
+      "file": "app/admin/operations/integrity/page.tsx",
+      "sha256": "fd149dcc61b00824c286d139eff504c7099ed544b4d4c68b0165111e2b3c1cf5"
+    },
+    {
+      "file": "app/admin/operations/page.tsx",
+      "sha256": "6b3b10852f2c3eaccbdb390b322f0ca2a2e5dab6b58b01e686b9d9d38dcd7f4c"
+    },
+    {
+      "file": "app/admin/operations/perioder/page.tsx",
+      "sha256": "b765b2ed5ff9d1d4901eb053739195bed6eea6f9a5130ef47b6e70f0bd2dd53a"
+    },
+    {
+      "file": "app/admin/operations/ready-to-execute/page.tsx",
+      "sha256": "591bfea429fcd59c3dc0b96924ba41bf0c8fa151ecd35737735927ce2a3f4c3f"
+    },
+    {
+      "file": "app/admin/operations/switches/[id]/page.tsx",
+      "sha256": "3de584534d27b2b6444444ed5bf1b9b51170517d61cda70a639b9c0f945eb0f7"
+    },
+    {
+      "file": "app/admin/operations/switches/page.tsx",
+      "sha256": "dd14a0c769cae2372b22b0cf9110934b7f6275e25fc49ad24317cff85d99df9e"
+    },
+    {
+      "file": "app/admin/operations/sync/page.tsx",
+      "sha256": "9f7b735671a0af28f13e6881d45f747505a56f814ac80bca9ca155d8ab988e66"
+    },
+    {
+      "file": "app/admin/operations/tasks/page.tsx",
+      "sha256": "299af066116b54e71f140c887aec928c6edd4af3204603122ec02de6692e28d3"
+    },
+    {
+      "file": "app/admin/outbound/missing-billing-underlays/page.tsx",
+      "sha256": "07cc5213f244aff79688f840c98613d4ac24dd3c81bb5cba7c1e76bba0607405"
+    },
+    {
+      "file": "app/admin/outbound/missing-meter-values/page.tsx",
+      "sha256": "b2a55020245c0a1b9895e2a566284dc72b64e1bc709fecb53ca4440d2721d4f3"
+    },
+    {
+      "file": "app/admin/outbound/page.tsx",
+      "sha256": "ade46f6ef91182688788e1d1f318c59c812ead998e4e89c182a7307ee7455c3c"
+    },
+    {
+      "file": "app/admin/outbound/ready-switches/page.tsx",
+      "sha256": "27a4b224f24447eb76649942554c42e851e27215df749a20714dffbc061f9dad"
+    },
+    {
+      "file": "app/admin/outbound/unresolved/UnresolvedQuickActions.tsx",
+      "sha256": "9b75f5cb3530fb23d8509bdd8f38935330489a2bce96c19901f7826098daab79"
+    },
+    {
+      "file": "app/admin/outbound/unresolved/UnresolvedRequestsList.tsx",
+      "sha256": "c5dde1bef365c0f6d4ba4137df0b8aed7969a67978da7e94d58c327ecc4dc051"
+    },
+    {
+      "file": "app/admin/outbound/unresolved/UnresolvedSummaryCards.tsx",
+      "sha256": "81d8aff413285b2b8c1cfb03d5fd48a798e166ca46b6d7041fd57a1912a85a05"
+    },
+    {
+      "file": "app/admin/outbound/unresolved/helpers.ts",
+      "sha256": "19813b419c02cdf575e70ca5193149fdd279410cb073a9959171c776ebfaca34"
+    },
+    {
+      "file": "app/admin/outbound/unresolved/page.tsx",
+      "sha256": "f970bb3b07b36aad7d9387fcbb458a68fe9b8883dd35b84184a03e399834ca40"
+    },
+    {
+      "file": "app/admin/page.tsx",
+      "sha256": "d79df20628f574bc77186fee811669789ad5ede9125629b76a47490e5edfccb5"
+    },
+    {
+      "file": "app/admin/partner-exports/page.tsx",
+      "sha256": "485acdac33dbe89b17864c8dd1528b385d794a44b927ec457493f46ea448e8ee"
+    },
+    {
+      "file": "app/admin/platform/actor-testing/[companyId]/evidence/page.tsx",
+      "sha256": "a02077279c3b48f29401b8b2d2572e6facc2ebeed730c045639bbc1d79360d3f"
+    },
+    {
+      "file": "app/admin/platform/actor-testing/[companyId]/page.tsx",
+      "sha256": "0a6cf39ce4ee36c429c009a61f14b6f62e81cb33863f7d12cff3b95aa3952565"
+    },
+    {
+      "file": "app/admin/platform/actor-testing/page.tsx",
+      "sha256": "19343e7ff67cb1c2053ca011aaa99ba536ef2076340e7b1a4bda43227a057a1f"
+    },
+    {
+      "file": "app/admin/platform/analytics/page.tsx",
+      "sha256": "8ce79923d8a603eb6e346cf0b45340b2cc3e7490c591708e4a77142346647267"
+    },
+    {
+      "file": "app/admin/platform/api-clients/CreateApiClientForm.tsx",
+      "sha256": "2cba92aaf80e37ff679c39765148373618c27e525dbad9336996e67a163f3c3b"
+    },
+    {
+      "file": "app/admin/platform/api-clients/page.tsx",
+      "sha256": "c3ded07991270eb0313e0a73f7503b86c3847bdcf123568624274babd2ace1ac"
+    },
+    {
+      "file": "app/admin/platform/companies/[companyId]/analytics/page.tsx",
+      "sha256": "36bf95fa5290a9ddc5ec2dd7abc81c5a900f78e0144f4ba5432e9212699873df"
+    },
+    {
+      "file": "app/admin/platform/companies/[companyId]/testing/page.tsx",
+      "sha256": "74260d5115a9937d92608e94c6170a6d3f4a8402405877576c95c3b285da63ba"
+    },
+    {
+      "file": "app/admin/platform/contract-trace/page.tsx",
+      "sha256": "1b9c4139dab062ef4868f924e49603b6f6081638130b9568cf2c068829b16a82"
+    },
+    {
+      "file": "app/admin/platform/customers/archived/page.tsx",
+      "sha256": "efbaf3fc836b2b4676228f0ff2352c5053b3d16744d4412302dcf48e99cd3af3"
+    },
+    {
+      "file": "app/admin/platform/data-cleanup/page.tsx",
+      "sha256": "b9e686a17d73574ac41f1c47eff655f5e2cb1b21e48eed21980645c65081e5b9"
+    },
+    {
+      "file": "app/admin/platform/ediel/messages/page.tsx",
+      "sha256": "5e59846c599484db155127201fdec2b60de5b4f3773d673b474da2b65cca3f43"
+    },
+    {
+      "file": "app/admin/platform/ediel/routes/page.tsx",
+      "sha256": "3fd2273c590226c1aea75e79c5158bff735db7fbfea01ade70f448a1e4ae5a77"
+    },
+    {
+      "file": "app/admin/platform/ediel/rules/page.tsx",
+      "sha256": "595b328a9da44c4ab92d6d2afd737e340eb71cbf957f18c17ad1a7ec61d4e67b"
+    },
+    {
+      "file": "app/admin/platform/ediel/runtime/page.tsx",
+      "sha256": "5b44349fc2f434909a45ee289d4f8dd0d73bdae04e9143a9aa30b62b2eeb35a8"
+    },
+    {
+      "file": "app/admin/platform/ediel/versions/page.tsx",
+      "sha256": "81f2caffc636cb2ee0c4a323b3118d572bfcce7bd9c2c15f91ab86ad19b4539a"
+    },
+    {
+      "file": "app/admin/platform/go-live/[companyId]/page.tsx",
+      "sha256": "3c978fe03d46b5409f1e66f033ac04aff396ea830ce4152dd42e4ccc9dbbc252"
+    },
+    {
+      "file": "app/admin/platform/go-live/[companyId]/route-wizard/page.tsx",
+      "sha256": "799fab33c8ca2e513174107ac446b18bdd2d149702462c9e058b41adfbc63c7c"
+    },
+    {
+      "file": "app/admin/platform/go-live/page.tsx",
+      "sha256": "de6c28724a101708e0ac6e6f98bd96b64e8bf344a8ca86d78f4d1dc175e80ac5"
+    },
+    {
+      "file": "app/admin/platform/legal-readiness/page.tsx",
+      "sha256": "3e60bbd014c8a69d46fa5c10a5683868faa27d2981c7af63514c728517361245"
+    },
+    {
+      "file": "app/admin/platform/legal-templates/page.tsx",
+      "sha256": "f9f5cbf1702d8c2d6d5f48a9353912d1e317886be67c9ad1176daf306ebdb2fd"
+    },
+    {
+      "file": "app/admin/platform/security/page.tsx",
+      "sha256": "74e3d98e14bca38efd3a6320bb86c742167b3d4321589510e64af5d6dd7368e3"
+    },
+    {
+      "file": "app/admin/platform/usage/page.tsx",
+      "sha256": "6fd491faa8d92f5d715fdbeb46409f52c8f84268140121cc42f15c89a574ba50"
+    },
+    {
+      "file": "app/admin/platform/white-labels/page.tsx",
+      "sha256": "3201a73c8d6ed4fc94ad972f3cd52f7e34ae2de88dcb8f6a09902492b5951f9e"
+    },
+    {
+      "file": "app/admin/platform/work-queue/page.tsx",
+      "sha256": "3168215e65e3394d4ea0ced1a0973779658eeebcab242c1aef9fc5840d354e88"
+    },
+    {
+      "file": "app/admin/price-area-localities/page.tsx",
+      "sha256": "d6a99a0c3a1e84ec68d520aa4ce0457d730d06a3514115d8619b5f6a9b6e33d5"
+    },
+    {
+      "file": "app/admin/pricing/campaigns/page.tsx",
+      "sha256": "594adfc35054120263ea11ad1858c2150e5b7b3e73b6e537335e512acdba400b"
+    },
+    {
+      "file": "app/admin/pricing/components/page.tsx",
+      "sha256": "cb8b1054a61167d7b4fe28b3c90f5b638921380f8c0ca45354f5961972d17312"
+    },
+    {
+      "file": "app/admin/pricing/market-sources/page.tsx",
+      "sha256": "58a515f2727c7dd1c851d77c8230a62d4c0a4619dc4580caf1874c30eb983dfb"
+    },
+    {
+      "file": "app/admin/pricing/page.tsx",
+      "sha256": "5af288a4e5e2e1dd7e5a2f0bcd543a1fa7786efa59e03355f6bb4704d7a69d58"
+    },
+    {
+      "file": "app/admin/pricing/period-locks/page.tsx",
+      "sha256": "26e90374c5d8762b28fcc2ea9730fa5d048511fe77e0d1823e75593db36f7beb"
+    },
+    {
+      "file": "app/admin/pricing/portfolio-prices/page.tsx",
+      "sha256": "0c5554b6cfe674aee895834690bf4291aa80b285c13430c463d2ba8e360629e1"
+    },
+    {
+      "file": "app/admin/pricing/portfolio-settlements/page.tsx",
+      "sha256": "6b6a7d40ce5641e0b2420104d43e44541e068c94eba2719a7308d74e9c444daa"
+    },
+    {
+      "file": "app/admin/pricing/price-plans/page.tsx",
+      "sha256": "184179ec734c70cdbfb2f4cecdaf8ff1293ca7eb5de06ad10d07cd71f9ab01a7"
+    },
+    {
+      "file": "app/admin/pricing/spot-prices/page.tsx",
+      "sha256": "68c1db1fa24c2bb1a11225e11905cf80637f12febc321066d7124c4df2a66a02"
+    },
+    {
+      "file": "app/admin/roles/page.tsx",
+      "sha256": "a60721b68b7948b05b5e4dba9aa29da618405fc85714d97c948dac383d5a8a0b"
+    },
+    {
+      "file": "app/admin/system-health/page.tsx",
+      "sha256": "37bc2fcde1ab1247e1c9d5071780cb9c2b6e66a50a2966d8605a3c141a539394"
+    },
+    {
+      "file": "app/admin/system/auth-diagnostics/page.tsx",
+      "sha256": "7258673feec66fbaebbffa2c19ea3712d6cadec89dd1fc16918380d4fa2ac8d9"
+    },
+    {
+      "file": "app/admin/system/tenant-integrity/page.tsx",
+      "sha256": "ccf20ebafaf319c08a622b5cda51d78b8142e23e34fc58d23cbde81115c1e9c9"
+    },
+    {
+      "file": "app/admin/users/[id]/page.tsx",
+      "sha256": "653699576a8b8c1d843986277d1f80a987fece5bf129b370ad491832abf804a6"
+    },
+    {
+      "file": "app/admin/users/actions.ts",
+      "sha256": "9603f6c936562748ece981772bca8c4c92cbc51a1d7c754979b11bd0d71d7ca2"
+    },
+    {
+      "file": "app/admin/users/page.tsx",
+      "sha256": "94bac5540d464bc4f3230ec8e0723ae8c61f5b827ad1f199e150951d680c4dc9"
+    },
+    {
+      "file": "app/admin/webhooks/deliveries/page.tsx",
+      "sha256": "0164359294526ae86b114b4b385559101b9c4e17203146a5aaa1d672c31a824c"
+    },
+    {
+      "file": "app/admin/website-applications/[id]/page.tsx",
+      "sha256": "9d743d7f840094546af467c3c94dde3f4f53af4cc1a35630adbec5259d133cb9"
+    },
+    {
+      "file": "app/admin/website-applications/page.tsx",
+      "sha256": "37ecd59315df463f269c3becfa690373f8b1c738ccaa33f5f24d504fb89202c9"
+    },
+    {
+      "file": "app/admin/whitelabel/actor-testing/[companyId]/page.tsx",
+      "sha256": "d7d53102dc9fd2d593aa39535a4ff23d2f5741cecdb9abe2610c1ec508111894"
+    },
+    {
+      "file": "app/admin/whitelabel/actor-testing/page.tsx",
+      "sha256": "5735758d71d692252fea0c2324fd49d41e2be095d79a2120b248e81b3ea01bc1"
+    },
+    {
+      "file": "app/admin/whitelabel/companies/page.tsx",
+      "sha256": "648b22a981c2c02b18e208f0127130f2d17f2cf1014cd9133a855a1744f94eff"
+    },
+    {
+      "file": "app/admin/whitelabel/go-live/page.tsx",
+      "sha256": "4f74401dcc8dfd9f8d81e10f65ecffaf8daf8bb9ffbcf0b8b280fc4e82ba1208"
+    },
+    {
+      "file": "app/admin/work-queue/page.tsx",
+      "sha256": "5786ff3fd4f35ff5a845764d58df33f9d932e9b6de4255598cb2c8eaec264890"
+    },
+    {
+      "file": "components/admin/AdminHeader.tsx",
+      "sha256": "1eb534645b9bfc4682529a58a859babb92eaf2c283695cf971abafdefbdf9e4f"
+    },
+    {
+      "file": "components/admin/agreements/GridOwnerAgreementForm.tsx",
+      "sha256": "ae7626b80bab5012beac0d8e9655f5b76cb7334470a966daec4ae05aeb2f0271"
+    },
+    {
+      "file": "components/admin/agreements/GridOwnerAgreementTable.tsx",
+      "sha256": "99776d70e5b9bae13f592cdfac2963a8e3ac3d919d5b818a14a055cde4d55a06"
+    },
+    {
+      "file": "components/admin/companies/CompanySettingsForms.tsx",
+      "sha256": "85f42924ebd55d37cbcea2027b76a7d8f0ca6023c10c2e2887f376ad9a21a61a"
+    },
+    {
+      "file": "components/admin/companies/CompanyUserInviteForm.tsx",
+      "sha256": "1e79c2ba71ecf6f05b9f188cd1f220de597cde65deca721965f0267cfe759179"
+    },
+    {
+      "file": "components/admin/contracts/ContractChannelControl.tsx",
+      "sha256": "e7df18450bd83fbb2195275f2d4da868630afe3e9e63aab60579d110a2fb19b2"
+    },
+    {
+      "file": "components/admin/contracts/ContractDeleteControl.tsx",
+      "sha256": "77bbe13de3784a3e5d2ce59906eed75630da6cbfc7d6dd02f05df08c1178ab30"
+    },
+    {
+      "file": "components/admin/contracts/ContractOfferAdminForm.tsx",
+      "sha256": "83c76792051692b4cc50b9c68a3ce6f4c097a29eb53fd42e6ff5622810c9c07b"
+    },
+    {
+      "file": "components/admin/customers/CustomerAuthorizationDocumentsCard.tsx",
+      "sha256": "c23442ec23f19ec03e62ba0b34ef945b13e98a7e7bbbc17c61d6661e2114cb9c"
+    },
+    {
+      "file": "components/admin/customers/CustomerBillingMeteringCard.tsx",
+      "sha256": "c860ed450637f41fc43ba72592cae6227d1db224381cee9af3ff9783955717d5"
+    },
+    {
+      "file": "components/admin/customers/CustomerBillingProfileCard.tsx",
+      "sha256": "cdd0f45f72da33848fd37c6393bfcd9d867a1a91a919a3c5fd55edfe9ae75d09"
+    },
+    {
+      "file": "components/admin/customers/CustomerBulkImportPanel.tsx",
+      "sha256": "4b68d515de44f705e5c7877b9990b72222e8f33fdd898f44dd3749deedef1e8d"
+    },
+    {
+      "file": "components/admin/customers/CustomerBusinessActionsCard.tsx",
+      "sha256": "a39ba303e5a99d617f9597bb04720e7e6589a6ad453afa02e8930c4fd462d5e8"
+    },
+    {
+      "file": "components/admin/customers/CustomerContactsAddressesCard.tsx",
+      "sha256": "9ac35852f865f5bd1089985148c751c4e6c2148661a6729d0d2524002486553d"
+    },
+    {
+      "file": "components/admin/customers/CustomerContractOfferEligibilityCard.tsx",
+      "sha256": "642c3d3b47e395d0ddbd3f841c8100f0a465f0154234946ab0150df023f51c00"
+    },
+    {
+      "file": "components/admin/customers/CustomerContractsCard.tsx",
+      "sha256": "c5eb1e3fdc6a42689d8558235da1185f0506aeeca4513f690c24d263ed900a26"
+    },
+    {
+      "file": "components/admin/customers/CustomerDataRequestsCard.tsx",
+      "sha256": "290b441863ddbfb6bfcc41088b71e4cd8f1b5d2703e4960303c8da9f79a510ac"
+    },
+    {
+      "file": "components/admin/customers/CustomerEdielOperationsCard.tsx",
+      "sha256": "dac0f333209c12cfc4f51e9d3fd427c914645b421f448ca5b58991d2b3b80f88"
+    },
+    {
+      "file": "components/admin/customers/CustomerFacilityWorkflowCard.tsx",
+      "sha256": "a72d9dc2b3d78959ccb8c57f0fe1ad71f5d9f9d2e583ccbc5bce37a90846015b"
+    },
+    {
+      "file": "components/admin/customers/CustomerGridOwnerFileImportCard.tsx",
+      "sha256": "5a773d3b3028c5d089fd7d3f949996133ba600c4a7b8e753ebdb4c5be6a61e80"
+    },
+    {
+      "file": "components/admin/customers/CustomerIntakeForm.tsx",
+      "sha256": "805f66a30d74068756c589339575ba115674702f448a73a879058bf4dfd906f1"
+    },
+    {
+      "file": "components/admin/customers/CustomerLegalReadinessCard.tsx",
+      "sha256": "61d8eb8c7897350aad4316b9cc44e4534b709a240b4dc53a69cf1ee8843ffd6f"
+    },
+    {
+      "file": "components/admin/customers/CustomerOperationsReadinessStrip.tsx",
+      "sha256": "320d07b3b49ba07e59ae9e6019f8ddb482e87df74a3fed08b25268446a37427c"
+    },
+    {
+      "file": "components/admin/customers/CustomerPortalAccessCard.tsx",
+      "sha256": "228046be8709cdab1f78943f9b1326cf0232933165c42120a25353634aa5727f"
+    },
+    {
+      "file": "components/admin/customers/CustomerPortalDataChainCard.tsx",
+      "sha256": "1aa6d8b1488d8c9c3f060b5b1530121e4736fcf4a2486ba3e118aec17223ded1"
+    },
+    {
+      "file": "components/admin/customers/CustomerProfileCard.tsx",
+      "sha256": "62e5d864a19fbdb745cb9f6dcac48c9e0b30f1231e89eff639095d756538655a"
+    },
+    {
+      "file": "components/admin/customers/CustomerSwitchOperationsCard.tsx",
+      "sha256": "a3362aba379f483b743526b42dca75ded08d9ca4d968038a80430f783c7b28e3"
+    },
+    {
+      "file": "components/admin/ediel/ActorTestingViews.tsx",
+      "sha256": "6aebbb6841b45a42d9371bf4e07e9c477066654b619430f99f7a3868d633549b"
+    },
+    {
+      "file": "components/admin/ediel/EdielInboundCasesPanel.tsx",
+      "sha256": "6a82340e17de04830edc0ceec80f04d3d9c7ceb111c948d085775cb76c01b18a"
+    },
+    {
+      "file": "components/admin/ediel/EdielReceiverPresetPicker.tsx",
+      "sha256": "e2eb8cf5b87320c851ecf55976639dfc01c9322f64d1ac5a0e35a3f7ff91f0d1"
+    },
+    {
+      "file": "components/admin/ediel/EdielRuleGroups.tsx",
+      "sha256": "817ac291c9863eaffe3638abbd260a8610ad9c83af9cc5ad56218291179d4785"
+    },
+    {
+      "file": "components/admin/ediel/EdielRuleTemplateModals.tsx",
+      "sha256": "2cde52ed298c48bd002773bbe5a745085d2d00419917ca137c7544e3f29d8d59"
+    },
+    {
+      "file": "components/admin/ediel/EdielSendButton.tsx",
+      "sha256": "9a2f19b870a1baaeb3e50f5ff29cc3f9201934891c19da764bf5117044c9df84"
+    },
+    {
+      "file": "components/admin/ediel/GoLiveSetupViews.tsx",
+      "sha256": "93c7cc86c41b027ccfa9ca31d0d50a178cc9cf671051397ed5cb9555ab663687"
+    },
+    {
+      "file": "components/admin/ediel/ProductionReadinessViews.tsx",
+      "sha256": "996e507429af717591a545f94e6703fe6d6bade7ee6b18d2d1c7ba00096b9f9d"
+    },
+    {
+      "file": "components/admin/ediel/ReceivedStructureReview.tsx",
+      "sha256": "e34ffd7d144e764b40b5131515f727e66b405b4cb3084312f2a862c926c84487"
+    },
+    {
+      "file": "components/admin/go-live/CertificationEvidencePanel.tsx",
+      "sha256": "af16a75cef2724609a0b86dcd879c9262b549e1ae79762a1e88de3f4ec853fa7"
+    },
+    {
+      "file": "components/admin/go-live/TenantWebsiteGoLivePanel.tsx",
+      "sha256": "8d1a15c64c110046909043924cd8e718e288e5511b1e1c5ff8d30b00af66955c"
+    },
+    {
+      "file": "components/admin/masterdata/ActorRegistryImportPanel.tsx",
+      "sha256": "5598fe3a08526ad39bf6c4dc089d1704c21c5d6a0e4647ad430b87b0aeeec0a5"
+    },
+    {
+      "file": "components/admin/masterdata/CustomerSiteForm.tsx",
+      "sha256": "adbeac6140e2dcdf891bb267d9876ddf7ae225b1249ce490b090749a8ffd1dcf"
+    },
+    {
+      "file": "components/admin/masterdata/CustomerSitesTable.tsx",
+      "sha256": "db9ec78278523c5302734947b24a8ef75eed0dc483b6e9e837ffe4018aba123a"
+    },
+    {
+      "file": "components/admin/masterdata/ElectricitySupplierForm.tsx",
+      "sha256": "c18d6f5e367c7ee6bcb97ddde5333de74948a097cea686056bbafa673ced7b04"
+    },
+    {
+      "file": "components/admin/masterdata/ElectricitySuppliersTable.tsx",
+      "sha256": "2528ec5bf92fa11b68cbde58d135bce5a9f468ee1a92de7b265c0b93f3e36aa9"
+    },
+    {
+      "file": "components/admin/masterdata/GridOwnerForm.tsx",
+      "sha256": "5aea94aefbf7822e843602517c80ddeffed515fef999f2257b8f8261fdc8b30b"
+    },
+    {
+      "file": "components/admin/masterdata/GridOwnersTable.tsx",
+      "sha256": "a84effe3eaf6bb5421f144212446249d328ff9a59ae91b58fca122eb4e3c354d"
+    },
+    {
+      "file": "components/admin/masterdata/MeteringPointForm.tsx",
+      "sha256": "da16874190a9d5bf2367ab1678a3ea1642537c473e68a46e31203a455c56fb1a"
+    },
+    {
+      "file": "components/admin/masterdata/MeteringPointsTable.tsx",
+      "sha256": "a65508d7adb7ff7b2ade39c6d05fb03240cf8a41b9e6455efe856c2608289e0d"
+    },
+    {
+      "file": "components/admin/masterdata/PriceAreaLocalitiesTable.tsx",
+      "sha256": "5f1f0cbd8b43a5d76963872b6cf058bebed2d6c78333c8912efb3d05ecb897fd"
+    },
+    {
+      "file": "components/admin/masterdata/PriceAreaLocalityForm.tsx",
+      "sha256": "48eee0602c9c11c39fb7c6b0ff36eedf36d3b9d18a1611cae674fdf80ff481ab"
+    },
+    {
+      "file": "components/admin/operations/CustomerSyncBoard.tsx",
+      "sha256": "dec0bf7dc14e827a124df5ab2215f6f61aec95f6a0b99c7dbad2a07ef2430831"
+    },
+    {
+      "file": "lib/admin/accessModel.ts",
+      "sha256": "b2f79ed4917b2239942d3fd9ff92b2f6115a9632d833290c4a8482f0335428f4"
+    },
+    {
+      "file": "lib/admin/guards.ts",
+      "sha256": "ac7cb38d188e18672e294ac662c3e4401e4167d9cf9e61846c960a954ffc10ca"
+    },
+    {
+      "file": "lib/admin/masterdataPermissions.ts",
+      "sha256": "495008a8c7b70b431f27d09ad36efe7aaab8c3a02d45d516542a4859541473e4"
+    },
+    {
+      "file": "lib/admin/websiteIntegrationOps.ts",
+      "sha256": "24f3b7c7111d6777fe65db932b6e0b8e9f1666b7fb39d0e5636d1930a4746748"
+    },
+    {
+      "file": "lib/analytics/db.ts",
+      "sha256": "b89fb659b6ef5a175f11f64a52f128ba8c044fc4ca58f2752d93ee91fab3871a"
+    },
+    {
+      "file": "lib/auth/requirePermissionServer.ts",
+      "sha256": "52372b8fec00993e1e152ef6735b761ec93690049bfb2c116ea358f96d9e6736"
+    },
+    {
+      "file": "lib/billing/effectiveBillingProfile.ts",
+      "sha256": "f23705eebe343433c9cf422af9a6d75289622b09d2e3d71d4424437e9f88de2f"
+    },
+    {
+      "file": "lib/billing/invoiceReadiness.ts",
+      "sha256": "813642bb71aacd8d3ec69126af0651a7391264aafc9b66e09fafa339b0da9d15"
+    },
+    {
+      "file": "lib/billing/invoiceReviewData.ts",
+      "sha256": "1fcbceb9a2482f5f2a0ef95ab441ffb28bc7f869a313193c9f7552c0152929cb"
+    },
+    {
+      "file": "lib/billing/pricingEngine.ts",
+      "sha256": "a38b21220d711710631d511b153e7085ed2793d774ee444634acf2c1a0cfd5c9"
+    },
+    {
+      "file": "lib/cis/db.ts",
+      "sha256": "6dd58a8234456890d390387ac1badd04e936d96adc2e474ba8c24e18f59d9f0f"
+    },
+    {
+      "file": "lib/contracts/adminRepository.ts",
+      "sha256": "150fd92b2f2680f082dd19bfdc06428eb67d63188c617ba8aa1ffeb4c62ff51f"
+    },
+    {
+      "file": "lib/contracts/canonical.ts",
+      "sha256": "95eeb2b0a689109c41e246b1f61f6dbeda64dee3a5b12811be402e6687a1b148"
+    },
+    {
+      "file": "lib/customer-cases/SupportActionForm.tsx",
+      "sha256": "02f32da8c7e37ef82d2ee43c9e83ccca33c2f37e062b41dbcbe0167031b19028"
+    },
+    {
+      "file": "lib/customer-cases/db.ts",
+      "sha256": "01a1b16b0a2154c2500261a6ebd0773d82988b9ea97957aa64cbee9fc4bc244c"
+    },
+    {
+      "file": "lib/customer-cases/publication.ts",
+      "sha256": "0298e6a99255a661ee5e7c0dd0f8c808d5b544e10c528e6e58746463be594721"
+    },
+    {
+      "file": "lib/customer-cases/support.ts",
+      "sha256": "2317ddc923834718071f875a3cf46e6baec7997ad9f57f2997456fd5308685d1"
+    },
+    {
+      "file": "lib/customer-contracts/db.ts",
+      "sha256": "cc67ca39c43a5463ac17a578c11118e08e8caf746ce102dad0e87435bc771340"
+    },
+    {
+      "file": "lib/customer-operations/customerCardTenantView.ts",
+      "sha256": "2013b1d17663b0fcfd4b82d152d9b0b65c04fb326d45c9142c5f6dd802473b70"
+    },
+    {
+      "file": "lib/customer-operations/customerCardWorkflow.ts",
+      "sha256": "d6078a436be0a3eae8633012fb139ab4a9df63c939cc1ad9147649520eb5e35b"
+    },
+    {
+      "file": "lib/customer-operations/manualRequestSummary.ts",
+      "sha256": "277cd913a514fa0602e07a50fae77ddb710708e90b5100848960fc61e5b73a79"
+    },
+    {
+      "file": "lib/customer-operations/opsCommandCapabilities.ts",
+      "sha256": "610fc5bc8f10d6960d37019014cd38cc59877c022605c25547b9075e87fb7aee"
+    },
+    {
+      "file": "lib/customer-operations/supportSession.ts",
+      "sha256": "67be84b6efddd99bbf3cd184db38650d3cc28932f4917fe07f9710c4fb95976d"
+    },
+    {
+      "file": "lib/customer-portal/admin.ts",
+      "sha256": "6317652e8743ea3079ed2c83b26ae8b5f6164d14f994a8098130644fe41109a7"
+    },
+    {
+      "file": "lib/customer-portal/status.ts",
+      "sha256": "c337ab0d4c31598dc39371c9bc9d9a2f93a35aa5bd3f7edfe060c34fa523a782"
+    },
+    {
+      "file": "lib/customers/customerCardSnapshot.ts",
+      "sha256": "d778a1edc914d2539b935475aff1ca6361e33d25a64d4bde49c07672647a9275"
+    },
+    {
+      "file": "lib/customers/customerOperationTimeline.ts",
+      "sha256": "a6e2f589bdf8194cee59a41791286ad4fc95d702784b3530f4db009ffb8a84e2"
+    },
+    {
+      "file": "lib/customers/duplicates.ts",
+      "sha256": "43a3f5f2a247287560fea989f713660497c9f1523641e6271cdb81c6ed443cdf"
+    },
+    {
+      "file": "lib/customers/getCustomers.ts",
+      "sha256": "cb1124667fb769b95d9cc802efd839a2660092c92dac110a9d648e9caf78667f"
+    },
+    {
+      "file": "lib/ediel/ack.ts",
+      "sha256": "e8df731096ac152712f41bd0ed9854c8c2d395b50fd7badb2e3bb38e13ee1351"
+    },
+    {
+      "file": "lib/ediel/actorTesting.ts",
+      "sha256": "dff4d5a4044ce4b14ce56aac23b3a47f33159c48f6e628aeb5e7bc648d58adef"
+    },
+    {
+      "file": "lib/ediel/certificationEvidence.ts",
+      "sha256": "a8568e9d04277f0bfec1e714c8adf731e47953a8635d6c2b920e301d52e374c7"
+    },
+    {
+      "file": "lib/ediel/companyActorConfiguration.ts",
+      "sha256": "90ea3449c531ba0340709a687e86e31e35858cd5e40a92e24bd9ddea65ef60bc"
+    },
+    {
+      "file": "lib/ediel/config.ts",
+      "sha256": "e116206db49f2a696b1b83378fc208af6451066134ebeef6b2b5b0b38fdf519d"
+    },
+    {
+      "file": "lib/ediel/core/actorRegistry.ts",
+      "sha256": "ef749d5bc5faa67d8d2f4666aa020b681e7812036baf6627c237cddb0bef5323"
+    },
+    {
+      "file": "lib/ediel/customerData.ts",
+      "sha256": "098c9ff37f0f18a4276c7a4b7bd4b2ab627630dcf0cd90c84d617f8dab6c6088"
+    },
+    {
+      "file": "lib/ediel/db.ts",
+      "sha256": "a3520d033d717bd3c13d3c2503791439875c0169a61e8c41e8200934bfb539d1"
+    },
+    {
+      "file": "lib/ediel/inboundCases.ts",
+      "sha256": "bcb59c1f2f7b8dcd7251b48c14f9b48954123c44b6d12e65d4bdf6ad06fee79b"
+    },
+    {
+      "file": "lib/ediel/intent/dispatchState.ts",
+      "sha256": "10230323eba34f529f68c9dec3a9214a1eee38cb31aa6dd1e11204f1aaeab4b1"
+    },
+    {
+      "file": "lib/ediel/mailReadiness.ts",
+      "sha256": "1bf86b6adf36b6192043de3c548a4474342e595e539f40f5f457ad7a04873bec"
+    },
+    {
+      "file": "lib/ediel/operations/actorAutoReadiness.ts",
+      "sha256": "492d9c69a34476b89cd727bbd4ae89e0627b3d67ca1a39b7f710081d9ea495da"
+    },
+    {
+      "file": "lib/ediel/operations/automationDashboard.ts",
+      "sha256": "dcd716755513532aaac2f24e6b84ae6c5675d09bcccdc68c1873bbdf6114a18a"
+    },
+    {
+      "file": "lib/ediel/operations/controlTower.ts",
+      "sha256": "9e6179deea53e093b14032e1b398792b27ec8289bf67302e01c0cbe24248300b"
+    },
+    {
+      "file": "lib/ediel/operations/engineStatus.ts",
+      "sha256": "8e2423982c0fabe4f571e2405376ba99f160e05171850c05e40338233d33d811"
+    },
+    {
+      "file": "lib/ediel/platformGoLive.ts",
+      "sha256": "27249f525f41ea35a7f3a325e36744da399f9a807fa7456a783cdcb35b210ea1"
+    },
+    {
+      "file": "lib/ediel/productionReadiness.ts",
+      "sha256": "6daa22ef32dd11bddd8f95cc38595f0dccb0dd7c87930fa77d86b68647dc4a85"
+    },
+    {
+      "file": "lib/ediel/rulebook/canonicalRules.ts",
+      "sha256": "b2fb639a3176ae079116a0b9e11f684a95babf2c1d6739686fe758a145c08f01"
+    },
+    {
+      "file": "lib/ediel/specRegistry.ts",
+      "sha256": "0ef212c09b6a6aaf3fc42c47e15b8e2cdb668984c3bb9f6ad2e925d4c9c59af8"
+    },
+    {
+      "file": "lib/ediel/summary.ts",
+      "sha256": "4e281b92907dfb013ea24be8322707e019b2f1a5889907d8c7065ccf74b24c4f"
+    },
+    {
+      "file": "lib/ediel/systemTestPackages.ts",
+      "sha256": "93274b4543d8c7a950b06197247876872a6173a5f8b93fb4de895cd8a15f54e3"
+    },
+    {
+      "file": "lib/ediel/systemTestSettings.ts",
+      "sha256": "2d7636c1912ffe27fff02165acdba85085d67b8730be399afda4036ff5889e26"
+    },
+    {
+      "file": "lib/ediel/testing/agtRegistry.ts",
+      "sha256": "08f9eb2894eccafe751ce2d332fd9fbc685ac66dbf6f0a442d0cbd4b83017996"
+    },
+    {
+      "file": "lib/ediel/testing/agtRuntime.ts",
+      "sha256": "d17fb32a7e7c43488d14bc2aab3a85e403b1d33c77d5b837d411121545bf52d5"
+    },
+    {
+      "file": "lib/ediel/testing/invoiceTestCenterWorkspace.ts",
+      "sha256": "47d5f5b25024cbd74c3c7012835600d412023c412638da3b98d18eaeb570c781"
+    },
+    {
+      "file": "lib/ediel/testing/invoiceTestEdifactMaterialization.ts",
+      "sha256": "3621524a04e6d601fab3aa37d83ef30f4280b9ed220cfd3bd69cf89bd60b3e58"
+    },
+    {
+      "file": "lib/ediel/testing/testCenterRuntimeReadModel.ts",
+      "sha256": "6d53898b1fa1774fbf1fd78f91ab5f50ea1e7e0679b50cbaee7149c26ad51da2"
+    },
+    {
+      "file": "lib/ediel/testing/testCenterTraceReadModel.ts",
+      "sha256": "13e7181531d82a83ca23fd0a901957f9bb3716cb52b6c3a4032291c4fb2345c9"
+    },
+    {
+      "file": "lib/ediel/testing/tgtRegistry.ts",
+      "sha256": "5989f247c3474928e3dbf5e83e41de469110ef46c214141c87b7f925dbcb2cc8"
+    },
+    {
+      "file": "lib/email/communicationLogs.ts",
+      "sha256": "33347a606a1662df7aa0fb486bd0bf2438873e0500c276a0910615679976f202"
+    },
+    {
+      "file": "lib/email/companyEmailSettings.ts",
+      "sha256": "c39073e1d133564e51531342d5f73043588b6fff20165c7dd1ce01cdc844c5e9"
+    },
+    {
+      "file": "lib/email/dnsRecords.ts",
+      "sha256": "31cc80e12cc1a432bbc11cdf1d6d6cfee2099d6e36c5d800bd0b288b0855ebe8"
+    },
+    {
+      "file": "lib/email/emailEvents.ts",
+      "sha256": "90d6d93419c96e790219a89c61ab0e02c2da65d1470acb6c6c4d77e11a3f2cfb"
+    },
+    {
+      "file": "lib/email/emailTemplates.ts",
+      "sha256": "b4b9547635e570b39e2345d7f6c2a735cd53de03c32f55c5a97b6f8bea33ca5d"
+    },
+    {
+      "file": "lib/facility/workQueue.ts",
+      "sha256": "6efa6ab3d98b33c5966e3d7c802d2e48311bdb40677ece725e019abc4cb2bb1c"
+    },
+    {
+      "file": "lib/integrations/tenantWebsiteGoLive.ts",
+      "sha256": "d8ca75bf2ae1bd31336b6a456c318a06181af28dd3166b171c92e3e39edbc207"
+    },
+    {
+      "file": "lib/launch/readiness.ts",
+      "sha256": "26734d597ae31e30b838005898a1f00be6a615f4afd60a12696f57cfc277346e"
+    },
+    {
+      "file": "lib/legal/legalReadinessOverview.ts",
+      "sha256": "5659de13cfe4ab7d5977d4d8ba47c1ebb7ac831d39d1f87f2eae6900ea745b14"
+    },
+    {
+      "file": "lib/legal/platformLegalTemplates.ts",
+      "sha256": "3988ae8485334a469bef215c46b1e9187b5d63fbf14de3c15957cb52e66bbac0"
+    },
+    {
+      "file": "lib/masterdata/db.ts",
+      "sha256": "3d226006b66fe4c4b2567ed11e21ce1646976d1b517e0b38182bc76a1647bfcc"
+    },
+    {
+      "file": "lib/onboarding/infoRequests.ts",
+      "sha256": "410c3aa118a12a9878f0fe2fe7e958f81f54b22d0b5f237ca9bda38126099dbd"
+    },
+    {
+      "file": "lib/operations/batch2bAutomation.ts",
+      "sha256": "b84807b9191ec592d8d59282bbde613e6523ba6649dd052d3e38ffa811a1b371"
+    },
+    {
+      "file": "lib/operations/batch2cAutomation.ts",
+      "sha256": "751be7ca39f56f96e4f822877b46641bdc9855feea8aa62052f40bc1361eabb0"
+    },
+    {
+      "file": "lib/operations/controlTower.ts",
+      "sha256": "fd7fdd595f12cbe25c24d378579a97425d39f374cac8eefbe4b73cfa8ef2cbea"
+    },
+    {
+      "file": "lib/operations/controlTowerAlerts.ts",
+      "sha256": "258996a709cfa2b547f4259be40eaefea543c092bc38608c2751d6568837aa04"
+    },
+    {
+      "file": "lib/operations/customerSync.ts",
+      "sha256": "37209a2e4300b366dc004203255a0ffed55665887ccfc2de1070d96f9560543c"
+    },
+    {
+      "file": "lib/operations/db.ts",
+      "sha256": "07fd2a8500ed88a3b6b6adab410a3ff7a3c2d36827d90eff3f57641232d7cb51"
+    },
+    {
+      "file": "lib/operations/integrityData.ts",
+      "sha256": "5ebcc7a312526d71d75b2286b3c31fe6a2a893eb23db93fa00db1026aa40a394"
+    },
+    {
+      "file": "lib/ops/health.ts",
+      "sha256": "4e9cf6ebf81183fcac01914620005945656b0c5ee4232c850e914d3f6fa741bd"
+    },
+    {
+      "file": "lib/opsMaster/readiness.ts",
+      "sha256": "38670c5e8492ccec926e7c56a5c06a2ee74ba6a622554b21daca259d6b0e5be7"
+    },
+    {
+      "file": "lib/performance/companySummaries.ts",
+      "sha256": "badeaf6ef524abc483e3879b93429ffbeea48db3af71061898e46abd17020bca"
+    },
+    {
+      "file": "lib/platform/dataCleanup.ts",
+      "sha256": "2eb82ec1470eecdef064d888d07b29621f0a4c8e3fb9e86ffed6b7920128edaf"
+    },
+    {
+      "file": "lib/platform/workQueue.ts",
+      "sha256": "6ba58e9cbd0748b4c795623aedf4e7f2701a56c2d76aebd3d696c8dbf74c3ad4"
+    },
+    {
+      "file": "lib/pricing/adminData.ts",
+      "sha256": "e3141f14f075f0e8049513cef9d70836873712fe5c94512d9ebb40b4b8ed7133"
+    },
+    {
+      "file": "lib/rbac/catalog.ts",
+      "sha256": "6c83d74edc32a23a5eac932d5865514906d2caeaa331a24d06363859427d6f6a"
+    },
+    {
+      "file": "lib/rbac/getAdminUserById.ts",
+      "sha256": "a61cf24428c1e1d476b6176e3fa5b595a9eb494a609bcba49e3689131c03ae63"
+    },
+    {
+      "file": "lib/rbac/getAdminUsers.ts",
+      "sha256": "d7763ce6f9e121b06eeaa20f2f3cf7e53e4345d92c9150755c07051bc19d04ff"
+    },
+    {
+      "file": "lib/rbac/getAllPermissions.ts",
+      "sha256": "a12ebc73b08b91b39409df1ccda4860827655c45997d8253538e766d64fba1ea"
+    },
+    {
+      "file": "lib/rbac/getAllRoles.ts",
+      "sha256": "db8131a668059e9ae7463e5ec157fca14189f4a319b8fccf0b91b119801e3b52"
+    },
+    {
+      "file": "lib/rbac/getUserPermissions.ts",
+      "sha256": "35747105e1706dbc6e2c3db52bfc5484c5d272336d2d7d41c8701890fbbab832"
+    },
+    {
+      "file": "lib/rbac/roleKeys.ts",
+      "sha256": "d16005d099f972f0ef9cb2ddc5df7b20d63866ff55788b800e0edff2d572edea"
+    },
+    {
+      "file": "lib/routes/gridOwnerAgreements.ts",
+      "sha256": "dd9d2352a89fcddd6bf0dbb058aaf9a345df2f62d1561fef0b793d03243785be"
+    },
+    {
+      "file": "lib/supabase/server.ts",
+      "sha256": "84fda487877ee7bf9ce056b307868460390aa7b26364a3b693a0c41eca0440ac"
+    },
+    {
+      "file": "lib/tenant/adminScope.ts",
+      "sha256": "2324396e85a0118a8433a67bb2d4b9ccee5bb33a4842423e0a93bfe7cc3fd86e"
+    },
+    {
+      "file": "lib/tenant/companyProductionStatus.ts",
+      "sha256": "9f3f256d8725c801b8020c844c000a18921eb88dd9f9fc9dacc4f5536f585e90"
+    },
+    {
+      "file": "lib/tenant/companyUserRoles.ts",
+      "sha256": "ace4bb7bf8cf47042fc0e429f8fdce3015fba7ddc7986ac4ad79bd0444fb8b91"
+    },
+    {
+      "file": "lib/tenant/entityGuards.ts",
+      "sha256": "bfd77a544ad92a931e3ef80eee5adadc74445585133b4656334e6a7b4a6ae24d"
+    },
+    {
+      "file": "lib/tenant/governance.ts",
+      "sha256": "3473e7f4dd497b377af05d1bb07c9c88f14b04a6a994b220eafbf938becd0ebe"
+    },
+    {
+      "file": "lib/tenant/integrity.ts",
+      "sha256": "debe780dbbe6a2116fd63b6a54c28b5c8a79b200e18273180ec1592629e1c228"
+    },
+    {
+      "file": "lib/tenant/legalDefaults.ts",
+      "sha256": "36a36e201c529172d55b7502eb97529d86502cddc259db342a4c37324e53398f"
+    },
+    {
+      "file": "lib/tenant/lifecycle.ts",
+      "sha256": "36184609a4a80f904c11f83f9d2cbdfed4c17d0be5e03294ed2d9ba43ad14602"
+    },
+    {
+      "file": "lib/tenant/liveAccess.ts",
+      "sha256": "d15df83bb46d9c28847c12a10087f44d451deae8fd3be73e287ea20d561ca0d8"
+    },
+    {
+      "file": "lib/tenant/scope.ts",
+      "sha256": "ad97ed26044cef76726167d34ae2431a6cb917185ad072e6157f9a0216a4ea73"
+    },
+    {
+      "file": "lib/tenant/usageStats.ts",
+      "sha256": "1303938bfa997b98b4f3da4c1dc518efcca0d1bcff11e711247d1639cc80c81f"
+    }
+  ],
+  "sourceManifestSha256": "9d4ec499dd7c85351128f8cdb93c6dd177327a31b1607a9ce179898fc54fb156",
+  "changedSourcesSinceFrozenSemanticSnapshot": [
+    {
+      "file": "app/admin/billing/invoices/[id]/redelivery/RedeliveryDecisionForm.tsx",
+      "frozenSha256": "07daf5cc4ff032d8757c073bed0f858591d22b97521483f2e36389cb650057da",
+      "currentSha256": "3766387af4a9bce3a5050bdbbdf4b57301cafcf5177e2efbb5fed277d91b4f18"
+    }
+  ],
+  "changedFrozenPageEntries": [],
+  "manualResolutionOfFrozenAmbiguity": [
+    {
+      "pageRoute": "/admin/external-contract-intakes",
+      "frozenResolution": "unresolved_symbol",
+      "actualImplementation": {
+        "file": "app/admin/website-applications/page.tsx",
+        "symbol": "WebsiteApplicationsAdminPage",
+        "sha256": "37ecd59315df463f269c3becfa690373f8b1c738ccaa33f5f24d504fb89202c9",
+        "startLine": 934,
+        "frozenResolution": "unresolved_symbol",
+        "currentResolution": "MANUALLY_CONFIRMED_IMPORTED_DEFAULT_PAGE"
+      }
+    }
+  ],
+  "registryFile": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ops-ui-page-dispositions-20261001.jsonl.gz",
+  "registryCompressedSha256": "79379812dcf7ee2c58ea698448bc6768e500b1f4da55d0e2ea598f9bc79c5090",
+  "registryUncompressedSha256": "681a7761753dd5d03ab84bdc754b1dc27638cfb4ffcf289b105b04079560a386",
+  "registryCompressedBytes": 225291,
+  "registryUncompressedBytes": 2338866,
+  "explicitWorkGaps": 438,
+  "semanticUniqueBusinessActionTotal": null,
+  "verifiedWholeOpsActions": 0,
+  "runtimeQualifiedWholePages": 0,
+  "nativePagesExecutedByThisReview": 0,
+  "browserPagesExecutedByThisReview": 0,
+  "qualification": "MANUAL_SOURCE_CLASSIFICATION_ONLY; ALL_PAGE_RUNTIME_AND_COMMAND_EFFECT_GAPS_REMAIN_EXPLICIT_OPEN"
+}

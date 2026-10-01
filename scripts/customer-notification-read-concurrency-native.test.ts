@@ -61,6 +61,42 @@ function parsedResult(stdout: string) {
 }
 
 describe.sequential('notification real concurrent transactions', () => {
+  for (const { stage, replay } of [
+    { stage: 'owner', replay: false }, { stage: 'owner', replay: true },
+    { stage: 'notification', replay: false }, { stage: 'claim', replay: true },
+  ] as const) it(`denies ${replay ? 'completed replay' : 'fresh execution'} if the client expires during a ${stage} lock wait`, async () => {
+    const f = fixture(), key = 'native-notification-expiry-wait'
+    if (replay) expect(sql(`SET ROLE service_role; ${f.command(key)}`)).toMatchObject({ replayed: false })
+    const snapshot = `SELECT jsonb_build_object(
+      'notifications',(SELECT jsonb_agg(to_jsonb(n) ORDER BY n.id) FROM public.customer_notifications n WHERE company_id=${quote(f.companyId)}),
+      'claims',(SELECT jsonb_agg(to_jsonb(c) ORDER BY c.id) FROM public.customer_portal_write_idempotency c WHERE company_id=${quote(f.companyId)}),
+      'audits',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM public.canonical_audit_events a WHERE company_id=${quote(f.companyId)}),
+      'outbox',(SELECT count(*) FROM public.canonical_event_outbox WHERE company_id=${quote(f.companyId)}));`
+    const before = sql(snapshot)
+    const lock = stage === 'owner'
+      ? `SELECT id FROM public.customer_portal_accounts WHERE customer_id=${quote(f.customerId)} FOR UPDATE;`
+      : stage === 'notification'
+        ? `SELECT id FROM public.customer_notifications WHERE id=${quote(f.ids[0])} FOR UPDATE;`
+        : `SELECT id FROM public.customer_portal_write_idempotency WHERE company_id=${quote(f.companyId)} AND idempotency_key=${quote(key)} FOR UPDATE;`
+    const blocker = session(`ntf_expiry_blocker_${randomUUID()}`), commandName = `ntf_expiry_command_${randomUUID()}`, command = session(commandName)
+    try {
+      blocker.child.stdin.write(`BEGIN; ${lock}\n\\echo NOTIFICATION_EXPIRY_LOCKED\n`)
+      await until(() => blocker.output().stdout.includes('NOTIFICATION_EXPIRY_LOCKED'), 'notification_expiry_blocker_did_not_lock')
+      sql(`UPDATE public.integration_api_clients SET expires_at=clock_timestamp()+interval '4 seconds' WHERE id=${quote(f.clientId)}; SELECT to_jsonb(true);`)
+      command.child.stdin.end(`SET ROLE service_role; ${f.command(key)}\n`)
+      await until(() => sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT 1 FROM pg_stat_activity
+        WHERE application_name=${quote(commandName)} AND wait_event_type='Lock'));`), 'notification_expiry_command_did_not_wait')
+      await until(() => sql<boolean>(`SELECT to_jsonb(expires_at<=clock_timestamp()) FROM public.integration_api_clients WHERE id=${quote(f.clientId)};`),
+        'notification_expiry_clock_did_not_elapse')
+      blocker.child.stdin.end('COMMIT;\n')
+      expect(await blocker.exited).toBe(0)
+      expect(await command.exited).not.toBe(0)
+      expect(command.output().stderr).toContain('notification_delegation_forbidden')
+      expect(sql(snapshot)).toEqual(before)
+      console.log(`NOTIFICATION_API_EXPIRY_WAIT_NATIVE_PASS sessions=2 stage=${stage} completed_replay=${replay} expired_denied=true rows_claim_audit_unchanged=true`)
+    } finally { for (const item of [blocker, command]) if (item.child.exitCode === null) item.child.kill('SIGTERM') }
+  })
+
   for (const changedPayload of [false, true]) {
     it(changedPayload ? 'conflicts a changed concurrent payload without a second effect' : 'returns one persisted result for identical concurrent keys', async () => {
       const f = fixture()

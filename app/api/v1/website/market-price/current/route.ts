@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { EnergyResolutionBindingError } from '@/lib/energy/resolutionBinding'
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('[website-current-market-price] failed', { requestId, error })
+    console.error('[website-current-market-price] failed', { requestId, error: technicalErrorDiagnostic(error) })
     await logIntegrationApiRequest({
       client: auth.client,
       request,

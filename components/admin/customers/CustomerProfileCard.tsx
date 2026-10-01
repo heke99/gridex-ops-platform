@@ -1,6 +1,8 @@
 'use client'
 
 import { useActionState, useMemo, useState } from 'react'
+import { useAdminDraftMemory } from '@/components/admin/AdminUnsavedChanges'
+import CustomerEditForm from './CustomerEditForm'
 import {
  archiveCustomerAction,
  closeCustomerLifecycleAction,
@@ -18,6 +20,7 @@ function ActionBanner({ state }: { state: CustomerActionState }) {
  return (
  <p
  role="alert"
+ tabIndex={-1}
  className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
  >
  {state.message ?? 'Åtgärden kunde inte slutföras.'}
@@ -51,6 +54,8 @@ type CustomerProfile = {
  email: string | null
  phone: string | null
  contact_revision: number
+ legal_profile_revision?: number
+ lifecycle_revision?: number
  apartment_number: string | null
  moved_out_at?: string | null
  lifecycle_closed_at?: string | null
@@ -62,50 +67,63 @@ type CustomerProfile = {
 }
 
 function inputClassName() {
- return 'h-11 rounded-2xl border border-slate-300 bg-white px-4 '
+ return 'min-h-11 min-w-0 rounded-2xl border border-slate-300 bg-white px-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700'
 }
 
 export default function CustomerProfileCard({
  customer,
  showLifecycleTools = true,
+ showPlatformTools = false,
+ canEdit = false,
+ idempotencyKey,
 }: {
  customer: CustomerProfile
  showLifecycleTools?: boolean
+ showPlatformTools?: boolean
+ canEdit?: boolean
+ idempotencyKey?: string
 }) {
- const [customerType, setCustomerType] = useState(customer.customer_type ?? 'private')
-
- const [saveState, saveAction] = useActionState(
- saveCustomerProfileAction,
- IDLE_CUSTOMER_ACTION_STATE,
- )
- const [lifecycleState, lifecycleAction] = useActionState(
- closeCustomerLifecycleAction,
- IDLE_CUSTOMER_ACTION_STATE,
- )
- const [testDataState, testDataAction] = useActionState(
+ const memory = useAdminDraftMemory()
+ const draftKey = `${customer.id}/legal-profile`
+ const [customerType, setCustomerType] = useState(() => memory.get(draftKey)?.find((field) => field.name === 'customer_type')?.value ?? customer.customer_type ?? 'private')
+ async function saveProfile(data: FormData) {
+   const saved = await saveCustomerProfileAction(IDLE_CUSTOMER_ACTION_STATE, data)
+   if (saved.status === 'error') return { error: true as const, code: saved.code ?? 'legal_profile_unconfirmed' }
+   if (saved.status !== 'success' || typeof saved.revision !== 'number' || !Number.isSafeInteger(saved.revision) || saved.revision < 0 || typeof saved.changed !== 'boolean' || typeof saved.replayed !== 'boolean') return { error: true as const, code: 'legal_profile_unconfirmed' }
+   return { revision: saved.revision, changed: 'changed' in saved && saved.changed === true, replayed: 'replayed' in saved && saved.replayed === true }
+ }
+ async function saveLifecycle(data: FormData) {
+   const saved = await closeCustomerLifecycleAction(IDLE_CUSTOMER_ACTION_STATE, data)
+   if (saved.status === 'error') return { error: true as const, code: saved.code ?? 'customer_lifecycle_unconfirmed' }
+   if (saved.status !== 'success' || typeof saved.revision !== 'number' || !Number.isSafeInteger(saved.revision) || saved.revision < 0 || typeof saved.changed !== 'boolean' || typeof saved.replayed !== 'boolean') return { error: true as const, code: 'customer_lifecycle_unconfirmed' }
+   return { revision: saved.revision, changed: 'changed' in saved && saved.changed === true, replayed: 'replayed' in saved && saved.replayed === true }
+ }
+ const [testDataState, testDataAction, testDataPending] = useActionState(
  markCustomerAsTestDataAction,
  IDLE_CUSTOMER_ACTION_STATE,
  )
- const [archiveState, archiveAction] = useActionState(
+ const [archiveState, archiveAction, archivePending] = useActionState(
  archiveCustomerAction,
  IDLE_CUSTOMER_ACTION_STATE,
  )
- const [deleteState, deleteAction] = useActionState(
+ const [deleteState, deleteAction, deletePending] = useActionState(
  deleteCustomerForRecreateAction,
  IDLE_CUSTOMER_ACTION_STATE,
  )
-
  const isArchived = String(customer.status ?? '').toLowerCase() === 'archived' || Boolean(customer.archived_at)
+ const revisionAvailable = typeof customer.legal_profile_revision === 'number' && Number.isSafeInteger(customer.legal_profile_revision) && customer.legal_profile_revision >= 0
+ const canEditLegalProfile = canEdit && revisionAvailable && Boolean(idempotencyKey) && !isArchived
+ const lifecycleRevisionAvailable = typeof customer.lifecycle_revision === 'number' && Number.isSafeInteger(customer.lifecycle_revision) && customer.lifecycle_revision >= 0
  const archivedFieldProps = isArchived ? { disabled: true, 'aria-disabled': true } : {}
  const archivedInputClassName = isArchived ? `${inputClassName()} opacity-70 cursor-not-allowed` : inputClassName()
 
  const helperText = useMemo(() => {
  if (customerType === 'business') {
- return 'Företag sparas med företagsnamn och organisationsnummer. För- och efternamn används som kontaktperson.'
+ return 'Företag sparas med företagsnamn och organisationsnummer. Registrerade namn i kundprofilen är separata från kontaktpanelen.'
  }
 
  if (customerType === 'association') {
- return 'Förening sparas med föreningsnamn och organisationsnummer. För- och efternamn används som kontaktperson.'
+ return 'Förening sparas med föreningsnamn och organisationsnummer. Registrerade namn i kundprofilen är separata från kontaktpanelen.'
  }
 
  return 'Privatkund sparas med personuppgifter som huvudidentitet. Företags- och organisationsfält döljs.'
@@ -116,11 +134,12 @@ export default function CustomerProfileCard({
  <div className="flex items-start justify-between gap-3">
  <div>
  <h2 className="text-lg font-semibold text-slate-950 ">
- Kundprofil
+ Juridisk kundprofil
  </h2>
  <p className="mt-1 text-sm text-slate-700 ">
- Uppdatera kundtyp, identitet och kontaktuppgifter. Primär kontakt synkas automatiskt när du sparar.
+ Kundtyp, juridisk identitet och kontostatus. Kontaktuppgifter ändras i kontaktpanelen och inloggning hanteras separat.
  </p>
+ <p className="mt-1 text-sm text-slate-700">Juridisk profilrevision: {revisionAvailable ? customer.legal_profile_revision : 'inte tillgänglig'}.</p>
  </div>
  </div>
 
@@ -140,11 +159,11 @@ export default function CustomerProfileCard({
  </div>
  ) : null}
 
- <form action={saveAction} className="mt-6 grid gap-4 md:grid-cols-2">
+ {canEditLegalProfile ? <CustomerEditForm key={`${customer.id}:${customer.legal_profile_revision}`} action={saveProfile} draftKey={draftKey} onCancel={() => setCustomerType(customer.customer_type ?? 'private')} submitLabel="Spara kundprofil" className="mt-6 space-y-4">
  <input type="hidden" name="customer_id" value={customer.id} />
- <div className="md:col-span-2">
- <ActionBanner state={saveState} />
- </div>
+ <input type="hidden" name="expected_legal_profile_revision" defaultValue={customer.legal_profile_revision} />
+ <input type="hidden" name="idempotency_key" defaultValue={idempotencyKey} />
+ <div className="grid min-w-0 gap-4 md:grid-cols-2">
 
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">Kundtyp</span>
@@ -161,33 +180,16 @@ export default function CustomerProfileCard({
  </select>
  </label>
 
- <label className="grid gap-1 text-sm">
- <span className="text-slate-700 ">Status</span>
- <select
- name="status"
- defaultValue={customer.status ?? 'draft'}
- className={archivedInputClassName}
- {...archivedFieldProps}
- >
- <option value="draft">Förbereds</option>
- <option value="pending_verification">Väntar verifiering</option>
- <option value="active">Aktiv</option>
- <option value="inactive">Inaktiv</option>
- <option value="moved">Flyttad</option>
- <option value="terminated">Avslutad</option>
- <option value="blocked">Blockerad</option>
- {isArchived ? <option value="archived">Arkiverad</option> : null}
- </select>
- </label>
+ <div className="grid content-start gap-1 text-sm"><span className="text-slate-700">Status</span><p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">{customer.status ?? 'Saknas'}</p><p className="text-xs text-slate-700">Status ändras genom tillåtna livscykelåtgärder, separat från den juridiska profilen.</p></div>
 
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">
- {customerType === 'private' ? 'Förnamn' : 'Kontaktperson förnamn'}
+ {customerType === 'private' ? 'Förnamn' : 'Registrerat förnamn'}
  </span>
  <input
  name="first_name"
  defaultValue={customer.first_name ?? ''}
- required
+ required={customerType === 'private'}
  className={archivedInputClassName}
  {...archivedFieldProps}
  />
@@ -195,12 +197,12 @@ export default function CustomerProfileCard({
 
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">
- {customerType === 'private' ? 'Efternamn' : 'Kontaktperson efternamn'}
+ {customerType === 'private' ? 'Efternamn' : 'Registrerat efternamn'}
  </span>
  <input
  name="last_name"
  defaultValue={customer.last_name ?? ''}
- required
+ required={customerType === 'private'}
  className={archivedInputClassName}
  {...archivedFieldProps}
  />
@@ -268,15 +270,17 @@ export default function CustomerProfileCard({
  />
  </label>
 
- <div className="md:col-span-2 flex justify-end">
- <button disabled={isArchived} className="inline-flex items-center rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 ">
- {isArchived ? 'Arkiverad – profil låst' : 'Spara kundprofil'}
- </button>
  </div>
- </form>
+ </CustomerEditForm> : <div className="mt-6 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
+ <p className="font-semibold text-slate-800">{!canEdit ? 'Läsläge – du saknar rättighet att ändra juridisk profil.' : isArchived ? 'Läsläge – arkiverad juridisk profil är låst.' : 'Läsläge – profilrevision eller försöksnyckel saknas. Läs om sidan innan profilen ändras.'}</p>
+ <dl className="grid gap-2 sm:grid-cols-2">
+ <div><dt className="text-slate-600">Namn</dt><dd className="break-words font-medium">{customer.company_name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || '—'}</dd></div>
+ <div><dt className="text-slate-600">Person-/organisationsnummer</dt><dd className="break-all font-medium">{customer.personal_number || customer.org_number || '—'}</dd></div>
+ <div><dt className="text-slate-600">Kundtyp</dt><dd>{customerType === 'private' ? 'Privat' : customerType === 'business' ? 'Företag' : 'Förening'}</dd></div>
+ </dl>
+ </div>}
 
- {showLifecycleTools ? (
- <>
+ {showLifecycleTools && canEdit ? (
  <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 ">
  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
  <div>
@@ -300,23 +304,23 @@ export default function CustomerProfileCard({
  </div>
  ) : null}
 
- <form
- action={lifecycleAction}
- onSubmit={(event) => {
- if (!window.confirm('Registrera flytt/avslut? Kunden raderas inte, men aktiva flöden och avtal mjukt avslutas.')) {
- event.preventDefault()
- }
- }}
- className="mt-5 grid gap-4 md:grid-cols-2"
+ <p className="mt-3 text-sm text-emerald-950">Livscykelrevision: {lifecycleRevisionAvailable ? customer.lifecycle_revision : 'inte tillgänglig'}.</p>
+ {lifecycleRevisionAvailable && idempotencyKey && !isArchived ? <CustomerEditForm
+ key={`${customer.id}:${customer.lifecycle_revision}`}
+ action={saveLifecycle}
+ confirmMessage="Registrera flytt/avslut? Kunden raderas inte, men aktiva flöden och avtal mjukt avslutas."
+ draftKey={`${customer.id}/lifecycle-close`}
+ submitLabel="Registrera flytt / avslut"
+ className="mt-5 space-y-4"
  >
  <input type="hidden" name="customer_id" value={customer.id} />
- <div className="md:col-span-2">
- <ActionBanner state={lifecycleState} />
- </div>
+ <input type="hidden" name="expected_lifecycle_revision" defaultValue={customer.lifecycle_revision} />
+ <input type="hidden" name="idempotency_key" defaultValue={`${idempotencyKey}:lifecycle`} />
+ <div className="grid min-w-0 gap-4 md:grid-cols-2">
 
  <label className="grid gap-1 text-sm">
  <span className="text-emerald-900 ">Åtgärd</span>
- <select name="lifecycle_mode" disabled={isArchived} className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 ">
+ <select name="lifecycle_mode" required disabled={isArchived} className={archivedInputClassName}>
  <option value="move_out">Kunden flyttar / leveransen upphör</option>
  <option value="terminate">Avsluta kundrelation manuellt</option>
  </select>
@@ -327,6 +331,7 @@ export default function CustomerProfileCard({
  <input
  name="move_out_date"
  type="date"
+ required
  defaultValue={new Date().toISOString().slice(0, 10)}
  disabled={isArchived}
  className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
@@ -338,10 +343,13 @@ export default function CustomerProfileCard({
  <textarea
  name="reason"
  rows={3}
+ required
+ maxLength={200}
  placeholder="Exempel: Kunden har anmält utflytt. Vänta på slutliga mätvärden och Z05LK från nätägare."
  disabled={isArchived}
  className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
+ <span className="text-xs text-emerald-900">Ange en konkret orsak till avslutet, högst 200 tecken.</span>
  </label>
 
  <label className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 text-sm text-slate-700 md:col-span-2">
@@ -355,6 +363,9 @@ export default function CustomerProfileCard({
  <span className="text-emerald-900 ">Skriv AVSLUTA för att bekräfta</span>
  <input
  name="confirm_close"
+ required
+ pattern="AVSLUTA"
+ autoComplete="off"
  placeholder="AVSLUTA"
  disabled={isArchived}
  className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
@@ -365,13 +376,13 @@ export default function CustomerProfileCard({
  <p className="text-xs leading-5 text-emerald-900/75 ">
  Permanent radering ska inte användas för verkliga kunder som flyttar. Den här åtgärden behåller historiken men stoppar aktiva flöden på ett spårbart sätt.
  </p>
- <button disabled={isArchived} className="inline-flex h-11 items-center justify-center rounded-2xl bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60">
- {isArchived ? 'Arkiverad – avslut låst' : 'Registrera flytt / avslut'}
- </button>
  </div>
- </form>
  </div>
+ </CustomerEditForm> : <p className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4 text-sm font-semibold text-emerald-950">{isArchived ? 'Arkiverad – avslut låst.' : 'Livscykelrevision eller försöksnyckel saknas. Läs om sidan innan flytt eller avslut registreras.'}</p>}
+ </div>
+ ) : null}
 
+ {showPlatformTools && canEdit ? <>
  <div className="mt-6 grid gap-4 xl:grid-cols-2">
  <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 ">
  <h3 className="text-sm font-semibold text-amber-950 ">Testdata och driftstatus</h3>
@@ -389,8 +400,8 @@ export default function CustomerProfileCard({
  className="h-11 rounded-2xl border border-amber-200 bg-white px-4 text-slate-950 "
  />
  </label>
- <button className="inline-flex h-11 items-center justify-center rounded-2xl bg-amber-600 px-4 text-sm font-semibold text-white hover:bg-amber-700">
- Markera som testdata
+ <button disabled={testDataPending} className="inline-flex h-11 items-center justify-center rounded-2xl bg-amber-600 px-4 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60">
+ {testDataPending ? 'Sparar…' : 'Markera som testdata'}
  </button>
  </form>
  </div>
@@ -434,8 +445,8 @@ export default function CustomerProfileCard({
  className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
- <button disabled={isArchived} className="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-60">
- {isArchived ? 'Redan arkiverad' : 'Arkivera kund'}
+ <button disabled={isArchived || archivePending} className="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-800 px-4 text-sm font-semibold text-white hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-60">
+ {isArchived ? 'Redan arkiverad' : archivePending ? 'Arkiverar…' : 'Arkivera kund'}
  </button>
  </form>
  </div>
@@ -470,14 +481,14 @@ export default function CustomerProfileCard({
  />
  </label>
  <div className="flex items-end">
- <button className="inline-flex h-11 items-center rounded-2xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800">
- Radera testkund
+ <button disabled={deletePending} className="inline-flex h-11 items-center rounded-2xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60">
+ {deletePending ? 'Raderar…' : 'Radera testkund'}
  </button>
  </div>
  </form>
  </div>
  </>
- ) : null}
+ : null}
  </section>
  )
 }

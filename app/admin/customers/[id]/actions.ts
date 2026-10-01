@@ -12,6 +12,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 
 export type { CustomerOperationActionState } from './actions.part-2'
+export type { CustomerInternalNoteReceipt } from './actions.part-1'
 
 function formText(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -87,6 +88,10 @@ export async function saveMeteringPointAction(...args: Parameters<typeof impleme
 
 export async function createCustomerInternalNoteAction(...args: Parameters<typeof implementation1.createCustomerInternalNoteAction>) {
   return implementation1.createCustomerInternalNoteAction(...args)
+}
+
+export async function createCustomerInternalNoteReceiptAction(...args: Parameters<typeof implementation1.createCustomerInternalNoteReceiptAction>) {
+  return implementation1.createCustomerInternalNoteReceiptAction(...args)
 }
 
 export async function createPowerOfAttorneyAction(...args: Parameters<typeof implementation1.createPowerOfAttorneyAction>) {

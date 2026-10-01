@@ -13,6 +13,8 @@ export default async function BillingImportPage({ searchParams }: { searchParams
   const admin = await requireAdminPageKeyAccess('billing.import')
   const scope = await getOperationalCompanyScope(admin.userId)
   const companyId = scope.companyId
+  const canImport = Boolean(companyId) && (admin.isPlatformAdmin || (admin.companyId === companyId
+    && admin.permissions.some(permission => ['billing_underlay.write', 'billing_underlay.export'].includes(permission))))
   const notice = searchParams ? await searchParams : {}
 
   const { data: batches } = companyId
@@ -34,7 +36,7 @@ export default async function BillingImportPage({ searchParams }: { searchParams
 
       <div className="space-y-6 p-8">
         {notice?.message ? (
-          <div className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
+          <div role={notice.status === 'success' ? 'status' : 'alert'} className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : notice.status === 'partial' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
             {notice.message}
           </div>
         ) : null}
@@ -42,7 +44,7 @@ export default async function BillingImportPage({ searchParams }: { searchParams
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Operativt bolag</p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">Importerade rader kopplas alltid till tenantens company_id. Felaktiga rader sparas som blockerade import rows för uppföljning.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">Importerade rader kopplas till valt bolag. Felaktiga rader sparas för uppföljning.</p>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -50,9 +52,10 @@ export default async function BillingImportPage({ searchParams }: { searchParams
             <h2 className="text-lg font-semibold text-slate-950">Ny import</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">Filen ska innehålla customer_id och period. UUID för site_id/metering_point_id används när det finns, annars sparas externa referenser i payload för manuell matchning.</p>
             <div className="mt-5 space-y-4">
-              <input name="billing_file" type="file" accept=".csv,.txt" className="block w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" disabled={!companyId} />
-              <textarea name="billing_text" rows={8} placeholder={example} className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" disabled={!companyId} />
-              <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" disabled={!companyId}>Importera underlag</button>
+              <input name="billing_file" type="file" accept=".csv,.txt" className="block w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" disabled={!canImport} />
+              <textarea name="billing_text" rows={8} placeholder={example} className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" disabled={!canImport} />
+              <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" disabled={!canImport}>Importera underlag</button>
+              {!canImport ? <p className="text-sm text-amber-800">Import är avstängd eftersom ett aktivt bolag eller ändringsbehörighet saknas.</p> : null}
             </div>
           </form>
 

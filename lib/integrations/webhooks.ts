@@ -486,34 +486,18 @@ async function markDeliveryUncertain(input: {
 
 async function claimDueDeliveries(limit: number) {
   await recoverStaleDeliveries()
-  const now = new Date().toISOString()
-  const batchId = randomUUID()
-  const due = await supabaseService
-    .from('webhook_deliveries')
-    .select('id')
-    .in('status', ['queued', 'failed'])
-    .lte('next_attempt_at', now)
-    .order('next_attempt_at', { ascending: true })
-    .limit(Math.min(Math.max(limit, 1), 100))
-
-  if (due.error) throw due.error
-  const ids = (due.data ?? []).map((row: { id?: string | null }) => row.id).filter((id: string | null | undefined): id is string => Boolean(id))
-  if (ids.length === 0) return [] as WebhookDeliveryRow[]
-
-  const claimed = await supabaseService
-    .from('webhook_deliveries')
-    .update({
-      status: 'processing',
-      locked_at: now,
-      locked_by: batchId,
-      updated_at: now,
-    })
-    .in('id', ids)
-    .in('status', ['queued', 'failed'])
-    .lte('next_attempt_at', now)
-    .select('*')
-
-  if (claimed.error) throw claimed.error
+  // Rotate tenant turns and lock deliveries in the same transaction. Do not
+  // fall back to a global oldest-first read when this schema is unavailable:
+  // one tenant's backlog could otherwise consume every dispatch slot.
+  const claimed = await supabaseService.rpc('gridex_claim_webhook_deliveries_fair_v1', {
+    p_limit: Math.min(Math.max(Math.trunc(limit), 1), 100), p_claim_token: randomUUID(),
+  })
+  if (claimed.error) {
+    if (missingSchema(claimed.error) || claimed.error.code === 'PGRST202' || claimed.error.code === '42883') {
+      throw new Error('webhook_schema_not_ready')
+    }
+    throw claimed.error
+  }
   const allowed: WebhookDeliveryRow[] = []
   for (const delivery of (claimed.data ?? []) as WebhookDeliveryRow[]) {
     const decision = await getTenantOperationDecision(delivery.company_id, 'webhook.deliver')

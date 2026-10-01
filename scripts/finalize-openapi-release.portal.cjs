@@ -23,6 +23,8 @@ module.exports = function finalizeCustomerPortalRelease({
   website,
   websitePath,
 }) {
+  const limitedText = (maxLength) => ({ type: 'string', minLength: 1, maxLength })
+  const limitedEmail = { type: 'string', format: 'email', maxLength: 320 }
   const identifierProperties = {
     email: { type: 'string', format: 'email', maxLength: 320 },
     customer_number: { type: 'string', maxLength: 100 },
@@ -38,20 +40,14 @@ module.exports = function finalizeCustomerPortalRelease({
       profile: {
         type: 'object',
         additionalProperties: false,
-        properties: {
-          first_name: string,
-          last_name: string,
-          full_name: string,
-          company_name: string,
-          phone: string,
-          invoice_email: { type: 'string', format: 'email' },
-          language_code: string,
-          timezone: string,
-        },
+        maxProperties: 0,
+        description: 'Compatibility empty object only. Machine sync cannot change customer contact, billing, legal identity or preferences; nonempty profile returns 422 validation_failed before writes. Use the separately delegated revision-bound commands.',
+        properties: {},
       },
       facility_data: {
         type: 'array',
         maxItems: 20,
+        description: 'Machine intake may bind facility identifiers and dates. Addresses require the separately delegated revision-bound facility command; any address object or legacy address field is rejected before identity, claims or writes.',
         items: {
           type: 'object',
           additionalProperties: false,
@@ -61,18 +57,6 @@ module.exports = function finalizeCustomerPortalRelease({
             metering_point_id: string,
             move_in_date: { type: 'string', format: 'date' },
             requested_start_date: { type: 'string', format: 'date' },
-            address: {
-              type: 'object',
-              additionalProperties: false,
-              properties: {
-                street: string,
-                postal_code: string,
-                city: string,
-                country: string,
-                care_of: string,
-                apartment_number: string,
-              },
-            },
             metadata: { type: 'object' },
           },
         },
@@ -648,29 +632,55 @@ module.exports = function finalizeCustomerPortalRelease({
   }
   const customerFacilityAddress = {
     ...closedObject({
-      street: string,
-      postal_code: string,
-      city: string,
-      country: string,
-      care_of: string,
-      apartment_number: string,
+      street: limitedText(300),
+      postal_code: limitedText(20),
+      city: limitedText(120),
+      country: limitedText(2),
+      care_of: limitedText(200),
+      apartment_number: limitedText(50),
     }),
     minProperties: 1,
   }
   portal.components.schemas.CustomerFacilityUpdate = closedObject({
-    facility_reference: string,
+    facility_reference: limitedText(120),
+    expected_address_revision: { type: 'integer', minimum: 0, maximum: 9007199254740991, description: 'Required on fresh commands. Omitted only for exact authorized completed legacy replay.' },
     address: customerFacilityAddress,
-    external_request_id: string,
+    external_request_id: limitedText(200),
   }, ['facility_reference', 'address'])
+  portal.components.schemas.CustomerContactFields = {
+    ...closedObject({
+      email: { type: 'string', format: 'email', maxLength: 320 },
+      phone: { type: 'string', minLength: 1, maxLength: 50 },
+    }),
+    minProperties: 1,
+  }
+  portal.components.schemas.CustomerPreferencesFields = {
+    ...closedObject({ language_code: limitedText(10), timezone: limitedText(80) }),
+    minProperties: 1,
+  }
+  portal.components.schemas.CustomerContactChangeRequest = closedObject({
+    profile: { $ref: '#/components/schemas/CustomerContactFields' },
+    expected_contact_revision: { type: 'integer', minimum: 0, maximum: 9007199254740991, description: 'Required on fresh commands. Omitted only for exact authorized completed legacy replay.' },
+  }, ['profile'])
+  portal.components.schemas.CustomerBillingChangeRequest = closedObject({
+    profile: closedObject({ invoice_email: limitedEmail }, ['invoice_email']),
+    expected_billing_revision: { type: 'integer', minimum: 0, maximum: 9007199254740991, description: 'Required on fresh commands. Omitted only for exact authorized completed legacy replay.' },
+  }, ['profile'])
+  portal.components.schemas.CustomerPreferencesChangeRequest = closedObject({
+    profile: { $ref: '#/components/schemas/CustomerPreferencesFields' },
+    expected_profile_revision: { type: 'integer', minimum: 0, maximum: 9007199254740991,
+      description: 'Required on fresh commands. Omitted only for exact authorized completed legacy replay.' },
+  }, ['profile'])
+  portal.components.schemas.CustomerFacilityChangeRequest = closedObject({
+    facility_data: { $ref: '#/components/schemas/CustomerFacilityUpdate' },
+  }, ['facility_data'])
   portal.components.schemas.CustomerProfileUpdateRequest = {
-    type: 'object',
-    additionalProperties: false,
-    anyOf: [{ required: ['profile'] }, { required: ['facility_data'] }],
-    properties: {
-      profile: { $ref: '#/components/schemas/CustomerProfile' },
-      facility_data: { $ref: '#/components/schemas/CustomerFacilityUpdate' },
-      metadata: { type: 'object' },
-    },
+    oneOf: [
+      { $ref: '#/components/schemas/CustomerContactChangeRequest' },
+      { $ref: '#/components/schemas/CustomerBillingChangeRequest' },
+      { $ref: '#/components/schemas/CustomerPreferencesChangeRequest' },
+      { $ref: '#/components/schemas/CustomerFacilityChangeRequest' },
+    ],
   }
   portal.components.schemas.CustomerProfileUpdateData = closedObject({
     completion_reference: string,
@@ -678,25 +688,134 @@ module.exports = function finalizeCustomerPortalRelease({
     created_at: dateTime,
     profile_updated: { type: 'boolean' },
     facility_updated: { type: 'boolean' },
-    address_result: { type: ['object', 'null'] },
+    address_result: { oneOf: [{ type: 'null' }, closedObject({
+      status: { type: 'string', enum: ['updated', 'unchanged', 'incomplete', 'conflict'] },
+      address_hash: nullableString,
+      reason: { type: 'string', enum: ['missing_site_address_fields', 'verified_address_conflict'] },
+    }, ['status', 'address_hash'])] },
+    contact_revision: { type: 'integer', minimum: 0 },
+    billing_revision: { type: 'integer', minimum: 0 },
+    profile_revision: { type: 'integer', minimum: 0 },
+    address_revision: { type: 'integer', minimum: 0 },
+    affected_contract_count: { type: 'integer', minimum: 0 },
   }, ['completion_reference', 'status', 'created_at', 'profile_updated', 'facility_updated', 'address_result'])
+  portal.components.schemas.CustomerPortalIdentity = closedObject({
+    portal_identity_reference: nullableString,
+    external_customer_id: nullableString,
+    customer_number: nullableString,
+    match_strength: nullableString,
+    match_method: nullableString,
+    provider: nullableString,
+  }, ['portal_identity_reference', 'external_customer_id', 'customer_number', 'match_strength', 'match_method', 'provider'])
+  portal.components.schemas.CustomerMeData = closedObject({
+    customer_reference: nullableString,
+    customer_number: nullableString,
+    external_customer_id: nullableString,
+    customer_type: nullableString,
+    status: nullableString,
+    display_name: nullableString,
+    first_name: nullableString,
+    last_name: nullableString,
+    company_name: nullableString,
+    email: nullableString,
+    phone: nullableString,
+    contact_revision: { type: ['integer', 'null'], minimum: 0 },
+    billing_revision: { type: ['integer', 'null'], minimum: 0 },
+    profile_revision: { type: ['integer', 'null'], minimum: 0 },
+    language_code: nullableString,
+    timezone: nullableString,
+    created_at: nullableString,
+    portal_identity: { $ref: '#/components/schemas/CustomerPortalIdentity' },
+  }, ['customer_reference', 'customer_number', 'external_customer_id', 'customer_type', 'status', 'display_name', 'first_name', 'last_name', 'company_name', 'email', 'phone', 'contact_revision', 'billing_revision', 'profile_revision', 'language_code', 'timezone', 'created_at', 'portal_identity'])
+  setResponse(portal, '/api/v1/customer/me', envelope({ $ref: '#/components/schemas/CustomerMeData' }), 'get')
+
+  portal.components.schemas.CustomerResourcePage = closedObject({
+    limit: { type: 'integer', minimum: 1, maximum: 100 },
+    offset: { type: 'integer', minimum: 0 },
+    returned: { type: 'integer', minimum: 0 },
+    has_more: { type: 'boolean' },
+    next_cursor: nullableString,
+  }, ['limit', 'offset', 'returned', 'has_more', 'next_cursor'])
+  portal.components.schemas.CustomerSite = closedObject({
+    facility_reference: nullableString,
+    facility_id: nullableString,
+    status: nullableString,
+    name: nullableString,
+    facility_type: nullableString,
+    address_revision: { type: ['integer', 'null'], minimum: 0 },
+    address: { $ref: '#/components/schemas/CustomerSiteAddress' },
+    price_area: nullableString,
+    grid_area_code: nullableString,
+    move_in_date: nullableString,
+    move_out_date: nullableString,
+    annual_consumption_kwh: { type: ['number', 'null'] },
+    created_at: nullableString,
+  }, ['facility_reference', 'facility_id', 'status', 'name', 'facility_type', 'address_revision', 'address', 'price_area', 'grid_area_code', 'move_in_date', 'move_out_date', 'annual_consumption_kwh', 'created_at'])
+  portal.components.schemas.CustomerSiteAddress = closedObject({
+    street: nullableString,
+    care_of: nullableString,
+    apartment_number: nullableString,
+    postal_code: nullableString,
+    city: nullableString,
+    country: string,
+  }, ['street', 'care_of', 'apartment_number', 'postal_code', 'city', 'country'])
+  portal.components.schemas.CustomerMeteringPoint = closedObject({
+    metering_point_reference: nullableString,
+    facility_reference: nullableString,
+    metering_point_id: nullableString,
+    facility_id: nullableString,
+    status: nullableString,
+    metering_type: nullableString,
+    resolution: nullableString,
+    price_area: nullableString,
+    grid_area_code: nullableString,
+    start_date: nullableString,
+    end_date: nullableString,
+    verification_status: nullableString,
+    created_at: nullableString,
+  }, ['metering_point_reference', 'facility_reference', 'metering_point_id', 'facility_id', 'status', 'metering_type', 'resolution', 'price_area', 'grid_area_code', 'start_date', 'end_date', 'verification_status', 'created_at'])
+  portal.components.schemas.CustomerSitesData = closedObject({
+    sites: { type: 'array', items: { $ref: '#/components/schemas/CustomerSite' } },
+    metering_points: { type: 'array', items: { $ref: '#/components/schemas/CustomerMeteringPoint' } },
+  }, ['sites', 'metering_points'])
+  portal.components.schemas.CustomerSitesPage = closedObject({
+    sites: { $ref: '#/components/schemas/CustomerResourcePage' },
+  }, ['sites'])
+  const contractsResponse = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerContract' } }, ['page'])
+  contractsResponse.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, '/api/v1/customer/contracts', contractsResponse, 'get')
+  const sitesResponse = envelope({ $ref: '#/components/schemas/CustomerSitesData' }, ['page'])
+  sitesResponse.properties.page = { $ref: '#/components/schemas/CustomerSitesPage' }
+  setResponse(portal, '/api/v1/customer/sites', sitesResponse, 'get')
+  for (const path of ['/api/v1/customer/contracts', '/api/v1/customer/sites']) {
+    const operation = portal.paths[path]?.get
+    if (!operation) continue
+    operation.parameters ??= []
+    operation.parameters.push(
+      { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } },
+      { name: 'cursor', in: 'query', required: false, schema: { type: 'string', description: 'Opaque cursor bound to the current organization, customer and resource; invalid or foreign cursors return 400 invalid_cursor.' } },
+    )
+  }
   setRequest(portal, '/api/v1/customer/profile-update', { $ref: '#/components/schemas/CustomerProfileUpdateRequest' })
   setResponse(portal, '/api/v1/customer/profile-update', envelope({ $ref: '#/components/schemas/CustomerProfileUpdateData' }), 'post')
   const profileOperation = portal.paths['/api/v1/customer/profile-update']?.post
   if (profileOperation) {
     profileOperation.security = [
       { bearerAuth: ['customer_contact.write'] },
+      { bearerAuth: ['customer_billing.write'] },
       { bearerAuth: ['customer_facility_data.write'] },
     ]
-    profileOperation['x-required-scopes'] = ['customer_contact.write', 'customer_facility_data.write']
-    profileOperation['x-scope-mode'] = 'any-per-request; both required when both operations are present'
+    profileOperation['x-required-scopes'] = ['customer_contact.write', 'customer_billing.write', 'customer_facility_data.write']
+    profileOperation['x-scope-mode'] = 'any-per-request; contact changes require customer_contact.write; billing changes require explicit customer_billing.write; facility changes require customer_facility_data.write'
     profileOperation['x-scope-requirement'] = {
-      anyOf: ['customer_contact.write', 'customer_facility_data.write'],
-      allOfWhenBothPayloadSectionsArePresent: [
-        'customer_contact.write',
-        'customer_facility_data.write',
-      ],
+      anyOf: ['customer_contact.write', 'customer_billing.write', 'customer_facility_data.write'],
+      profile: ['customer_contact.write'],
+      billing: ['customer_billing.write'],
+      facility: ['customer_facility_data.write'],
     }
+    profileOperation.description = 'Each change category is a separate revision-bound command with Idempotency-Key. Contact requires expected_contact_revision and customer_contact.write. invoice_email requires expected_billing_revision and explicit customer_billing.write, returning billing_revision and affected_contract_count while preserving contract overrides. language_code/timezone require expected_profile_revision and customer_contact.write, returning profile_revision. Facility address requires facility_data.expected_address_revision and customer_facility_data.write, returning address_revision and address_result; submitted/conflict states are not proof of an applied address. Commands atomically persist mutation, history, revision, audit, completion, idempotency result and durable intent. A stale revision or changed same-key payload returns 409. Fresh contact/billing/preference/facility commands without a revision return 422; exact completed legacy claims may replay without the new revision only after current authority checks. Legal identity fields return 422 profile_field_not_supported; mixed categories and metadata are rejected without mutation. Current client, active owner account, relation and scope are checked at execution and replay. External delivery proceeds separately.'
+    profileOperation.responses['503'] = { description: 'A required protected command/schema is unavailable. Returns canonical ErrorEnvelope with platform_schema_not_ready and retryable true; database diagnostics are never public. Invalid persisted results return profile_result_invalid without replaying a mutation.',
+      content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } } }
   }
 
   portal.components.schemas.CustomerEventIdentity = eventIdentity
@@ -866,6 +985,20 @@ module.exports = function finalizeCustomerPortalRelease({
 
   ensureVersionedOpenApiRoutes()
   movePublicationWebhookToTopLevel()
+  require('./finalize-openapi-release.support.cjs')({ portal, envelope, setRequest, setResponse })
+
+  portal.paths['/api/v1/customer/events'].get.responses['503'] = {
+    description: 'The event read model is unavailable. Returns the canonical error envelope with code platform_schema_not_ready and retryable true; no database diagnostics are exposed.',
+    content: {
+      'application/json': { schema: { $ref: '#/components/schemas/ErrorEnvelope' } },
+    },
+  }
+  for (const path of ['/api/v1/customer/legal-acceptances', '/api/v1/customer/metering-values']) {
+    portal.paths[path].get.responses['503'] = {
+      description: 'The canonical read model is unavailable. Returns the canonical error envelope with code platform_schema_not_ready and retryable true; no database diagnostics are exposed.',
+      content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } },
+    }
+  }
 
   for (const document of [website, portal]) {
     dedupeOperationParameters(document)
@@ -874,6 +1007,38 @@ module.exports = function finalizeCustomerPortalRelease({
     ensureStandardHeaders(document)
     normalizePublicOpenApiDocumentOperations(document)
     removeMisappliedLegalDescription(document)
+  }
+
+  for (const [path, item] of Object.entries(portal.paths)) {
+    if (!path.startsWith('/api/v1/customer/')) continue
+    for (const method of ['get', 'post']) {
+      const operation = item?.[method]
+      if (!operation) continue
+      operation.parameters = (operation.parameters ?? []).filter((parameter) =>
+        parameter.name !== 'x-gridex-customer-assertion').map((parameter) => clone(parameter))
+      for (const parameter of operation.parameters) {
+        if (!['x-gridex-auth-user-id', 'x-gridex-customer-portal-user-id'].includes(parameter.name)) continue
+        parameter.required = false
+        parameter.schema = {
+          type: 'string',
+          description: 'Optional account subject identifier; it is not authorization and must agree with the signed subject on delegated routes.',
+        }
+      }
+      if (path === '/api/v1/customer/sync') {
+        operation['x-customer-authority'] = 'tenant_machine'
+        continue
+      }
+      operation.parameters.push({
+        name: 'x-gridex-customer-assertion',
+        in: 'header',
+        required: true,
+        schema: {
+          type: 'string',
+          description: 'RS256 signed assertion from the platform-pinned issuer for this API client, customer and exact METHOD path; short lived and checked against the current active account link. The API key alone does not authorize a customer.',
+        },
+      })
+      operation['x-customer-authority'] = 'delegated'
+    }
   }
 
   function explicitlyPermissive(schema) {
@@ -910,6 +1075,235 @@ module.exports = function finalizeCustomerPortalRelease({
         }
       }
     }
+  }
+
+  // The invoice list and detail routes expose the same canonical, opaque
+  // invoice_reference. Document their actual page and allowlisted projections.
+  const invoiceList = portal.paths['/api/v1/customer/invoices'].get
+  const invoiceDetail = portal.paths['/api/v1/customer/invoices/{id}'].get
+  const invoiceParameters = portal.paths['/api/v1/customer/contracts'].get.parameters
+    .filter((parameter) => ['limit', 'cursor'].includes(parameter.name))
+  invoiceList.parameters = [
+    ...invoiceList.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+    ...clone(invoiceParameters),
+  ]
+  const invoiceId = invoiceDetail.parameters.find((parameter) => parameter.name === 'id' && parameter.in === 'path')
+  invoiceId.schema = { type: 'string', pattern: '^invoice_[A-Za-z0-9_-]{32}$' }
+  invoiceId.description = 'Opaque invoice_reference returned by GET /api/v1/customer/invoices.'
+
+  const invoice = portal.components.schemas.CustomerInvoice
+  invoice.required = Object.keys(invoice.properties)
+  invoice.properties.invoice_reference = { type: 'string', pattern: '^invoice_[A-Za-z0-9_-]{32}$' }
+  const nullableNumber = { type: ['number', 'null'] }
+  const invoiceLineProperties = {
+    line_reference: { type: 'string', pattern: '^invoice_line_[A-Za-z0-9_-]{32}$' },
+    description: nullableString,
+    quantity: nullableNumber,
+    unit_price: nullableNumber,
+    amount_ex_vat: nullableNumber,
+    vat_amount: nullableNumber,
+    amount_inc_vat: nullableNumber,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerInvoiceLine = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(invoiceLineProperties), properties: invoiceLineProperties,
+  }
+  const invoiceDocumentProperties = {
+    document_reference: { type: 'string', pattern: '^document_[A-Za-z0-9_-]{32}$' },
+    document_type: nullableString,
+    title: nullableString,
+    file_name: nullableString,
+    mime_type: nullableString,
+    file_size_bytes: nullableNumber,
+    status: nullableString,
+    secure_url: nullableString,
+    version: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerInvoiceDocument = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(invoiceDocumentProperties), properties: invoiceDocumentProperties,
+  }
+  // Documents and notifications use separate, customer-bound keyset pages.
+  // The notification legacy selector omits read_at, so it is optional.
+  const documentProperties = {
+    document_reference: { type: 'string', pattern: '^document_[A-Za-z0-9_-]{32}$' },
+    document_type: nullableString,
+    title: nullableString,
+    file_name: nullableString,
+    mime_type: nullableString,
+    file_size_bytes: nullableNumber,
+    status: nullableString,
+    secure_url: nullableString,
+    version: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerDocument = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(documentProperties), properties: documentProperties,
+  }
+  const notificationProperties = {
+    notification_reference: { type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$' },
+    type: string,
+    title: string,
+    message: nullableString,
+    status: string,
+    created_at: dateTime,
+    read_at: { type: ['string', 'null'], format: 'date-time' },
+  }
+  portal.components.schemas.CustomerNotification = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(notificationProperties).filter((key) => key !== 'read_at'),
+    properties: notificationProperties,
+  }
+  for (const [path, schemaName] of [
+    ['/api/v1/customer/documents', 'CustomerDocument'],
+    ['/api/v1/customer/notifications', 'CustomerNotification'],
+  ]) {
+    const operation = portal.paths[path].get
+    operation.parameters = [
+      ...operation.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+      ...clone(invoiceParameters),
+    ]
+    const listEnvelope = envelope({ type: 'array', items: { $ref: `#/components/schemas/${schemaName}` } }, ['page'])
+    listEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+    setResponse(portal, path, listEnvelope)
+  }
+  const eventProperties = {
+    event_reference: { type: 'string', pattern: '^event_[A-Za-z0-9_-]{32}$', description: 'Stable organization-scoped reference identifying one event across both feeds. References from earlier draft releases can change; refresh the list when adopting this release.' },
+    event_type: nullableString,
+    event_version: { type: ['integer', 'null'], minimum: 1, description: 'Stored positive domain-event version, or version 1 for a customer event. Null indicates an unavailable or invalid version; no version is invented.' },
+    occurred_at: nullableString,
+    source: nullableString,
+  }
+  portal.components.schemas.CustomerEvent = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(eventProperties), properties: eventProperties,
+  }
+  const powerOfAttorneyProperties = {
+    power_of_attorney_reference: { type: 'string', pattern: '^power_of_attorney_[A-Za-z0-9_-]{32}$' },
+    contract_reference: { type: ['string', 'null'], pattern: '^contract_[A-Za-z0-9_-]{32}$' },
+    facility_reference: { type: ['string', 'null'], pattern: '^facility_[A-Za-z0-9_-]{32}$' },
+    scope: nullableString,
+    status: nullableString,
+    signed_at: nullableString,
+    accepted_at: nullableString,
+    valid_from: nullableString,
+    valid_to: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerPowerOfAttorney = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(powerOfAttorneyProperties), properties: powerOfAttorneyProperties,
+  }
+  for (const [path, schemaName] of [
+    ['/api/v1/customer/events', 'CustomerEvent'],
+    ['/api/v1/customer/powers-of-attorney', 'CustomerPowerOfAttorney'],
+  ]) {
+    const operation = portal.paths[path].get
+    operation.parameters = [
+      ...operation.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+      ...clone(invoiceParameters),
+    ]
+    const listEnvelope = envelope({ type: 'array', items: { $ref: `#/components/schemas/${schemaName}` } }, ['page'])
+    listEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+    setResponse(portal, path, listEnvelope)
+  }
+  const meteringValueProperties = {
+    metering_value_reference: { type: 'string', pattern: '^metering_value_[A-Za-z0-9_-]{32}$' },
+    metering_point_reference: { type: ['string', 'null'], pattern: '^metering_point_[A-Za-z0-9_-]{32}$' },
+    period_start: nullableString,
+    period_end: nullableString,
+    resolution: nullableString,
+    quantity_kwh: nullableNumber,
+    quality_status: nullableString,
+    status: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerMeteringValue = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(meteringValueProperties), properties: meteringValueProperties,
+  }
+  const meteringPath = '/api/v1/customer/metering-values'
+  const meteringOperation = portal.paths[meteringPath].get
+  meteringOperation.parameters = [
+    ...meteringOperation.parameters.filter((parameter) =>
+      !['from', 'to', 'facility_id', 'limit', 'cursor'].includes(parameter.name)),
+    ...clone(invoiceParameters),
+    ...['from', 'to'].map((name) => ({
+      name, in: 'query', required: false,
+      description: name === 'from'
+        ? 'Include rows with period_start on or after this instant.'
+        : 'Include rows with period_end on or before this instant. A date alone means midnight UTC.',
+      schema: { oneOf: [{ type: 'string', format: 'date' }, { type: 'string', format: 'date-time' }] },
+    })),
+    { name: 'facility_id', in: 'query', required: false,
+      description: 'Facility identifier normalized to digits. A nonempty value without digits returns 400 invalid_facility_id.',
+      schema: { type: 'string', pattern: '[0-9]' } },
+  ]
+  meteringOperation.description = 'Read the verified customer’s normalized metering values, filtered by organization and customer before a stable period_start/id keyset page. Invalid time filters return 400 invalid_time_filter; invalid or foreign cursors return 400 invalid_cursor. Only the public metering DTO is returned.'
+  const meteringEnvelope = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerMeteringValue' } }, ['page'])
+  meteringEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, meteringPath, meteringEnvelope)
+  const legalProperties = {
+    acceptance_reference: { type: 'string', pattern: '^acceptance_[A-Za-z0-9_-]{32}$' },
+    acceptance_type: nullableString,
+    document_reference: { type: ['string', 'null'], pattern: '^legal_document_[A-Za-z0-9_-]{32}$' },
+    document_code: nullableString,
+    document_version: nullableString,
+    document_hash: nullableString,
+    accepted_at: nullableString,
+    source: nullableString,
+    created_at: nullableString,
+  }
+  portal.components.schemas.CustomerLegalAcceptance = {
+    type: 'object', additionalProperties: false,
+    required: Object.keys(legalProperties), properties: legalProperties,
+  }
+  const legalPath = '/api/v1/customer/legal-acceptances'
+  const legalReadOperation = portal.paths[legalPath].get
+  legalReadOperation.parameters = [
+    ...legalReadOperation.parameters.filter((parameter) => !['limit', 'cursor'].includes(parameter.name)),
+    { name: 'limit', in: 'query', required: false,
+      description: 'Positive integer page size, default 50, capped at 100. Missing, non-positive, fractional or non-numeric values use the default.',
+      schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } },
+    { name: 'cursor', in: 'query', required: false,
+      description: 'Opaque page.next_cursor bound to this organization, customer and legal-acceptances resource. Invalid, tampered or foreign cursors return 400 invalid_cursor.',
+      schema: { type: 'string' } },
+  ]
+  legalReadOperation.description = 'Read only the verified customer’s legal acceptances with customer_legal.read and a mandatory signed assertion for the exact GET path. Organization and customer filters precede a stable accepted_at/id descending keyset page. Return only the public nine-field DTO; unavailable legacy fields remain null. No write scope or Idempotency-Key is required.'
+  const legalEnvelope = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerLegalAcceptance' } }, ['page'])
+  legalEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, legalPath, legalEnvelope)
+  const notificationRead = portal.paths['/api/v1/customer/notifications/read'].post
+  notificationRead.description = 'With exact signed delegation and customer_notifications.write, atomically resolve all organization/customer references, mark unread rows, complete the scoped idempotency claim and persist canonical audit in one local transaction. No external delivery is triggered. References retain their existing canonical derivation and request order. Already-read rows retain their first persisted read_at; response read_at is attempt time. The namespace remains organization/client/customer/route/key with the existing compact ordered payload hash. An identical completed legacy claim replays its exact stored result after current client, scope and customer authority is checked. Old failed and processing claims remain safe 409 responses; a changed payload under the same key conflicts. A missing or foreign reference returns neutral 404 without partial mutation. A late completion or audit failure rolls back the entire command.'
+  portal.components.schemas.CustomerNotificationReadRequest.properties.notification_references.items = {
+    type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$',
+  }
+  portal.components.schemas.CustomerNotificationReadData.properties.notification_references.items = {
+    type: 'string', pattern: '^notification_[A-Za-z0-9_-]{32}$',
+  }
+  notificationRead.responses['404'] = {
+    ...clone(notificationRead.responses['400']),
+    description: 'A notification reference is not visible to the verified customer.',
+  }
+  portal.components.schemas.CustomerInvoiceDetail = {
+    type: 'object', additionalProperties: false,
+    required: ['invoice', 'lines', 'documents'],
+    properties: {
+      invoice: { $ref: '#/components/schemas/CustomerInvoice' },
+      lines: { type: 'array', items: { $ref: '#/components/schemas/CustomerInvoiceLine' } },
+      documents: { type: 'array', items: { $ref: '#/components/schemas/CustomerInvoiceDocument' } },
+    },
+  }
+  const invoiceListEnvelope = envelope({ type: 'array', items: { $ref: '#/components/schemas/CustomerInvoice' } }, ['page'])
+  invoiceListEnvelope.properties.page = { $ref: '#/components/schemas/CustomerResourcePage' }
+  setResponse(portal, '/api/v1/customer/invoices', invoiceListEnvelope)
+  setResponse(portal, '/api/v1/customer/invoices/{id}', envelope({ $ref: '#/components/schemas/CustomerInvoiceDetail' }))
+  invoiceDetail.responses['404'] = {
+    ...clone(invoiceDetail.responses['400']),
+    description: 'The invoice reference is not visible to the verified customer.',
   }
 
   function assertLocalRefs(document, name) {

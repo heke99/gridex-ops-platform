@@ -238,12 +238,10 @@ export async function updateCompanyResponsibleUserAction(
   _prevState: CompanySettingsActionState,
   formData: FormData
 ): Promise<CompanySettingsActionState> {
+  const companyId = normalizeText(formData.get('company_id'))
+  const userId = normalizeText(formData.get('user_id'))
   try {
-    const companyId = normalizeText(formData.get('company_id'))
-    const userId = normalizeText(formData.get('user_id'))
     const email = normalizeEmail(formData.get('email'))
-    const fullName = normalizeText(formData.get('full_name')) || null
-    const phone = normalizeText(formData.get('phone')) || null
     const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(
       normalizeText(formData.get('role_key')) || 'company_admin',
     )
@@ -265,41 +263,24 @@ export async function updateCompanyResponsibleUserAction(
 
     const { data: authUser, error: authLookupError } = await supabaseService.auth.admin.getUserById(userId)
     if (authLookupError) throw authLookupError
-
-    const updatePayload: Parameters<typeof supabaseService.auth.admin.updateUserById>[1] = {
-      user_metadata: {
-        ...(authUser.user?.user_metadata ?? {}),
-        full_name: fullName,
-        phone,
-      },
+    if (!authUser.user?.id || !authUser.user.email) {
+      return { ok: false, message: 'Användarens inloggningskonto kunde inte verifieras.' }
     }
-
-    if ((authUser.user?.email ?? '').toLowerCase() !== email) {
-      updatePayload.email = email
-      updatePayload.email_confirm = false
+    // Company authority can change this membership through the canonical
+    // command. The Auth identity/profile may be shared with other tenants;
+    // its login and personal details require the user's own verified flow.
+    const identityEmail = authUser.user.email.trim().toLowerCase()
+    if (identityEmail !== email) {
+      return { ok: false, message: 'Inloggningsuppgifter ändras av användaren via sitt verifierade kontoflöde.' }
     }
-
-    const { error: authUpdateError } = await supabaseService.auth.admin.updateUserById(userId, updatePayload)
-    if (authUpdateError) throw authUpdateError
-
-    const { error: profileError } = await supabaseService.from('user_profiles').upsert(
-      {
-        id: userId,
-        email,
-        full_name: fullName,
-        phone,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' }
-    )
-
-    if (profileError && !['42P01', '42703', 'PGRST205'].includes(profileError.code ?? '')) throw profileError
+    const identityName = typeof authUser.user.user_metadata?.full_name === 'string'
+      ? authUser.user.user_metadata.full_name : null
 
     await grantCompanyUserAccess({
       companyId,
       userId,
-      email,
-      fullName,
+      email: identityEmail,
+      fullName: identityName,
       membershipRole,
       roleKey,
       actorUserId: admin.userId,
@@ -310,8 +291,10 @@ export async function updateCompanyResponsibleUserAction(
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
 
-    return { ok: true, message: 'Bolagsansvarig/användaruppgifter uppdaterades.' }
+    return { ok: true, message: 'Användarens bolagsbehörighet uppdaterades.' }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Användaren kunde inte uppdateras.' }
+    return { ok: false, message: toSafeCompanyProfileError(error, {
+      action: 'update_company_user_access', companyId: companyId || null, userId: userId || null,
+    }) }
   }
 }

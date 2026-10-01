@@ -33,7 +33,7 @@ while ((match = routeRe.exec(registrySource))) {
     method: match[1],
     path: publicPath,
     runtimePath: match[2],
-    normalizedPath: (match[3] ?? match[2]).replace(/\[[^\]]+\]/g, '{}'),
+    normalizedPath: (match[3] ?? match[2]).replace(/\[[^\]]+\]|\{[^}]+\}/g, '{}'),
     scopes: parseScopeExpression(match[4]),
     operationId,
     scopeMode: ['/api/v1/website/legal-bundle', '/api/v1/customer/profile-update'].includes(match[2]) ? 'any' : 'all',

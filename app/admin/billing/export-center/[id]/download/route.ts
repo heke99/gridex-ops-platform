@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   BillingExportNotFoundError,
   buildBillingExportFile,
@@ -20,36 +21,34 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  if (!user || user.id !== admin.userId) return new NextResponse('Saknar behörighet.', { status: 403 })
   const isPlatformAdmin = isPlatformAdminContext(admin)
   const scope = !isPlatformAdmin && user ? await getOperationalCompanyScope(user.id) : null
   const companyId = isPlatformAdmin ? null : scope?.companyId ?? null
   if (!isPlatformAdmin && !companyId) return new NextResponse('Bolag saknas.', { status: 403 })
+  if (!isPlatformAdmin && companyId !== admin.companyId) return new NextResponse('Saknar behörighet.', { status: 403 })
   if (!admin.permissions.includes('billing_underlay.export') && !admin.permissions.includes('billing_underlay.read')) {
     return new NextResponse('Saknar behörighet.', { status: 403 })
   }
 
   const { id } = await params
   const format = request.nextUrl.searchParams.get('format')
-  let runWithItems: Awaited<ReturnType<typeof getBillingExportRunWithItems>>
   try {
-    runWithItems = await getBillingExportRunWithItems({ companyId, exportRunId: id })
+    const { run, items } = await getBillingExportRunWithItems({ companyId, exportRunId: id })
+    const file = buildBillingExportFile({ run, items, format })
+    const responseBody = typeof file.body === 'string' ? file.body : new Blob([file.body as BlobPart], { type: file.contentType })
+    return new NextResponse(responseBody, {
+      headers: {
+        'content-type': file.contentType,
+        'content-disposition': `attachment; filename="${file.fileName}"`,
+        'cache-control': 'no-store',
+      },
+    })
   } catch (error) {
     if (error instanceof BillingExportNotFoundError) {
       return new NextResponse('Exportkörningen hittades inte.', { status: 404 })
     }
-    console.error('[billing-export-download] Failed to build export', error)
+    console.error('[billing-export-download] Failed to build export', technicalErrorDiagnostic(error))
     return new NextResponse('Kunde inte skapa exportfil.', { status: 500 })
   }
-  const { run, items } = runWithItems
-  const file = buildBillingExportFile({ run, items, format })
-
-  const responseBody = typeof file.body === 'string' ? file.body : new Blob([file.body as BlobPart], { type: file.contentType })
-
-  return new NextResponse(responseBody, {
-    headers: {
-      'content-type': file.contentType,
-      'content-disposition': `attachment; filename="${file.fileName}"`,
-      'cache-control': 'no-store',
-    },
-  })
 }

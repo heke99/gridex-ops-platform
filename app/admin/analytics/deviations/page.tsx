@@ -34,7 +34,7 @@ export default async function AnalyticsDeviationsPage() {
         <AnalyticsTabs active="deviations" />
         <MetricCards cards={cards} />
         <div className="flex justify-end">
-          <Link href="/admin/analytics/export?report=data_quality_issues" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
+          <Link download href="/admin/analytics/export?report=data_quality_issues" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
             Exportera CSV
           </Link>
         </div>

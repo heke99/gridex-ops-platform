@@ -15,6 +15,8 @@ import {ownerSource} from '../__tests__/helpers/sourceOwnerFixtures'
 import {utiltsNativeSourceFixture} from '../__tests__/helpers/utiltsNativeSourceFixture'
 import {observationHandoffMessage} from '../__tests__/helpers/utiltsObservationHandoff'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {receiveSourceOwnerZ04,sourceOwnerBusinessSnapshotSql} from './helpers/ediel-source-owner-canonical-native-20261001'
+import {prepareInertPositiveSitePublication,signPositiveSiteAgreement} from './customer-site-positive-continuation-20261001.fixture'
 
 // No database/client, parser, canonical registry or ownership decision is
 // mocked. Only unrelated notification/event sinks are withheld on this runner.
@@ -40,7 +42,7 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
-import {finalizeSupplierSwitchExecution} from '@/lib/operations/db'
+import {finalizeSupplierSwitchExecution,updateSupplierSwitchRequestStatus} from '@/lib/operations/db'
 
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 
@@ -57,24 +59,41 @@ function fixtureGsrn(sequence:number):string {
   const weighted=[...first17].reduce((sum,digit,index)=>sum+Number(digit)*(index%2===0?3:1),0)
   return `${first17}${(10-weighted%10)%10}`
 }
-/** Only draft business rows are seeded. The actual business owner must perform
- * the UPDATE and supply INSERT through the real Supabase HTTP API. */
+/** Business rows are seeded; the actual inbound owner must accept the
+ * switch and insert supply through the real Data API. The separate native
+ * inbound suite qualifies the complete producer/SMTP/Storage dispatch chain. */
 async function seed(delegated=false, structural=false) {
   const caseNo=++serial
   const id=(n:number)=>`10000000-0000-4000-8000-${String(caseNo*100+n).padStart(12,'0')}`
-  const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10),outbound:id(11),reviewer:id(12),route:id(13),routeProfile:id(14)}
+  const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10),outbound:id(11),reviewer:id(12),route:id(13),routeProfile:id(14),contract:id(15)}
   // E66 positive paths reuse this seeded point; keep its GS1 digit valid.
   const external=fixtureGsrn(caseNo)
   const transportEdiel=String(88000+caseNo)
   const input=structural?structuralOwnerSource():ownerSource(), wire=String(input.raw_payload).replaceAll('735123456789012345',external).replace('+54321:14+',delegated?`+${transportEdiel}:14+`:'+54321:14+')
+  const physicalSupplier=delegated?transportEdiel:'54321'
+  const originWire=wire.replace(`+12345:14+${physicalSupplier}:14+`,`+${physicalSupplier}:14+12345:14+`)
+    .replace('BGM+Z04','BGM+Z03').replace('NAD+FR+12345:160:SVK','NAD+FR+54321:160:SVK')
+    .replace('NAD+DO+54321:160:SVK','NAD+DO+12345:160:SVK')
   const p=(key:keyof typeof ids)=>literal(ids[key])
   sql(`
   DO $$ BEGIN IF EXISTS(SELECT FROM public.companies WHERE id=${p('company')}) THEN RAISE EXCEPTION 'native_fixture_collision';END IF;END $$;
   INSERT INTO public.companies(id,name,status) VALUES(${p('company')},'E035 native runtime synthetic ${caseNo}','active');
-  INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${p('customer')},${p('company')},'E035-NATIVE-${caseNo}','Synthetic native customer','private');
+  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+  VALUES(${p('actor')},'authenticated','authenticated','e035-native-actor-${caseNo}@example.invalid',now(),'{}','{}',now(),now(),false,false);
+  INSERT INTO public.user_profiles(id,email,full_name,user_status)
+  VALUES(${p('actor')},'e035-native-actor-${caseNo}@example.invalid','Synthetic native preparation actor','active');
+  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,role,is_active,accepted_at)
+  VALUES(${p('company')},${p('actor')},'operations','active','operations',true,now());
+  INSERT INTO public.customers(id,company_id,customer_number,name,full_name,customer_type,email,source,is_test_data,metadata)
+  VALUES(${p('customer')},${p('company')},'E035-NATIVE-${caseNo}','Synthetic Site Customer','Synthetic Site Customer','private',
+    'e035-native-customer-${caseNo}@example.invalid','invoice_test_center',true,'{"test_center":{"kind":"invoice_test_customer"}}');
   INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${p('grid')},${p('company')},'Synthetic native grid ${caseNo}','12345','test',true,'active');
-  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${p('site')},${p('company')},${p('customer')},'Synthetic native site','consumption','active','SE',${literal(external)},${p('grid')});
-  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id) VALUES(${p('point')},${p('company')},${p('customer')},${p('site')},${p('site')},${literal(external)},${literal(external)},'hourly','consumption',true,${p('grid')});
+  INSERT INTO public.platform_grid_areas(grid_area_code,grid_owner_name,price_area,source,is_active)
+  VALUES('E035N${caseNo}','Synthetic native grid','SE3','synthetic_disposable_source_owner',true);
+  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id,grid_area_code,price_area_code)
+  VALUES(${p('site')},${p('company')},${p('customer')},'Synthetic native site','consumption','active','SE',${literal(external)},${p('grid')},'E035N${caseNo}','SE3');
+  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id,price_area_code)
+  VALUES(${p('point')},${p('company')},${p('customer')},${p('site')},${p('site')},${literal(external)},${literal(external)},'hourly','consumption',true,${p('grid')},'SE3');
   INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) VALUES(${p('company')},'test','electricity',true,clock_timestamp()-interval '1 day');
   INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES(${p('company')},'test',${p('actor')},'EdielId','54321',clock_timestamp()-interval '1 day');
   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) VALUES(${p('company')},'test',${p('actor')},'electricity_supplier',clock_timestamp()-interval '1 day');
@@ -83,7 +102,6 @@ async function seed(delegated=false, structural=false) {
   INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to) VALUES(${p('transport')},'EdielId',${literal(transportEdiel)},true,'2026-01-01','2099-01-01');
   INSERT INTO public.tenant_counterparty_relations(company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from) VALUES(${p('company')},'test',${p('transport')},'ediel_transport_agent',true,clock_timestamp()-interval '1 day');`:''}
 
-  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_type,status,requested_start_date,rff_li_reference) VALUES(${p('switch')},${p('company')},${p('customer')},${p('site')},${p('point')},${p('grid')},'switch','draft','2026-10-01','CASE-1');
   ${structural?`
   INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
   VALUES(${p('reviewer')},'authenticated','authenticated','e035-native-${caseNo}@example.invalid',now(),'{}','{}',now(),now(),false,false);
@@ -96,29 +114,47 @@ async function seed(delegated=false, structural=false) {
   ON CONFLICT DO NOTHING;
   INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${p('reviewer')},${p('company')},id,'ediel_testing.write' FROM public.permissions WHERE key='ediel_testing.write';
+  `:''}
+  `)
+  prepareInertPositiveSitePublication({company:ids.company,actor:ids.actor})
+  await signPositiveSiteAgreement({company:ids.company,customer:ids.customer,actor:ids.actor,contract:ids.contract,
+    site:ids.site,point:ids.point,start:'2026-10-01',email:`e035-native-customer-${caseNo}@example.invalid`,reference:`E035-NATIVE-${caseNo}`})
+  expect(sql(`SELECT jsonb_build_object('ready',switch_ready,'signed',agreement_signed,'pdf',signed_pdf_archived,
+    'poa',valid_power_of_attorney,'facility',facility_data_ready,'meter',metering_data_ready,'blockers',blockers)
+    FROM public.customer_contract_lifecycle_readiness_v WHERE company_id=${p('company')} AND customer_contract_id=${p('contract')}`))
+    .toMatchObject({ready:true,signed:true,pdf:true,poa:true,facility:true,meter:true,blockers:[]})
+  sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,grid_owner_ediel_id,contract_id,customer_contract_id,request_type,status,requested_start_date,rff_li_reference,z03_variant)
+  VALUES(${p('switch')},${p('company')},${p('customer')},${p('site')},${p('site')},${p('point')},${p('grid')},'12345',${p('contract')},${p('contract')},'switch','draft','2026-10-01','CASE-1','L');
   INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active)
   VALUES(${p('route')},${p('company')},'Isolated synthetic native route',${p('grid')},'bilateral_test',true);
   INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
   VALUES(${p('routeProfile')},${p('company')},${p('route')},'Isolated synthetic native profile','test','edifact','54321','12345','23-DDQ-PRODAT',true);
-  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_sent_at,application_reference,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${p('outbound')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','outbound','edifact','PRODAT','Z03','sent',${literal(wire.replace('BGM+Z04','BGM+Z03'))},'{}',clock_timestamp(),'23-DDQ-PRODAT',${p('route')},${p('routeProfile')},${p('switch')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,switch_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,application_reference,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${p('outbound')},${p('company')},${p('customer')},${p('site')},${p('point')},${p('switch')},'test','outbound','edifact','PRODAT','Z03','queued',${literal(originWire)},'{}','23-DDQ-PRODAT',${p('route')},${p('routeProfile')},${p('switch')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z03:L:26.A:r3' AND profile.is_enabled;
   UPDATE public.supplier_switch_requests SET outbound_z03_message_id=${p('outbound')} WHERE id=${p('switch')};
-  `:''}
-  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${p('source')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},${literal(input.parsed_payload)}::jsonb,${structural?"clock_timestamp()":"clock_timestamp()-interval '2 minutes'"},'{}','23-DDQ-PRODAT','12345',${literal(delegated?transportEdiel:'54321')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;
-
   `)
-  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',ids.source).single()
-  expect(error).toBeNull();expect(data).not.toBeNull()
+  // Qualify the database-owned service UPDATE/capture boundary. Never insert
+  // a private dispatch receipt or disable a trigger. This fixture does not
+  // certify MIME/SMTP/Storage or the complete outbound producer; that genuine
+  // chain remains a separate mandatory native suite in the same clean replay.
+  const dispatched=await supabaseService.from('ediel_messages').update({status:'sent',message_sent_at:new Date().toISOString()})
+    .eq('id',ids.outbound).eq('company_id',ids.company).select('id,status,message_sent_at').single()
+  expect(dispatched.error).toBeNull();expect(dispatched.data).toMatchObject({id:ids.outbound,status:'sent'})
+  expect(sql(`SELECT to_jsonb(count(*)) FROM private.gridex_inbound_switch_dispatch_sources WHERE source_message_id=${p('outbound')} AND company_id=${p('company')}`)).toBe(1)
+  const submitted=await updateSupplierSwitchRequestStatus(supabaseService,{requestId:ids.switch,status:'submitted'})
+  expect(submitted).toMatchObject({id:ids.switch,company_id:ids.company,status:'submitted',submitted_at:expect.any(String)})
+  const original=await receiveSourceOwnerZ04({id:ids.source,companyId:ids.company,customerId:ids.customer,
+    siteId:ids.site,pointId:ids.point,switchId:ids.switch,rawPayload:wire,parsedPayload:input.parsed_payload,
+    receivedAt:new Date(Date.now()-(structural?0:120_000)).toISOString(),
+    senderEdielId:'12345',receiverEdielId:delegated?transportEdiel:'54321'})
   if(structural){
     const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
       p_actor_user_id:ids.reviewer,p_company_id:ids.company,p_permission:'ediel_testing.write',
     })
     expect(permission.error).toBeNull();expect(permission.data).toBe(true)
   }
-  return {ids,original:data as unknown as EdielMessageRow}
+  return {ids,original}
 }
 async function prepare(f:Awaited<ReturnType<typeof seed>>) {
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.original)
@@ -208,15 +244,20 @@ it('a real owner-row change between HTTP reads and append is rejected by SQL',as
   expect(await complete(f,prepared)).toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'})
   expect(stored(f.ids.source)).toEqual([])
 })
-it('a real second-write failure never grants source approval and preserves the first committed write',async()=>{
+it('a real supply-write failure never grants source approval and rolls back the complete atomic business graph',async()=>{
   const f=await seed(),{session}=await prepare(f)
+  const before=sql<Record<string,string>>(sourceOwnerBusinessSnapshotSql(literal(f.ids.company)))
+  const priorStatus=sql<string>(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.ids.switch)}`)
   sql(`ALTER TABLE public.customer_supply_periods ADD CONSTRAINT e035_native_supply_failure CHECK(company_id<>${literal(f.ids.company)}::uuid)`)
   try {
-    await expect(applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:session.onSwitchCommitted})).rejects.toBeDefined()
+    await expect(applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:session.onSwitchCommitted}))
+      .rejects.toMatchObject({code:'23514',message:expect.stringContaining('e035_native_supply_failure')})
   } finally {sql('ALTER TABLE public.customer_supply_periods DROP CONSTRAINT e035_native_supply_failure')}
+  expect(sql(sourceOwnerBusinessSnapshotSql(literal(f.ids.company)))).toEqual(before)
   expect(await session.finish()).toMatchObject({sourceDisposition:'not_established'})
   expect(stored(f.ids.source)[0].facts).toMatchObject({objects:[{disposition:'unavailable'}]})
-  expect(sql(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.ids.switch)}`)).toBe('accepted')
+  expect(priorStatus).toBe('submitted')
+  expect(sql(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.ids.switch)}`)).toBe(priorStatus)
 })
 it('native ACL/scope checks reject a different tenant using otherwise genuine assessment data',async()=>{
   const f=await seed();expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});const a=stored(f.ids.source)[0]

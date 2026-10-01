@@ -209,6 +209,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   const draft = await buildProdatZ03FromSwitch({
     actorUserId,
     senderEdielId: routeContext.senderEdielId,
+    legalSenderEdielId: routeContext.actor.legalActorEdielId,
     senderName: routeContext.senderName,
     receiverEdielId: routeContext.receiverEdielId,
     receiverName: routeContext.receiverName,

@@ -1,0 +1,11 @@
+# Market-source policy and stored-data outcome
+
+This next-candidate package closes reproduced U04/U09/U18 source gaps in the actual market-source server actions and page. A policy write must return the exact selected company/source; the actual Auth actor must match the guard, and a nonplatform guard must match the selected company before policy reads or writes. Missing sources, invalid policy choices, nonfinite/out-of-range integers and unqualified write receipts produce controlled failure. Database/provider messages are neither persisted nor rendered as diagnostics.
+
+The former connection test only reads already stored price observations. Its controls now say “Kontrollera lagrad data” and “Lagrad data hittad”; this is no external connection or provider-delivery receipt. Both writes preserve existing metadata. Cache refresh failure after a qualified write preserves the confirmed outcome and requests a reload. The page has explicit load failure, empty and read-only states and uses the existing shared pending/draft/cancel form with optional task-specific text.
+
+Actual exported actions and actual server-page React tree, with controlled outer Auth/database/cache boundaries: initial12 failures, six invalid-field failures and the three independently reviewed gaps were reproduced before correction. Final `market-source-policy-outcome-20260930.test.ts`23/23 plus the existing company form8/8 =31/31 PASS. Scoped ESLint passed. Billing owner independently reviewed metadata retention, pre-read scope and postcommit refresh semantics and found all three corrected. These are local unit/source receipts, not native SQL or browser acceptance. Metadata read/merge is not a transaction-level concurrency guarantee.
+
+Owned paths are the two market-source action/page files, the shared form's backward-compatible optional labels, this report and the new23-case test. Original whole requirements remain pending their complete runtime coverage; the packet does not establish the whole OPS semantic-action denominator.
+
+Independent CI/evidence reviewer also ran the actual23-case source/page suite and existing8-case shared form suite:31/31 PASS, with matching source blobs. Native/browser/current RLS qualification remains pending.

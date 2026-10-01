@@ -1,6 +1,9 @@
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
+import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRejection'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {ProdatDiagnostic, ProdatProcessingDisposition} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/core/runtimeDecision.ts
 
@@ -397,12 +400,27 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
       description,
       source: 'resolveCanonicalEdielPolicy',
     }))
-    addNegativeAperakIfAllowed({
-      family: String(canonical.family),
-      code: canonical.messageCode,
-      responsePlan,
-      reason: description,
-    })
+    // Field 202 is required across the entire frozen P26.A code list. Resolve
+    // this one physical header error before code-specific policy selection;
+    // an unlisted code is invalid field content, not ERC40/100 "unimplemented".
+    const sourceWire=canonical.family==='PRODAT' && message.raw_payload ? tokenizeEdifact(message.raw_payload) : null
+    const field202=sourceWire && /^(canonical_policy_message_code_missing|canonical_ediel_prodat_code_unsupported):/.test(description)
+      ? prodatHeaderFieldRejection({field:'202',sourceWire,errors:[]}) : null
+    const diagnostic=field202?.defect ? prodatFieldDiagnostic('202',field202.defect,
+      {rawSegments:canonical.rawSegments,una:canonical.una,code:canonical.messageCode},canonical.rawSegments,
+      'PRODAT26A:§2.2:ALL:202',undefined,'header') : null
+    const projected=diagnostic ? projectProdatDiagnostics([{severity:'error',blocking:true,code:'PRODAT_HEADER_202_POLICY',
+      title:'Meddelandenamn saknas eller är ogiltigt',description:'BGM/C002/1001 följer inte P26.A §2.2.',prodatDiagnostic:diagnostic}]) : null
+    const qualified=Boolean(field202 && sourceWire && projected?.applicationErrors.length &&
+      prodatHeaderFieldRejection({field:'202',sourceWire,errors:projected.applicationErrors}).qualified)
+    if (qualified && projected) {
+      sourceRules.push('PRODAT26A:§2.2:ALL:202')
+      issues.push(issue({layer:'application',severity:'error',code:'PRODAT_HEADER_202_POLICY',
+        title:'Meddelandenamn saknas eller är ogiltigt',description:'Fält 202 i fysisk BGM kvalificerar ERC41/42.',
+        source:'P26.A §2.2 p16',prodatDiagnostic:diagnostic!,prodatAperakText:projected.observations[0]?.prodatAperakText}))
+    }
+    addNegativeAperakIfAllowed({family:String(canonical.family),code:canonical.messageCode,responsePlan,
+      reason:description,...(qualified && projected ? {applicationErrors:projected.applicationErrors} : {})})
     return buildResult({
       canonical,
       policy: null,

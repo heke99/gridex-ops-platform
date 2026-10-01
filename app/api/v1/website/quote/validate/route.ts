@@ -14,6 +14,7 @@ import {
 } from '@/lib/pricing/websiteQuotes'
 import { resolvePublicContractOffer } from '@/lib/website/publicContracts'
 import { canonicalApiError } from '@/lib/api/apiError'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_quotes.validate'])
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson(responseError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
   }
 
@@ -235,6 +236,7 @@ export async function POST(request: NextRequest) {
     })
 
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client,
       request,
       statusCode: 200,
@@ -273,6 +275,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof WebsiteQuoteValidationError) {
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: error.status,
@@ -295,8 +298,8 @@ export async function POST(request: NextRequest) {
         { status: error.status, headers: { 'Cache-Control': 'no-store' } },
       )
     }
-    console.error('[website-quote-validate] failed', { requestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'website_quote_validation_failed', metadata: { request_id: requestId } })
+    console.error('[website-quote-validate] failed', { requestId, error: technicalErrorDiagnostic(error) })
+    await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client, request, statusCode: 500, startedAt, errorCode: 'website_quote_validation_failed', metadata: { request_id: requestId } })
     return customerPortalJson(
       responseError({ code: 'website_quote_validation_failed', message: 'Prisquote kunde inte valideras just nu.', requestId }),
       { status: 500, headers: { 'Cache-Control': 'no-store' } },

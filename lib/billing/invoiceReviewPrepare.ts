@@ -8,6 +8,8 @@ import {
 } from '@/lib/pricing/underlayPricingAdapter'
 import { lockPricingPreview } from '@/lib/pricing/engine'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
+import { readQualifiedLockedBillingProfile } from '@/lib/billing/billingConfigurationSnapshot'
+import { evaluateBillingMonthInvoiceReadiness } from '@/lib/billing/invoiceReadiness'
 
 type Row = Record<string, unknown>
 
@@ -51,7 +53,7 @@ async function loadUnderlays(companyId: string, billingMonth: string) {
   for (let from = 0; ; from += 1_000) {
     const result = await supabaseService
       .from('billing_underlays')
-      .select('id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type')
+      .select('id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type')
       .eq('company_id', companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -219,6 +221,10 @@ async function createDraft(input: {
   if (!underlayId || !customerId || !contractId || contractId !== text(input.contract.id)) {
     throw new Error('Faktureringsunderlagets kund-/avtalsidentitet är ofullständig.')
   }
+  const effectiveBilling = readQualifiedLockedBillingProfile(input.underlay.billing_configuration_snapshot, {
+    companyId: input.companyId, customerId, contractId, snapshotSha256: input.underlay.billing_configuration_snapshot_sha256,
+  })
+  if (!effectiveBilling) throw new Error('Fakturan saknar en verifierad och revisionslåst faktureringsprofil. Förbered en ny underlagsrevision.')
   const pricing = await ensureLockedPricing({
     companyId: input.companyId,
     billingUnderlayId: underlayId,
@@ -238,13 +244,17 @@ async function createDraft(input: {
   const runKey = `invoice-review-run:${canonicalKey}`
   const approval = { status: 'pending_review', prepared_at: now, prepared_by: input.actorUserId, calculation_snapshot_sha256: calculationHash }
   const invoiceAddress = {
-    recipient: text(input.contract.invoice_recipient),
-    email: text(input.contract.invoice_email),
-    reference: text(input.contract.invoice_reference),
-    street: text(input.contract.billing_street),
-    postal_code: text(input.contract.billing_postal_code),
-    city: text(input.contract.billing_city),
-    country: text(input.contract.billing_country) ?? 'SE',
+    recipient: effectiveBilling.recipient,
+    email: effectiveBilling.email,
+    reference: effectiveBilling.reference,
+    street: effectiveBilling.address.street,
+    postal_code: effectiveBilling.address.postalCode,
+    city: effectiveBilling.address.city,
+    country: effectiveBilling.address.country,
+    distribution_method: effectiveBilling.distributionMethod,
+    profile_revision: effectiveBilling.profileRevision,
+    contract_override_revision: effectiveBilling.contractOverrideRevision,
+    sources: effectiveBilling.sources,
   }
   const legacyItem = {
     id: itemId,
@@ -436,6 +446,11 @@ export async function prepareInvoiceDraftsForReview(input: {
     throw new Error('Fakturaförberedelse fick ett tomt billingUnderlayId-scope.')
   }
 
+  // Readiness resolves and atomically locks the same billing revision that
+  // preparation and provider export consume; selected preparation stays scoped.
+  const readiness = await evaluateBillingMonthInvoiceReadiness({ companyId: input.companyId, billingMonth: input.billingMonth,
+    customerId: customerScope, billingUnderlayId: underlayScope })
+  const invoiceReadyIds = new Set(readiness.readyUnderlayIds)
   const allUnderlays = await loadUnderlays(input.companyId, input.billingMonth)
   const underlays = allUnderlays.filter((row) =>
     (!customerScope || text(row.customer_id) === customerScope) &&
@@ -447,7 +462,7 @@ export async function prepareInvoiceDraftsForReview(input: {
 
   const underlayIds = underlays.map((row) => text(row.id)).filter((value): value is string => Boolean(value))
   const reservedUnderlays = await loadExistingUnderlayIds(input.companyId, underlayIds)
-  const ready = underlays.filter((row) => row.status === 'validated' && row.readiness_status === 'ready' && !reservedUnderlays.has(String(row.id)))
+  const ready = underlays.filter((row) => invoiceReadyIds.has(String(row.id)) && !reservedUnderlays.has(String(row.id)))
   const contractIds = Array.from(new Set(ready.map((row) => text(row.customer_contract_id) ?? text(row.contract_id)).filter((value): value is string => Boolean(value))))
   const contracts = await loadContracts(input.companyId, contractIds)
   let created = 0
@@ -476,7 +491,7 @@ export async function prepareInvoiceDraftsForReview(input: {
   for (let offset = 0; offset < jobs.length; offset += 10) {
     await Promise.all(jobs.slice(offset, offset + 10).map((run) => run()))
   }
-  const blocked = underlays.filter((row) => row.status !== 'validated' || row.readiness_status !== 'ready').length
+  const blocked = underlays.filter((row) => !invoiceReadyIds.has(String(row.id)) && !reservedUnderlays.has(String(row.id))).length
   return {
     billingMonth: input.billingMonth,
     scope: {

@@ -2,6 +2,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processDueApprovedInvoiceRetries } from '@/lib/billing/invoiceApprovedDispatch'
 import { processPendingInvoiceProviderEvents, retryReviewableInvoiceProviderEvents } from '@/lib/billing/providerEventProcessor'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,7 +42,7 @@ async function run(request: NextRequest) {
     return NextResponse.json({ ok: true, retries, providerEvents, reviewRetries, approval_enforced: true })
   } catch (error) {
     const traceId = randomUUID()
-    console.error('[invoice-export-retry-cron] failed', { traceId, error })
+    console.error('[invoice-export-retry-cron] failed', { traceId, error: technicalErrorDiagnostic(error) })
     return NextResponse.json(
       { ok: false, error: 'Fakturaexport-återförsök kunde inte köras just nu.', code: 'invoice_export_retry_cron_failed', trace_id: traceId },
       { status: 500 },

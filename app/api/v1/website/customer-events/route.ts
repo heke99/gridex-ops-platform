@@ -1,14 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
-import { readJsonObject } from '@/lib/api/strictRequest'
+import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
 import { canonicalApiError } from '@/lib/api/apiError'
-import { customerPortalJson } from '@/lib/customer-portal/externalApi'
+import { customerPortalJson, logPortalRequestTelemetry } from '@/lib/customer-portal/externalApi'
 import {
-  logIntegrationApiRequest,
   requireIntegrationApiAccess,
 } from '@/lib/integrations/apiAuth'
 import { isSupportEvent, parseCustomerEventPayload, recordWebsiteCustomerEvent } from '@/lib/customer-portal/customerEvents'
-import { createSupportCaseFromCustomerEvent } from '@/lib/customer-cases/support'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,7 +17,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireIntegrationApiAccess(request, ['website_events.write'])
 
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logPortalRequestTelemetry({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson(canonicalApiError({ code: auth.errorCode, message: auth.error, requestId }), { status: auth.status })
   }
 
@@ -35,6 +33,13 @@ export async function POST(request: NextRequest) {
       }), { status: 422 })
     }
 
+    if (isSupportEvent(parsed.data.event_type)) {
+      throw new ApiInputError(
+        'Supportärenden kräver delegerat kundmandat och den gemensamma ärendevägen /api/v1/customer/cases.',
+        'support_event_delegation_required', 403,
+      )
+    }
+
     const data = await recordWebsiteCustomerEvent({
       request,
       client: auth.client,
@@ -42,37 +47,23 @@ export async function POST(request: NextRequest) {
       operation: '/api/v1/website/customer-events',
       source: 'website',
     })
-    const { _internal_customer_id: internalCustomerId, ...responseData } = data
-    let supportCaseReused: boolean | null = null
-    if (isSupportEvent(parsed.data.event_type)) {
-      const idempotencyKey = request.headers.get('idempotency-key')?.trim()
-      if (!idempotencyKey) {
-        return customerPortalJson(canonicalApiError({ code: 'idempotency_key_required', message: 'Idempotency-Key krävs för supportevent.', requestId }), { status: 400 })
-      }
-      const supportCase = await createSupportCaseFromCustomerEvent({
-        companyId: auth.context.companyId,
-        customerId: internalCustomerId,
-        eventType: parsed.data.event_type,
-        eventReference: parsed.data.event_reference,
-        data: parsed.data.data,
-        idempotencyKey,
-        channel: 'api',
-        apiClientId: auth.client.id,
-      })
-      supportCaseReused = supportCase.reused
+    const responseData = {
+      event_reference: data.event_reference,
+      event_resource_reference: data.event_resource_reference,
+      event_type: data.event_type,
+      customer_reference: data.customer_reference,
+      status: data.status,
+      occurred_at: data.occurred_at,
+      replayed: data.replayed,
     }
-
-    await logIntegrationApiRequest({
+    await logPortalRequestTelemetry({
       client: auth.client,
       request,
       statusCode: 200,
       startedAt,
       metadata: {
-        event_reference: data.event_reference,
         event_type: data.event_type,
-        customer_id: internalCustomerId,
         idempotency_replay: data.replayed,
-        support_case_reused: supportCaseReused,
       },
     })
     return customerPortalJson({ data: responseData, request_id: requestId, correlation_id: requestId })
@@ -83,8 +74,8 @@ export async function POST(request: NextRequest) {
     const message = controlled
       ? String((error as { message?: unknown }).message ?? 'Kundeventet kunde inte behandlas.')
       : 'Kundeventet kunde inte behandlas just nu.'
-    console.error('[website-customer-events] failed', { requestId, error })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
+    console.error('[website-customer-events] failed', { requestId, code: controlled ? code : 'customer_event_failed' })
+    await logPortalRequestTelemetry({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
     return customerPortalJson(canonicalApiError({ code, message, requestId }), { status })
   }
 }

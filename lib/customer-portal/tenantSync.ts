@@ -1,6 +1,5 @@
+import { ApiInputError } from '@/lib/api/strictRequest'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
-import { createOrUpdateCustomerSiteFromAddress } from '@/lib/customer-sites/addressIntake'
-import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import type { LinkedPortalIdentity } from '@/lib/customer-portal/externalApi'
@@ -1009,44 +1008,8 @@ async function syncFacilityData(input: {
     if (!siteResult.data?.id) throw new Error('FACILITY_REFERENCE_NOT_FOUND')
     requestedSiteId = siteResult.data.id
   }
-  const address = asRecord(facility.address)
-  const addressStreet = clean(address.street) ?? clean(facility.street)
-  const addressPostalCode = clean(address.postal_code) ?? clean(address.postalCode) ?? clean(facility.postal_code) ?? clean(facility.postalCode)
-  const addressCity = clean(address.city) ?? clean(facility.city)
-  const addressCountry = clean(address.country) ?? clean(facility.country) ?? 'SE'
-  const careOf = clean(address.care_of) ?? clean(address.careOf) ?? clean(facility.care_of)
-  const apartmentNumber = clean(address.apartment_number) ?? clean(address.apartmentNumber) ?? clean(facility.apartment_number)
-  const hasAddressPayload = Boolean(addressStreet || addressPostalCode || addressCity)
-
-  if (!requestedSiteId && !hasAddressPayload && !facilityId && !meteringPointId) {
-    return { updated: false, metering_point_created: false, skipped: true }
-  }
-
-  const site = hasAddressPayload
-    ? await createOrUpdateCustomerSiteFromAddress({
-        companyId: input.client.company_id,
-        customerId: input.identity.customer_id,
-        siteId: requestedSiteId,
-        facilityId,
-        address: {
-          street: addressStreet,
-          postalCode: addressPostalCode,
-          city: addressCity,
-          country: addressCountry,
-          careOf,
-          apartmentNumber,
-          source: 'tenant_api',
-          sourceReference: input.identity.external_customer_id ?? input.identity.customer_number,
-          claimedGridOwnerId: clean(facility.claimed_grid_owner_id) ?? clean(facility.grid_owner_id),
-          metadata: { ...input.baseMetadata, ...asRecord(facility.metadata), supplied_verified_at: clean(facility.verified_at) },
-        },
-      })
-    : requestedSiteId
-      ? { siteId: requestedSiteId, address: null }
-      : null
-
-  if (!site?.siteId) return { updated: false, metering_point_created: false, skipped: true }
-  const siteId = site.siteId
+  if (!requestedSiteId) return { updated: false, metering_point_created: false, skipped: true }
+  const siteId = requestedSiteId
   const now = new Date().toISOString()
 
   // Tenant-provided grid-owner/grid-area/verification values are hints only.
@@ -1123,7 +1086,6 @@ async function syncFacilityData(input: {
       .update({
         customer_site_id: siteId,
         metering_point_id: meteringPointId ?? input.refs.meteringPointId,
-        status: hasAddressPayload ? 'needs_address_resolution' : undefined,
         updated_at: now,
       })
       .eq('company_id', input.client.company_id)
@@ -1131,54 +1093,7 @@ async function syncFacilityData(input: {
     if (applicationUpdate.error && !isMissingPortalSchemaError(applicationUpdate.error)) throw applicationUpdate.error
   }
 
-  if (hasAddressPayload && site.address?.status !== 'conflict' && site.address?.status !== 'incomplete') {
-    await enqueueCustomerDataRequestAutomation({
-      companyId: input.client.company_id,
-      customerId: input.identity.customer_id,
-      siteId,
-      meteringPointId: null,
-    })
-  }
-
-  return { updated: Boolean(siteUpdate.data?.id) || Boolean(site.address), metering_point_created: created, skipped: false }
-}
-
-async function syncCustomerProfile(input: {
-  client: IntegrationApiClient
-  identity: LinkedPortalIdentity
-  profile: TenantCustomerSyncPayload['profile']
-}): Promise<{ updated: boolean; skipped: boolean }> {
-  if (!input.profile || Object.keys(input.profile).length === 0) {
-    return { updated: false, skipped: true }
-  }
-  const existing = await supabaseService
-    .from('customers')
-    .select('metadata')
-    .eq('company_id', input.client.company_id)
-    .eq('id', input.identity.customer_id)
-    .maybeSingle()
-  if (existing.error) throw existing.error
-  const payload = nonNull({
-    first_name: clean(input.profile.first_name),
-    last_name: clean(input.profile.last_name),
-    full_name: clean(input.profile.full_name),
-    company_name: clean(input.profile.company_name),
-    invoice_email: clean(input.profile.invoice_email),
-    preferred_language: clean(input.profile.language_code),
-    metadata: input.profile.timezone
-      ? { ...asRecord(existing.data?.metadata), portal_timezone: input.profile.timezone }
-      : undefined,
-    updated_at: new Date().toISOString(),
-  })
-  const result = await supabaseService
-    .from('customers')
-    .update(payload)
-    .eq('company_id', input.client.company_id)
-    .eq('id', input.identity.customer_id)
-    .select('id')
-    .maybeSingle()
-  if (result.error) throw result.error
-  return { updated: Boolean(result.data?.id), skipped: false }
+  return { updated: Boolean(siteUpdate.data?.id), metering_point_created: created, skipped: false }
 }
 
 async function emitSyncEvent(input: {
@@ -1215,6 +1130,25 @@ export async function syncTenantCustomerRecords(input: {
   identity: LinkedPortalIdentity
   payload: TenantCustomerSyncPayload
 }) {
+  const profileFields = Object.keys(input.payload.profile ?? {})
+  if (profileFields.length > 0) {
+    throw new ApiInputError(
+      'Profiländringar kräver ett separat revisionsskyddat kommando med rätt fältbehörighet.',
+      'sync_profile_command_required', 422, `profile.${profileFields[0]}`,
+    )
+  }
+  // A machine mandate cannot be converted into a customer owner actor. Keep
+  // protected addresses on their atomic command until a separate, scoped
+  // machine-address command exists. Check every item before any other effect.
+  const addressFields = ['address', 'street', 'postal_code', 'postalCode', 'city', 'country',
+    'care_of', 'careOf', 'apartment_number', 'apartmentNumber']
+  for (const [index, facility] of (input.payload.facility_data ?? []).entries()) {
+    const protectedField = addressFields.find(field => (facility as Record<string, unknown>)[field] !== undefined)
+    if (protectedField) {
+      throw new ApiInputError('Adressändringar kräver det separata revisionsskyddade anläggningskommandot med kundmandat.',
+        'sync_facility_address_command_required', 422, `facility_data.${index}.${protectedField}`)
+    }
+  }
   const refs = await getLatestRefs(input.client, input.identity)
   const summary: SyncSummary = {
     documents: { created: 0, updated: 0, skipped: 0 },
@@ -1232,12 +1166,6 @@ export async function syncTenantCustomerRecords(input: {
     synced_at: new Date().toISOString(),
     ...(input.payload.metadata ?? {}),
   }
-
-  summary.profile = await syncCustomerProfile({
-    client: input.client,
-    identity: input.identity,
-    profile: input.payload.profile,
-  })
 
   const acceptances = Array.isArray(input.payload.legal_acceptances) ? input.payload.legal_acceptances : []
   const seenAcceptanceReferences = new Set<string>()

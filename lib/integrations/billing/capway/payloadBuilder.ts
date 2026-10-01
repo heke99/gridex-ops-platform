@@ -1,5 +1,6 @@
 import type { CapwayConnectionConfig, CapwayFinancingMode, CapwayInvoiceDebtRow, CapwayPutInvoice } from '@/lib/integrations/billing/capway/types'
 import { purchasableValue } from '@/lib/integrations/billing/capway/statusMapper'
+import { readQualifiedLockedBillingProfile } from '@/lib/billing/billingConfigurationSnapshot'
 
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100
@@ -142,7 +143,22 @@ export function buildCapwayInvoicePayload(input: {
   const externalReference = stringValue(input.pricingRun.id) ?? `GRIDEX-${Date.now()}`
   const customerNumber = stringValue(input.customer.customer_number)
   const customerRef = customerNumber ?? stringValue(input.customer.external_customer_id) ?? stringValue(input.customer.id)
-  const address = stringValue(input.customer.full_address) ?? stringValue(input.customer.address_line_1) ?? stringValue(input.customer.street)
+  const contractId = stringValue(input.underlay?.customer_contract_id) ?? stringValue(input.underlay?.contract_id)
+  const locked = contractId ? readQualifiedLockedBillingProfile(input.underlay?.billing_configuration_snapshot, {
+    companyId: input.config.companyId, customerId: stringValue(input.customer.id) ?? '', contractId,
+    snapshotSha256: input.underlay?.billing_configuration_snapshot_sha256,
+  }) : null
+  if (!locked || input.underlay?.company_id !== input.config.companyId
+      || input.underlay?.customer_id !== input.customer.id
+      || (input.customer.company_id !== undefined && input.customer.company_id !== input.config.companyId)) {
+    throw new Error('Capway-export blockerad: låst faktureringsprofil kan inte kvalificeras. Granska en ny underlagsrevision; ersätt inte historisk mottagare med levande kunddata.')
+  }
+  const billing = locked
+  if (billing.blockers.length > 0) throw new Error(`Capway-export blockerad: ${billing.blockers.map(issue => issue.code).join(', ')}.`)
+  const configuredChannels = isObject(input.config.rawSettings?.billing_distribution_channels) ? input.config.rawSettings.billing_distribution_channels : {}
+  const channel = billing.distributionMethod === 'email' ? 'Email' : stringValue(configuredChannels[billing.distributionMethod ?? ''])
+  if (!channel) throw new Error('Capway-export blockerad: vald distributionsmetod saknar verifierad providerkod.')
+  const address = billing.address.street
 
   return {
     creditorReference: stringValue(input.config.rawSettings?.creditor_reference) ?? stringValue(input.company?.org_number) ?? input.config.companyId,
@@ -156,8 +172,8 @@ export function buildCapwayInvoicePayload(input: {
     paymentCode: input.config.defaultPaymentCode ?? null,
     printCode: input.config.defaultPrintCode ?? null,
     formCode: input.config.defaultFormCode ?? null,
-    receiverReference: stringValue(input.customer.email),
-    preferredChannel: input.config.defaultPreferredChannel ?? stringValue(input.customer.invoice_channel) ?? 'Email',
+    receiverReference: billing.reference ?? billing.email,
+    preferredChannel: channel,
     externalReferenceCode: externalReference,
     paymentProductCode: input.config.defaultPaymentProductCode ?? 'INVOICE',
     customer: {
@@ -168,17 +184,17 @@ export function buildCapwayInvoicePayload(input: {
       firstname: juridicalType === 0 ? firstname : null,
       lastname: juridicalType === 0 ? lastname : name,
       street: address,
-      city: stringValue(input.customer.city),
-      zipCode: stringValue(input.customer.postal_code),
+      city: billing.address.city,
+      zipCode: billing.address.postalCode,
       fullAddress: address,
-      countryCode: stringValue(input.customer.country) ?? 'SE',
+      countryCode: billing.address.country,
       vatNumber: stringValue(input.customer.vat_number),
       cellularPhone: stringValue(input.customer.phone),
-      email: stringValue(input.customer.email),
+      email: billing.email,
       languageCode: 'sv-SE',
       currencyCode: 'SEK',
-      preferredchannel: input.config.defaultPreferredChannel ?? 'Email',
-      invoiceChannel: input.config.defaultPreferredChannel ?? 'Email',
+      preferredchannel: channel,
+      invoiceChannel: channel,
       extraFields: [
         { name: 'gridex_customer_id', value: [stringValue(input.customer.id) ?? ''] },
         { name: 'gridex_customer_number', value: [customerNumber ?? ''] },
@@ -200,11 +216,11 @@ export function buildCapwayInvoicePayload(input: {
         dueDate,
         paymentCondition: paymentConditionDays,
         message: stringValue(input.config.rawSettings?.invoice_message) ?? `Elhandel. Elområde: ${priceArea}.`,
-        receiverFullName: name,
+        receiverFullName: billing.recipient,
         receiverStreet: address,
-        receiverCity: stringValue(input.customer.city),
-        receiverZipCode: stringValue(input.customer.postal_code),
-        receiverCountryCode: stringValue(input.customer.country) ?? 'SE',
+        receiverCity: billing.address.city,
+        receiverZipCode: billing.address.postalCode,
+        receiverCountryCode: billing.address.country,
         debtRows: rowLines,
         extraFields: [
           { name: 'gridex_billing_underlay_id', value: [stringValue(input.pricingRun.billing_underlay_id) ?? ''] },
@@ -218,6 +234,8 @@ export function buildCapwayInvoicePayload(input: {
       { name: 'gridex_company_id', value: [input.config.companyId] },
       { name: 'gridex_customer_number', value: [customerNumber ?? ''] },
       { name: 'gridex_financing_mode', value: [financingMode] },
+      { name: 'gridex_billing_profile_revision', value: [String(billing.profileRevision)] },
+      { name: 'gridex_billing_override_revision', value: [String(billing.contractOverrideRevision)] },
       { name: 'Elområde', value: [priceArea] },
     ],
     note: [

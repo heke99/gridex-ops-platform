@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { ApiInputError } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   customerPortalJson,
@@ -27,15 +28,37 @@ function optionalParam(request: NextRequest, key: string): string | null {
   return value || null
 }
 
+function optionalTimeFilter(request: NextRequest, key: 'from' | 'to'): string | null {
+  const value = optionalParam(request, key)
+  if (!value) return null
+  const date = value.slice(0, 10)
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  const timestamp = /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(?:Z|[+-](?:0\d|1[0-4]):[0-5]\d)$/.test(value)
+  const parsedDay = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T00:00:00Z`) : null
+  if (
+    (!dateOnly && !timestamp) ||
+    !parsedDay ||
+    Number.isNaN(parsedDay.getTime()) ||
+    parsedDay.toISOString().slice(0, 10) !== date ||
+    Number.isNaN(Date.parse(value))
+  ) {
+    throw new ApiInputError(`${key} must be an ISO date or timestamp.`, 'invalid_time_filter', 400, key)
+  }
+  return dateOnly ? `${value}T00:00:00Z` : value
+}
+
 export async function GET(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_metering.read'])
   if (!context.ok) return context.response
 
   try {
-    const from = optionalParam(request, 'from')
-    const to = optionalParam(request, 'to')
+    const from = optionalTimeFilter(request, 'from')
+    const to = optionalTimeFilter(request, 'to')
     const facilityId = optionalParam(request, 'facility_id')
     const normalizedFacilityId = facilityId ? normalizeFacility(facilityId) : null
+    if (facilityId && !normalizedFacilityId) {
+      throw new ApiInputError('facility_id must contain digits.', 'invalid_facility_id', 400, 'facility_id')
+    }
     const pageInput = publicPageInput(request.nextUrl.searchParams)
     const limit = portalPageLimit(pageInput.limit)
     const resource = `metering-values:${from ?? ''}:${to ?? ''}:${normalizedFacilityId ?? ''}`

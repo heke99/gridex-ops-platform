@@ -1,11 +1,12 @@
 import AdminHeader from '@/components/admin/AdminHeader'
+import CompanySettingsForm from '@/components/admin/companies/CompanySettingsForms'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
 import {
-  reprocessInvoiceProviderEventsAction,
-  testCapwayConnectionAction,
+  reprocessInvoiceProviderEventsFormAction,
+  testCapwayConnectionFormAction,
 } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -25,31 +26,33 @@ export default async function BillingIntegrationsPage() {
     data: { user },
   } = await supabase.auth.getUser()
   const scope = user ? await getOperationalCompanyScope(user.id) : null
-  const connections = await safeListRows(
+  const companyId = user?.id===admin.userId && (admin.isPlatformAdmin || admin.companyId===scope?.companyId) ? scope?.companyId ?? null : null
+  const canOperate = Boolean(companyId) && (admin.isPlatformAdmin || admin.permissions.some(key=>['billing_underlay.export','pricing.write'].includes(key)))
+  const connections = companyId ? await safeListRows(
     'billing_provider_connections',
-    scope?.companyId ?? null,
+    companyId,
     '*',
     80,
-  )
-  const runs = await safeListRows(
+  ) : []
+  const runs = companyId ? await safeListRows(
     'invoice_export_runs',
-    scope?.companyId ?? null,
+    companyId,
     '*',
     40,
-  )
-  const deadLetters = await safeListRows(
+  ) : []
+  const deadLetters = companyId ? await safeListRows(
     'invoice_dead_letters',
-    scope?.companyId ?? null,
+    companyId,
     '*',
     20,
-  )
+  ) : []
   const reviewEvents = (
-    await safeListRows(
+    companyId ? await safeListRows(
       'invoice_provider_events',
-      scope?.companyId ?? null,
+      companyId,
       '*',
       200,
-    )
+    ) : []
   ).filter((row) => String(row.status ?? '') === 'needs_review')
   const capwayTest = connections.find(
     (row) =>
@@ -72,6 +75,7 @@ export default async function BillingIntegrationsPage() {
         workspaceName={scope?.companyName}
       />
       <main className="space-y-6 p-8">
+        {!companyId ? <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Välj ett bolag i den aktuella arbetsytan och läs in sidan igen.</p> : null}
         <section className="grid gap-4 lg:grid-cols-4">
           <div className="rounded-3xl border bg-white p-5 shadow-sm">
             <div className="text-sm text-slate-600">Providerkopplingar</div>
@@ -110,14 +114,14 @@ export default async function BillingIntegrationsPage() {
                 fakturaexport.
               </p>
             </div>
-            <form action={testCapwayConnectionAction}>
+            <CompanySettingsForm id="capway-connection-test" action={testCapwayConnectionFormAction} disabled={!canOperate} disabledMessage="Läsläge – aktuell behörighet och valt bolag krävs för anslutningstest." pendingLabel="Testar anslutning…">
               <button
                 type="submit"
                 className="rounded-2xl bg-amber-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-950"
               >
                 Testa Aptic-anslutning
               </button>
-            </form>
+            </CompanySettingsForm>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -161,7 +165,7 @@ export default async function BillingIntegrationsPage() {
                 <div className="mt-3 text-xs text-slate-600">
                   Senaste test: {capwayLastTest.ok === true ? 'godkänt' : 'ej godkänt'}
                   {typeof capwayLastTest.error === 'string'
-                    ? ` · ${capwayLastTest.error}`
+                    ? ' · anslutningstestet misslyckades'
                     : ''}
                 </div>
               ) : null}
@@ -270,14 +274,14 @@ export default async function BillingIntegrationsPage() {
                 data har kommit på plats.
               </p>
             </div>
-            <form action={reprocessInvoiceProviderEventsAction}>
+            <CompanySettingsForm id="provider-events-reprocess" action={reprocessInvoiceProviderEventsFormAction} disabled={!canOperate} disabledMessage="Läsläge – aktuell behörighet och valt bolag krävs för ombearbetning." pendingLabel="Ombearbetar händelser…">
               <button
                 type="submit"
                 className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
               >
                 Ombearbeta händelser
               </button>
-            </form>
+            </CompanySettingsForm>
           </div>
           <div className="divide-y">
             {reviewEvents.length === 0 ? (

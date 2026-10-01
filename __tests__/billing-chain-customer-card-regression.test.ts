@@ -52,8 +52,16 @@ describe('canonical billing chain regression', () => {
     expect(source).toContain("invoiceApproval.status !== 'approved'")
     expect(readinessGate).toBeGreaterThan(approvalGate)
     expect(providerSend).toBeGreaterThan(readinessGate)
-    expect(source).toContain(".eq('status', 'failed_retryable')")
-    expect(source).toContain("approval(item.metadata).status !== 'approved'")
+    expect(source).toMatch(/processApprovedInvoiceRetryQueue\(input,\s*sendApprovedItem\)/)
+    const queue = read('lib/billing/approvedInvoiceRetryQueue.ts')
+    const claim = read('supabase/migrations/20260930225911_partner_email_invoice_retry_fair_claims.sql')
+    expect(queue).toContain("rpc('gridex_claim_approved_invoice_retries_fair_v1'")
+    expect(queue).toContain("row.status !== 'failed_retryable'")
+    expect(queue).toContain("approval.status !== 'approved'")
+    expect(queue).toContain('!text(approval.approved_by)')
+    expect(claim).toContain("q.status='failed_retryable' and q.next_retry_at<=$4")
+    expect(claim).toContain("q.metadata#>>'{approval,status}'='approved'")
+    expect(claim).toContain("nullif(btrim(q.metadata#>>'{approval,approved_by}'),'') is not null")
   })
 
   it('verifies export items and draft invoice mirrors against the same underlays', () => {

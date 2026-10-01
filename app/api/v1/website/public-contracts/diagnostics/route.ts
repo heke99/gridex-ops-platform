@@ -6,6 +6,7 @@ import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 import { loadPublicationRevision, parsePublicContractsQuery, PublicContractsQueryError, requestId } from '@/lib/website/publicContractApi'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
   const auth = await requireIntegrationApiAccess(request, ['website_contracts.diagnostics'])
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logIntegrationApiRequest({ serverRequestId: currentRequestId, client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson({ error: { code: auth.errorCode, message: auth.error, request_id: currentRequestId } }, { status: auth.status })
   }
   try {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     )
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: currentRequestId } })
+    await logIntegrationApiRequest({ serverRequestId: currentRequestId, client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: currentRequestId } })
     return customerPortalJson({
       data: [],
       diagnostics: {
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
     }, { status: 200, headers: { ETag: revision.etag, 'Cache-Control': 'no-store' } })
   } catch (error) {
     const classified = classifyPublicContractsError(error)
+    const diagnostic = technicalErrorDiagnostic(error)
     console.error('[public-contracts-diagnostics] failed', {
       requestId: currentRequestId,
       companyId: auth.context.companyId,
@@ -60,16 +62,17 @@ export async function GET(request: NextRequest) {
       endpoint: '/api/v1/website/public-contracts/diagnostics',
       channel: 'website',
       errorCode: classified.code,
-      databaseCode: classified.databaseCode,
-      error,
+      databaseCode: diagnostic.code,
+      error: diagnostic,
     })
     await logIntegrationApiRequest({
+      serverRequestId: currentRequestId,
       client: auth.client,
       request,
       statusCode: classified.status,
       startedAt,
       errorCode: classified.code,
-      metadata: { request_id: currentRequestId, channel: 'website', database_code: classified.databaseCode },
+      metadata: { request_id: currentRequestId, channel: 'website', database_code: diagnostic.code },
     })
     return customerPortalJson(
       { error: { code: classified.code, message: classified.message, request_id: currentRequestId } },

@@ -194,6 +194,8 @@ export type CustomerPortalCaseRow = {
   public_title: string
   public_body: string
   published_at: string
+  channel: 'ops' | 'phone'
+  author_user_id: string
 }
 
 export type CustomerPortalInfoRequestRow = {

@@ -32,13 +32,15 @@ it('serializes two real sessions against the same customer revision', async () =
   if (process.env.GRIDEX_NATIVE_STATUS === undefined || process.env.CI !== 'true') {
     throw new Error('disposable_ci_replay_only')
   }
-  const company = randomUUID(), actor = randomUUID(), customer = randomUUID(), contact = randomUUID()
+  const company = randomUUID(), actor = randomUUID(), actorSession = randomUUID(), customer = randomUUID(), contact = randomUUID()
   const email = `${actor}@example.invalid`
   sql(`
     INSERT INTO public.companies(id,name,status) VALUES(${quote(company)},'Synthetic concurrency tenant','active');
     INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
       VALUES(${quote(actor)},'authenticated','authenticated',${quote(email)},now(),'{}','{}',now(),now(),false,false);
     INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${quote(actor)},${quote(email)},'Synthetic actor','active');
+    INSERT INTO auth.sessions(id,user_id,created_at,updated_at,not_after)
+      VALUES(${quote(actorSession)},${quote(actor)},now(),now(),now()+interval '1 hour');
     INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,role,is_active,joined_at,role_key)
       VALUES(${quote(company)},${quote(actor)},'company_admin','active',now(),'company_admin',true,now(),'company_admin');
     INSERT INTO public.permissions(key,name) VALUES('masterdata.write','Synthetic masterdata write') ON CONFLICT(key) DO NOTHING;
@@ -49,9 +51,9 @@ it('serializes two real sessions against the same customer revision', async () =
     INSERT INTO public.customer_contacts(id,company_id,customer_id,type,is_primary,name,email,phone)
       VALUES(${quote(contact)},${quote(company)},${quote(customer)},'primary',true,'Synthetic Contact','concurrent@example.invalid','+4600000000');
   `)
-  const base = `'companyId',${quote(company)},'customerId',${quote(customer)},'contactId',${quote(contact)},'actorUserId',${quote(actor)},'mode','ops','reason','Synthetic concurrent contact change','expectedRevision',0`
+  const base = `'companyId',${quote(company)},'customerId',${quote(customer)},'contactId',${quote(contact)},'actorUserId',${quote(actor)},'sessionId',${quote(actorSession)},'mode','ops','reason','Synthetic concurrent contact change','expectedRevision',0`
   const command = (key: string, phone: string) =>
-    `SELECT public.gridex_change_customer_contact_v1(jsonb_build_object(${base},'idempotencyKey',${quote(key)},'changes',jsonb_build_object('phone',${quote(phone)})));`
+    `SELECT public.gridex_change_customer_contact_v2(jsonb_build_object(${base},'idempotencyKey',${quote(key)},'changes',jsonb_build_object('phone',${quote(phone)})));`
   const first = session('p2_contact_a'), second = session('p2_contact_b')
   try {
     first.child.stdin.write(`BEGIN; SET LOCAL ROLE service_role; SELECT id FROM public.customers WHERE id=${quote(customer)} FOR UPDATE;\n\\echo P2_LOCKED\n`)
@@ -70,6 +72,7 @@ it('serializes two real sessions against the same customer revision', async () =
       'outbox',(SELECT count(*) FROM public.canonical_event_outbox WHERE company_id=${quote(company)} AND topic='customer.contact.changed')
     );`))
     expect(result).toEqual({ revision: 1, phone: '+46111111111', commands: 1, outbox: 1 })
+    console.log('CONTACT_V2_CONCURRENCY_NATIVE_PASS current_session=true sessions=2 effect=1 stale_denied=true')
   } finally {
     for (const item of [first, second]) {
       if (item.child.exitCode === null) item.child.kill('SIGTERM')
