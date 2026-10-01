@@ -7,6 +7,7 @@ import {recountEdifactUnt} from './helpers/recountEdifactUnt'
 
 // Unit owner-port fixture only. Synthetic runtime mutation is not the opaque
 // runtime capability required by final production consumers or legal evidence.
+type MaliciousGlobalCopy={transactions:Array<{transactionIndex:number;errors:Array<{referenceNumber:string|null;referenceQualifier:string|null;responseReference:{number:string};ownerIssueCodes:string[];originalScope:string}>}>}
 function fixture(){
  const source=energyHandoffMessage(),lines=source.raw_payload!.split('\n'),start=lines.findIndex(line=>line.startsWith('IDE+')),end=lines.findIndex(line=>line.startsWith('UNT+'))
  source.raw_payload=recountEdifactUnt([...lines.slice(0,end),...lines.slice(start,end).map(line=>line.replaceAll('GRIDEX2607E66001','SECOND').replace('QTY+136:500','QTY+136:500.0000')),...lines.slice(end)].join('\n'))
@@ -33,8 +34,8 @@ describe('additive global functional original scope and separate bound response 
  })
  it('rejects fabricated original/TN scope, owner issue membership and accepted sibling assignments',()=>{
   const f=fixture(),facet=buildReceivedUtiltsFunctionalValidation(f)!,own=buildReceivedUtiltsTransactionValidation({source:f.source,transactions:f.runtime.transactionDispositions})!
-  for(const mutate of [p=>p.transactions[0].errors[1].referenceNumber='SECOND',p=>p.transactions[0].errors[1].responseReference.number='GRIDEX2607E66001',p=>p.transactions[0].errors[1].ownerIssueCodes=['FOREIGN_CODE'],p=>p.transactions[0].transactionIndex=0,p=>p.transactions[0].errors[1].originalScope='unknown',p=>p.transactions[0].errors[0].referenceQualifier='ACW']){
-   const projection=structuredClone(facet) as {transactions:Array<{transactionIndex:number;errors:Array<{referenceNumber:string|null;referenceQualifier:string|null;responseReference:{number:string};ownerIssueCodes:string[];originalScope:string}>}>};mutate(projection)
+  for(const mutate of [(p:MaliciousGlobalCopy)=>p.transactions[0].errors[1].referenceNumber='SECOND',(p:MaliciousGlobalCopy)=>p.transactions[0].errors[1].responseReference.number='GRIDEX2607E66001',(p:MaliciousGlobalCopy)=>p.transactions[0].errors[1].ownerIssueCodes=['FOREIGN_CODE'],(p:MaliciousGlobalCopy)=>p.transactions[0].transactionIndex=0,(p:MaliciousGlobalCopy)=>p.transactions[0].errors[1].originalScope='unknown',(p:MaliciousGlobalCopy)=>p.transactions[0].errors[0].referenceQualifier='ACW']){
+   const projection=structuredClone(facet) as unknown as MaliciousGlobalCopy;mutate(projection)
    expect(bindReceivedUtiltsFunctionalValidation(projection,f.source.raw_payload!,own)).toBeNull()
   }
  })

@@ -42,7 +42,7 @@ describe('final UTILTS actual matching owner to native evidence handoff',()=>{
   expect(io.capture).toHaveBeenCalledWith(company,id)
  })
  it('freezes a genuine negative-only final facet under registry hold without capturing or inventing a pack',async()=>{
-  const original=source();original.raw_payload=original.raw_payload!.replace('QTY+136:500','QTY+136:500.0000');original.execution_context_snapshot!.receivedUtiltsContext={...(original.execution_context_snapshot!.receivedUtiltsContext as object),payloadHash:hash(original.raw_payload)}
+  const original=source();original.raw_payload=original.raw_payload!.replace('QTY+136:500','QTY+136:500.0000');original.execution_context_snapshot.receivedUtiltsContext.payloadHash=hash(original.raw_payload)
   io.registry.mockRejectedValue(new Error('CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE'))
   const initial=await initialCanonicalUtiltsDecision(original),runtime=runUtiltsRuntimeForMessage(original,{canonicalPolicy:initial.policy})
   const result=await recordFinalCanonicalUtiltsDecision({original,validated:original,initialDecision:initial,runtime})

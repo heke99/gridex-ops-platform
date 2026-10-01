@@ -11,7 +11,8 @@ describe('canonical own UTILTS transaction facet',()=>{
     expect(facet.transactions[0]).toMatchObject({transactionIndex:0,transactionId:'GRIDEX2607E66001',disposition:'accepted',responseType:'positive_aperak',issueCodes:[]})
     expect(bindReceivedUtiltsTransactionValidation(facet,source.raw_payload!+' ')).toBeNull()
     for(const change of [{transactionId:'OTHER'},{transactionIndex:1},{responseType:'negative_aperak'},{issueCodes:['FORGED_ERROR']}]) {
-      const altered=structuredClone(facet) as {transactions:Array<Record<string,unknown>>}
+      // Deliberately mutable malicious copy; production authority remains readonly.
+      const altered=structuredClone(facet) as unknown as {transactions:Array<Record<string,unknown>>}
       Object.assign(altered.transactions[0],change)
       expect(bindReceivedUtiltsTransactionValidation(altered,source.raw_payload!)).toBeNull()
     }

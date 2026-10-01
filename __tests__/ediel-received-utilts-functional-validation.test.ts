@@ -5,6 +5,7 @@ import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {recountEdifactUnt} from './helpers/recountEdifactUnt'
 
+type MaliciousFunctionalCopy={transactions:Array<{transactionIndex:number;transactionId:string;errors:Array<{code:string;referenceNumber:string}>}>}
 function mixed(){
  const source=energyHandoffMessage(),lines=source.raw_payload!.split('\n'),start=lines.findIndex(line=>line.startsWith('IDE+')),end=lines.findIndex(line=>line.startsWith('UNT+'))
  source.raw_payload=recountEdifactUnt([...lines.slice(0,end),...lines.slice(start,end).map(line=>line.replaceAll('GRIDEX2607E66001','SECOND').replace('QTY+136:500','QTY+136:500.0000')),...lines.slice(end)].join('\n'))
@@ -26,8 +27,8 @@ describe('canonical actual own-IDE national functional response facet',()=>{
  it('binds original hash, complete own subset/order, physical id and exact original response reference',()=>{
   const {source,runtime}=mixed(),facet=buildReceivedUtiltsFunctionalValidation({source,runtime})!,own=buildReceivedUtiltsTransactionValidation({source,transactions:runtime.transactionDispositions})!
   expect(bindReceivedUtiltsFunctionalValidation(facet,source.raw_payload!+' ',own)).toBeNull()
-  for(const mutate of [p=>p.transactions[0].transactionIndex=0,p=>p.transactions[0].transactionId='OTHER',p=>p.transactions[0].errors[0].referenceNumber='GRIDEX2607E66001',p=>p.transactions[0].errors.push(p.transactions[0].errors[0]),p=>p.transactions[0].errors=[]]){
-    const altered=structuredClone(facet) as {transactions:Array<{transactionIndex:number;transactionId:string;errors:Array<{code:string;referenceNumber:string}>}>};mutate(altered)
+  for(const mutate of [(p:MaliciousFunctionalCopy)=>p.transactions[0].transactionIndex=0,(p:MaliciousFunctionalCopy)=>p.transactions[0].transactionId='OTHER',(p:MaliciousFunctionalCopy)=>p.transactions[0].errors[0].referenceNumber='GRIDEX2607E66001',(p:MaliciousFunctionalCopy)=>p.transactions[0].errors.push(p.transactions[0].errors[0]),(p:MaliciousFunctionalCopy)=>p.transactions[0].errors=[]]){
+    const altered=structuredClone(facet) as unknown as MaliciousFunctionalCopy;mutate(altered)
     expect(bindReceivedUtiltsFunctionalValidation(altered,source.raw_payload!,own)).toBeNull()
   }
  })
