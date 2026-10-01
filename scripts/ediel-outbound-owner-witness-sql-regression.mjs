@@ -41,6 +41,7 @@ try {
  await db.exec(`alter table ediel_messages add column execution_context_snapshot jsonb;
  create function gridex_ediel_inbound_context.derive(m public.ediel_messages,t timestamptz) returns jsonb language plpgsql as $$begin
  if m.company_id is null or m.raw_payload not like '%NAD+MS+LOCAL::9%' then raise exception 'ediel_inbound_legal_context_required';end if;
+ if m.message_family='APERAK' then return jsonb_build_object('basisKind','prescribed_outbound_ack','originalSourceMessageId',m.related_message_id);end if;
  return jsonb_build_object('basisKind','observed_source_persistence','family',m.message_family,'code',m.message_code,'subtype',null);end$$;
  create schema gridex_outbound_dispatch;
  create table gridex_outbound_dispatch.attempts(id uuid primary key,message_id uuid,company_id uuid,environment text,actor_user_id uuid,binding jsonb);
@@ -56,6 +57,18 @@ try {
  return jsonb_build_object('scoped',true,'proceed',true);end$$;`)
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql',import.meta.url),'utf8'))
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql',import.meta.url),'utf8'));checks++
+ await db.exec(`create schema extensions;create schema gridex_utilts_binding_storage_fixture;
+ create function extensions.digest(bytea,text) returns bytea language sql immutable as 'select sha256($1)';
+ create table gridex_utilts_binding.receipts(source_message_id uuid primary key,company_id uuid,environment text,message_code text,raw_hash text,source_context jsonb,membership jsonb);
+ create table gridex_utilts_binding.contracts(series_id uuid primary key,company_id uuid,environment text,source_message_id uuid,transaction_id text,contract_version integer,contract jsonb,contract_hash text);
+ create table public.meter_reading_series(id uuid primary key,company_id uuid,message_code text,source_transaction_reference text,source_ediel_message_id uuid,raw_transaction jsonb,immutable_hash text);
+ create table public.ediel_ack_transaction_results(company_id uuid,environment text,source_message_id uuid,source_transaction_id text,disposition text,planned_response_type text,persistence_status text,persisted_series_id uuid,final_response_type text,response_message_id uuid,finalized_at timestamptz);
+ -- Contract codec and full consumption source-context are separate tested
+ -- boundaries; this harness executes the real U14 persisted joins/ACK scope.
+ create function gridex_utilts_binding.source_context_v1(m public.ediel_messages) returns jsonb language sql immutable as $$select jsonb_build_object('id',m.id,'hash',encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'))$$;
+ create function gridex_utilts_binding.validate_contract_v1(c jsonb) returns boolean language sql immutable as $$select c->>'version'='2' and c->>'fixtureBoundary'='contract_codec_separately_tested'$$;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930150622_utilts_positive_ack_own_dm_scope.sql',import.meta.url),'utf8'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930200633_ediel_outbound_witness_ack_scope_and_time_guards.sql',import.meta.url),'utf8'));checks++
  const raw=ref=>`UNB+UNOC:3+LOCAL:14+REMOTE:14+260930:1200+${ref}++23-DDQ-E66-T++++1'UNH+1+UTILTS:D:04A:UN:E5SE5A'BGM+E66+D+9'NAD+MS+LOCAL::9'IDE+24+T'UNT+5+1'UNZ+1+${ref}'`
  const named=(await db.query("select jsonb_build_object('rulePack',(select to_jsonb(p) from ediel_rule_packs p),'messageProfile',(select to_jsonb(p) from ediel_message_profiles p),'guideSources',(select jsonb_agg(to_jsonb(s) order by id) from ediel_rule_pack_sources s)) s")).rows[0].s
  const original={profileKey:'DB:E66',messageProfileId:uid(101),rulePackId:uid(100),sourceHash:'a'.repeat(64),version:'25.A:r3',snapshot:named}
@@ -86,5 +99,32 @@ try {
  input.binding.sourceRulePackEvidence=z.evidence;assert.equal((await db.query('select gridex_outbound_dispatch.mutate_v1($1) r',[input])).rows[0].r.proceed,true);checks++
  await db.exec(`update gridex_outbound_dispatch.reservations set state='provider_call_entered';update ediel_rule_packs set status='retired'`);const replay=(await db.query('select gridex_outbound_dispatch.mutate_v1($1) r',[{...input,action:'enter'}])).rows[0].r;assert.equal(replay.proceed,false);assert.equal(replay.acceptedReceipt,null);checks++
  await assert.rejects(db.query('select gridex_outbound_dispatch.mutate_v1($1)',[{...input,action:'enter',attemptId:uid(999)}]),/outbound_dispatch_replay_scope_invalid/);checks++
+ await db.exec("update ediel_rule_packs set status='active'")
+ const projected=await prepare('PROJECTION');await create(35,'PROJECTION',projected);await legal(35);await db.exec(`update ediel_messages set rule_pack_snapshot=jsonb_set(rule_pack_snapshot,'{rulePack}','{"forged":true}') where id='${uid(35)}'`);await assert.rejects(capture(35),/ediel_outbound_owner_witness_scope_invalid/);checks++
+ const originalRaw="UNB+UNOC:3+REMOTE:14+LOCAL:14+260930:1200+SOURCE-U++23-DDQ-E66-T++++1'UNH+S1+UTILTS:D:04A:UN:E5SE5A'BGM+E66+D+9'NAD+MS+REMOTE::9'NAD+MR+LOCAL::9'IDE+24+T'UNT+6+S1'UNZ+1+SOURCE-U'"
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','UTILTS','E66',$3,now())",[uid(70),uid(1),originalRaw])
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(70),uid(1),originalRaw,w.evidence])
+ const ackRaw=(code='312',transaction='T')=>`UNB+UNOC:3+LOCAL:14+REMOTE:14+260930:1200+OWN-AP++23-DDQ-E66-T++++1'UNH+AP1+APERAK:D:04A:UN:E5SE5A'BGM+${code}+OWN-D+9'NAD+MS+LOCAL::9'DOC+E66::260+D'ERC+${code==='312'?'100':'42'}::260'RFF+DM:OWN-DM'RFF+ACW:${transaction}'UNT+8+AP1'UNZ+1+OWN-AP'`
+ const prepareAck=async(code='312',transaction='T')=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:ackRaw(code,transaction),relatedMessageId:uid(70),rulePackEvidence:w.evidence}])).rows[0].r
+ await assert.rejects(prepareAck(),/utilts_positive_ack_storage_unavailable/);checks++
+ await db.exec(`insert into gridex_utilts_binding.receipts select id,company_id,environment,message_code,encode(sha256(convert_to(raw_payload,'UTF8')),'hex'),gridex_utilts_binding.source_context_v1(m),'["T"]' from public.ediel_messages m where id='${uid(70)}';
+ insert into meter_reading_series values('${uid(71)}','${uid(1)}','E66','T','${uid(70)}','{"consumptionContract":{"version":2,"fixtureBoundary":"contract_codec_separately_tested"}}',encode(sha256(convert_to('{"consumptionContract": {"version": 2, "fixtureBoundary": "contract_codec_separately_tested"}}','UTF8')),'hex'));
+ insert into gridex_utilts_binding.contracts values('${uid(71)}','${uid(1)}','test','${uid(70)}','T',2,'{"version":2,"fixtureBoundary":"contract_codec_separately_tested"}',encode(sha256(convert_to('{"version": 2, "fixtureBoundary": "contract_codec_separately_tested"}','UTF8')),'hex'));
+ insert into ediel_ack_transaction_results values('${uid(1)}','test','${uid(70)}','T','accepted','positive_aperak','persisted','${uid(71)}',null,null,null);`)
+ const positive=await prepareAck();const negative=await prepareAck('313','REJECTED-IDE');assert.equal(positive.evidence.version,w.evidence.version);assert.equal(negative.evidence.version,w.evidence.version);checks++
+ await assert.rejects(prepareAck('312','OTHER-IDE'),/utilts_positive_ack_storage_unavailable/);checks++
+ const insertAck=async(id,code,sealed,transaction='T')=>db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,'DB:E66',$7,$8,$9,$10,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(id),uid(1),ackRaw(code,transaction),uid(70),uid(100),uid(101),w.evidence.version,w.evidence.sourceHash,sealed.evidence.snapshot,{outboundOwnerWitnessId:sealed.witnessId}])
+ await insertAck(74,'313',negative,'REJECTED-IDE');await db.query('insert into gridex_ediel_inbound_context.receipts values($1,$2)',[uid(74),{basisKind:'prescribed_outbound_ack',originalSourceMessageId:uid(70)}]);assert.equal((await require(74)).version,w.evidence.version);checks++
+ await insertAck(72,'312',positive);await db.query('insert into gridex_ediel_inbound_context.receipts values($1,$2)',[uid(72),{basisKind:'prescribed_outbound_ack',originalSourceMessageId:uid(70)}]);assert.equal((await require(72)).version,w.evidence.version);checks++
+ const positiveInput={action:'prepare',companyId:uid(1),environment:'test',messageId:uid(72),attemptId:uid(73),actorUserId:uid(7),binding:{originalHash:(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[ackRaw()])).rows[0].h,sourceRulePackEvidence:positive.evidence}}
+ await assert.rejects(db.query('select gridex_ediel_transport.mutate_v1($1)',[positiveInput]),/utilts_positive_ack_storage_unavailable/);assert.equal((await db.query('select count(*)::int n from gridex_ediel_transport.attempts where id=$1',[uid(73)])).rows[0].n,0);checks++
+ await db.exec(`update ediel_ack_transaction_results set final_response_type='positive_aperak',response_message_id='${uid(72)}',finalized_at=now()`);assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[positiveInput])).rows[0].r.proceed,true);checks++
+ await db.exec(`update gridex_ediel_transport.reservations set state='entered';update ediel_ack_transaction_results set persistence_status='held'`);assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[{...positiveInput,action:'enter'}])).rows[0].r.proceed,false);checks++
+ // Explicit clock fixture only: execute the actual forward prepare body with
+ // captured UTC22:30/StockholmOct1 and a source activation starting Oct1.
+ await db.exec("update ediel_rule_packs set valid_from='2026-10-01'")
+ const midnightSnapshot=(await db.query("select jsonb_build_object('rulePack',(select to_jsonb(p) from ediel_rule_packs p),'messageProfile',(select to_jsonb(p) from ediel_message_profiles p),'guideSources',(select jsonb_agg(to_jsonb(s) order by id) from ediel_rule_pack_sources s)) s")).rows[0].s
+ const forward=readFileSync(new URL('../supabase/migrations/20260930200633_ediel_outbound_witness_ack_scope_and_time_guards.sql',import.meta.url),'utf8');const clockBody=forward.slice(forward.indexOf('CREATE OR REPLACE FUNCTION gridex_ediel_outbound_owner.prepare_v1'),forward.indexOf('CREATE OR REPLACE FUNCTION gridex_ediel_outbound_owner.assert_message_v1')).replace('observed timestamptz:=clock_timestamp();',"observed timestamptz:='2026-09-30T22:30:00Z';")
+ await db.exec(clockBody);assert.equal((await prepare('STOCKHOLM-OCT1',{...original,snapshot:midnightSnapshot})).evidence.version,'25.A:r3');checks++
  console.log(`Focused PostgreSQL outbound original owner seal/one-use atomic insertion/named version/raw scope/ACL/native Z08 binding checks: ${checks} PASS`)
 } catch(e){console.error(e.message,e.where??'');process.exitCode=1} finally{await db.close()}
