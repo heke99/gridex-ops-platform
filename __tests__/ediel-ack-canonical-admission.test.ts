@@ -11,6 +11,7 @@ import {resolveCanonicalRuntimeDecision,resolveCanonicalRuntimeDecisionWithRegis
 import {validateEdielMessageRowWithRulebook,validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validator'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 const company='10000000-0000-4000-8000-000000000001',ackId='20000000-0000-4000-8000-000000000001',sourceId='30000000-0000-4000-8000-000000000001'
 function wire(family:'CONTRL'|'APERAK'|'PRODAT'|'UTILTS',businessSegments:string[],source=false,prodat=false){return EdifactEnvelopeCodec.encode({sender:source?'TRANSPORT_S':'TRANSPORT_R',receiver:source?'TRANSPORT_R':'TRANSPORT_S',interchangeReference:source?'SOURCEI':'ACKI',environment:'test',acknowledgementRequest:family!=='CONTRL',applicationReference:prodat?'23-DDQ-PRODAT':'23-DDQ-E66-T',messages:[{messageReference:source?'SOURCEM':'ACKM',messageTypeToken:family==='CONTRL'?'CONTRL:2:2:UN:EDIEL2':family==='APERAK'?`APERAK:D:${prodat?'96A':'04A'}:UN:${prodat?'E2SE6A':'E5SE5A'}`:family==='PRODAT'?'PRODAT:D:97A:UN:E2SE6A':'UTILTS:D:02B:UN:E5SE5A',businessSegments}]})}
 const uSource=()=>wire('UTILTS',['BGM+E66+SOURCEDOC+9','NAD+MS+LEGAL_S:SVK:260','NAD+MR+LEGAL_R:SVK:260','IDE+24+T1','IDE+24+T2'],true)
@@ -63,12 +64,21 @@ describe('actual source-bound ACK canonical admission, synthetic immutable port 
   const good=row(uAck()),validation=await validateRulebookMessageWithRegistry({family:'APERAK',code:'APERAK',direction:'inbound',rawPayload:good.raw_payload,mode:'parse',messageRow:good})
   expect(validation).toMatchObject({ok:true,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:pack().profileKey,checksum:pack().sourceHash}})
  })
- it('keeps a local registry incident internal without adding a national ACK finding',async()=>{
+ it('keeps a local registry incident internal while retaining independent source-qualified national negatives',async()=>{
   io.rulePack.mockRejectedValue(new Error('local_registry_network_incident'))
   const m=row(pSource(),'PRODAT');m.message_code='Z03'
   const base=resolveCanonicalRuntimeDecision(m),decision=await resolveCanonicalRuntimeDecisionWithRegistry(m)
   expect(decision.applicationDecision).toBe('manual_review');expect(decision.functionalDecision).toBe('manual_review')
-  expect(decision.responsePlan).toEqual(base.responsePlan.filter(response=>response.family==='CONTRL'))
+  expect(decision.responsePlan).toEqual(base.responsePlan.filter(response=>response.family==='CONTRL'||response.family==='APERAK'&&response.outcome==='negative'&&Boolean(response.applicationErrors?.length)&&response.applicationErrors!.every(isQualifiedProdatApplicationError)))
+  expect(decision.responsePlan.some(response=>response.family==='UTILTS_ERR'||response.family==='APERAK'&&response.outcome!=='negative')).toBe(false)
+  expect(decision.responsePlan.flatMap(response=>response.applicationErrors??[]).every(isQualifiedProdatApplicationError)).toBe(true)
+  expect(decision.validationReport.failureDisposition).toMatchObject({kind:'internal_failure'})
+ })
+ it('does not turn an unknown local registry failure into AP42',async()=>{
+  io.rulePack.mockRejectedValue(new Error('unmapped_local_registry_failure'))
+  const m={...row(uSource()),message_family:'UTILTS',message_code:'E66'} as EdielMessageRow
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(m)
+  expect(decision.applicationDecision).toBe('manual_review')
   expect(decision.responsePlan.some(response=>response.family==='APERAK'||response.family==='UTILTS_ERR')).toBe(false)
   expect(decision.validationReport.failureDisposition).toMatchObject({kind:'internal_failure'})
  })

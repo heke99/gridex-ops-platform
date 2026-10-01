@@ -4,7 +4,7 @@ import { classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
 import type {ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
-import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import {projectProdatDiagnostics,isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRejection'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
@@ -583,10 +583,13 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
         source: 'resolveCanonicalRulePack',
       }),
     ]
-    // Syntax remains independently qualified. No application response is
-    // authorized by an unresolved local activation incident, including a
-    // previously planned positive response before durable business effects.
-    const responsePlan = base.responsePlan.filter(response => response.family === 'CONTRL')
+    // Retain independently source-qualified syntax/national negatives. The
+    // local incident supplies no national code and never authorizes a positive
+    // response or business effect. Typed P diagnostics preserve exact own scope.
+    const responsePlan = base.responsePlan.filter(response => response.family === 'CONTRL'
+      || response.family === 'APERAK' && response.outcome === 'negative'
+        && Boolean(response.applicationErrors?.length)
+        && response.applicationErrors!.every(isQualifiedProdatApplicationError))
     const failureDisposition=classifyEdielFailure(error)
     const decisionTrace = [...base.decisionTrace, `DB evidence gate: blockerad (${description}).`]
     const validationReport = {
