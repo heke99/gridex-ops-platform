@@ -355,6 +355,31 @@ try {
  await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,'DB:Z04',$7,$8,$9,$10,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(141),uid(1),partialRaw,uid(140),pFreshEvidence.rulePackId,pFreshEvidence.messageProfileId,pFreshEvidence.version,pFreshEvidence.sourceHash,partialSeal.evidence.snapshot,{outboundOwnerWitnessId:partialSeal.witnessId}]);checks++
  assert.deepEqual((await db.query('select scope_reference,outcome from gridex_ediel_ack_guide.outbound_prodat_scopes where source_message_id=$1',[uid(140)])).rows,[{scope_reference:String(partialLines[0].index),outcome:'negative'}]);checks++
  await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(141)]);checks++
+ // Missing field226 is a genuine negative object response. Execute the SAME
+ // existing source/plan/seal/INSERT authority, with an explicitly modeled
+ // canonical negative facet. No original LI alias or native rule is added.
+ const missingLiSource=await counted(partialSource.replace("RFF+LI:L1'",''))
+ const missingLiLines=(await db.query('select gridex_utilts_binding.wire_tokens_v1($1) t',[missingLiSource])).rows[0].t.filter(t=>t.tag==='LIN')
+ const missingLiHash=(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[missingLiSource])).rows[0].h
+ const missingLiRegister={...partialRegister,objects:partialRegister.objects.map((object,index)=>({...object,registers:[{...object.registers[0],segmentIndex:missingLiLines[index].index}]}))}
+ const missingLiFacet={...partialFacet,sourcePayloadHash:missingLiHash,objects:partialObjects.map((object,index)=>({...object,lineIndex:missingLiLines[index].index,registerLineIndices:[missingLiLines[index].index],li:index===0?null:object.li})),
+  responses:[{...partialResponse,lineIndex:missingLiLines[0].index,fieldCode:'226',text:'Ärendereferens saknas',li:null}]}
+ const missingLiFacts={...partialFacts,registerValidation:missingLiRegister,reasonCodes:['FIXTURE_SAME_OWNER_QUALIFIED_FIELD_226']}
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','PRODAT','Z04',$3,now())",[uid(150),uid(1),missingLiSource]);await legal(150)
+ await db.query("insert into gridex_received_sources.sources values($1,$2,'test',$3,'{\"contextOrigin\":\"database_insert\"}',$4)",[uid(150),uid(1),missingLiHash,missingLiSource])
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',$3,$4)",[uid(150),uid(1),missingLiHash,pFreshEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(150),pFreshEvidence])
+ await db.exec('set role service_role');try{await db.query('select public.gridex_record_prodat_source_validation_v3($1,$2,$3,$4,$5,$6,$7)',[uid(1),'test',uid(150),missingLiHash,JSON.stringify(missingLiFacts),null,JSON.stringify(missingLiFacet)])}finally{await db.exec('reset role')};checks++
+ const missingLiRaw=await counted(partialRaw.replaceAll('PARTIAL','MISSING-LI').replace("RFF+LI:L1'",'').replace('209::260+Anläggnings-id saknas','226::260+Ärendereferens saknas'))
+ const prepareMissingLi=async(raw=missingLiRaw)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:raw,relatedMessageId:uid(150),rulePackEvidence:pFreshEvidence}])).rows[0].r
+ const missingLiSeal=await prepareMissingLi();assert.ok(missingLiSeal.witnessId);checks++
+ await assert.rejects(prepareMissingLi(missingLiRaw.replace('RFF+Z07:OBJECT1','RFF+Z07:OBJECT2')),/native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareMissingLi(missingLiRaw.replace("ERC+41::260'FTX+AAO++226::260+Ärendereferens saknas'","ERC+100::260'FTX+AAO+++OK'")),/native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareMissingLi(await counted(missingLiRaw.replace("RFF+Z07:OBJECT1'","RFF+Z07:OBJECT1'RFF+LI:OBJECT1'"))),/native_ack_guide_invalid/);checks++
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,'DB:Z04',$7,$8,$9,$10,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(151),uid(1),missingLiRaw,uid(150),pFreshEvidence.rulePackId,pFreshEvidence.messageProfileId,pFreshEvidence.version,pFreshEvidence.sourceHash,missingLiSeal.evidence.snapshot,{outboundOwnerWitnessId:missingLiSeal.witnessId}]);checks++
+ const missingLiScope=(await db.query('select scope_reference,physical_source_reference,outcome from gridex_ediel_ack_guide.outbound_prodat_scopes where source_message_id=$1',[uid(150)])).rows
+ assert.deepEqual(missingLiScope,[{scope_reference:String(missingLiLines[0].index),physical_source_reference:{lineIndex:missingLiLines[0].index,id:'OBJECT1',li:null},outcome:'negative'}]);checks++
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(151)]);checks++
+ await assert.rejects(prepareMissingLi(),/scope_already_fixed/);checks++
  // An authenticated pre-migration sealed response has its established own
  // scope checked before the new prospective response-plan requirement.
  await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(121)]);checks++
