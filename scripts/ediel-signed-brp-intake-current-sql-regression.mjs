@@ -18,6 +18,8 @@ const phase=String.raw`
  await db.exec('DROP FUNCTION gridex_requested_changes.scoped_permission_v1(uuid,uuid,text) CASCADE')
  await db.exec(source('20261001010758_ediel_bilateral_customer_source_owner.sql','gridex_requested_changes.scoped_permission_v1'))
  if(!(await db.query("SELECT to_regprocedure('gridex_requested_changes.receipt_hmac_sha256_v1(bytea,bytea)') x")).rows[0].x)await db.exec(source('20260930232100_ediel_requested_change_source_intake_and_review.sql','gridex_requested_changes.receipt_hmac_sha256_v1'))
+ // Actual terminal forward after the actual scoped resolver is installed.
+ if(process.env.GRIDEX_BRP_TERMINAL_BASELINE!=='1')await db.exec(readFileSync(new URL('20261001142510_ediel_signed_brp_intake_terminal_current_authority.sql',own),'utf8'))
  await db.exec('UPDATE public.companies SET status=\'active\' WHERE id='+q(id(1)));await actor(2)
  const actorKeys=['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write','ediel.source.review']
  for(const key of actorKeys){await db.exec('INSERT INTO public.permissions(key,is_active) VALUES('+q(key)+',true)');for(const a of [2,3])await db.exec('INSERT INTO public.user_permissions(user_id,company_id,permission_key,is_active,status,effect) VALUES('+[q(id(a)),q(id(1)),q(key),'true',"'active'","'allow'"].join(',')+')')}
@@ -43,6 +45,38 @@ const phase=String.raw`
  const approved=await call('ediel_review_signed_brp_declaration_v1',[company,id(3),a.artifactId,{...review,claimsHash:a.claimsHash}]);check(approved.status,'authorized');check((await db.query('SELECT gridex_brp_declaration_intake.origin_current_v1('+q(company)+','+q(approved.declarationId)+') b')).rows[0].b,true)
  await assert.rejects(()=>call('ediel_review_signed_brp_declaration_v1',[company,id(3),unapproved.artifactId,{...review,decision:null}]),/review_shape/,'null review decision');checks++
  await db.exec('INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,is_active,effect,valid_from) VALUES('+[q(id(3)),q(company),"'ediel.source.review'",'true',"'deny'","clock_timestamp()-interval '1 second'"].join(',')+')');check((await db.query('SELECT gridex_brp_declaration_intake.origin_current_v1('+q(company)+','+q(approved.declarationId)+') b')).rows[0].b,false);await db.exec('DELETE FROM public.user_permission_overrides WHERE permission_key=\'ediel.source.review\'')
+ // Terminal current authority (20261001142510). Actual installed bodies; only
+ // the finite deny clock and labelled waits are synthetic. A deny that becomes
+ // current during the last wait must reject and roll back, never return.
+ await db.exec("CREATE FUNCTION public.synthetic_brp_terminal_wait(a uuid,k text) RETURNS void LANGUAGE plpgsql AS $w$BEGIN INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,is_active,effect,valid_from) VALUES(a,"+q(company)+",k,true,'deny',clock_timestamp()+interval '20 milliseconds');PERFORM pg_sleep(0.04);END$w$")
+ const brpTerminalLeaks=[],brpTables=['gridex_brp_declaration_intake.artifacts','gridex_brp_declaration_intake.reviews','gridex_brp_declaration_intake.origins','gridex_brp_sources.contract_declarations','public.audit_logs','public.user_permission_overrides']
+ const brpCounts=async()=>Promise.all(brpTables.map(async t=>(await db.query('SELECT count(*)::int n FROM '+t)).rows[0].n))
+ const brpLate=async(label,operation)=>{const before=await brpCounts();let error;try{await operation()}catch(e){error=e}
+  await db.exec("DELETE FROM public.user_permission_overrides WHERE effect='deny'")
+  if(!error){brpTerminalLeaks.push(label);console.log(JSON.stringify({status:'BASELINE_RETURNED_AFTER_TIMED_DENY',label}));return}
+  assert.ok(error.code==='42501',label+': '+error.message);checks++;check(await brpCounts(),before)}
+ const brpWaitIn=async(signature,needle,actorId,permission)=>{const f=(await db.query('SELECT prosrc,pg_get_functiondef(oid) definition FROM pg_proc WHERE oid='+q(signature)+'::regprocedure')).rows[0]
+  assert.equal(f.prosrc.split(needle).length,2,signature+' exact wait point')
+  await db.exec(f.definition.replace(f.prosrc,f.prosrc.replace(needle,'PERFORM public.synthetic_brp_terminal_wait('+q(id(actorId))+','+q(permission)+');'+needle)));return async()=>db.exec(f.definition)}
+ await actor(2);const terminalArchive=await call('ediel_archive_signed_brp_declaration_v1',[company,id(2),{...submission,sourceVersion:'terminal',issuerReceipt:sign(preview.claimsHash,'terminal')}]);check(terminalArchive.issuerQualified,true)
+ // Approval inserts review, declaration and origin; the reviewer is denied after the last insert.
+ await db.exec("CREATE FUNCTION public.synthetic_brp_origin_wait() RETURNS trigger LANGUAGE plpgsql AS $w$BEGIN PERFORM public.synthetic_brp_terminal_wait("+q(id(3))+",'ediel.source.review');RETURN NEW;END$w$;CREATE TRIGGER synthetic_brp_origin_wait AFTER INSERT ON gridex_brp_declaration_intake.origins FOR EACH ROW EXECUTE FUNCTION public.synthetic_brp_origin_wait()")
+ await actor(3);await brpLate('brp review approve after origin',()=>call('ediel_review_signed_brp_declaration_v1',[company,id(3),terminalArchive.artifactId,{...review,claimsHash:terminalArchive.claimsHash,previousDeclarationId:approved.declarationId}]))
+ await db.exec('DROP TRIGGER synthetic_brp_origin_wait ON gridex_brp_declaration_intake.origins;DROP FUNCTION public.synthetic_brp_origin_wait()')
+ // Reader permission must remain current after the body's own last check.
+ await actor(2);const readSig=process.env.GRIDEX_BRP_TERMINAL_BASELINE==='1'?'public.ediel_read_signed_brp_declaration_v1(uuid,uuid,uuid,boolean)':'gridex_brp_declaration_intake.terminal_read_body_v1(uuid,uuid,uuid,boolean)'
+ let restoreBrp=await brpWaitIn(readSig,"RETURN result;\nEND",2,'contracts.read')
+ await brpLate('brp read final source wait',()=>call('ediel_read_signed_brp_declaration_v1',[company,id(2),a.artifactId,true]));await restoreBrp()
+ // Origin current: the reviewer is denied during the final receipt read.
+ if(process.env.GRIDEX_BRP_TERMINAL_BASELINE!=='1'){
+  restoreBrp=await brpWaitIn('gridex_brp_declaration_intake.origin_current_v1(uuid,uuid)',' RETURN terminal_current IS TRUE',3,'ediel.source.review')
+  check((await db.query('SELECT gridex_brp_declaration_intake.origin_current_v1('+q(company)+','+q(approved.declarationId)+') b')).rows[0].b,false);await restoreBrp()
+  await db.exec("DELETE FROM public.user_permission_overrides WHERE effect='deny'")
+  check((await db.query('SELECT gridex_brp_declaration_intake.origin_current_v1('+q(company)+','+q(approved.declarationId)+') b')).rows[0].b,true)
+  // Public OIDs, ACL and metadata of the five ports are preserved; private copies are not executable.
+  for(const port of ['scope','archive','read','review','revoke'])for(const role of ['anon','authenticated','service_role'])check((await db.query("SELECT bool_or(has_function_privilege("+q(role)+",p.oid,'EXECUTE')) x FROM pg_proc p WHERE p.pronamespace='gridex_brp_declaration_intake'::regnamespace AND p.proname="+q('terminal_'+port+'_body_v1'))).rows[0].x,false)
+ }
+ check(brpTerminalLeaks,[])
  await actor(2);await assert.rejects(()=>call('ediel_read_signed_brp_declaration_v1',[id(140),id(2),a.artifactId,true]),/read_actor/,'cross-company reader');checks++
  const read=await call('ediel_read_signed_brp_declaration_v1',[company,id(2),a.artifactId,true]);check(read.sourceBase64,sourceDoc.toString('base64'));check(read.agreementBase64,pdf.toString('base64'));check(read.status,'authorized')
  // Independent source/declaration copies remain intact when one intake copy is erased.

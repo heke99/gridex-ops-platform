@@ -1,0 +1,19 @@
+(node:6) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"status":"BASELINE_RETURNED_AFTER_TIMED_DENY","label":"contract review hold after audit"}
+{"status":"BASELINE_RETURNED_AFTER_TIMED_DENY","label":"contract review reject after audit"}
+{"status":"BASELINE_RETURNED_AFTER_TIMED_DENY","label":"contract fresh qualified final source wait"}
+{"status":"BASELINE_RETURNED_AFTER_TIMED_DENY","label":"contract qualified replay final source wait"}
+{"status":"BASELINE_RETURNED_AFTER_TIMED_DENY","label":"contract read final source wait"}
+Expected values to be strictly deep-equal:
++ actual - expected
+
++ [
++   'contract review hold after audit',
++   'contract review reject after audit',
++   'contract fresh qualified final source wait',
++   'contract qualified replay final source wait',
++   'contract read final source wait'
++ ]
+- []
+ ERR_ASSERTION 
