@@ -134,3 +134,18 @@ describe('original named owner witness',()=>{
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
 })
+
+describe('registered source guide scope cannot be borrowed from the UNH association',()=>{
+ const input={family:'PRODAT' as const,messageCode:'Z01',transactionSubtype:'L',direction:'outbound' as const,businessDate:'2026-09-30'}
+ it.each(['guide','revision','profileGuide','profileRevision'])('holds mismatched %s rather than treating E2SE6A as a guide version',async(change)=>{
+  const row=z01Evidence()
+  if(change==='guide'){row.guide_version='99.FUTURE';row.guide_revision='E2SE6A'}
+  if(change==='revision')row.guide_revision='999'
+  if(change==='profileGuide')row.profile.guideVersion='99.FUTURE'
+  if(change==='profileRevision')row.profile.guideRevision='999'
+  row.original_version=`${row.guide_version}:r${row.guide_revision}`
+  row.original_snapshot.rulePack.guide_version=row.guide_version;row.original_snapshot.rulePack.guide_revision=row.guide_revision
+  mocks.rpc.mockResolvedValue({data:[row],error:null})
+  await expect(resolveCanonicalRulePack(input)).rejects.toThrow(/canonical_rule_pack_evidence_.*(guide|revision)_mismatch/)
+ })
+})

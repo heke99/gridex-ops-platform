@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import {canonicalRegisteredEdielGuideScopes} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import type { EdielDirection } from '@/lib/ediel/types'
 import {
   resolveCanonicalEdielPolicy,
@@ -370,11 +371,13 @@ function assertDbEvidenceMatchesSource(input: {
     return
   }
 
-  const dbGuideTokens = [evidence.guideVersion, evidence.guideRevision].map(normalizeIdentifier)
-  const sourceGuideTokens = [source.policy.guide.guideRevision, source.associationAssignedCode].map(normalizeIdentifier)
-  if (!dbGuideTokens.some((token) => sourceGuideTokens.includes(token))) {
+  const scope=canonicalRegisteredEdielGuideScopes().find(item=>item.family==='PRODAT'&&item.canonicalGuideRevision===source.policy.guide.guideRevision)
+  if(!scope||normalizeIdentifier(evidence.guideVersion)!==normalizeIdentifier(scope.guideVersion)){
     throw new Error(`canonical_rule_pack_evidence_guide_mismatch:${evidence.guideVersion}:${source.policy.guide.guideRevision}`)
   }
+  if(evidence.guideRevision!==scope.guideRevision)throw new Error('canonical_rule_pack_evidence_guide_revision_mismatch')
+  if(normalizeIdentifier(requiredProfileText(evidence.profile,'guideVersion'))!==normalizeIdentifier(scope.guideVersion))throw new Error('canonical_rule_pack_evidence_profile_guide_mismatch')
+  if(requiredProfileText(evidence.profile,'guideRevision')!==scope.guideRevision)throw new Error('canonical_rule_pack_evidence_profile_revision_mismatch')
 }
 
 /**

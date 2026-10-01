@@ -1,4 +1,5 @@
 export { EDIEL_ENERGY_SHARING_CAPABILITY } from '@/lib/ediel/rulebook/guideRegistry'
+import {AUTHORITATIVE_EDIEL_GUIDES} from '@/lib/ediel/rulebook/guideRegistry'
 import {
   canonicalAckRequirements,
   resolveCanonicalAckMatrixRule,
@@ -197,3 +198,15 @@ export type {
 import {AUTHORITATIVE_AI_LIST_PROFILE} from '@/lib/ediel/rulebook/guideRegistry'
 /** Read-only source profile for the positional list codec and operational gate. */
 export function canonicalAiListProfile(){return AUTHORITATIVE_AI_LIST_PROFILE}
+/** Known original guide/registered-version scopes, derived from the same
+ * frozen registry and canonical profiles. This is source-knowledge projection,
+ * never current-date selection or evidence for an old message. */
+export function canonicalRegisteredEdielGuideScopes(){
+ return Object.freeze(AUTHORITATIVE_EDIEL_GUIDES.filter(guide=>['PRODAT','UTILTS','CONTRL'].includes(guide.family)).map(guide=>{
+  const prodat=guide.family==='PRODAT'?PRODAT_CANONICAL_PROFILES.find(profile=>profile.associationAssignedCode===guide.associationAssignedCode):null
+  const guideVersion=prodat?.guideVersion??guide.guideRevision
+  const guideRevision=prodat?.guideRevision??(guide.family==='UTILTS'?/-(\d+)$/.exec(guide.guideRevision)?.[1]??null:null)
+  return Object.freeze({family:guide.family,guideVersion,guideRevision,version:guideRevision?`${guideVersion}:r${guideRevision}`:guideVersion,
+   canonicalGuideRevision:guide.guideRevision,associationAssignedCode:guide.associationAssignedCode,documentName:guide.documentName})
+ }))
+}
