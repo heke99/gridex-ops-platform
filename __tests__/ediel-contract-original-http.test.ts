@@ -1,0 +1,12 @@
+import {beforeEach,describe,expect,it,vi} from 'vitest'
+const mocks=vi.hoisted(()=>({archive:vi.fn(),scope:vi.fn(),read:vi.fn(),list:vi.fn(),review:vi.fn(),prepare:vi.fn()}))
+vi.mock('@/lib/ediel/production/contractOriginalSourceIntake',()=>({archiveContractOriginalSource:mocks.archive,contractOriginalScope:mocks.scope,readContractOriginalSource:mocks.read,listContractOriginalSources:mocks.list,reviewContractOriginalSource:mocks.review,prepareContractOriginalSource:mocks.prepare}))
+import {GET,POST} from '@/app/api/admin/ediel/contract-originals/route'
+const id='00000000-0000-4000-8000-000000000004',request=(b:unknown)=>new Request('https://gridex.invalid/api/admin/ediel/contract-originals',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)})
+beforeEach(()=>{vi.clearAllMocks();mocks.prepare.mockResolvedValue({status:'held',missing:['current_qualified_contract_original']})})
+describe('contract original same protected server module HTTP adapter',()=>{
+ it('rejects supplied actor/tenant/verified flags before producer dispatch',async()=>{const r=await POST(request({operation:'prepare',artifactId:id,companyId:id,verified:true}));expect(r.status).toBe(400);expect(mocks.prepare).not.toHaveBeenCalled()})
+ it('dispatches only selected original ID and carries native hold',async()=>{const r=await POST(request({operation:'prepare',artifactId:id}));expect(r.status).toBe(200);expect(await r.json()).toEqual({status:'held',missing:['current_qualified_contract_original']});expect(mocks.prepare).toHaveBeenCalledWith(id)})
+ it('enforces byte budget even before receiving a too-large declared payload',async()=>{const r=await POST(new Request('https://gridex.invalid/api/admin/ediel/contract-originals',{method:'POST',headers:{'content-type':'application/json','content-length':String(30*1024*1024)},body:'{}'}));expect(r.status).toBe(413);expect(mocks.archive).not.toHaveBeenCalled()})
+ it('does not disclose native errors and rejects ambiguous read selectors',async()=>{mocks.prepare.mockRejectedValue(new Error('PRIVATE missing issuer-key exact secret configuration'));const r=await POST(request({operation:'prepare',artifactId:id}));expect(r.status).toBe(400);expect(JSON.stringify(await r.json())).not.toContain('PRIVATE');expect((await GET(new Request('https://gridex.invalid/api/admin/ediel/contract-originals?artifactId='+id+'&contractId='+id))).status).toBe(400);expect(mocks.read).not.toHaveBeenCalled()})
+})
