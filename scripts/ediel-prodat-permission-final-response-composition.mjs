@@ -59,5 +59,25 @@ export default async function composePermissionFinalResponse({db,id,source,scope
  await db.query('DELETE FROM application_fixture WHERE source=$1',[source])
  check((await read(null)).effectScopes.map(e=>e.effectReceiptId),effects.map(e=>e.receiptId))
  await db.exec('ROLLBACK')
+ // Compose the real independently processed Z14N denial from the same R
+ // harness. Its physical LIN omits209; a processing ACK invents no point and
+ // creates no access. Canonical national tuple/guide remain declared IO.
+ const negativeSource=id(540),negativeAssessment=id(1540)
+ const n=(await db.query('SELECT * FROM public.ediel_messages WHERE id=$1',[negativeSource])).rows[0]
+ const actualNegativeEffects=(await db.query('SELECT gridex_received_sources.committed_permission_effects_v1($1,$2,NULL) effects',[company,negativeSource])).rows[0].effects
+ assert.ok(actualNegativeEffects.length===1)
+ const own=actualNegativeEffects[0].objectScope,nHash=actualNegativeEffects[0].sourcePayloadHash
+ const nFacet={version:1,sourcePayloadHash:nHash,objects:[{
+  lineIndex:own.registers[0].segmentIndex,registerLineIndices:own.registers.map(r=>r.segmentIndex),id:null,li:'LI-N',outcome:'positive',
+ }],responses:[{scope:'object',lineIndex:own.registers[0].segmentIndex,ercCode:'100',fieldCode:null,
+  text:edition.projection.constraints.common.positiveText,id:null,li:'LI-N'}]}
+ await db.query("UPDATE gridex_received_sources.prodat_response_facets SET response_facts_text=$1,response_facts_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE assessment_id=$2",[JSON.stringify(nFacet),negativeAssessment])
+ await db.query("INSERT INTO gridex_ediel_ack_guide.source_bindings VALUES($1,'national',$2,$3,$4,$5)",[negativeSource,company,n.environment,nHash,edition.sourceVersion])
+ const nFinal=(await db.query('SELECT gridex_received_sources.prodat_structural_response_v1($1,$2,$3) final',[company,negativeSource,[own.registers[0].segmentIndex]])).rows[0].final
+ check(nFinal.objects[0],nFacet.objects[0])
+ check(nFinal.responses[0],nFacet.responses[0])
+ check(nFinal.effectScopes.map(e=>({receiptId:e.effectReceiptId,effectFactsHash:e.effectFactsHash,effectKind:e.effectKind})),
+  actualNegativeEffects.map(e=>({receiptId:e.receiptId,effectFactsHash:e.effectFactsHash,effectKind:e.effectKind})))
+ check((await db.query('SELECT count(*)::int n FROM metering_permission_sites WHERE metering_permission_id=$1',[id(510)])).rows[0].n,0)
  console.log(`PASS ${checks} composed real permission receipt -> final own response criteria; national/witness fixtures declared, native/authentic/RLS/replay NOT RUN`)
 }

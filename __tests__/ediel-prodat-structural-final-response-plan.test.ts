@@ -96,3 +96,22 @@ it('a domain outcome cannot borrow a structural assessment, effect kind or unbou
   expect(await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload})).toBeNull()
  }
 })
+
+it('a committed Z14N processing receipt preserves the physical null209 scope without inventing an object identity',async()=>{
+ const message={...source(raw([...head(),['LIN','1'],['RFF',['LI','OWN-N']]],'Z14'),'Z14'),company_id:uuid(2)}
+ const lineIndex=tokenizeEdifact(message.raw_payload!).segments.find(segment=>segment.tag==='LIN')!.index
+ const facet:ReceivedProdatResponseValidation={version:1,sourcePayloadHash:evidenceHash(message.raw_payload!),
+  objects:[{lineIndex,registerLineIndices:[lineIndex],id:null,li:'OWN-N',outcome:'positive'}],
+  responses:[{scope:'object',lineIndex,ercCode:'100',fieldCode:null,text:'OK',id:null,li:'OWN-N'}]}
+ // The native permission-effect read is declared IO. A positive APERAK here
+ // acknowledges real processing; it does not grant metering access.
+ const effect={lineIndex,canonicalAssessmentId:uuid(3),objectAssessmentId:null,effectKind:'metering_permission',
+  effectReceiptId:uuid(5),effectFactsHash:'a'.repeat(64),appliedAt:'2026-10-01T01:00:00Z'}
+ io.data={version:1,sourceMessage:message,responseFacet:{...facet,assessmentId:uuid(3),effectScopes:[effect]}}
+ const result=await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+ expect(result?.totalObjectCount).toBe(1);expect(result?.plans).toHaveLength(1)
+ expect(result?.plans[0]).toMatchObject({objectLineIndices:[lineIndex],acknowledgedReferences:['OWN-N'],effectKind:'metering_permission'})
+ expect(receivedProdatFinalResponseQualification({plan:result!.plans[0],sourceMessage:message})).toEqual([lineIndex])
+ io.data={version:1,sourceMessage:message,responseFacet:{...facet,objects:[{...facet.objects[0],id:'INVENTED'}],assessmentId:uuid(3),effectScopes:[effect]}}
+ expect(await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload!})).toBeNull()
+})
