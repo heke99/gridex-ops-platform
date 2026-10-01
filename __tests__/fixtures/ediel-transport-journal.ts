@@ -70,8 +70,9 @@ export function transportJournalFixture(options:{repairFailure?:()=>Error|null}=
  }
  async function beforeProvider(input:SendEdielEmailInput,entry?:EdielProviderEntry){
   if(!entry?.archiveContext)throw Error('fixture_archive_context_required')
-  const bytes=Buffer.from(`From: ${input.from}\r\nTo: ${input.to}\r\nMessage-ID: <synthetic-exact@example.invalid>\r\n\r\nSYNTHETIC MIME BYTES`, 'utf8')
-  await entry.beforeProviderCall({mode:input.raw?'raw':'attachment',from:input.from,to:input.to,rfcMessageId:'<synthetic-exact@example.invalid>',mimeArchiveRef:`private-unit-fixture/${entry.archiveContext.companyId}/${entry.archiveContext.messageId}`,mimeSha256:createHash('sha256').update(bytes).digest('hex'),mimeLength:bytes.length,mimePayloadSnapshotId:'00000000-0000-4000-8000-000000000099',rawBase64:bytes.toString('base64')})
+  const from='raw'in input?input.envelopeFrom:input.from
+  const bytes='raw'in input?Buffer.from(input.raw):Buffer.from(`From: ${from}\r\nTo: ${input.to}\r\nMessage-ID: <synthetic-exact@example.invalid>\r\n\r\nSYNTHETIC MIME BYTES`, 'utf8')
+  await entry.beforeProviderCall({mode:'raw'in input?'raw':'attachment',from,to:input.to,rfcMessageId:'<synthetic-exact@example.invalid>',mimeArchiveRef:`private-unit-fixture/${entry.archiveContext.companyId}/${entry.archiveContext.messageId}`,mimeSha256:createHash('sha256').update(bytes).digest('hex'),mimeLength:bytes.length,mimePayloadSnapshotId:'00000000-0000-4000-8000-000000000099',rawBase64:bytes.toString('base64')})
  }
  return{rpc,beforeProvider,actions,observedAt,get rulePackSnapshot(){return{...selectedSnapshot}}}
 }
