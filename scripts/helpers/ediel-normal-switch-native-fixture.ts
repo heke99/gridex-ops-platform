@@ -36,6 +36,9 @@ function fixtureGsrn(){
  const weighted=[...first17].reduce((sum,digit,index)=>sum+Number(digit)*(index%2===0?3:1),0)
  return `${first17}${(10-weighted%10)%10}`
 }
+const networkRegistries=new Map<string,{artifact:{artifactId:string;sourceHash:string;claimsHash:string};reviewerId:string}>()
+/** The qualified network registry version this fixture created for a company. */
+export function normalSwitchNetworkRegistry(companyId:string){return networkRegistries.get(companyId)}
 export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}
 type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H'}
 export function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal:true}):Promise<NormalSwitchStageNativeFixture>
@@ -195,6 +198,15 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  const pdfBuffer=Buffer.from(attachment.content,'base64'),documentSha256=createHash('sha256').update(pdfBuffer).digest('hex')
  await archiveSignedCustomerContractPdf({companyId,customerContractId:contractId,pdfBuffer,documentSha256,generationSnapshot:{schema:'gridex_signed_contract_document_v1',contract_id:contractId,signature_snapshot_sha256:signed.signature_snapshot_sha256,synthetic:true}})
  const bound=await supabaseService.from('customer_contracts').update({document_sha256:documentSha256}).eq('id',contractId).eq('company_id',companyId).is('document_sha256',null);expect(bound.error).toBeNull()
+ // Every new-agreement Z03 needs the receiver's qualified network registry
+ // version (requested-method/legal header basis). Qualify it through the real
+ // archive and separate-reviewer owners, with the synthetic issuer boundary.
+ const {attachNetworkRegistrySourceFixture}=await import('./ediel-network-registry-native-fixture')
+ const {archiveNetworkRegistrySource,reviewNetworkRegistrySource}=await import('@/lib/ediel/production/networkRegistrySource')
+ const registry=await attachNetworkRegistrySourceFixture({companyId,actorUserId,receiver})
+ const networkArtifact=await archiveNetworkRegistrySource({...registry.submission('SYNTHETIC normal switch network original',registry.pdf('normal switch network')),companyId,actorUserId:registry.uploader.id});expect(networkArtifact.missing).toEqual([])
+ const networkReview=await reviewNetworkRegistrySource({...networkArtifact,companyId,actorUserId:registry.reviewer.id,decision:'approve',reason:'SYNTHETIC separate review of the switch network original',clause:registry.clause});expect(networkReview.status).toBe('authorized')
+ networkRegistries.set(companyId,{artifact:networkArtifact,reviewerId:registry.reviewer.id})
  // End-user UD masterdata for a dated (future) switch day cannot come from
  // today's registered address. Bind a declared SYNTHETIC signed masterdata
  // declaration to this exact signed contract (same agreement bytes, revision
