@@ -1,3 +1,4 @@
+import {buildReceivedUtiltsHeaderValidation,type ReceivedUtiltsHeaderValidation} from './receivedUtiltsHeaderValidation'
 import {buildReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from './receivedUtiltsTransactionValidation'
 import {readSourceBoundAckRulePackEvidence} from './ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
@@ -58,6 +59,7 @@ export type CanonicalDecisionIssue = {
 }
 
 export type CanonicalRuntimeDecision = {
+  utiltsHeaderValidation?: ReceivedUtiltsHeaderValidation
   utiltsTransactionValidation?: ReceivedUtiltsTransactionValidation
   prodatIgnoredFields?: ProdatIgnoredField[]
   prodatRegisterValidation?: ProdatRegisterValidationEvidence
@@ -224,10 +226,12 @@ function resolveUtiltsDecision(params: {
   applicationDecision: CanonicalDecisionState
   functionalDecision: CanonicalDecisionState
   businessOutcome: UtiltsInboundBusinessOutcome
+  utiltsHeaderValidation?: ReceivedUtiltsHeaderValidation
   utiltsTransactionValidation?: ReceivedUtiltsTransactionValidation
 } {
   const runtime = params.runtime ?? runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: params.policy })
   const utiltsTransactionValidation=buildReceivedUtiltsTransactionValidation({source:params.message,transactions:runtime.transactionDispositions}) ?? undefined
+  const utiltsHeaderValidation=buildReceivedUtiltsHeaderValidation({source:params.message,headerRejection:runtime.ackPlan.utiltsHeaderRejection}) ?? undefined
   const businessOutcome = resolveUtiltsInboundBusinessOutcome(params.policy)
   params.sourceRules.push('CANONICAL_EDIEL_POLICY', `UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`, `UTILTS_BUSINESS_OUTCOME_${businessOutcome.kind.toUpperCase()}`)
   params.decisionTrace.push(`UTILTS ${params.policy.code} klassades som ${businessOutcome.kind}; runtime=${runtime.validation.classification}.`)
@@ -247,7 +251,7 @@ function resolveUtiltsDecision(params: {
       responsePlan: params.responsePlan,
       reason: `${params.policy.code} har fel business scope för individuell kundkoppling.`,
     })
-    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome, utiltsTransactionValidation }
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome, utiltsHeaderValidation, utiltsTransactionValidation }
   }
 
   for (const utiltsIssue of runtime.validation.issues) {
@@ -262,7 +266,12 @@ function resolveUtiltsDecision(params: {
   }
 
   if (runtime.validation.classification === 'syntax_rejected') {
-    return { applicationDecision: 'not_applicable', functionalDecision: 'not_applicable', businessOutcome, utiltsTransactionValidation }
+    return { applicationDecision: 'not_applicable', functionalDecision: 'not_applicable', businessOutcome, utiltsHeaderValidation, utiltsTransactionValidation }
+  }
+
+  if ('aperakSourceTextUnavailable' in runtime.ackPlan && runtime.ackPlan.aperakSourceTextUnavailable === true) {
+    params.decisionTrace.push('Nationellt negativt UTILTS-utfall kvarstår; APERAK hålls eftersom eget feldata inte kan återges källbelagt.')
+    return {applicationDecision:'rejected',functionalDecision:'not_applicable',businessOutcome,utiltsHeaderValidation,utiltsTransactionValidation}
   }
 
   if (runtime.ackPlan.shouldSendUtiltsErr) {
@@ -271,7 +280,7 @@ function resolveUtiltsDecision(params: {
       outcome: 'negative',
       reason: runtime.ackPlan.reason || 'UTILTS process-/funktionsfel ska besvaras med UTILTS_ERR.',
     })
-    return { applicationDecision: 'not_applicable', functionalDecision: 'rejected', businessOutcome, utiltsTransactionValidation }
+    return { applicationDecision: 'not_applicable', functionalDecision: 'rejected', businessOutcome, utiltsHeaderValidation, utiltsTransactionValidation }
   }
 
   if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
@@ -292,7 +301,7 @@ function resolveUtiltsDecision(params: {
         lineItemReference: item.lineItemReference ?? null,
       })),
     })
-    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome, utiltsTransactionValidation }
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome, utiltsHeaderValidation, utiltsTransactionValidation }
   }
 
   if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
@@ -306,10 +315,11 @@ function resolveUtiltsDecision(params: {
     })
   }
 
-  return { applicationDecision: 'accepted', functionalDecision: 'accepted', businessOutcome, utiltsTransactionValidation }
+  return { applicationDecision: 'accepted', functionalDecision: 'accepted', businessOutcome, utiltsHeaderValidation, utiltsTransactionValidation }
 }
 
 function buildResult(params: {
+  utiltsHeaderValidation?: ReceivedUtiltsHeaderValidation
   utiltsTransactionValidation?: ReceivedUtiltsTransactionValidation
   prodatIgnoredFields?: ProdatIgnoredField[]
   prodatRegisterValidation?: ProdatRegisterValidationEvidence
@@ -356,6 +366,7 @@ function buildResult(params: {
     utiltsBusinessOutcome: params.utiltsBusinessOutcome,
   }
   return {
+    utiltsHeaderValidation: params.utiltsHeaderValidation,
     utiltsTransactionValidation: params.utiltsTransactionValidation,
     prodatRegisterValidation: params.prodatRegisterValidation,
     prodatIgnoredFields: params.prodatIgnoredFields,
@@ -479,6 +490,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     })
   }
 
+  let utiltsHeaderValidation: ReceivedUtiltsHeaderValidation | undefined
   let utiltsTransactionValidation: ReceivedUtiltsTransactionValidation | undefined
   let prodatRegisterValidation: ProdatRegisterValidationEvidence | undefined
   let prodatProcessingDisposition: ProdatProcessingDisposition | undefined
@@ -492,6 +504,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     applicationDecision = utilts.applicationDecision
     functionalDecision = utilts.functionalDecision
     utiltsBusinessOutcome = utilts.businessOutcome
+    utiltsHeaderValidation = utilts.utiltsHeaderValidation
     utiltsTransactionValidation = utilts.utiltsTransactionValidation
   } else if (canonical.family === 'PRODAT' && policy) {
     const prodat = applyProdatPolicyDecision({ policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
@@ -513,6 +526,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
   }
 
   return buildResult({
+    utiltsHeaderValidation,
     utiltsTransactionValidation,
     prodatRegisterValidation,
     prodatIgnoredFields,
@@ -554,7 +568,7 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
   const decisionTrace=[...initial.decisionTrace,'Final faktisk UTILTS-ägare konsumerad med samma valda anvisning och oförändrat regelvittne.']
   const utilts=resolveUtiltsDecision({message:input.message,policy:owner.policy,runtime:actual,responsePlan,issues,sourceRules,decisionTrace})
   const final=buildResult({canonical:initial.canonical,policy:owner.policy,utiltsBusinessOutcome:utilts.businessOutcome,
-    utiltsTransactionValidation:utilts.utiltsTransactionValidation,syntaxDecision:initial.syntaxDecision,applicationDecision:utilts.applicationDecision,
+    utiltsHeaderValidation:utilts.utiltsHeaderValidation,utiltsTransactionValidation:utilts.utiltsTransactionValidation,syntaxDecision:initial.syntaxDecision,applicationDecision:utilts.applicationDecision,
     functionalDecision:utilts.functionalDecision,responsePlan,issues,sourceRules,decisionTrace,syntax:initial.validationReport.syntax})
   final.validationReport={...final.validationReport,rulePackEvidence:initial.validationReport.rulePackEvidence,fieldRuleSource:initial.validationReport.fieldRuleSource}
   if(!owner.hasWitness){

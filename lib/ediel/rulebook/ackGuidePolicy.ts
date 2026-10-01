@@ -66,7 +66,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   for(const index of [2,3])if(!segmentComposite(uci[0],index,wire.una)[0])add('ACK_CONTRL_ORIGINAL_PARTY_MISSING','UCI ska innehålla originalets tekniska parter.','UCI')
   if(input.sourceRawPayload){
    const source=tokenizeEdifact(input.sourceRawPayload),original=source.segments.find(t=>t.tag==='UNB')
-   if(source.segments.some(t=>t.tag==='UNH'&&value(source,t,2)==='CONTRL')||value(wire,uci[0],1)!==value(source,original,5).slice(0,14)
+   if(source.segments.some(t=>t.tag==='UNH'&&value(source,t,2)==='CONTRL')||value(wire,uci[0],1)!==value(source,original,5).slice(0,CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.originalUciMax)
      ||!equal(segmentComposite(uci[0],2,wire.una),segmentComposite(original,2,source.una))||!equal(segmentComposite(uci[0],3,wire.una),segmentComposite(original,3,source.una)))add('ACK_CONTRL_ORIGINAL_SCOPE_MISMATCH','UCI ska kopiera det faktiska originalets överföring och tekniska parter.','UCI')
   }
   return issues
