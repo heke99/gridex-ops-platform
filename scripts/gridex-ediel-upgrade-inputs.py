@@ -63,6 +63,24 @@ def prepare(root, base, out):
                 raise ValueError('historical_migration_bytes_changed:' + name)
         else:
             committed[name] = data
+    # Checksum-bound repository artifacts that the canonical clean replay also
+    # excludes (merged, never deployed, superseded or inapplicable) are not
+    # upgrade inputs either. Same contract file, same exact-byte binding.
+    excluded = []
+    try:
+        contract = json.loads(git(root, 'show', f'{head}:scripts/gridex-aud-003-noncanonical-artifacts.json'))
+    except subprocess.CalledProcessError:
+        contract = {'artifacts': []}
+    for item in contract.get('artifacts') or []:
+        name = Path(item.get('path', '')).name
+        if name in committed:
+            if item.get('status') != 'merged_repository_artifact_not_deployed' or not item.get('reason') or not item.get('evidence'):
+                raise ValueError('incomplete_noncanonical_upgrade_classification:' + name)
+            if hashlib.sha256(committed[name]).hexdigest() != item.get('sha256') or current[name] != item.get('sha256'):
+                raise ValueError('noncanonical_upgrade_checksum_mismatch:' + name)
+            excluded.append({'name': name, 'sha256': item['sha256'], 'finding': item.get('finding')})
+    excluded_names = {row['name'] for row in excluded}
+    additions = [name for name in additions if name not in excluded_names]
     out.mkdir(parents=True, exist_ok=False)
     inputs = out / 'inputs'
     inputs.mkdir()
@@ -75,6 +93,7 @@ def prepare(root, base, out):
         'baseSha': base_sha, 'candidateSha': head,
         'candidateTree': git(root, 'rev-parse', 'HEAD^{tree}').decode().strip(),
         'historicalMigrationsPreserved': len(previous), 'forwardMigrations': rows,
+        'excludedNoncanonical': excluded,
         'provenance': 'committed exact ancestor bytes and checksum-pinned manifests; no invented ledger',
     }
     (out / 'upgrade-inputs.json').write_text(json.dumps(result, indent=2) + '\n')
