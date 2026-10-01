@@ -47,6 +47,7 @@ import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustom
 
 
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from "@/lib/ediel/safeApplyReview"
+import {createReceivedProdatStructuralAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks'
 import type { EdielEnvironment } from "@/lib/ediel/types"
 import { formNumber, formString, getProdatDraftBuilder, parseEdielTestRoleCode, parseEdielTestSuite, requireScopedEdielMessageForAction, revalidateEdiel, revalidateRelatedMessage } from './actions.part-1'
 import { REPLACEABLE_TGT_ACK_STATUSES } from './actions.part-3'
@@ -1090,10 +1091,21 @@ export async function approveEdielSafeApplyAction(formData: FormData) {
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
+  const source=await requireScopedEdielMessageForAction(edielMessageId,context);
+  if(!source.company_id)throw new Error('structural_apply_source_required');
+  const selected=formData.getAll('objectLineIndex');
+  const objectLineIndices=formData.get('objectSelection')==='1'?selected.map(value=>{
+    if(typeof value!=='string'||!/^\d+$/.test(value)||!Number.isSafeInteger(Number(value)))throw new Error('structural_apply_requested_scope_invalid');
+    return Number(value);
+  }):undefined;
+  if(objectLineIndices&&(!objectLineIndices.length||new Set(objectLineIndices).size!==objectLineIndices.length))throw new Error('structural_apply_requested_scope_invalid');
+
   await approveSafeMasterdataChanges({
     actorUserId: context.userId,
     edielMessageId,
+    objectLineIndices,
   });
+  await createReceivedProdatStructuralAcks({actorUserId:context.userId,companyId:source.company_id,sourceMessageId:source.id,objectLineIndices});
 
   await revalidateRelatedMessage(edielMessageId);
 }

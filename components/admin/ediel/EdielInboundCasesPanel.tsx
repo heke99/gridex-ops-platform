@@ -43,6 +43,12 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  const contract = item.parsed_contract ?? {}
  const production = item.parsed_production ?? {}
  const objectReview = inboundObjectReview(item)
+ const structural=item.message_family==='PRODAT'&&['Z06','Z10'].includes(item.message_code)
+ const structure=item.proposed_action.structuralSourceReview
+ const structuralScopes=structural&&structure&&typeof structure==='object'&&!Array.isArray(structure)&&Array.isArray((structure as Record<string,unknown>).objects)
+   ?((structure as Record<string,unknown>).objects as Array<{objectId:string|null;identityAgency:string|null;lineIndex:number;applicationDecision:string;applied?:boolean}>):[]
+ const projection=item.review_decision?.structuralProjection
+ const counts=projection&&typeof projection==='object'&&!Array.isArray(projection)?projection as Record<string,unknown>:null
  const isPending = item.status === 'pending_review' || item.status === 'failed' || (item.status === 'approved' && objectReview.locked)
 
  return (
@@ -98,12 +104,27 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  {item.failure_reason}
  </div>
  ) : null}
+ {structural&&counts&&typeof counts.appliedObjectCount==='number'&&typeof counts.totalObjectCount==='number'?<p className="mt-3 text-sm text-slate-700">
+ {counts.appliedObjectCount} av {counts.totalObjectCount} egna objekt har bevisad tillämpad strukturhistorik. Övriga har inte tillämpats.
+ </p>:null}
 
  {isPending ? (
  <div className="mt-4 grid gap-3 lg:grid-cols-[2fr_1fr]">
  <form action={approveEdielInboundCaseAction} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
  <input type="hidden" name="caseId" value={item.id} />
- {objectReview.multi ? <EdielInboundObjectReview item={item} editable /> : <>
+ {structural?<fieldset className="space-y-2 rounded-xl border border-slate-200 p-3">
+ <legend className="px-1 text-xs font-semibold text-slate-900">Originalets egna strukturobjekt</legend>
+ <input type="hidden" name="structuralObjectSelection" value="1"/>
+ <input type="hidden" name="mode" value="update_existing_customer"/>
+ <p className="text-xs text-slate-700">Valda objekt prövas mot granskad originalkälla och får daterad strukturhistorik. Varje eget kvittensutfall bevaras.</p>
+ {structuralScopes.length===0?<p className="text-xs text-amber-800">Skyddad objektbedömning saknas. Granska strukturunderlaget på meddelandesidan.</p>:structuralScopes.map(object=>(
+ <label key={object.lineIndex} className="flex items-start gap-2 text-xs text-slate-800">
+ <input type="checkbox" name="objectLineIndex" value={object.lineIndex} disabled={!object.applied&&object.applicationDecision!=='accepted'}
+ defaultChecked={object.applicationDecision==='accepted'} className="mt-0.5 h-4 w-4"/>
+ <span className="break-all">{object.objectId??'Objekt-id saknas'} ({object.identityAgency??'identitetsauktoritet saknas'}) · {object.applied?'tillämpad':object.applicationDecision==='accepted'?'anvisningskontroll godkänd':object.applicationDecision==='rejected'?'avvisad':'spärrad'}</span>
+ </label>
+ ))}
+ </fieldset>:objectReview.multi ? <EdielInboundObjectReview item={item} editable /> : <>
  <label className="text-xs font-semibold text-slate-700" htmlFor={`mode-${item.id}`}>
  Godkänn som
  </label>
@@ -124,8 +145,8 @@ function CaseRow({ item }: { item: EdielInboundCaseRow }) {
  placeholder="Intern kommentar, t.ex. godkänd mikroproduktion från Z04D."
  className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
  />
- <button className="mt-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
- {objectReview.locked ? 'Återuppta återstående objekt' : 'Godkänn och applicera'}
+ <button disabled={structural&&!structuralScopes.some(object=>object.applicationDecision==='accepted')} className="mt-2 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
+ {structural?'Pröva och tillämpa valda objekt':objectReview.locked ? 'Återuppta återstående objekt' : 'Godkänn och applicera'}
  </button>
  </form>
 
@@ -161,7 +182,7 @@ export default function EdielInboundCasesPanel({ cases }: { cases: EdielInboundC
  <div>
  <h2 className="text-lg font-semibold text-slate-950">Inbound PRODAT – admin-godkännande</h2>
  <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
- Inkommande PRODAT skapar ett staging-case. Masterdata ändras först när admin godkänner. Meddelanden med flera anläggningar granskas objektvis. Vid avbrott sparas redan slutförda objekt för återkörning; hela meddelandet är inte en gemensam databastransaktion.
+ Inkommande PRODAT skapar ett granskningsärende. Z06/Z10 tillämpas atomärt på valda egna objekt från kvalificerad originalkälla och bevarar varje källbunden strukturversion. Övriga meddelandeflöden granskas enligt sina egna processer.
  </p>
  </div>
  <div className="flex gap-2 text-xs font-semibold">

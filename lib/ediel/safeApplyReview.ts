@@ -5,8 +5,10 @@ import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { buildSafeMasterdataProposal, type EdielMasterdataChangeProposal } from '@/lib/ediel/operationalVerification'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
 
-export type EdielSafeApplyReviewStatus = 'pending' | 'applied' | 'rejected' | 'no_changes'
+export type EdielSafeApplyReviewStatus = 'pending' | 'partially_applied' | 'applied' | 'rejected' | 'no_changes'
 
 export type EdielSafeApplyReviewItem = {
   message: EdielMessageRow
@@ -15,6 +17,7 @@ export type EdielSafeApplyReviewItem = {
   latestEvent: EdielMessageEventRow | null
   decisionEvent: EdielMessageEventRow | null
   summary: string
+  objectScopes: Array<{lineIndex:number;objectId:string|null;identityAgency:string|null;applicationDecision:'accepted'|'rejected'|'held';applied:boolean}>
 }
 
 export type EdielSafeApplyDecisionResult = {
@@ -104,7 +107,21 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
     const decision = decisionEvent ? eventDecision(decisionEvent) : null
     const eventChanges = getProposalChangesFromEvent(latestProposalEvent)
     const changes = eventChanges.length > 0 ? eventChanges : await buildSafeMasterdataProposal(message)
-    const status: EdielSafeApplyReviewStatus = decision ?? (changes.length > 0 ? 'pending' : 'no_changes')
+    // This list is a read projection of the protected complete invocation and
+    // committed primary receipts. Proposal diffs do not authorize application.
+    const application=message.company_id&&message.raw_payload?await readReceivedProdatApplicationObjects({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload}):null
+    let committed:Awaited<ReturnType<typeof readReceivedProdatFinalResponsePlan>>=null
+    if(application&&message.company_id&&message.raw_payload){
+      try{committed=await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload})}
+      catch{/* Missing protected receipt keeps the scope explicitly unconfirmed. */}
+    }
+    const applied=new Set(committed?.plans.flatMap(plan=>[...plan.objectLineIndices])??[])
+    const objectScopes=application?.objects.map(object=>({lineIndex:object.registers[0].segmentIndex,objectId:object.objectId,identityAgency:object.identityAgency,
+      applicationDecision:object.applicationDecision,applied:applied.has(object.registers[0].segmentIndex)}))??[]
+    const appliedObjects=objectScopes.filter(object=>object.applied).length
+    const status:EdielSafeApplyReviewStatus=objectScopes.length
+      ?appliedObjects===objectScopes.length?'applied':appliedObjects>0?'partially_applied':decision==='rejected'?'rejected':'pending'
+      :decision??'no_changes'
 
     items.push({
       message,
@@ -112,14 +129,17 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
       changes,
       latestEvent: latestProposalEvent,
       decisionEvent,
+      objectScopes,
       summary:
         status === 'applied'
           ? 'Ändringen är redan godkänd och applicerad.'
           : status === 'rejected'
             ? 'Ändringen är avvisad av admin.'
+            :status==='partially_applied'
+              ?`${appliedObjects} av ${objectScopes.length} egna objekt har tillämpad källbunden strukturhistorik. Övriga objekt är inte tillämpade.`
             : status === 'no_changes'
-              ? 'Inga skillnader mot nuvarande masterdata hittades.'
-              : `${changes.length} masterdataändringar väntar på granskning.`,
+              ? 'Skyddad bedömning för hela originalets egna objekt saknas. Strukturunderlaget behöver granskas.'
+              : `${objectScopes.filter(object=>object.applicationDecision==='accepted').length} egna objekt kan prövas mot granskad originalkälla. ${objectScopes.filter(object=>object.applicationDecision!=='accepted').length} är avvisade eller spärrade.`,
     })
   }
 

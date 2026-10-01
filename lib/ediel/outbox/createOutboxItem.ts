@@ -14,6 +14,9 @@ export type CreateEdielOutboxItemInput = {
   lockKey?: string | null
   intentId?: string | null
   payload?: Record<string, unknown> | null
+  /** First response origination may queue a newly inserted outbox, while an
+   * existing retry/failed entry retains its established state. */
+  queueOnlyIfInserted?: boolean
 }
 
 function outboxLockKey(message: EdielMessageRow, sourceMessageId?: string | null): string {
@@ -84,7 +87,7 @@ export async function createOutboxItem(input: CreateEdielOutboxItemInput): Promi
       throw new Error('ediel_outbox_lock_identity_conflict')
     }
     saved = prior
-    if (row.status === 'queued' && ['draft', 'prepared', 'failed'].includes(String(prior.status))) {
+    if (!input.queueOnlyIfInserted && row.status === 'queued' && ['draft', 'prepared', 'failed'].includes(String(prior.status))) {
       const { data: updated, error: updateError } = await outbox
         .update({ status: 'queued', queued_at: row.queued_at, last_error: null, updated_by: input.actorUserId })
         .eq('id', prior.id as string)
