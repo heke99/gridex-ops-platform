@@ -18,7 +18,7 @@ export async function POST(request:NextRequest){
  return retentionHttp([],async scope=>{
   const input=command.parse(await readRetentionJson(request,1500000)),companyId=scope.companyId
   const required=input.action==='submit'?'ediel.retention.submit':input.action==='purge'?'ediel.retention.purge':'ediel.retention.review'
-  if(!scope.permissions.includes(required))throw Error('retention_current_operation_required')
+  if(input.action==='read'?!scope.permissions.some(p=>p==='ediel.retention.read'||p==='ediel.retention.review'):!scope.permissions.includes(required))throw Error('retention_current_operation_required')
   let result:unknown
   if(input.action==='submit'){
    const document=Buffer.from(input.documentBase64,'base64')

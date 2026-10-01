@@ -286,5 +286,11 @@ try{
  await assert.rejects(()=>authenticatedCall(uid(30),`select public.ediel_revoke_blob_retention_before_class_guard_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}','BYPASS') b`),/permission denied/)
  await assert.rejects(()=>service(`select public.ediel_read_blob_retention_decision_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}',true) b`),/permission denied/)
  console.log('PASS 11 private review-reader/revocation mechanisms: current own actor and actual class, archived company history, exact original legal bytes/hash, no source/MIME byte export, metadata deletion cannot imply physical Storage finish, foreign/global/current deny no-effects, direct predecessor and service denial (bounded synthetic SQL; NOT native/issuer/physical proof)')
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001025642_ediel_retention_current_auth_owner_bridge.sql',import.meta.url),'utf8'))
+ assert.equal((await blobRead(original.decisionId)).documentBase64,null)
+ assert.equal((await blobRead(original.decisionId,uid(30),true)).documentHash,document.documentHash)
+ await assert.rejects(()=>blobRead(original.decisionId,uid(30),true,uid(99)),/current_read_grant_required|current_actor_forbidden/)
+ assert.equal((await db.query("SELECT count(*)::int n FROM pg_proc p WHERE p.proowner='gridex_ediel_retention_owner'::regrole AND p.prosrc~*'auth\\.(uid|users)'")).rows[0].n,0)
+ console.log('PASS installed artifact/customer/blob/read Auth consumers adapt without changing source/legal/current-class guards; full archive graph retained (bounded synthetic SQL only)')
 
 }finally{await db.close()}

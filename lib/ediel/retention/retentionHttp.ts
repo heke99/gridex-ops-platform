@@ -3,14 +3,14 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { z, ZodError } from 'zod'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { ADMIN_SELECTED_COMPANY_COOKIE } from '@/lib/admin/navigationPreferences'
 
 export const retentionHeaders={'Cache-Control':'private, no-store'}
+export const RETENTION_SELECTED_COMPANY_COOKIE='gridex_retention_company'
 const uuid=z.string().uuid()
 export async function requireRetentionScope(requiredPermissions:readonly string[]=[]){
  const client=await createSupabaseServerClient(),auth=await client.auth.getUser()
- if(auth.error||!auth.data.user)throw Error('retention_http_authenticated_actor_required')
- const selected=(await cookies()).get(ADMIN_SELECTED_COMPANY_COOKIE)?.value
+ if(auth.error||!auth.data.user||auth.data.user.user_metadata?.must_change_password===true)throw Error('retention_http_authenticated_actor_required')
+ const selected=(await cookies()).get(RETENTION_SELECTED_COMPANY_COOKIE)?.value
  const selector=uuid.safeParse(selected)
  if(!selector.success)throw Error('retention_http_current_company_selector_required')
  const companyId=selector.data,userId=auth.data.user.id
@@ -21,6 +21,14 @@ export async function requireRetentionScope(requiredPermissions:readonly string[
  const session=parsed.data
  if(session.companyId!==companyId||session.actorUserId!==userId||!requiredPermissions.every(key=>session.permissions.includes(key)))throw Error('retention_http_current_company_authority_required')
  return {companyId,userId,permissions:session.permissions as readonly string[],client}
+}
+export async function requireRetentionCompanies(){
+ const client=await createSupabaseServerClient(),auth=await client.auth.getUser()
+ if(auth.error||!auth.data.user||auth.data.user.user_metadata?.must_change_password===true)throw Error('retention_http_authenticated_actor_required')
+ const {data,error}=await client.rpc('ediel_current_retention_companies_v1',{})
+ if(error)throw Error('retention_http_current_company_list_required')
+ const companies=z.array(z.object({companyId:uuid,name:z.string(),status:z.enum(['active','archived','pending_deletion']),permissions:z.array(z.string())})).max(1000).parse(data)
+ return {userId:auth.data.user.id,client,companies}
 }
 export async function retentionHttp(requiredPermissions:readonly string[],handler:(scope:Awaited<ReturnType<typeof requireRetentionScope>>)=>Promise<NextResponse>){
  try{return await handler(await requireRetentionScope(requiredPermissions))}

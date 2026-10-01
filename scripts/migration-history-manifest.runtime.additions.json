@@ -80,6 +80,10 @@
     "20261001012305_ediel_customer_record_class_retention.sql": "b78d093f625a476a990b3786e8a02c87d41176586f673c172bf21a8830488db2",
     "20261001023514_ediel_network_registry_original_source_owner.sql": "4fc20e9ef58d215903bef7de5e3b5d67d8c6a8eb8f53e281a2900d5444c1a2ca",
     "20261001000699_ediel_retention_source_trigger_prerequisite.sql": "fdbcf517b3cb9618fb1573869c9f60b57611e697d91bddb7e8b885746a098436",
-    "20261001023824_ediel_fresh_business_incident_immutable_ack_origin.sql": "073ba24a01b033ac2ce8167ba9da01c065d76a4d226f736598db46c9e11d4dc4"
+    "20261001023824_ediel_fresh_business_incident_immutable_ack_origin.sql": "073ba24a01b033ac2ce8167ba9da01c065d76a4d226f736598db46c9e11d4dc4",
+    "20261001015940_ediel_retention_workspace_scope.sql": "c3e515f2c8c04564df534f3436bf47e552b6ac8889e078358e92cf2ef4fb4787",
+    "20261001022500_ediel_beneficiary_projection_provenance_receipts.sql": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+    "20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql": "f85410f5504d43b518badefe98ffcea09e699bfc5d1a85a2b469c44b73b0ed3c",
+    "20261001025642_ediel_retention_current_auth_owner_bridge.sql": "ea2d087bd5860778b4125eb5e1bd52fccb79a7cf991da92a55ce5e830b07571f"
   }
 }

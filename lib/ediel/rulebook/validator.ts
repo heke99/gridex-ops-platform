@@ -1,3 +1,4 @@
+import {bilateralProdatOutboundDraftQualified,type QualifiedBilateralProdatOutboundDraft} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {commonHeaderOriginalSource,prodatCommonHeaderRejectionQualification,readPersistedProdatCommonHeaderNegativeAckBasis,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
@@ -54,6 +55,9 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   admissionAt?: string | Date
   messageRow?: EdielMessageRow
   /** Actual private source RPC capability; caller JSON supplies no authority. */
+  bilateralDraftQualification?:QualifiedBilateralProdatOutboundDraft|null
+  bilateralDraft?:CreateEdielMessageInput
+  bilateralDraftActorUserId?:string
   requestedChangeBasis?:RequestedChangeBasis
   requestedChangeRow?:CreateEdielMessageInput|EdielMessageRow
   /** Protected actual-original port for a pre-persistence reverse ACK draft. */
@@ -349,7 +353,8 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     // is required to select the correct P- or U-family guide.
     associationAssignedCode,
     applicationReference: input.applicationReference ?? parsed.applicationReference ?? null,
-    mode: input.mode === 'send' ? 'catalog_evidence' : 'parse',
+    bilateralCapabilityVerified:input.bilateralDraft&&input.bilateralDraftActorUserId?bilateralProdatOutboundDraftQualified({draft:input.bilateralDraft,actorUserId:input.bilateralDraftActorUserId,qualification:input.bilateralDraftQualification}):false,
+    mode:input.mode==='send'&&input.bilateralDraftQualification?'parse':input.mode==='send'?'catalog_evidence':'parse',
   })
 
   if (sourceBoundAck) {

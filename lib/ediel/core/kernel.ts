@@ -25,6 +25,7 @@ import { readSourceBoundOutboundAckRulePackEvidence, type SourceQualifiedOutboun
 import { assertUtiltsPositiveAckSourceAuthority } from '@/lib/ediel/utilts/positiveAckAuthority'
 import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import type { ProdatDateEventRow, ProdatDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import {qualifyBilateralProdatOutboundDraft,requiresBilateralProdatOutboundOwner,createAtomicBilateralProdatOriginal} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import type {RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
 import { readSourceQualifiedNegativeFixtureDraft, sourceQualifiedNegativeFixtureMatchesDraft, prepareSourceQualifiedNegativeFixtureWitness, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import { readSourceQualifiedPositiveFixtureDraft, sourceQualifiedPositiveFixtureMatchesDraft, prepareSourceQualifiedPositiveFixtureWitness, type SourceQualifiedPositiveFixture } from '@/lib/ediel/testing/positiveFixtureAuthority'
@@ -171,6 +172,7 @@ export async function createCanonicalOutboundMessage(params: Parameters<typeof c
   }) : null
   if(duplicate) {
     assertScopedOutboundDuplicate(duplicate,draft,draft.companyId,draft.environment!,params.duplicateCheck?.outboundRequestId)
+    if(requiresBilateralProdatOutboundOwner(draft))return createAtomicBilateralProdatOriginal(draft,actorUserId)
     return duplicate
   }
   if(isTechnicalListDraft(draft)) {
@@ -179,12 +181,13 @@ export async function createCanonicalOutboundMessage(params: Parameters<typeof c
       duplicateCheck:params.duplicateCheck?{...params.duplicateCheck,messageFamily:draft.messageFamily,
         messageCode:String(draft.messageCode),messageVersion:null}:undefined})
   }
-  const snapshot=await assertOutboundDraftAllowedByCanonicalPolicy({draft,messageVersion:draft.messageVersion,
+  const snapshot=await assertOutboundDraftAllowedByCanonicalPolicy({draft,actorUserId,messageVersion:draft.messageVersion,
     negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext})
   const evidence=originalValidationEvidence(snapshot)
   if(draft.canonicalRulePackId && draft.canonicalRulePackId!==evidence.rulePackId)throw new Error('canonical_outbound_selected_rule_pack_mismatch')
+  if(requiresBilateralProdatOutboundOwner(draft)&&(negativeFixture||positiveFixture))throw Error('bilateral_prodat_outbound_fixture_original_owner_required')
   const fixtureWitnesses=await prepareDraftFixtureWitnesses({actorUserId,rawPayload:draft.rawPayload,negativeFixture,positiveFixture})
-  const sealed=await prepareEdielOutboundOwnerWitness({companyId:draft.companyId,actorUserId,
+  const sealed=requiresBilateralProdatOutboundOwner(draft)?{witnessId:undefined,evidence}:await prepareEdielOutboundOwnerWitness({companyId:draft.companyId,actorUserId,
     environment:draft.environment as 'test'|'production',rawPayload:draft.rawPayload,rulePackEvidence:evidence,...fixtureWitnesses})
   return createLegacyCanonicalOutboundMessage({...params,actorUserId,duplicateCheck:params.duplicateCheck
     ? {...params.duplicateCheck,messageFamily:draft.messageFamily,messageCode:String(draft.messageCode),messageVersion:null}:undefined,
@@ -202,6 +205,7 @@ function isFinalCanonicalAckStatus(value: unknown): boolean {
 
 async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
   draft: CreateEdielMessageInput
+  actorUserId?:string
   messageVersion?: string | null
   reportingContext?: ExpectedContext
   dateEventContext?: ProdatDateEventValidationContext
@@ -211,6 +215,7 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
   requestedChangeBasis?:RequestedChangeBasis
 }) {
   if (!params.draft.rawPayload) throw new Error('outbound_ediel_raw_payload_required')
+  const bilateralDraftQualification=await qualifyBilateralProdatOutboundDraft({draft:params.draft,actorUserId:ensureActorUserId(params.actorUserId)})
 
   const dateEventRow: ProdatDateEventRow = { company_id: params.draft.companyId ?? null, environment: params.draft.environment ?? 'test',
     direction: 'outbound', message_code: params.draft.messageCode, sender_ediel_id: params.draft.senderEdielId ?? null,
@@ -233,6 +238,7 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     dateEventRow, reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
     ackSourceQualification: params.ackSourceQualification,
     requestedChangeRow:params.draft,requestedChangeBasis:params.requestedChangeBasis,
+    bilateralDraftQualification,bilateralDraft:params.draft,bilateralDraftActorUserId:params.actorUserId,
   })
 
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
@@ -531,6 +537,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
     messageFamily, messageCode, messageVersion: null})
   if (existing) {
     assertScopedOutboundDuplicate(existing,params.draft,companyId,environment,params.outboundRequestId)
+    if(requiresBilateralProdatOutboundOwner(params.draft))return createAtomicBilateralProdatOriginal({...params.draft,companyId,environment},actorUserId)
     return existing
   }
 
@@ -604,7 +611,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
   }
 
   const rulePackSnapshot = await assertOutboundDraftAllowedByCanonicalPolicy({
-    draft: baseInput,
+    draft: baseInput,actorUserId,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
     reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
     requestedChangeBasis:params.requestedChangeBasis,
@@ -624,8 +631,9 @@ export async function finalizeCanonicalOutboundDraft(params: {
   }
 
   if (!baseInput.companyId || !baseInput.rawPayload || (baseInput.environment !== 'test' && baseInput.environment !== 'production')) throw new Error('canonical_outbound_owner_scope_required')
+  if(requiresBilateralProdatOutboundOwner(baseInput)&&(negativeFixture||positiveFixture))throw Error('bilateral_prodat_outbound_fixture_original_owner_required')
   const fixtureWitnesses=await prepareDraftFixtureWitnesses({actorUserId,rawPayload:baseInput.rawPayload,negativeFixture,positiveFixture})
-  const sealed = await prepareEdielOutboundOwnerWitness({companyId: baseInput.companyId, actorUserId, environment: baseInput.environment,
+  const sealed = requiresBilateralProdatOutboundOwner(baseInput)?{witnessId:undefined,evidence:originalEvidence}:await prepareEdielOutboundOwnerWitness({companyId: baseInput.companyId, actorUserId, environment: baseInput.environment,
     rawPayload: baseInput.rawPayload, rulePackEvidence: originalEvidence,...fixtureWitnesses})
 
   const canonicalInput: CreateEdielMessageInput = {

@@ -13,7 +13,8 @@ export async function customerRecordRetentionAction(_state:RetentionActionState,
   const action=z.enum(['submit','read','review','revoke','purge']).parse(form.get('action'))
   only(form,action==='submit'?['action','retention_class','target_id','document','issuer_receipt']:action==='review'?['action','decision_id','outcome','reason']:action==='revoke'?['action','decision_id','reason']:['action','decision_id'])
   const key=action==='submit'?'ediel.retention.submit':action==='purge'?'ediel.retention.purge':'ediel.retention.review'
-  const scope=await requireRetentionScope([key]),companyId=scope.companyId
+  const scope=await requireRetentionScope(),companyId=scope.companyId
+  if(action==='read'?!scope.permissions.some(p=>p==='ediel.retention.read'||p==='ediel.retention.review'):!scope.permissions.includes(key))throw Error('retention_current_operation_required')
   let result:unknown
   if(action==='submit'){
    const file=form.get('document');if(!(file instanceof File)||file.size<1||file.size>768000)throw Error('document_limit')
@@ -30,7 +31,7 @@ export async function customerRecordRetentionAction(_state:RetentionActionState,
    else if(action==='revoke'){await revokeCustomerRecordRetention({companyId,decisionId,reason:z.string().trim().min(1).max(4000).parse(form.get('reason'))});return {status:'revoked',message:'Beslutets behörighet är återkallad.'}}
    else{const first=await beginCustomerRecordRetention({companyId,decisionId});result=first.status==='storage_purge_pending'?await purgeRetainedContractDocument({companyId,decisionId}):first}
   }
-  revalidatePath('/admin/ediel/customer-record-retention')
+  revalidatePath('/admin/ediel/customer-record-retention');revalidatePath('/retention/customer-records')
   const row=result as {status:string;decisionId?:string}
   if(row.status==='held')return {status:'held',message:'Ingreppet är spärrat. Aktuellt källbundet juridiskt beslut, separat granskning, klassbehörighet och operativ avveckling måste vara styrkta.',decisionId:row.decisionId}
   if(row.status==='submitted')return {status:'submitted',message:'Underlaget är arkiverat. En annan behörig granskare måste pröva det innan ingrepp.',decisionId:row.decisionId}

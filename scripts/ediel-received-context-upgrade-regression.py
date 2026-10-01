@@ -75,7 +75,10 @@ trigger = checked("""SELECT pg_get_triggerdef(t.oid)||';' FROM pg_trigger t
  WHERE t.tgrelid='public.ediel_messages'::regclass AND NOT t.tgisinternal
  AND t.tgfoid='public.gridex_validate_ediel_message_contract()'::regprocedure;""")
 assert trigger.count('CREATE TRIGGER ') == 1, 'Exactly one actual canonical guard trigger required'
-dumped = subprocess.run(['pg_dump', URL, '--schema-only', '--section=pre-data',
+# CI installs the client matching the pinned native server. Use that same
+# explicit executable as the schema snapshot; PATH can still resolve v16.
+pg_dump = os.environ.get('GRIDEX_PG_DUMP', 'pg_dump')
+dumped = subprocess.run([pg_dump, URL, '--schema-only', '--section=pre-data',
  '--table=public.ediel_messages', '--table=public.ediel_message_profiles',
  '--table=public.ediel_rule_packs', '--no-owner', '--no-privileges'],
  text=True, capture_output=True, env=ENV, timeout=20)

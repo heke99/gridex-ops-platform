@@ -1,3 +1,4 @@
+import {requiresBilateralProdatOutboundOwner,createAtomicBilateralProdatOriginal} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 // lib/ediel/core/kernel.ts
 
 import type {
@@ -193,6 +194,7 @@ export async function createCanonicalOutboundMessage(params: {
         || params.duplicateCheck.outboundRequestId && duplicate.outbound_request_id !== params.duplicateCheck.outboundRequestId)
         throw new Error('canonical_outbound_existing_operation_scope_conflict')
       if (duplicate.raw_payload !== params.baseInput.rawPayload) throw new Error('canonical_outbound_existing_operation_wire_conflict')
+      if(requiresBilateralProdatOutboundOwner(params.baseInput))return createAtomicBilateralProdatOriginal(params.baseInput,actorUserId)
       await createCanonicalDuplicateBlockEvent({
         actorUserId,
         edielMessageId: duplicate.id,
@@ -218,6 +220,7 @@ export async function createCanonicalOutboundMessage(params: {
     }
   }
 
+  if(requiresBilateralProdatOutboundOwner(params.baseInput))return createAtomicBilateralProdatOriginal(params.baseInput,actorUserId)
   return createEdielMessage({
     ...params.baseInput,
     actorUserId,

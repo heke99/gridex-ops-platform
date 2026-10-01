@@ -9,4 +9,16 @@ export type EdielProjectionRequest = {
   startInclusive: string; endExclusive: string; limit?: number;
   after?: { readingAt: string; valueId: string } | null
 }
-export type EdielProjectionPage = { grantId: string; grantVersion: number; seriesId: string; rows: Record<string, unknown>[]; next: { readingAt: string; valueId: string } | null }
+export type EdielProjectionProvenance = {
+  version: 1; sourceMessageId: string; sourceRawHash: string;
+  sourceFamily: 'UTILTS'; sourceCode: 'E66'; sourceEnvironment: 'test' | 'production';
+  sourceRole: 'DDQ' | 'DGI'; sourceApplicationReference: string; sourceSenderEdielId: string;
+  receiverActorId: string; receiverRole: 'energy_service_company';
+  contractVersion: number; contractHash: string; purpose: string; fields: readonly EdielProjectionField[];
+  qualityOrigin: { sourceMessageId: string; seriesId: string; column: 'meter_reading_values.quality' } | null
+}
+export type EdielProjectionPage = {
+  grantId: string; grantVersion: number; seriesId: string; rows: Record<string, unknown>[];
+  next: { readingAt: string; valueId: string } | null;
+  consumerReceiptId: string; provenance: EdielProjectionProvenance
+}

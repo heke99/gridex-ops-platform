@@ -21,14 +21,15 @@ test('actual browser original upload, independent legal-purpose review and priva
  await writer.reload();await expect(writer.getByText('Styrkt ändamålsunderlag',{exact:true})).toBeVisible();await expect(writer.getByText(f.browserSourceHash,{exact:true})).toBeVisible();await info.attach('actual-purpose-source-separate-review-reload',{body:await writer.screenshot({fullPage:true}),contentType:'image/png'})
  await writer.close();await reviewer.close()
 })
-test('current owncompany read-only mobile and foreign browser cannot write, download foreign original or borrow AI history',async({browser},info)=>{
+test('current owncompany read-only mobile and foreign browser cannot write or download foreign original; independent producers do not fabricate AI history',async({browser},info)=>{
+ expect(f.fixtureStage).toBe('legal_contract_before_received_z04');expect(f.nativeAiMessageId).toBeNull();expect(f.downstreamEvidence.status).toBe('not_executed')
  const reader=await browser.newPage({viewport:{width:375,height:812}});await login(reader,f.readerEmail);await reader.goto(detail(f.nativeArtifactId));await expect(reader.getByRole('heading',{name:'AI/BI:s ändamålsunderlag',exact:true})).toBeVisible()
  for(const name of ['Arkivera ändamålsunderlag','Registrera ändamålsgranskning'])await expect(reader.getByRole('button',{name,exact:true})).toHaveCount(0)
  expect((await reader.request.post(`/api/ediel/ai-purpose-sources/${f.nativeArtifactId}/review`,{data:{decision:'approve'}})).status()).toBe(403)
  await reader.addStyleTag({content:'html{zoom:2}'});expect(await reader.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+2)).toBe(true);await info.attach('purpose-readonly-mobile-200-percent',{body:await reader.screenshot({fullPage:true}),contentType:'image/png'})
- await reader.goto('/admin/ediel/ai-list');await expect(reader.locator(`a[href="/admin/ediel/messages/${f.nativeAiMessageId}"]`).first()).toBeVisible();await expect(reader.getByRole('button',{name:/Generera|Skapa AI|Skicka/i})).toHaveCount(0)
+ await reader.goto('/admin/ediel/ai-list');await expect(reader.getByRole('button',{name:/Generera|Skapa AI|Skicka/i})).toHaveCount(0)
  const outsider=await browser.newPage();await login(outsider,f.outsiderEmail);await outsider.goto(detail(f.nativeArtifactId));await expect(outsider.getByText(f.browserSourceHash,{exact:true})).toHaveCount(0)
  const original=await outsider.request.get(`/api/ediel/ai-purpose-sources/${f.nativeArtifactId}/source`);expect(original.status()).toBe(403);expect(await original.text()).not.toContain(f.sourceText)
- await outsider.goto('/admin/ediel/ai-list');await expect(outsider.locator(`a[href="/admin/ediel/messages/${f.nativeAiMessageId}"]`)).toHaveCount(0)
+ await info.attach('downstream-ai-history-not-executed',{body:Buffer.from(JSON.stringify(f.downstreamEvidence)),contentType:'application/json'})
  await reader.close();await outsider.close()
 })
