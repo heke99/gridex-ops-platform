@@ -1,0 +1,25 @@
+# Source-owned recovery lineage and execution phase — code package
+
+Normative scope: TR05 / TEN01 / CALL03; P §4.1 pp107–108 and §3.2; T §1.4. P09 / SC030 / AT-Z06E / AT-Z09E additionally require the independently classified customer-event owner. Frozen requirements and formal acceptance results are unchanged.
+
+The prior implementation treated the immutable operation creator's current WRITE rights as current transport authority, and existing operation reads reran creation under WRITE. A legitimate current SEND-only actor could therefore not execute a genuine correction after its creator became inactive. The new common private source assessment is derived from the exact existing source owner and shared by creation and established-operation reads. Its canonical negative ACK, physical failed-object subset, source/hash, APERAK new-BGM and definite-transfer-loss checks remain. The assessment cannot write an operation; public creation still requires a current accepted tenant actor with communication.write. Queue, outbox and consumption require the current SEND union, ediel.send or communication.send, with current actor rows locked. No operation status or caller JSON grants transport entry.
+
+A further correction previously could not find the genuine private E original through the first correction. Bounded immutable links now select the original classified event, with each alias/operation/negative ACK independently qualified and exact raw/hash/environment fenced. The new message's originalMessageId remains its immediate failed original. classifiedOriginalMessageId selects only the E event owner; generic sourceOriginMessageId selects only the qualified terminal source original. A previously successful or omitted own scope cannot re-enter a correction. No original intent is rebound, and no raw E34/Z41 classification is invented.
+
+Preparation and fresh provider entry discover and lock the complete source/ACK cohort in sorted UUID order before actor, contract, event or permission qualification. The existing generic universe table lock is taken before fresh source rows. Entered, observed and provider-accepted historical truth delegates before fresh qualification; actual current actor and frozen attempt checks still run. Existing attempts, ACK outcomes and original bytes remain immutable.
+
+Actual consumers: public recovery creation/read/current RPCs, generic retry queue/outbox/consume, the actual provider journal and its replay cursor, service-original bridge, E recovery/message current owner, and generic reporting context preparation/SEND paths. R owns the separate service phase getter and permission/reporting loader integration. A source-current service helper still had a historical preparer metering.write dependency during this review; R received the exact Important finding for its owner-local forward correction. Further D/SW correction-generation source consumers remain a separately identified follow-up, rather than inferred completed from this shared package.
+
+## Checks actually run
+
+- 39 focused PostgreSQL mechanics: actual shared source assessment/read-only qualifier; WRITE creation vs SEND-only current execution; inactive creator vs revoked current actor; exact canonical negative ACK/correlation/hash and alias source scope; actual journal/cursor/retry enqueue, rollback and preserved prior attempt; fixed provider replay; lock-order body assertions.
+- 24 focused PostgreSQL E-lineage mechanics: immediate failed subset, current independently classified owner, aliases, cycle/bound/hash/tenant/environment drift, fresh prelock and immutable replay-first.
+- 18 targeted Vitest regressions across reporting recovery, date context and actual recovery consumer adapters.
+- Changed TypeScript/test lint: no diagnostics. SQL parse: 6 + 6 + 39 top-level statements. Diff whitespace check passes.
+- Independent A bounded source/code reviews cleared 41631, 55807 and 61029, including final current-actor lock and reporting phase delta. These reviews do not verify native replay/concurrency or authenticate issuer grounds.
+
+The PostgreSQL mechanics explicitly model canonical ACK admission/correlation, current service/classified-event source, capability and archive boundaries as declared synthetic fixtures. PGlite lacks PostgreSQL's LATIN1 conversion module; the journal mechanics use an explicit deterministic test-only Latin1 adapter. Production migration bodies are not modified for this fixture boundary. No authentic originals, approvals, mandates or versioned registries are seeded, and no PASSED result is minted.
+
+## Deferred candidate-SHA criteria
+
+Native chronological replay and schema/type parity; actual R phase/current service-source composition; D/SW source-consumer lineage; genuine independent classification and contract/registry original proof; concurrent preparation/fresh entry/current revocation; exact negative ACK/correction cycles through all actual source adapters; SMTP/outbox/manual consumers; full unit/security/browser and later manual tests. Native sender transport has no production activation or actual counterpart-send authorization from this code package.

@@ -1,7 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 
 export type RecoverySourceBasis = {
-  originalMessageId: string; operationId: string; sourceAckMessageId: string;
+  originalMessageId: string; sourceOriginMessageId: string; operationId: string; sourceAckMessageId: string;
   kind: 'contrl_correction' | 'aperak_correction'; correctedPayloadHash: string;
   allowedObjects: { point: string | null; identityAgency: string | null; li?: string; customerIdentity?: string; reason?: string }[];
 }
@@ -9,7 +9,7 @@ function basis(value: unknown): RecoverySourceBasis | undefined {
   if (value == null) return undefined
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('prodat_recovery_source_basis_invalid')
   const b = value as Record<string, unknown>
-  if (![b.originalMessageId,b.operationId,b.sourceAckMessageId].every(v => typeof v === 'string' && v)
+  if (![b.originalMessageId,b.sourceOriginMessageId,b.operationId,b.sourceAckMessageId].every(v => typeof v === 'string' && v)
     || !['contrl_correction','aperak_correction'].includes(String(b.kind)) || typeof b.correctedPayloadHash !== 'string' || !/^[a-f0-9]{64}$/.test(b.correctedPayloadHash)
     || !Array.isArray(b.allowedObjects) || !b.allowedObjects.length || b.allowedObjects.some(o => !o || typeof o !== 'object'
       || ![null,'string'].includes(o.point === null ? null : typeof o.point) || ![null,'string'].includes(o.identityAgency === null ? null : typeof o.identityAgency))) throw new Error('prodat_recovery_source_basis_invalid')
