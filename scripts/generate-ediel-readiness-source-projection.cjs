@@ -17,6 +17,14 @@ function load(file) {
   if (!file.startsWith(root + path.sep)) throw new Error('Source projection must stay inside the repository')
   const source = fs.readFileSync(file, 'utf8'); inputs[path.relative(root, file)] = hash(source)
   const module = { exports: {} }; cache.set(file, module)
+  if (path.extname(file) === '.json') {
+    // TypeScript's resolveJsonModule emits a default import while ordinary
+    // require retains the JSON value. Supply both through its __esModule
+    // interop contract without transpiling JSON as TypeScript source.
+    const value = JSON.parse(source)
+    module.exports = { __esModule: true, default: value }
+    return module.exports
+  }
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
   const localRequire = name => {
     if (name.startsWith('@/')) return load(path.join(root, name.slice(2)))
