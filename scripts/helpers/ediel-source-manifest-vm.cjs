@@ -10,17 +10,21 @@ const specifier = '@/docs/ediel/masterplan-v2/registers/source_manifest.json'
 const file = path.resolve(__dirname, '../../docs/ediel/masterplan-v2/registers/source_manifest.json')
 
 // Load the same committed source authority as the real guide registry. Only
-// this exact JSON dependency is allowed; unrelated imports keep their existing
+// these exact committed JSON dependencies are allowed; unrelated imports keep their existing
 // fail-closed loader checks. Use the caller's VM context and per-run cache.
 function sourceManifestModule(request, modules, parent) {
-  if (request !== specifier) return null
-  if (!modules.has(file)) {
-    const value = JSON.parse(fs.readFileSync(file, 'utf8'))
-    modules.set(file, new SyntheticModule(['default'], function () {
+  const grammarFile = path.resolve(__dirname, '../../lib/ediel/core/unsmGrammar.generated.json')
+  const requestedGrammar = request === '@/lib/ediel/core/unsmGrammar.generated.json'
+    || request === './unsmGrammar.generated.json' && parent.identifier === path.resolve(__dirname, '../../lib/ediel/core/unsmGrammar.ts')
+  if (request !== specifier && !requestedGrammar) return null
+  const sourceFile = requestedGrammar ? grammarFile : file
+  if (!modules.has(sourceFile)) {
+    const value = JSON.parse(fs.readFileSync(sourceFile, 'utf8'))
+    modules.set(sourceFile, new SyntheticModule(['default'], function () {
       this.setExport('default', value)
-    }, { identifier: file, context: parent.context }))
+    }, { identifier: sourceFile, context: parent.context }))
   }
-  return modules.get(file)
+  return modules.get(sourceFile)
 }
 
 function sourceRuntimeBoundary(request, modules, parent) {
@@ -34,6 +38,7 @@ function sourceRuntimeBoundary(request, modules, parent) {
   // Process, filesystem and customer-data I/O are explicitly denied, even
   // though current Ediel modules statically import their server adapters.
   const exports = {
+    'node:async_hooks': {AsyncLocalStorage: require('node:async_hooks').AsyncLocalStorage},
     'fast-xml-parser': {
       XMLParser: require('fast-xml-parser').XMLParser,
       XMLValidator: require('fast-xml-parser').XMLValidator,

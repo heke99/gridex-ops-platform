@@ -3,6 +3,8 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
+import { readEdielProcessNextActions, type EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'
 import {
   listAuthorizationScopes,
   listCustomerInfoRequests,
@@ -61,6 +63,22 @@ function targetPartyLabel(type: string): string {
     customer: 'Kund',
   }
   return labels[type] ?? type
+}
+
+function ProcessNextActionDetails({ decision }: { decision: EdielProcessNextAction }) {
+  const waitingLabels: Record<string,string> = { Z02_or_negative_APERAK:'Z02 eller negativ APERAK',CONTRL:'Teknisk CONTRL',APERAK:'APERAK' }
+  const blockerLabels:Record<string,string>={source_owned_process_context_required:'Källbeslut eller tidsgrund måste kontrolleras',business_response_rejected:'Kvalificerat negativt affärssvar',technical_response_rejected:'Teknisk avvisning',business_sender_watch_overdue:'Den egna affärsbevakningen har löpt ut',technical_sender_watch_overdue:'Den egna tekniska bevakningen har löpt ut'}
+  return <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs" aria-label="Nästa processåtgärd">
+    <p className="font-semibold">Nästa åtgärd</p><p className="mt-1">{decision.summary}</p>
+    <dl className="mt-2 space-y-1"><div><dt className="font-semibold">Väntar på</dt><dd>{decision.waitingFor.length?decision.waitingFor.map(value=>waitingLabels[value]??value).join(', '):'Inget automatiskt externt steg'}</dd></div>
+      <div><dt className="font-semibold">Ansvar</dt><dd>{decision.responsibility==='counterparty'?'Motpartens svar; eget bolag bevakar':'Eget bolag granskar'}</dd></div>
+      <div><dt className="font-semibold">Blockerare</dt><dd>{decision.blockers.length?decision.blockers.map(value=>blockerLabels[value]??'Källbeslutet kräver granskning').join(', '):'Ingen aktuell blockerare i detta källbeslut'}</dd></div>
+      <div><dt className="font-semibold">Tidsgrund</dt><dd>Egen uppföljning från SMTP-acceptans {decision.timeBasis.anchorAt??'saknar kvalificerad tidsgrund'}. Motpartens mottagningstid är inte känd.</dd></div>
+      <div><dt className="font-semibold">Affärsbevakning till</dt><dd>{decision.timeBasis.businessDueAt??'Ingen numerisk tidsgräns i källbeslutet'}</dd></div>
+      <div><dt className="font-semibold">Teknisk bevakning till</dt><dd>{decision.timeBasis.technicalDueAt??'Ingen aktiv teknisk tidsgräns'}</dd></div>
+      <div><dt className="font-semibold">Tillåtna åtgärder</dt><dd>{decision.allowedActions.map(action=>action==='read_source'?'Läsa källbeslut':'Granska manuellt').join(', ')||'Läsbehörighet krävs'}. Ingen automatisk omsändning.</dd></div>
+    </dl>
+  </div>
 }
 
 function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<{ id: string; label: string; sublabel: string | null }>; name?: string }) {
@@ -124,6 +142,11 @@ export default async function CustomerInfoRequestsPage() {
   } = await supabase.auth.getUser()
   const scope = user ? await getOperationalCompanyScope(user.id) : null
   const companyId = scope?.companyId ?? null
+  const membership = scope?.memberships.find(row=>row.companyId===companyId)
+  const currentWritable = Boolean(user&&admin.userId===user.id&&admin.companyId===companyId&&membership?.status==='active'&&isCompanyWritableInTenantWorkspace(membership.companyStatus))
+  const canReadProcess = Boolean(companyId&&admin.permissions.includes('communication.read'))
+  const canPrepareRequest = currentWritable&&admin.permissions.includes('customers.write')&&admin.permissions.includes('communication.send')
+  const canPreparePermission = currentWritable&&admin.permissions.includes('metering.write')&&admin.permissions.includes('communication.send')
 
   const [customers, requests, authorizationScopes, permissions, resourceOptions] = companyId
     ? await Promise.all([
@@ -134,6 +157,19 @@ export default async function CustomerInfoRequestsPage() {
         listCustomerInfoRequestResourceOptions(companyId),
       ])
     : [[], [], [], [], { sites: [], meteringPoints: [], gridOwners: [] }]
+
+  const processDecisions = new Map<string,EdielProcessNextAction>()
+  let processReadUnavailable = false
+  if(companyId&&user&&canReadProcess){
+    const sourceIds = requests.slice(0,12).flatMap(request=>request.ediel_message_id?[request.ediel_message_id]:[])
+    try {
+      for(const environment of ['test','production'] as const){
+        const decisions=await readEdielProcessNextActions({companyId,actorUserId:user.id,environment,messageIds:sourceIds,evaluatedAt:new Date().toISOString(),
+          access:{canRead:canReadProcess,canReview:currentWritable&&admin.permissions.includes('cases.write'),canPrepare:canPrepareRequest}})
+        for(const [id,decision] of decisions)processDecisions.set(id,decision)
+      }
+    }catch{processReadUnavailable=true;processDecisions.clear()}
+  }
 
   const blockedRequests = requests.filter((request) => ['blocked', 'route_missing', 'negative_aperak', 'manual_review_required', 'missing_authorization'].includes(request.status))
   const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
@@ -223,7 +259,7 @@ export default async function CustomerInfoRequestsPage() {
                 </div>
               </div>
               <textarea name="notes" rows={3} placeholder="Intern notering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">Skapa uppgiftsbegäran</button>
+              <button disabled={!currentWritable||!admin.permissions.includes('customers.write')} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa uppgiftsbegäran</button>
             </div>
           </form>
 
@@ -251,7 +287,7 @@ export default async function CustomerInfoRequestsPage() {
                 <input name="valid_to" type="date" className="h-11 rounded-2xl border border-slate-300 px-4 text-sm" />
               </div>
               <textarea name="evidence_note" rows={3} placeholder="Signeringsmetod, bilaga, muntlig fullmakt eller bevisnotering" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-              <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">Spara omfattning</button>
+              <button disabled={!currentWritable||!admin.permissions.some(value=>['poa.write','customers.write'].includes(value))} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Spara omfattning</button>
             </div>
           </form>
 
@@ -272,7 +308,7 @@ export default async function CustomerInfoRequestsPage() {
                 <input type="checkbox" name="authorization_confirmed" className="mt-1" />
                 <span>Fullmakt/avtal är kontrollerad och täcker mätvärdesbegäran.</span>
               </label>
-              <button className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800">Skapa tillståndsutkast</button>
+              <button disabled={!currentWritable||!admin.permissions.some(value=>['metering.write','customers.write'].includes(value))} className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">Skapa tillståndsutkast</button>
             </div>
           </form>
         </section>
@@ -293,12 +329,13 @@ export default async function CustomerInfoRequestsPage() {
                   <div className="mt-3 text-sm font-semibold text-slate-950">{requestTypeLabel(request.request_type)}</div>
                   <div className="mt-1 text-xs leading-5 text-slate-600">{targetPartyLabel(request.target_party_type)}{request.target_party_name ? ` · ${request.target_party_name}` : ''}</div>
                   {request.blocker_reason ? <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">{request.blocker_reason}</div> : null}
-                  <form action={queueCustomerInfoRequestAction} className="mt-3">
+                  {request.ediel_message_id&&processDecisions.has(request.ediel_message_id)?<ProcessNextActionDetails decision={processDecisions.get(request.ediel_message_id)!}/>:request.sent_at?<p className="mt-3 text-xs text-amber-900" role="status">{!canReadProcess?'Läsbehörighet till kommunikation krävs för aktuellt processbeslut.':processReadUnavailable?'Processbeslutet kunde inte hämtas. Granska innan fortsatt åtgärd.':'Källkvalificerat processbeslut saknas. Granska innan fortsatt åtgärd.'} Ingen automatisk omsändning.</p>:null}
+                  {canPrepareRequest&&!processReadUnavailable&&!request.sent_at&&!['waiting_for_contrl','waiting_for_aperak','waiting_for_z02','z02_received','ready_for_switch','completed','negative_aperak','failed','cancelled','rejected'].includes(request.status)&&!(request.ediel_message_id&&processDecisions.has(request.ediel_message_id))?<form action={queueCustomerInfoRequestAction} className="mt-3">
                     <input type="hidden" name="request_id" value={request.id} />
                     <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
                       Kontrollera fullmakt och förbered Z01
                     </button>
-                  </form>
+                  </form>:null}
                 </div>
               ))}
             </div>
@@ -337,13 +374,13 @@ export default async function CustomerInfoRequestsPage() {
                   <div className="mt-1 text-xs leading-5 text-slate-600">{permission.requested_start_date ?? 'Start saknas'} → {permission.requested_end_date ?? 'tills vidare'}</div>
                   {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}
                   <div className="mt-3 grid gap-2">
-                    <form action={queueMeteringPermissionZ13Action}>
+                    {canPreparePermission&&!['sent','waiting_for_z14','z14_received','approved','active','revoked','rejected','ended','cancelled'].includes(permission.status)?<form action={queueMeteringPermissionZ13Action}>
                       <input type="hidden" name="permission_id" value={permission.id} />
                       <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
                         Kontrollera fullmakt och förbered Z13
                       </button>
-                    </form>
-                    <details className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    </form>:null}
+                    {canPreparePermission?<details className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                       <summary className="cursor-pointer text-xs font-semibold text-slate-700">Koppla mottaget Z14-svar</summary>
                       <form action={applyZ14SnapshotAction} className="mt-3 grid gap-2">
                         <input type="hidden" name="permission_id" value={permission.id} />
@@ -351,7 +388,7 @@ export default async function CustomerInfoRequestsPage() {
                         <input id={`z14-source-${permission.id}`} name="source_message_id" required placeholder="Meddelande-id" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
                         <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Koppla och behandla mottaget svar</button>
                       </form>
-                    </details>
+                    </details>:null}
                   </div>
                 </div>
               ))}

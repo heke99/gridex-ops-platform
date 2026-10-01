@@ -8,6 +8,7 @@ import { decideProdatLifecycle } from '@/lib/ediel/stateMachines/prodatLifecycle
 import { applyInboundZ15PermissionState } from '@/lib/ediel/flows/prodatPermissionLifecycle'
 import { enqueueCustomerLifecycleNotification } from '@/lib/customer-notifications/notificationOrchestrator'
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
+import { deriveEdielReviewProcessDecision } from '@/lib/ediel/operations/processNextAction'
 
 export type InboundBusinessOutcome =
   | 'grid_owner_information_received'
@@ -119,6 +120,7 @@ async function createReviewCase(input: {
     next_action: input.nextAction ?? null,
     source: 'ediel_inbound_state_machine',
     metadata: {
+      process_next_action: deriveEdielReviewProcessDecision({message:input.message,reviewIntent:input.reviewIntent,nextAction:input.nextAction}),
       ...(input.reviewIntent ? { review_intent: input.reviewIntent } : {}),
       source_ediel_message_id: input.message.id,
       message_family: input.message.message_family,

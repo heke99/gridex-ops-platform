@@ -1,4 +1,5 @@
 import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
+import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParties'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
@@ -82,7 +83,7 @@ export async function prepareAndQueueUtiltsE73(params: {
   })
 
   const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
-    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,legalSupplier:routeContext.senderEdielId,legalNetwork:routeContext.receiverEdielId})
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -119,6 +120,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     receiverEmail: routeContext.receiverEmail,
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -253,7 +256,7 @@ export async function prepareAndQueueUtiltsE66(params: {
   })
 
   const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
-    periodStart:params.periodStart??dataRequest.requested_period_start,periodEnd:params.periodEnd??dataRequest.requested_period_end,legalSupplier:routeContext.senderEdielId,legalNetwork:routeContext.receiverEdielId})
+    periodStart:params.periodStart??dataRequest.requested_period_start,periodEnd:params.periodEnd??dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -290,6 +293,8 @@ export async function prepareAndQueueUtiltsE66(params: {
     receiverEmail: routeContext.receiverEmail,
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,

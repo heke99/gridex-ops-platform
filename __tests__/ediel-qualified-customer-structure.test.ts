@@ -25,7 +25,7 @@ describe('actual owned dated customer structure consumer',()=>{
  it('holds missing original facets and different source resolution across the requested interval',async()=>{
   const baseline=version();delete baseline.measurements;mocks.read.mockResolvedValue(data([baseline]))
   expect(await readQualifiedCustomerStructure(input)).toMatchObject({status:'selected',fields:{measurementMethod:null}})
-  const change=version();change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements!.measurementMethod='Z02'
+  const change=version();change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements={...change.measurements!,measurementMethod:'Z02'}
   mocks.read.mockResolvedValue(data([version(),change]))
   expect(await readQualifiedCustomerStructure({...input,periodStart:'2026-10-03'})).toMatchObject({status:'selected',fields:{measurementMethod:null}})
  })

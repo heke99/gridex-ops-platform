@@ -18,6 +18,18 @@ export type EdielRulebookProcessGroup =
   | 'metering'
   | 'metering_access'
   | 'meter_values'
+  | 'aggregated_settlement'
+  | 'object_consumption_forecast'
+  | 'preliminary_shares'
+  | 'summed_plan_values'
+  | 'bilateral_aggregate_request'
+  | 'object_time_series'
+  | 'collected_metering'
+  | 'final_aggregated_metering'
+  | 'validated_metering'
+  | 'missing_e30_request'
+  | 'missing_s02_e66_request'
+  | 'missing_s03_e31_request'
   | 'functional_rejection'
   | 'ediel_ack'
   | 'ai_list'
@@ -124,7 +136,7 @@ export function processGroupForMessage(
     return process
   }
   if (normalizedFamily === 'UTILTS') {
-    return getCanonicalUtiltsProfile(normalizedCode) ? 'meter_values' : 'unknown'
+    return (getCanonicalUtiltsProfile(normalizedCode)?.businessProcess as EdielRulebookProcessGroup | undefined) ?? 'unknown'
   }
   if (isAckFamily(normalizedFamily) || isAckFamily(normalizedCode)) return 'ediel_ack'
   if (normalizedFamily === 'AI_LIST' || normalizedCode === 'AI') return 'ai_list'

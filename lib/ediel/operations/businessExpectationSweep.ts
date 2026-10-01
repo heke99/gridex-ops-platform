@@ -1,5 +1,6 @@
 import { readEdielBusinessExpectations, expireEdielBusinessExpectations } from '@/lib/ediel/businessExpectations'
 import { supabaseService } from '@/lib/supabase/service'
+import { readEdielProcessNextActions, type EdielProcessNextAction } from './processNextAction'
 
 /** Sweep only the automation actor's accepted memberships. Each operation
  * repeats authorization in the source-owner RPC; a clock never sends a message. */
@@ -14,11 +15,12 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
   // Do not silently visit only an arbitrary prefix of a larger actor scope.
   if (companies.length > 200) throw new Error('ediel_expectation_sweep_scope_limit')
   const result = { scopes: 0, observed: 0, manualReview: 0, fulfilled: 0, rejected: 0,
-    blocked: [] as Array<{ companyId: string; environment: 'test' | 'production'; operation: 'read' | 'expire'; reason: string }> }
+    nextActions: [] as Array<{companyId:string;environment:'test'|'production';decision:EdielProcessNextAction}>,
+    blocked: [] as Array<{ companyId: string; environment: 'test' | 'production'; operation: 'read' | 'expire' | 'project'; reason: string }> }
   for (const companyId of companies) {
     for (const environment of ['test', 'production'] as const) {
       const scope = { actorUserId: input.actorUserId, companyId, environment, limit }
-      let operation: 'read' | 'expire' = 'read'
+      let operation: 'read' | 'expire' | 'project' = 'read'
       try {
         // Reading projects already committed business responses. Expiry is a
         // separate send-level authorization and only escalates pending watches.
@@ -30,6 +32,13 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
         result.manualReview += rows.filter(row => row.status === 'manual_review').length
         result.fulfilled += rows.filter(row => row.status === 'fulfilled').length
         result.rejected += rows.filter(row => row.status === 'rejected').length
+        operation='project'
+        const sourceIds=rows.flatMap(row=>typeof row.source_message_id==='string'?[row.source_message_id]:[])
+        // Timer output is display-only. An automation actor's send grant never
+        // manufactures cases.write permission, provider entry or an auto-resend.
+        const decisions=await readEdielProcessNextActions({...scope,messageIds:sourceIds,evaluatedAt:new Date().toISOString(),
+          access:{canRead:true,canReview:false,canPrepare:false}})
+        for(const decision of decisions.values())result.nextActions.push({companyId,environment,decision})
       } catch (error) {
         result.blocked.push({ companyId, environment, operation,
           reason: error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'ediel_expectation_sweep_failed' })

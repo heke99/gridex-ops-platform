@@ -64,6 +64,8 @@
     "20261001003807_ediel_utilts_esco_pre_storage_scope.sql": "8c3eee67916b213ce3d73a728d5839bf64c990bd37caa987dc595ebeffe5c1cb",
     "20261001004331_ediel_regulated_supply_ground_archive_review.sql": "3be008d4711b571ebf3ce256646fac088767b865a9501229fc1d4fa061efbbb0",
     "20261001004953_ediel_current_company_permission_denies.sql": "3a83ea9f98a75c8bed50eed150fd6101df5e3ac3418696f79ccc88708bb9f665",
-    "20261001010758_ediel_bilateral_customer_source_owner.sql": "828013f3136610440a174897505fbf3ae91c675c7c6bad9ea9c81c41113ae70c"
+    "20261001010758_ediel_bilateral_customer_source_owner.sql": "828013f3136610440a174897505fbf3ae91c675c7c6bad9ea9c81c41113ae70c",
+    "20261001000459_ediel_retention_migration_owner_prerequisite.sql": "df7d140a069a77fc959c69b876d8cd8c5cab1e76d32751e5ddee12635a48bbf5",
+    "20261001013836_ediel_customer_first_register_scope.sql": "d614d3b810889ab1ad46a068b7a0e1df3e3e47a361d1f551d095e869f307ad0a"
   }
 }

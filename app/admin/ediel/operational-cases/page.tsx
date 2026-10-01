@@ -9,6 +9,7 @@ import { tenantDb } from '@/lib/supabase/tenantDb'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import type { CustomerCaseRow } from '@/lib/customer-cases/types'
+import { readPersistedEdielReviewProcessDecision } from '@/lib/ediel/operations/processNextAction'
 import { updateEdielOperationalCaseStatusAction } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,7 @@ const SOURCE = 'ediel_inbound_state_machine'
 const EXCEPTION_STATUSES = ['open', 'action_required', 'awaiting_external_response', 'billing_blocked', 'manual_follow_up'] as const
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const INTENTS = new Set(['final_metering_and_billing', 'supply_continuation_review', 'meter_change_review', 'masterdata_update_review', 'ediel_unexpected_direction'])
+const REVIEW_REASONS: Record<string, string> = { final_metering_and_billing: 'Slutavläsning och fakturering', supply_continuation_review: 'Fortsatt elleverans behöver granskas', meter_change_review: 'Mätarhändelse behöver granskas', masterdata_update_review: 'Grunduppgifter behöver granskas', ediel_unexpected_direction: 'Meddelandets riktning behöver granskas', source_business_review: 'Källbeslut behöver granskas' }
 
 function formatDate(value: string | null | undefined) {
   return value ? new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—'
@@ -27,13 +29,13 @@ function metadataId(row: CustomerCaseRow, key: string): string | null {
   return typeof value === 'string' && ID.test(value) ? value : null
 }
 
-async function hasRelatedRow(table: 'customers' | 'ediel_messages', id: string, companyId: string) {
-  const scopedQuery = tenantDb(companyId).from(table).select('id,company_id') as {
-    eq: (column: string, value: string) => { maybeSingle: () => Promise<{ data: { company_id: string } | null; error: unknown }> }
+async function readRelatedRow(table: 'customers' | 'ediel_messages', id: string, companyId: string) {
+  const scopedQuery = tenantDb(companyId).from(table).select(table === 'ediel_messages' ? 'id,company_id,message_received_at' : 'id,company_id') as {
+    eq: (column: string, value: string) => { maybeSingle: () => Promise<{ data: { id: string; company_id: string; message_received_at?: string | null } | null; error: unknown }> }
   }
   const { data, error } = await scopedQuery.eq('id', id).maybeSingle()
   if (error) throw error
-  return data?.company_id === companyId
+  return data?.company_id === companyId && data.id === id ? data : null
 }
 
 export default async function EdielOperationalCasesPage({ searchParams }: { searchParams: Promise<{ caseId?: string | string[]; view?: string | string[]; page?: string | string[] }> }) {
@@ -61,15 +63,19 @@ export default async function EdielOperationalCasesPage({ searchParams }: { sear
 
   const sourceId = selectedCase ? metadataId(selectedCase, 'source_ediel_message_id') : null
   const canReadCustomer = scope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('customers.detail'))
-  const [sourceValid, customerValid] = selectedCase ? await Promise.all([
-    sourceId ? hasRelatedRow('ediel_messages', sourceId, selectedCase.company_id) : Promise.resolve(false),
-    selectedCase.customer_id && canReadCustomer ? hasRelatedRow('customers', selectedCase.customer_id, selectedCase.company_id) : Promise.resolve(false),
-  ]) : [false, false]
+  const [source, customer] = selectedCase ? await Promise.all([
+    sourceId ? readRelatedRow('ediel_messages', sourceId, selectedCase.company_id) : Promise.resolve(null),
+    selectedCase.customer_id && canReadCustomer ? readRelatedRow('customers', selectedCase.customer_id, selectedCase.company_id) : Promise.resolve(null),
+  ]) : [null, null]
+  const sourceValid = Boolean(source), customerValid = Boolean(customer)
   const rawIntent = selectedCase?.metadata && typeof selectedCase.metadata === 'object' ? selectedCase.metadata.review_intent : null
   const intent = typeof rawIntent === 'string' && INTENTS.has(rawIntent) ? rawIntent : 'Okänd eller saknad granskningsavsikt'
   const operational = selectedCase && !scope.isPlatformAdmin && context.permissions.includes('cases.write') ? await getOperationalCompanyScope(context.userId) : null
   const membership = operational?.memberships.find((row) => row.companyId === scope.companyId)
   const canTriage = Boolean(selectedCase && operational && context.companyId === scope.companyId && operational.companyId === scope.companyId && membership?.status === 'active' && isCompanyWritableInTenantWorkspace(membership.companyStatus))
+  const process = selectedCase && source ? readPersistedEdielReviewProcessDecision(selectedCase.metadata?.process_next_action, {
+    message: { id: source.id, message_received_at: source.message_received_at ?? null }, reviewIntent: typeof rawIntent === 'string' ? rawIntent : undefined, nextAction: selectedCase.next_action,
+  }) : null
 
   return <div className="min-h-screen bg-slate-50">
     <AdminHeader title="Ediel-ärenden" subtitle="Operativa granskningsärenden från inkommande Ediel. Statushantering ger ingen käll- eller marknadsgodkännande." userEmail={context.email} workspaceName={scope.isPlatformAdmin ? 'Gridex Platform' : scope.companyName ?? 'Bolag saknas'} workspaceMode={scope.isPlatformAdmin ? 'platform' : 'tenant'} />
@@ -84,6 +90,10 @@ export default async function EdielOperationalCasesPage({ searchParams }: { sear
         {!selectedCase ? <p className="text-sm text-slate-600">Välj ett ärende för att se granskningsorsak och nästa åtgärd.</p> : <article className="space-y-5">
           <div><h2 className="text-xl font-semibold text-slate-950">{selectedCase.title}</h2><p className="mt-1 text-sm text-slate-600">{customerCaseStatusLabel(selectedCase.status)} · {selectedCase.priority} · Skapat {formatDate(selectedCase.created_at)} · Uppdaterat {formatDate(selectedCase.updated_at)}</p>{scope.isPlatformAdmin ? <p className="text-sm text-slate-600">Bolag: {selectedCase.company_id}</p> : null}</div>
           <dl className="space-y-3 text-sm"><div><dt className="font-semibold">Granskningsavsikt</dt><dd>{intent}</dd></div><div><dt className="font-semibold">Orsakskategori</dt><dd>{selectedCase.reason_category ?? 'Ej angiven'}</dd></div><div><dt className="font-semibold">Beskrivning</dt><dd className="whitespace-pre-wrap">{selectedCase.description ?? 'Ej angiven'}</dd></div><div><dt className="font-semibold">Nästa åtgärd</dt><dd className="whitespace-pre-wrap">{selectedCase.next_action ?? 'Ej angiven'}</dd></div></dl>
+          <section aria-label="Processens nästa steg" className="rounded-xl border border-slate-200 p-4 text-sm">
+            <h3 className="font-semibold">Processens nästa steg</h3>
+            {process ? <dl className="mt-3 space-y-2"><div><dt className="font-semibold">Ansvar</dt><dd>Bolagets operatör</dd></div><div><dt className="font-semibold">Faktisk mottagningstid</dt><dd>{formatDate(process.timeBasis.admittedAt)}</dd></div><div><dt className="font-semibold">Tidsgrund</dt><dd>Inkommande källmeddelandes mottagning; ingen protokollfrist härleds för granskningen.</dd></div><div><dt className="font-semibold">Granskningsorsak</dt><dd>{REVIEW_REASONS[process.cause] ?? 'Källbeslut behöver granskas'}</dd></div><div><dt className="font-semibold">Blockerare</dt><dd>{process.blockers.includes('actual_admission_time_required') ? 'Källmeddelandets faktiska mottagningstid saknas.' : 'Källbeslutet kräver operativ granskning.'}</dd></div><div><dt className="font-semibold">Fortsatt åtgärd</dt><dd>{process.summary}</dd></div><div><dt className="font-semibold">Tillgängligt nästa steg</dt><dd>{canTriage ? 'Granska ärendet och uppdatera ärendestatus.' : 'Läs ärendet. Statusändring kräver aktuell bolagsbehörighet.'}</dd></div></dl> : <p className="mt-2 text-slate-600">Processens tidsgrund kan inte verifieras mot källmeddelandet. Kontrollera källbeslutet innan fortsatt åtgärd.</p>}
+          </section>
           <div className="space-y-2 text-sm"><h3 className="font-semibold">Referenser</h3>
             {sourceId && sourceValid ? scope.isPlatformAdmin ? <Link href={`/admin/ediel/messages/${sourceId}`} className="underline focus-visible:outline">Källmeddelande {sourceId}</Link> : <p>Källmeddelande {sourceId} — källvyn kräver plattformsbehörighet.</p> : <p>Källmeddelande kan inte verifieras för detta bolag.</p>}
             {selectedCase.customer_id && customerValid ? <p><Link href={`/admin/customers/${selectedCase.customer_id}`} className="underline focus-visible:outline">Visa kund</Link></p> : <p>Kundlänk är inte tillgänglig för detta bolag eller denna behörighet.</p>}

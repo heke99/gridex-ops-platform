@@ -418,6 +418,14 @@ function renderUtiltsSegments(input: {
   const registrationTime =
     getPayloadString(payload, 'registrationTime') || new Date().toISOString()
   const quantity = getPayloadNumber(payload, 'quantity', 'valueKwh', 'requestedQuantity')
+  // U §3.7.3 pp62–65 defines request fields, without observation QTY.
+  // An invented SEQ would hide the unsupported national request semantics.
+  if (input.code === 'E73' && quantity !== null) throw new Error('utilts_request_quantity_not_source_supported')
+  const legalSender = getPayloadString(payload, 'legalSenderEdielId')
+  const legalReceiver = getPayloadString(payload, 'legalReceiverEdielId')
+  // UNB identifies transport endpoints. A separate source-owned legal party
+  // is mandatory in SG2 and must never be inferred from that endpoint.
+  if (!/^\d{5}$/.test(legalSender) || !/^\d{5}$/.test(legalReceiver)) throw new Error('utilts_legal_parties_source_required')
   const unit = sanitize(getPayloadString(payload, 'unit') || 'KWH')
   const transactionReason = sanitize(
     getPayloadString(payload, 'transactionReason') ||
@@ -435,6 +443,8 @@ function renderUtiltsSegments(input: {
   segments.push(`DTM+735:?+0100:406`)
   segments.push(`MKS+23+E02::260`)
   segments.push(`RFF+TN:${sanitize(input.transactionReference)}`)
+  segments.push(`NAD+MS+${legalSender}::260`)
+  segments.push(`NAD+MR+${legalReceiver}::260`)
 
   if (meterPointId) {
     segments.push(`IDE+24+${sanitize(input.transactionReference)}`)
@@ -459,6 +469,8 @@ function renderUtiltsSegments(input: {
     segments.push(`DTM+354:${resolution}:802`)
     segments.push(`STS+7++E88::260`)
     segments.push(`MEA+AAZ++${unit}`)
+    // D02B SG5 FTX precedes SG6/SG7 and all SG8 observations.
+    if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
     segments.push(`CCI+++${readingType}`)
     segments.push(`CAV+E17::260`)
 
@@ -471,13 +483,7 @@ function renderUtiltsSegments(input: {
   if (input.code === 'E73') {
     segments.push(`STS+7++E73::260`)
     segments.push(`FTX+AAO+++${transactionReason}`)
-    if (quantity !== null) {
-      segments.push(`QTY+47:${String(quantity)}`)
-    }
-  }
-
-  if (siteType) {
-    segments.push(`FTX+ZZZ+++${siteType}`)
+    if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
   }
 
   return segments
