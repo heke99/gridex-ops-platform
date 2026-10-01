@@ -67,13 +67,19 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
     disposition:rejected||disposition==='rejected'?'rejected':'unavailable',
     reasons:rejected?['canonical_rejected']:disposition==='rejected'&&reasons.length?reasons:['source_owner_not_established'],business:null,party:null}))
   let operation:Promise<SourceOwnerReceipt>|undefined
+  let pending:Promise<void> = Promise.resolve()
+  const committedScopes = new Set<string>()
   return {
     async onSwitchCommitted(commit) {
       if (operation || !isSourceSwitchCommit(commit)) return
-      operation = (async()=>{
+      const key = JSON.stringify([commit.switchRequestId,commit.supplyPeriodId])
+      if (committedScopes.has(key)) return
+      committedScopes.add(key)
+      pending = pending.then(async()=>{
         if (ready) {
-          // One actual legacy operation selects one physical point. Resolve
-          // that point once, rather than doing owner reads in an object loop.
+          // One native whole-source transaction may commit multiple exact
+          // objects. Accumulate their existing primary-owner decisions before
+          // the single immutable composition is persisted in finish().
           try {
             const point = await readSourceOwnerRow('metering_points', seed.evidence.companyId,
               commit.message.metering_point_id ?? '', AbortSignal.timeout(2000))
@@ -87,10 +93,9 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
             }
           } catch { /* Preserve all explicit unavailable entries. */ }
         }
-        return persist(seed,entries)
-      })()
-      return operation
+      })
+      await pending
     },
-    finish() { return operation ??= persist(seed,entries) },
+    finish() { return operation ??= pending.then(()=>persist(seed,entries)) },
   }
 }

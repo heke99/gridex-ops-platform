@@ -43,4 +43,18 @@ describe('source-bound supply consumer execution', () => {
   const result = await applyInboundBusinessStateMachine({ actorUserId: 'actor', message: source(), matchedSwitchRequestId: 'own-switch' })
   expect(result).toMatchObject({ outcome: 'manual_review_required', reviewRequired: true, updated: [] });expect(io.from).not.toHaveBeenCalled();expect(io.notification).not.toHaveBeenCalled()
  })
+ it('uses every native confirmed scope and cannot turn a parsed start date or correlation hint into activation',async()=>{
+  io.lifecycle.mockReturnValue({outcome:'supplier_switch_accepted',subtype:'L',process:'supplier_switch',state:'switch_accepted'})
+  const commits=[{switchRequestId:'own-A',supplyPeriodId:'period-A',customerId:'customer-A',meteringPointId:'point-A',siteId:'site-A'},{switchRequestId:'own-B',supplyPeriodId:'period-B',customerId:'customer-B',meteringPointId:'point-B',siteId:'site-B'}]
+  io.rpc.mockResolvedValue({data:{applied:true,periods:[],commits},error:null})
+  const observed:unknown[]=[]
+  const result=await applyInboundBusinessStateMachine({actorUserId:'actor',message:source({parsed_payload:{actual_start_date:'1900-01-01'}}),matchedSwitchRequestId:'untrusted-other',onSourceSwitchCommitted:async c=>{observed.push(c)}})
+  expect(result.outcome).toBe('supplier_switch_accepted');expect(observed).toHaveLength(2)
+  expect(observed[1]).toMatchObject({switchRequestId:'own-B',supplyPeriodId:'period-B',message:{customer_id:'customer-B',metering_point_id:'point-B',site_id:'site-B'}})
+  expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_supply_source_v1',{p_company_id:'tenant-a',p_source_message_id:'actual-source',p_actor_user_id:'actor'});expect(io.from).not.toHaveBeenCalled()
+ })
+ it('rejects a truncated native commit response instead of silently accepting a partial composition',async()=>{
+  io.rpc.mockResolvedValue({data:{applied:true,commits:[{switchRequestId:'own-A'}]},error:null})
+  await expect(applySupplyMarketSource({actorUserId:'actor',message:source()})).rejects.toThrow('commit_scope_invalid')
+ })
 })

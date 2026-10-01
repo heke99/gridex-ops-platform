@@ -37,10 +37,10 @@ it('uses a real fully accepted canonical register source as the positive oracle'
 it('composes the real canonical, tenant, selected-party and committed Z04 owners, then witnesses separately',async()=>{
  const state=await record();const receipt=await apply(state)
  expect(receipt).toMatchObject({status:'recorded',sourceDisposition:'accepted',assessmentId:ownerId(31),witnessId:ownerId(32)})
- expect(io.calls.map(x=>x.name)).toEqual(['gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
+ expect(io.calls.map(x=>x.name)).toEqual(['gridex_record_source_validation_v1','ediel_apply_supply_source_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
  const fact=objectFacts();expect(fact.objects).toHaveLength(1)
  expect(fact.objects[0]).toMatchObject({disposition:'accepted',reasons:[],object:{messageIndex:0,messageReference:'M',objectId:OWNER.external,identityAgency:'9'},business:{owner:'inbound-z04-switch-confirmation-v1',switchRequestId:OWNER.switch,supplyPeriodId:OWNER.supply,effectiveFrom:{fieldNumber:'210',marketMinute:'202610010000',utc:'2026-09-30T23:00:00.000Z'}},party:{receiver:{evidence:{completeness:'exact_count'}},parties:{legalSender:'12345',legalReceiver:'54321',transportSender:'12345',transportReceiver:'54321'}}})
- expect(await state.session!.finish()).toEqual(receipt);expect(io.calls).toHaveLength(3)
+ expect(await state.session!.finish()).toEqual(receipt);expect(io.calls).toHaveLength(4)
 })
 it('cannot rehydrate approval capability from copied canonical receipt JSON',async()=>{const {receipt}=await record();expect(createReceivedSourceOwnerSession(JSON.parse(JSON.stringify(receipt)))).toBeNull()})
 it('a caller-provided commit-shaped object cannot impersonate the successful business path',async()=>{

@@ -1,4 +1,4 @@
-import { applySupplyMarketSource, supplyStartAlreadyCancelled } from './supplyMarketTransition'
+import { applySupplyMarketSource } from './supplyMarketTransition'
 import {publishSourceSwitchCommit, type SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { supabaseService } from '@/lib/supabase/service'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
@@ -46,15 +46,6 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function dateOnly(value: unknown): string | null {
-  const raw = text(value)
-  if (!raw) return null
-  if (/^\d{8}$/.test(raw)) return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
-  const parsed = new Date(raw)
-  if (Number.isNaN(parsed.getTime())) return raw.slice(0, 10)
-  return parsed.toISOString().slice(0, 10)
-}
-
 function readPayloadRecord(message: EdielMessageRow): Record<string, unknown> {
   const parsed = message.parsed_payload
   return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {}
@@ -100,85 +91,6 @@ async function recordEvent(input: {
       ...input.result.metadata,
     },
   })
-}
-
-async function ensureSupplyPeriodFromSwitch(input: {
-  message: EdielMessageRow
-  status: 'active' | 'confirmed_by_grid_owner' | 'ended'
-}) {
-  const companyId = input.message.company_id ?? text(readPayloadRecord(input.message).resolved_company_id) ?? null
-  const customerId = input.message.customer_id ?? null
-  const meteringPointId = input.message.metering_point_id ?? null
-  if (!companyId || !customerId || !meteringPointId) return null
-
-  const parsed = readPayloadRecord(input.message)
-  const startDate = dateOnly(parsed.start_date) ?? dateOnly(parsed.startDate) ?? dateOnly(parsed.supply_start_date)
-  if (!startDate) throw new Error('supply_period_start_date_required')
-  const endDate = input.status === 'ended'
-    ? dateOnly(parsed.end_date) ?? dateOnly(parsed.endDate) ?? dateOnly(parsed.supply_end_date)
-    : null
-
-  const { data: existing, error: existingError } = await supabaseService
-    .from('customer_supply_periods')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('metering_point_id', meteringPointId)
-    .eq('customer_id', customerId)
-    .lte('start_date', startDate)
-    .or(`end_date.is.null,end_date.gte.${startDate}`)
-    .limit(1)
-    .maybeSingle()
-
-  if (existingError) throw existingError
-
-  if ((existing as { id?: string } | null)?.id) {
-    const id = (existing as { id: string }).id
-    await strictUpdate('customer_supply_periods', {
-      status: input.status,
-      end_date: endDate ?? undefined,
-      source_message_id: input.message.id,
-      updated_at: new Date().toISOString(),
-    }, { id, company_id: companyId })
-    return id
-  }
-
-  return strictInsert('customer_supply_periods', {
-    company_id: companyId,
-    customer_id: customerId,
-    metering_point_id: meteringPointId,
-    contract_id: text(readPayloadRecord(input.message).contract_id) ?? null,
-    start_date: startDate,
-    end_date: endDate,
-    source: 'ediel_inbound_state_machine',
-    source_message_id: input.message.id,
-    status: input.status,
-  })
-}
-
-async function activateCustomerSupplyAtomically(input: {
-  message: EdielMessageRow
-  switchRequestId: string
-  actorUserId: string
-}) {
-  const payload = readPayloadRecord(input.message)
-  const companyId = input.message.company_id ?? text(payload.resolved_company_id)
-  if (!companyId) throw new Error('supply_activation_company_required')
-  const actualStartDate = dateOnly(payload.actual_start_date)
-    ?? dateOnly(payload.start_date)
-    ?? dateOnly(payload.startDate)
-    ?? dateOnly(payload.supply_start_date)
-  const response = await supabaseService.rpc('activate_customer_supply_v1', {
-    p_company_id: companyId,
-    p_supplier_switch_request_id: input.switchRequestId,
-    p_source_message_id: input.message.id,
-    p_actual_start_date: actualStartDate,
-    p_actor_user_id: input.actorUserId,
-    p_idempotency_key: `activate_customer_supply_v1:${input.message.id}:${input.switchRequestId}`,
-  })
-  if (response.error) throw response.error
-  const row = Array.isArray(response.data) ? response.data[0] : response.data
-  if (!row || typeof row !== 'object') throw new Error('supply_activation_result_missing')
-  return row as Record<string, unknown>
 }
 
 async function createReviewCase(input: {
@@ -290,7 +202,6 @@ export async function applyInboundBusinessStateMachine(input: {
   const prodatLifecycle = String(input.message.message_family ?? '').toUpperCase() === 'PRODAT'
     ? decideProdatLifecycle(input.message)
     : null
-  let supplyActivationCommitted = false
   if (outcome === 'permission_confirmed' || outcome === 'permission_rejected') {
     if (!input.permissionSourceResult?.applied) {
       reviewRequired = true
@@ -313,18 +224,19 @@ export async function applyInboundBusinessStateMachine(input: {
     }, { id: customerInfoRequestId, company_id: companyId })) updated.push('customer_info_requests')
   }
 
-  if (outcome === 'supplier_switch_accepted' && input.matchedSwitchRequestId) {
-    if (await supplyStartAlreadyCancelled({ companyId: companyId!, switchRequestId: input.matchedSwitchRequestId })) {
-      outcome = 'manual_review_required'; reviewRequired = true
-      tenantMessage = 'En källbelagd tidigare kancellering spärrar detta startförlopp.'
+  if (outcome === 'supplier_switch_accepted') {
+    const sourceResult = await applySupplyMarketSource({ actorUserId: input.actorUserId,message: input.message })
+    if (!sourceResult.applied) {
+      outcome = 'manual_review_required';reviewRequired = true
+      tenantMessage = 'Leverantörsbytet inväntar källbunden koppling till hela svaret, skickat original och rätt avtal.'
     } else {
-      const payload = readPayloadRecord(input.message)
-      if (await strictUpdate('supplier_switch_requests', { status: 'accepted', external_reference: input.message.external_reference ?? undefined, inbound_z04_message_id: input.message.id,
-        confirmed_start_date: dateOnly(payload.actual_start_date) ?? dateOnly(payload.start_date) ?? dateOnly(payload.startDate) ?? undefined, updated_at: new Date().toISOString(),
-      }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
-      const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'confirmed_by_grid_owner' })
-      if (supplyPeriodId) updated.push('customer_supply_periods')
-      if (supplyPeriodId) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, { message: input.message, switchRequestId: input.matchedSwitchRequestId, supplyPeriodId })
+      updated.push('supplier_switch_requests','customer_supply_periods')
+      // A native whole-source transaction names every exact committed scope.
+      // Correlation hints and mutable parsed dates cannot select a different row.
+      for (const scope of sourceResult.commits) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, {
+        message: { ...input.message,customer_id: scope.customerId,metering_point_id: scope.meteringPointId,site_id: scope.siteId },
+        switchRequestId: scope.switchRequestId,supplyPeriodId: scope.supplyPeriodId,
+      })
     }
   }
 
@@ -354,24 +266,6 @@ export async function applyInboundBusinessStateMachine(input: {
     }
   }
 
-  if (outcome === 'supplier_switch_completed' && input.matchedSwitchRequestId) {
-    await activateCustomerSupplyAtomically({
-      message: input.message,
-      switchRequestId: input.matchedSwitchRequestId,
-      actorUserId: input.actorUserId,
-    })
-    supplyActivationCommitted = true
-    updated.push(
-      'supplier_switch_requests',
-      'customer_supply_periods',
-      'customer_contracts',
-      'customer_application_workflows',
-      'website_customer_applications',
-      'domain_events',
-      'customer_operation_jobs',
-      'webhook_deliveries',
-    )
-  }
 
   if (outcome === 'permission_ended' || outcome === 'permission_continues') {
     const permissionResult = await applyInboundZ15PermissionState({
@@ -457,7 +351,7 @@ export async function applyInboundBusinessStateMachine(input: {
         : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'switch_rejected'
           : outcome === 'manual_review_required' || outcome === 'unexpected_direction_review' ? 'manual_review'
             : null
-  if (!supplyActivationCommitted && workflowState && companyId && input.message.customer_id) {
+  if (workflowState && companyId && input.message.customer_id) {
     await transitionCorrelatedCustomerApplicationWorkflow({
       companyId,
       customerId: input.message.customer_id,
@@ -481,7 +375,7 @@ export async function applyInboundBusinessStateMachine(input: {
       : outcome === 'supplier_switch_completed' ? 'supply_period.activated'
         : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'supplier_switch.rejected'
           : null
-  if (!supplyActivationCommitted && notificationEvent && companyId && input.message.customer_id) {
+  if (notificationEvent && companyId && input.message.customer_id) {
     await enqueueCustomerLifecycleNotification({
       companyId,
       customerId: input.message.customer_id,
