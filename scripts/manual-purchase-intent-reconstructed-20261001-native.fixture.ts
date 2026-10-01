@@ -81,6 +81,12 @@ export async function fixture() {
     INSERT INTO public.roles(id,key,name,scope) VALUES(${quote(ids.role)},${quote(roleKey)},'Synthetic manual purchase native role','company');
     INSERT INTO public.user_roles(user_id,company_id,role_id,role,status,is_active)
       VALUES(${quote(writer.userId)},${quote(ids.company)},${quote(ids.role)},${quote(roleKey)},'active',true);
+    -- Clean replay does not seed these product catalog keys. Materialize only
+    -- the two prerequisites; retain existing rows and grant only the owned role.
+    INSERT INTO public.permissions(key,name,description,category)
+      VALUES('billing.write','Synthetic manual purchase write','Disposable native fixture prerequisite','test'),
+        ('billing.export','Synthetic manual purchase export','Disposable native fixture prerequisite','test')
+      ON CONFLICT(key) DO NOTHING;
     INSERT INTO public.role_permissions(role_id,role_key,permission_id,permission_key,effect)
       SELECT ${quote(ids.role)},${quote(roleKey)},id,key,'allow' FROM public.permissions WHERE key IN('billing.write','billing.export');
     DO $roles$ BEGIN IF (SELECT count(*) FROM public.role_permissions WHERE role_id=${quote(ids.role)})<>2

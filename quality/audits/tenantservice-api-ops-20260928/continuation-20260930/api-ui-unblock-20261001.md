@@ -1,5 +1,24 @@
 # API/UI CI recovery — 2026-10-01
 
+## Current follow-up: genuine resumed CI and catalog seed — 2026-10-01
+
+The first correction was published non-force as949dfe60440d5f70c713971ae26c83152bebad94 (exact local treea2623cc6e71cd5d062e75d653899278c2d02d850). Genuine merge12945f22e2fffbb2044252afa77d8b768594b215 has the same tree and parents ae56+949. OPS36871357216 finished with verify and quality-release-gates PASS (7721/532, API/RBAC/types/build/budgets), strict upgrade/actual backup-restore/schema parity PASS, separate pinned-old rollback ALL_PASS and fresh-old backfill PASS. FullE2E36871357256 smoke/coverage/PR certificate PASS; full/staging/nightly SKIPPED. Tenant/Ediel/public browser workflows PASS. These are authentic results, not local estimates.
+
+The import blocker is cleared. Purchase15 genuinely started and failed at the same shared preparation statement: customer_sql/P0001. Accountnative4 and preceding native groups passed. Private agreement browser and subsequent native/HTTP/browser remain NOT_REACHED.
+
+### Confirmed fixture dependency and correction
+
+Delivery blocker in the shared disposable fixture: it SELECTs billing.write/export from public.permissions, then raises P0001 if its owned role did not receive exactly2 rows. The clean migration corpus does not seed those product keys; earlier fixtures provision their own necessary keys or roll their test transaction back. No billing catalog provision occurs before this group. Direct execution of the actual extracted catalog/grant SQL against the authentic generated permissions/roles/role_permissions DDL reproduces manual_native_permission_prerequisite_missing/P0001 with0 or1 existing billing keys. The2-existing control passes. This proves the missing-catalog dependency; full native verification is still required for all subsequent guards and effects.
+
+Minimal second correction: INSERT just billing.write/export into the disposable catalog with ON CONFLICT(key) DO NOTHING before the unchanged role grant and unchanged count assertion. Existing catalog attributes, IDs and inactive status are preserved. Grants belong only to the fixture's unique synthetic company role. No production catalog, migration, role assignment, authority function, RLS, business assertion, native test body, provider transport, schema/type output or dependency changes. Prepared approval/capture remain modeled prerequisites, not producer qualification.
+
+Three regression cases execute the actual shared fixture SQL with0/1/2 existing catalog rows, preserving existing complete rows including inactive flags and asserting only the owned role receives exactly the two grants. Tests are wired through the existing PostgreSQL-core CI command. RED:0/1 fail P0001,2 passes. GREEN: all3 and all29 original core controls PASS (32/32,0 skips, Node22.23.3/PGlite0.5.8,123071.98051ms). Core checks do not represent complete GoTrue/native/PostgREST/installed-guard qualification. Scripts tsc PASS; native fixture ESLint PASS; updated suite still collects all15 without import failure. Local native assertions remain0. The manual force-lint exploration uses the repo's TS require-import rule on CJS; the existing CJS suite is normally ignored. CJS syntax and lint with only that format rule disabled are checked separately; no repository rule is changed.
+
+Corrected-native CI: PENDING for this second correction. Retain the real949 terminal FAIL; do not call all15 accepted before a genuine green changed-head run. Next: fresh ref/sole-owner check, publish this exact reviewed tree non-force over949 to existing draft422, inspect native15 and private agreement browser diagnostics, fix the first actual failure, then integrate preserved U07/claim-attempt/mounted-account packets and all original75/P0–P8 effects. No main merge or production action.
+
+The first-correction evidence below is retained as history and applies to its explicitly named source.
+
+
 Scope: resolve the first genuine #422 CI stop on source head `62e36228899a5a4c8a9dd497f06622c49ce14365`, tree `467e1e770a495253cb8113962961c28b94b0f057`. This bounded recovery does not complete the original API/tenantservice/OPS masterplan.
 
 ## Ownership and skills

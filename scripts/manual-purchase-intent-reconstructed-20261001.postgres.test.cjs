@@ -1,6 +1,38 @@
 const assert=require('node:assert/strict')
 const {test}=require('node:test')
-const {createFixture}=require('./manual-purchase-intent-reconstructed-20261001-core.cjs')
+const {createFixture,actualTable}=require('./manual-purchase-intent-reconstructed-20261001-core.cjs')
+const fs=require('node:fs')
+const path=require('node:path')
+const {PGlite}=require('@electric-sql/pglite')
+
+// Execute the actual shared native fixture's catalog/grant SQL. The full native
+// suite still proves GoTrue, current tenant authority and installed guards in CI.
+for(const catalog of [[],['billing.write'],['billing.write','billing.export']]){
+ test('native purchase fixture prepares only its role with '+catalog.length+' existing billing catalog rows',async()=>{
+  const db=new PGlite(),role='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222'
+  try{
+   for(const table of ['permissions','roles','role_permissions'])await db.exec(actualTable(table))
+   await db.exec(`alter table public.permissions add primary key(id);alter table public.permissions add unique(key);
+    alter table public.roles add primary key(id);alter table public.role_permissions add primary key(id);
+    alter table public.role_permissions add foreign key(role_id)references public.roles(id);
+    alter table public.role_permissions add foreign key(permission_id)references public.permissions(id);`)
+   await db.query('insert into public.roles(id,key,name)values($1,\'native_fixture\',\'Synthetic native role\'),($2,\'unrelated_fixture\',\'Unrelated role\')',[role,other])
+   for(const key of catalog)await db.query('insert into public.permissions(key,name,description,category,is_active)values($1,\'Existing catalog name\',\'Preserve existing description\',\'existing\',false)',[key])
+   const before=(await db.query('select to_jsonb(p)as row from public.permissions p order by key')).rows
+   const source=fs.readFileSync(path.join(__dirname,'manual-purchase-intent-reconstructed-20261001-native.fixture.ts'),'utf8')
+   const start=source.indexOf('    INSERT INTO public.user_roles('),end=source.indexOf('    INSERT INTO public.customers(',start)
+   assert.ok(start>=0&&end>start,'native authority seed boundaries present')
+   const actorSql=source.slice(start,end),sql=actorSql.slice(actorSql.indexOf(';')+1)
+    .replaceAll('${quote(ids.role)}',"'"+role+"'").replaceAll('${quote(roleKey)}',"'native_fixture'")
+   assert.ok(!sql.includes('${'),'all extracted fixture parameters are bound')
+   await db.exec('begin;'+sql+'commit;')
+   const grants=(await db.query('select role_id,permission_key,effect from public.role_permissions order by permission_key')).rows
+   assert.deepEqual(grants,[{role_id:role,permission_key:'billing.export',effect:'allow'},{role_id:role,permission_key:'billing.write',effect:'allow'}])
+   assert.deepEqual((await db.query('select to_jsonb(p)as row from public.permissions p where key=any($1::text[])order by key',[catalog])).rows,before)
+   assert.equal((await db.query('select count(*)::int as count from public.permissions')).rows[0].count,2)
+  }finally{await db.close()}
+ })
+}
 test('actual SQL commits a permanent first barrier, never reclaims it, and replays without provider permission',async()=>{
  const f=await createFixture()
  try{

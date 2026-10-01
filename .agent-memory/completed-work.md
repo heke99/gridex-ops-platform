@@ -1,3 +1,13 @@
+## API/UI resumed CI and billing fixture correction — 2026-10-01
+
+Published949dfe60440d5f70c713971ae26c83152bebad94/treea2623cc6e71cd5d062e75d653899278c2d02d850; genuine OPS36871357216 checked out12945f22e2fffbb2044252afa77d8b768594b215/same tree. Verify/golden, ordinary7721/532+build, strict upgrade/backup/restore, pinned-old rollback ALL_PASS and fresh-old backfill PASS. FullE2E smoke/coverage/certificate, tenant/Ediel/publicbrowser PASS; full/staging/nightly SKIPPED. Loader/schema defects are genuinely cleared.
+
+Purchase15 now execute but all fail shared customer_sql/P0001 during fixture preparation; they are not business acceptance. Source seed selects billing.write/export without creating missing product catalog rows. Actual extracted seed SQL against authentic permissions/roles/role_permissions DDL reproduces P0001 when0/1 exist; the2-existing control passes. Minimal fixture correction materializes only these two prerequisites ON CONFLICT DO NOTHING and grants only its synthetic role. Original count/authority/business assertions remain. Genuine corrected native15 is PENDING; no claim of a complete native PASS. Node22 actual PostgreSQL core+new catalog preservation checks32/32 PASS, scripts types/scoped native lint and collection15 PASS. Production code/migrations/workflows/dependencies/generated33/original75 untouched by this second correction.
+
+Next: Publish the bounded native billing-catalog fixture correction non-force over #422/949dfe6 only after fresh ref/base ownership checks; inspect genuine new native15 and subsequent private browser/HTTP steps. Then integrate preserved U07, rejected claim-attempt and mounted-account packets, continuing all original75/P0-P8.
+
+All75 original31PARTIAL/44NOT_VERIFIED/0 final acceptance and P0–P8 remain OPEN. Existing unpublished worktrees are preserved; no main/production/provider/customer/key/market/#310/#421 action. See continuation-20260930/api-ui-unblock-20261001.md. Historical receipts remain below.
+
 ## Final reconstructed33 source qualification
 
 Finalordinary7721/532/fulltests-scripts-appTSC/build4GiB/lint0/101/newscopedlint0/roles14/core28+29/ratchet2355/integrity686-590/API6PASS. RootSSR17relocatedbodyidentical/unconditionalisolatedrunner17PASS; diagnostic26+retained19=45peerPASS. Workflow4jobs56BashpeerPASS; honesttypes-tail31→33 capturepending/newnative4+15=0/all75OPEN. SeparateU07owner-peer38/core12PASS preservedoutside33. See next10-reconstructed-integration-20261001.md.
