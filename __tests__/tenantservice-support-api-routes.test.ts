@@ -29,8 +29,10 @@ function builder(table: string) {
   let patch: Row = {}
   let limit: number | null = null
   let ascending = true
+  let head = false
   const api: Record<string, unknown> = {
-    select: () => api,
+    select: (_columns?: string, options?: { head?: boolean }) => { head = Boolean(options?.head); return api },
+    gte: (field: string, value: string) => { filters.push((row) => String(readPath(row, field)) >= value); return api },
     eq: (field: string, value: unknown) => { filters.push((row) => readPath(row, field) === value); return api },
     in: (field: string, values: unknown[]) => { filters.push((row) => values.includes(readPath(row, field))); return api },
     contains: (field: string, value: Row) => {
@@ -58,7 +60,10 @@ function builder(table: string) {
     },
     single: async () => ({ data: (api.rows as () => Row[])()[0] ?? null, error: null }),
     maybeSingle: async () => ({ data: (api.rows as () => Row[])()[0] ?? null, error: null }),
-    then: (resolve: (value: unknown) => unknown) => resolve({ data: (api.rows as () => Row[])(), error: null }),
+    then: (resolve: (value: unknown) => unknown) => {
+      const rows = (api.rows as () => Row[])()
+      return resolve({ data: head ? null : rows, count: rows.length, error: null })
+    },
   }
   return api
 }

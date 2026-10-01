@@ -7,8 +7,13 @@ export type TenantUpdateQuery = ReturnType<ServiceTable['update']>
 export type TenantInsertQuery = ReturnType<ServiceTable['insert']>
 
 /** Typed company-filtered SELECT through tenantDb (see lib/supabase/tenantDb.ts). */
-export function tenantSelect(companyId: string, table: string, columns = '*'): TenantSelectQuery {
-  return tenantDb(companyId).from(table).select(columns) as TenantSelectQuery
+export function tenantSelect(
+  companyId: string,
+  table: string,
+  columns = '*',
+  options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean },
+): TenantSelectQuery {
+  return tenantDb(companyId).from(table).select(columns, options) as TenantSelectQuery
 }
 
 /** Typed company-filtered UPDATE through tenantDb. */
