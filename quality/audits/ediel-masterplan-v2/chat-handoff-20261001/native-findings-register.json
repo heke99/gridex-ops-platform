@@ -54,6 +54,48 @@
    "severity": "medium",
    "cause": "Both TGT consumers read the classified customer-event certification original before the current tenant actor check. The autopilot also applied the life-event source context to unclassified Z09 drafts, which the manual consumer does not do.",
    "fix": "14ac2d65: assertEdielTenantActor (communication.write|ediel_testing.write) now runs before the read, and the autopilot follows the same classified-only contract as the manual consumer."
+  },
+  {
+   "id": "PRODUCT-FIX-142550",
+   "severity": "high",
+   "cause": "Supply wrapper chain rotated under the history-union order (043234 after the H wrappers)",
+   "fix": "20261001142550; union schema equals the clean replay"
+  },
+  {
+   "id": "PRODUCT-FIX-142560",
+   "severity": "critical",
+   "cause": "UTILTS 25-A-4 (from 2026-10-01, status future) was refused by the source/outbound capture gates. Every UTILTS source failed closed from its effective date. The inbound previous-guide grace was missing.",
+   "fix": "20261001142560 pack_effective_v1 (date-governed; inbound 14-day previous-guide grace; owner decision 2026-10-01)"
+  },
+  {
+   "id": "PRODUCT-FIX-142570",
+   "severity": "high",
+   "cause": "Finance-copy retention permission keys were never registered, so the classes were unreachable",
+   "fix": "20261001142570"
+  },
+  {
+   "id": "PRODUCT-FIX-142580",
+   "severity": "high",
+   "cause": "Customer pseudonymisation could never complete (refresh not executable by the retention owner; refresh would also violate the tombstone guard)",
+   "fix": "20261001142580"
+  },
+  {
+   "id": "PRODUCT-FIX-142590",
+   "severity": "high",
+   "cause": "The canonical schema lacked the batch-7A outbound_requests route columns that lib/cis/db-outbound.ts writes",
+   "fix": "20261001142590 + regenerated types (only diff: these 17 columns)"
+  },
+  {
+   "id": "PRODUCT-FIX-142600",
+   "severity": "critical",
+   "cause": "The BRP source, new-agreement requested method and its context still called the closed network-registry stub, so every new-agreement Z03 was permanently held",
+   "fix": "20261001142600 rewired to network_for_company_v1"
+  },
+  {
+   "id": "PRODUCT-FIX-REVIEW-PAYLOAD",
+   "severity": "medium",
+   "cause": "Review wrappers forwarded extra keys (archive result) into the strict native review",
+   "fix": "requestedChangeReviewPayload in 4 wrappers"
   }
  ],
  "open": [
@@ -97,6 +139,18 @@
   {
    "id": "UNIT-NOTE-OWNER-CONFLICTS",
    "finding": "The base contained contradictory unit tests. Z09E non-death (P-09) is resolved toward death-status-source (bilateral process required, verified bilateral admitted). Service-recovery send is resolved toward the current origin owner (communication.send exactly). Both follow the newest integrated owner. They are recorded here for owner review and production code is unchanged."
+  },
+  {
+   "id": "NATIVE-OPEN-05-Z03-SOURCE-CHAIN",
+   "status": "IN_PROGRESS",
+   "finding": "Every new-agreement Z03 now needs independently approved sources: signed masterdata declaration, requested-method declaration, qualified network registry version (all seeded in the normal-switch fixture) and a signed BRP declaration via gridex_brp_declaration_intake with a BRP registry ground. No positive BRP chain fixture exists in the repo yet, so all native suites built on seedNormalSwitchNativeFixture stop at prodat_new_agreement_brp_held.",
+   "next": "Build a synthetic but owner-faithful BRP registry-ground + signed BRP declaration intake (scope→archive→separate review) in the normal-switch fixture."
+  },
+  {
+   "id": "NATIVE-OPEN-06-SCHEMA-BASELINE",
+   "status": "OPEN",
+   "finding": "supabase/schema.fingerprint.json covers public+gridex_received_sources from 2026-09-30, while CI compares all gridex_* schemas. db:schema:check cannot pass.",
+   "next": "At freeze, commit a fresh canonical snapshot from an authentic clean replay of the final head (CI schema set)."
   }
  ],
  "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
