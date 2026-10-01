@@ -6,6 +6,7 @@ import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceRead
 import {getGridOwnerById} from '@/lib/masterdata/db'
 import type {CustomerSiteRow} from '@/lib/masterdata/types'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
+import {requireAiListAppliedHistory} from '@/lib/ediel/aiListAppliedHistory'
 
 export type AiListOriginRequest={companyId:string;actorUserId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;fromDate:string;toDate:string}
 export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>){
@@ -29,7 +30,10 @@ export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awai
  if(periodError||count===null||count>1000||periods?.length!==count)throw new Error('ai_list_supply_history_read_incomplete')
  const {data:snapshot,error:snapshotError}=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:input.companyId,p_environment:input.environment,p_cutoff:cutoffAt}).abortSignal(AbortSignal.timeout(2000))
  if(snapshotError)throw new Error('ai_list_source_history_read_unconfirmed')
- const history=projectAiListHistory({...input,legalSupplier:tenant.identity.legalEdielId,legalNetwork:gridOwner.ediel_id,cutoffAt},(periods??[]) as AiListSupplyPeriod[],inspectStructuralReadset({companyId:input.companyId,environment:input.environment,cutoffAt},snapshot))
+ const scope={...input,legalSupplier:tenant.identity.legalEdielId,legalNetwork:gridOwner.ediel_id,cutoffAt}
+ const readset=inspectStructuralReadset({companyId:input.companyId,environment:input.environment,cutoffAt},snapshot)
+ const history=projectAiListHistory(scope,(periods??[]) as AiListSupplyPeriod[],readset)
+ await requireAiListAppliedHistory({actorUserId:input.actorUserId,scope,history,readset})
  return {request:input,site,history,gridOwner}
 }
 
