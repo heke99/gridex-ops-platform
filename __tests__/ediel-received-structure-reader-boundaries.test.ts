@@ -1,5 +1,5 @@
 import { recountEdifactUnt } from './helpers/recountEdifactUnt'
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -11,7 +11,10 @@ import { observationHandoffMessage, energyHandoffMessage } from './helpers/utilt
 import { raw, line, characteristic, type Parts } from './fixtures/prodat-register'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), rpc: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), scoped: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { from: (table: string) => currentUtiltsActorQuery(table) ?? io.from(table), rpc: io.rpc } }
+})
 vi.mock('@/lib/supabase/tenantDb', async original => {
   const real = await original<typeof import('@/lib/supabase/tenantDb')>()
   return { ...real, tenantDb: (company: string) => { io.scoped(company); return real.tenantDb(company) } }
@@ -73,7 +76,7 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers() })
 async function execute() {
   qualifyUtiltsFixtureSource(incoming)
-  return processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id })
+  return processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id })
 }
 function report(): { status: string; sources: Array<{ sourceMessageId: string }> } {
   const value = io.update.mock.calls[0][0].parsedPayload.normalizedMeteringPayload.receivedStructuralSources

@@ -1,4 +1,4 @@
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsFinalValidationFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import * as utiltsRuntime from '@/lib/ediel/utiltsEngine'
@@ -7,7 +7,10 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 
 const mocks = vi.hoisted(() => ({ getMessage: vi.fn(), rpc: vi.fn() }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: mocks.getMessage }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: mocks.rpc } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { rpc: mocks.rpc, from: currentUtiltsActorQuery } }
+})
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/ediel/matching', () => ({ matchMeteringPointIdByIdentifier: vi.fn().mockResolvedValue(null), matchSiteAndCustomerForMeteringPoint: vi.fn().mockResolvedValue(null) }))
@@ -30,7 +33,7 @@ describe('UTILTS metering processor retained decision', () => {
     const runtime = vi.spyOn(utiltsRuntime, 'runUtiltsRuntimeForMessage')
       .mockImplementationOnce(actual).mockImplementationOnce(() => { throw new Error('test-stop-before-persistence') })
     try {
-      await expect(processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy, canonicalDecision: decision })).rejects.toThrow('test-stop-before-persistence')
+      await expect(processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: source.id, canonicalPolicy: policy, canonicalDecision: decision })).rejects.toThrow('test-stop-before-persistence')
       expect(runtime).toHaveBeenCalledTimes(2)
       expect(runtime.mock.calls[0][1]?.canonicalPolicy).toBe(policy)
       expect(runtime.mock.calls[1][1]?.canonicalPolicy).toBe(policy)

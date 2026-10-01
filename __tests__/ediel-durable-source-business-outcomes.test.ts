@@ -1,4 +1,4 @@
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
@@ -8,7 +8,10 @@ import { observationHandoffMessage, energyHandoffMessage } from './helpers/utilt
 import { COMPANY, OTHER, row, snapshot } from './helpers/receivedSourceInventoryFixtures'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), rpc: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { from: (table: string) => currentUtiltsActorQuery(table) ?? io.from(table), rpc: io.rpc } }
+})
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -86,7 +89,7 @@ it('actual inbound E66 holds LOC+175 despite a stale metering-point match and em
  qualifyUtiltsFixtureSource(incoming)
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
   applicationReference:incoming.application_reference,mode:'parse'})
- const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ const result=await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:incoming.id,canonicalPolicy:policy})
  expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
  expect(io.persist).toHaveBeenCalledOnce()
  expect(io.persist.mock.calls[0][0].transactions).toMatchObject([{disposition:'internal_review',responseType:'none',
@@ -101,7 +104,7 @@ it('actual inbound E66 sends a field-533 guide rejection before any regulating-o
  qualifyUtiltsFixtureSource(incoming)
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
   applicationReference:incoming.application_reference,mode:'parse'})
- const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ const result=await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:incoming.id,canonicalPolicy:policy})
  expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
  expect(io.persist.mock.calls[0][0].transactions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
  expect(io.ack.mock.calls[0][0].transactionDispositions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
@@ -116,7 +119,7 @@ it('actual inbound E66 rejects a wrong GS1 check digit without storing business 
  qualifyUtiltsFixtureSource(incoming)
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
   applicationReference:incoming.application_reference,mode:'parse'})
- const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ const result=await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:incoming.id,canonicalPolicy:policy})
  expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
  // Rejected source quantities are retained for audit; the SQL consumption
  // boundary makes them not applicable and no meter/billing sink consumes them.
@@ -146,7 +149,7 @@ async function capture(accepted: boolean) {
   signals = []
   const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: incoming.created_at,
     applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-  const result = await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy: policy })
+  const result = await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id, canonicalPolicy: policy })
   expect(result).toMatchObject({ ackIds: ['ack-1'], outboundRequestId: null, ingestedMeterValueId: accepted ? 'value-1' : null,
     ingestedMeterValueIds: accepted ? ['value-1'] : [], billingUnderlayId: null })
   expect(io.persist).toHaveBeenCalledOnce()

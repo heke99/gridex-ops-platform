@@ -1,4 +1,4 @@
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import {receivedUtiltsOwnerFixture,utiltsNamedOwnerWitness,utiltsCanonicalOwnerRpc,utiltsOwnerCompany,resetUtiltsCanonicalOwnerIo} from './helpers/utiltsCanonicalOwnerIo'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -8,7 +8,10 @@ import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, alphabets, type Parts } from './fixtures/prodat-register'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), rpc: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { from: (table: string) => currentUtiltsActorQuery(table) ?? io.from(table), rpc: io.rpc } }
+})
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -70,7 +73,7 @@ beforeEach(() => {
 type Evidence = { version: number; status: string; authorityStatus: string; selection: string; sources: Array<Record<string, unknown>>; issues: Array<{ code: string; sourceMessageId?: string }> }
 async function run(): Promise<Evidence> {
   qualifyUtiltsFixtureSource(incoming)
-  await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id })
+  await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id })
   const reports = io.update.mock.calls.map(([call]) => call.parsedPayload.normalizedMeteringPayload.receivedStructuralSources)
   expect(reports[0], 'actual inbound processing must forward fresh dated received-source evidence').toBeDefined()
   for (const report of reports) expect(report).toEqual(reports[0])

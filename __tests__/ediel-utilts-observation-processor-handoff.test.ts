@@ -1,4 +1,4 @@
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { createHash } from 'node:crypto'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { describe, expect, it, vi } from 'vitest'
@@ -7,7 +7,10 @@ import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdiel
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 
 const io = vi.hoisted(() => ({ getMessage: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), rpc: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { rpc: io.rpc, from: currentUtiltsActorQuery } }
+})
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.getMessage, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -43,7 +46,7 @@ describe('actual inbound processor forwards fresh observation diagnostics', () =
       io.getMessage.mockResolvedValue(source)
       io.rpc.mockReset().mockImplementation(createUtiltsFinalValidationIo())
       const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: date, applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-      await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy })
+      await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: source.id, canonicalPolicy: policy })
       const validation = io.rpc.mock.calls.find(([name]) => name === 'gridex_record_utilts_source_validation_v4')
       expect(validation?.[1]).toMatchObject({p_company_id:source.company_id, p_environment:'test', p_source_message_id:source.id,
         p_source_payload_hash:createHash('sha256').update(source.raw_payload!).digest('hex')})
