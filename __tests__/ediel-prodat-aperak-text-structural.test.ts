@@ -25,7 +25,7 @@ for(const a of alphabets)for(const field of ['213','214'])for(const invalid of [
 })
 
 import {input,line,characteristic,validate} from './fixtures/prodat-register'
-import {deathRaw,deathBody} from './fixtures/prodat-death-status'
+import {deathRaw,deathBody,deathSelection} from './fixtures/prodat-death-status'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 for(const a of alphabets)for(const extra of [false,true])it(`310 adjacent CAV ${extra} ${a.join('')}`,()=>{
@@ -57,7 +57,7 @@ for(const status of [
  [['CCI','','Z17'],['CAV','Z41','BAD']],
  [['CCI','','Z17'],['CAV',['Z41','','','BAD']]],
 ] as Parts[][])it(`310 already rejected structural content ${JSON.stringify(status)}`,()=>{
- const wire=deathRaw('Z09',deathBody('E34',status)),p=projectProdatDiagnostics(validateProdatDeathStatus({...input(wire,'Z09'),code:'Z09',direction:'outbound'}))
+ const wire=deathRaw('Z09',deathBody('E34',status)),p=projectProdatDiagnostics(validateProdatDeathStatus({...input(wire,'Z09'),code:'Z09',direction:'outbound',facts:{deathStatus:deathSelection('death','Z09')}}))
  expect(p.applicationErrors.length).toBeGreaterThan(0)
  for(const e of p.applicationErrors)expect(e.text).toContain('BAD')
 })
