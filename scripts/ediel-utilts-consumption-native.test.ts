@@ -16,7 +16,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { recordUtiltsFinalRuntime, seedUtiltsConsumptionParties, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
+import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import { committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
 
 // Real parser, canonical policy, preparation, service HTTP RPC, SQL, stored
@@ -86,6 +86,12 @@ async function seed() {
     // Template parties are bound to this fixture's own receiver and issuer.
     raw = raw.replaceAll('+91100:ZZ+', `+${ids.issuer}:ZZ+`).replaceAll('NAD+MS+91100:', `NAD+MS+${ids.issuer}:`)
       .replaceAll('+21660:ZZ+', `+${ids.ediel}:ZZ+`).replaceAll('NAD+MR+21660:', `NAD+MR+${ids.ediel}:`)
+    // The receiving company holds exactly the catalog receiver role this
+    // message is addressed to when it arrives (source-edition receiverRoles).
+    const role = ({ E30: 'grid_owner', E73: 'grid_owner', S01: 'grid_owner', E72: 'metering_collector', S06: 'imbalance_settlement_responsible' } as Record<string, string>)[code] ?? 'electricity_supplier'
+    sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${lit(ids.company)} AND actor_id=${lit(ids.actor)} AND role_code<>${lit(role)} AND valid_to IS NULL;
+     INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) SELECT ${lit(ids.company)},'test',${lit(ids.actor)},${lit(role)},clock_timestamp()
+      WHERE NOT EXISTS(SELECT FROM public.tenant_actor_roles WHERE company_id=${lit(ids.company)} AND actor_id=${lit(ids.actor)} AND role_code=${lit(role)} AND valid_to IS NULL);`)
     const fixture = utiltsNativeSourceFixture(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw, randomUUID())
     const { id, parsed } = fixture
     raw = fixture.raw
@@ -95,6 +101,7 @@ async function seed() {
     seedUtiltsIssuerHistoryGround(sql, lit, id, ids.actor)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
+    await recordUtiltsTechnicalReception(data as unknown as EdielMessageRow, ids.actor)
     return data as unknown as EdielMessageRow
   }
   const original = await insertSource(message.raw_payload!)

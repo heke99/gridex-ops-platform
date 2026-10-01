@@ -1,8 +1,9 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { initialCanonicalUtiltsDecision, recordFinalCanonicalUtiltsDecision } from '@/lib/ediel/flows/utiltsCanonicalValidation'
-import { readCanonicalPeriodicReasonAuthority, readCanonicalUtiltsIssuerIdentityAuthority } from '@/lib/ediel/core/runtimeDecision'
+import { readCanonicalPeriodicReasonAuthority, readCanonicalUtiltsIssuerIdentityAuthority, resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
+import { captureEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 
 type Sql = <T = unknown>(input: string) => T
 type Lit = (value: unknown) => string
@@ -64,4 +65,17 @@ export async function recordUtiltsFinalRuntime(source: EdielMessageRow) {
     runtime: runUtiltsRuntimeForMessage(source, { canonicalPolicy, issuerIdentityAuthority, periodicReasonAuthority }) })
   await recordFinalCanonicalUtiltsDecision({ original: source, validated: source, initialDecision, runtime: structural.runtime })
   return structural.runtime
+}
+
+/** Reception (inboundProcessing): the technical syntax decision is recorded and
+ * its CONTRL basis captured before any business owner runs. */
+export async function recordUtiltsTechnicalReception(source: EdielMessageRow, actorUserId: string) {
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
+  const endpoint = await readEdielTechnicalSourceEndpoint(source.id, { actorUserId, phase: 'prepare' })
+  if (!endpoint) return
+  await recordEdielTechnicalSyntaxDecision({ companyId: endpoint.companyId, sourceMessageId: source.id, sourceHash: endpoint.sourceHash,
+    syntaxDecision: decision.syntaxDecision === 'accepted' ? 'accepted' : 'rejected',
+    reasonCodes: decision.syntaxDecision === 'accepted' ? [] : decision.issues.filter(issue => issue.severity === 'error').map(issue => issue.code),
+    execution: { actorUserId, phase: 'prepare' } })
+  await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId, source.id, { actorUserId, phase: 'prepare' })
 }
