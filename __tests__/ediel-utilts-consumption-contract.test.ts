@@ -130,6 +130,12 @@ it('uses standard own E30 energy dimension without fabricating an original unit 
  expect(contracts[0].observations[0]).toMatchObject({quantity:'500',unit:'kWh'})
  expect(input.transactions[0].unit).toBeNull()
 })
+it('takes own quality/product/register from physical fields, never QTY qualifier or a sibling',async()=>{
+ const result=await preparedEnergy('E66',raw=>raw.replace("STS+7++21::260",'STS+8+56'))
+ expect(result.contracts[0].observations[0]).toMatchObject({quality:'56',readingType:'estimated',productCode:'8716867000030'})
+ const approved=await preparedEnergy('E66')
+ expect(approved.contracts[0].observations[0].quality).toBeNull()
+})
 it('retains source missing energy as NULL/ownquality46 without a consumer zero',async()=>{
  const result=await preparedEnergy('E30',raw=>raw.replace('QTY+136:500','QTY+136:NULL').replace('STS+7++21::260','STS+8+46'))
  expect(result.runtime.transactionDispositions[0].disposition).toBe('accepted')
