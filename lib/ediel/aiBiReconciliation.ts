@@ -34,15 +34,6 @@ export function assertAiBiNeverOverwritesMasterdata(table: string): void {
   }
 }
 
-// Default retention policy for imported raw payloads (GDPR). Conservative default;
-// overridable per import/company policy.
-export const AI_BI_DEFAULT_RETENTION_DAYS = 365
-
-export function defaultRetentionUntil(now: Date = new Date()): string {
-  const until = new Date(now.getTime() + AI_BI_DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000)
-  return until.toISOString().slice(0, 10)
-}
-
 function isMissingSchema(error: unknown): boolean {
   const code = String((error as { code?: unknown } | null)?.code ?? '')
   const message = String((error as { message?: unknown } | null)?.message ?? '')

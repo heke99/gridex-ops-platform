@@ -5,7 +5,7 @@ import {
   type AiBiListType,
   type AiBiParsedRow,
 } from '@/lib/ediel/aiBiImportParser'
-import { defaultRetentionUntil } from '@/lib/ediel/aiBiReconciliation'
+import {requireAiBiProcessingDecision} from '@/lib/ediel/aiBiProcessingDecision'
 
 type MatchedMeteringPoint = {
   id: string
@@ -50,28 +50,33 @@ export async function importAiBiListCsv(input: {
   filename?: string | null
   gridOwnerId?: string | null
   actorUserId?: string | null
+  sourceMessageId?:string|null
 }): Promise<{ importId: string; rowCount: number; discrepancyCount: number }> {
   const parsed = parseAiBiListCsv({ raw: input.rawCsv, listType: input.listType })
+  if(!input.actorUserId)throw new Error('ediel_tenant_actor_required')
+  const processingDecision=await requireAiBiProcessingDecision({companyId:input.companyId,actorUserId:input.actorUserId,listType:input.listType})
 
   const { data: importRow, error: importError } = await supabaseService
     .from('ai_list_imports')
     .insert({
       company_id: input.companyId,
+      source_ediel_message_id:input.sourceMessageId??null,
       list_type: input.listType,
       filename: input.filename ?? null,
       grid_owner_id: input.gridOwnerId ?? null,
       status: 'parsed',
       row_count: parsed.rows.length,
       raw_payload: input.rawCsv,
-      retention_until: defaultRetentionUntil(),
-      gdpr_basis: 'legitimate_interest_metering_reconciliation',
+      processing_decision_id:processingDecision.id,
+      retention_until:processingDecision.retentionUntil,
+      gdpr_basis:processingDecision.gdprBasis,
       metadata: {
         delimiter: parsed.delimiter,
         headers: parsed.headers,
         parser: 'gridcore_ai_bi_import_v1',
         reconciliationOnly: true,
         masterdataAutoOverwrite: false,
-        retentionDays: 365,
+        processingDecision,
       },
       created_by: input.actorUserId ?? null,
     })
