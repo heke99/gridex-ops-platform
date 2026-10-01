@@ -667,13 +667,16 @@ function buildProdatSwitchOutboundDraft(
       throw new Error(`prodat_canonical_version_missing:${code}`)
     }
 
-    const senderSubAddress = input.senderSubAddress ?? 'PRODAT'
-    const receiverSubAddress = input.receiverSubAddress ?? 'PRODAT'
+    // A route-decided sub-address (including a confirmed absent one, null) is
+    // authoritative and recorded on the intent; only an unrouted caller gets
+    // the legacy PRODAT default.
+    const senderSubAddress = input.senderSubAddress === undefined ? 'PRODAT' : input.senderSubAddress
+    const receiverSubAddress = input.receiverSubAddress === undefined ? 'PRODAT' : input.receiverSubAddress
 
     const applicationReference =
       input.applicationReference ??
       buildDefaultApplicationReference({
-        actorSubAddress: senderSubAddress,
+        actorSubAddress: senderSubAddress ?? 'PRODAT',
         process: 'PRODAT',
       })
 
@@ -756,7 +759,9 @@ function buildProdatSwitchOutboundDraft(
       messageFamily: 'PRODAT',
       messageCode: code,
       messageVersion,
-      processType: deriveProcessLabel(code),
+      // Persisted/validated process type is the canonical policy group; the
+      // legacy label stays a display value only.
+      processType: getCanonicalProdatProfile(code)?.processGroup ?? deriveProcessLabel(code),
       environment,
       testFlag,
       status: 'draft',

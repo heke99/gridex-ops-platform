@@ -25,6 +25,7 @@ export async function renderAndQueueNormalSwitch(input:{intentId:string;actorUse
  if(!message){
   const draft=await buildProdatZ03FromSwitch({...input.source,wireReferences:{documentReference:intent.payload.documentReference,transactionReference:intent.transactionReference!,interchangeReference:intent.interchangeReference,messageReference:intent.messageReference}})
   draft.intentId=intent.id
+  draft.outboundRequestId=input.outboundRequestId
   draft.sourceOperationId=input.source.switchRequest.id
   draft.parsedPayload={...(draft.parsedPayload??{}),
    prodatVariant:intent.payload.transactionSubtype,reasonForTransaction:intent.payload.reasonForTransaction,

@@ -3,7 +3,7 @@
 // Only external SMTP is injected by the caller; no private ready/accepted row
 // is seeded. Synthetic contract/POA acceptance is not an external issuer proof.
 import {execFileSync} from 'node:child_process'
-import {createHash,randomUUID} from 'node:crypto'
+import {createHmac,createHash,randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
 import {signInvoiceTestContractCanonically} from '@/lib/ediel/testing/invoiceTestContractLifecycle'
@@ -164,11 +164,11 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,is_settlement_relevant,is_test_data,metadata)
   VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(external)},${literal(external)},${literal(external)},${literal(gridId)},${literal(receiver)},'TES','SE3','active','hourly','consumption',true,true,${literal(marker)}::jsonb);
   INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,
-   contract_offer_id,status,requested_start_date,starts_at,metadata,created_by,contract_publication_version_id,
+   contract_offer_id,status,contract_version,requested_start_date,starts_at,metadata,created_by,contract_publication_version_id,
    contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,
    price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot)
   SELECT ${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},
-   ${literal(pointId)},${literal(offerId)},'draft',${literal(requestedStartDate)}::date,${literal(requestedStartDate)}::date,${literal(marker)}::jsonb,
+   ${literal(pointId)},${literal(offerId)},'draft','v1',${literal(requestedStartDate)}::date,${literal(requestedStartDate)}::date,${literal(marker)}::jsonb,
    ${literal(actorUserId)},v.id,p.contract_product_id,v.contract_product_version_id,
    v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,
    v.offer_reference,p.commercial_snapshot,l.rendered_snapshot
@@ -207,6 +207,37 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  const networkArtifact=await archiveNetworkRegistrySource({...registry.submission('SYNTHETIC normal switch network original',registry.pdf('normal switch network')),companyId,actorUserId:registry.uploader.id});expect(networkArtifact.missing).toEqual([])
  const networkReview=await reviewNetworkRegistrySource({...networkArtifact,companyId,actorUserId:registry.reviewer.id,decision:'approve',reason:'SYNTHETIC separate review of the switch network original',clause:registry.clause});expect(networkReview.status).toBe('authorized')
  networkRegistries.set(companyId,{artifact:networkArtifact,reviewerId:registry.reviewer.id})
+ // A first supply's field262 needs a signed same-agreement BRP declaration
+ // over an approved BRP registry ground. Seed the SYNTHETIC registry ground and
+ // issuer boundary, then use the real scope/archive/separate-review owners.
+ const brpActor=sql<string>(`BEGIN;SELECT pg_advisory_xact_lock(hashtextextended('native_brp_actor_${brpEdielId}',0));
+ WITH existing AS (SELECT actor_id FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(brpEdielId)} ORDER BY actor_id LIMIT 1),
+ created AS (INSERT INTO public.platform_market_actors(id,name,status,match_status,visible_to_tenants) SELECT gen_random_uuid(),'Synthetic native BRP','active','verified',true WHERE NOT EXISTS(SELECT FROM existing) RETURNING id),
+ ident AS (INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified) SELECT id,'EdielId',${literal(brpEdielId)},true FROM created RETURNING actor_id)
+ SELECT to_jsonb(coalesce((SELECT actor_id FROM existing),(SELECT actor_id FROM ident)));COMMIT;`)
+ sql(`INSERT INTO public.platform_actor_roles(actor_id,actor_role,is_active) SELECT ${literal(brpActor)},'balance_responsible',true WHERE NOT EXISTS(SELECT FROM public.platform_actor_roles WHERE actor_id=${literal(brpActor)} AND actor_role='balance_responsible' AND is_active);
+ INSERT INTO public.platform_actor_roles(actor_id,actor_role,is_active) SELECT ${literal(marketActor)},'grid_owner',true WHERE NOT EXISTS(SELECT FROM public.platform_actor_roles WHERE actor_id=${literal(marketActor)} AND actor_role='grid_owner' AND is_active)`)
+ const registryGroundId=randomUUID(),brpRegistrySource=Buffer.from('SYNTHETIC BRP registry ground '+registryGroundId)
+ sql(`INSERT INTO gridex_brp_changes.registry_grounds(id,company_id,environment,dso_actor_id,brp_actor_id,dso_ediel_id,brp_ediel_id,grid_area_code,registry_version,source_reference,source_sha256,registry_snapshot,approved_by,approved_at,valid_from)
+  SELECT ${literal(registryGroundId)},${literal(companyId)},'test',${literal(marketActor)},${literal(brpActor)},${literal(receiver)},${literal(brpEdielId)},p.grid_area_code,'SYNTHETIC-1',${literal('SYNTHETIC native BRP registry '+registryGroundId)},${literal(createHash('sha256').update(brpRegistrySource).digest('hex'))},gridex_brp_changes.registry_snapshot_v1(${literal(marketActor)},${literal(brpActor)}),${literal(actorUserId)},clock_timestamp(),'2026-01-01T00:00:00Z'
+  FROM public.metering_points p WHERE p.id=${literal(pointId)}`)
+ const {createBilateralSourceOperator}=await import('./ediel-bilateral-customer-native-fixture')
+ const brpUploader=await createBilateralSourceOperator(companyId,['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write'])
+ const brpReviewer=await createBilateralSourceOperator(companyId,['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write','ediel.source.review'])
+ const brpSelector={environment:'test' as const,contractId,registryGroundId,identityAgency:'9' as const}
+ const brpScope=await brpUploader.client.rpc('ediel_signed_brp_declaration_scope_v1',{p_company_id:companyId,p_actor_user_id:brpUploader.id,p_selector:{...brpSelector,agreementHash:documentSha256}})
+ expect(brpScope.error,JSON.stringify(brpScope.error)).toBeNull();expect(brpScope.data,JSON.stringify(brpScope.data)).toMatchObject({status:'scope_available'})
+ const brpKey=randomUUID(),brpRepresentation=randomUUID(),brpSecret=Buffer.from('SYNTHETIC BRP declaration issuer key '+brpKey),brpLegal='SYNTHETIC BRP DECLARATION ISSUER ONLY',brpRepresentationLegal='SYNTHETIC BRP DECLARATION REPRESENTATION ONLY'
+ sql(`INSERT INTO gridex_brp_declaration_intake.issuer_keys(id,company_id,environment,issuer_code,legal_source_reference,legal_source_sha256,signing_key,valid_from,valid_to) VALUES(${literal(brpKey)},${literal(companyId)},'test','SYNTHETIC',${literal(brpLegal)},${literal(createHash('sha256').update(brpLegal).digest('hex'))},decode(${literal(brpSecret.toString('hex'))},'hex'),'2020-01-01','2099-01-01');
+ INSERT INTO gridex_brp_declaration_intake.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,purpose,legal_source_reference,legal_source_sha256,valid_from,valid_to) VALUES(${literal(brpRepresentation)},${literal(companyId)},'test',${literal(brpKey)},${literal((brpScope.data as {claims:{legalActorId:string}}).claims.legalActorId)},'signed_contract_brp_declaration',${literal(brpRepresentationLegal)},${literal(createHash('sha256').update(brpRepresentationLegal).digest('hex'))},'2020-01-01','2099-01-01')`)
+ const brpSource=Buffer.from('SYNTHETIC signed BRP declaration source '+contractId),brpSourceReference='SYNTHETIC-native-brp-'+contractId
+ const brpClaimsHash=(brpScope.data as {claimsHash:string}).claimsHash,issuedAt=new Date(Date.now()-60000).toISOString(),expiresAt=new Date(Date.now()+86400000).toISOString()
+ const brpPayload=Buffer.from(JSON.stringify({format:'ediel_signed_brp_declaration_receipt_v1',purpose:'signed_contract_brp_declaration',companyId,environment:'test',issuerCode:'SYNTHETIC',receiptId:randomUUID(),issuerLegalReference:brpLegal,representationLegalReference:brpRepresentationLegal,claimsHash:brpClaimsHash,agreementHash:documentSha256,sourceHash:createHash('sha256').update(brpSource).digest('hex'),sourceReference:brpSourceReference,sourceVersion:'1',issuedAt,expiresAt}))
+ const brpArchive=await brpUploader.client.rpc('ediel_archive_signed_brp_declaration_v1',{p_company_id:companyId,p_actor_user_id:brpUploader.id,p_submission:{...brpSelector,agreementBase64:pdfBuffer.toString('base64'),sourceBase64:brpSource.toString('base64'),sourceReference:brpSourceReference,sourceVersion:'1',issuerReceipt:{keyId:brpKey,representationId:brpRepresentation,payloadBase64:brpPayload.toString('base64'),signatureHex:createHmac('sha256',brpSecret).update(brpPayload).digest('hex')}}})
+ expect(brpArchive.error,JSON.stringify(brpArchive.error)).toBeNull();expect(brpArchive.data).toMatchObject({status:'archived',issuerQualified:true})
+ const archivedBrp=brpArchive.data as {artifactId:string;agreementHash:string;sourceHash:string;claimsHash:string}
+ const brpReview=await brpReviewer.client.rpc('ediel_review_signed_brp_declaration_v1',{p_company_id:companyId,p_actor_user_id:brpReviewer.id,p_artifact_id:archivedBrp.artifactId,p_review:{agreementHash:archivedBrp.agreementHash,sourceHash:archivedBrp.sourceHash,claimsHash:archivedBrp.claimsHash,decision:'approve',reason:'SYNTHETIC separate review of the signed BRP declaration',clause:{locator:'page1 synthetic',quote:'SYNTHETIC balance responsible party declaration'}}})
+ expect(brpReview.error,JSON.stringify(brpReview.error)).toBeNull();expect(brpReview.data,JSON.stringify(brpReview.data)).toMatchObject({status:'authorized'})
  // End-user UD masterdata for a dated (future) switch day cannot come from
  // today's registered address. Bind a declared SYNTHETIC signed masterdata
  // declaration to this exact signed contract (same agreement bytes, revision
@@ -231,14 +262,22 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  // Explicit test-only manual authorization is created by its existing public
  // admin writer and exact chain helper. It is a declared synthetic legal fact,
  // never a private owner receipt or claim of real customer authentication.
- const poa=await savePowerOfAttorney(supabaseService,{customer_id:customerId,site_id:siteId,companyId,scope:'supplier_switch',status:'draft',signed_at:null,valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:'Synthetic Own Customer',signer_identity_number:customerIdentity,accepted_at:null,accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
+ const poaReference=`POA${switchId.replace(/-/g,'').slice(0,12).toUpperCase()}`
+ const poa=await savePowerOfAttorney(supabaseService,{customer_id:customerId,site_id:siteId,companyId,reference:poaReference,scope:'supplier_switch',status:'draft',signed_at:null,valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:'Synthetic Own Customer',signer_identity_number:customerIdentity,accepted_at:null,accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
  const poaLink=await supabaseService.from('powers_of_attorney').update({contract_id:contractId,customer_contract_id:contractId}).eq('id',poa.id).eq('company_id',companyId);expect(poaLink.error).toBeNull()
- await savePowerOfAttorney(supabaseService,{id:poa.id,customer_id:customerId,site_id:siteId,companyId,scope:'supplier_switch',status:'signed',signed_at:new Date().toISOString(),valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:'Synthetic Own Customer',signer_identity_number:customerIdentity,accepted_at:new Date().toISOString(),accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
+ await savePowerOfAttorney(supabaseService,{id:poa.id,customer_id:customerId,site_id:siteId,companyId,reference:poaReference,scope:'supplier_switch',status:'signed',signed_at:new Date().toISOString(),valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:'Synthetic Own Customer',signer_identity_number:customerIdentity,accepted_at:new Date().toISOString(),accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
  const poaScopes=['supplier_switch','grid_owner_data','metering_data']
  const authorization=await ensureAuthorizationDocumentFromPowerOfAttorney({companyId,customerId,powerOfAttorneyId:poa.id,siteId,meteringPointId:pointId,contractId,coverage:powerOfAttorneyCoverageFromScopes(poaScopes),signedScopes:poaScopes})
  const authorizationDocumentId=authorization.authorizationDocumentId;expect(authorizationDocumentId).toBeTruthy()
  expect(sql(`SELECT to_jsonb(switch_ready) FROM public.customer_contract_lifecycle_readiness_v WHERE customer_contract_id=${literal(contractId)}`)).toBe(true)
- sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},${literal(input.initialSubtype??'L')},${literal(input.initialSubtype==='H'?'Z25':'Z22')},false);`)
+ // P26.A: the invoicee is an independent caller selection, never inferred.
+ // The synthetic selection names the end user at the same address.
+ const invoiceeAddress={lines:['Testgatan 1','',''],postalCode:'123 45',city:'Teststad',country:'SE',representation:{convention:'original',reference:'SYNTHETIC',mode:1}}
+ const invoiceeSnapshot={portalData:{powerOfAttorneyReference:poaReference,dependentConditionFacts:{invoiceeObjects:[{meteringPointId:external,identityAgency:'9',
+  endUser:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},address:invoiceeAddress},
+  invoicee:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},nameLines:['Synthetic Own Customer'],address:invoiceeAddress,availability:'available'},
+  event:{state:'none',reference:`fixture-invoicee:${switchId}`},source:{kind:'caller_selection',companyId,reference:`fixture-invoicee:${switchId}`}}]}}}
+ sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked,validation_snapshot) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},${literal(input.initialSubtype??'L')},${literal(input.initialSubtype==='H'?'Z25':'Z22')},false,${literal(JSON.stringify(invoiceeSnapshot))}::jsonb);`)
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
  SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions
  WHERE key IN('communication.read','communication.write','communication.send','metering.read','metering.write','operations.read','operations.write','contracts.read','contracts.write','customers.read','customers.write');
