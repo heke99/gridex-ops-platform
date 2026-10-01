@@ -979,7 +979,7 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
       FROM set_roles s JOIN app_roots a ON a.oid=s.root_oid JOIN pg_roles r ON r.oid=s.role_oid),
     'roleMemberships',(SELECT coalesce(jsonb_agg(to_jsonb(m)||jsonb_build_object('roleName',r.rolname,'memberName',u.rolname) ORDER BY r.rolname,u.rolname),'[]'::jsonb)
       FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid JOIN pg_roles u ON u.oid=m.member),
-    'functions',(SELECT coalesce(jsonb_agg(jsonb_build_object('oid',p.oid,'signature',p.signature,'name',p.proname,'schema',p.nspname,
+    'functions',(SELECT coalesce(jsonb_agg(jsonb_build_object('oid',p.oid::bigint,'signature',p.signature,'name',p.proname,'schema',p.nspname,
       'owner',pg_get_userbyid(p.proowner),'language',p.lanname,'securityDefiner',p.prosecdef,'kind',p.prokind,'config',p.proconfig,
       'argumentNames',p.proargnames,'identityArguments',pg_get_function_identity_arguments(p.oid),'returnType',format_type(p.prorettype,NULL),
       'defaultCount',p.pronargdefaults,'defaults',pg_get_expr(p.proargdefaults,0),

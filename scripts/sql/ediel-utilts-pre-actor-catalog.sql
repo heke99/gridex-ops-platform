@@ -5,7 +5,7 @@ SELECT jsonb_build_object(
  'codeSha',:'candidate_sha','codeTree',:'candidate_tree',
  'beforeMigrationVersion','20261001110500',
  'predecessorSignature','public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)',
- 'oldPublic6Oid',p.oid,
+ 'oldPublic6Oid',p.oid::bigint,
  'sourceHash',encode(pg_catalog.sha256(convert_to(p.prosrc,'UTF8')),'hex'),
  'serverVersionNumber',current_setting('server_version_num'),
  'databaseIdentity',jsonb_build_object(
