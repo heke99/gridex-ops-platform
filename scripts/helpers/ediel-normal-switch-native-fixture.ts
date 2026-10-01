@@ -11,6 +11,7 @@ import {archiveSignedCustomerContractPdf} from '@/lib/customer-contracts/documen
 import {buildAgreementPdfAttachment} from '@/lib/customer-contracts/agreementPdf'
 import {savePowerOfAttorney} from '@/lib/operations/db'
 import {ensureAuthorizationDocumentFromPowerOfAttorney} from '@/lib/legal/authorizationChain'
+import {powerOfAttorneyCoverageFromScopes} from '@/lib/operations/powerOfAttorneyWorkflow'
 import {prepareAndQueueEdielZ03} from '@/lib/ediel/flows/prodatSwitch'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -197,10 +198,11 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  // Explicit test-only manual authorization is created by its existing public
  // admin writer and exact chain helper. It is a declared synthetic legal fact,
  // never a private owner receipt or claim of real customer authentication.
- const poa=await savePowerOfAttorney(supabaseService,{customer_id:customerId,site_id:siteId,companyId,scope:'supplier_switch',status:'draft',signed_at:null,valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:'Synthetic Own Customer',signer_identity_number:customerIdentity,accepted_at:null,accepted_source:'synthetic_native_fixture',signedScopes:[],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
+ const poa=await savePowerOfAttorney(supabaseService,{customer_id:customerId,site_id:siteId,companyId,scope:'supplier_switch',status:'draft',signed_at:null,valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:'Synthetic Own Customer',signer_identity_number:customerIdentity,accepted_at:null,accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
  const poaLink=await supabaseService.from('powers_of_attorney').update({contract_id:contractId,customer_contract_id:contractId}).eq('id',poa.id).eq('company_id',companyId);expect(poaLink.error).toBeNull()
  await savePowerOfAttorney(supabaseService,{id:poa.id,customer_id:customerId,site_id:siteId,companyId,scope:'supplier_switch',status:'signed',signed_at:new Date().toISOString(),valid_from:'2026-01-01',valid_to:'2099-01-01',method:'manual_pdf',signer_name:'Synthetic Own Customer',signer_identity_number:customerIdentity,accepted_at:new Date().toISOString(),accepted_source:'synthetic_native_fixture',signedScopes:['supplier_switch','grid_owner_data','metering_data'],scopeSummary:{scopes:['supplier_switch','grid_owner_data','metering_data']}})
- const authorization=await ensureAuthorizationDocumentFromPowerOfAttorney({companyId,customerId,powerOfAttorneyId:poa.id,siteId,meteringPointId:pointId,contractId})
+ const poaScopes=['supplier_switch','grid_owner_data','metering_data']
+ const authorization=await ensureAuthorizationDocumentFromPowerOfAttorney({companyId,customerId,powerOfAttorneyId:poa.id,siteId,meteringPointId:pointId,contractId,coverage:powerOfAttorneyCoverageFromScopes(poaScopes),signedScopes:poaScopes})
  const authorizationDocumentId=authorization.authorizationDocumentId;expect(authorizationDocumentId).toBeTruthy()
  expect(sql(`SELECT to_jsonb(switch_ready) FROM public.customer_contract_lifecycle_readiness_v WHERE customer_contract_id=${literal(contractId)}`)).toBe(true)
  sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},${literal(input.initialSubtype??'L')},${literal(input.initialSubtype==='H'?'Z25':'Z22')},false);`)
