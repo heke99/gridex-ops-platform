@@ -2,6 +2,7 @@ import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
+vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:vi.fn().mockResolvedValue(undefined)}))
 import {bindSourceQualifiedNegativeFixtureDraft,readSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureForMessage,sourceQualifiedNegativeFixtureMatchesMessage,sourceQualifiedNegativeFixtureMatchesDraft,sourceQualifiedNegativeFixtureAllowsPreflight} from '@/lib/ediel/testing/negativeFixtureAuthority'
 import type {EdielPayloadPreflightResult} from '@/lib/ediel/core/messageBuilder'
 import {encodeEdifactLatin1} from '@/lib/ediel/core/edifactEncoding'

@@ -13,15 +13,16 @@ import {
   listEdielTestRunMessages,
   listEdielTestRuns,
 } from "@/lib/ediel/db";
+import {createCanonicalOutboundMessage} from '@/lib/ediel/kernel';
 import {
   evaluateEdielTgtRun,
   getEdielTgtNextAction,
-  getEdielTgtTestCaseByCode,
   type EdielTgtExpectedStep,
   type EdielTgtRunEvaluation,
 } from "@/lib/ediel/testing/tgtRegistry";
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact";
 import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority';
+import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority';
 import { getEdielTgtDynamicTestDataForCase } from "@/lib/ediel/testing/tgtTestDataStore";
 import { supabaseService } from "@/lib/supabase/service";
 import {
@@ -447,11 +448,16 @@ async function createDraftForStep(params: {
     bindSourceQualifiedNegativeFixtureDraft(draft.messageInput,qualification);
     draft.messageInput.status='prepared';
     draft.messageInput.parsedPayload={...draft.messageInput.parsedPayload,readyForDownload:true,negativeFixtureEvidence:{registrationId:qualification.registrationId,originalFileSha256:qualification.originalFileSha256,expectedOutcome:'negative'}};
+  } else if (draft.messageInput.messageFamily==='PRODAT'||draft.messageInput.messageFamily==='UTILTS') {
+    const qualification=await resolveSourceQualifiedPositiveFixtureDraft({companyId:params.evaluation.testRun.company_id!,runId:params.evaluation.testRun.id,
+      stepNo:params.step.stepNo,actorUserId:params.actorUserId,rawPayload:draft.messageInput.rawPayload??'',diagnosticCodes:[]});
+    if(!qualification)throw new Error('ediel_positive_fixture_original_required');
+    bindSourceQualifiedPositiveFixtureDraft(draft.messageInput,qualification);
   }
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createEdielMessage(draft.messageInput);
+  const message = await createCanonicalOutboundMessage(draft.messageInput);
   await attachEdielMessageToTestRun({
     companyId: params.evaluation.testRun.company_id,
     testRunId: params.evaluation.testRun.id,

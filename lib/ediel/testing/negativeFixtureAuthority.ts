@@ -4,13 +4,14 @@ import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactToken
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { EdielPayloadPreflightResult } from '@/lib/ediel/core/messageBuilder'
 import { supabaseService } from '@/lib/supabase/service'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 
 export type SourceQualifiedNegativeFixture = Readonly<{
   registrationId: string; companyId: string; runId: string; roleCode: string; caseCode: string; suite: string; revision: string; stepNo: number;
   wireSha256: string; originalFileSha256: string; expectedOutcome: 'negative'; expectedDiagnosticCodes: readonly string[];
   testReceiverEdielId: string; validUntil: string; sourceReference: string; ownerDecisionReference: string;
 }>
-type SourceBinding = { registration: SourceQualifiedNegativeFixture; messageId: string | null }
+type SourceBinding = { registration: SourceQualifiedNegativeFixture; messageId: string | null;actorUserId:string }
 const returnedAuthority = new WeakMap<SourceQualifiedNegativeFixture, SourceBinding>()
 const qualifiedDrafts = new WeakMap<object, SourceQualifiedNegativeFixture>()
 const hash = (raw: string) => createHash('sha256').update(encodeEdifactLatin1(raw)).digest('hex')
@@ -25,8 +26,9 @@ function matchesRaw(registration: SourceQualifiedNegativeFixture, companyId: str
   } catch { return false }
 }
 async function read(context: Record<string, unknown>, rawPayload: string, companyId: string, messageId: string | null): Promise<SourceQualifiedNegativeFixture | null> {
-  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_ediel_negative_fixture_read_v1', args: {p_context: Record<string, unknown>}) => PromiseLike<{data: unknown; error: unknown}>
-  const {data,error} = await rpc('gridex_ediel_negative_fixture_read_v1',{p_context:context})
+  if(messageId===null)await assertEdielTenantActor({companyId,actorUserId:String(context.actorUserId??''),permissionAnyOf:['communication.write','ediel_testing.write']})
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_ediel_negative_fixture_read_v1'|'gridex_ediel_negative_fixture_prepare_read_v1', args: {p_context: Record<string, unknown>}) => PromiseLike<{data: unknown; error: unknown}>
+  const {data,error} = await rpc(messageId===null?'gridex_ediel_negative_fixture_prepare_read_v1':'gridex_ediel_negative_fixture_read_v1',{p_context:context})
   if (error) throw error
   if (data === null) return null
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('ediel_negative_fixture_authority_invalid')
@@ -35,7 +37,7 @@ async function read(context: Record<string, unknown>, rawPayload: string, compan
     || !value.sourceReference || !value.ownerDecisionReference || !Array.isArray(value.expectedDiagnosticCodes) || !value.expectedDiagnosticCodes.length
     || !value.expectedDiagnosticCodes.every(code => typeof code === 'string' && code.length > 0) || !matchesRaw(value,companyId,rawPayload)) throw new Error('ediel_negative_fixture_authority_scope_invalid')
   const registration = Object.freeze({...value,expectedDiagnosticCodes:Object.freeze([...value.expectedDiagnosticCodes])})
-  returnedAuthority.set(registration,{registration,messageId})
+  returnedAuthority.set(registration,{registration,messageId,actorUserId:String(context.actorUserId??'')})
   return registration
 }
 /** Before persistence, qualify exact original bytes against the actual private
@@ -88,4 +90,14 @@ export function bindSourceQualifiedNegativeFixtureDraft(draft:DraftIdentity,qual
 export function readSourceQualifiedNegativeFixtureDraft(draft:DraftIdentity):SourceQualifiedNegativeFixture | null {
   const qualification=qualifiedDrafts.get(draft), binding=qualification ? returnedAuthority.get(qualification) : null
   return binding && binding.messageId === null && draft.direction === 'outbound' && draft.environment === 'test' && draft.companyId && matchesRaw(binding.registration,draft.companyId,draft.rawPayload ?? '') ? qualification! : null
+}
+/** Prepare a native one-use source original before the ordinary canonical
+ * owner seal. Permission to prepare does not permit provider entry. */
+export async function prepareSourceQualifiedNegativeFixtureWitness(input:{qualification:SourceQualifiedNegativeFixture;actorUserId:string;rawPayload:string}):Promise<{witnessId:string;qualification:SourceQualifiedNegativeFixture}>{
+ const q=input.qualification,b=returnedAuthority.get(q)
+ if(!b||b.messageId!==null||b.actorUserId!==input.actorUserId||!matchesRaw(q,q.companyId,input.rawPayload))throw Error('ediel_negative_fixture_witness_required')
+ await assertEdielTenantActor({companyId:q.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
+ const {data,error}=await supabaseService.rpc('gridex_ediel_negative_fixture_prepare_v1',{p_context:{companyId:q.companyId,runId:q.runId,stepNo:q.stepNo,actorUserId:input.actorUserId,rawPayload:input.rawPayload,registrationId:q.registrationId}})
+ if(error||typeof data?.witnessId!=='string'||data?.qualification?.registrationId!==q.registrationId||data?.qualification?.wireSha256!==q.wireSha256)throw Error('ediel_negative_fixture_witness_required',{cause:error})
+ return {witnessId:data.witnessId,qualification:q}
 }
