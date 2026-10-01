@@ -16,6 +16,15 @@ decisions remain higher-authority sources.
 7. relevant domain files
 8. `decisions.md` and `known-failures.md`
 
+## Parallel side track: tenantservice
+
+The active Ediel campaign owns `checkpoint.json`, `current-task.md` and
+`handover.md`. The user-approved tenantservice side track (customer support
+API + tenant OPS UI) keeps its single resumable checkpoint in
+`tenantservice-checkpoint.md` and its evidence in `quality/tenantservice/`.
+Do not mix the two: an Ediel agent must not resume tenantservice items from the
+Ediel checkpoint, and the tenantservice agent must not edit the Ediel files.
+
 ## Update rules
 
 - Maintain exactly one active work item and subtask.

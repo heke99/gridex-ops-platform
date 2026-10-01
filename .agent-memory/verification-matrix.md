@@ -535,3 +535,9 @@ PR `d7c3762f`: tenant `36261652172`, Ediel `36261652101`, browser `36261652129`,
 | Independent read-only review | One important mismatch identified and corrected; no other concrete blocker in full diff. | Must recheck final SHA and CI. |
 ## 2026-09-28 — #417 local and pending exact-head evidence
 Remote `09fba884` / tree `ac40f187`: five relevant Vitest files 150/150 PASS; `node --experimental-vm-modules scripts/test-ediel-unb-ack-request.cjs` 64/64 PASS; app/tests/scripts TypeScript PASS; five changed TS files ESLint 0 errors, one existing unused-variable warning; `git diff --check` PASS. Native real-DB header204 fixture and Ediel/browser/Full E2E/OPS clean replay/schema/type parity are PENDING on that remote head. No formal market acceptance claimed.
+## 2026-10-01 — Tenantservice #425 (local) and #429 (CI)
+| Scope | Result | Limit |
+| --- | --- | --- |
+| #425 vitest | 396 files / 6303 tests PASS | Mocked DB; native/live RLS not run |
+| #425 typecheck, lint, api:docs, api:compatibility, api:release:verify, security:rbac, build | PASS | |
+| #429 clean-migration-replay | 29 RED → 1 RED (F16 expectation) → fixed; final run pending | Native suite only runs in CI |

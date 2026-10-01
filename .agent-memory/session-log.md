@@ -391,3 +391,8 @@ Fetched unchanged remote main `bd3e131e` and PR `9d76377a`, read frozen P/APERAK
 Independent reviewer traced lowercase BGM/4343 across canonical field matrix and source-bound ACK guard; found accepted/invalid split. Added real inbound RED (accepted), field313-only literal allowed-value fix and third native variant, local GREEN 48/48. Final corrected head must be published and requalified; no rerun of unchanged head or market action.
 ## 2026-09-28 — #417 source-bound header204
 Read main/branch and merged #416 from GitHub, source P26.A/P-APERAK, frozen plan/registers and actual inbound owner. Preserved prior uncommitted RED/GREEN candidate, added positive missing/9/5 cases and a native persisted tenant/legal-actor/ACK/outbox/retry case. Local five files 150/150, source script 64/64, three TS projects and scoped lint passed. Git CLI push lacked credentials; GitHub integration created remote `09fba884` with byte-identical local tree `ac40f187`, then opened draft #417. Four exact-head workflows running; no merge or market sends.
+## 2026-10-01 — Tenantservice side track (see tenantservice-checkpoint.md)
+Side track, separate from the Ediel campaign.
+- Merged #427 (security dependency upgrades) and #428 (F16: support cases stopped billing/onboarding).
+- Opened #429 to make the Ediel source-owner native fixtures run-relative (replay red since 2026-10-01 on every branch).
+- #425 carries P0–P8 behind production-safe flags. Draft until #429 and P2b are done and CI is green.
