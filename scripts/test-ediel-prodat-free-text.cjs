@@ -6,6 +6,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
 const { test } = require('node:test')
 const root = path.resolve(__dirname, '..')
@@ -47,6 +48,8 @@ async function loadRuntime() {
     export { buildProdatMessage } from '@/lib/ediel/prodat/buildProdat';
   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
   await entry.link((name, parent) => {
+    const sourceData = loadEdielSourceTestData(name, root, modules, context)
+    if (sourceData) return sourceData
     if (boundaries.has(name)) return boundaries.get(name)
     if (name === 'crypto' || name === 'node:crypto') return crypto
     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
@@ -54,7 +57,7 @@ async function loadRuntime() {
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
     if (!modules.has(file)) modules.set(file, new SourceTextModule(
-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
+      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
       { context, identifier: file }))
     return modules.get(file)
   })

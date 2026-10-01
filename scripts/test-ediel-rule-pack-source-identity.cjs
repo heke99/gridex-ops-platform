@@ -4,6 +4,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
 const { test } = require('node:test')
 
@@ -28,6 +29,8 @@ async function resolver(row, error = null) {
   }
   const entry = load(path.join(root, 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'))
   await entry.link((specifier, parent) => {
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     if (specifier === '@/lib/supabase/service') return service
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency: ${specifier}`)
     const filename = specifier.startsWith('@/')
