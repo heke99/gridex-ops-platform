@@ -34,7 +34,7 @@ export async function createReceivedProdatStructuralAcks(input:{actorUserId:stri
    fixed.add(lineIndex);continue
   }
   await createOutboxItem({actorUserId:input.actorUserId,message:retained,sourceMessageId:source.id,status:'prepared',queueOnlyIfInserted:true,
-   lockKey:`ediel_structural_response:${retained.id}`,payload:{createdBy:'retained_source_response',sourceMessageId:source.id,objectLineIndices:[lineIndex],ackFamily:'APERAK',outcome:'positive'}})
+   payload:{createdBy:'retained_source_response',sourceMessageId:source.id,objectLineIndices:[lineIndex],ackFamily:'APERAK',outcome:'positive'}})
   fixed.add(lineIndex);if(!ids.includes(retained.id))ids.push(retained.id)
  }
  const remaining=selected.filter(group=>!fixed.has(group.segments[0].index)).map(group=>group.segments[0].index)
@@ -55,7 +55,7 @@ export async function createReceivedProdatStructuralAcks(input:{actorUserId:stri
    ack=await createCanonicalAckMessage({actorUserId:input.actorUserId,sourceMessage:qualification.sourceMessage,ackFamily:'APERAK',outcome:'positive',draft})
   }
   await createOutboxItem({actorUserId:input.actorUserId,message:ack,sourceMessageId:source.id,status:retained?'prepared':'queued',queueOnlyIfInserted:true,
-   lockKey:`ediel_structural_response:${ack.id}`,payload:{createdBy:'reviewed_structural_source_effect',sourceMessageId:source.id,objectLineIndices:indices,
+   payload:{createdBy:'reviewed_structural_source_effect',sourceMessageId:source.id,objectLineIndices:indices,
     canonicalAssessmentId:plan.canonicalAssessmentId,objectAssessmentId:plan.objectAssessmentId,ackFamily:'APERAK',outcome:'positive'}})
   ids.push(ack.id)
  }

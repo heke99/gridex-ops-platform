@@ -15,8 +15,11 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
         return { select: () => ({ single: async () => ({ data: saved, error: null }), maybeSingle: async () => ({ data: saved, error: null }) }) }
       },
       select() {
-        let key = ''
-        return { eq(_field: string, value: string) { key = value; return this }, maybeSingle: async () => ({ data: state.rows.get(key) ?? null, error: null }) }
+        const filters = new Map<string, unknown>()
+        const matching = () => [...state.rows.values()].filter(row => [...filters].every(([field,value]) => row[field] === value))
+        return { eq(field: string, value: unknown) { filters.set(field,value); return this },
+          limit: async (count: number) => ({data:matching().slice(0,count),error:null}),
+          maybeSingle: async () => ({ data: matching()[0] ?? null, error: null }) }
       },
       update(patch: Record<string, unknown>) {
         let key = ''
@@ -62,10 +65,11 @@ for (const status of ['sending', 'sent', 'delivery_uncertain', 'superseded'] as 
 
 it('queues a new ACK and allows a known failed ACK to be retried under the same lock', async () => {
   await createOutboxItem(input)
-  expect(state.rows.get(lockKey)).toMatchObject({ status: 'queued', company_id: 'tenant-A', ediel_message_id: 'ack-1' })
-  state.rows.set(lockKey, { ...state.rows.get(lockKey), status: 'failed' })
+  const newKey = 'tenant-A:test:ack:ack-1'
+  expect(state.rows.get(newKey)).toMatchObject({ status: 'queued', company_id: 'tenant-A', ediel_message_id: 'ack-1' })
+  state.rows.set(newKey, { ...state.rows.get(newKey), status: 'failed' })
   await createOutboxItem(input)
-  expect(state.rows.get(lockKey)).toMatchObject({ status: 'queued', ediel_message_id: 'ack-1' })
+  expect(state.rows.get(newKey)).toMatchObject({ status: 'queued', ediel_message_id: 'ack-1' })
   expect(state.rows.size).toBe(1)
 })
 
@@ -77,4 +81,48 @@ it('does not resurrect a failed ACK that a worker finishes during the conditiona
   expect(result?.status).toBe('sent')
   expect(state.rows.get(lockKey)?.status).toBe('sent')
   expect(state.events).toEqual([])
+})
+
+it('two immutable own responses to one inbound source have separate ACK-id outbox identities', async () => {
+  await createOutboxItem({...input,queueOnlyIfInserted:true})
+  await createOutboxItem({...input,message:{...message,id:'ack-2'},queueOnlyIfInserted:true})
+  expect(state.rows.size).toBe(2)
+  expect(state.rows.get('tenant-A:test:ack:ack-1')).toMatchObject({ediel_message_id:'ack-1',status:'queued'})
+  expect(state.rows.get('tenant-A:test:ack:ack-2')).toMatchObject({ediel_message_id:'ack-2',status:'queued'})
+})
+
+it('retains the exact failed legacy ACK entry and lock before considering the new key', async () => {
+  const prior={id:'legacy-outbox',lock_key:lockKey,status:'failed',company_id:'tenant-A',environment:'test',ediel_message_id:'ack-1',source_message_id:'source-1',route_profile_id:'route-A',current_send_attempt_id:'fixed-attempt'}
+  state.rows.set(lockKey,prior)
+  expect(await createOutboxItem({...input,lockKey:'another-caller-namespace',queueOnlyIfInserted:true})).toBe(prior)
+  expect(state.rows.size).toBe(1)
+  expect(state.rows.get(lockKey)).toEqual(prior)
+  expect(state.events).toEqual([])
+})
+
+it('holds ambiguous old entries rather than choosing an old lock or inserting a third entry', async () => {
+  const prior={id:'old-one',lock_key:lockKey,status:'failed',company_id:'tenant-A',environment:'test',ediel_message_id:'ack-1',source_message_id:'source-1',route_profile_id:'route-A'}
+  state.rows.set(lockKey,prior)
+  state.rows.set('legacy-two',{...prior,id:'old-two',lock_key:'legacy-two'})
+  await expect(createOutboxItem({...input,queueOnlyIfInserted:true})).rejects.toThrow('ediel_outbox_message_identity_ambiguous')
+  expect(state.rows.size).toBe(2)
+  expect(state.events).toEqual([])
+})
+
+it('same actual ACK callers share one key without resetting an established failed state', async () => {
+  await createOutboxItem({...input,queueOnlyIfInserted:true})
+  const key='tenant-A:test:ack:ack-1',prior={...state.rows.get(key),status:'failed',current_send_attempt_id:'attempt-old'}
+  state.rows.set(key,prior)
+  await Promise.all([
+    createOutboxItem({...input,queueOnlyIfInserted:true,lockKey:'caller-one'}),
+    createOutboxItem({...input,queueOnlyIfInserted:true,lockKey:'caller-two'}),
+  ])
+  expect(state.rows.size).toBe(1)
+  expect(state.rows.get(key)).toEqual(prior)
+})
+
+it('refuses a legacy exact-message entry with a changed source/route identity', async () => {
+  state.rows.set(lockKey,{id:'old-one',lock_key:lockKey,status:'failed',company_id:'tenant-A',environment:'test',ediel_message_id:'ack-1',source_message_id:'foreign-source',route_profile_id:'route-A'})
+  await expect(createOutboxItem({...input,queueOnlyIfInserted:true})).rejects.toThrow('ediel_outbox_lock_identity_conflict')
+  expect(state.rows.size).toBe(1)
 })

@@ -5,7 +5,7 @@ vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:io.event}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{}}))
 vi.mock('@/lib/supabase/tenantDb',()=>({tenantDb:()=>({from:()=>({
  upsert:(row:unknown,options:unknown)=>{io.upsert(row,options);return {select:()=>({maybeSingle:async()=>({data:io.inserted,error:null})})}},
- select:()=>({eq:()=>({maybeSingle:async()=>({data:io.prior,error:null})})}),update:io.update,
+ select:()=>{const query={eq:()=>query,limit:async()=>({data:[],error:null}),maybeSingle:async()=>({data:io.prior,error:null})};return query},update:io.update,
 })})}))
 import {createOutboxItem} from '@/lib/ediel/outbox/createOutboxItem'
 const message={id:'ACK',company_id:'TENANT',environment:'test',message_family:'APERAK',message_code:'APERAK',related_message_id:'SOURCE',ack_outcome:'positive'} as EdielMessageRow
