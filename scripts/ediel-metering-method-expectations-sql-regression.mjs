@@ -55,6 +55,7 @@ try{
  create function gridex_received_sources.applied_structural_method_objects_v1(c uuid,msg uuid) returns jsonb language sql as $$select coalesce(jsonb_agg(o||jsonb_build_object('sourcePayloadHash',encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'))),'[]') from public.fixture_applied f join public.ediel_messages m on m.id=f.message_id cross join jsonb_array_elements(f.objects)o where m.id=msg and m.company_id=c$$;
  insert into companies values('${c}');insert into user_profiles values('${actor}','active');insert into company_memberships values('${uid(4)}','${c}','${actor}','active',true,now());`)
  await db.exec(sql);checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930233558_ediel_method_expectation_actor_scope_v1.sql',import.meta.url),'utf8'));checks++
  const request=await seed(10),row=(await invoke('register',{messageId:request.mid}))[0]
  assert.equal(row.status,'pending');assert.equal(row.metadata.validityDay,'2026-12-31');assert.equal(row.metadata.dueDay,'2027-02-09');assert.equal(new Date(row.due_at).toISOString(),'2027-02-09T23:00:00.000Z');checks++
  assert.equal(row.metadata.anchorType,'z09_validity_day');assert.equal(row.metadata.actualAcceptedAt,'2026-09-30T12:00:00Z');assert.equal(row.metadata.automaticResendAllowed,false);checks++
@@ -81,6 +82,16 @@ try{
  const late=await received(190,expired,{effectiveAt:'2026-07-01T12:00:00Z',sourceReceivedAt:'2026-09-01T12:00:00Z',appliedAt:'2026-09-01T12:01:00Z'});assert.equal((await invoke('read',{messageId:expired.mid}))[0].fulfilled_by_message_id,late);assert.equal((await invoke('read',{messageId:expired.mid}))[0].metadata.receivedAfterDueDay,true);checks++
  const g=await seed(95,{subtype:'G'});await invoke('register',{messageId:g.mid});await received(195,g,{measurementMethod:'Z03'});assert.equal((await invoke('read',{messageId:g.mid}))[0].status,'fulfilled');checks++ // explicit actual network-assigned method, no inferred quarter choice
  const dst=await seed(96,{day:'20260930'}),dstRow=(await invoke('register',{messageId:dst.mid}))[0];assert.equal(dstRow.metadata.dueDay,'2026-11-09');assert.equal(new Date(dstRow.due_at).toISOString(),'2026-11-09T23:00:00.000Z');checks++ //40 date steps across Stockholm DST, not40*24 hours from SMTP
+ // Actual provider permission union: an ediel.send-only sender can register and
+ // expire accepted watches; neither operation requires draft write permission.
+ await db.exec("delete from fixture_permissions where permission in('communication.send','communication.write');insert into fixture_permissions values('ediel.send')")
+ const sendOnly=await seed(97,{day:'20260701',acceptedAt:'2026-06-30T12:00:00Z'});assert.equal((await invoke('register',{messageId:sendOnly.mid}))[0].status,'pending');checks++
+ await invoke('expire');assert.equal((await invoke('read',{messageId:sendOnly.mid}))[0].status,'manual_review');checks++
+ await db.exec("delete from fixture_permissions where permission='ediel.send';insert into fixture_permissions values('communication.write')")
+ await rejects(call('register',{messageId:sendOnly.mid}),/actor_forbidden/)
+ await rejects(call('expire'),/actor_forbidden/)
+ assert.ok(Array.isArray(await invoke('observe',{messageId:response})));checks++ // own inbound observation remains write-authorized
+ assert.equal((await db.query(`select gridex_method_expectations.compatible_v1(${json({...request.original,basis:{...request.basis,subtype:undefined}})},${json({observedAt:'2026-09-30T12:00:00Z'})},${json({measurementMethod:'Z04'})}) compatible`)).rows[0].compatible,false);checks++
  await rejects(call('read',{companyId:uid(999)}),/actor_forbidden/)
  await rejects(call('observe',{messageId:request.mid}),/observed_source_scope_required/)
  await rejects(`set role service_role;update gridex_method_expectations.bindings set due_day=current_date`,/permission denied/)
