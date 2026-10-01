@@ -61,3 +61,35 @@ describe('applyCustomerContactChange (P2b adapter)', () => {
     await expect(promise).rejects.toMatchObject({ code: '08006' })
   })
 })
+
+describe('deploy-safety fallback while migration 20261001210000 is not applied', () => {
+  it('runs the version-locked sequential path with fail-closed audit when the RPC is missing', async () => {
+    vi.resetModules()
+    const calls: Array<{ op: string; table: string; values?: unknown }> = []
+    const chain = (op: string, table: string, values?: unknown, data: unknown = null) => {
+      calls.push({ op, table, values })
+      const q: Record<string, unknown> = {}
+      for (const m of ['eq', 'order', 'limit', 'select']) q[m] = () => q
+      q.maybeSingle = async () => ({ data, error: null })
+      q.then = (resolve: (v: unknown) => void) => resolve({ data, error: null })
+      return q
+    }
+    vi.doMock('@/lib/supabase/tenantQuery', () => ({
+      tenantSelect: (_c: string, table: string) => chain('select', table, undefined,
+        table === 'customers' ? { id: CUSTOMER, status: 'active', phone: '071', updated_at: 'v1' } : null),
+      tenantUpdate: (_c: string, table: string, values: unknown) => chain('update', table, values, { id: CUSTOMER, updated_at: 'v2' }),
+      tenantInsert: (_c: string, table: string, values: unknown) => chain('insert', table, values),
+    }))
+    rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'Could not find the function public.gridex_customer_contact_change_v1' } })
+    const { applyCustomerContactChange } = await import('@/lib/customer-service/contactChangeTransaction')
+    const result = await applyCustomerContactChange({
+      companyId: COMPANY, customerId: CUSTOMER, actor: { kind: 'staff', userId: 'u1' }, channel: 'ops',
+      expectedUpdatedAt: 'v1', customerPatch: { phone: '070' }, contactPatch: { phone: '070' },
+    })
+    expect(result).toMatchObject({ changed: true, customerUpdatedAt: 'v2', changes: { phone: { from: '071', to: '070' } } })
+    expect(calls.map((c) => `${c.op}:${c.table}`)).toEqual([
+      'select:customers', 'update:customers', 'select:customer_contacts', 'insert:customer_contacts', 'insert:audit_logs',
+    ])
+    vi.doUnmock('@/lib/supabase/tenantQuery')
+  })
+})

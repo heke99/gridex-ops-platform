@@ -1,6 +1,6 @@
 # Tenantservice side track: checkpoint
 
-Status: IN_PROGRESS. Last updated 2026-10-01 ~20:40 UTC.
+Status: #425 MERGED (squash `d548e23`). Follow-up in progress. Last updated 2026-10-01 ~20:40 UTC.
 
 Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that file.
 
@@ -59,3 +59,9 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 
 ## Lesson (2026-10-01)
 - A migration that changes schema needs BOTH generated files from the CI clean-replay artifact: `supabase/database.types.ts` (+ sha in `scripts/supabase-types-manifest.json`) AND `supabase/schema.sql` + `supabase/schema.fingerprint.json` (from `rem002-schema-snapshot/`). Pushed `763aae2`. Never hand-edit either.
+
+## After merge (2026-10-01 ~21:00 UTC)
+- #425 squash-merged as `d548e23`; Vercel production deploy run 36925343909 started.
+- **Migrations are NOT applied by the deploy.** Production DB has neither `20261001200000` nor `20261001210000` until someone applies them with explicit user permission.
+- Follow-up PR: `applyCustomerContactChange` falls back to the previous sequential path when the RPC is missing (PGRST202/42883), so OPS/API profile saves keep working before the migration. Remove the fallback once all environments have the migration.
+- Next: user decision on applying migrations to production; P1c needs an identity-provider decision.
