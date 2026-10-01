@@ -10,6 +10,14 @@ import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates"
 import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger"
 import type { CustomerActionState } from "./customer-action-state"
+import {
+  CustomerContactChangeError,
+  assertProfileEditableStatus,
+  changedFields,
+  normalizeContactEmail,
+  normalizeContactPhone,
+  planPrimaryContactSync,
+} from "@/lib/customer-service/contactChange"
 
 export class CustomerActionError extends Error {
   code: string;
@@ -223,12 +231,26 @@ export async function saveCustomerProfileImpl(
   const orgNumberInput = normalizeOptionalString(
     getNullableString(formData, "org_number"),
   );
-  const email = normalizeOptionalString(getNullableString(formData, "email"));
-  const phone = normalizeOptionalString(getNullableString(formData, "phone"));
+  let email: string | null;
+  let phone: string | null;
+  let status: string;
+  try {
+    // The OPS form always posts these fields, so an empty value is an explicit clear.
+    email = normalizeContactEmail(getNullableString(formData, "email") ?? "") ?? null;
+    phone = normalizeContactPhone(getNullableString(formData, "phone") ?? "") ?? null;
+    status = assertProfileEditableStatus(getNullableString(formData, "status"), "draft");
+  } catch (error) {
+    if (error instanceof CustomerContactChangeError) {
+      throw new CustomerActionError(error.code, error.message);
+    }
+    throw error;
+  }
+  const expectedUpdatedAt = normalizeOptionalString(
+    getNullableString(formData, "expected_updated_at"),
+  );
   const apartmentNumber = normalizeOptionalString(
     getNullableString(formData, "apartment_number"),
   );
-  const status = getNullableString(formData, "status") ?? "draft";
 
   requireValue(
     firstName,
@@ -271,6 +293,16 @@ export async function saveCustomerProfileImpl(
 
   if (beforeError) throw beforeError;
 
+  if (
+    expectedUpdatedAt &&
+    String((before as Record<string, unknown>).updated_at ?? "") !== expectedUpdatedAt
+  ) {
+    throw new CustomerActionError(
+      "version_conflict",
+      "Kunden har ändrats av någon annan sedan du öppnade formuläret. Ladda om och gör ändringen igen.",
+    );
+  }
+
   if (String((before as Record<string, unknown>).status ?? '').toLowerCase() === "archived") {
     throw new CustomerActionError(
       "customer_archived_profile_locked",
@@ -283,7 +315,7 @@ export async function saveCustomerProfileImpl(
     typeof before.company_id === "string" ? before.company_id : null,
   );
 
-  const { data: updated, error: updateError } = await supabaseService
+  let updateQuery = supabaseService
     .from("customers")
     .update({
       customer_type: customerType,
@@ -300,11 +332,22 @@ export async function saveCustomerProfileImpl(
       updated_at: new Date().toISOString(),
     })
     .eq("id", customerId)
-    .eq("company_id", companyId)
+    .eq("company_id", companyId);
+  if (expectedUpdatedAt) {
+    // Optimistic lock: a concurrent save between read and write updates zero rows.
+    updateQuery = updateQuery.eq("updated_at", expectedUpdatedAt);
+  }
+  const { data: updated, error: updateError } = await updateQuery
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (updateError) throw updateError;
+  if (!updated) {
+    throw new CustomerActionError(
+      "version_conflict",
+      "Kunden har ändrats av någon annan samtidigt. Ladda om och gör ändringen igen.",
+    );
+  }
 
   const { data: existingPrimaryContact, error: contactLookupError } =
     await supabaseService
@@ -326,19 +369,31 @@ export async function saveCustomerProfileImpl(
         companyName ||
         null;
 
-  if (existingPrimaryContact) {
-    const { error: contactUpdateError } = await supabaseService
-      .from("customer_contacts")
-      .update({
-        name: primaryContactName,
-        email,
-        phone,
-      })
-      .eq("id", existingPrimaryContact.id)
-      .eq("company_id", companyId);
+  const contactPatch = planPrimaryContactSync({
+    customerType,
+    contactName: primaryContactName,
+    email,
+    phone,
+  });
+  let contactChanges: Record<string, { from: unknown; to: unknown }> = {};
 
-    if (contactUpdateError) throw contactUpdateError;
+  if (existingPrimaryContact) {
+    contactChanges = changedFields(
+      existingPrimaryContact as Record<string, unknown>,
+      contactPatch,
+    );
+    if (Object.keys(contactChanges).length > 0) {
+      const { error: contactUpdateError } = await supabaseService
+        .from("customer_contacts")
+        .update(contactPatch)
+        .eq("id", existingPrimaryContact.id)
+        .eq("company_id", companyId)
+        .eq("customer_id", customerId);
+
+      if (contactUpdateError) throw contactUpdateError;
+    }
   } else if (primaryContactName || email || phone) {
+    contactChanges = changedFields({}, { name: primaryContactName, email, phone });
     const { error: contactInsertError } = await supabaseService
       .from("customer_contacts")
       .insert({
@@ -365,7 +420,9 @@ export async function saveCustomerProfileImpl(
     newValues: updated,
     metadata: {
       companyId,
-      syncedPrimaryContact: true,
+      syncedPrimaryContact: Object.keys(contactChanges).length > 0,
+      primaryContactChanges: contactChanges,
+      channel: "ops",
     },
   });
 

@@ -53,11 +53,11 @@
 | F3 (S1) | High | **Fixed (T, unit)** | End-customer writes were accepted on an identifier-only match (customer number or email alone) | `profile-update` never checked binding | P1a: `customer_identity_binding_required` (403) for mutations without a linked portal account |
 | F4 (S4) | High | Open (S) | The first link relies on tenant-supplied factors only (customer number + email); there is no customer-side proof | `hasStrongFirstLinkFactors` | P1b: signed identity/delegation proof (iss/aud/exp/tenant/relation) |
 | F5 (S5) | Medium | **Fixed (T, unit)** | `customer-portal/sync` upsert can repoint or null `customer_id`/`auth_user_id` on an existing identity | `route.ts:216` | P1b: `lib/customer-portal/identityTransition.ts` → 409 |
-| F6 (S7) | Medium | Open (S) | Admin profile `status` has no allowlist, so the archive flow can be bypassed | `part-1.ts:231,290` | P2 |
-| F7 (S8/S9) | Medium | Open (S) | Primary contact sync is destructive in OPS and missing in the API, so data drifts; the contact change is not audited | `part-1.ts:309-356` | P2: shared contact command |
+| F6 (S7) | Medium | **Fixed (T)** | Admin profile `status` has no allowlist, so the archive flow can be bypassed | `part-1.ts:231,290` | P2 |
+| F7 (S8/S9) | Medium | **Fixed (T, unit + static adapter)** | Primary contact sync is destructive in OPS and missing in the API, so data drifts; the contact change is not audited | `part-1.ts:309-356` | P2: shared contact command |
 | F8 (S10) | Medium | Open (S) | Invoice email silently falls back to `customer.email` | `billingReadiness.ts:198` | P3 |
 | F9 (S11) | Medium | Open (S) | Case idempotency is check-then-insert with no unique constraint; the admin key is optional | `support.ts:124` | P4 |
-| F10 (S12) | Medium | Open (S) | Portal profile change writes no `audit_logs` row with before/after values | `profile-update/route.ts` | P2 |
+| F10 (S12) | Medium | **Fixed (T, static)** | Portal profile change writes no `audit_logs` row with before/after values | `profile-update/route.ts` | P2 |
 | F11 | Info | Open (S) | `customer_cases`/events lack channel, interaction and visibility fields; there is no `/api/v1/customer/support` | migrations 20260520_batch_5 | P4 |
 
 ## False positives
@@ -80,3 +80,29 @@
 | `npm run typecheck` | OK |
 | `node scripts/gridex-portal-identity-match-strength-regression.cjs`, `…live-schema-code-sync…`, `…multitenant-website-application-flow…`, `check-api-performance-tenant-gates.cjs` | OK |
 | eslint on changed files | 0 errors, 0 warnings |
+
+## P2a (contact change): what was done and what remains
+**Done:**
+- `lib/customer-service/contactChange.ts` holds the shared rules for both adapters:
+  - field semantics (omitted / null / value);
+  - status allowlist;
+  - email and phone validation;
+  - primary-contact rule (private customers mirror, company contacts are never cleared);
+  - diff for audit.
+- OPS action:
+  - validated status;
+  - optimistic lock through `expected_updated_at`;
+  - non-destructive contact sync;
+  - contact changes recorded in the audit.
+- API `profile-update`:
+  - omitted fields stay untouched;
+  - validation;
+  - version lock (409);
+  - same contact rule;
+  - fail-closed `audit_logs` with `actor_type: customer_portal_account` and the API client.
+
+**Remaining (P2b), requires a migration and an isolated DB:**
+- A single DB transaction (RPC) covering the change, contact, audit, idempotency and outbox. Today these are sequential PostgREST calls: a failure after the customer update leaves the contact and audit unwritten.
+- A unique outbox intent.
+- Legal identity fields (personal number / org number) in the ordinary OPS profile should move to a separate high-risk flow. **Open, F12.**
+- `profile-update` triggers `enqueueCustomerDataRequestAutomation` as fire-and-forget. **Open, F13.**
