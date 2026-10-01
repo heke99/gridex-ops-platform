@@ -30,6 +30,12 @@ type CustomerCaseInput = {
   source?: string | null
   metadata?: Record<string, unknown> | null
   actorUserId?: string | null
+  /**
+   * 'none' for plain customer support cases: they record a conversation and must never
+   * stop billing, onboarding, outbound traffic or switches as a side effect. Operational
+   * impact is decided by the dedicated case types (withdrawal, aborted onboarding, ...).
+   */
+  operationalImpact?: 'assess' | 'none'
 }
 
 export function customerCaseTypeLabel(value: string | null | undefined) {
@@ -239,7 +245,7 @@ async function queueCaseEmail(row: CustomerCaseRow, actorUserId?: string | null)
 }
 
 export async function createCustomerCase(input: CustomerCaseInput): Promise<CustomerCaseRow> {
-  const assessment = assessWithdrawal({
+  const assessed = assessWithdrawal({
     caseType: input.caseType,
     agreementCreatedAt: input.agreementCreatedAt,
     agreementChannel: input.agreementChannel,
@@ -249,6 +255,16 @@ export async function createCustomerCase(input: CustomerCaseInput): Promise<Cust
     deliveryStartAt: input.deliveryStartAt,
     prodatSentAt: input.prodatSentAt,
   })
+  const assessment = input.operationalImpact === 'none'
+    ? {
+        ...assessed,
+        billingBlocked: false,
+        billingManualReview: false,
+        cancellationRequired: false,
+        cancellationStatus: 'not_required' as const,
+        nextAction: input.nextAction ?? null,
+      }
+    : assessed
 
   const initialStatus = assessment.billingBlocked
     ? assessment.scenario === 'cannot_stop_switch'
