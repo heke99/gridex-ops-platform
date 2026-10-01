@@ -25,6 +25,7 @@ import {
   type CanonicalEdielMessage,
 } from '@/lib/ediel/core/canonicalMessage'
 import { runUtiltsRuntimeForMessage,takeUtiltsRuntimeOwner,type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
+import {readUtiltsIssuerIdentityAuthority,type UtiltsIssuerIdentityAuthority} from '@/lib/ediel/utilts/issuerIdentityAuthority'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { canonicalAckRuleForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
@@ -224,6 +225,7 @@ function applyProdatPolicyDecision(params: {
 
 function resolveUtiltsDecision(params: {
   runtime?:UtiltsRuntimeResult
+  issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority
   message: EdielMessageRow
   policy: CanonicalEdielPolicy
   responsePlan: CanonicalResponsePlanItem[]
@@ -238,7 +240,7 @@ function resolveUtiltsDecision(params: {
   utiltsHeaderValidation?: ReceivedUtiltsHeaderValidation
   utiltsTransactionValidation?: ReceivedUtiltsTransactionValidation
 } {
-  const runtime = params.runtime ?? runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: params.policy })
+  const runtime = params.runtime ?? runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: params.policy,issuerIdentityAuthority:params.issuerIdentityAuthority })
   const utiltsTransactionValidation=buildReceivedUtiltsTransactionValidation({source:params.message,transactions:runtime.transactionDispositions}) ?? undefined
   const utiltsHeaderValidation=buildReceivedUtiltsHeaderValidation({source:params.message,headerRejection:runtime.ackPlan.utiltsHeaderRejection}) ?? undefined
   const utiltsFunctionalValidation=buildReceivedUtiltsFunctionalValidation({source:params.message,runtime}) ?? undefined
@@ -312,6 +314,11 @@ function resolveUtiltsDecision(params: {
       })),
     })
     return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome, utiltsFunctionalValidation, utiltsHeaderValidation, utiltsTransactionValidation }
+  }
+
+  if (runtime.validation.classification === 'internal_review') {
+    params.decisionTrace.push('Egna UTILTS-transaktioner hålls för lokal granskning; saknad identitetsauktoritet ger varken positiv kvittens eller nationell felkod.')
+    return {applicationDecision:'manual_review',functionalDecision:'manual_review',businessOutcome,utiltsFunctionalValidation,utiltsHeaderValidation,utiltsTransactionValidation}
   }
 
   if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
@@ -406,6 +413,13 @@ function buildResult(params: {
 
 export type CanonicalRuntimeSourceFacts={deathStatusContext?:DeathStatusValidationContext}
 export function resolveCanonicalRuntimeDecision(message: EdielMessageRow, facts:CanonicalRuntimeSourceFacts={}): CanonicalRuntimeDecision {
+  return resolveCanonicalRuntimeDecisionCore(message,facts)
+}
+
+/** Registry admission selects the whole guide once, then obtains the protected
+ * foreign issuer authority before its single operational UTILTS invocation.
+ * Synchronous observation keeps the existing source-independent evaluation. */
+function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean}):CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
     ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
@@ -520,7 +534,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow, facts:
   let functionalDecision: CanonicalDecisionState = 'not_applicable'
   let utiltsBusinessOutcome: UtiltsInboundBusinessOutcome | null = null
 
-  if (canonical.family === 'UTILTS' && policy) {
+  if (canonical.family === 'UTILTS' && policy && !options?.deferUtiltsRuntime) {
     const utilts = resolveUtiltsDecision({ message, policy, responsePlan, issues, sourceRules, decisionTrace })
     applicationDecision = utilts.applicationDecision
     functionalDecision = utilts.functionalDecision
@@ -584,10 +598,19 @@ function prodatResponseSourceIdentity(source:{id:unknown;company_id?:unknown;env
  return evidenceHash(JSON.stringify({id:source.id,companyId:source.company_id,environment:source.environment,direction:source.direction,family:source.message_family,code:source.message_code,
   raw:source.raw_payload,receivedAt:source.message_received_at,executionContext:source.execution_context_snapshot}))
 }
-const initialUtiltsOwners=new WeakMap<CanonicalRuntimeDecision,{sourceIdentity:string;decisionHash:string;policy:CanonicalEdielPolicy;hasWitness:boolean}>()
+const initialUtiltsOwners=new WeakMap<CanonicalRuntimeDecision,{sourceIdentity:string;decisionHash:string;policy:CanonicalEdielPolicy;hasWitness:boolean;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority}>()
 function immutableUtiltsSourceIdentity(message:EdielMessageRow):string {
   return evidenceHash(JSON.stringify({id:message.id,companyId:message.company_id,environment:message.environment,direction:message.direction,
     family:message.message_family,code:message.message_code,raw:message.raw_payload,receivedAt:message.message_received_at,executionContext:message.execution_context_snapshot}))
+}
+
+/** The final matching consumer reuses the genuine initial issuer token. A
+ * copied decision, changed original or newly selected policy cannot read it. */
+export function readCanonicalUtiltsIssuerIdentityAuthority(input:{decision:CanonicalRuntimeDecision;message:EdielMessageRow}):UtiltsIssuerIdentityAuthority|null {
+  const owner=initialUtiltsOwners.get(input.decision)
+  if(!owner||input.decision.policy!==owner.policy||immutableUtiltsSourceIdentity(input.message)!==owner.sourceIdentity
+    ||evidenceHash(JSON.stringify(input.decision))!==owner.decisionHash)return null
+  return owner.issuerIdentityAuthority??null
 }
 
 /** Consume the real final UTILTS owner, retaining the initial whole-guide and
@@ -597,7 +620,7 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
   const initial=input.initialDecision,owner=initialUtiltsOwners.get(initial)
   if(!owner||initial.policy!==owner.policy||immutableUtiltsSourceIdentity(input.message)!==owner.sourceIdentity
     ||evidenceHash(JSON.stringify(initial))!==owner.decisionHash)throw new Error('ediel_initial_utilts_owner_unavailable')
-  const actual=takeUtiltsRuntimeOwner(input.runtime,input.message,owner.policy)
+  const actual=takeUtiltsRuntimeOwner(input.runtime,input.message,owner.policy,owner.issuerIdentityAuthority)
   if(!actual)throw new Error('ediel_final_utilts_owner_unavailable')
   if(!owner.hasWitness&&actual.transactionDispositions.some(transaction=>transaction.disposition==='accepted'))throw new Error('ediel_final_utilts_rule_witness_required')
   initialUtiltsOwners.delete(initial)
@@ -619,7 +642,7 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
 }
 
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message: EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}): Promise<CanonicalRuntimeDecision> {
-  const base = resolveCanonicalRuntimeDecision(message,facts)
+  let base = resolveCanonicalRuntimeDecisionCore(message,facts,{deferUtiltsRuntime:message.direction==='inbound'})
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
   if (base.policy.family === 'APERAK' || base.policy.family === 'CONTRL' || base.policy.family === 'UTILTS_ERR') {
     if(base.applicationDecision!=='accepted'){
@@ -655,15 +678,27 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
   }
   if (base.policy.family !== 'PRODAT' && base.policy.family !== 'UTILTS') return base
 
+  const selectedPolicy=base.policy
+  let issuerIdentityAuthority:UtiltsIssuerIdentityAuthority|undefined
   try {
+    if(selectedPolicy.family==='UTILTS'&&message.direction==='inbound'){
+      const policy=selectedPolicy
+      issuerIdentityAuthority=await readUtiltsIssuerIdentityAuthority({message,policy})
+      const responsePlan=[...base.responsePlan],issues=[...base.issues],sourceRules=[...base.sourceRules],decisionTrace=[...base.decisionTrace]
+      const utilts=resolveUtiltsDecision({message,policy,issuerIdentityAuthority,responsePlan,issues,sourceRules,decisionTrace})
+      base=buildResult({canonical:base.canonical,policy,utiltsBusinessOutcome:utilts.businessOutcome,
+        utiltsFunctionalValidation:utilts.utiltsFunctionalValidation,utiltsHeaderValidation:utilts.utiltsHeaderValidation,utiltsTransactionValidation:utilts.utiltsTransactionValidation,
+        syntaxDecision:base.syntaxDecision,applicationDecision:utilts.applicationDecision,functionalDecision:utilts.functionalDecision,
+        responsePlan,issues,sourceRules,decisionTrace,syntax:base.validationReport.syntax})
+    }
     const evidence = await resolveCanonicalRulePack({
-      family: base.policy.family,
-      messageCode: base.policy.code,
-      transactionSubtype: base.policy.subtype,
-      applicationReference: base.policy.applicationReference,
+      family: selectedPolicy.family,
+      messageCode: selectedPolicy.code,
+      transactionSubtype: selectedPolicy.subtype,
+      applicationReference: selectedPolicy.applicationReference,
       direction: message.direction,
-      businessDate: base.policy.referenceDate,
-      canonicalPolicy: base.policy,
+      businessDate: selectedPolicy.referenceDate,
+      canonicalPolicy: selectedPolicy,
       requireBuilder: false,
       requireStateMachine: true,
     })
@@ -685,12 +720,12 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       fieldRuleSource: 'canonical_policy',
     }
     const resolved={ ...base, sourceRules, decisionTrace, validationReport }
-    if(base.policy.family==='PRODAT'){const facet=buildReceivedProdatResponseValidation(message,resolved);if(facet)initialProdatResponseOwners.set(resolved,{sourceIdentity:prodatResponseSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),facet})}
-    if(base.policy.family==='PRODAT'&&base.syntaxDecision==='accepted'&&base.prodatApplicationValidation&&message.raw_payload){
+    if(selectedPolicy.family==='PRODAT'){const facet=buildReceivedProdatResponseValidation(message,resolved);if(facet)initialProdatResponseOwners.set(resolved,{sourceIdentity:prodatResponseSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),facet})}
+    if(selectedPolicy.family==='PRODAT'&&base.syntaxDecision==='accepted'&&base.prodatApplicationValidation&&message.raw_payload){
       const facet=bindReceivedProdatApplicationObjects({...base.prodatApplicationValidation,sourcePayloadHash:evidenceHash(message.raw_payload)},message.raw_payload)
       if(facet)initialProdatApplicationOwners.set(resolved,{sourceIdentity:prodatResponseSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),facet})
     }
-    if(base.policy.family==='UTILTS'&&base.syntaxDecision==='accepted')initialUtiltsOwners.set(resolved,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),policy:base.policy,hasWitness:true})
+    if(selectedPolicy.family==='UTILTS'&&base.syntaxDecision==='accepted')initialUtiltsOwners.set(resolved,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),policy:selectedPolicy,hasWitness:true,issuerIdentityAuthority})
     return resolved
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
@@ -733,9 +768,9 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       decisionTrace,
       validationReport,
     }
-    if(base.policy.family==='UTILTS'&&base.syntaxDecision==='accepted'&&base.utiltsTransactionValidation
+    if(selectedPolicy.family==='UTILTS'&&base.syntaxDecision==='accepted'&&base.utiltsTransactionValidation
       &&base.utiltsTransactionValidation.transactions.every(transaction=>transaction.disposition!=='accepted')) {
-      initialUtiltsOwners.set(held,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(held)),policy:base.policy,hasWitness:false})
+      initialUtiltsOwners.set(held,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(held)),policy:selectedPolicy,hasWitness:false,issuerIdentityAuthority})
     }
     return held
   }
