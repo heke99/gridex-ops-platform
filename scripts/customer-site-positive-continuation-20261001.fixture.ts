@@ -119,6 +119,29 @@ export type CanonicalDraftFixture = {
   company: string; customer: string; actor: string; contract: string; start: string
   site: string | null; point: string | null
 }
+// Publication readiness for a disposable tenant without any SMTP/market send.
+// Existing held-route callers already supply their own complete prerequisites.
+export function prepareInertPositiveSitePublication(f: Pick<CanonicalDraftFixture, 'company' | 'actor'>) {
+  sql(`UPDATE public.companies SET legal_name='Synthetic Site Supplier AB',org_number='5590001235',
+      address_line_1='Testgatan 1',postal_code='12345',city='Teststad',country_code='SE',
+      support_email='support@example.invalid',phone='0101234567',website='https://example.invalid'
+    WHERE id=${quote(f.company)};
+    INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
+      VALUES(${quote(f.company)},'production','Synthetic inert supplier','12345','12345');
+    INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name)
+      VALUES(${quote(f.company)},'production','54321','Synthetic BRP');
+    INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family)
+      VALUES(${quote(f.company)},'production','Synthetic inert PRODAT','PRODAT'),
+        (${quote(f.company)},'production','Synthetic inert UTILTS','UTILTS');
+    INSERT INTO public.permissions(key,name,description,category)
+      SELECT key,key,'Synthetic canonical preparation','test' FROM
+      unnest(ARRAY['contracts.create','contracts.publish','pricing.write','pricing.publish']) candidate(key)
+      ON CONFLICT(key) DO NOTHING;
+    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+      SELECT ${quote(f.actor)},${quote(f.company)},id,key FROM public.permissions
+      WHERE key IN ('contracts.create','contracts.publish','pricing.write','pricing.publish') ON CONFLICT DO NOTHING;
+    SELECT to_jsonb(true);`)
+}
 // Reuse the real canonical offer/legal/publication owners to prepare a draft.
 // This helper creates no customer signature, dispatch or acceptance evidence.
 export async function preparePositiveSiteDraftAgreement(f: CanonicalDraftFixture) {
@@ -174,7 +197,8 @@ export async function preparePositiveSiteDraftAgreement(f: CanonicalDraftFixture
   return { publication, legal }
 }
 
-export async function signPositiveSiteAgreement(f: PositiveSiteFixture) {
+export type SignedPositiveSiteAgreementFixture = CanonicalDraftFixture & { site: string; point: string; email: string; reference: string }
+export async function signPositiveSiteAgreement(f: SignedPositiveSiteAgreementFixture) {
   const { publication, legal } = await preparePositiveSiteDraftAgreement(f)
   const signed = await signInvoiceTestContractCanonically({ companyId: f.company, customerId: f.customer, contractId: f.contract, actorUserId: f.actor })
   expect(signed).toMatchObject({ status: 'signed', signature_snapshot_sha256: expect.stringMatching(/^[a-f0-9]{64}$/) })

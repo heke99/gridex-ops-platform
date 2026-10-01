@@ -3,7 +3,7 @@ import {expect,it} from 'vitest'
 import {createTenantSupportCase} from '@/lib/customer-cases/support'
 import {createCustomerCase,updateCustomerCaseStatus} from '@/lib/customer-cases/db'
 import {enqueue} from '@/lib/customer-operations/automation.part-1'
-import {preparePositiveSiteDraftAgreement} from '../customer-site-positive-continuation-20261001.fixture'
+import {prepareInertPositiveSitePublication,preparePositiveSiteDraftAgreement} from '../customer-site-positive-continuation-20261001.fixture'
 
 type SupportBoundaryNativeDependencies={
  sql:<T>(query:string)=>T
@@ -30,23 +30,8 @@ async function supportBusinessFixture(companyId:string,catalogActorUserId:string
  const customerId=randomUUID(),contractId=randomUUID(),underlayId=randomUUID(),invoiceId=randomUUID()
  const infoId=randomUUID(),permissionId=randomUUID(),outboundId=randomUUID(),exportId=randomUUID(),switchId=randomUUID(),priorJobId=randomUUID()
  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
-  VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Support boundary');
-  UPDATE public.companies SET legal_name='Synthetic Site Supplier AB',org_number='5590001235',
-    address_line_1='Testgatan 1',postal_code='12345',city='Teststad',country_code='SE',
-    support_email='support@example.invalid',phone='0101234567',website='https://example.invalid'
-  WHERE id=${literal(companyId)};`)
- // Real publication readiness for this disposable tenant. These profiles
- // are inert; no provider dispatch or signing is performed by this fixture.
- sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
-   VALUES(${literal(companyId)},'production','Synthetic support supplier','12345','12345');
-   INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name)
-   VALUES(${literal(companyId)},'production','54321','Synthetic BRP');
-   INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family)
-   VALUES(${literal(companyId)},'production','Synthetic inert support PRODAT','PRODAT'),
-     (${literal(companyId)},'production','Synthetic inert support UTILTS','UTILTS');
-   INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
-   SELECT ${literal(catalogActorUserId)},${literal(companyId)},id,key FROM public.permissions
-   WHERE key IN ('contracts.create','contracts.publish','pricing.write','pricing.publish') ON CONFLICT DO NOTHING;`)
+  VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Support boundary');`)
+ prepareInertPositiveSitePublication({company:companyId,actor:catalogActorUserId})
  // A cancellable draft has the same required canonical version bindings as
  // a real contract. Reuse the actual offer/legal/publication owners without
  // signing or creating customer acceptance. Never bypass installed triggers.

@@ -16,6 +16,7 @@ import {utiltsNativeSourceFixture} from '../__tests__/helpers/utiltsNativeSource
 import {observationHandoffMessage} from '../__tests__/helpers/utiltsObservationHandoff'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {receiveSourceOwnerZ04,sourceOwnerBusinessSnapshotSql} from './helpers/ediel-source-owner-canonical-native-20261001'
+import {prepareInertPositiveSitePublication,signPositiveSiteAgreement} from './customer-site-positive-continuation-20261001.fixture'
 
 // No database/client, parser, canonical registry or ownership decision is
 // mocked. Only unrelated notification/event sinks are withheld on this runner.
@@ -79,12 +80,20 @@ async function seed(delegated=false, structural=false) {
   INSERT INTO public.companies(id,name,status) VALUES(${p('company')},'E035 native runtime synthetic ${caseNo}','active');
   INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
   VALUES(${p('actor')},'authenticated','authenticated','e035-native-actor-${caseNo}@example.invalid',now(),'{}','{}',now(),now(),false,false);
-  INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${p('customer')},${p('company')},'E035-NATIVE-${caseNo}','Synthetic native customer','private');
+  INSERT INTO public.user_profiles(id,email,full_name,user_status)
+  VALUES(${p('actor')},'e035-native-actor-${caseNo}@example.invalid','Synthetic native preparation actor','active');
+  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,role,is_active,accepted_at)
+  VALUES(${p('company')},${p('actor')},'operations','active','operations',true,now());
+  INSERT INTO public.customers(id,company_id,customer_number,name,full_name,customer_type,email,source,is_test_data,metadata)
+  VALUES(${p('customer')},${p('company')},'E035-NATIVE-${caseNo}','Synthetic Site Customer','Synthetic Site Customer','private',
+    'e035-native-customer-${caseNo}@example.invalid','invoice_test_center',true,'{"test_center":{"kind":"invoice_test_customer"}}');
   INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${p('grid')},${p('company')},'Synthetic native grid ${caseNo}','12345','test',true,'active');
-  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${p('site')},${p('company')},${p('customer')},'Synthetic native site','consumption','active','SE',${literal(external)},${p('grid')});
-  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id) VALUES(${p('point')},${p('company')},${p('customer')},${p('site')},${p('site')},${literal(external)},${literal(external)},'hourly','consumption',true,${p('grid')});
-  INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,status)
-  VALUES(${p('contract')},${p('company')},${p('customer')},${p('site')},${p('site')},${p('point')},'draft');
+  INSERT INTO public.platform_grid_areas(grid_area_code,grid_owner_name,price_area,source,is_active)
+  VALUES('E035N${caseNo}','Synthetic native grid','SE3','synthetic_disposable_source_owner',true);
+  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id,grid_area_code,price_area_code)
+  VALUES(${p('site')},${p('company')},${p('customer')},'Synthetic native site','consumption','active','SE',${literal(external)},${p('grid')},'E035N${caseNo}','SE3');
+  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id,price_area_code)
+  VALUES(${p('point')},${p('company')},${p('customer')},${p('site')},${p('site')},${literal(external)},${literal(external)},'hourly','consumption',true,${p('grid')},'SE3');
   INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) VALUES(${p('company')},'test','electricity',true,clock_timestamp()-interval '1 day');
   INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES(${p('company')},'test',${p('actor')},'EdielId','54321',clock_timestamp()-interval '1 day');
   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) VALUES(${p('company')},'test',${p('actor')},'electricity_supplier',clock_timestamp()-interval '1 day');
@@ -93,8 +102,6 @@ async function seed(delegated=false, structural=false) {
   INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to) VALUES(${p('transport')},'EdielId',${literal(transportEdiel)},true,'2026-01-01','2099-01-01');
   INSERT INTO public.tenant_counterparty_relations(company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from) VALUES(${p('company')},'test',${p('transport')},'ediel_transport_agent',true,clock_timestamp()-interval '1 day');`:''}
 
-  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,grid_owner_ediel_id,contract_id,customer_contract_id,request_type,status,requested_start_date,rff_li_reference,z03_variant)
-  VALUES(${p('switch')},${p('company')},${p('customer')},${p('site')},${p('site')},${p('point')},${p('grid')},'12345',${p('contract')},${p('contract')},'switch','draft','2026-10-01','CASE-1','L');
   ${structural?`
   INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
   VALUES(${p('reviewer')},'authenticated','authenticated','e035-native-${caseNo}@example.invalid',now(),'{}','{}',now(),now(),false,false);
@@ -108,6 +115,16 @@ async function seed(delegated=false, structural=false) {
   INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${p('reviewer')},${p('company')},id,'ediel_testing.write' FROM public.permissions WHERE key='ediel_testing.write';
   `:''}
+  `)
+  prepareInertPositiveSitePublication({company:ids.company,actor:ids.actor})
+  await signPositiveSiteAgreement({company:ids.company,customer:ids.customer,actor:ids.actor,contract:ids.contract,
+    site:ids.site,point:ids.point,start:'2026-10-01',email:`e035-native-customer-${caseNo}@example.invalid`,reference:`E035-NATIVE-${caseNo}`})
+  expect(sql(`SELECT jsonb_build_object('ready',switch_ready,'signed',agreement_signed,'pdf',signed_pdf_archived,
+    'poa',valid_power_of_attorney,'facility',facility_data_ready,'meter',metering_data_ready,'blockers',blockers)
+    FROM public.customer_contract_lifecycle_readiness_v WHERE company_id=${p('company')} AND customer_contract_id=${p('contract')}`))
+    .toMatchObject({ready:true,signed:true,pdf:true,poa:true,facility:true,meter:true,blockers:[]})
+  sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,grid_owner_ediel_id,contract_id,customer_contract_id,request_type,status,requested_start_date,rff_li_reference,z03_variant)
+  VALUES(${p('switch')},${p('company')},${p('customer')},${p('site')},${p('site')},${p('point')},${p('grid')},'12345',${p('contract')},${p('contract')},'switch','draft','2026-10-01','CASE-1','L');
   INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active)
   VALUES(${p('route')},${p('company')},'Isolated synthetic native route',${p('grid')},'bilateral_test',true);
   INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
