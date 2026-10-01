@@ -558,7 +558,10 @@
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
-    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
+    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
+    "20261001052735_ediel_bilateral_prodat_own_supply_consumer.sql": "604cf7927aab5253bdd9a9be853177c63cc728a3a6fb7331b586dd12cceece22",
+    "20261001060131_ediel_inbound_reception_actual_original_columns.sql": "0d7f5a97fa7e2a5558863e38f3d06c136b7fd3307544821d938d0dc7634a3466",
+    "20261001071050_ediel_stable_finance_guard_identities.sql": "8f4edd6db6f856bdf1bce16e16894997d9e19d53e2c004e720f8e6d2aea03448"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

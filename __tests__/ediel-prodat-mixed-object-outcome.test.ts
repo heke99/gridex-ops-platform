@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest'
 import {source} from './fixtures/prodat-identity'
-import {raw} from './fixtures/prodat-register'
+import {guideOrderedFixtureRaw as raw} from './helpers/prodatGuideOrderedFixture'
 import {mixedZ04Parts} from './helpers/mixedZ04Fixture'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
@@ -12,13 +12,23 @@ it('refuses BGM34 before the untouched sibling has a real own outcome',()=>{
  const d=resolveCanonicalRuntimeDecision(m),errors=d.responsePlan.find(p=>p.family==='APERAK')!.applicationErrors!
  expect(()=>buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:errors})).toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
 })
-it('reproduces the authentic guide missing-outcome gate independently of renderer',()=>{
+it('bounded own-response guide never invents an omitted sibling outcome or send authority',()=>{
  const m=source(raw(mixedZ04Parts(),'Z04'),'Z04')
  const d=resolveCanonicalRuntimeDecision(m),errors=d.responsePlan.find(p=>p.family==='APERAK')!.applicationErrors!
- const complete=buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:[...errors,{ercCode:'100',text:'OK',referenceQualifier:'Z07',referenceNumber:'735123456789012352',lineItemReference:'CASE-735123456789012352'}]})
- const draft={rawPayload:complete.rawPayload!.replace(/ERC\+100::260'.*?(?=UNT\+)/,'').replace(/UNT\+\d+/, 'UNT+15')}
+ // Flat physical ACK tokens are a declared bounded diagnostic input. This
+ // does not bypass full96A, mint a sibling success or claim a sendable ACK.
+ expect(()=>buildAperakDraft({sourceMessage:m,outcome:'negative',applicationErrors:errors})).toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
+ const own=errors[0]
+ const draft={rawPayload:`UNB+UNOC:3+54321:14+12345:14+260930:1200+ACK'UNH+ACK+APERAK:D:96A:UN:E2SE6A'BGM+++34'ERC+${own.ercCode}::260'FTX+AAO++${own.fieldCode}::260'RFF+LI:${own.lineItemReference}'RFF+Z07:${own.referenceNumber}'UNT+7+ACK'UNZ+1+ACK'`}
  const wire=tokenizeEdifact(draft.rawPayload!),policy=resolveCanonicalMessagePolicy({...m,message_family:'APERAK',message_code:'APERAK',direction:'outbound',raw_payload:draft.rawPayload!})!
- expect(validateCanonicalAckGuide({policy,rawSegments:wire.segments.map(t=>t.raw),una:wire.una,sourceRawPayload:m.raw_payload!}).map(i=>i.code)).toContain('ACK_PRODAT_OBJECT_OUTCOME_MISSING')
+ const issues=validateCanonicalAckGuide({policy,rawSegments:wire.segments.map(t=>t.raw),una:wire.una,sourceRawPayload:m.raw_payload!}).map(i=>i.code)
+ // The preserved authenticated P pp85-87 own-response rule permits several
+ // replies. A native response receipt must qualify that exact own scope; this
+ // diagnostic input cannot grant authority for the omitted second object.
+ expect(issues).not.toContain('ACK_PRODAT_OBJECT_OUTCOME_MISSING')
+ expect(issues).not.toContain('ACK_PRODAT_OWN_OBJECT_SCOPE_MISMATCH')
+ expect(issues).toContain('ACK_APERAK_DOCUMENT_DATE_INVALID')
+ expect(draft.rawPayload).not.toContain('ERC+100')
 })
 
 import {projectReceivedProdatObjectValidation} from '@/lib/ediel/core/receivedProdatObjectValidation'

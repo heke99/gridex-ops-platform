@@ -1,0 +1,1290 @@
+{
+  "passed": 214,
+  "failed": 0,
+  "assertions": [
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual inbound E66 holds LOC+175 despite a stale metering-point match and emits no business value",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual inbound E66 sends a field-533 guide rejection before any regulating-object business effect",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual inbound E66 rejects a wrong GS1 check digit without storing business quantity",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: complete",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: unknown-receipt",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: foreign-scope",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: bad-write-receipt",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: write-throws",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: overflow",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: complete",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: unknown-receipt",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: foreign-scope",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: bad-write-receipt",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: write-throws",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: overflow",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: complete",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: late-witness",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: corrupt",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: overflow",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: throws",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: complete",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: late-witness",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: corrupt",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: overflow",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: throws",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-outcomes.test.ts",
+      "fullName": "preserves every rejected business outcome with recorded context",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-outcomes.test.ts",
+      "fullName": "preserves every rejected business outcome with unavailable context",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-outcomes.test.ts",
+      "fullName": "preserves every rejected business outcome with contradictory context",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-outcomes.test.ts",
+      "fullName": "preserves every accepted business outcome with recorded context",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-outcomes.test.ts",
+      "fullName": "preserves every accepted business outcome with unavailable context",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-outcomes.test.ts",
+      "fullName": "preserves every accepted business outcome with contradictory context",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "reads the database-owned context on the actual single-SELECT processor path without exposing the whole snapshot",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "leaves absent historical receive provenance unavailable: undefined",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "leaves absent historical receive provenance unavailable: null",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent sourceMessageId=other-source",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent messageCode=Z10",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent payloadHash=0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent sourceReceivedAt=2026-06-20T09:00:00.000001Z",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent sourceReceivedAt=null",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent sourceReceivedAt=2026-06-20T09:00:00",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent sourceReceivedAt=2026-11-31T09:00:00Z",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent capturedAt=null",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent capturedAt=2026-06-20T09:00:00",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent capturedAt=2026-11-31T09:00:00Z",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent version=2",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent version=1",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not use a present context with inconsistent contextOrigin=application_reparse",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "rejects a non-object receive snapshot ",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "rejects a non-object receive snapshot forged",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "rejects a non-object receive snapshot 1",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "rejects a non-object receive snapshot true",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "validates every receive context scope before emitting ANY source identifiers: {\"companyId\":\"OTHER-TENANT-PRIVATE\"}",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "validates every receive context scope before emitting ANY source identifiers: {\"environment\":\"production\"}",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "validates every receive context scope before emitting ANY source identifiers: {\"companyId\":null}",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "accepts the same receipt instant in a different offset, retaining the incoming SELECT literal",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not claim a receive context existed at the UTILTS cutoff when it was captured later: 2026-09-30T20:00:00.000002Z",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not claim a receive context existed at the UTILTS cutoff when it was captured later: 2026-09-30T22:00:00.000002+02:00",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "allows equality at the capture cutoff to microsecond precision",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "does not turn mutable applied/validated/accepted JSON into source acceptance",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "keeps the actual ACK/persistence/return decisions unchanged when source context is absent or contradictory",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "never promotes a legacy source using cached applied status when its insert context is unavailable",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "rejects unsupported context fields: {\"acceptance\":\"accepted\"}",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-context-reader.test.ts",
+      "fullName": "rejects unsupported context fields: {\"privateValue\":\"NEVER-EXPOSE\"}",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "uses the actual tenantDb wrapper and a hard bounded exact-count query before transaction persistence",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "batches two independently matched wire transactions into one tenant-scoped source query",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "uses production as the trusted query environment without consulting a default",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "the actual inbound processor cannot read point history for LOC+175 before LOC+172",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "the actual inbound processor cannot read point history for LOC+175 after LOC+172",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "the actual inbound processor cannot link point history when LOC+175 occurs after SEQ in the same physical IDE",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "the actual inbound processor cannot link point history when another LOC+172 occurs after SEQ",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "rejects uppercase encoding of an otherwise correct source seal",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming missing MS, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming missing MR, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming duplicate MS, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming duplicate MR, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming wrong MS agency, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming wrong MR agency, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming missing LOC172, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming duplicate LOC172, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming ambiguous LOC agency, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming unsupported LOC agency, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not query from incoming multiple physical messages, despite a plausible mocked match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "does not treat a microsecond-later source receipt as an in-cutoff row",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "accepts an equal receipt instant expressed using an explicit offset",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "preserves all pre-existing rejected outcomes for candidate diagnostics",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "preserves all pre-existing rejected outcomes for read-error diagnostics",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "preserves all pre-existing rejected outcomes for truncated diagnostics",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "preserves all pre-existing accepted outcomes for candidate diagnostics",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "preserves all pre-existing accepted outcomes for read-error diagnostics",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "preserves all pre-existing accepted outcomes for truncated diagnostics",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "bounds a never-resolving diagnostic read without delaying the existing rejection indefinitely",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "keeps exact market-minute to UTC conversion in the existing PRODAT date owner",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-boundaries.test.ts",
+      "fullName": "retains upstream rejection of the original repeated-UNA fixture without any source query or side effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-deadline.test.ts",
+      "fullName": "preserves literal microsecond database cutoff 2026-09-30T20:00:00.000001Z",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-deadline.test.ts",
+      "fullName": "preserves literal microsecond database cutoff 2026-09-30T22:00:00.000001+02:00",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader-deadline.test.ts",
+      "fullName": "discards a valid delayed query response without any late diagnostic or business write",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "loads independent sealed Z04 bytes through the real processor, not incoming or cached registers",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not link a point source to a mixed LOC+172/LOC+175 IDE (point first)",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not link a point source to a mixed LOC+172/LOC+175 IDE (object first)",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "still inspects an independent clean point sibling when another IDE mixes object domains",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not link an agency 89 source through an unqualified point-text match in the inbound processor",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "uses Z06 change validity, never later contract start or receipt date",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "uses Z10 change validity, never later contract start or receipt date",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "uses the existing release-aware parser for alphabet \":\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "uses the existing release-aware parser for alphabet \"*\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "uses the existing release-aware parser for alphabet \"^\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "keeps each physical register without inheriting register-local identities",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "retains incomplete Z06 field evidence without borrowing an incoming meter or register",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not select a latest candidate, discard equal dates or use receipt order as supersession",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects an out-of-query-scope response for company_id without returning its ID",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects an out-of-query-scope response for environment without returning its ID",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects an out-of-query-scope response for metering_point_id without returning its ID",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects an out-of-query-scope response for direction without returning its ID",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects an out-of-query-scope response for message_family without returning its ID",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects an out-of-query-scope response for message_standard without returning its ID",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects an out-of-query-scope response for message_received_at without returning its ID",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not promote absent or forged hash null",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not promote absent or forged hash \"\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not promote absent or forged hash \"0000000000000000000000000000000000000000000000000000000000000000\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not trust valid-looking parsed JSON after a raw-byte mismatch",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "excludes wrong legal actor despite correct hash and row labels",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "excludes wrong receiver despite correct hash and row labels",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "excludes wrong object agency despite correct hash and row labels",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "excludes duplicate legal actor despite correct hash and row labels",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "excludes wrong legal code agency despite correct hash and row labels",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "excludes another physical message despite correct hash and row labels",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "excludes wrong actual family despite correct hash and row labels",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "never substitutes created/received time for invalid effective minute \"202602300000\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "never substitutes created/received time for invalid effective minute \"202607012400\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "never substitutes created/received time for invalid effective minute \"2026070100\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "never substitutes created/received time for invalid effective minute \"\"",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not borrow the other object date",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not choose the first of duplicate effective date fields",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "returns incomplete, not a selected prefix, when exact query count is null",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "returns incomplete, not a selected prefix, when exact query count is 2",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "returns incomplete, not a selected prefix, when exact query count is 101",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "rejects duplicate row IDs rather than inventing two versions",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "represents an empty result as missing authority, not a valid zero-register inventory",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "keeps response read failure diagnostic-only and redacts database details",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "keeps throw read failure diagnostic-only and redacts database details",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not use cached diagnostic authority in a reprocessed message",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not query from a unmatched match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not query from a wrong-wire-id match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not query from a ambiguous match",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not query when the original receipt timestamp is absent",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-received-structure-reader.test.ts",
+      "fullName": "does not query without a trusted company even when cached point links exist",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-err-application-plan.test.ts",
+      "fullName": "incoming ERR has its own source-qualified application response projects positive APERAK only after inherited old E19 is actually guide-qualified",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-err-application-plan.test.ts",
+      "fullName": "incoming ERR has its own source-qualified application response holds missing original with no application positive",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-err-application-plan.test.ts",
+      "fullName": "incoming ERR has its own source-qualified application response holds missing frozen guide with no application positive",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-err-application-plan.test.ts",
+      "fullName": "incoming ERR has its own source-qualified application response holds foreign original transaction with no application positive",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-err-application-plan.test.ts",
+      "fullName": "incoming ERR has its own source-qualified application response rejects E999 before original source lookup",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-err-application-plan.test.ts",
+      "fullName": "incoming ERR has its own source-qualified application response rejects wrong structure before original source lookup",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-err-application-plan.test.ts",
+      "fullName": "incoming ERR has its own source-qualified application response requires native accepted ERR authority rather than treating ERR as stored metering",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-observation-processor-handoff.test.ts",
+      "fullName": "actual inbound processor forwards fresh observation diagnostics persists raw-owned diagnostics for tenant-a / 2026-09-30",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-observation-processor-handoff.test.ts",
+      "fullName": "actual inbound processor forwards fresh observation diagnostics persists raw-owned diagnostics for tenant-b / 2026-09-30",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-observation-processor-handoff.test.ts",
+      "fullName": "actual inbound processor forwards fresh observation diagnostics persists raw-owned diagnostics for tenant-a / 2026-10-01",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-observation-processor-handoff.test.ts",
+      "fullName": "actual inbound processor forwards fresh observation diagnostics persists raw-owned diagnostics for tenant-b / 2026-10-01",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "persists an own QTY unit guide rejection before drafting its negative ACK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds an S07 without BGM code-list qualifier SVK before business persistence",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "rejects a wrong E66 BGM document agency as field 202 before business persistence",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "keeps own field208 rejection but refuses an application ACK with unqualified physical legal agency",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes six-digit receiver SVK identifier at 208 to negative APERAK without business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes a bad agency-305 receiver GLN at 208 to negative APERAK without business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes unknown subordinate header NAD role 509 to negative APERAK without business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "rejects a blank E66 BGM document identifier as field 203 before business persistence",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "rejects an invalid E66 message function as field 204 before business persistence",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "rejects an impossible E66 message date as field 205 before business persistence",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "keeps an E66 without timezone out of meter and billing effects and emits only field 206 APERAK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "saves no E66 business effect and emits only field 313 negative APERAK for a bad header",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "processor holds internal persistence failure before ACK or sinks",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "processor holds internal persistence failure with accepted sibling before ACK or sinks",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "real processor rejects missing persistence evidence before ACK or completion",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "real processor rejects duplicate persistence evidence before ACK or completion",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "real processor rejects unrelated persistence evidence before ACK or completion",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "real processor rejects contradictory persistence evidence before ACK or completion",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "held sibling keeps its empty persisted quantities and no positive ACK while accepted sibling persists",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "real inbound keeps a guide-invalid E66 IDE separate from a valid sibling through persistence and ACK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes a supplied invalid E66 LOC+172 identity to 209 without consuming its IDE",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes E30 LOC+172 invalid to 209 with no business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes E30 LOC+172 missing to 209 with no business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes S07 LOC+172 invalid to 209 with no business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes S07 LOC+172 missing to 209 with no business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes invalid October S01 LOC+175 to tenant-bound 533 negative APERAK without business effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds a guide-valid E72 agency-89 request before positive point authority, preserving agency-9 requests",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds a permitted inbound E72 request with unowned physical agency 89 before a positive ACK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "the real supplier-side admission refuses outbound-only E73 as an inbound fixture before effects",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds a valid S01 LOC+175 without an owned regulating object and never reserves a positive point ACK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds E66 point consumption when a LOC+175 appears after SEQ in the same physical IDE",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds E66 point consumption when a second LOC+172 appears after SEQ in the same physical IDE",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds an S01 point IDE with a second LOC+172 after SEQ before a market ACK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds both S01 object-first object and late second-LOC+172 point IDEs without a market ACK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds both S01 point-first object and late second-LOC+172 point IDEs without a market ACK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "keeps the clean S01 sibling eligible with a valid object-first regulating-object IDE",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "keeps the clean S01 sibling eligible with a valid point-first regulating-object IDE",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "keeps a valid S01 object-first object held when its point sibling has a guide error",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "keeps a valid S01 point-first object held when its point sibling has a guide error",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "persists E72 request identity defect as tenant-bound negative APERAK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "persists E72 request identity defect as tenant-bound negative APERAK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "persists E73 request identity defect as tenant-bound negative APERAK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "persists S06 request identity defect as tenant-bound negative APERAK",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes an invalid IDE qualifier to field 505 APERAK while preserving its valid sibling",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes a malformed supplied grid-area composite to 260a without rejecting its valid IDE sibling",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes orphan LOC+232 to missing 260c before E66 function and business writes",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "routes orphan LOC+233 to missing 260b before E66 function and business writes",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "holds a positive sibling before ACK when its bound point and customer differ from the linked request",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "prior applicable reading is held while an eligible 15-minute energy sibling stays independent in the actual processor",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "prior held reading, exempt energy and E19-rejected sibling retain three independent processor outcomes",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "processor stops missing tenant before ACK, sinks or completion",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "processor stops duplicate physical identities before ACK, sinks or completion",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-persistence-processor.test.ts",
+      "fullName": "internal persistence failure holds even the certified forced-positive ACK plan",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-source-collision.test.ts",
+      "fullName": "same natural identity and changed QTY cannot overwrite original raw",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-source-collision.test.ts",
+      "fullName": "same bytes in another environment cannot reuse the original source",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-source-collision.test.ts",
+      "fullName": "identical bytes and scope preserve read-only normal reuse",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-utilts-source-collision.test.ts",
+      "fullName": "unique-conflict recovery cannot return changed original as successful reuse",
+      "status": "passed",
+      "failure": []
+    }
+  ]
+}

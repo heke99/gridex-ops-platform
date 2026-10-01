@@ -104,7 +104,7 @@ function source(family = 'PRODAT', testFlag = 1, alphabet = alphabets[0]) {
   ] : [
     ['UNH','SOURCE-M',['UTILTS','D','02B','UN','E5SE5A']], ['BGM',code,'SOURCE-DOC','9','AB'],
     ['DTM',['137','202609201200','203']], ['MKS','23',['E02','','260']],
-    ['NAD','MS',['12345','','9']], ['NAD','MR',['54321','','9']], ['NAD','DDQ',['54321','','9']],
+    ['NAD','MS',['12345','SVK','260']], ['NAD','MR',['54321','SVK','260']], ['NAD','DDQ'],
     ['IDE','24','SOURCE-TX'], ['LOC','172',['735999888000000017','','9']], ['LOC','239',['TES','SVK','260']],
     ['DTM',['324','202609010000202610010000','719']], ['DTM',['354','15','806']], ['STS','7','',['E88','','260']],
     ['MEA','AAZ','','KWH'], ['SEQ','','1'], ['QTY',['136','1']],
@@ -156,23 +156,26 @@ for (const bad of [undefined,null,0,1,'1','false',{}]) {
   })
 }
 for (const family of ['PRODAT','UTILTS','UTILTS_ERR']) for (const outcome of ['positive','negative']) {
-  test(`${family}-origin ${outcome} APERAK requests CONTRL on the actual final wire`, async () => {
+  test(`${family}-origin ${outcome} final ACK either has real CONTRL request or remains scoped source-held`, async () => {
     const a = await api, original = source(family), before = JSON.stringify(original)
     assert.equal(a.validateEdifactSyntax(original).ok, true, 'source has a coherent envelope')
+    if(family==='PRODAT'){assert.throws(()=>a.buildAperakDraft({sourceMessage:original,outcome,applicationErrors:outcome==='negative'?ackErrors(family):null}),outcome==='negative'?/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/:/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/);assert.equal(JSON.stringify(original),before);return}
     const draft = a.buildAperakDraft({ sourceMessage: original, outcome, applicationErrors: outcome === 'negative'
       ? ackErrors(family) : null })
     assert.equal(finalWire(draft.rawPayload).unb[9], '1')
     assert.equal(JSON.stringify(original), before)
   })
-  test(`${family}-origin ${outcome} APERAK monitoring uses outgoing APERAK not source family`, async () => {
+  test(`${family}-origin ${outcome} monitoring is never manufactured for a held final ACK`, async () => {
     const a = await api
+    if(family==='PRODAT'){assert.throws(()=>a.buildAperakDraft({sourceMessage:source(family),outcome,applicationErrors:outcome==='negative'?ackErrors(family):null}),outcome==='negative'?/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/:/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/);return}
     assertPending(a, a.buildAperakDraft({ sourceMessage:source(family), outcome, applicationErrors: outcome === 'negative'
       ? ackErrors(family) : null }), false)
   })
 }
 for (const flag of [0,1]) for (const ack of ['APERAK','CONTRL','UTILTS_ERR']) {
-  test(`${ack} passes source test_flag=${flag} to the actual UNB0035`, async () => {
+  test(`${ack} preserves source test_flag=${flag} on real wire or immutable held source`, async () => {
     const a = await api, s = source(ack === 'UTILTS_ERR' ? 'UTILTS' : 'PRODAT', flag)
+    if(ack==='APERAK'){const before=JSON.stringify(s);assert.throws(()=>a.buildAperakDraft({sourceMessage:s,outcome:'negative',applicationErrors:ackErrors('PRODAT')}),/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/);assert.equal(JSON.stringify(s),before);return}
     const draft = ack === 'APERAK' ? a.buildAperakDraft({ sourceMessage:s, outcome:'negative', applicationErrors:ackErrors('PRODAT') })
       : ack === 'CONTRL' ? a.buildContrlDraft({ sourceMessage:s, outcome:'negative' })
         : a.buildUtiltsErrDraft({ sourceMessage:s, messageText:'E14' })
@@ -194,20 +197,16 @@ test('CONTRL opposing control neither requests nor awaits a new ACK', async () =
   assert.equal(draft.contrlStatus, 'not_required'); assert.equal(draft.aperakStatus, 'not_required')
   assert.equal(draft.ackDueAt, null); assert.equal(a.getCanonicalAckState(stateRow(draft)), 'no_ack_required')
 })
-for (const alphabet of alphabets) test(`real P-APERAK consumer preserves request after incoming alphabet ${alphabet.join('')}`, async () => {
+for (const alphabet of alphabets) test(`real P-APERAK preserves BOTH own references and holds final directory conflict ${alphabet.join('')}`, async () => {
   const a = await api, s = source('PRODAT', 1, alphabet), before = JSON.stringify(s)
-  const draft = a.buildAperakDraft({ sourceMessage:s })
-  assert.equal(finalWire(draft.rawPayload).unb[9], '1')
-  assert.equal(finalWire(draft.rawPayload).unb[7], s.application_reference)
-  assert.ok(draft.rawPayload.includes('RFF+ACW:SOURCE-DOC'))
-  assert.equal(JSON.stringify(s), before)
+  assert.throws(()=>a.buildAperakDraft({sourceMessage:s}),/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
+  assert.equal(JSON.stringify(s),before)
 })
-test('caller payload booleans cannot override the outgoing canonical ACK decision', async () => {
+test('caller payload booleans cannot bypass the actual P-APERAK directory hold', async () => {
   const a = await api, s = source()
   s.parsed_payload = { requiresContrl:false, acknowledgementRequest:false, ackRule:{technicalAck:'none'} }
   s.validation_report = { canonicalPolicy:{ackRule:{technicalAck:'none'}} }
-  const draft = a.buildAperakDraft({sourceMessage:s})
-  assert.equal(finalWire(draft.rawPayload).unb[9], '1'); assertPending(a,draft,false)
+  assert.throws(()=>a.buildAperakDraft({sourceMessage:s}),/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
 })
 test('unsupported family has no manufactured default CONTRL request', async () => {
   const a = await api
@@ -259,8 +258,8 @@ test('all exercised consumers kept provider, database and transport boundaries c
 // Two narrowly approved convergence amendments: PR358 comment5752208557.
 for (const [family, code, expected] of [
   ['UTILTS_ERR','ERR','functional_rejection'], ['UTILTS_ERR','UTILTS_ERR','functional_rejection'],
-  ['UTILTS','ERR','functional_rejection'], ['UTILTS','E66','meter_values'],
-  ['UTILTS','S02','meter_values'], ['APERAK','APERAK','ediel_ack'], ['CONTRL','CONTRL','ediel_ack'],
+  ['UTILTS','ERR','functional_rejection'], ['UTILTS','E66','validated_metering'],
+  ['UTILTS','S02','object_consumption_forecast'], ['APERAK','APERAK','ediel_ack'], ['CONTRL','CONTRL','ediel_ack'],
 ]) test(`process projection ${family}/${code} is ${expected}`, async () => {
   assert.equal((await api).processGroupForMessage(family, code), expected)
 })

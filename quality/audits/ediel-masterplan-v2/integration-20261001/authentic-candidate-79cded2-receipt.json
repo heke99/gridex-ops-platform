@@ -1,0 +1,150 @@
+{
+  "candidateSha": "79cded203ce0430e30708b31448b9a1ba1c92227",
+  "treeSha": "48eea24de768ce1105dedfd337b0815b194732fe",
+  "sameCandidate": true,
+  "wholeMasterplanApproved": false,
+  "nativeAndInteractiveBrowser": "NOT_STARTED: clean replay stopped at real retained-source SQL regression",
+  "exactHeadWorkflows": [
+    {
+      "run": 36820794003,
+      "name": "Tenant integrity regression",
+      "result": "PASS"
+    },
+    {
+      "run": 36820794041,
+      "name": "Gridex browser and quality E2E",
+      "result": "PASS",
+      "limitation": "Generic workflow; does not prove source-qualified native interactive fixtures"
+    },
+    {
+      "run": 36820794026,
+      "name": "Ediel masterplan v2 regressions",
+      "result": "FAIL",
+      "cause": "607/641 register assertions passed; object batch current original/actor fixture oracles require owner port"
+    },
+    {
+      "run": 36820794008,
+      "name": "Gridex full E2E",
+      "result": "FAIL"
+    },
+    {
+      "run": 36820794048,
+      "name": "OPS hardening",
+      "result": "FAIL"
+    }
+  ],
+  "build": {
+    "job": 110235721171,
+    "result": "PASS",
+    "limitation": "Other quality gates still fail; tests type error subsequently corrected locally"
+  },
+  "authenticEmptyReplay": {
+    "job": 110235720961,
+    "allCandidateForwardDDL": "PASS through20261001070700",
+    "typesGenerated": true,
+    "schemaGenerated": true,
+    "firstRegression": "scripts/ediel-inbound-prodat-source-regression.sql:124",
+    "runtimeError": "record new has no field inbound_email_message_id",
+    "rootCause": "public.ediel_messages has mailbox_message_id only; private reception ledger owns inbound_email_message_id",
+    "repair": "NEW20261001060131 retains installed function OID/ACL/owner/config and qualified native erase exception"
+  },
+  "authenticAncestorReplay": {
+    "job": 110235721149,
+    "ancestorAndAllForwardDDL": "PASS",
+    "independentCleanDDL": "PASS",
+    "threeGeneratedTypesByteParity": "PASS",
+    "retainedRowsBeforeAfter": "PASS",
+    "schemaAndFingerprints": "FAIL",
+    "rootCause": "Two finance trigger clones named with unstable pg_proc OIDs; clean finance_guard_43212/43219 vs upgrade43214/43221",
+    "repair": "NEW20261001071050 stable exact schema/table/trigger identities; preserves original OIDs/guards/ACLs"
+  },
+  "artifacts": [
+    {
+      "id": 11143806263,
+      "sha256": "e22176deb40db64ca941dbfd995d4e32cb1187faa62870389843a57f4b24ac28",
+      "members": [
+        {
+          "path": "rem002-database.types.ts",
+          "bytes": 3466481,
+          "sha256": "7f27f1f7ee9f3ddd976c09c31340477c18880ab8823b878e863c9b10d63e31a0"
+        },
+        {
+          "path": "rem002-clean-replay.log",
+          "bytes": 1602279,
+          "sha256": "0351d8e1dd137d789cdb4b65132e4f5166d82ff08d8df06f8433ade46626702e"
+        },
+        {
+          "path": "rem002-schema-snapshot/schema.fingerprint.json",
+          "bytes": 3403,
+          "sha256": "c6a1af26ef0b1d2c8ad11a2c9ae36a6c1000c894c8cc8b0f2d3c87a3b9120dd4"
+        },
+        {
+          "path": "rem002-schema-snapshot/schema.sql",
+          "bytes": 9511235,
+          "sha256": "38a74cc3c018641bfc4839fb2a253be6a516c57606dd0435d52ae58dd5fde897"
+        }
+      ]
+    },
+    {
+      "id": 11143472309,
+      "sha256": "002d079f3a0b6f47b47973bb6668e476e8ece8b13031cf7507826749cc9e71db",
+      "members": [
+        {
+          "path": "rem002-upgrade/clean/database.types.ts",
+          "bytes": 3466481,
+          "sha256": "7f27f1f7ee9f3ddd976c09c31340477c18880ab8823b878e863c9b10d63e31a0"
+        },
+        {
+          "path": "rem002-upgrade-replay.log",
+          "bytes": 3123595,
+          "sha256": "91275bc6228ddf9c2185b4ab3d22b5fdc0530fa8fa8f66985cb6c4b766bd5b56"
+        },
+        {
+          "path": "rem002-upgrade/clean/schema/schema.fingerprint.json",
+          "bytes": 3403,
+          "sha256": "8513fcd4f8aa5e1dd2eccd04cdbc0bdfee48bb33c12a7f169f881d243e0d8df0"
+        },
+        {
+          "path": "rem002-upgrade/clean/schema/schema.sql",
+          "bytes": 9511235,
+          "sha256": "62bf1531ed3eb2408f0c61caa76b9c1ceebc100871c0552dfd2a64ead591e133"
+        },
+        {
+          "path": "rem002-upgrade/retained-after.json",
+          "bytes": 1339,
+          "sha256": "2aefce0cfda4e930f77942841c5feb3da14bd0f844a538327e3f9dba16b95b00"
+        },
+        {
+          "path": "rem002-upgrade/retained-before.json",
+          "bytes": 1339,
+          "sha256": "2aefce0cfda4e930f77942841c5feb3da14bd0f844a538327e3f9dba16b95b00"
+        },
+        {
+          "path": "rem002-upgrade/upgrade-inputs.json",
+          "bytes": 69588,
+          "sha256": "a7ea0861e98f48208e55ea68f1b36e232a99325b3edaebd5087349b6bf1439d4"
+        },
+        {
+          "path": "rem002-upgrade/upgraded/database.types.ts",
+          "bytes": 3466481,
+          "sha256": "7f27f1f7ee9f3ddd976c09c31340477c18880ab8823b878e863c9b10d63e31a0"
+        },
+        {
+          "path": "rem002-upgrade/upgraded/schema/schema.fingerprint.json",
+          "bytes": 3403,
+          "sha256": "c4d64c8e55dfd2e85ad5d625d8ca5ced1602e9abc60f9a8faf0054d3be40f619"
+        },
+        {
+          "path": "rem002-upgrade/upgraded/schema/schema.sql",
+          "bytes": 9511235,
+          "sha256": "1531c6368e2ecd4f0e7b72231f5977bdd476b1e476d87ab71ea9cf76c27d3018"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Historical candidate evidence only; new local repairs require another authentic same-head replay",
+    "No external legal issuer, market, counterparty, Ediel/TGT/AGT or production readiness claim",
+    "No schema comparison weakening or pg_dump normalization"
+  ]
+}

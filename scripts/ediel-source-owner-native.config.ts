@@ -47,5 +47,7 @@ export default defineConfig({
     'scripts/ediel-process-journal-retention-native.test.ts',
     'scripts/ediel-registry-route-certificate-native.test.ts',
     'scripts/ediel-finance-copy-retention-native.test.ts',
+    'scripts/ediel-z06f-reading-followup-native.test.ts',
+    'scripts/ediel-decision-original-retention-native.test.ts',
   ],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })

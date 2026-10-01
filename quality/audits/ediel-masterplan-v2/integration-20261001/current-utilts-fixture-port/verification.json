@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "baselineHead": "3b41ca0d99a2003d715365b9e328f40a1a4dbb2a",
+  "scope": "Ten sole-owned legacy unit fixtures plus one new dedicated finite I/O helper; no production/runtime/migration/shared-helper edits.",
+  "files": [
+    {
+      "path": "__tests__/ediel-received-context-outcomes.test.ts",
+      "sha256": "a2859b425f07e3fe72a530e95416133ca2715f2250bc393745cbddfb0b7da0d2"
+    },
+    {
+      "path": "__tests__/ediel-received-context-reader.test.ts",
+      "sha256": "55d47e6b0b0bd7322f111e0d4cad9a75d826b8835bdc09b4bd6da2697c4d16fe"
+    },
+    {
+      "path": "__tests__/ediel-received-structure-reader-boundaries.test.ts",
+      "sha256": "3e162d55f83e590081cae7e71390e2d942e08d939d7beb0c18f1fa6f907cb1ad"
+    },
+    {
+      "path": "__tests__/ediel-received-structure-reader-deadline.test.ts",
+      "sha256": "bb5115fcdce9a417658ac81192de4ea4a3165df1fa927e03378fbf3e7a334e1e"
+    },
+    {
+      "path": "__tests__/ediel-received-structure-reader.test.ts",
+      "sha256": "40b8c65717bf4dafc02418ef35582b5ff59643ead9064a083d6213e625641f5a"
+    },
+    {
+      "path": "__tests__/ediel-utilts-observation-processor-handoff.test.ts",
+      "sha256": "aec08c1f19ec594d5abd0200334ee2e685f8157f8912d6d846cc5a7bb9608b12"
+    },
+    {
+      "path": "__tests__/ediel-utilts-persistence-processor.test.ts",
+      "sha256": "621af0173610a5a8cbb82fcb5cda0a97d60fbaa8f52ba7868b9048dc3c365a59"
+    },
+    {
+      "path": "__tests__/ediel-utilts-source-collision.test.ts",
+      "sha256": "dd573b41fff74bde57d4e8b2c6fcf58c20fda47f2554d6aa59df0d81f572681b"
+    },
+    {
+      "path": "__tests__/ediel-utilts-err-application-plan.test.ts",
+      "sha256": "4606b1267a9a98d1d2443f87f7f302b22fa7102a06ff36ddfdb0aadff57f7c83"
+    },
+    {
+      "path": "__tests__/ediel-durable-source-business-outcomes.test.ts",
+      "sha256": "2ce293c0d8d6784e8e99600735731dcdf1e130c0e8201afb27b4d1a6f02f3db9"
+    },
+    {
+      "path": "__tests__/helpers/utiltsCurrentOwnerFixture.ts",
+      "sha256": "65f8346b8c8874003c770cbe08dd716cd932bc1fc29b6f78146b730ed55faaff"
+    }
+  ],
+  "skills": {
+    "active": [
+      "systematic-debugging: trace first actual failure through initial/final owner, issuer and protected ACK source",
+      "verification-before-completion: fresh full ten-suite run, types and lint before package delivery"
+    ],
+    "conditional": [
+      "native/replay/HTTP/browser/exact-head CI: root final frozen candidate only"
+    ],
+    "skipped": "No Next/UI, production SQL, migration, deployment or external traffic modification in this unit-only package."
+  },
+  "implementation": [
+    {
+      "finding": "Old fixture lacked source-bound issuer read; initial/final engine owner could not retain a genuine token.",
+      "fix": "New setup copies explicitly declared physical original; issuer read binds company/source/environment/raw hash. Real initial/final WeakMap owners, canonical registry decoder, full grammar and ledger decoder run unchanged.",
+      "expected": "Existing diagnostic surfaces cannot alter ACK/storage/business outcomes.",
+      "prohibited": "Caller copied decisions, parsed approval/status or arbitrary source tuples do not mint fixture authority."
+    },
+    {
+      "finding": "Protected outbound original and current tenant actor ports were absent.",
+      "fix": "Explicit UUID actor, matching active membership/profile and company permission I/O; protected own original ACK read returns exact original hash and an empty retained set; source ACK basis reads only actual final recorded witness. Family is sealed at initial fixture registry snapshot, never added during an ACK read.",
+      "limits": "All actor/issuer/database observations are declared synthetic I/O doubles. No real foreign issuer, grant or native acceptance rows are seeded or claimed."
+    },
+    {
+      "finding": "E999 has four characters and fails selected full UNSM before national ERR reason qualification.",
+      "fix": "Oracle requires syntax rejected, application not_applicable and zero original source RPC; independent wrong-structure case retains national rejection."
+    },
+    {
+      "finding": "Three-IDE fixture claimed test row while physical UNB/0035 was absent; genuine protected test capability failed production preflight. Its old blanket E19-invalid expectation also ignored current source-inherited prior guide.",
+      "fix": "Declared wire carries UNB test indicator1 before immutable source setup. Actual captured25-A-3 guide permits E19; only own third transaction ERR is rendered with exact RFF/TN, independent positive sibling APERAK and held first reading; meter/billing/completion remain zero.",
+      "normativePointer": "lib/ediel/rulebook/ackGuidePolicy.ts authentic-prior U source comment p131 field531 and p138 conditions; inherited policy is derived by real sourceBoundAckCanonicalPolicy."
+    },
+    {
+      "finding": "Inbound collision tests used obsolete parser-only actorless API and success-rewrite assumptions.",
+      "fix": "Actual parser + current tenant actor + retained native mailbox clock + finite reception identity/parse ports. Different raw produces identity-conflict hold before canonical writes; identical same reception reuses without writes; foreign environment creates a separately scoped new source; unique23505 retry cannot adopt changed old original.",
+      "limits": "This executes live TypeScript intake/reception consumers over bounded I/O, not native SQL concurrency."
+    }
+  ],
+  "receipts": {
+    "nineLegacyRed": {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/current-utilts-fixture-port/nineLegacyRed.json",
+      "sha256": "1e42d7a8fdde7da487d9f84df75841737f8935a9fcb55461a2f531ddf95f9268",
+      "passed": 30,
+      "failed": 159
+    },
+    "durableLegacyRed": {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/current-utilts-fixture-port/durableLegacyRed.json",
+      "sha256": "a60e39a896ae0f62ff9469c1585aa1b855f34477299cb8e0038e27fca815e387",
+      "passed": 3,
+      "failed": 22
+    },
+    "finalGreen": {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/current-utilts-fixture-port/finalGreen.json",
+      "sha256": "fef806a38953ebefca8eeb16527b961e472719d2d31f42b784d73b4272f933fe",
+      "passed": 214,
+      "failed": 0
+    },
+    "unit-green.log": {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/current-utilts-fixture-port/unit-green.log",
+      "sha256": "ebcfd336c809ed4b4433f4e61c34464e9b1ab56430fd668a5cdb443f802276b8"
+    },
+    "test-typecheck.log": {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/current-utilts-fixture-port/test-typecheck.log",
+      "sha256": "545d2ab7d6a8689ba9e6d0417cb270ea366fea9b628160911225e66047830dc4"
+    },
+    "eslint.log": {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/current-utilts-fixture-port/eslint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "verification": {
+    "local": {
+      "status": "PASS",
+      "testFiles": 10,
+      "passedTests": 214,
+      "failedTests": 0
+    },
+    "eslint": {
+      "status": "PASS",
+      "exitCode": 0
+    },
+    "diffCheck": {
+      "status": "PASS"
+    },
+    "testTypecheck": {
+      "status": "FAILED_UNRELATED",
+      "exitCode": 2,
+      "ownedFileErrors": 0,
+      "remaining": "__tests__/ediel-ai-confirmed-customer-history.test.ts:30 TS2345 effectiveFrom.fieldNumber inferred string versus 216|210; outside sole file scope, reported to root.",
+      "laterOwnerResolution": "Root reports literal216 type correction already committed c2b8a2f0; that later head was not silently imported into this isolated3b41 proof."
+    },
+    "native": {
+      "status": "NOT_EXECUTED"
+    },
+    "http": {
+      "status": "NOT_EXECUTED"
+    },
+    "browser": {
+      "status": "NOT_EXECUTED"
+    },
+    "exactHeadCi": {
+      "status": "NOT_EXECUTED"
+    },
+    "wholeCriterion": {
+      "status": "NOT_APPROVED",
+      "missing": [
+        "Authentic final frozen candidate replay/native/HTTP/browser/generated artefacts/build/exact-head CI",
+        "Independent whole literal expected/prohibited verification; a diagnostic invariance test is not whole U/ENV/SC approval"
+      ]
+    }
+  },
+  "commands": {
+    "unit": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "__tests__/ediel-received-context-outcomes.test.ts",
+      "__tests__/ediel-received-context-reader.test.ts",
+      "__tests__/ediel-received-structure-reader-boundaries.test.ts",
+      "__tests__/ediel-received-structure-reader-deadline.test.ts",
+      "__tests__/ediel-received-structure-reader.test.ts",
+      "__tests__/ediel-utilts-observation-processor-handoff.test.ts",
+      "__tests__/ediel-utilts-persistence-processor.test.ts",
+      "__tests__/ediel-utilts-source-collision.test.ts",
+      "__tests__/ediel-utilts-err-application-plan.test.ts",
+      "__tests__/ediel-durable-source-business-outcomes.test.ts",
+      "--maxWorkers=2",
+      "--reporter=json",
+      "--outputFile=/tmp/gridex-ten-fixture-final-green.json"
+    ],
+    "types": [
+      "node",
+      "--max-old-space-size=4096",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit",
+      "-p",
+      "tsconfig.tests.json"
+    ],
+    "eslint": [
+      "node",
+      "node_modules/eslint/bin/eslint.js",
+      "__tests__/ediel-received-context-outcomes.test.ts",
+      "__tests__/ediel-received-context-reader.test.ts",
+      "__tests__/ediel-received-structure-reader-boundaries.test.ts",
+      "__tests__/ediel-received-structure-reader-deadline.test.ts",
+      "__tests__/ediel-received-structure-reader.test.ts",
+      "__tests__/ediel-utilts-observation-processor-handoff.test.ts",
+      "__tests__/ediel-utilts-persistence-processor.test.ts",
+      "__tests__/ediel-utilts-source-collision.test.ts",
+      "__tests__/ediel-utilts-err-application-plan.test.ts",
+      "__tests__/ediel-durable-source-business-outcomes.test.ts",
+      "__tests__/helpers/utiltsCurrentOwnerFixture.ts"
+    ],
+    "diffCheck": [
+      "git",
+      "diff",
+      "--check"
+    ]
+  }
+}

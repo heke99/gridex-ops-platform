@@ -2,9 +2,8 @@ import {createHash} from 'node:crypto'
 import {z} from 'zod'
 import {createSupabaseServerClient} from '@/lib/supabase/server'
 
-export const decisionEvidenceClasses=['artifact_retention_decision_original_bytes','blob_retention_decision_original_bytes','record_retention_decision_original_bytes','process_retention_decision_original_bytes','decision_evidence_policy_original_bytes','finance_retention_decision_original_bytes'] as const
-export const decisionEvidencePermission={artifact_retention_decision_original_bytes:'ediel.retention.artifact_decision_evidence',blob_retention_decision_original_bytes:'ediel.retention.blob_decision_evidence',record_retention_decision_original_bytes:'ediel.retention.record_decision_evidence',process_retention_decision_original_bytes:'ediel.retention.process_decision_evidence',decision_evidence_policy_original_bytes:'ediel.retention.decision_policy_evidence',finance_retention_decision_original_bytes:'ediel.retention.finance_decision_evidence'} as const
-export type DecisionEvidenceClass=typeof decisionEvidenceClasses[number]
+import {decisionEvidenceClasses,type DecisionEvidenceClass} from './decisionEvidenceClasses'
+export {decisionEvidenceClasses,decisionEvidencePermission,type DecisionEvidenceClass} from './decisionEvidenceClasses'
 const uuid=z.string().uuid(),hash=z.string().regex(/^[a-f0-9]{64}$/),kind=z.enum(decisionEvidenceClasses)
 const reason=z.string().trim().min(1).max(4000)
 const mutation=z.union([

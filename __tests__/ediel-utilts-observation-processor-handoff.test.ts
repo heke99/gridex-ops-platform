@@ -1,4 +1,4 @@
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsFinalValidationFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsCurrentOwnerFixture'
 import { createHash } from 'node:crypto'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { describe, expect, it, vi } from 'vitest'

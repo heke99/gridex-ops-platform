@@ -38,10 +38,11 @@ describe('frozen ACK-10: PRODAT APERAK BGM1001 and1004 are unused',()=>{
   expect(guide(wire('BGM+++34',true))).toEqual([])
   expect(guide(wire('BGM++RELEASED?:DOCUMENT+34',true)).some(issue=>issue.code==='ACK_PRODAT_UNUSED_DOCUMENT_ELEMENT')).toBe(true)
  })
- it('keeps syntax first and rejects national guidance in the actual runtime without replying to the bad APERAK',()=>{
+ it('keeps both known own references under the full directory gate without replying to the bad APERAK',()=>{
   const decision=resolveCanonicalRuntimeDecision(row(wire('BGM++OWN-DOCUMENT+34')))
-  expect(decision.syntaxDecision).toBe('accepted')
-  expect(decision.applicationDecision).toBe('rejected')
+  expect(decision.syntaxDecision).toBe('rejected')
+  expect(decision.issues.some(issue=>issue.code==='UNSM_MESSAGE_STRUCTURE_INVALID')).toBe(true)
+  expect(decision.applicationDecision).toBe('not_applicable')
   expect(decision.responsePlan.some(response=>response.family==='APERAK'||response.family==='UTILTS_ERR')).toBe(false)
  })
  it('rejects through raw manual/API validation and registry admission before external original lookup',async()=>{
@@ -51,7 +52,8 @@ describe('frozen ACK-10: PRODAT APERAK BGM1001 and1004 are unused',()=>{
    expect(result.issues.some(issue=>issue.code==='ACK_PRODAT_UNUSED_DOCUMENT_ELEMENT'&&issue.blocking)).toBe(true)
   }
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row(raw))
-  expect(decision.applicationDecision).toBe('rejected')
+  expect(decision.syntaxDecision).toBe('rejected')
+  expect(decision.applicationDecision).toBe('not_applicable')
   expect(io.rpc).not.toHaveBeenCalled()
  })
 })

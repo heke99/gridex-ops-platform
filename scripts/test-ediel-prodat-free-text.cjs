@@ -74,6 +74,8 @@ const lin = (seq='1', id='735123456789012345', reg, agency='9') =>
   ['LIN',seq,'',[id,'','',agency],...(reg ? [['1',reg]] : [])]
 const cc = (qualifier, value, pos=0) => [['CCI','',qualifier],['CAV',[...Array(pos).fill(''),value]]]
 const ftx = (qualifier='ACB', values=['NOTE']) => ['FTX',qualifier,'','',values]
+// The physical D97A LIN group keeps initial DTM/QTY before FTX and later CCI/RFF/NAD.
+function withObjectText(parts,text){let index=1;while(parts[index]&&['DTM','QTY'].includes(parts[index][0]))index++;return [...parts.slice(0,index),text,...parts.slice(index)]}
 const head = () => [['NAD','FR',['12345','160','SVK'],'','','','','','','SE'],
   ['NAD','DO',['54321','160','SVK'],'','','','','','','SE']]
 function body(code='Z01') {
@@ -141,24 +143,35 @@ for (const alphabet of alphabets) {
     assert.equal(present(a,'303',raw),objectPresent,'object303 must only use its own ACB')
   })
   for (const code of ['Z13','Z14','Z15','Z18']) for (const values of [['NOTE'],[''],['','OTHER'],['X'.repeat(71)],['A','B','C','D','E','F']]) {
-    test(`unused incoming303 ${code} ${JSON.stringify(values).slice(0,25)} ${alphabet.join('')} keeps real positive APERAK`,async()=>{
-      const a=await api,b=body(code),s=row(wire(code,[...b.slice(0,1),ftx('ACB',values),...b.slice(1)],[],alphabet),code)
+    test(`unused incoming303 ${code} ${JSON.stringify(values).slice(0,25)} ${alphabet.join('')} separates national non-use from full syntax and final ACK`,async()=>{
+      const a=await api,b=body(code),s=row(wire(code,withObjectText(b,ftx('ACB',values)),[],alphabet),code)
       const before=JSON.stringify(s),d=a.resolveCanonicalRuntimeDecision(s)
-      const plan=d.responsePlan.find(p=>p.family==='APERAK'); assert.ok(plan,issues(d))
-      // Build the actual planned reply before checking its decision; this is not a helper-only assertion.
-      const ack=a.buildAperakDraft({sourceMessage:s,outcome:plan.outcome,applicationErrors:plan.applicationErrors})
-      assert.ok(ack.rawPayload.includes('ERC+100'),JSON.stringify({wire:ack.rawPayload,issues:d.issues}))
-      assert.equal(d.applicationDecision,'accepted',issues(d))
-      assert.notEqual(d.prodatProcessingDisposition?.kind,'internal_review',issues(d))
+      const national=a.validateRulebookMessage({family:'PRODAT',code,direction:'inbound',rawPayload:s.raw_payload,environment:'test',mode:'parse',businessDate:'2026-09-20'})
+      assert.ok(!national.issues.some(i=>i.prodatDiagnostic?.fieldNumber==='303'),'unused303 cannot create a national field rejection')
+      const malformed=values.length>5||values[0].length>70||(values[0]===''&&values.slice(1).some(Boolean))
+      if(malformed){
+        assert.equal(d.syntaxDecision,'rejected',issues(d))
+        assert.ok(d.issues.some(i=>i.code.startsWith('UNSM_')),issues(d))
+        assert.ok(!d.responsePlan.some(p=>p.family==='APERAK'),'directory failure cannot mint national business ACK')
+      }else{
+        assert.equal(d.syntaxDecision,'accepted',issues(d));assert.equal(d.applicationDecision,'accepted',issues(d))
+        const plan=d.responsePlan.find(p=>p.family==='APERAK');assert.ok(plan,issues(d))
+        const build=()=>a.buildAperakDraft({sourceMessage:s,outcome:plan.outcome,applicationErrors:plan.applicationErrors})
+        // Z13 has an independently unknown point and one known own LI. The
+        // other originals retain BOTH known point and LI; the directory/source
+        // conflict holds their actual final wire, with no source alteration.
+        if(code==='Z13')assert.ok(build().rawPayload.includes('ERC+100'))
+        else assert.throws(build,/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
+      }
       assert.equal(JSON.stringify(s),before,'incoming evidence remains byte-identical')
     })
   }
   test(`incoming303 cannot hide unrelated required322 ${alphabet.join('')}`,async()=>{
     const a=await api,b=body('Z14').filter((r,i,rows)=>!(r[0]==='CCI'&&r[2]==='Z23')&&!(r[0]==='CAV'&&rows[i-1]?.[2]==='Z23'))
-    const s=row(wire('Z14',[...b.slice(0,1),ftx(),...b.slice(1)],[],alphabet),'Z14'), d=a.resolveCanonicalRuntimeDecision(s)
+    const s=row(wire('Z14',withObjectText(b,ftx()),[],alphabet),'Z14'), d=a.resolveCanonicalRuntimeDecision(s)
     const plan=d.responsePlan.find(p=>p.family==='APERAK'&&p.outcome==='negative');assert.ok(plan,issues(d))
-    const ack=a.buildAperakDraft({sourceMessage:s,outcome:plan.outcome,applicationErrors:plan.applicationErrors})
-    assert.ok(ack.rawPayload.includes('ERC+41')&&ack.rawPayload.includes('FTX+AAO++322::260'),ack.rawPayload)
+    assert.ok(plan.applicationErrors?.some(e=>e.ercCode==='41'&&e.fieldCode==='322'),'own missing322 diagnosis is retained')
+    assert.throws(()=>a.buildAperakDraft({sourceMessage:s,outcome:plan.outcome,applicationErrors:plan.applicationErrors}),/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
     assert.ok(!plan.applicationErrors?.some(e=>e.fieldCode==='303'),'ignored303 must not pollute another national error')
   })
 }
@@ -253,12 +266,12 @@ for(const mode of ['normal','metadata-error'])for(const registry of [false,true]
 })
 for(const code of ['Z09','Z13','Z14','Z15','Z18'])test(`unused303 does not add a national incoming error for ${code}`,async()=>{
  const a=await api,b=body(code),base=a.resolveCanonicalRuntimeDecision(row(wire(code,b),code))
- const d=a.resolveCanonicalRuntimeDecision(row(wire(code,[...b.slice(0,1),ftx('ACB',['EXTRA']),...b.slice(1)]),code))
+ const d=a.resolveCanonicalRuntimeDecision(row(wire(code,withObjectText(b,ftx('ACB',['EXTRA']))),code))
  const pick=value=>JSON.stringify(value.issues.map(i=>({code:i.code,field:i.prodatDiagnostic?.fieldNumber})))
  assert.equal(pick(d),pick(base),'unused extra text cannot add a business rejection or alter retained unrelated issues')
 })
 for(const code of ['Z09','Z13','Z14','Z15','Z18'])test(`actual outbound unused303 ${code} remains locally blocked`,async()=>{
- const a=await api,b=body(code),s=row(wire(code,[...b.slice(0,1),ftx('ACB',['EXTRA']),...b.slice(1)]),code,'outbound')
+ const a=await api,b=body(code),s=row(wire(code,withObjectText(b,ftx('ACB',['EXTRA']))),code,'outbound')
  assert.throws(()=>a.assertRulebookAllowsSend(s),/PRODAT_FTX_SEND_CONFORMANCE/)
 })
 test('incoming direction guard remains a no-op for local outbound FTX faults',async()=>{

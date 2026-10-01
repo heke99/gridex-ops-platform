@@ -204,6 +204,21 @@ export async function applyInboundBusinessStateMachine(input: {
   const prodatLifecycle = String(input.message.message_family ?? '').toUpperCase() === 'PRODAT'
     ? decideProdatLifecycle(input.message)
     : null
+  // H is a bilateral process. Its policy projection remains a review hint;
+  // only the protected native owner may establish an actual own supply effect.
+  // Source identity is the entire RPC input: parsed capability flags, dates and
+  // correlation hints cannot select or qualify a period or sent original.
+  let sourceSupplyResult: Awaited<ReturnType<typeof applySupplyMarketSource>> | undefined
+  if (outcome === 'manual_review_required' && prodatLifecycle?.subtype === 'H'
+    && input.message.direction === 'inbound' && ['Z04','Z05'].includes(String(input.message.message_code ?? '').toUpperCase())) {
+    sourceSupplyResult = await applySupplyMarketSource({ actorUserId: input.actorUserId,message: input.message })
+    if (sourceSupplyResult.applied) {
+      outcome = input.message.message_code === 'Z04' ? 'supplier_switch_accepted' : 'supply_terminated'
+      reviewRequired = false
+      tenantMessage = tenantMessageForOutcome(outcome,input.message)
+    } else tenantMessage = 'Det bilaterala svaret inväntar aktuellt dokumenterat avtal och källbunden koppling till egna objekt och giltighetstid.'
+  }
+
   if (outcome === 'permission_confirmed' || outcome === 'permission_rejected') {
     if (!input.permissionSourceResult?.applied) {
       reviewRequired = true
@@ -227,7 +242,7 @@ export async function applyInboundBusinessStateMachine(input: {
   }
 
   if (outcome === 'supplier_switch_accepted') {
-    const sourceResult = await applySupplyMarketSource({ actorUserId: input.actorUserId,message: input.message })
+    const sourceResult = sourceSupplyResult ?? await applySupplyMarketSource({ actorUserId: input.actorUserId,message: input.message })
     if (!sourceResult.applied) {
       outcome = 'manual_review_required';reviewRequired = true
       tenantMessage = 'Leverantörsbytet inväntar källbunden koppling till hela svaret, skickat original och rätt avtal.'
@@ -243,7 +258,7 @@ export async function applyInboundBusinessStateMachine(input: {
   }
 
   if (['assigned_supply_started', 'mandatory_purchase_supply_started', 'supplier_switch_cancelled_before_start', 'supply_terminated', 'supply_continuation_confirmed'].includes(outcome)) {
-    const sourceResult = await applySupplyMarketSource({ actorUserId: input.actorUserId, message: input.message })
+    const sourceResult = sourceSupplyResult ?? await applySupplyMarketSource({ actorUserId: input.actorUserId, message: input.message })
     if (!sourceResult.applied) {
       reviewRequired = true; outcome = 'manual_review_required'
       tenantMessage = sourceResult.reason === 'regulated_supply_authentic_ground_required'

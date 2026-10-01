@@ -39,7 +39,9 @@ describe('incoming ERR has its own source-qualified application response',()=>{
   const message=err(fault==='E999'?'E999':'E19')
   if(fault==='wrong structure')message.raw_payload=message.raw_payload!.replace('STS+E01::260+41','STS+E01::260+42')
   const result=await resolveCanonicalRuntimeDecisionWithRegistry(message)
-  expect(result.applicationDecision).toBe('rejected');expect(result.responsePlan.some(item=>item.family==='APERAK')).toBe(false);expect(io.rpc).not.toHaveBeenCalled()
+  if(fault==='E999'){expect(result.syntaxDecision).toBe('rejected');expect(result.applicationDecision).toBe('not_applicable')}
+  else expect(result.applicationDecision).toBe('rejected')
+  expect(result.responsePlan.some(item=>item.family==='APERAK')).toBe(false);expect(io.rpc).not.toHaveBeenCalled()
  })
  it('requires native accepted ERR authority rather than treating ERR as stored metering',async()=>{
   const source=err(),draft={messageFamily:'APERAK',environment:'test',companyId:company,ackOutcome:'positive',rawPayload:EdifactEnvelopeCodec.encode({sender:'GRID',receiver:'SUPPLIER',environment:'test',acknowledgementRequest:false,interchangeReference:'AP-I',messages:[{messageReference:'AP-M',messageTypeToken:'APERAK:D:04A:UN:E5SE5A',businessSegments:['BGM+312+AP-D+9','RFF+ACW:ERR-T']}]})} as CreateEdielMessageInput

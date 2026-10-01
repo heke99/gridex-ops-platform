@@ -1,4 +1,5 @@
-import {raw,line,qty,common,characteristic,type Parts} from '../../__tests__/fixtures/prodat-register'
+import {guideOrderedFixtureRaw as raw} from '../../__tests__/helpers/prodatGuideOrderedFixture'
+import {line,qty,common,characteristic,type Parts} from '../../__tests__/fixtures/prodat-register'
 import {head} from '../../__tests__/fixtures/prodat-identity'
 /** Original own data is explicit test-only fixture facts. The positive object's
  * LI/customer/date are copied from its real native outbound origination. */
