@@ -23,7 +23,7 @@ const email=(value:unknown):value is string=>typeof value==='string'&&/^[^\s@<>]
 export async function readTechnicalSyntaxAckRoute(input:{evidence:TechnicalSyntaxAckEvidence;actorUserId:string}):Promise<TechnicalSyntaxAckRoute>{
  const e=technicalSyntaxAckQualification({evidence:input.evidence,companyId:input.evidence.companyId,environment:input.evidence.environment})
  if(!e)throw new Error('ediel_technical_ack_basis_required')
- await assertEdielTenantActor({companyId:e.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:e.companyId,actorUserId:input.actorUserId,permissionAnyOf:e.environment==='test'?['communication.write','ediel_testing.write']:['communication.write']})
  const smtp=assertEdielSmtpReadiness()
  if(!email(smtp.from))throw new Error('ediel_technical_ack_smtp_account_unqualified')
  const {data,error}=await supabaseService.rpc('ediel_read_technical_syntax_ack_route_v1',{

@@ -1,3 +1,4 @@
+import {prodatCommonHeaderNegativeAckRouteQualification,type ProdatCommonHeaderNegativeAckRoute} from './prodatCommonHeaderNegativeAckRoute'
 import {supabaseService} from '@/lib/supabase/service'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
@@ -32,16 +33,17 @@ export function prodatCommonHeaderRejectionQualification(input:{evidence:unknown
 }
 export function commonHeaderOriginalSource(evidence:ProdatCommonHeaderRejectionEvidence):EdielMessageRow|null{return evidenceSources.get(evidence)??null}
 export async function readProdatCommonHeaderRejectionEvidence(input:{companyId:string;environment:'test'|'production';sourceMessageId:string;expectedRawPayload:string;actorUserId:string}){
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:input.environment==='test'?['communication.write','ediel_testing.write']:['communication.write']})
  const {data,error}=await supabaseService.rpc('ediel_read_prodat_common_header_rejection_v1',{p_company_id:input.companyId,p_environment:input.environment,p_source_message_id:input.sourceMessageId})
  if(error)throw Error('ediel_common_header_rejection_basis_required',{cause:error})
  return decode(data,input)
 }
-export async function prepareProdatCommonHeaderNegativeAckWitness(input:{evidence:ProdatCommonHeaderRejectionEvidence;actorUserId:string;rawPayload:string}){
+export async function prepareProdatCommonHeaderNegativeAckWitness(input:{evidence:ProdatCommonHeaderRejectionEvidence;actorUserId:string;rawPayload:string;route:ProdatCommonHeaderNegativeAckRoute}){
  const e=prodatCommonHeaderRejectionQualification({evidence:input.evidence,companyId:input.evidence.companyId,environment:input.evidence.environment})
- if(!e)throw Error('ediel_common_header_rejection_basis_required')
- await assertEdielTenantActor({companyId:e.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
- const {data,error}=await supabaseService.rpc('ediel_prepare_common_header_negative_ack_v1',{p_company_id:e.companyId,p_environment:e.environment,p_source_message_id:e.sourceMessageId,p_actor_user_id:input.actorUserId,p_raw_payload:input.rawPayload})
+ const route=e?prodatCommonHeaderNegativeAckRouteQualification(input.route,e):null
+ if(!e||!route)throw Error('ediel_common_header_rejection_basis_required')
+ await assertEdielTenantActor({companyId:e.companyId,actorUserId:input.actorUserId,permissionAnyOf:e.environment==='test'?['communication.write','ediel_testing.write']:['communication.write']})
+ const {data,error}=await supabaseService.rpc('ediel_prepare_common_header_negative_ack_v2',{p_company_id:e.companyId,p_environment:e.environment,p_source_message_id:e.sourceMessageId,p_actor_user_id:input.actorUserId,p_raw_payload:input.rawPayload,p_smtp_from:route.senderEmail,p_smtp_host:route.smtpHost,p_smtp_port:route.smtpPort})
  if(error||typeof data?.witnessId!=='string'||data?.evidence?.sourceHash!==e.sourceHash)throw Error('ediel_common_header_negative_witness_required',{cause:error})
  return {witnessId:data.witnessId as string,evidence:e}
 }

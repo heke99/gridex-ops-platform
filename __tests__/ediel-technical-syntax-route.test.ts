@@ -12,7 +12,7 @@ describe('source-only technical syntax reply transport route',()=>{
  beforeEach(()=>{rpc.mockReset();assertActor.mockReset();assertActor.mockResolvedValue(undefined);smtp.mockReset();smtp.mockReturnValue({from:'configured@example.test',host:'smtp.example.test',port:465})})
  it('uses actual current SMTP owner and exact physical parties without a business profile',async()=>{
   const evidence=await source();rpc.mockResolvedValueOnce({data:route(),error:null});const result=await readTechnicalSyntaxAckRoute({evidence,actorUserId:'user'})
-  expect(assertActor).toHaveBeenCalledWith({companyId:'company',actorUserId:'user',permission:'communication.send'})
+  expect(assertActor).toHaveBeenCalledWith({companyId:'company',actorUserId:'user',permissionAnyOf:['communication.write','ediel_testing.write']})
   expect(rpc.mock.calls[1]).toEqual(['ediel_read_technical_syntax_ack_route_v1',{p_company_id:'company',p_actor_user_id:'user',p_source_message_id:'source',p_smtp_from:'configured@example.test',p_smtp_host:'smtp.example.test',p_smtp_port:465}])
   expect(result.applicationReference).toBe('');expect(result.authorizesBusinessEffect).toBe(false)
   expect(technicalSyntaxAckRouteQualification(result,evidence)).toBe(result);expect(technicalSyntaxAckRouteQualification({...result},evidence)).toBeNull()
