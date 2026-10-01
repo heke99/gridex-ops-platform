@@ -26,7 +26,7 @@ function render(message=source(),negative=false,parentReference='OWN-DM'){
  const runtime=negative?runUtiltsRuntimeForMessage(message):null
  return renderAperakEdiel({source:{id:message.id,messageFamily:'UTILTS',messageCode:'CACHED-WRONG',rawPayload:message.raw_payload,messageReceivedAt:message.message_received_at,externalReference:'CACHED-ROW'},
   refs:{documentReference:'CACHED-DOC',messageReference:'CACHED-UNH',interchangeReference:'CACHED-UNB'},externalReference:'OWN-ACK',transactionReference:parentReference,outcome:negative?'negative':'positive',
-  utiltsHeaderRejected:runtime?.ackPlan.utiltsHeaderRejection!==null&&runtime?.ackPlan.utiltsHeaderRejection!==undefined,applicationErrors:runtime?.ackPlan.utiltsHeaderRejection?.applicationErrors})
+  utiltsHeaderRejected:runtime?.ackPlan.utiltsHeaderRejection!==null&&runtime?.ackPlan.utiltsHeaderRejection!==undefined,applicationErrors:runtime?.ackPlan.utiltsHeaderRejection?.applicationErrors??runtime?.ackPlan.aperakApplicationErrors})
 }
 function doc(result:ReturnType<typeof render>){
  const wire=tokenizeEdifact(result.segments.map(t=>t+"'").join('')),docs=wire.segments.filter(t=>t.tag==='DOC')
@@ -77,5 +77,14 @@ describe('ACK-03 A503/A504 exact present physical original',()=>{
   expect(own.every(id=>id.length<=70)).toBe(true)
   expect(()=>render(message,false,parent+'X')).toThrow('ediel_own_ack_group_reference_invalid')
  })
-
+ it.each([false,true])('copies the observed original into its own national negative A505 ACW with alternate UNA=%s',customUna=>{
+  const reference='X'.repeat(70),message=source(document,customUna)
+  message.message_received_at='2026-10-15T20:00:00Z'
+  message.raw_payload=message.raw_payload!.replace('GRIDEX2607E66001',reference).replace('735999260731000007','735999260731000008')
+  const runtime=runUtiltsRuntimeForMessage(message)
+  expect(runtime.transactionDispositions).toMatchObject([{transactionId:reference,disposition:'guide_rejected',responseType:'negative_aperak'}])
+  const ack=tokenizeEdifact(render(message,true).segments.map(t=>t+"'").join(''))
+  expect(ack.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,ack.una)[0]==='ACW').map(t=>segmentComposite(t,1,ack.una)[1])).toEqual(runtime.ackPlan.aperakApplicationErrors.map(()=>reference))
+  expect(()=>render(message)).toThrow('utilts_aperak_transaction_reference_invalid')
+ })
 })

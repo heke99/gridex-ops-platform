@@ -16,6 +16,7 @@ import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/
 import {readPhysicalUtiltsDocumentIdentity} from '@/lib/ediel/core/physicalDocumentReference'
 import {buildEdielAckGroupReference} from '@/lib/ediel/core/referenceRegistry'
 import {CANONICAL_ACK_GUIDE_CONSTRAINTS} from '@/lib/ediel/rulebook/ackGuidePolicy'
+import {isCopyableUtiltsReference,isValidUtiltsTransactionReference} from '@/lib/ediel/utilts/physicalReference'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -252,7 +253,8 @@ export function renderAperakEdiel(params: {
     .map(transaction => transaction.transactionId).filter((id): id is string => id !== null && id.length > 0) : []
   const physicalReference = (reference: string | null | undefined): string => {
     if (!reference) throw new Error('utilts_aperak_transaction_reference_required')
-    if (reference.length > 35 || /[\r\n]/.test(reference)) throw new Error('utilts_aperak_transaction_reference_invalid')
+    if (!(params.outcome==='positive' ? isValidUtiltsTransactionReference(reference)
+      : isCopyableUtiltsReference(reference,CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.originalAcwMax))) throw new Error('utilts_aperak_transaction_reference_invalid')
     if (utiltsWire && !physicalIds.includes(reference)) throw new Error('utilts_aperak_transaction_reference_not_in_source')
     return reference
   }
