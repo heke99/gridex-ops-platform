@@ -1,0 +1,16 @@
+PASS: exact Git bytes, preserved old40446, one explicit earlier absent input and no deployment-ledger claim
+PASS: ordinary strictly-forward planner still rejects the union-only earlier input
+PASS: refuses unlisted-earlier-input
+PASS: refuses new-version-collision
+PASS: refuses changed-old-history
+PASS: refuses removed-old-history
+PASS: refuses changed-classified-source
+PASS: refuses false-contract-hash
+PASS: refuses duplicate-contract-entry
+PASS: refuses false-snapshot-tree
+PASS: refuses invalid-contract-revision
+PASS: refuses reordered-required-inputs
+PASS: refuses false-already-applied-txt
+PASS: refuses false-committed-manifest
+PASS: refuses unrelated source commit
+HISTORY_UNION_INPUTS_SELFTEST: 15/15 PASS; Git/provenance mechanics only, no database or migration execution

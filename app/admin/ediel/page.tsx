@@ -345,6 +345,7 @@ export default async function EdielPage() {
  <section className="grid gap-5 xl:grid-cols-3">
  <AreaCard eyebrow="Källgranskning" title="Signerade avtalsoriginal" text="Arkivera källkopior och låt en annan behörig operatör granska avtal och mätmetodhändelser före verkställighet." href="/admin/ediel/contract-originals" cta="Öppna avtalsoriginal" tone="production" />
  <AreaCard eyebrow="Aktörsunderlag" title="Signerade BRP-deklarationer" text="Granska källunderlag, representation och aktuellt mandat för balansansvar." href="/admin/ediel/signed-brp-declarations" cta="Öppna deklarationer" tone="production" />
+ <AreaCard eyebrow="Rättelser" title="PRODAT-rättelse" text="Återläs egna original och ACK. Pröva och spara rättelseutkast före separat köläggning eller styrkt återförsök." href="/admin/ediel/prodat-recovery" cta="Öppna rättelser" tone="production" />
  <AreaCard eyebrow="Leveransslut" title="Begäran om återgång" text="Arkivera och granska original för Z08H. Följ kölagt meddelande och bevakning av exakt Z05L-svar." href="/admin/ediel/supply-rescission-sources" cta="Öppna återgångsunderlag" tone="production" />
  </section>
 

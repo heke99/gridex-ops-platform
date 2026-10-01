@@ -1,0 +1,38 @@
+{
+  "owner": "recovery-transport",
+  "workspace": "/workspace/scratch/145123787247/gridex-recovery",
+  "branch": "work/recovery-transport-20261001",
+  "paths": ["e2e/browser/ediel-requested-change-local.spec.mjs"],
+  "predecessorSha256": {
+    "e2e/browser/ediel-requested-change-local.spec.mjs": "e5604ebd2bb1fbf020e41cd90af0e367f4b92f82ee14a568b5bb67d4cb91707c"
+  },
+  "sha256": {
+    "e2e/browser/ediel-requested-change-local.spec.mjs": "71f061ccc5e5019633dffdd8a278fde7039f3689cd4a49ddc3fbc58ca60977fa"
+  },
+  "rulesAndContracts": ["TR-05", "SC-040", "AT-TR-05", "OPS recovery actual UI/read-model qualification"],
+  "skillRouting": {
+    "activated": ["browser-e2e: actual UI form, isolated existing reader login, screenshot, durable read and reload", "verification-before-completion: syntax, lint, exact test discovery and diff verified before delivery"],
+    "skipped": "No production, database, API, React component, performance or workflow edit. No new full inventory or repeated full verification. Runtime browser execution belongs to the root-owned frozen candidate qualification."
+  },
+  "fixtureProvenance": {
+    "fixture": "scripts/ediel-requested-change-browser-native.test.ts",
+    "actualOutboundPath": "createRequestedChangeSupplyFixture -> seedNormalSwitchNativeFixture -> signed contract/PDF/POA -> prepareAndQueueEdielZ03 -> sendEdielMessageViaSmtp -> originalZ03. The same fixture also queues Z09 through prepareAndQueueProdatRequestedChange.",
+    "sourceSelection": "Fixture JSON exports inbound supplySource, not originalZ03.id. The browser therefore selects the unique actual Z03 test option from the current tenant/actor-authorized native workspace. It explicitly excludes inbound supplySource and never posts a fabricated original or source claim.",
+    "auth": "Reuse fixture.readerEmail and existing login; its genuine local session has communication.read/customers.read and no WRITE/SEND. Session closes in finally.",
+    "boundary": "Real local native producer, read port, current canonical ACK reader and browser form. Synthetic local legal/issuer/SMTP fixture boundaries remain explicit; not authentic external integration evidence."
+  },
+  "implementation": {
+    "test": "actual native outbound PRODAT original is read through the recovery form and survives permalink reload",
+    "actions": ["Navigate to actual PRODAT recovery page", "Select current native-list Z03 original", "Submit protected read form with keyboard Enter", "Verify native sent/test ID and unchanged bytes with recomputed SHA256", "Verify shared ACK reader labels no incoming receipt unproven", "Verify WRITE/SEND/retry controls disabled for actual READ-only session", "Click persisted-message permalink and reload", "Verify same selected ID/hash/bytes/native status/unproven ACK and disabled controls after fresh server reload", "Attach screenshot and explicit codeSha/fixture provenance"],
+    "ciConnection": ".github/workflows/ops-hardening.yml already runs this exact browser spec in its replay/native browser job. Same environment gating and native fixture are reused. No workflow, fixture, authority or runtime source changed.",
+    "preservation": "Existing two browser cases unchanged; only node:crypto import and one new test added. Standalone full prepare/queue runner unchanged and still requires a genuine qualified negative source. New test uses no page.request or direct API substitute."
+  },
+  "verification": [
+    {"kind":"node_check","status":"PASS","command":"/tmp/ediel-toolchain/node_modules/node/bin/node --check e2e/browser/ediel-requested-change-local.spec.mjs"},
+    {"kind":"eslint","status":"PASS","command":"/tmp/ediel-toolchain/node_modules/node/bin/node node_modules/eslint/bin/eslint.js e2e/browser/ediel-requested-change-local.spec.mjs --no-ignore","scope":"Canonical root package-lock readonly dependencies; zero lint errors/warnings. Runtime emits only inherited UNDICI experimental proxy warning."},
+    {"kind":"playwright_discovery","status":"PASS","tests":3,"command":"/tmp/ediel-toolchain/node_modules/node/bin/node node_modules/@playwright/test/cli.js test e2e/browser/ediel-requested-change-local.spec.mjs --config=playwright.config.mjs --project=chromium --list --reporter=line","scope":"Actual existing CI config discovers both original cases and the new PRODAT recovery test. No browser/server/runtime started."},
+    {"kind":"git_diff_check","status":"PASS","scope":"One existing browser file; 42 added lines, no deleted original cases."},
+    {"kind":"browser_runtime","status":"NOT_RUN","scope":"Root requested bounded syntax/lint/discovery only before freeze. Actual interactive result must come from this unchanged existing native/browser CI gate on the frozen published code SHA; no current runtime acceptance claim."}
+  ],
+  "compatibility": "Test-only additive connection. No migration, production traffic, shared database reset, main merge or publication. Root owns composite codeSha/evidenceSha and final CI results."
+}

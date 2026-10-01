@@ -62,6 +62,26 @@ async function boundMessage(input: RecoveryRequest, authorization: Authorization
 /** Manual, source-qualified recovery. A timer and an operator's claimed ACK
  * outcome are deliberately absent from the command contract. Nothing sends here. */
 export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
+  return recoverProdat(input, true)
+}
+
+/** Preparation retains its own WRITE phase. The actual persistent draft can
+ * be queued later by another current SEND executor through the same gateway. */
+export async function prepareProdatRecoveryDraft(input: Extract<RecoveryRequest, { sourceAckMessageId: string }>) {
+  return recoverProdat(input, false)
+}
+
+export async function queuePersistedProdatRecovery(input: { companyId: string; actorUserId: string; messageId: string }) {
+  const message = await ownMessage(input.companyId, input.messageId)
+  if (message.direction !== 'outbound' || message.message_family !== 'PRODAT' || !message.source_operation_id || !message.original_message_id) throw Error('prodat_recovery_bound_message_required')
+  if (!['draft', 'queued'].includes(message.status)) throw Error('prodat_recovery_draft_unavailable')
+  // Native reservation rechecks the existing private binding and current SEND
+  // actor. It cannot qualify an arbitrary caller operation or parsed selector.
+  await queueRecoveryDraft({ companyId: input.companyId, actorUserId: input.actorUserId, operationId: message.source_operation_id, message })
+  return { status: 'queued' as const, messageId: message.id, operationId: message.source_operation_id }
+}
+
+async function recoverProdat(input: RecoveryRequest, queue: boolean) {
   if (![input.companyId, input.actorUserId, input.originalMessageId, input.operationId].every(value => typeof value === 'string' && value.trim())) throw new Error('prodat_recovery_scope_required')
   if (input.sourceAckMessageId && input.correctedRawPayload) {
     input = { ...input, correctedRawPayload: await prepareProdatCorrectionReferences({ companyId: input.companyId, operationId: input.operationId,
@@ -70,6 +90,7 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
   let authorization = await authorize(input)
   if (authorization.status === 'held') return authorization
   if (authorization.kind === 'verified_transfer_loss') {
+    if (!queue) throw Error('prodat_recovery_correction_draft_required')
     if (!input.previousAttemptId || authorization.previousAttemptId !== input.previousAttemptId) throw new Error('prodat_recovery_attempt_conflict')
     const { data, error } = await supabaseService.rpc('ediel_queue_prodat_retry_v1', {
       p_company_id: input.companyId, p_message_id: input.originalMessageId,
@@ -166,6 +187,7 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
     message = exact
   }
   if (message.status !== 'draft') return { status: 'existing' as const, kind: authorization.kind, operationId: authorization.operationId, messageId: message.id }
+  if (!queue) return { status: 'prepared' as const, kind: authorization.kind, operationId: authorization.operationId, messageId: message.id }
   await queueRecoveryDraft({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId,message })
   return { status: 'queued' as const, kind: authorization.kind, operationId: authorization.operationId, messageId: message.id }
 }

@@ -108,3 +108,6 @@ ACTUAL_TYPES_HASH="$(sha256sum "$UPGRADE_OUT/clean/database.types.ts" | awk '{pr
 EXPECTED_TYPES_HASH="$(node -p 'require("./scripts/supabase-types-manifest.json").sha256')"
 [[ "$ACTUAL_TYPES_HASH" == "$EXPECTED_TYPES_HASH" ]] || { echo 'upgrade_generated_types_manifest_mismatch' >&2; exit 1; }
 echo 'UPGRADE_REPLAY: PASS; genuine ancestor -> forward-only checksummed upgrade == independent candidate clean schema/types; retained source unchanged'
+# A separate committed-history scenario proves an already-applied TXT importer
+# accepts only exact absent union inputs. It never weakens the strict old path.
+bash "$CANDIDATE_ROOT/scripts/gridex-ediel-applied-txt-branch-upgrade.sh"

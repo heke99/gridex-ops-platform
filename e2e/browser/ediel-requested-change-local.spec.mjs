@@ -1,4 +1,5 @@
 import {readFileSync} from 'node:fs'
+import {createHash} from 'node:crypto'
 import {test,expect} from '@playwright/test'
 const enabled=process.env.GRIDEX_EDIEL_CASE_LOCAL_E2E==='1'&&process.env.NEXT_PUBLIC_SUPABASE_URL==='http://127.0.0.1:54321'&&!process.env.GRIDEX_E2E_BROWSER_BASE_URL&&Boolean(process.env.GRIDEX_RCS_FIXTURE_PATH&&process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD)
 test.skip(!enabled,'Requires actual writer-created supply, issuer fixture and local replay.')
@@ -39,4 +40,45 @@ test('real read-only mobile and foreign browser scopes retain private sources an
  const outsider=await browser.newPage();await login(outsider,f.outsiderEmail);await outsider.goto(detail(f.nativeArtifactId));await expect(outsider.getByText(f.browserSourceHash,{exact:true})).toHaveCount(0);await expect(outsider.getByRole('button',{name:'Köa ändringsbegäran',exact:true})).toHaveCount(0)
  const privateSource=await outsider.request.get(`/api/ediel/requested-change-sources/${f.nativeArtifactId}/source`);expect(privateSource.status()).toBe(403);expect(privateSource.headers()['cache-control']).toBe('private, no-store');expect(await privateSource.text()).not.toContain(f.sourceText)
  await reader.close();await outsider.close()
+})
+test('actual native outbound PRODAT original is read through the recovery form and survives permalink reload',async({browser},info)=>{
+ // The shared fixture sends Z03 through its real producer and queues Z09 through
+ // the reviewed source command. supplySource is its inbound Z04, not an outbound
+ // original ID. Discover the actual own Z03 through the native READ-only UI.
+ // No negative ACK, correction source, client authority or API call is invented.
+ const reader=await browser.newPage({viewport:{width:375,height:812}}),pageErrors=[]
+ reader.on('pageerror',error=>pageErrors.push(error.message))
+ try{
+  await login(reader,f.readerEmail);await reader.goto('/admin/ediel/prodat-recovery')
+  await expect(reader.getByRole('heading',{name:'PRODAT-rättelse',exact:true})).toBeVisible()
+  const choices=reader.getByLabel('Beständigt meddelande',{exact:true}),originalOption=choices.getByRole('option').filter({hasText:/^Z03 · test · /})
+  await expect(originalOption).toHaveCount(1)
+  const originalId=await originalOption.getAttribute('value');expect(originalId).toMatch(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)
+  expect(originalId).not.toBe(f.supplySource);await expect(choices.locator(`option[value="${f.supplySource}"]`)).toHaveCount(0)
+  await choices.selectOption(originalId)
+  const read=reader.getByRole('button',{name:'Återläs status och originalinnehåll',exact:true})
+  await read.focus();await expect(read).toBeFocused();await reader.keyboard.press('Enter')
+  await expect(reader.getByRole('status')).toHaveText('Meddelandets beständiga status är återläst.')
+  await expect(reader.getByText('Miljö: Test · Status: sent',{exact:true})).toBeVisible()
+  await expect(reader.getByText(`Meddelande: ${originalId}`,{exact:false})).toBeVisible()
+  // This source has no incoming ACK receipt. Mutable message caches cannot
+  // turn it green; the same private ACK status reader must label it unproven.
+  const ack=reader.getByText('ACK-underlag: Ej styrkt · CONTRL: Ej styrkt · APERAK: Ej styrkt',{exact:true})
+  await expect(ack).toBeVisible()
+  const contents=reader.getByLabel('Återläst innehåll',{exact:true}),raw=await contents.inputValue()
+  expect(raw).toContain('BGM+Z03+');expect(raw).toContain(f.external)
+  const payloadHash=createHash('sha256').update(raw,'utf8').digest('hex')
+  await expect(reader.getByText(`Payloadhash: ${payloadHash}`,{exact:false})).toBeVisible()
+  for(const name of ['Pröva källa och spara utkast','Pröva och köa vald rättelse','Pröva bevis och köa återförsök'])await expect(reader.getByRole('button',{name,exact:true})).toBeDisabled()
+  await reader.getByRole('link',{name:'Öppna samma beständiga meddelande efter omladdning',exact:true}).click()
+  await expect(reader).toHaveURL(new RegExp(`/admin/ediel/prodat-recovery\\?messageId=${originalId}$`))
+  await reader.reload()
+  await expect(choices).toHaveValue(originalId);await expect(contents).toHaveValue(raw)
+  await expect(reader.getByText(`Meddelande: ${originalId}`,{exact:false})).toBeVisible();await expect(reader.getByText(`Payloadhash: ${payloadHash}`,{exact:false})).toBeVisible()
+  await expect(reader.getByText('Miljö: Test · Status: sent',{exact:true})).toBeVisible();await expect(ack).toBeVisible()
+  for(const name of ['Pröva källa och spara utkast','Pröva och köa vald rättelse','Pröva bevis och köa återförsök'])await expect(reader.getByRole('button',{name,exact:true})).toBeDisabled()
+  expect(pageErrors).toEqual([])
+  await info.attach('prodat-recovery-native-read-reloaded',{body:await reader.screenshot({fullPage:true}),contentType:'image/png'})
+  await info.attach('prodat-recovery-read-provenance',{body:Buffer.from(JSON.stringify({companyId:f.companyId,originalId,payloadHash,codeSha:process.env.GITHUB_SHA??null,fixture:'ediel-requested-change-browser-native',boundary:'Actual local producer, native READ, browser form and reload; synthetic issuer, legal facts and SMTP; no external integration evidence.'})),contentType:'application/json'})
+ }finally{await reader.close()}
 })

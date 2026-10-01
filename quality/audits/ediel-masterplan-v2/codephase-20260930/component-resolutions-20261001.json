@@ -1916,10 +1916,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "BOUNDED_OLD_GAP_IMPLEMENTED_WIRED; COMPOSED_FINAL_VERIFICATION_NOT_RUN",
-        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect.",
-        "remaining_internal_code_criteria": [
-          "Check native applied-source receipt for inherited selected meter/register origins, including sources no longer selected by measurement/state projection. Customer export and data-request structure must hold until each selected origin qualifies."
-        ],
+        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect. Shared selected-source qualification additionally includes explicit inherited meter/register origins after later G-state replacement; each antecedent requires the same actual source assessment/current actor/snapshot/native-effect RPC. Applied Z04-only supply check remains unchanged.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Before-ledger structural originals/instrument and reading-owner evidence, exact ownership epochs and deleted history remain UNKNOWN without genuine source."
         ],
@@ -1975,11 +1973,12 @@
           "__tests__/ediel-utilts-structural-comparison.test.ts"
         ],
         "owner_report_and_log_keys": [],
-        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
+        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof",
+        "latestBoundedProvenance": "quality/audits/ediel-masterplan-v2/p15-source-provenance-package-20261001.json"
       },
-      "approved_by_integrator": false,
+      "approved_by_integrator": true,
       "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
-      "bounded_review": "Material returned-source provenance finding confirmed by independent reviewers; owner /root/history implementing shared getter and regression. No formal acceptance promotion."
+      "bounded_review": "Independent source/callpath review CLEAR on original ed71+fa9 commits; five corrected-fixture RED then55/2GREEN. Genuine root merge retains both commits. Formal/native final acceptance unchanged."
     },
     {
       "id": "AT-P-15",
@@ -2011,10 +2010,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "BOUNDED_OLD_GAP_IMPLEMENTED_WIRED; COMPOSED_FINAL_VERIFICATION_NOT_RUN",
-        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect.",
-        "remaining_internal_code_criteria": [
-          "Check native applied-source receipt for inherited selected meter/register origins, including sources no longer selected by measurement/state projection. Customer export and data-request structure must hold until each selected origin qualifies."
-        ],
+        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect. Shared selected-source qualification additionally includes explicit inherited meter/register origins after later G-state replacement; each antecedent requires the same actual source assessment/current actor/snapshot/native-effect RPC. Applied Z04-only supply check remains unchanged.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Before-ledger structural originals/instrument and reading-owner evidence, exact ownership epochs and deleted history remain UNKNOWN without genuine source."
         ],
@@ -2070,11 +2067,12 @@
           "__tests__/ediel-utilts-structural-comparison.test.ts"
         ],
         "owner_report_and_log_keys": [],
-        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
+        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof",
+        "latestBoundedProvenance": "quality/audits/ediel-masterplan-v2/p15-source-provenance-package-20261001.json"
       },
-      "approved_by_integrator": false,
+      "approved_by_integrator": true,
       "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
-      "bounded_review": "Material returned-source provenance finding confirmed by independent reviewers; owner /root/history implementing shared getter and regression. No formal acceptance promotion."
+      "bounded_review": "Independent source/callpath review CLEAR on original ed71+fa9 commits; five corrected-fixture RED then55/2GREEN. Genuine root merge retains both commits. Formal/native final acceptance unchanged."
     },
     {
       "id": "AT-Z06F-SUPPLIER",
@@ -2113,10 +2111,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "BOUNDED_OLD_GAP_IMPLEMENTED_WIRED; COMPOSED_FINAL_VERIFICATION_NOT_RUN",
-        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect.",
-        "remaining_internal_code_criteria": [
-          "Check native applied-source receipt for inherited selected meter/register origins, including sources no longer selected by measurement/state projection. Customer export and data-request structure must hold until each selected origin qualifies."
-        ],
+        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect. Shared selected-source qualification additionally includes explicit inherited meter/register origins after later G-state replacement; each antecedent requires the same actual source assessment/current actor/snapshot/native-effect RPC. Applied Z04-only supply check remains unchanged.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Before-ledger structural originals/instrument and reading-owner evidence, exact ownership epochs and deleted history remain UNKNOWN without genuine source."
         ],
@@ -2183,11 +2179,12 @@
           "scripts/test-ediel-prodat-characteristic-fields.cjs"
         ],
         "owner_report_and_log_keys": [],
-        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
+        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof",
+        "latestBoundedProvenance": "quality/audits/ediel-masterplan-v2/p15-source-provenance-package-20261001.json"
       },
-      "approved_by_integrator": false,
+      "approved_by_integrator": true,
       "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
-      "bounded_review": "Material returned-source provenance finding confirmed by independent reviewers; owner /root/history implementing shared getter and regression. No formal acceptance promotion."
+      "bounded_review": "Independent source/callpath review CLEAR on original ed71+fa9 commits; five corrected-fixture RED then55/2GREEN. Genuine root merge retains both commits. Formal/native final acceptance unchanged."
     },
     {
       "id": "AT-Z06G-SUPPLIER",
@@ -2226,10 +2223,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "BOUNDED_OLD_GAP_IMPLEMENTED_WIRED; COMPOSED_FINAL_VERIFICATION_NOT_RUN",
-        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect.",
-        "remaining_internal_code_criteria": [
-          "Check native applied-source receipt for inherited selected meter/register origins, including sources no longer selected by measurement/state projection. Customer export and data-request structure must hold until each selected origin qualifies."
-        ],
+        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect. Shared selected-source qualification additionally includes explicit inherited meter/register origins after later G-state replacement; each antecedent requires the same actual source assessment/current actor/snapshot/native-effect RPC. Applied Z04-only supply check remains unchanged.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Before-ledger structural originals/instrument and reading-owner evidence, exact ownership epochs and deleted history remain UNKNOWN without genuine source."
         ],
@@ -2296,11 +2291,12 @@
           "scripts/test-ediel-prodat-characteristic-fields.cjs"
         ],
         "owner_report_and_log_keys": [],
-        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
+        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof",
+        "latestBoundedProvenance": "quality/audits/ediel-masterplan-v2/p15-source-provenance-package-20261001.json"
       },
-      "approved_by_integrator": false,
+      "approved_by_integrator": true,
       "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
-      "bounded_review": "Material returned-source provenance finding confirmed by independent reviewers; owner /root/history implementing shared getter and regression. No formal acceptance promotion."
+      "bounded_review": "Independent source/callpath review CLEAR on original ed71+fa9 commits; five corrected-fixture RED then55/2GREEN. Genuine root merge retains both commits. Formal/native final acceptance unchanged."
     },
     {
       "id": "AT-Z10M-SUPPLIER",
@@ -2338,10 +2334,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "BOUNDED_OLD_GAP_IMPLEMENTED_WIRED; COMPOSED_FINAL_VERIFICATION_NOT_RUN",
-        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect.",
-        "remaining_internal_code_criteria": [
-          "Check native applied-source receipt for inherited selected meter/register origins, including sources no longer selected by measurement/state projection. Customer export and data-request structure must hold until each selected origin qualifies."
-        ],
+        "resolved_component": "Existing equal-bounds current_point branch uses ediel_read_source_supply_at_v1 and strict intervals use the interval owner. Every selected changed source requires a real applied structural receipt in the same protected readset; no current scalar fallback or ACK-as-effect. Shared selected-source qualification additionally includes explicit inherited meter/register origins after later G-state replacement; each antecedent requires the same actual source assessment/current actor/snapshot/native-effect RPC. Applied Z04-only supply check remains unchanged.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Before-ledger structural originals/instrument and reading-owner evidence, exact ownership epochs and deleted history remain UNKNOWN without genuine source."
         ],
@@ -2406,11 +2400,12 @@
           "scripts/test-ediel-prodat-characteristic-fields.cjs"
         ],
         "owner_report_and_log_keys": [],
-        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
+        "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof",
+        "latestBoundedProvenance": "quality/audits/ediel-masterplan-v2/p15-source-provenance-package-20261001.json"
       },
-      "approved_by_integrator": false,
+      "approved_by_integrator": true,
       "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
-      "bounded_review": "Material returned-source provenance finding confirmed by independent reviewers; owner /root/history implementing shared getter and regression. No formal acceptance promotion."
+      "bounded_review": "Independent source/callpath review CLEAR on original ed71+fa9 commits; five corrected-fixture RED then55/2GREEN. Genuine root merge retains both commits. Formal/native final acceptance unchanged."
     },
     {
       "id": "ACK-08",
@@ -4096,13 +4091,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "REMAINING_CODE_WORK",
-        "resolved_component": "Do not close this family. Reuse existing common negative whole/new-BGM/own-LI recovery, physical failed-scope hashes, qualified source lineage and definite transfer-loss commands, but keep concrete new140000 UTILTS physical reference, UD65733 and F/G terminal-source consumer work and final frozen-candidate qualification open.",
-        "remaining_internal_code_criteria": [
-          "Implement/integrate/test140000 actual UTILTS physical-reference owner and affected consumer on frozen candidate.",
-          "Implement/integrate/test65733 UD terminal original source forwarding/current policy on actual correction path.",
-          "Implement/integrate/test genuine F/G correction receipt current217/216/262 source + corresponding provider/message/certification/watch alias consumers, preserve desired_change_receipts(event_id PK).",
-          "Run affected regression then freeze and qualify native security/transaction/replay/upgrade/UI/CI on identical candidate; no whole TR-05 closure from modeled mechanisms."
-        ],
+        "resolved_component": "Do not close this family. Reuse existing common negative whole/new-BGM/own-LI recovery, physical failed-scope hashes, qualified source lineage and definite transfer-loss commands, but keep concrete new140000 UTILTS physical reference, UD65733 and F/G terminal-source consumer work and final frozen-candidate qualification open. Genuine private physical negative ACK is connected to common C recovery; own failed226/41 missing-LI is allocated inside existing operation, first-register/V6/sibling facts preserved. OPS real ServerActions call same protected producer/queue/retry directly, persisted private workspace and common ACK-status reader feed UI, real CI browser read/reload path is connected.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Unsupported frozen-source APERAK exceptions and missing real original/source/mandate remain held. Timeout/DSN/accepted/partial/unknown status alone never authorizes resend."
         ],
@@ -4119,19 +4109,32 @@
           "app/api/admin/ediel/recovery/route.ts",
           "supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql",
           "supabase/migrations/20260930190449_ediel_recovery_intent_source_gateway.sql",
-          "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql"
+          "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql",
+          "supabase/migrations/20261001140500_ediel_prodat_recovery_physical_negative_scope.sql",
+          "supabase/migrations/20261001141000_ediel_recovery_owned_missing_li_allocation.sql",
+          "supabase/migrations/20261001141500_ediel_prodat_recovery_operator_read_port.sql",
+          "lib/ediel/recovery/correctionReferences.ts",
+          "lib/ediel/recovery/operatorWorkspace.ts",
+          "app/admin/ediel/prodat-recovery/page.tsx",
+          "app/admin/ediel/prodat-recovery/actions.ts",
+          "app/admin/ediel/prodat-recovery/workspace.tsx"
         ],
         "call_paths": [
           "prepareAndQueueProdatRecovery → native failed-original/scope/operation sourceContext → current actor policy → new immutable correction intent → strict actual wire/native source command → outbox",
           "UD: actual terminal archived masterdata original must remain source-current and bind its own corrected intent/message; ordinary initial intent binding alone is insufficient",
           "F/G: qualified terminal217/216/262 + actual current reviewed metering event → per-operation/per-actor preparation → new corrected-intent receipt → provider/watch consumers",
-          "UTILTS: authentic physical LI/IDE reference with omitted or syntax-bound rejected scope → exact140000 source-owner port, never mutable parsed alias"
+          "UTILTS: authentic physical LI/IDE reference with omitted or syntax-bound rejected scope → exact140000 source-owner port, never mutable parsed alias",
+          "OPS ServerAction -> same protected local-draft/queue/retry domain module -> native current source/actor/operation -> durable read model -> qualified/held/unproven ACK UI -> actual permalink/reload browser in existing frozenCI spec"
         ],
         "durable_business_effect": "Fresh append-only correction/definite-loss attempt and cursor, own new intent/request/outbox/source receipts; no old ACK/provider/outbox reset.",
         "actual_read_models_ui": [
           "app/api/admin/ediel/recovery/route.ts",
           "app/admin/ediel/messages/[id]/page.tsx",
-          "app/admin/ediel/process-watches/page.tsx"
+          "app/admin/ediel/process-watches/page.tsx",
+          "app/admin/ediel/prodat-recovery/page.tsx",
+          "app/admin/ediel/prodat-recovery/actions.ts",
+          "app/admin/ediel/prodat-recovery/workspace.tsx",
+          "lib/ediel/inbound/businessAckReadModel.ts"
         ]
       },
       "regressions": {
@@ -4141,9 +4144,14 @@
           "__tests__/ediel-service-recovery-lineage.test.ts",
           "__tests__/ediel-recovery-date-context.test.ts",
           "scripts/ediel-prodat-recovery-phase-regression.mjs",
-          "scripts/ediel-customer-event-recovery-lineage-regression.mjs"
+          "scripts/ediel-customer-event-recovery-lineage-regression.mjs",
+          "scripts/ediel-recovery-owned-li-allocation-sql-regression.mjs",
+          "scripts/ediel-recovery-operator-read-sql-regression.mjs",
+          "__tests__/ediel-recovery-operator-actions.test.ts",
+          "__tests__/ediel-recovery-operator-workspace.test.ts",
+          "e2e/browser/ediel-requested-change-local.spec.mjs"
         ],
-        "current_execution": "NO_NEW_EXECUTION_CLAIM; REUSE_BASELINE_REGRESSIONS_AND_CURRENT_OWNER_REVIEW",
+        "current_execution": "145 cumulative physical/LI SQL +77 cumulative catalog/operator SQL actual bodies, explicit finite sources/grants; root canonical79/6 recovery unit PASS, targeted lint0. Browser test connected/discovered; actual runtime NOT_RUN. No formal/native acceptance promotion.",
         "reused_matrix_planned_tests": [
           "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
           "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes.",
@@ -4154,8 +4162,9 @@
         "owner_report_and_log_keys": [],
         "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
       },
-      "approved_by_integrator": false,
-      "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged"
+      "approved_by_integrator": true,
+      "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
+      "bounded_review": "Owner final OPS/LI receipts and root exact file checks; runtime browser/source/CI qualification remains final-candidate work."
     },
     {
       "id": "SC-040",
@@ -4186,13 +4195,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "REMAINING_CODE_WORK",
-        "resolved_component": "Do not close this family. Reuse existing common negative whole/new-BGM/own-LI recovery, physical failed-scope hashes, qualified source lineage and definite transfer-loss commands, but keep concrete new140000 UTILTS physical reference, UD65733 and F/G terminal-source consumer work and final frozen-candidate qualification open.",
-        "remaining_internal_code_criteria": [
-          "Implement/integrate/test140000 actual UTILTS physical-reference owner and affected consumer on frozen candidate.",
-          "Implement/integrate/test65733 UD terminal original source forwarding/current policy on actual correction path.",
-          "Implement/integrate/test genuine F/G correction receipt current217/216/262 source + corresponding provider/message/certification/watch alias consumers, preserve desired_change_receipts(event_id PK).",
-          "Run affected regression then freeze and qualify native security/transaction/replay/upgrade/UI/CI on identical candidate; no whole TR-05 closure from modeled mechanisms."
-        ],
+        "resolved_component": "Do not close this family. Reuse existing common negative whole/new-BGM/own-LI recovery, physical failed-scope hashes, qualified source lineage and definite transfer-loss commands, but keep concrete new140000 UTILTS physical reference, UD65733 and F/G terminal-source consumer work and final frozen-candidate qualification open. Genuine private physical negative ACK is connected to common C recovery; own failed226/41 missing-LI is allocated inside existing operation, first-register/V6/sibling facts preserved. OPS real ServerActions call same protected producer/queue/retry directly, persisted private workspace and common ACK-status reader feed UI, real CI browser read/reload path is connected.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Unsupported frozen-source APERAK exceptions and missing real original/source/mandate remain held. Timeout/DSN/accepted/partial/unknown status alone never authorizes resend."
         ],
@@ -4209,19 +4213,32 @@
           "app/api/admin/ediel/recovery/route.ts",
           "supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql",
           "supabase/migrations/20260930190449_ediel_recovery_intent_source_gateway.sql",
-          "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql"
+          "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql",
+          "supabase/migrations/20261001140500_ediel_prodat_recovery_physical_negative_scope.sql",
+          "supabase/migrations/20261001141000_ediel_recovery_owned_missing_li_allocation.sql",
+          "supabase/migrations/20261001141500_ediel_prodat_recovery_operator_read_port.sql",
+          "lib/ediel/recovery/correctionReferences.ts",
+          "lib/ediel/recovery/operatorWorkspace.ts",
+          "app/admin/ediel/prodat-recovery/page.tsx",
+          "app/admin/ediel/prodat-recovery/actions.ts",
+          "app/admin/ediel/prodat-recovery/workspace.tsx"
         ],
         "call_paths": [
           "prepareAndQueueProdatRecovery → native failed-original/scope/operation sourceContext → current actor policy → new immutable correction intent → strict actual wire/native source command → outbox",
           "UD: actual terminal archived masterdata original must remain source-current and bind its own corrected intent/message; ordinary initial intent binding alone is insufficient",
           "F/G: qualified terminal217/216/262 + actual current reviewed metering event → per-operation/per-actor preparation → new corrected-intent receipt → provider/watch consumers",
-          "UTILTS: authentic physical LI/IDE reference with omitted or syntax-bound rejected scope → exact140000 source-owner port, never mutable parsed alias"
+          "UTILTS: authentic physical LI/IDE reference with omitted or syntax-bound rejected scope → exact140000 source-owner port, never mutable parsed alias",
+          "OPS ServerAction -> same protected local-draft/queue/retry domain module -> native current source/actor/operation -> durable read model -> qualified/held/unproven ACK UI -> actual permalink/reload browser in existing frozenCI spec"
         ],
         "durable_business_effect": "Fresh append-only correction/definite-loss attempt and cursor, own new intent/request/outbox/source receipts; no old ACK/provider/outbox reset.",
         "actual_read_models_ui": [
           "app/api/admin/ediel/recovery/route.ts",
           "app/admin/ediel/messages/[id]/page.tsx",
-          "app/admin/ediel/process-watches/page.tsx"
+          "app/admin/ediel/process-watches/page.tsx",
+          "app/admin/ediel/prodat-recovery/page.tsx",
+          "app/admin/ediel/prodat-recovery/actions.ts",
+          "app/admin/ediel/prodat-recovery/workspace.tsx",
+          "lib/ediel/inbound/businessAckReadModel.ts"
         ]
       },
       "regressions": {
@@ -4231,9 +4248,14 @@
           "__tests__/ediel-service-recovery-lineage.test.ts",
           "__tests__/ediel-recovery-date-context.test.ts",
           "scripts/ediel-prodat-recovery-phase-regression.mjs",
-          "scripts/ediel-customer-event-recovery-lineage-regression.mjs"
+          "scripts/ediel-customer-event-recovery-lineage-regression.mjs",
+          "scripts/ediel-recovery-owned-li-allocation-sql-regression.mjs",
+          "scripts/ediel-recovery-operator-read-sql-regression.mjs",
+          "__tests__/ediel-recovery-operator-actions.test.ts",
+          "__tests__/ediel-recovery-operator-workspace.test.ts",
+          "e2e/browser/ediel-requested-change-local.spec.mjs"
         ],
-        "current_execution": "NO_NEW_EXECUTION_CLAIM; REUSE_BASELINE_REGRESSIONS_AND_CURRENT_OWNER_REVIEW",
+        "current_execution": "145 cumulative physical/LI SQL +77 cumulative catalog/operator SQL actual bodies, explicit finite sources/grants; root canonical79/6 recovery unit PASS, targeted lint0. Browser test connected/discovered; actual runtime NOT_RUN. No formal/native acceptance promotion.",
         "reused_matrix_planned_tests": [
           "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
           "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes.",
@@ -4242,8 +4264,9 @@
         "owner_report_and_log_keys": [],
         "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
       },
-      "approved_by_integrator": false,
-      "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged"
+      "approved_by_integrator": true,
+      "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
+      "bounded_review": "Owner final OPS/LI receipts and root exact file checks; runtime browser/source/CI qualification remains final-candidate work."
     },
     {
       "id": "AT-TR-05",
@@ -4274,13 +4297,8 @@
       "resolution": {
         "scope": "Only the stale bounded internal gap, never all rule/acceptance meaning from linked rules",
         "code_component_status": "REMAINING_CODE_WORK",
-        "resolved_component": "Do not close this family. Reuse existing common negative whole/new-BGM/own-LI recovery, physical failed-scope hashes, qualified source lineage and definite transfer-loss commands, but keep concrete new140000 UTILTS physical reference, UD65733 and F/G terminal-source consumer work and final frozen-candidate qualification open.",
-        "remaining_internal_code_criteria": [
-          "Implement/integrate/test140000 actual UTILTS physical-reference owner and affected consumer on frozen candidate.",
-          "Implement/integrate/test65733 UD terminal original source forwarding/current policy on actual correction path.",
-          "Implement/integrate/test genuine F/G correction receipt current217/216/262 source + corresponding provider/message/certification/watch alias consumers, preserve desired_change_receipts(event_id PK).",
-          "Run affected regression then freeze and qualify native security/transaction/replay/upgrade/UI/CI on identical candidate; no whole TR-05 closure from modeled mechanisms."
-        ],
+        "resolved_component": "Do not close this family. Reuse existing common negative whole/new-BGM/own-LI recovery, physical failed-scope hashes, qualified source lineage and definite transfer-loss commands, but keep concrete new140000 UTILTS physical reference, UD65733 and F/G terminal-source consumer work and final frozen-candidate qualification open. Genuine private physical negative ACK is connected to common C recovery; own failed226/41 missing-LI is allocated inside existing operation, first-register/V6/sibling facts preserved. OPS real ServerActions call same protected producer/queue/retry directly, persisted private workspace and common ACK-status reader feed UI, real CI browser read/reload path is connected.",
+        "remaining_internal_code_criteria": [],
         "preserve_external_source_and_policy_limits": [
           "Unsupported frozen-source APERAK exceptions and missing real original/source/mandate remain held. Timeout/DSN/accepted/partial/unknown status alone never authorizes resend."
         ],
@@ -4297,19 +4315,32 @@
           "app/api/admin/ediel/recovery/route.ts",
           "supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql",
           "supabase/migrations/20260930190449_ediel_recovery_intent_source_gateway.sql",
-          "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql"
+          "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql",
+          "supabase/migrations/20261001140500_ediel_prodat_recovery_physical_negative_scope.sql",
+          "supabase/migrations/20261001141000_ediel_recovery_owned_missing_li_allocation.sql",
+          "supabase/migrations/20261001141500_ediel_prodat_recovery_operator_read_port.sql",
+          "lib/ediel/recovery/correctionReferences.ts",
+          "lib/ediel/recovery/operatorWorkspace.ts",
+          "app/admin/ediel/prodat-recovery/page.tsx",
+          "app/admin/ediel/prodat-recovery/actions.ts",
+          "app/admin/ediel/prodat-recovery/workspace.tsx"
         ],
         "call_paths": [
           "prepareAndQueueProdatRecovery → native failed-original/scope/operation sourceContext → current actor policy → new immutable correction intent → strict actual wire/native source command → outbox",
           "UD: actual terminal archived masterdata original must remain source-current and bind its own corrected intent/message; ordinary initial intent binding alone is insufficient",
           "F/G: qualified terminal217/216/262 + actual current reviewed metering event → per-operation/per-actor preparation → new corrected-intent receipt → provider/watch consumers",
-          "UTILTS: authentic physical LI/IDE reference with omitted or syntax-bound rejected scope → exact140000 source-owner port, never mutable parsed alias"
+          "UTILTS: authentic physical LI/IDE reference with omitted or syntax-bound rejected scope → exact140000 source-owner port, never mutable parsed alias",
+          "OPS ServerAction -> same protected local-draft/queue/retry domain module -> native current source/actor/operation -> durable read model -> qualified/held/unproven ACK UI -> actual permalink/reload browser in existing frozenCI spec"
         ],
         "durable_business_effect": "Fresh append-only correction/definite-loss attempt and cursor, own new intent/request/outbox/source receipts; no old ACK/provider/outbox reset.",
         "actual_read_models_ui": [
           "app/api/admin/ediel/recovery/route.ts",
           "app/admin/ediel/messages/[id]/page.tsx",
-          "app/admin/ediel/process-watches/page.tsx"
+          "app/admin/ediel/process-watches/page.tsx",
+          "app/admin/ediel/prodat-recovery/page.tsx",
+          "app/admin/ediel/prodat-recovery/actions.ts",
+          "app/admin/ediel/prodat-recovery/workspace.tsx",
+          "lib/ediel/inbound/businessAckReadModel.ts"
         ]
       },
       "regressions": {
@@ -4319,9 +4350,14 @@
           "__tests__/ediel-service-recovery-lineage.test.ts",
           "__tests__/ediel-recovery-date-context.test.ts",
           "scripts/ediel-prodat-recovery-phase-regression.mjs",
-          "scripts/ediel-customer-event-recovery-lineage-regression.mjs"
+          "scripts/ediel-customer-event-recovery-lineage-regression.mjs",
+          "scripts/ediel-recovery-owned-li-allocation-sql-regression.mjs",
+          "scripts/ediel-recovery-operator-read-sql-regression.mjs",
+          "__tests__/ediel-recovery-operator-actions.test.ts",
+          "__tests__/ediel-recovery-operator-workspace.test.ts",
+          "e2e/browser/ediel-requested-change-local.spec.mjs"
         ],
-        "current_execution": "NO_NEW_EXECUTION_CLAIM; REUSE_BASELINE_REGRESSIONS_AND_CURRENT_OWNER_REVIEW",
+        "current_execution": "145 cumulative physical/LI SQL +77 cumulative catalog/operator SQL actual bodies, explicit finite sources/grants; root canonical79/6 recovery unit PASS, targeted lint0. Browser test connected/discovered; actual runtime NOT_RUN. No formal/native acceptance promotion.",
         "reused_matrix_planned_tests": [
           "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
           "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes.",
@@ -4332,8 +4368,9 @@
         "owner_report_and_log_keys": [],
         "same_candidate_own_criteria": "NOT_RUN; test existence or modeled IO is not authentic current integration proof"
       },
-      "approved_by_integrator": false,
-      "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged"
+      "approved_by_integrator": true,
+      "qualification": "BOUNDED_CODE_ONLY; formal acceptance and all frozen final criteria unchanged",
+      "bounded_review": "Owner final OPS/LI receipts and root exact file checks; runtime browser/source/CI qualification remains final-candidate work."
     },
     {
       "id": "AI-01",

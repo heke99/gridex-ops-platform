@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { prepareAndQueueProdatRecovery } from '@/lib/ediel/recovery/prodatRecovery'
+import { prepareAndQueueProdatRecovery,prepareProdatRecoveryDraft,queuePersistedProdatRecovery } from '@/lib/ediel/recovery/prodatRecovery'
 import { source, head, own } from './fixtures/prodat-identity'
 import { raw } from './fixtures/prodat-register'
 const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), route: vi.fn(), finalize: vi.fn(), request: vi.fn(), queue: vi.fn(), intent: vi.fn(), basis: vi.fn(), dates: vi.fn(), reporting: vi.fn(),serviceOrigin:vi.fn(),references:vi.fn() }))
@@ -87,5 +87,19 @@ describe('source qualified manual PRODAT recovery', () => {
     const error=Error('prodat_recovery_execution_actor_forbidden');io.references.mockRejectedValue(error)
     await expect(prepareAndQueueProdatRecovery(command)).rejects.toBe(error)
     expect(io.rpc).not.toHaveBeenCalled();expect(io.from).not.toHaveBeenCalled();expect(io.intent).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
+  })
+  it('WRITE preparation saves the same bound draft without a SEND or outbox call',async()=>{
+    expect(await prepareProdatRecoveryDraft(command)).toMatchObject({status:'prepared',messageId:'new-message',operationId:'operation'})
+    expect(io.references).toHaveBeenCalledOnce();expect(io.rpc).toHaveBeenCalledOnce();expect(io.queue).not.toHaveBeenCalled()
+  })
+  it('a separate current SEND actor queues only the persisted own operation, without creating a preparation',async()=>{
+    const actual={companyId:scope.companyId,actorUserId:'current-send-only-executor',messageId:'new-message'}
+    expect(await queuePersistedProdatRecovery(actual)).toMatchObject({status:'queued',operationId:'operation',messageId:'new-message'})
+    expect(io.queue).toHaveBeenCalledExactlyOnceWith({companyId:scope.companyId,actorUserId:actual.actorUserId,operationId:'operation',message:corrected})
+    expect(io.references).not.toHaveBeenCalled();expect(io.rpc).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled()
+  })
+  it('cannot reset an already sent original through a persisted queue selector',async()=>{
+    const query={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:{...corrected,status:'sent'},error:null})};query.select.mockReturnValue(query);query.eq.mockReturnValue(query);io.from.mockReturnValue(query)
+    await expect(queuePersistedProdatRecovery({companyId:scope.companyId,actorUserId:scope.actorUserId,messageId:'new-message'})).rejects.toThrow('draft_unavailable');expect(io.queue).not.toHaveBeenCalled()
   })
 })
