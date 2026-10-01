@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "status": "IN_PROGRESS",
+  "scope": "One-time reading of actual CI on the published historical intermediate, not final candidate verification",
+  "repository": "heke99/gridex-ops-platform",
+  "pullRequest": 421,
+  "publishedCommit": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+  "equivalentLocalCommit": "66a66666aa1b8b28315ca7840ab07424da360a81",
+  "tree": "ce0a89e92b355d8ee06ad26779aed67d6fbe47df",
+  "runs": [
+    {
+      "id": 36797431164,
+      "name": "Ediel masterplan v2 regressions",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36797431164"
+    },
+    {
+      "id": 36797431177,
+      "name": "Gridex browser and quality E2E",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36797431177"
+    },
+    {
+      "id": 36797431077,
+      "name": "Gridex zero-admin production crawler",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36797431077"
+    },
+    {
+      "id": 36797431175,
+      "name": "Tenant integrity regression",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36797431175"
+    },
+    {
+      "id": 36797431159,
+      "name": "Gridex full E2E",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36797431159"
+    },
+    {
+      "id": 36797431102,
+      "name": "OPS hardening",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_sha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36797431102"
+    }
+  ],
+  "observations": [
+    {
+      "job": 110163979896,
+      "run": 36797431164,
+      "result": "FAIL",
+      "finding": "98 source/guide/calendar checks rejected a missing declared pure source_manifest dependency in the Node SourceTextModule loader",
+      "currentCorrection": {
+        "commit": "39588670",
+        "checks": "268 scoped Node tests passed; Node22 transform and explicit source/pure dependency allowlist; effect/DB/DNS/fs ports remain rejected"
+      }
+    },
+    {
+      "job": 110163979795,
+      "run": 36797431102,
+      "result": "FAIL",
+      "finding": "Scripts typecheck passed four arguments to resolveClosureCoverage, whose actual current contract takes five",
+      "currentCorrection": {
+        "status": "Existing newer implementation inspected with five actual arguments; rerun at integrated candidate remains a separate check"
+      }
+    },
+    {
+      "job": 110163979882,
+      "run": 36797431102,
+      "result": "FAIL",
+      "finding": "Migration integrity passed, then generated type migration tail was stale",
+      "currentCorrection": {
+        "status": "Native replay and actual generation required on a fixed new candidate; no synthetic types, schema or provenance"
+      }
+    },
+    {
+      "job": 110163979835,
+      "run": 36797431102,
+      "result": "FAIL",
+      "finding": "Clean migrations reached GRIDEX-REM-002 PASS. Received-source ledger regression failed three named criteria",
+      "criteria": [
+        "definers-private-fixed-path",
+        "deleted-and-unknown-receipt-discoverable",
+        "non-prodat-not-captured"
+      ],
+      "currentCorrection": {
+        "status": "Compare each criterion against actual current source/ACL/tenant contracts; do not reduce security criteria"
+      }
+    },
+    {
+      "job": 110163980083,
+      "run": 36797431159,
+      "result": "FAIL",
+      "tests": {
+        "failed": 456,
+        "passed": 6833,
+        "total": 7289,
+        "failedFiles": 62,
+        "totalFiles": 515
+      },
+      "currentCorrection": {
+        "status": "Historical whole-suite failures are triage evidence. Actual code defects and old fixture assumptions are distinguished; scoped corrections only during code phase"
+      }
+    },
+    {
+      "job": 110163980329,
+      "run": 36797431159,
+      "result": "FAIL",
+      "finding": "Node22 strip-only loader rejected a real parameter property; later E2E results were 13 passed and 2 failed",
+      "currentCorrection": {
+        "commit": "39588670",
+        "status": "Loader uses actual Node transform mode. No claim that full E2E has been rerun on current code"
+      }
+    }
+  ],
+  "failedFiles": {
+    "__tests__/atomic-supply-activation.test.ts": 1,
+    "__tests__/ediel-ack-inherited-guide-consumers.test.ts": 6,
+    "__tests__/ediel-canonical-inbound-parser-v2.test.ts": 1,
+    "__tests__/ediel-closure-legacy-case.test.ts": 5,
+    "__tests__/ediel-correction-outbound-scope.test.ts": 1,
+    "__tests__/ediel-durable-source-business-outcomes.test.ts": 25,
+    "__tests__/ediel-masterplan-protocol-regression.test.ts": 4,
+    "__tests__/ediel-outbound-transport-journal.test.ts": 1,
+    "__tests__/ediel-packing-limit-authority.test.ts": 1,
+    "__tests__/ediel-prodat-aperak-text-evidence.test.ts": 1,
+    "__tests__/ediel-prodat-aperak-text-inbound.test.ts": 2,
+    "__tests__/ediel-prodat-aperak-text-legacy.test.ts": 1,
+    "__tests__/ediel-prodat-aperak-text-structural.test.ts": 3,
+    "__tests__/ediel-prodat-date-event-actions.test.ts": 2,
+    "__tests__/ediel-prodat-date-event-send.test.ts": 2,
+    "__tests__/ediel-prodat-date-event-smtp.test.ts": 1,
+    "__tests__/ediel-prodat-death-status-smtp.test.ts": 4,
+    "__tests__/ediel-prodat-dependent-subtype-send.test.ts": 3,
+    "__tests__/ediel-prodat-dependent-z06-product.test.ts": 6,
+    "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts": 6,
+    "__tests__/ediel-prodat-document-consumers.test.ts": 8,
+    "__tests__/ediel-prodat-field-identity-owners.test.ts": 2,
+    "__tests__/ediel-prodat-field-identity.test.ts": 6,
+    "__tests__/ediel-prodat-free-text-smtp.test.ts": 18,
+    "__tests__/ediel-prodat-free-text.test.ts": 1,
+    "__tests__/ediel-prodat-gas-disposition.test.ts": 6,
+    "__tests__/ediel-prodat-gas-identity-consumers.test.ts": 3,
+    "__tests__/ediel-prodat-invoicee.test.ts": 1,
+    "__tests__/ediel-prodat-meter-change-smtp.test.ts": 3,
+    "__tests__/ediel-prodat-register-autopilot-flow.test.ts": 7,
+    "__tests__/ediel-prodat-register-readings.test.ts": 1,
+    "__tests__/ediel-prodat-register-structure-guards.test.ts": 3,
+    "__tests__/ediel-prodat-register-tgt-actions.test.ts": 2,
+    "__tests__/ediel-prodat-remaining-d-consumers.test.ts": 7,
+    "__tests__/ediel-prodat-remaining-d-inbound.test.ts": 1,
+    "__tests__/ediel-prodat-reporting-chain.test.ts": 29,
+    "__tests__/ediel-prodat-reporting-smtp.test.ts": 2,
+    "__tests__/ediel-prodat-z04-persisted-ack.test.ts": 15,
+    "__tests__/ediel-received-context-outcomes.test.ts": 6,
+    "__tests__/ediel-received-context-reader.test.ts": 32,
+    "__tests__/ediel-received-structure-reader-boundaries.test.ts": 28,
+    "__tests__/ediel-received-structure-reader-deadline.test.ts": 3,
+    "__tests__/ediel-received-structure-reader.test.ts": 46,
+    "__tests__/ediel-service-permission-recovery-origin.test.ts": 1,
+    "__tests__/ediel-smtp-post-acceptance.test.ts": 4,
+    "__tests__/ediel-source-owner-processor.test.ts": 3,
+    "__tests__/ediel-source-owner-runtime.test.ts": 29,
+    "__tests__/ediel-transport-byte-integrity.test.ts": 3,
+    "__tests__/ediel-unb-ack-request.test.ts": 1,
+    "__tests__/ediel-utilts-aperak-physical-scope.test.ts": 6,
+    "__tests__/ediel-utilts-decision-reuse.test.ts": 10,
+    "__tests__/ediel-utilts-err-gateway.test.ts": 10,
+    "__tests__/ediel-utilts-object-context-boundary.test.ts": 1,
+    "__tests__/ediel-utilts-observation-processor-handoff.test.ts": 4,
+    "__tests__/ediel-utilts-persistence-processor.test.ts": 51,
+    "__tests__/ediel-utilts-persistence-sideeffects.test.ts": 5,
+    "__tests__/ediel-utilts-positive-ack-authority.test.ts": 4,
+    "__tests__/ediel-utilts-processor-decision-reuse.test.ts": 1,
+    "__tests__/ediel-utilts-runtime-cutoff.test.ts": 8,
+    "__tests__/ediel-utilts-s02-required-scope.test.ts": 6,
+    "__tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts": 1,
+    "__tests__/z01-parallel-sla-watchdog.test.ts": 2
+  },
+  "artifacts": [
+    {
+      "id": 11134875390,
+      "run": 36797431102,
+      "zipSha256": "f72dc937304f9f05e888f114c0c44dd43cf552e729e08000daac59f7376c0937",
+      "scope": "Actual generated artifacts from 8052 only; not current candidate schema/type parity"
+    }
+  ],
+  "limits": [
+    "No repeated CI polling",
+    "No mandatory workflow/check disabled or weakened",
+    "Browser and tenant successes apply to 8052 only",
+    "No final whole-suite, native replay, schema/type parity, browser or manual acceptance claim",
+    "Formal acceptance ledger unchanged"
+  ]
+}
