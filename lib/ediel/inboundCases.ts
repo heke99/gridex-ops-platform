@@ -1039,6 +1039,20 @@ async function validateSelectedObjectGraphs(companyId: string, decisions: readon
 }
 
 async function applyInboundObjects(params:{actorUserId:string;caseId:string;companyId:string;inboundCase:EdielInboundCaseRow;objectDecisions:readonly EdielInboundObjectDecision[];note?:string|null}):Promise<EdielInboundCaseRow> {
+  if(params.inboundCase.status==='applied'){
+    const saved=objectApplication(params.inboundCase)
+    if(!saved||saved.originalActorId!==params.actorUserId)throw new Error('PRODAT_OBJECT_APPLICATION_ACTOR_MISMATCH')
+    const selected=saved.decisions.map(own=>{
+      const matches=params.objectDecisions.filter(d=>d?.meteringPointId===own.meteringPointId&&d.identityAgency===own.identityAgency)
+      if(matches.length!==1)throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+      const d=matches[0];return{meteringPointId:d.meteringPointId,identityAgency:d.identityAgency,mode:d.mode,selectedCustomerId:trimOrNull(d.selectedCustomerId),selectedSiteId:trimOrNull(d.selectedSiteId),selectedMeteringPointId:trimOrNull(d.selectedMeteringPointId)}
+    })
+    if(selected.length!==params.objectDecisions.length||!isDeepStrictEqual(selected,saved.decisions))throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH')
+    const {data:completed,error:completedError}=await supabaseService.rpc('ediel_read_completed_prodat_object_batch_v1',{p_company_id:params.companyId,p_case_id:params.caseId,p_source_message_id:params.inboundCase.ediel_message_id,p_actor_user_id:params.actorUserId,p_decisions:selected})
+    if(completedError)throw completedError
+    if(!isEvidenceRecord(completed)||completed.id!==params.caseId||completed.company_id!==params.companyId||completed.ediel_message_id!==params.inboundCase.ediel_message_id||completed.status!=='applied')throw new Error('PRODAT_OBJECT_APPLICATION_COMPLETED_RECEIPT_REQUIRED')
+    return completed as unknown as EdielInboundCaseRow
+  }
   const {data,error}=await (tenantDb(params.companyId).from('ediel_messages').select('*') as ScopedSelect)
     .eq('id',params.inboundCase.ediel_message_id).maybeSingle()
   if (error) throw error

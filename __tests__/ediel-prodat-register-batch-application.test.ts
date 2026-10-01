@@ -43,6 +43,11 @@ beforeEach(async()=>{
  boundary.rpc.mockImplementation((name:string,args:Record<string,unknown>)=>{
   if(name==='resolve_canonical_ediel_rule_pack_with_witness_v1')return Promise.resolve({data:[ownerRulePack()],error:null})
   if(name==='gridex_actor_has_company_permission')return Promise.resolve({data:actorActive&&args.p_company_id===message.company_id&&args.p_actor_user_id===ownerId(2)&&['communication.write','customers.write'].includes(String(args.p_permission)),error:null})
+  if(name==='ediel_read_completed_prodat_object_batch_v1'){
+   if(!actorActive||args.p_actor_user_id!==ownerId(2)||args.p_company_id!==original.company_id||args.p_case_id!==stored.id||args.p_source_message_id!==stored.ediel_message_id)return Promise.resolve({data:null,error:Error('prodat_object_batch_current_read_actor_required')})
+   if(stored.status!=='applied'||committed.size!==2||JSON.stringify(args.p_decisions)!==JSON.stringify((stored.review_decision?.objectApplication as {decisions:unknown})?.decisions))return Promise.resolve({data:null,error:Error('declared_native_completed_receipt_required')})
+   return Promise.resolve({data:structuredClone(stored),error:null})
+  }
   if(name==='ediel_read_prodat_object_batch_source_v1'){
    if(!actorActive||!sourceAvailable||args.p_company_id!==original.company_id||args.p_source_message_id!==original.id||args.p_actor_user_id!==ownerId(2))return Promise.resolve({data:null,error:Error('prodat_object_batch_current_actor_required')})
    return prodatFixtureSourceRpc('ediel_read_prodat_application_objects_v1',{p_company_id:original.company_id,p_source_message_id:original.id}).then(({data})=>{if(!data||typeof data!=='object')throw Error('DECLARED_ACTUAL_APPLICATION_REQUIRED');return{data:{version:1,sourceMessage:structuredClone(original),sourcePayloadHash:createHash('sha256').update(original.raw_payload!).digest('hex'),assessmentId:data.assessmentId,applicationValidation:Object.fromEntries(Object.entries(data).filter(([k])=>k!=='assessmentId'))},error:null}})
@@ -317,3 +322,6 @@ it('missing native original after partial completion cannot borrow the saved che
  failB=true;await expect(approve(params())).rejects.toThrow('B deliberately failed');const before=structuredClone(stored);boundary.graph.mockClear();writes=[];await boundary.rpc('batch_fixture_remove_source',{});failB=false
  await expect(approve(params())).rejects.toThrow('current_actor');expect(stored).toEqual(before);expect(writes).toEqual([]);expect(boundary.graph).not.toHaveBeenCalled()
 })
+
+it('reads the actual completed native result after source bytes become unavailable without new writes',async()=>{await approve(params());const before=structuredClone(stored);message.raw_payload=null;await boundary.rpc('batch_fixture_remove_source',{});boundary.graph.mockClear();boundary.event.mockClear();writes=[];expect(await approve(params())).toEqual(before);expect(writes).toEqual([]);expect(boundary.graph).not.toHaveBeenCalled();expect(boundary.event).not.toHaveBeenCalled()})
+it('current actor revoke still holds completed retained result without mutations',async()=>{await approve(params());const before=structuredClone(stored);message.raw_payload=null;await boundary.rpc('batch_fixture_revoke_actor',{});boundary.graph.mockClear();boundary.event.mockClear();writes=[];await expect(approve(params())).rejects.toThrow('current_read_actor');expect(stored).toEqual(before);expect(writes).toEqual([]);expect(boundary.graph).not.toHaveBeenCalled()})
