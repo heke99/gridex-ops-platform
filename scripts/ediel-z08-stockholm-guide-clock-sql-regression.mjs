@@ -25,7 +25,7 @@ try {
  await db.exec('create function gridex_received_sources.closure_wire_tokens_v1(text) returns jsonb language sql immutable as $$select gridex_utilts_binding.wire_tokens_v1($1)$$')
  const original=readFileSync(new URL('../supabase/migrations/20260924031626_correction_outbound_dispatch_fence_v1.sql',import.meta.url),'utf8');await db.exec(original)
  await db.exec('alter function gridex_outbound_dispatch.mutate_v1(jsonb) rename to mutate_before_observed_clock_v1')
- const forward=readFileSync(new URL('../supabase/migrations/20260930211852_ediel_h_dispatch_exact_original_latin1_bytes.sql',import.meta.url),'utf8')
+ const forward=readFileSync(new URL('../supabase/migrations/20260930215148_ediel_h_current_authorized_send_permission.sql',import.meta.url),'utf8')
  const actual=forward.slice(forward.indexOf('CREATE OR REPLACE FUNCTION gridex_outbound_dispatch.mutate_before_observed_clock_v1'),forward.indexOf('REVOKE ALL ON FUNCTION'))
  // This one replacement is solely a declared test clock. All preparation,
  // binding, immutable journal and date expressions execute the actual SQL;
@@ -49,5 +49,7 @@ try {
  assert.equal(await observe(18,{accepted:['remote@example.invalid'],rejected:['foreign@example.invalid']}),'uncertain');checks++
  assert.equal(await observe(19,{accepted:[],rejected:['REMOTE@example.invalid']}),'all_rejected');checks++
  assert.equal(await observe(20,{accepted:['REMOTE@example.invalid'],rejected:[]}),'accepted');checks++
- console.log(`Focused actual native H Stockholm guide date, source-exact Latin1 bytes, native mailbox and recipient-bound observation: ${checks} PASS`)
+ await db.exec("create or replace function public.gridex_actor_has_company_permission(uuid,uuid,text) returns boolean language sql as $$select $3='ediel.send'$$");await create(21);assert.equal((await db.query('select gridex_outbound_dispatch.mutate_before_observed_clock_v1($1) r',[input(21)])).rows[0].r.proceed,true);checks++
+ await db.exec("create or replace function public.gridex_actor_has_company_permission(uuid,uuid,text) returns boolean language sql as 'select false'");await create(22);await assert.rejects(db.query('select gridex_outbound_dispatch.mutate_before_observed_clock_v1($1)',[input(22)]),/outbound_dispatch_actor_unavailable/);assert.equal((await db.query('select count(*)::int n from gridex_outbound_dispatch.attempts where message_id=$1',[uid(22)])).rows[0].n,0);checks++
+ console.log(`Focused actual native H Stockholm date, source-exact Latin1 bytes, native mailbox, recipient-bound observation and anyOf send permission: ${checks} PASS`)
 } catch(e){console.error(e.stack,e.where??'');process.exitCode=1} finally {await db.close()}
