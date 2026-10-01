@@ -168,6 +168,24 @@ try {
  await assert.rejects(db.query('select gridex_ediel_transport.mutate_v1($1)',[errInput]),/utilts_err_own_reservation_unavailable/);assert.equal((await db.query('select count(*)::int n from gridex_ediel_transport.attempts where id=$1',[uid(95)])).rows[0].n,0);checks++
  await db.exec(`update ediel_ack_transaction_results set final_response_type='utilts_err',response_message_id='${uid(94)}',finalized_at=now() where source_message_id='${uid(93)}'`);assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[errInput])).rows[0].r.proceed,true);checks++
  await db.exec(`update gridex_ediel_transport.reservations set state='entered' where message_id='${uid(94)}';update ediel_ack_transaction_results set planned_response_type='positive_aperak' where source_message_id='${uid(93)}'`);assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[{...errInput,action:'enter'}])).rows[0].r.proceed,false);checks++
+ // V2 is a separately tested protected canonical-owner boundary. These
+ // explicit fixture alternatives model distinct owner projections, never a
+ // mutable production facet or caller-authorized global error flag.
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930220632_ediel_native_utilts_err_explicit_own_response_scope.sql',import.meta.url),'utf8'));checks++
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','UTILTS','E66',$3,now())",[uid(97),uid(1),functionalSource]);await legal(97)
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(97),uid(1),functionalSource,w.evidence])
+ await db.exec(`insert into ediel_ack_transaction_results values('${uid(1)}','test','${uid(97)}','FUNC','processability_rejected','utilts_err','not_applicable',null,null,null,null);create table gridex_received_sources.fixture_functional_facet(value jsonb);create or replace function gridex_received_sources.require_utilts_functional_responses_v1(uuid,uuid) returns jsonb language sql as $$select value||jsonb_build_object('sourcePayloadHash',encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')) from gridex_received_sources.fixture_functional_facet f,public.ediel_messages m where m.id=$2$$`)
+ const globalError={code:'E51',ownerIssueCodes:['FIXTURE_ACTUAL_GLOBAL_PRECISION_ISSUE'],originalScope:'message',referenceQualifier:'TN',referenceNumber:null,responseReference:{qualifier:'TN',number:'FUNC'}}
+ const globalFacet=error=>({version:2,assessmentId:uid(96),transactions:[{transactionIndex:0,transactionId:'FUNC',errors:[error],errorCodes:[error.code]}]})
+ const setFunctionalFixture=async error=>{await db.exec('delete from gridex_received_sources.fixture_functional_facet');await db.query('insert into gridex_received_sources.fixture_functional_facet values($1)',[globalFacet(error)])}
+ const prepareGlobalErr=async()=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:errRaw(),relatedMessageId:uid(97),rulePackEvidence:w.evidence}])).rows[0].r
+ await setFunctionalFixture(globalError);assert.equal((await prepareGlobalErr()).evidence.version,w.evidence.version);checks++
+ await setFunctionalFixture({...globalError,responseReference:{qualifier:'TN',number:'SIBLING'}});await assert.rejects(prepareGlobalErr(),/utilts_err_own_functional_facet_required/);checks++
+ await setFunctionalFixture({...globalError,responseReference:{qualifier:'ACW',number:'FUNC'}});await assert.rejects(prepareGlobalErr(),/utilts_err_own_functional_facet_required/);checks++
+ await setFunctionalFixture({...globalError,referenceNumber:'FUNC'});await assert.rejects(prepareGlobalErr(),/utilts_err_own_functional_facet_required/);checks++
+ await setFunctionalFixture({...globalError,originalScope:'transaction'});await assert.rejects(prepareGlobalErr(),/utilts_err_own_functional_facet_required/);checks++
+ await setFunctionalFixture({...globalError,originalScope:'transaction',referenceNumber:'FUNC'});assert.equal((await prepareGlobalErr()).evidence.version,w.evidence.version);checks++
+ await setFunctionalFixture({...globalError,originalScope:'unknown'});await assert.rejects(prepareGlobalErr(),/utilts_err_own_functional_facet_required/);checks++
  // Explicit clock fixture only: execute the actual forward prepare body with
  // captured UTC22:30/StockholmOct1 and a source activation starting Oct1.
  await db.exec("update ediel_rule_packs set valid_from='2026-10-01'")
