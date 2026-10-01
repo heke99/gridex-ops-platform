@@ -44,6 +44,11 @@ export async function queueRecoveryDraft(input: { companyId: string; operationId
   if (current.messageId !== message.id || current.outboundRequestId !== message.outbound_request_id) throw new Error('prodat_recovery_final_message_unbound')
   await supabaseService.rpc('ediel_require_prodat_recovery_current_v1', { p_company_id: input.companyId, p_message_id: message.id }).then(({ error }) => { if (error) throw error })
   await updateIntentLifecycle(intent.id, { renderStatus: 'rendered', edielMessageId: message.id, outboundRequestId: message.outbound_request_id, actorUserId: input.actorUserId })
+  if (message.message_code === 'Z03') {
+    const { data, error } = await supabaseService.rpc('ediel_bind_switch_correction_v1', { p_company_id: input.companyId, p_message_id: message.id, p_actor_user_id: input.actorUserId })
+    if (error) throw error
+    if (!data || data.status !== 'bound' || data.messageId !== message.id) throw new Error('prodat_recovery_switch_correction_binding_required')
+  }
   await queuePreparedEdielMessage({ actorUserId: input.actorUserId,messageId: message.id,outboundRequestId: message.outbound_request_id,intentId: intent.id,
     payload: { recoveryOperationId: input.operationId,originalMessageId: message.original_message_id,intentId: intent.id } })
   await updateIntentLifecycle(intent.id, { outboxStatus: 'queued', actorUserId: input.actorUserId })

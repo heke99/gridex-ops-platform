@@ -31,4 +31,14 @@ describe('correction intent/private origin gateway',()=>{
   io.intent.mockResolvedValue({...intent,operationId:'other-operation'});io.queue.mockClear()
   await expect(queueRecoveryDraft({...scope,message})).rejects.toThrow('current_intent_required');expect(io.queue).not.toHaveBeenCalled()
  })
+ it('binds the corrected switch operative source before queue and holds on native rejection',async()=>{
+  io.intent.mockResolvedValue({...intent,messageCode:'Z03',businessProcess:'supplier_switch',supplierSwitchRequestId:'switch'})
+  const corrected={...message,message_code:'Z03',switch_request_id:'switch'}
+  io.rpc.mockImplementation(async(name:string)=>({data:name==='ediel_reserve_prodat_recovery_origin_v1'?{status:'reserved',intentId:'new-intent',outboundRequestId:'chosen-request',messageId:'new-message'}:name==='ediel_bind_switch_correction_v1'?{status:'bound',messageId:'new-message'}:null,error:null}))
+  await queueRecoveryDraft({...scope,message:corrected})
+  const binding=io.rpc.mock.calls.findIndex(([name])=>name==='ediel_bind_switch_correction_v1')
+  expect(binding).toBeGreaterThan(-1);expect(io.rpc.mock.invocationCallOrder[binding]).toBeLessThan(io.queue.mock.invocationCallOrder[0])
+  io.queue.mockClear();io.rpc.mockImplementation(async(name:string)=>name==='ediel_bind_switch_correction_v1'?{data:null,error:{message:'qualified_source_changed'}}:{data:{status:'reserved',intentId:'new-intent',outboundRequestId:'chosen-request',messageId:'new-message'},error:null})
+  await expect(queueRecoveryDraft({...scope,message:corrected})).rejects.toEqual({message:'qualified_source_changed'});expect(io.queue).not.toHaveBeenCalled()
+ })
 })
