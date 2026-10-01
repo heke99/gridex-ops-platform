@@ -1,0 +1,59 @@
+{
+  "finding": "GRIDEX-EDIEL-COMPOSED-REPLAY: the real-merged composed candidate (49a40a2e/d396c228 lineage) did not replay from an empty database. Five composition defects, found one at a time by authentic replay on supabase/postgres 17.6.1.155.",
+  "defects": [
+    {
+      "at": "20261001043234",
+      "error": "other_supply_scope_adapter_transition_changed",
+      "cause": "20261001004331 (merged later, earlier timestamp) renamed the plans alias plan->planned in apply_supply_before_legal_context_v1; 043234 needles expect plan.",
+      "fix": "043233 maps exactly those two statements to the consumed form; 043235 restores the exact 004331 statements. Net identity on the original function; guarded exact-count replacement, metadata unchanged."
+    },
+    {
+      "at": "20261001061000",
+      "error": "ai_list_draft_header_owner_changed",
+      "cause": "Incoming #421 forward written before 020550 renamed require_original_draft_v1; integrator already wrote its composed successor 092522 which CREATEs the same functions (mutually exclusive).",
+      "fix": "Classified checksum-bound noncanonical (merged_repository_artifact_not_deployed) in scripts/gridex-aud-003-noncanonical-artifacts.json."
+    },
+    {
+      "at": "20261001062832",
+      "error": "ediel_service_source_requested_method_owner_shape_changed",
+      "cause": "20261001043917 wrapped context_v1 with Z13 request timing (core renamed context_before_source_timing_v1); 062832 derives private read-only source contexts from context_v1 as core and replaces it with its creation gate.",
+      "fix": "062831 parks the timing wrapper by rename; 062833 restores it as context_v1 over 062832's gate+source chain. Creation keeps timing+gate+all source predicates. OIDs/ACLs preserved (renames only).",
+      "openReview": "062832's private recovery read port (context_source_v1) does not include the 043917 Z13 timing check; current_request_timing_v1 requires a current manual actor, which conflicts with 062832's origin-only read design. Needs owner decision; not changed here."
+    },
+    {
+      "at": "20261001093000",
+      "error": "protected_copy_certification_actual_selected_source_review_required",
+      "cause": "20261001035555 wrapped certification_basis_v1 (core renamed certification_basis_before_case_tuple_v1); 093000 edits the core's revocation guard through certification_basis_v1.",
+      "fix": "092959/093001 rename bridge; 093000's guarded edit lands in the core the wrapper calls."
+    },
+    {
+      "at": "20261001121000",
+      "error": "42703 column sender_subaddress of relation ediel_messages does not exist",
+      "cause": "Trigger watch list names non-existent columns (actual sender_sub_address/receiver_sub_address).",
+      "fix": "Original classified noncanonical (cannot have been applied anywhere); 121001 replay-corrected successor differs only in those two names."
+    }
+  ],
+  "migrations": {
+    "20261001043233_ediel_supply_before_legal_alias_bridge_for_partition.sql": "ce2fce0ed2b39bcca5d10385496e6d6b35a106d68c40ec6b35edcc5c385cb899",
+    "20261001043235_ediel_supply_before_legal_alias_bridge_restore.sql": "af191ea59fb3aac6a1b9174a922e83bbcb1a1cbc135a97928800bf0f733d964a",
+    "20261001062831_ediel_service_context_timing_bridge_for_recovery_phase.sql": "885be9e78ee90a9660d31eaad17192bbfd6c1612dd3cb2f167057b1a6e32d526",
+    "20261001062833_ediel_service_context_timing_bridge_restore.sql": "8781ee49c8b23a76c12131bc1105b1b55df157ef72d5023d1555da17698d050e",
+    "20261001092959_ediel_certification_basis_case_tuple_bridge_for_copy_retention.sql": "cf88955ce44f25a9fa2d6f22520b8e07888eecea6a94d0d248b6b49b96fe2c27",
+    "20261001093001_ediel_certification_basis_case_tuple_bridge_restore.sql": "4a8e31f5017d6ed7b17378351eb644aa979e5e950f753c604d33895d72cfc6f4",
+    "20261001121001_ediel_metering_method_recovery_current_source_bridge_replay_corrected.sql": "8735bd80de68ec29fd1fcead7d555fb205f330c7855982c8dc07b379c4ca8d2f"
+  },
+  "replay": {
+    "mode": "scripts/gridex-aud-003-clean-replay.sh external GRIDEX_REPLAY_DB_URL on ghcr.io/supabase/postgres:17.6.1.155 (fresh cluster)",
+    "result": "ALL migrations and seed checks applied; stops only at pinned schema fingerprint (expected c70fa2f0..., actual f90c177a...). External mode has NO ledger provenance by design.",
+    "excludes": "20261001134600 (WIP, unregistered) was removed from the replay copy; it applied cleanly in incremental replay on the same history.",
+    "rawLogSha256": "04fa53ffffb363641c7abfd1b445cbdfbde406c026e01aa25780fe2270675aed",
+    "excerpt": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/composed-clean-replay-external-20261001.log",
+    "excerptSha256": "4d1d45d8e7c9ba1b6b532aaa638d524d1005f66f2a844406026f4dbe60721c9a"
+  },
+  "notRun": [
+    "Supabase-stack (CLI) clean replay with ledger provenance",
+    "upgrade replay",
+    "authentic fingerprint/types regeneration (freeze step)"
+  ],
+  "deploymentNote": "Noncanonical files remain in supabase/migrations. A future supabase db push would still try to apply them; that must be resolved before any production migration (not authorized here)."
+}
