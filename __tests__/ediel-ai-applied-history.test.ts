@@ -6,16 +6,18 @@ vi.mock('@/lib/ediel/sources/structuralSourceReadset',()=>({reviewedBusinessFor:
 import {requireAiListAppliedHistory} from '@/lib/ediel/aiListAppliedHistory'
 import type {AiListHistoricalProjection,AiListHistoryScope} from '@/lib/ediel/aiListHistory'
 import type {StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import type {StructuralVersion} from '@/lib/ediel/sources/structuralSourceSelection'
 import {emptySourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
 
 const scope:AiListHistoryScope={companyId:'company',environment:'test',customerId:'customer',siteId:'site',meteringPointId:'point',legalSupplier:'supplier',legalNetwork:'network',fromDate:'20261001',toDate:'20261101',cutoffAt:'2026-11-02T12:00:00Z'}
 const object={messageIndex:0,messageReference:'M',objectId:'735123456789012345',identityAgency:'9',registers:[]}
 const history:AiListHistoricalProjection={details:[{anlaggningsId:object.objectId,kodlista:'9',franDatum:'20261015'}],evidence:{version:1,owner:'ai-reviewed-source-history-v1',snapshotId:'snapshot',readsetHash:'hash',cutoffAt:scope.cutoffAt,sourceMessageIds:['baseline','change'],supplyPeriodIds:['period'],rowSources:[{sourceMessageId:'change',baselineSourceMessageId:'baseline',addressSourceMessageId:'change',supplyPeriodId:'period'}]}}
-function readset():StructuralReadset{return {timeline:{...emptySourceDecisionTimeline(),status:'inspected',snapshotId:'snapshot',readsetHash:'hash',cutoffAt:scope.cutoffAt},versions:[
- {sourceMessageId:'baseline',assessmentId:'baseline-assessment',wire:{object,messageCode:'Z04'}},
- {sourceMessageId:'change',assessmentId:'change-assessment',wire:{object,messageCode:'Z06'}},
-] as StructuralReadset['versions'],sources:[],closures:[],closureBlockers:[],correctionContextBlockers:[],unresolvedSources:false}}
+function source(sourceMessageId:string,messageCode:'Z04'|'Z06'):StructuralVersion{return {
+ sourceMessageId,payloadHash:'a'.repeat(64),assessmentId:`${sourceMessageId}-assessment`,factsHash:'b'.repeat(64),availableAt:'2026-10-01T12:00:00Z',disposition:'accepted',coverage:null,replaces:null,
+ wire:{object,messageCode,businessCase:messageCode==='Z04'?'supply_baseline':'change_with_reading',functionCode:'9',documentReference:sourceMessageId,caseReference:'case',effectiveFrom:{fieldNumber:messageCode==='Z04'?'210':'216',marketMinute:'202610150000',utc:prodatMarketMinuteToUtc('202610150000')!},contractStartMinute:'202610010000',legalSender:'network',legalReceiver:'supplier',transportSender:'network',transportReceiver:'supplier',meterNumber:'meter',oldMeterNumber:null,registers:[{position:1,registerId:'901'}]},
+}}
+function readset():StructuralReadset{return {timeline:{...emptySourceDecisionTimeline(),status:'inspected',snapshotId:'snapshot',readsetHash:'hash',cutoffAt:scope.cutoffAt},versions:[source('baseline','Z04'),source('change','Z06')],sources:[],closures:[],closureBlockers:[],correctionContextBlockers:[],unresolvedSources:false}}
 const run=(data=history,sources=readset())=>requireAiListAppliedHistory({actorUserId:'actor',scope,history:data,readset:sources})
 beforeEach(()=>{
  vi.clearAllMocks()
