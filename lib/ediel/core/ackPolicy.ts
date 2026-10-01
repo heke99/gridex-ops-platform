@@ -264,6 +264,8 @@ export async function getAutomaticAckPolicy(sourceMessage: EdielMessageRow): Pro
 }
 
 export async function findExistingAckForSource(params: {
+  actorUserId: string
+  phase: 'prepare'|'read'|'send'
   sourceMessageId: string
   ackFamily: AckFamily
   outcome?: AckOutcome
@@ -274,7 +276,7 @@ export async function findExistingAckForSource(params: {
   expectedSource?: EdielMessageRow
   expectedTechnicalCompanyId?: string
 }): Promise<EdielMessageRow | null> {
-  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily,params.expectedSource,params.expectedTechnicalCompanyId)
+  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily,params.expectedSource,params.expectedTechnicalCompanyId,{actorUserId:params.actorUserId,phase:params.phase})
   const references=[...new Set([...(params.acknowledgedReferences??[]),...(params.transactionReference?[params.transactionReference]:[])])]
   const objects=params.acknowledgedProdatObjects??[]
   if(objects.length&&(!params.expectedSource||params.ackFamily!=='APERAK'||params.ackScope!=='object'))throw new Error('ediel_existing_ack_original_object_scope_unavailable')

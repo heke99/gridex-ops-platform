@@ -86,7 +86,7 @@ function sourceRpc(name:string,args:Record<string,unknown>){
  io.calls.push({name,args});io.trace.push(name)
  const hash=(field:string)=>typeof args[field]==='string'?evidenceHash(args[field] as string):null
  let data:unknown=null,error:Error|null=null
- if(name==='ediel_read_technical_source_endpoint_v1')data=null
+ if(name==='ediel_read_technical_source_endpoint_v2')data=null
  else if(name==='gridex_read_committed_inbound_ack_v2'){
   expect(args.p_ack_payload_hash).toBe(evidenceHash(io.message.raw_payload!));data=io.retained
  }else if(name==='ediel_customer_life_event_inbound_basis_v1'){
@@ -105,7 +105,7 @@ function sourceRpc(name:string,args:Record<string,unknown>){
   data={status:'captured',evidence:{rulePackId:r.rulePackId,messageProfileId:r.messageProfileId,profileKey:p,version:r.originalVersion,sourceHash:r.sourceHash,
    snapshot:{profileKey:p,profileVersionId:r.messageProfileId,version:r.originalVersion,checksum:r.sourceHash,...r.originalSnapshot}}}
  }else if(name==='gridex_actor_has_company_permission')data=args.p_actor_user_id===actor&&args.p_company_id===company&&['communication.write','ediel_testing.write'].includes(String(args.p_permission))
- else if(name==='gridex_read_outbound_acks_for_source_v1')data={version:1,sourceMessageId:io.message.id,sourcePayloadHash:evidenceHash(io.message.raw_payload!),environment:'test',companyId:company,originals:[]}
+ else if(name==='gridex_read_outbound_acks_for_source_v2')data={version:2,executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,sourceMessageId:io.message.id,sourcePayloadHash:evidenceHash(io.message.raw_payload!),environment:'test',companyId:company,originals:[]}
  else if(name==='ediel_apply_customer_life_event_source_v1'){
   expect(args).toEqual({p_company_id:company,p_source_message_id:io.message.id,p_actor_user_id:actor})
   if(io.effectFailure)error=Error('Declared own life-event effect RPC failure')

@@ -130,14 +130,14 @@ vi.mock('@/lib/supabase/service', () => {
         expect(typeof input.rawPayload).toBe('string')
         return {data:{version:1,witnessId:randomUUID(),evidence},error:null}
       }
-      if(name==='ediel_require_technical_syntax_ack_basis_v1'||name==='ediel_read_technical_syntax_ack_route_v1') {
+      if(name==='ediel_require_technical_syntax_ack_basis_v2'||name==='ediel_read_technical_syntax_ack_route_v1') {
         const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_message_id || row.id===args.p_source_message_id)
         expect(source?.company_id).toBe(args.p_company_id)
         const parsed=tokenizeEdifact(String(source!.raw_payload)),unb=parsed.segments.find(row=>row.tag==='UNB')!
         const originalUNB={sender:segmentComposite(unb,2,parsed.una),receiver:segmentComposite(unb,3,parsed.una),interchangeReference:unb.elements[5],uciReference:unb.elements[5].slice(0,14),applicationReference:unb.elements[7]??'',testIndicator:unb.elements[11]??''}
         const sourceHash=createHash('sha256').update(String(source!.raw_payload)).digest('hex')
         // Synthetic syntax facet/route DTO model only; this is not native evidence.
-        if(name==='ediel_require_technical_syntax_ack_basis_v1')return {data:{kind:'technical_syntax_ack',version:1,companyId:source!.company_id,environment:source!.environment,sourceMessageId:source!.id,sourceHash,observedAt:source!.message_received_at,syntaxAssessmentId:`synthetic-syntax-${source!.id}`,syntaxDecision:runUtiltsRuntimeForMessage(source as unknown as EdielMessageRow).validation.issues.some(issue=>issue.kind==='syntax'&&issue.severity==='error')?'rejected':'accepted',transportActorId:database.tables.get('ediel_actor_settings')![0].id,transportEdielId:originalUNB.receiver[0],originalUNB},error:null}
+        if(name==='ediel_require_technical_syntax_ack_basis_v2')return {data:{kind:'technical_syntax_ack',version:1,companyId:source!.company_id,environment:source!.environment,sourceMessageId:source!.id,sourceHash,observedAt:source!.message_received_at,syntaxAssessmentId:`synthetic-syntax-${source!.id}`,syntaxDecision:runUtiltsRuntimeForMessage(source as unknown as EdielMessageRow).validation.issues.some(issue=>issue.kind==='syntax'&&issue.severity==='error')?'rejected':'accepted',transportActorId:database.tables.get('ediel_actor_settings')![0].id,transportEdielId:originalUNB.receiver[0],originalUNB},error:null}
         const route=database.tables.get('communication_routes')![0],routeRuntime=database.tables.get('ediel_route_runtime_v')![0]
         expect(args).toMatchObject({p_smtp_from:'gridex@example.invalid',p_smtp_host:'smtp.example.invalid',p_smtp_port:587})
         expect(database.tables.get('company_memberships')!.some(row=>row.user_id===args.p_actor_user_id&&row.company_id===args.p_company_id)).toBe(true)
@@ -155,9 +155,9 @@ vi.mock('@/lib/supabase/service', () => {
         if(database.sourceBasisMode==='changed_raw')result.sourceMessage={...(result.sourceMessage as Row),raw_payload:String((result.sourceMessage as Row).raw_payload)+'\n'}
         return {data:result,error:null}
       }
-      if(name==='gridex_read_outbound_acks_for_source_v1') {
+      if(name==='gridex_read_outbound_acks_for_source_v2') {
         const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_source_message_id)!
-        return{error:null,data:{version:1,sourceMessageId:source.id,companyId:source.company_id,environment:source.environment,
+        return{error:null,data:{version:2,executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,sourceMessageId:source.id,companyId:source.company_id,environment:source.environment,
           sourcePayloadHash:createHash('sha256').update(String(source.raw_payload)).digest('hex'),
           originals:[...database.bornOriginals.values()].filter(row=>row.related_message_id===source.id&&row.message_family===args.p_ack_family&&row.direction==='outbound')
           .map(row=>({status:'qualified',message:structuredClone(row),payloadHash:createHash('sha256').update(String(row.raw_payload)).digest('hex')}))}}

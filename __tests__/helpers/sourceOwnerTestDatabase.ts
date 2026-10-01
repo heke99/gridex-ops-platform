@@ -25,7 +25,7 @@ export function sourceOwnerTestDatabase(io:SourceOwnerTestIO) { return {from:(ta
  }
  if(name==='ediel_apply_customer_life_event_source_v1'&&source.message_code==='Z04')return Promise.resolve({data:{applied:false,reason:'not_customer_life_event'},error:null})
  if(name==='gridex_actor_has_company_permission')return Promise.resolve({data:args.p_company_id===OWNER.company&&args.p_actor_user_id===ownerId(50)&&['communication.write','ediel_testing.write'].includes(String(args.p_permission)),error:null})
- if(name==='gridex_read_outbound_acks_for_source_v1')return Promise.resolve({data:{version:1,sourceMessageId:source.id,sourcePayloadHash:createHash('sha256').update(source.raw_payload!).digest('hex'),companyId:source.company_id,environment:source.environment,originals:[]},error:null})
+ if(name==='gridex_read_outbound_acks_for_source_v2')return Promise.resolve({data:{version:2,executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,sourceMessageId:source.id,sourcePayloadHash:createHash('sha256').update(source.raw_payload!).digest('hex'),companyId:source.company_id,environment:source.environment,originals:[]},error:null})
  if(name==='ediel_read_source_rule_pack_basis_v1')return Promise.resolve({data:{version:1,sourceMessage:structuredClone(source),sourceRulePackEvidence:basis},error:null})
  if(name==='ediel_apply_supply_source_v1') {
   // Declared native fixture boundary. SQL source/atomicity authorization is

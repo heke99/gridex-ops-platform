@@ -40,10 +40,10 @@ export function createUtiltsFinalValidationIo(){
     authorityVersionId:'88888888-8888-4888-8888-888888888888',namespaceEpoch:'1',
     messageReferenceCollision:false,transactionReferenceCollisions:[],holdReason:null}})
   }
-  if(name==='gridex_read_outbound_acks_for_source_v1'){
+  if(name==='gridex_read_outbound_acks_for_source_v2'){
    if(!originals.has(String(args.p_source_message_id))||!['CONTRL','APERAK','UTILTS_ERR'].includes(String(args.p_ack_family)))throw Error('fixture_ack_original_scope_mismatch')
    const source=originals.get(String(args.p_source_message_id))!
-   return Promise.resolve({error:null,data:{version:1,companyId:source.company_id,environment:source.environment,
+   return Promise.resolve({error:null,data:{version:2,executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,companyId:source.company_id,environment:source.environment,
     sourceMessageId:source.id,sourcePayloadHash:hash(source.raw_payload!),originals:[]}})
   }
   if(name==='ediel_read_source_rule_pack_basis_v1'){

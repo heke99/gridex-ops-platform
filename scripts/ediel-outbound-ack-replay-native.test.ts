@@ -31,8 +31,8 @@ it('replays a genuine native own CONTRL without current route selection and hold
  expect(stored.error).toBeNull();const source=stored.data as EdielMessageRow
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
  expect(['accepted','rejected']).toContain(decision.syntaxDecision)
- await recordEdielTechnicalSyntaxDecision({companyId:company,sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw).digest('hex'),syntaxDecision:decision.syntaxDecision as 'accepted'|'rejected',reasonCodes:decision.issues.map(issue=>issue.code)})
- const evidence=await captureEdielTechnicalSyntaxAckEvidence(company,sourceId)
+ await recordEdielTechnicalSyntaxDecision({companyId:company,sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw).digest('hex'),syntaxDecision:decision.syntaxDecision as 'accepted'|'rejected',reasonCodes:decision.issues.map(issue=>issue.code),execution:{actorUserId:actor,phase:'prepare'}})
+ const evidence=await captureEdielTechnicalSyntaxAckEvidence(company,sourceId,{actorUserId:actor,phase:'prepare'})
  const outcome=evidence.syntaxDecision==='accepted'?'positive':'negative'
  const ownRaw=`UNB+UNOC:3+${endpoint}:14+12345:14+260930:1201+${ackReference}++23-DDQ-PRODAT++++1'UNH+${ackUnh}+CONTRL:2:2:UN:EDIEL2'UCI+${sourceReference}+12345:14+${endpoint}:14+${outcome==='positive'?'1':'4'}'UNT+3+${ackUnh}'UNZ+1+${ackReference}'`
  // Actual INSERT triggers qualify reversed own wire against the already
@@ -74,8 +74,8 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  const stored=await supabaseService.from('ediel_messages').insert({id:sourceId,company_id:null,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'UNLISTED',status:'received',raw_payload:raw,message_received_at:new Date().toISOString()}).select('*').single()
  expect(stored.error).toBeNull();const source=stored.data as EdielMessageRow
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source);expect(decision.syntaxDecision,JSON.stringify(decision.issues)).toBe('accepted')
- await recordEdielTechnicalSyntaxDecision({companyId:company,sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw).digest('hex'),syntaxDecision:'accepted',reasonCodes:decision.issues.map(issue=>issue.code)})
- await captureEdielTechnicalSyntaxAckEvidence(company,sourceId)
+ await recordEdielTechnicalSyntaxDecision({companyId:company,sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw).digest('hex'),syntaxDecision:'accepted',reasonCodes:decision.issues.map(issue=>issue.code),execution:{actorUserId:actor,phase:'prepare'}})
+ await captureEdielTechnicalSyntaxAckEvidence(company,sourceId,{actorUserId:actor,phase:'prepare'})
  const ownRaw=`UNB+UNOC:3+${endpoint}:14+12345:14+260930:1201+${ownRef}++23-DDQ-PRODAT++++1'UNH+${unh}+APERAK:D:96A:UN:E2SE6A'BGM+APERAK+${ownRef}+27'DTM+137:202609301201:203'RFF+ACW:SOURCE'NAD+FR+${endpoint}:160:SVK+++++++SE'NAD+DO+12345:160:SVK+++++++SE'ERC+42::260'FTX+AAO++202::260+Felaktigt Meddelandenamn UNLISTED'UNT+9+${unh}'UNZ+1+${ownRef}'`
  const args={p_company_id:company,p_environment:'test',p_source_message_id:sourceId,p_source_payload_hash:createHash('sha256').update(raw).digest('hex'),p_actor_user_id:actor,p_ack_family:'APERAK',p_sequence_field:null,p_sequence_value:null,p_outcome:'negative',p_draft:{rawPayload:ownRaw,communicationRouteId:routeId,routeProfileId:profileId,senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',parsedPayload:{display:'native atomic fixture'},validationReport:{}},p_common_smtp:{from:'local@example.invalid',host:'smtp.example.invalid',port:587}}
  const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:{replayed:boolean;ackMessage:EdielMessageRow}|null;error:{message:string}|null}>
@@ -110,4 +110,57 @@ it('atomically mints common negative ACK, rolls back the last event write, seria
  expect((await create({p_draft:{callerSource:'ignored-established'}})).data?.ackMessage.id).toBe(own.id);expect(effects()).toEqual(after)
  sql(`UPDATE public.user_permissions SET is_active=false WHERE user_id=${literal(actor)} AND company_id=${literal(company)}`);expect((await create()).error?.message).toContain('actor_not_authorized');expect(effects()).toEqual(after)
  sql(`UPDATE public.user_permissions SET is_active=true WHERE user_id=${literal(actor)} AND company_id=${literal(company)};UPDATE public.tenant_actor_identifiers SET valid_to=now() WHERE id=${literal(roleId)}`);expect((await create()).error?.message).toContain('current_identity_unavailable');expect(effects()).toEqual(after)
+})
+
+// 20261001134600/142520: every executing technical port names its actual
+// current actor and phase natively; actorless V1 ports are closed to service.
+it('qualifies persisted CONTRL and source-ACK reads only for the actual current actor in the requested phase',async()=>{
+ const {readPersistedEdielTechnicalContrlBasis,readEdielTechnicalSourceEndpoint}=await import('@/lib/ediel/ack/technicalSyntaxAuthority')
+ const {findExistingAckForSource}=await import('@/lib/ediel/core/ackPolicy')
+ const company=randomUUID(),actor=randomUUID(),stranger=randomUUID(),sourceId=randomUUID(),ackId=randomUUID(),identifierId=randomUUID()
+ const endpoint=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999)n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=n::text AND (i.valid_to IS NULL OR now()<i.valid_to))`)
+ const sourceReference='S'+sourceId.replaceAll('-','').slice(0,13),ackReference='A'+ackId.replaceAll('-','').slice(0,13),sourceUnh='S'+sourceId.slice(0,8),ackUnh='A'+ackId.slice(0,8)
+ const person=(id:string)=>`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES(${literal(id)},'authenticated','authenticated',${literal(id+'@example.invalid')},now(),'{}','{}',now(),now(),false,false);
+  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(id)},${literal(id+'@example.invalid')},'Disposable phase operator','active') ON CONFLICT(id) DO UPDATE SET user_status='active';`
+ const grant=(id:string,key:string)=>sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(id)},${literal(company)},id,key FROM public.permissions WHERE key=${literal(key)}`)
+ sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'Disposable technical phase native','active');${person(actor)}${person(stranger)}
+  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(company)},${literal(actor)},'operations','active',now(),'{}','member',true,now(),'operations');
+  INSERT INTO public.tenant_actor_identifiers(id,company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES(${literal(identifierId)},${literal(company)},'test',${literal(actor)},'EdielId',${literal(endpoint)},now()-interval '1 day');`)
+ grant(actor,'communication.write')
+ const raw=`UNB+UNOC:3+12345:14+${endpoint}:14+260930:1200+${sourceReference}++23-DDQ-PRODAT++++1'UNH+${sourceUnh}+PRODAT:D:96A:UN:E2SE6A'BGM+UNLISTED+SOURCE+9+AB'DTM+137:202609301200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+${endpoint}:160:SVK+++++++SE'UNT+7+${sourceUnh}'UNZ+1+${sourceReference}'`
+ const stored=await supabaseService.from('ediel_messages').insert({id:sourceId,company_id:null,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'UNLISTED',status:'received',raw_payload:raw,message_received_at:new Date().toISOString()}).select('*').single()
+ expect(stored.error).toBeNull();const source=stored.data as EdielMessageRow
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+ const prepare={actorUserId:actor,phase:'prepare' as const}
+ // Actorless V1 technical ports are no longer executable by the service role.
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:{message:string;code?:string}|null}>
+ for(const [name,args] of [['ediel_read_technical_source_endpoint_v1',{p_source_message_id:sourceId}],['ediel_capture_technical_syntax_ack_basis_v1',{p_company_id:company,p_message_id:sourceId}],['ediel_require_technical_syntax_ack_basis_v1',{p_company_id:company,p_message_id:sourceId}]] as const)
+  expect((await rpc(name,args)).error?.message).toMatch(/permission denied/)
+ // A non-member never receives the technical endpoint, even read-only.
+ await expect(readEdielTechnicalSourceEndpoint(sourceId,{actorUserId:stranger,phase:'read'})).rejects.toThrow('ediel_technical_endpoint_unqualified')
+ expect((await readEdielTechnicalSourceEndpoint(sourceId,prepare))?.companyId).toBe(company)
+ await recordEdielTechnicalSyntaxDecision({companyId:company,sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw).digest('hex'),syntaxDecision:decision.syntaxDecision as 'accepted'|'rejected',reasonCodes:decision.issues.map(issue=>issue.code),execution:prepare})
+ const evidence=await captureEdielTechnicalSyntaxAckEvidence(company,sourceId,prepare)
+ const outcome=evidence.syntaxDecision==='accepted'?'positive':'negative'
+ const ownRaw=`UNB+UNOC:3+${endpoint}:14+12345:14+260930:1201+${ackReference}++23-DDQ-PRODAT++++1'UNH+${ackUnh}+CONTRL:2:2:UN:EDIEL2'UCI+${sourceReference}+12345:14+${endpoint}:14+${outcome==='positive'?'1':'4'}'UNT+3+${ackUnh}'UNZ+1+${ackReference}'`
+ const persisted=await supabaseService.from('ediel_messages').insert({id:ackId,company_id:company,environment:'test',direction:'outbound',message_standard:'edifact',message_family:'CONTRL',message_code:'CONTRL',status:'draft',related_message_id:sourceId,raw_payload:ownRaw,ack_outcome:outcome,source_operation_id:`ediel_ack:${sourceId}:CONTRL:message`}).select('*').single()
+ expect(persisted.error).toBeNull()
+ const persistedRead=(phase:'prepare'|'read'|'send',who=actor)=>readPersistedEdielTechnicalContrlBasis({companyId:company,environment:'test',ackMessageId:ackId,expectedRawPayload:ownRaw,actorUserId:who,phase})
+ const sourceRead=(phase:'prepare'|'read'|'send',who=actor)=>findExistingAckForSource({actorUserId:who,phase,sourceMessageId:sourceId,ackFamily:'CONTRL',expectedSource:source,expectedTechnicalCompanyId:company})
+ // WRITE prepares; it never authorizes SEND or READ.
+ expect((await persistedRead('prepare')).ackMessage.id).toBe(ackId)
+ expect((await sourceRead('prepare'))?.id).toBe(ackId)
+ await expect(persistedRead('send')).rejects.toThrow('ediel_technical_ack_basis_required')
+ await expect(persistedRead('read')).rejects.toThrow('ediel_technical_ack_basis_required')
+ grant(actor,'ediel.send');expect((await persistedRead('send')).evidence.sourceMessageId).toBe(sourceId)
+ grant(actor,'communication.read');expect((await sourceRead('read'))?.id).toBe(ackId)
+ // A historical creator/actor that is no longer current gets nothing.
+ await expect(persistedRead('send',stranger)).rejects.toThrow('ediel_technical_ack_basis_required')
+ await expect(sourceRead('read',stranger)).rejects.toThrow('ediel_existing_ack_original_read_unavailable')
+ sql(`UPDATE public.company_memberships SET is_active=false WHERE company_id=${literal(company)} AND user_id=${literal(actor)}`)
+ await expect(persistedRead('send')).rejects.toThrow('ediel_technical_ack_basis_required')
+ await expect(sourceRead('prepare')).rejects.toThrow()
+ await expect(readEdielTechnicalSourceEndpoint(sourceId,prepare)).rejects.toThrow('ediel_technical_endpoint_unqualified')
+ sql(`UPDATE public.company_memberships SET is_active=true WHERE company_id=${literal(company)} AND user_id=${literal(actor)}`)
+ expect((await persistedRead('send')).ackMessage.raw_payload).toBe(ownRaw)
 })

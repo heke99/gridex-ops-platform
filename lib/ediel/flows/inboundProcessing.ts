@@ -867,14 +867,14 @@ export async function processInboundEdielMessage(params: {
   let acceptedTechnicalAcknowledgementCompanyId: string | null = null;
   if(message.message_family!=='CONTRL') {
     try {
-      const endpoint=await readEdielTechnicalSourceEndpoint(message.id);
+      const endpoint=await readEdielTechnicalSourceEndpoint(message.id,{actorUserId,phase:'prepare'});
       if(endpoint) {
         if(endpoint.environment!==message.environment || endpoint.sourceHash!==createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('technical_source_wire_scope_mismatch');
         await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
         const syntax=selectedSyntax;
         await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
-          syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code)});
-        const capturedSyntax=await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id);
+          syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code),execution:{actorUserId,phase:'prepare'}});
+        const capturedSyntax=await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id,{actorUserId,phase:'prepare'});
         const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative'});
         const qualifiedSyntax=technicalSyntaxAckQualification({evidence:capturedSyntax,companyId:endpoint.companyId,
           environment:endpoint.environment,sourceMessageId:message.id});

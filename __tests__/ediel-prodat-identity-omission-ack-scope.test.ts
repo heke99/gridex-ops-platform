@@ -15,9 +15,9 @@ const company='00000000-0000-4000-8000-000000000002',actor='00000000-0000-4000-8
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{
  rpc:async(name:string,args:Record<string,unknown>)=>{
   if(name==='gridex_actor_has_company_permission')return {data:args.p_company_id===company&&args.p_actor_user_id===actor&&args.p_permission==='communication.write',error:null}
-  if(name!=='gridex_read_outbound_acks_for_source_v1')throw Error('UNEXPECTED_NATIVE_PORT:'+name)
-  io.reads++;expect(args).toEqual({p_source_message_id:io.source.id,p_ack_family:'APERAK'})
-  return {data:{version:1,sourceMessageId:io.source.id,sourcePayloadHash:createHash('sha256').update(io.source.raw_payload!).digest('hex'),companyId:company,environment:'test',
+  if(name!=='gridex_read_outbound_acks_for_source_v2')throw Error('UNEXPECTED_NATIVE_PORT:'+name)
+  io.reads++;expect(args).toEqual({p_source_message_id:io.source.id,p_ack_family:'APERAK',p_actor_user_id:actor,p_phase:expect.stringMatching(/^(prepare|read)$/)})
+  return {data:{version:2,executionActorUserId:actor,executionPhase:args.p_phase,sourceMessageId:io.source.id,sourcePayloadHash:createHash('sha256').update(io.source.raw_payload!).digest('hex'),companyId:company,environment:'test',
    originals:io.originals.map(message=>({status:'qualified',message,payloadHash:createHash('sha256').update(message.raw_payload!).digest('hex')}))},error:null}
  },
  from:(table:string)=>{const q={select:()=>q,eq:()=>q,not:()=>q,maybeSingle:async()=>({error:null,data:table==='company_memberships'
@@ -59,7 +59,7 @@ it('retains an old failed physical negative before fresh rendering, preserving i
  io.originals=[retained]
  expect(await prepareSourceAckDraft({actorUserId:actor,sourceMessage:io.source,ackFamily:'APERAK',outcome:'negative',applicationErrors})).toMatchObject({kind:'existing',message:{id:retained.id,status:'failed',raw_payload:retained.raw_payload,ack_outcome:'negative'}})
  await expect(prepareSourceAckDraft({actorUserId:actor,sourceMessage:io.source,ackFamily:'APERAK',outcome:'positive',relatedTransactionReference:'REQUEST-2'})).rejects.toThrow('blocked_final_ack_exists')
- const input={sourceMessageId:io.source.id,ackFamily:'APERAK' as const,ackScope:'object' as const,expectedSource:io.source}
+ const input={actorUserId:actor,phase:'read' as const,sourceMessageId:io.source.id,ackFamily:'APERAK' as const,ackScope:'object' as const,expectedSource:io.source}
  expect(await findExistingAckForSource({...input,acknowledgedProdatObjects:[{...own(),firstLineIndex:own().firstLineIndex-1}]})).toBeNull()
  expect(await findExistingAckForSource({...input,acknowledgedProdatObjects:[{...own(),lineItemReference:'REQUEST-1'}]})).toBeNull()
 })

@@ -333,7 +333,7 @@ export async function createCanonicalAckMessage(params: {
   if(params.ackFamily==='CONTRL'&&!companyId){
     // Only the protected actual source endpoint can supply an unattributed
     // technical tenant; a globally matched response never supplies authority.
-    companyId=(await readEdielTechnicalSourceEndpoint(params.sourceMessage.id))?.companyId ?? null
+    companyId=(await readEdielTechnicalSourceEndpoint(params.sourceMessage.id,{actorUserId,phase:'prepare'}))?.companyId ?? null
   }
   if (!companyId || params.ackFamily!=='CONTRL'&&params.sourceMessage.company_id !== companyId
       && !(commonNegative && params.sourceMessage.company_id===null) || params.sourceMessage.environment !== environment
@@ -422,7 +422,7 @@ export async function createCanonicalAckMessage(params: {
   }
 
   if(params.ackFamily==='CONTRL'){
-    const evidence=await requireEdielTechnicalSyntaxAckEvidence(companyId,params.sourceMessage.id)
+    const evidence=await requireEdielTechnicalSyntaxAckEvidence(companyId,params.sourceMessage.id,{actorUserId,phase:'prepare'})
     if(evidence.environment!==environment || evidence.sourceHash!==createHash('sha256').update(params.sourceMessage.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('canonical_ack_actual_original_mismatch')
     const route=await readTechnicalSyntaxAckRoute({evidence,actorUserId})
     const input:CreateEdielMessageInput={...params.draft,actorUserId,companyId,environment,direction:'outbound',messageFamily:'CONTRL',messageCode:'CONTRL',
@@ -445,7 +445,7 @@ export async function createCanonicalAckMessage(params: {
     if(params.outcome!=='negative' || allowSequencedTransactionAck)throw new Error('canonical_common_header_negative_only')
     const {sourceMessage,evidence}=await readProdatCommonHeaderRejectionEvidence({companyId,environment,
       sourceMessageId:params.sourceMessage.id,expectedRawPayload:params.sourceMessage.raw_payload!,actorUserId})
-    const syntax=await requireEdielTechnicalSyntaxAckEvidence(companyId,sourceMessage.id)
+    const syntax=await requireEdielTechnicalSyntaxAckEvidence(companyId,sourceMessage.id,{actorUserId,phase:'prepare'})
     if(syntax.environment!==environment || syntax.sourceHash!==evidence.sourceHash || syntax.syntaxAssessmentId!==evidence.syntaxAssessmentId
       || syntax.syntaxDecision!=='accepted' || syntax.originalUNB.interchangeReference!==evidence.identities.transport.interchangeReference
       || syntax.originalUNB.applicationReference!==evidence.identities.applicationReference

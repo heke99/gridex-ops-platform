@@ -35,9 +35,9 @@ function ackReadBoundary(source:ReturnType<typeof input>['message'],options:{mem
  })
  io.rpc.mockImplementation((name:string,args:Record<string,unknown>)=>{
   if(name==='gridex_actor_has_company_permission')return{data:options.permission!==false&&args.p_company_id===source.company_id&&args.p_actor_user_id===ownerId(9)&&['communication.write','ediel_testing.write'].includes(String(args.p_permission)),error:null}
-  if(name==='gridex_read_outbound_acks_for_source_v1'){
+  if(name==='gridex_read_outbound_acks_for_source_v2'){
    if(args.p_source_message_id!==source.id||args.p_ack_family!=='CONTRL')throw Error('unexpected_ack_read_scope')
-   return{data:{version:1,sourceMessageId:source.id,companyId:options.foreignSource?ownerId(99):source.company_id,environment:source.environment,
+   return{data:{version:2,executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,sourceMessageId:source.id,companyId:options.foreignSource?ownerId(99):source.company_id,environment:source.environment,
     sourcePayloadHash:createHash('sha256').update(source.raw_payload!,'utf8').digest('hex'),originals:[]},error:null}
   }
   throw Error(`unexpected_ack_read_rpc:${name}`)

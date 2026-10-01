@@ -598,7 +598,9 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
 
   const result = canonicalValidation({ ...input, parsed })
   if(input.prodatCommonHeaderRejectionEvidence)return qualifyCommonHeaderNegativeAck(input,result)
-  if(input.technicalSyntaxAckEvidence)return qualifyTechnicalContrl(input,result)
+  // Supplied evidence qualifies only fresh preparation. A persisted CONTRL send
+  // always re-reads its private chain with the actual sender's current SEND phase.
+  if(input.technicalSyntaxAckEvidence&&!(familyValue==='CONTRL'&&input.mode==='send'&&input.messageRow))return qualifyTechnicalContrl(input,result)
   // A source-bound response's national guide comes from the protected original.
   // Today's reason catalogue must not reject a genuine retained-guide reply
   // before that original is read. The same parser/guide checks run on the
@@ -610,7 +612,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   if(familyValue==='CONTRL'&&input.mode==='send'&&input.messageRow){
     try{
       if(!input.companyId||(input.environment!=='test'&&input.environment!=='production')||!input.rawPayload)throw new Error('ediel_technical_ack_basis_required')
-      const {evidence}=await readPersistedEdielTechnicalContrlBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload})
+      const {evidence}=await readPersistedEdielTechnicalContrlBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload,actorUserId:input.executionActorUserId??'',phase:'send'})
       return qualifyTechnicalContrl({...input,technicalSyntaxAckEvidence:evidence},result)
     }catch(error){
       return {...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:error instanceof Error?error.message:String(error)})]}

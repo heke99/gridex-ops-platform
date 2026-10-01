@@ -739,8 +739,8 @@ async function nativeTechnicalAck(){
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
  expect(decision.syntaxDecision).toBe('accepted')
  await recordEdielTechnicalSyntaxDecision({companyId:f.companyId,sourceMessageId:sourceId,
-  sourceHash:createHash('sha256').update(wire).digest('hex'),syntaxDecision:'accepted',reasonCodes:[]})
- const evidence=await captureEdielTechnicalSyntaxAckEvidence(f.companyId,sourceId)
+  sourceHash:createHash('sha256').update(wire).digest('hex'),syntaxDecision:'accepted',reasonCodes:[],execution:{actorUserId:f.actorUserId,phase:'prepare'}})
+ const evidence=await captureEdielTechnicalSyntaxAckEvidence(f.companyId,sourceId,{actorUserId:f.actorUserId,phase:'prepare'})
  expect(evidence.sourceHash).toBe(createHash('sha256').update(wire).digest('hex'))
  const {buildContrlDraft}=await import('@/lib/ediel/ack')
  const {createCanonicalAckMessage}=await import('@/lib/ediel/core/kernel')

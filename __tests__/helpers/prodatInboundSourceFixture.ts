@@ -66,29 +66,29 @@ export function prodatFixtureSourceRpc(name:string,args:Record<string,unknown>) 
   if(!original||args.p_company_id!==original.company_id||recorded.get(original.id)!==hash(original.raw_payload!))throw Error('DECLARED_CANONICAL_PRIMARY_REQUIRED')
   data={version:1,sourceMessage:structuredClone(original),sourceRulePackEvidence:protectedBasis}
  }
- else if(name==='gridex_read_outbound_acks_for_source_v1'){
+ else if(name==='gridex_read_outbound_acks_for_source_v2'){
   if(!original)throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
-  data={version:1,sourceMessageId:original.id,companyId:original.company_id,environment:original.environment,sourcePayloadHash:hash(original.raw_payload!),originals:[]}
+  data={version:2,executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,sourceMessageId:original.id,companyId:original.company_id,environment:original.environment,sourcePayloadHash:hash(original.raw_payload!),originals:[]}
  }
  else if(name==='ediel_read_prodat_application_objects_v1'){
   const facet=original&&applicationFacets.get(original.id)
   if(!original||args.p_company_id!==original.company_id||!facet||facet.sourcePayloadHash!==hash(original.raw_payload!))throw Error('DECLARED_CANONICAL_APPLICATION_REQUIRED')
   data={...structuredClone(facet),assessmentId:id(34)}
  }
- else if(name==='ediel_read_technical_source_endpoint_v1'){
+ else if(name==='ediel_read_technical_source_endpoint_v2'){
   if(!original)throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
   const envelope=contrlSourceEnvelope(original.raw_payload)
-  data={kind:'technical_endpoint_only',companyId:original.company_id,environment:original.environment,sourceMessageId:original.id,sourceHash:hash(original.raw_payload!),transportEdielId:envelope.receiverComponents[0],authorizesBusinessEffect:false,
+  data={executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,kind:'technical_endpoint_only',companyId:original.company_id,environment:original.environment,sourceMessageId:original.id,sourceHash:hash(original.raw_payload!),transportEdielId:envelope.receiverComponents[0],authorizesBusinessEffect:false,
    originalUNB:{sender:envelope.senderComponents,receiver:envelope.receiverComponents,interchangeReference:envelope.interchangeReference,uciReference:envelope.uciReference,applicationReference:original.application_reference,testIndicator:envelope.testIndicator}}
  }
- else if(name==='ediel_record_technical_syntax_facet_v1'){
+ else if(name==='ediel_record_technical_syntax_facet_v2'){
   if(!original||args.p_source_payload_hash!==hash(original.raw_payload!))throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
   const syntax=validateEdifactSyntax({...original,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null})
   if(args.p_facts_text!==JSON.stringify({version:1,owner:'canonical-runtime-syntax-v1',syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(i=>i.severity==='error').map(i=>i.code)}))throw Error('DECLARED_ACTUAL_SYNTAX_REQUIRED')
   syntaxFacets.set(original.id,String(args.p_facts_text))
   data={assessmentId:id(40)}
  }
- else if(name==='ediel_require_technical_syntax_ack_basis_v1'||name==='ediel_capture_technical_syntax_ack_basis_v1'){
+ else if(name==='ediel_require_technical_syntax_ack_basis_v2'||name==='ediel_capture_technical_syntax_ack_basis_v2'){
   if(!original||args.p_company_id!==original.company_id||!syntaxFacets.has(original.id))throw Error('DECLARED_ACTUAL_SYNTAX_REQUIRED')
   const e=contrlSourceEnvelope(original.raw_payload),syntax=JSON.parse(syntaxFacets.get(original.id)!)
   data={kind:'technical_syntax_ack',version:1,companyId:original.company_id,environment:original.environment,sourceMessageId:original.id,sourceHash:hash(original.raw_payload!),observedAt:original.message_received_at,syntaxAssessmentId:id(40),syntaxDecision:syntax.syntaxDecision,transportActorId:id(41),transportEdielId:e.receiverComponents[0],originalUNB:{sender:e.senderComponents,receiver:e.receiverComponents,interchangeReference:e.interchangeReference,uciReference:e.uciReference,applicationReference:original.application_reference,testIndicator:e.testIndicator}}

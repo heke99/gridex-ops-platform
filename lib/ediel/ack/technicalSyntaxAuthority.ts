@@ -77,9 +77,10 @@ export function technicalSyntaxAckQualification(input: {
     && (input.sourceMessageId === undefined || e.sourceMessageId === input.sourceMessageId) ? e : null
 }
 
-async function technicalEvidence(action: 'capture' | 'require', companyId: string, sourceMessageId: string) {
-  const { data, error } = await supabaseService.rpc(`ediel_${action}_technical_syntax_ack_basis_v1`, {
-    p_company_id: companyId, p_message_id: sourceMessageId,
+async function technicalEvidence(action: 'capture' | 'require', companyId: string, sourceMessageId: string, execution: TechnicalExecution) {
+  const { actorUserId, phase } = requireExecution(execution)
+  const { data, error } = await supabaseService.rpc(`ediel_${action}_technical_syntax_ack_basis_v2`, {
+    p_company_id: companyId, p_message_id: sourceMessageId, p_actor_user_id: actorUserId, p_phase: phase,
   })
   if (error) throw new Error(error.message.includes('ediel_historical_technical_ack_basis_unavailable')
     ? 'ediel_historical_technical_ack_basis_unavailable' : 'ediel_technical_ack_basis_required', { cause: error })
@@ -97,8 +98,11 @@ export async function recordEdielTechnicalSyntaxDecision(input: {
   sourceHash: string
   syntaxDecision: 'accepted' | 'rejected'
   reasonCodes: string[]
+  execution: TechnicalExecution
 }) {
-  const { data, error } = await supabaseService.rpc('ediel_record_technical_syntax_facet_v1', {
+  const { actorUserId, phase } = requireExecution(input.execution)
+  const { data, error } = await supabaseService.rpc('ediel_record_technical_syntax_facet_v2', {
+    p_actor_user_id: actorUserId, p_phase: phase,
     p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_source_payload_hash: input.sourceHash,
     p_facts_text: JSON.stringify({ version: 1, owner: 'canonical-runtime-syntax-v1', syntaxDecision: input.syntaxDecision, reasonCodes: input.reasonCodes }),
   })
@@ -106,11 +110,16 @@ export async function recordEdielTechnicalSyntaxDecision(input: {
   return data
 }
 
-export function captureEdielTechnicalSyntaxAckEvidence(companyId: string, sourceMessageId: string) {
-  return technicalEvidence('capture', companyId, sourceMessageId)
+export type TechnicalExecution = { actorUserId: string; phase: 'prepare' | 'read' | 'send' }
+function requireExecution(execution: TechnicalExecution | undefined): TechnicalExecution {
+  if (!execution?.actorUserId || !['prepare', 'read', 'send'].includes(execution.phase)) throw new Error('ediel_technical_ack_current_actor_required')
+  return execution
 }
-export function requireEdielTechnicalSyntaxAckEvidence(companyId: string, sourceMessageId: string) {
-  return technicalEvidence('require', companyId, sourceMessageId)
+export function captureEdielTechnicalSyntaxAckEvidence(companyId: string, sourceMessageId: string, execution: TechnicalExecution) {
+  return technicalEvidence('capture', companyId, sourceMessageId, execution)
+}
+export function requireEdielTechnicalSyntaxAckEvidence(companyId: string, sourceMessageId: string, execution: TechnicalExecution) {
+  return technicalEvidence('require', companyId, sourceMessageId, execution)
 }
 
 /** Qualification of the actual persisted ACK/source pointer in one protected
@@ -120,13 +129,17 @@ export async function readPersistedEdielTechnicalContrlBasis(input: {
   environment: 'test' | 'production'
   ackMessageId: string
   expectedRawPayload: string
+  actorUserId: string
+  phase: 'prepare' | 'read' | 'send'
 }): Promise<{ ackMessage: EdielMessageRow; evidence: TechnicalSyntaxAckEvidence }> {
-  const { data, error } = await supabaseService.rpc('ediel_read_persisted_technical_contrl_basis_v1', {
+  if (!input.actorUserId || !['prepare','read','send'].includes(input.phase)) throw new Error('ediel_technical_ack_current_actor_required')
+  const { data, error } = await supabaseService.rpc('ediel_read_persisted_technical_contrl_basis_v2', {
     p_company_id: input.companyId, p_environment: input.environment, p_ack_message_id: input.ackMessageId,
+    p_actor_user_id: input.actorUserId, p_phase: input.phase,
   })
-  const result = data as { version?: unknown; ackMessage?: Partial<EdielMessageRow>; technicalSyntaxAckEvidence?: unknown } | null
+  const result = data as { version?: unknown; executionActorUserId?: unknown; executionPhase?: unknown; ackMessage?: Partial<EdielMessageRow>; technicalSyntaxAckEvidence?: unknown } | null
   const ack = result?.ackMessage
-  if (error || result?.version !== 1 || !ack || ack.id !== input.ackMessageId || ack.company_id !== input.companyId
+  if (error || result?.version !== 2 || result.executionActorUserId !== input.actorUserId || result.executionPhase !== input.phase || !ack || ack.id !== input.ackMessageId || ack.company_id !== input.companyId
     || ack.environment !== input.environment || ack.direction !== 'outbound' || ack.message_family !== 'CONTRL'
     || ack.raw_payload !== input.expectedRawPayload) throw new Error('ediel_technical_ack_basis_required', { cause: error })
   const evidence = decodeTechnicalEvidence(result.technicalSyntaxAckEvidence)
@@ -138,12 +151,13 @@ export async function readPersistedEdielTechnicalContrlBasis(input: {
 
 /** Header/endpoint projection for the technical syntax owner only. A returned
  * company never attributes legal/business tenant or authorizes customer data. */
-export async function readEdielTechnicalSourceEndpoint(sourceMessageId: string) {
-  const { data, error } = await supabaseService.rpc('ediel_read_technical_source_endpoint_v1', { p_source_message_id: sourceMessageId })
+export async function readEdielTechnicalSourceEndpoint(sourceMessageId: string, execution: TechnicalExecution) {
+  const { actorUserId, phase } = requireExecution(execution)
+  const { data, error } = await supabaseService.rpc('ediel_read_technical_source_endpoint_v2', { p_source_message_id: sourceMessageId, p_actor_user_id: actorUserId, p_phase: phase })
   if (error) throw new Error('ediel_technical_endpoint_unqualified', { cause: error })
   if (!data) return null
-  const result = data as Partial<TechnicalSourceEndpoint>
-  if (result.kind !== 'technical_endpoint_only' || result.sourceMessageId !== sourceMessageId
+  const { executionActorUserId, executionPhase, ...result } = data as Partial<TechnicalSourceEndpoint> & { executionActorUserId?: unknown; executionPhase?: unknown }
+  if (executionActorUserId !== actorUserId || executionPhase !== phase || result.kind !== 'technical_endpoint_only' || result.sourceMessageId !== sourceMessageId
     || typeof result.companyId !== 'string' || typeof result.sourceHash !== 'string' || !/^[a-f0-9]{64}$/.test(result.sourceHash)
     || !['test', 'production'].includes(String(result.environment)) || result.authorizesBusinessEffect !== false
     || typeof result.transportEdielId !== 'string' || !validEnvelope(result.originalUNB, result.transportEdielId)) throw new Error('ediel_technical_endpoint_unqualified')

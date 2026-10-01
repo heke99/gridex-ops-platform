@@ -575,6 +575,7 @@ export async function getEdielMessageById(
 
 export async function findSequencedAckForSource(params: {
   sourceMessageId: string
+  actorUserId: string
   ackFamily: 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative' | null
   sequenceField: 'relatedTransactionReference' | 'utiltsErrSequenceToken' | 'aperakSequenceToken'
@@ -586,7 +587,8 @@ export async function findSequencedAckForSource(params: {
   // callers until they supply a physical source reference; never query caches.
   if(params.sequenceField==='utiltsErrSequenceToken')throw new Error('ediel_ack_physical_transaction_reference_required')
   const {findExistingAckForSource}=await import('@/lib/ediel/core/ackPolicy')
-  return findExistingAckForSource({sourceMessageId:params.sourceMessageId,ackFamily:params.ackFamily,
+  if(!params.actorUserId)throw new Error('ediel_existing_ack_original_current_actor_required')
+  return findExistingAckForSource({sourceMessageId:params.sourceMessageId,actorUserId:params.actorUserId,phase:'read',ackFamily:params.ackFamily,
     outcome:params.outcome ?? undefined,ackScope:'transaction',transactionReference:reference})
 }
 

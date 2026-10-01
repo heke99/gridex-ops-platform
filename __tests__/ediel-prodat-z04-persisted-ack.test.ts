@@ -126,9 +126,9 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
   state.messages.push(ack)
   return {data:{...receipt,sourceMessage:structuredClone(message),ackMessage:structuredClone(ack),replayed:false},error:null}
  }
- if(name==='gridex_read_outbound_acks_for_source_v1'){
+ if(name==='gridex_read_outbound_acks_for_source_v2'){
   expect(args.p_source_message_id).toBe(message.id)
-  return {data:{version:1,sourceMessageId:message.id,companyId:message.company_id,environment:message.environment,
+  return {data:{version:2,executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,sourceMessageId:message.id,companyId:message.company_id,environment:message.environment,
    sourcePayloadHash:payloadHash(message.raw_payload!),originals:state.messages.filter(ack=>ack.message_family===args.p_ack_family).map(ack=>({status:state.actorActive&&state.protectedSourceAvailable?'qualified':'held',message:structuredClone(ack),payloadHash:payloadHash(String(ack.raw_payload))}))},error:null}
  }
  if(name==='ediel_read_outbound_ack_replay_v1'||name==='ediel_read_outbound_ack_scope_replay_v2'){
@@ -146,18 +146,18 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
   // common-family rejection authority. They may diagnose but cannot enqueue it.
   return {data:null,error:new Error('common_header_original_owner_unavailable')}
  }
- if(name==='ediel_read_technical_source_endpoint_v1'){
-  expect(args).toEqual({p_source_message_id:message.id})
+ if(name==='ediel_read_technical_source_endpoint_v2'){
+  expect(args).toEqual({p_source_message_id:message.id,p_actor_user_id:fixtureActor,p_phase:'prepare'})
   if(!state.protectedSourceAvailable)return {data:null,error:new Error('protected original unavailable')}
-  const b=syntaxBasis();return {data:{kind:'technical_endpoint_only',companyId:b.companyId,environment:b.environment,sourceMessageId:b.sourceMessageId,sourceHash:b.sourceHash,transportEdielId:b.transportEdielId,originalUNB:b.originalUNB,authorizesBusinessEffect:false},error:null}
+  const b=syntaxBasis();return {data:{executionActorUserId:args.p_actor_user_id,executionPhase:args.p_phase,kind:'technical_endpoint_only',companyId:b.companyId,environment:b.environment,sourceMessageId:b.sourceMessageId,sourceHash:b.sourceHash,transportEdielId:b.transportEdielId,originalUNB:b.originalUNB,authorizesBusinessEffect:false},error:null}
  }
- if(name==='ediel_record_technical_syntax_facet_v1'){
+ if(name==='ediel_record_technical_syntax_facet_v2'){
   const actual=validateEdifactSyntax({...message,status:'received',validation_report:{},syntax_check_status:'not_checked',failure_reason:null})
-  expect(args).toEqual({p_company_id:fixtureCompany,p_source_message_id:message.id,p_source_payload_hash:payloadHash(message.raw_payload!),p_facts_text:JSON.stringify({version:1,owner:'canonical-runtime-syntax-v1',syntaxDecision:actual.ok?'accepted':'rejected',reasonCodes:actual.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code)})})
+  expect(args).toEqual({p_actor_user_id:fixtureActor,p_phase:'prepare',p_company_id:fixtureCompany,p_source_message_id:message.id,p_source_payload_hash:payloadHash(message.raw_payload!),p_facts_text:JSON.stringify({version:1,owner:'canonical-runtime-syntax-v1',syntaxDecision:actual.ok?'accepted':'rejected',reasonCodes:actual.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code)})})
   return state.syntaxFacetAvailable?{data:{assessmentId:syntaxBasis().syntaxAssessmentId},error:null}:{data:null,error:new Error('declared technical commit failure')}
  }
- if(name==='ediel_require_technical_syntax_ack_basis_v1'||name==='ediel_capture_technical_syntax_ack_basis_v1'){
-  expect(args).toEqual({p_company_id:fixtureCompany,p_message_id:message.id})
+ if(name==='ediel_require_technical_syntax_ack_basis_v2'||name==='ediel_capture_technical_syntax_ack_basis_v2'){
+  expect(args).toEqual({p_company_id:fixtureCompany,p_message_id:message.id,p_actor_user_id:fixtureActor,p_phase:'prepare'})
   return state.protectedSourceAvailable&&state.syntaxFacetAvailable?{data:syntaxBasis(),error:null}:
    {data:null,error:new Error('ediel_historical_technical_ack_basis_unavailable')}
  }
@@ -803,9 +803,9 @@ it('a failed actual syntax-owner commit cannot fabricate a technical reply',asyn
  expect(state.messages).toEqual([])
  expect(state.outbox).toEqual([])
  expect(state.effects).toEqual([])
- expect(state.authorityCalls.some(row=>row.name==='ediel_require_technical_syntax_ack_basis_v1')).toBe(true)
- expect(state.authorityCalls.some(row=>row.name==='ediel_record_technical_syntax_facet_v1')).toBe(true)
- expect(state.authorityCalls.some(row=>row.name==='ediel_capture_technical_syntax_ack_basis_v1')).toBe(false)
+ expect(state.authorityCalls.some(row=>row.name==='ediel_require_technical_syntax_ack_basis_v2')).toBe(true)
+ expect(state.authorityCalls.some(row=>row.name==='ediel_record_technical_syntax_facet_v2')).toBe(true)
+ expect(state.authorityCalls.some(row=>row.name==='ediel_capture_technical_syntax_ack_basis_v2')).toBe(false)
 })
 
 it('refuses absent protected actual-original authority before any application ACK write',async()=>{
