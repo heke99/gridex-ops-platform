@@ -69,6 +69,13 @@
       "tests": "100 pre-existing ediel unit failures (PRODAT remaining-d/energy-product/prior-flow/APERAK 96A preflight etc.)",
       "rootCause": "Composed flows now require tenant membership reads, full-directory APERAK grammar and additional RPC ports that older unit fixtures do not provide; one probe showed technical CONTRL branch blocked by mocked from() (UNEXPECTED_DB).",
       "status": "REMAINING_FIXTURE_WORK"
+    },
+    {
+      "id": "NATIVE-OPEN-04",
+      "tests": "ediel-outbound-ack-replay-native (2 existing cases)",
+      "error": "23502 canonical_ediel_company_required",
+      "rootCause": "gridex_validate_ediel_message_contract requires company_id on every canonical-family message, while these fixtures insert an unattributed technical inbound source (company_id NULL). Product code (ackDraftSource/kernel) still models null-company technical sources; the schema and the TS model disagree. Needs an owner decision whether null-company technical sources remain supported.",
+      "status": "REMAINING_DECISION"
     }
   ],
   "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."

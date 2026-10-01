@@ -132,10 +132,14 @@ describe('DTM Z15 persistence consumes permission end164, never contract/report 
   for(const dates of [[],['DTM+164:202602301230:203'],['DTM+93:202610011230:203'],['DTM+91:202610011230:203'],['DTM+164:20261001:102'],['DTM+164:202610011230:203','LIN+2','DTM+164:202611011230:203']]) {
     it(`cannot mutate permission state with unsupported date evidence ${JSON.stringify(dates)}`, async () => {
       memoryPermission()
+      // Date qualification belongs to the native source owner (one saved
+      // source, all physical scopes). TS never applies or aliases dates itself
+      // and never reports an effect the owner refused.
+      db.rpc.mockResolvedValueOnce({ data: { applied: false, permissionId: null, status: 'held', reason: 'permission_source_date_unqualified' }, error: null })
       const row = message(payload('Z15',[...dates,'RFF+Z09:PERMISSION','CCI++Z13','CAV+S17']),'Z15V')
-      expect((await applyInboundZ15PermissionState({actorUserId:'actor',message:row})).applied).toBe(false)
+      expect(await applyInboundZ15PermissionState({actorUserId:'actor',message:row})).toMatchObject({applied:false,status:'manual_review'})
       expect(db.update).not.toHaveBeenCalled()
-      expect(db.rpc).not.toHaveBeenCalled()
+      expect(db.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_permission_source_v1', { p_company_id: 'tenant-A', p_source_message_id: 'message-id', p_actor_user_id: 'actor', p_expected_permission_id: null })
     })
   }
 })
