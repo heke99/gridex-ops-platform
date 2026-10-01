@@ -51,11 +51,13 @@ const REQUIRED_CONTRACTS = [
   {
     file: 'lib/ediel/utilts.ts',
     mustContain: [
-      'splitComposite(segment.elements[1], una)',
+      'tokenizeEdifact(rawPayload)',
+      'segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},1,una)',
       'extractQty(qtySegment, tokenized.una)',
       'extractDateFromDtm(dtm137Segment, tokenized.una)',
     ],
     forbidden: [
+      ['double-decoding projected UTILTS elements', /splitComposite\(\s*segment\.elements\[/],
       ['raw colon quantity splitting', /segment\.split\(\s*["']:["']\s*\)/],
       ['raw colon DTM regex extraction', /segment\.match\(\/:[^/]*\\d/],
       ['raw UTILTS-ERR substring sniffing', /rawPayload\.toUpperCase\(\)\.includes\(\s*["']UTILTS[-_]ERR["']/],
