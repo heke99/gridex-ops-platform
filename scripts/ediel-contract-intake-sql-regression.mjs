@@ -50,6 +50,19 @@ try{
  await db.exec(readFileSync(new URL('20261001103832_ediel_contract_original_source_intake_atomic.sql',own),'utf8'))
  for(const[i,sig]of consumerSignatures.entries())check((await db.query(`SELECT to_jsonb(p)-'prosrc' m FROM pg_proc p WHERE oid=${q(sig)}::regprocedure`)).rows[0].m,metadata[i])
 
+ await db.exec(source('20260930225504_ediel_customer_agreed_metering_method_origination.sql','gridex_metering_method_changes.context_v1').replace('gridex_metering_method_changes.context_v1','gridex_metering_method_changes.context_before_contract_request_v1'))
+ await db.exec('CREATE TABLE public.ediel_message_intents(id uuid PRIMARY KEY);CREATE TABLE public.outbound_requests(id uuid PRIMARY KEY);CREATE TABLE gridex_received_sources.production_contract_origins(event_id uuid);CREATE TABLE gridex_received_sources.production_contract_periods(event_id uuid);')
+ await db.exec(source('20260930221158_ediel_source_qualified_switch_correction_binding.sql','public.ediel_reserve_production_contract_origin_v1'))
+ const lockSignatures=['gridex_metering_method_changes.context_before_contract_request_v1(uuid,uuid,uuid,text)','public.ediel_reserve_production_contract_origin_v1(uuid,uuid,uuid,uuid,uuid)'],lockMetadata=[]
+ for(const sig of lockSignatures)lockMetadata.push((await db.query(`SELECT to_jsonb(p)-'prosrc' m FROM pg_proc p WHERE oid=${q(sig)}::regprocedure`)).rows[0].m)
+ const originalMetadata=[]
+ for(const sig of consumerSignatures)originalMetadata.push((await db.query(`SELECT to_jsonb(p)-'prosrc' m FROM pg_proc p WHERE oid=${q(sig)}::regprocedure`)).rows[0].m)
+ await db.exec(readFileSync(new URL('20261001112929_ediel_contract_source_intake_lock_order.sql',own),'utf8'))
+ for(const[i,sig]of consumerSignatures.entries())check((await db.query(`SELECT to_jsonb(p)-'prosrc' m FROM pg_proc p WHERE oid=${q(sig)}::regprocedure`)).rows[0].m,originalMetadata[i])
+ const graph=(await db.query("SELECT prosrc FROM pg_proc WHERE oid='gridex_contract_source_intake.lock_graph_v1()'::regprocedure")).rows[0].prosrc
+ check(graph.includes('IN SHARE ROW EXCLUSIVE MODE'),false);check(graph.includes('artifacts'),false);check(graph.includes('revocations IN SHARE MODE'),true)
+ for(const sig of consumerSignatures){const body=(await db.query(`SELECT prosrc FROM pg_proc WHERE oid=${q(sig)}::regprocedure`)).rows[0].prosrc;check(body.indexOf('lock_target_contract_v1')<body.indexOf('source_before_intake_v1'),true)}
+ for(const[i,sig]of lockSignatures.entries()){const row=(await db.query(`SELECT prosrc,to_jsonb(p)-'prosrc' m FROM pg_proc p WHERE oid=${q(sig)}::regprocedure`)).rows[0];check(row.m,lockMetadata[i]);check(row.prosrc.indexOf('lock_target_contract_v1')<row.prosrc.indexOf('SELECT * INTO e'),true)}
  const key=Buffer.alloc(32,17)
  await db.exec(`INSERT INTO gridex_contract_source_intake.issuer_keys(id,company_id,environment,issuer_code,legal_authority_reference,legal_authority_source_hash,signing_key,valid_from,valid_to) VALUES(${q(id(60))},${q(id(1))},'test','SYNTHETIC issuer','SYNTHETIC legal authority',${q('b'.repeat(64))},decode(${q(key.toString('hex'))},'hex'),'2020-01-01','2099-01-01');`)
  for(const[i,k]of ['masterdata_declaration','contract_requested_method','metering_method_event','production_contract_event'].entries())await db.exec(`INSERT INTO gridex_contract_source_intake.representations(id,company_id,environment,issuer_key_id,legal_actor_id,kind,legal_representation_reference,legal_authority_source_hash,valid_from,valid_to) VALUES(${q(id(61+i))},${q(id(1))},'test',${q(id(60))},${q(id(50))},${q(k)},'SYNTHETIC representation',${q('c'.repeat(64))},'2020-01-01','2099-01-01');`)
