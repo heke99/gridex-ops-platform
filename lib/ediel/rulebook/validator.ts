@@ -10,7 +10,7 @@ import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from './prodatGasApplicabilityPolicy'
 import type {GasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
-import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {deathStatusSendIssue,assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {validateProdatDeathStatus} from './prodatDeathStatusPolicy'
 import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
@@ -61,6 +61,8 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit pure receiver knowledge, never incoming parsed metadata. */
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
+  deathStatusContext?:DeathStatusValidationContext
+  deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
   meterChange?:MeterChangeSelection
   /** Draft metadata from the canonical renderer. Used to verify that production
    * PRODAT D-conditions were already resolved with the original business facts. */
@@ -68,6 +70,25 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   dateEventContext?:ProdatDateEventValidationContext
   reportingContext?:ExpectedContext
   parsedPayload?: Record<string, unknown> | null
+}
+
+function qualifiedLifeEventContext(input:RulebookValidationInput):DeathStatusValidationContext|undefined{
+  const context=input.deathStatusContext
+  if(!context)return undefined
+  const row=input.deathStatusRow??input.messageRow??{...input.dateEventRow,raw_payload:input.rawPayload,
+    message_code:input.code,company_id:input.companyId,environment:input.environment,direction:input.direction}
+  assertDeathStatusContextMatches(row,context)
+  return context
+}
+
+function sourceQualifiedProdatFacts(input:RulebookValidationInput,code:string,rawSegments:string[],una:ReturnType<typeof parseUna>){
+  const facts=input.mode==='send'?readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,
+    reportingContext:input.reportingContext,code,rawSegments,una,parsedPayload:input.parsedPayload,companyId:input.companyId,
+    runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,
+    stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+    :{meterChange:input.meterChange,deathStatus:input.deathStatus,gasSerialChange:input.gasSerialChange}
+  const context=qualifiedLifeEventContext(input)
+  return context?{...facts,deathStatus:context.selection,businessContext:context.businessContext}:facts
 }
 
 export type RulebookValidationResult = Omit<LegacyRulebookValidationResult,'fieldRuleSource'> & { canonicalPolicy?: CanonicalEdielPolicy; fieldRuleSource:'static'|'registry'|'technical_source'|'common_header_source';technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence;prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence }
@@ -321,9 +342,9 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     requestedCapability: requestedEdielCapability({ message_intent: input.messageRow?.message_intent ?? null, parsed_payload: input.parsedPayload ?? {} }),
     messageCode: code,
     subtypeOrReasonCode: parsed.subtype,
-    prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
-      ? readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
-      : {meterChange:input.meterChange,deathStatus:input.deathStatus,gasSerialChange:input.gasSerialChange},
+    prodatDependentFacts: sourceQualifiedProdatFacts(input,code,parsed.rawSegments,parseUna(input.rawPayload)),
+    businessContext:qualifiedLifeEventContext(input)?.businessContext,
+    bilateralCapabilityVerified:qualifiedLifeEventContext(input)?.bilateralCapabilityVerified,
     direction: dir,
     referenceDate,
     // Runtime guide aliases such as PRODAT 26A and CONTRL aliases are not UNH
@@ -431,13 +452,13 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
     // register structure and policy used on the normal path. Body-bound facts are re-read;
     // snapshot statuses and intentional-invalid labels supply no authority.
     const gasIssues=family==='PRODAT'?validateProdatGasApplicability({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:input.mode==='send'?'outbound':'inbound',facts:{gasSerialChange:input.gasSerialChange}}):[]
-    const deathIssues = family==='PRODAT'?validateProdatDeathStatus({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:input.mode==='send'?'outbound':'inbound',facts:{deathStatus:input.deathStatus}}):[]
+    const deathIssues = family==='PRODAT'?validateProdatDeathStatus({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:input.mode==='send'?'outbound':'inbound',facts:{deathStatus:qualifiedLifeEventContext(input)?.selection??input.deathStatus}}):[]
     const protectedRegisterIssues: EdielRulebookIssue[] = input.mode==='parse'&&family==='PRODAT'?validateProdatMeterChange({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:'inbound',applicationReference:parsed.applicationReference,facts:{meterChange:input.meterChange}}):[]
     if (family === 'PRODAT' && input.mode === 'send' && !description.startsWith('prodat_register_evidence_')) {
       try {
         const wireCode = parsed.code ?? code
         const una = parsed.una ?? parseUna(input.rawPayload)
-        const facts = readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code:wireCode,rawSegments:parsed.rawSegments,una,parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+        const facts = sourceQualifiedProdatFacts(input,wireCode,parsed.rawSegments,una)
         protectedRegisterIssues.push(...validateProdatReportingPermission({code:wireCode,rawSegments:parsed.rawSegments,una,facts,requireAuthority:true,reportingContext:input.reportingContext}))
         protectedRegisterIssues.push(...validateProdatDateEvents({code:wireCode,rawSegments:parsed.rawSegments,una,facts,requireAuthority:true,dateEventContext:input.dateEventContext}))
         protectedRegisterIssues.push(...validateProdatInvoicee({code:wireCode,rawSegments:parsed.rawSegments,una,facts}))
@@ -502,7 +523,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
   input = captureAdmission(input)
   const freeText = input.mode === 'send' && input.direction !== 'inbound' ? prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }) : []
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
-  const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
+  const deathBoundary=input.mode==='send'?deathStatusSendIssue(input.deathStatusRow??input.messageRow??{...input.dateEventRow,message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,company_id:input.companyId,environment:input.environment,direction:input.direction},input.deathStatusContext):null
   const protect=(result:RulebookValidationResult):RulebookValidationResult=>deathBoundary||gasBoundary||freeText.length?{...result,ok:false,blocking:true,issues:[...result.issues,...freeText.filter(entry => !result.issues.some(old => old.code === entry.code && old.description === entry.description)),...(deathBoundary?[deathBoundary]:[]),...(gasBoundary?[gasBoundary]:[])]}:result
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return protect({ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null})
@@ -520,7 +541,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   input = captureAdmission(input)
   if (input.mode === 'send' && input.direction !== 'inbound' && prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }).length) return validateRulebookMessage(input)
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
-  const deathBoundary=input.mode==='send'?deathStatusSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload}):null
+  const deathBoundary=input.mode==='send'?deathStatusSendIssue(input.deathStatusRow??input.messageRow??{...input.dateEventRow,message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,company_id:input.companyId,environment:input.environment,direction:input.direction},input.deathStatusContext):null
   if(deathBoundary||gasBoundary)return validateRulebookMessage(input) // Preserve existing protected diagnostics without registry I/O.
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return {ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null}
@@ -651,9 +672,12 @@ export function validateEdielMessageRowWithRulebook(
   mode: 'send' | 'parse' | 'test' = 'send',
   dateEventContext?:ProdatDateEventValidationContext,
   reportingContext?:ExpectedContext,
+  ackSourceQualification?:SourceQualifiedOutboundAck,
+  deathStatusContext?:DeathStatusValidationContext,
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence,
 ): RulebookValidationResult {
   return validateRulebookMessage({
-    messageRow:message,dateEventRow:message,dateEventContext,reportingContext,
+    messageRow:message,dateEventRow:message,dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,prodatCommonHeaderRejectionEvidence,
     family: message.message_family,
     code: String(message.message_code ?? ''),
     processGroup: message.process_type ?? message.route_scope ?? null,

@@ -1,4 +1,5 @@
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
+import {readFreshEdielSendValidationSources} from '@/lib/ediel/production/sendValidationSources'
 import {loadRecoveryReportingValidationContext} from '@/lib/ediel/recovery/reportingContext'
 import {resolveSourceQualifiedNegativeFixtureForMessage, sourceQualifiedNegativeFixtureAllowsPreflight} from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
@@ -243,12 +244,13 @@ export async function sendQueuedEdielMessage(params: {
     throw new Error('ediel_historical_transport_receipt_unavailable')
   }
 
+  const sourceContext=await readFreshEdielSendValidationSources(message,actorUserId)
   const dateEventContext=await loadProdatDateEventValidationContext(message,actorUserId)
   const recoveryReporting = await loadRecoveryReportingValidationContext(message, actorUserId)
   const reportingContext=recoveryReporting?.status === 'qualified' ? recoveryReporting.context : message.parsed_payload?.sourcePermissionBasis
     ? await loadServiceReportingValidationContext(message,actorUserId)
     : await loadTgtReportingValidationContext(message)
-  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext)
+  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext,sourceContext.ackSourceQualification,sourceContext.deathStatusContext,sourceContext.prodatCommonHeaderRejectionEvidence)
   const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({message, actorUserId})
   await createEdielMessageEvent({
     actorUserId,

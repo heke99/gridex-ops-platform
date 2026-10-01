@@ -10,12 +10,17 @@ import {validateRulebookMessage,validateRulebookMessageWithRegistry} from '@/lib
 import {AUTHORITATIVE_EDIEL_GUIDES} from '@/lib/ediel/rulebook/guideRegistry'
 import {originalAckPartyIdentities} from '@/lib/ediel/core/originalAckPartyIdentities'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {readFreshEdielSendValidationSources} from '@/lib/ediel/production/sendValidationSources'
+import {preflightEdielMessageRow} from '@/lib/ediel/core/messageBuilder/payloadPreflight'
+import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 const company='10000000-0000-4000-8000-000000000001',sourceId='20000000-0000-4000-8000-000000000001'
 const sourceRaw="UNB+UNOC:3+REMOTE:14+LOCAL:14+260930:1200+SOURCE++23-DDQ-PRODAT++++1'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+BAD+D+9+AB'NAD+FR+REMOTE:160:SVK+++++++SE'NAD+DO+LOCAL:160:SVK+++++++SE'UNT+5+M'UNZ+1+SOURCE'"
 const ackRaw="UNB+UNOC:3+LOCAL:14+REMOTE:14+260930:1200+ACKI++23-DDQ-PRODAT++++1'UNH+A+APERAK:D:96A:UN:E2SE6A'BGM+APERAK+ACKD+27'DTM+137:202609301200:203'RFF+ACW:D'NAD+FR+LOCAL:160:SVK+++++++SE'NAD+DO+REMOTE:160:SVK+++++++SE'ERC+42::260'FTX+AAO++202::260+Felaktigt Meddelandenamn BAD'UNT+9+A'UNZ+1+ACKI'"
 const input={companyId:company,environment:'test' as const,sourceMessageId:sourceId,expectedRawPayload:sourceRaw,actorUserId:'user'}
 function native(){const guide=AUTHORITATIVE_EDIEL_GUIDES.find(g=>g.family==='PRODAT')!;return {version:1,sourceMessage:{id:sourceId,company_id:null,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'BAD',raw_payload:sourceRaw,message_received_at:'2026-09-30T12:00:00Z'},evidence:{kind:'prodat_common_header_rejection',version:1,companyId:company,environment:'test',sourceMessageId:sourceId,sourceHash:evidenceHash(sourceRaw),sourceReceivedAt:'2026-09-30T12:00:00Z',observedAt:'2026-09-30T12:00:01Z',syntaxAssessmentId:'actual-assessment',field202:{fieldCode:'202',ercCode:'42',text:'Felaktigt Meddelandenamn BAD'},guide:Object.fromEntries(Object.entries(guide).sort(([a],[b])=>a.localeCompare(b))),familyEdition:{version:'26.A:r3',rulePack:{id:'family-pack'},guideSources:[],sourceProjection:{actual:'projection'}},identities:originalAckPartyIdentities({rawPayload:sourceRaw}),authorizesBusinessEffect:false}}}
+const renderedAckRaw=ackRaw.replace('BGM+APERAK+ACKD+27','BGM+++27')
+function outboundAck():EdielMessageRow{return {...energyHandoffMessage('2026-09-30',company),id:'ack',direction:'outbound',message_family:'APERAK',message_code:'APERAK',related_message_id:sourceId,raw_payload:renderedAckRaw,mime_type:'application/edifact',execution_context_snapshot:{prodatCommonHeaderNegativeWitnessId:'one-use'}}}
 async function qualified(){rpc.mockResolvedValueOnce({data:native(),error:null});return readProdatCommonHeaderRejectionEvidence(input)}
 const validation=(evidence:unknown,raw=ackRaw)=>({family:'APERAK',code:'APERAK',companyId:company,environment:'test',direction:'outbound',mode:'send',rawPayload:raw,prodatCommonHeaderRejectionEvidence:evidence}) as Parameters<typeof validateRulebookMessage>[0]
 describe('protected prospective PRODAT common-header national rejection',()=>{
@@ -43,4 +48,24 @@ describe('protected prospective PRODAT common-header national rejection',()=>{
   await expect(readProdatCommonHeaderNegativeAckRoute({evidence,technicalEvidence,actorUserId:'user'})).rejects.toThrow('route_scope_mismatch')
  })
  it('qualifies persisted actual ACK and protected original in one read',async()=>{const value=native();const ack={id:'ack',company_id:company,environment:'test',direction:'outbound',message_family:'APERAK',message_code:'APERAK',related_message_id:sourceId,raw_payload:ackRaw,execution_context_snapshot:{prodatCommonHeaderNegativeWitnessId:'one-use'}} as unknown as EdielMessageRow;rpc.mockResolvedValueOnce({data:{...value,ackMessage:ack},error:null});const actual=await readPersistedProdatCommonHeaderNegativeAckBasis({companyId:company,environment:'test',ackMessageId:'ack',expectedRawPayload:ackRaw});expect(actual.ackMessage).toBe(ack);expect(prodatCommonHeaderRejectionQualification({evidence:actual.evidence,companyId:company,environment:'test',sourceMessageId:sourceId})).toBe(actual.evidence)})
+ it('carries the protected common negative through the real fresh-send read and preflight without selecting a code profile',async()=>{
+  const ack=outboundAck();rpc.mockResolvedValueOnce({data:{...native(),ackMessage:ack},error:null})
+  const sources=await readFreshEdielSendValidationSources(ack,'user')
+  expect(sources.ackSourceQualification).toBeUndefined()
+  const result=preflightEdielMessageRow(ack,'send',undefined,undefined,sources.ackSourceQualification,sources.deathStatusContext,sources.prodatCommonHeaderRejectionEvidence)
+  expect(result.ok,JSON.stringify(result.issues)).toBe(true)
+  expect(rpc).toHaveBeenCalledTimes(1)
+  expect(rpc.mock.calls[0][0]).toBe('ediel_read_common_header_negative_ack_v1')
+ })
+ it.each(['syntax','format'] as const)('rejects actual %s before fresh source reads',async kind=>{
+  const ack=outboundAck(),invalid=kind==='syntax'?{...ack,raw_payload:renderedAckRaw.replace('UNT+9','UNT+999')}:{...ack,mime_type:'application/xml'}
+  await expect(readFreshEdielSendValidationSources(invalid,'user')).rejects.toThrow()
+  expect(rpc).not.toHaveBeenCalled()
+ })
+ it('keeps a copied common hint held when its private original read fails and does not fall back to a business pack',async()=>{
+  rpc.mockResolvedValueOnce({data:null,error:{message:'protected original unavailable'}})
+  await expect(readFreshEdielSendValidationSources(outboundAck(),'user')).rejects.toThrow('ediel_common_header_negative_witness_required')
+  expect(rpc).toHaveBeenCalledTimes(1)
+  expect(rpc.mock.calls[0][0]).toBe('ediel_read_common_header_negative_ack_v1')
+ })
 })
