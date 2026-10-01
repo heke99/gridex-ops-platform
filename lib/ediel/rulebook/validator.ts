@@ -201,13 +201,6 @@ function canonicalizeRenderedDependentSnapshot(input: {
   return results
 }
 
-function canonicalMessageCode(family: ActiveCanonicalFamily, code: string): string {
-  if (family === 'UTILTS_ERR') return 'ERR'
-  if (family === 'APERAK') return 'APERAK'
-  if (family === 'CONTRL') return 'CONTRL'
-  return code
-}
-
 function parsedAssociationAssignedCode(parsed: ParsedRulebookMessage): string | null {
   const una = parsed.una ?? parseUna(null)
   const tokens = tokenizeEdifact(`${una.raw}${parsed.rawSegments.join(una.segmentTerminator)}${una.segmentTerminator}`)
@@ -659,3 +652,4 @@ export function validateEdielMessageRowWithRulebook(
     companyId: message.company_id,
   })
 }
+import {canonicalMessageCode} from '@/lib/ediel/core/messageIdentity'

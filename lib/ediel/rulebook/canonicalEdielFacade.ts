@@ -1,3 +1,4 @@
+export {canonicalMessageCode,canonicalLogicalMessageCodeProjection} from '@/lib/ediel/core/messageIdentity'
 export { EDIEL_ENERGY_SHARING_CAPABILITY } from '@/lib/ediel/rulebook/guideRegistry'
 import {AUTHORITATIVE_EDIEL_GUIDES} from '@/lib/ediel/rulebook/guideRegistry'
 import {
