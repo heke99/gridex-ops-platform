@@ -98,6 +98,17 @@ export function prodatFixtureSourceRpc(name:string,args:Record<string,unknown>) 
   const e=contrlSourceEnvelope(original.raw_payload),sender=e.receiverComponents,receiver=e.senderComponents
   data={kind:'technical_syntax_ack_route',companyId:original.company_id,environment:original.environment,sourceMessageId:original.id,sourceHash:hash(original.raw_payload!),authorizesBusinessEffect:false,route:{id:id(42),company_id:original.company_id,is_active:true},routeRuntime:{id:id(43),company_id:original.company_id,communication_route_id:id(42),environment:original.environment,is_enabled:true},senderEdielId:sender[0],senderQualifier:sender[1]||null,senderSubAddress:sender[2]||null,receiverEdielId:receiver[0],receiverQualifier:receiver[1]||null,receiverSubAddress:receiver[2]||null,receiverMessageSubAddress:receiver[2]||null,applicationReference:original.application_reference,senderEmail:args.p_smtp_from,receiverEmail:'synthetic@example.invalid',mailbox:args.p_smtp_from,routeKey:'finite syntax fixture',smtpHost:args.p_smtp_host,smtpPort:args.p_smtp_port}
  }
+ else if(name==='ediel_list_business_acks_for_source_v1'){
+  // Declared native list: same company/source scope, no prior business ACKs.
+  if(!original||args.p_company_id!==original.company_id||args.p_source_message_id!==original.id||!args.p_actor_user_id)throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
+  data={version:1,companyId:original.company_id,sourceMessageId:original.id,environment:original.environment,ackFamily:args.p_ack_family??null,messages:[]}
+ }
+ else if(name==='ediel_apply_permission_source_v1'){
+  // The native permission executor is out of unit scope: it reports no effect
+  // rather than fabricating an applied permission state.
+  if(!original||args.p_company_id!==original.company_id||args.p_source_message_id!==original.id||!args.p_actor_user_id)throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
+  data={applied:false,permissionId:null,status:null,reason:'declared_unit_fixture_native_permission_effect_out_of_scope',idempotent:false}
+ }
  else if(name==='gridex_record_source_object_decisions_v1')data={version:1,companyId:args.p_company_id,environment:args.p_environment,
   sourceMessageId:args.p_source_message_id,sourcePayloadHash:args.p_source_payload_hash,canonicalAssessmentId:args.p_canonical_assessment_id,
   factsHash:hash(String(args.p_facts_text)),assessmentId:id(35)}

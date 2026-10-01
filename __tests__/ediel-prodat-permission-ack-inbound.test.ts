@@ -47,8 +47,11 @@ for(const a of alphabets)for(const [code,status,end,field] of [['Z14',"x:+",null
 })
 for(const [code,reason,status,end] of [['Z14','Z96','A76',null],['Z15','Z24','A74','E37'],['Z18','S17',null,'E37']] as const)it(`persisted positive ${code}/${reason}/${end}`,async()=>{
  await run(message(code,reason,status,end));expect(state.message.validation_report).toMatchObject({applicationDecision:'accepted',prodatProcessingDisposition:{kind:'continue'}})
- if(code==='Z14')expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('ERC+100::260')
- else{expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([]);expect(state.events.some(e=>String(e.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)}
+ expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
+ // Z14/Z15 positives need the native permission effect, which the declared
+ // unit port does not apply; Z18 keeps the full96A dual-reference hold.
+ if(code==='Z18')expect(state.events.some(e=>String(e.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)
+ else expect(state.events.some(e=>String(e.message).includes('inväntar granskning'))).toBe(true)
 })
 it('false322/324 remains accepted through stored response and raw evidence',async()=>{
  const body=object('Z13'),refs=body.findIndex(segment=>segment[0]==='RFF')

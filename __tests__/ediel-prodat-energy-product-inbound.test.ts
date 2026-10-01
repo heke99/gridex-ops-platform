@@ -18,12 +18,14 @@ vi.mock('@/lib/onboarding/inboundEdielLinking',()=>({applyInboundProdatZ02ToCust
 vi.mock('@/lib/ediel/flows/inboundBusinessStateMachine',()=>({applyInboundBusinessStateMachine:async()=>{state.effects.push('business');return null}}))
 vi.mock('@/lib/ediel/operationalVerification',()=>({buildSafeMasterdataProposal:async()=>[{field:'synthetic',reviewRequired:true}]}))
 vi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielProcessingPipeline:async()=>null}))
+vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('./helpers/p16bHold')).captureP16bPreflight(importOriginal))
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
 import {withProdatFixtureInsertContext} from './helpers/prodatInboundSourceFixture'
 
 import {permissionMessage} from './fixtures/prodat-energy-product'
-beforeEach(()=>{state.effects=[];state.drafts=[];state.events=[];state.registryFailure=false})
+beforeEach(()=>{p16bBlockedAperaks.length=0;state.effects=[];state.drafts=[];state.events=[];state.registryFailure=false})
 const run=(message:EdielMessageRow)=>{state.message=withProdatFixtureInsertContext({...message,status:'received',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow);return processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:message.id})}
 for(const code of ['Z13','Z14'])for(const energy of [null,'INVALID','8716867000030'])it(`persists own ${code}/${energy} diagnosis and enforces full96A response grammar`,async()=>{
  await run(permissionMessage(code,'S17',energy))
@@ -32,11 +34,20 @@ for(const code of ['Z13','Z14'])for(const energy of [null,'INVALID','87168670000
  const report=JSON.parse(JSON.stringify(state.message.validation_report)) as {responsePlan:{family:string;applicationErrors?:{fieldCode:string;ercCode:string}[]}[]}
  expect(report.responsePlan.find(p=>p.family==='APERAK')?.applicationErrors??[]).toMatchObject(erc?[{fieldCode:'506',ercCode:erc}]:[])
  const wire=state.drafts.map(d=>d.rawPayload).join('')
- if(!erc&&code==='Z13')expect(wire).toContain('ERC+100::260')
- else{
-  expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
-  expect(state.events.some(event=>String(event.message).includes(code==='Z13'?'aperak_prodat_requested_scope_unqualified':'UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)
-  expect(wire).not.toContain('ERC+')
+ const aperaks=state.drafts.filter(d=>d.messageFamily==='APERAK').map(d=>String(d.rawPayload))
+ if(code==='Z13'){
+  // Z13 has no own object id: the actual nullable LIN/LI scope renders in D.96A.
+  expect(aperaks.length).toBeGreaterThan(0);expect(aperaks.join('')).not.toContain('RFF+Z07')
+  if(!erc)expect(aperaks.join('')).toContain('ERC+100::260')
+  else for(const raw of aperaks){expect(raw).toContain(`ERC+${erc}::260`);expect(raw).toContain('FTX+AAO++506::260');expect(raw).toContain('RFF+LI:CASE?:A?+B??C');expect(raw).not.toContain('ERC+100')}
+ }else if(erc){
+  // Z14 own object id and LI share the ERC: exact P16B hold, no APERAK wire.
+  expect(aperaks).toEqual([]);expectP16bHold(state.message.raw_payload!)
+ }else{
+  // A Z14 positive needs the native permission effect, which the declared unit
+  // port does not apply: the object awaits review and no positive is minted.
+  expect(aperaks).toEqual([]);expect(p16bBlockedAperaks).toEqual([])
+  expect(state.events.some(event=>String(event.message).includes('inväntar granskning'))).toBe(true)
  }
  if(erc){
   expect(report.responsePlan.find(p=>p.family==='APERAK')?.applicationErrors).toMatchObject([{fieldCode:'506',ercCode:erc,lineItemReference:'CASE:A+B?C'}])
