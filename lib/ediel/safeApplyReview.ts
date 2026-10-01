@@ -127,18 +127,19 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
 }
 
 /** Approval consumes the original source owner, never mutable proposal labels
- * or parsed values. The native boundary commits the entire source atomically
- * and preserves its original receipt on retry. */
+ * or parsed values. The native boundary keeps the complete original partition, atomically commits
+ * qualified own scopes, and preserves each original scope receipt on retry. */
 export async function approveSafeMasterdataChanges(params: {
   actorUserId: string
   edielMessageId: string
+  objectLineIndices?:number[]
 }): Promise<EdielSafeApplyDecisionResult> {
   const { getEdielMessageById } = await import('@/lib/ediel/db')
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message?.company_id || !isSafeApplyCandidate(message)) throw new Error('structural_apply_source_required')
   await assertEdielTenantActor({ companyId: message.company_id, actorUserId: params.actorUserId, permission: 'metering.write' })
-  const { data, error } = await supabaseService.rpc('ediel_apply_reviewed_structure_v1', {
-    p_company_id: message.company_id, p_source_message_id: message.id, p_actor_user_id: params.actorUserId,
+  const { data, error } = await supabaseService.rpc('ediel_apply_reviewed_structure_objects_v2', {
+    p_company_id: message.company_id, p_source_message_id: message.id, p_actor_user_id: params.actorUserId,p_object_line_indices:params.objectLineIndices??null,
   })
   if (error) throw error
   if (!isRecord(data) || typeof data.applied !== 'boolean') throw new Error('structural_apply_receipt_invalid')
@@ -147,7 +148,7 @@ export async function approveSafeMasterdataChanges(params: {
   if (!data.applied) throw new Error(typeof data.reason === 'string' ? data.reason : 'structural_apply_original_review_required')
   if (data.sourceMessageId !== message.id || !Number.isSafeInteger(data.appliedCount) || Number(data.appliedCount) < 1
     || !Array.isArray(data.objects) || !data.objects.length) throw new Error('structural_apply_receipt_invalid')
-  return { messageId: message.id, status: 'applied', appliedCount: Number(data.appliedCount), skippedCount: 0,
+  return { messageId: message.id, status: 'applied', appliedCount: Number(data.appliedCount), skippedCount: Number.isSafeInteger(data.skippedCount)?Number(data.skippedCount):0,
     summary: `${data.appliedCount} registerversioner har källbunden strukturhistorik.` }
 }
 

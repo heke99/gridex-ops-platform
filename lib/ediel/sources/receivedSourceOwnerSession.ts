@@ -1,3 +1,4 @@
+import {qualifyReceivedProdatApplicationObject} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {takeReceivedSourceOwnerSeed, type ReceivedSourceValidationReceipt} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
@@ -63,11 +64,13 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
   const canonical = JSON.parse(seed.evidence.factsText) as Record<string,unknown>
   const register = bindReceivedRegisterValidation(canonical.registerValidation, seed.original.raw_payload)
   if (!register || !register.objects.length) return null
-  const ready = [canonical.syntaxDecision,canonical.applicationDecision,canonical.functionalDecision].every(state=>state==='accepted')
-  const rejected = [canonical.syntaxDecision,canonical.applicationDecision,canonical.functionalDecision].includes('rejected')
-  const entries: ObjectDecision[] = register.objects.map(({disposition,reasons,...object})=>({object,
-    disposition:rejected||disposition==='rejected'?'rejected':'unavailable',
-    reasons:rejected?['canonical_rejected']:disposition==='rejected'&&reasons.length?reasons:['source_owner_not_established'],business:null,party:null}))
+  const application=seed.evidence.prodatApplicationValidation
+  const ready=canonical.syntaxDecision==='accepted'&&application?.headerDecision==='accepted'
+  const entries: ObjectDecision[] = register.objects.map(({disposition,reasons,...object})=>{
+    const own=application?.objects.find(entry=>entry.registers[0]?.segmentIndex===object.registers[0]?.segmentIndex)
+    const rejected=own?.applicationDecision==='rejected'||disposition==='rejected'
+    return {object,disposition:rejected?'rejected':'unavailable',reasons:rejected?(own?.reasonCodes.length?own.reasonCodes:reasons.length?reasons:['own_application_rejected']):['source_owner_not_established'],business:null,party:null}
+  })
   let operation:Promise<SourceOwnerReceipt>|undefined
   let pending:Promise<void> = Promise.resolve()
   const committedScopes = new Set<string>()
@@ -77,7 +80,7 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
       pending=pending.then(async()=>{
         for(let index=0;index<entries.length;index++){
           const entry=entries[index]
-          if(register.objects[index].disposition!=='accepted')continue
+          if(register.objects[index].disposition!=='accepted'||!qualifyReceivedProdatApplicationObject(application,entry.object))continue
           try{const owners=await committedCustomerLifeEventOwners(seed,commit,entry.object);if(owners)entries[index]={...entry,...owners,disposition:'accepted',reasons:[]}}catch{/* Preserve explicit unavailable scopes. */}
         }
       })
@@ -97,7 +100,7 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
             const point = await readSourceOwnerRow('metering_points', seed.evidence.companyId,
               commit.message.metering_point_id ?? '', AbortSignal.timeout(2000))
             const matches = entries.map((entry,index)=>({entry,index})).filter(({entry,index})=>
-              register.objects[index].disposition === 'accepted' && entry.object.messageIndex === 0
+              register.objects[index].disposition === 'accepted' && qualifyReceivedProdatApplicationObject(application,entry.object) && entry.object.messageIndex === 0
               && entry.object.identityAgency === '9' && entry.object.objectId === point.meter_point_id)
             if (matches.length === 1) {
               const {entry,index} = matches[0]
