@@ -16,7 +16,10 @@ try {
    create table public.ediel_configuration_snapshots(id uuid);
    create table public.platform_release_receipts(id uuid,release_sha text,ci_run_id text,deployment_id text,environment text,status text,verified_at timestamptz,recorded_at timestamptz,schema_migration_version text);
    create table public.ediel_messages(id uuid,company_id uuid,environment text,direction text,message_family text,message_code text,rule_pack_checksum text,raw_payload text,route_profile_id uuid,communication_route_id uuid,canonical_rule_pack_id uuid,rule_profile_version_id uuid,customer_id uuid,status text,parsed_payload jsonb);
-   create table public.ediel_route_profiles(id uuid,company_id uuid,environment text,is_enabled boolean,is_active boolean,communication_route_id uuid,certificate_id uuid,receiver_certificate_id uuid,sender_ediel_id text,receiver_ediel_id text,sender_sub_address text,sender_subaddress text,receiver_sub_address text,receiver_subaddress text,mailbox_id uuid,transport_profile_id uuid);
+   create table public.ediel_route_profiles(id uuid,company_id uuid,environment text,is_enabled boolean,is_active boolean,communication_route_id uuid,certificate_id uuid,receiver_certificate_id uuid,sender_ediel_id text,receiver_ediel_id text,sender_sub_address text,sender_subaddress text,receiver_sub_address text,receiver_subaddress text,mailbox_id uuid,transport_profile_id uuid,metadata jsonb default '{}',route_version integer default 1,created_by uuid,updated_by uuid,updated_at timestamptz default now());
+   create table public.ediel_route_history(route_profile_id uuid,company_id uuid,route_version integer,snapshot jsonb,change_reason text,created_by uuid,unique(route_profile_id,route_version));
+   create table public.communication_routes(id uuid,company_id uuid,is_active boolean,environment_type text,target_email text,endpoint text,counterparty_ediel_id text);
+   create table public.platform_actor_routes(id uuid,actor_id uuid,environment text,message_family text,application_reference text,subaddress text,communication_type text,communication_address text,party_id text,interchange_party_id text,is_verified boolean,status text,source text,metadata jsonb);
    create table public.ediel_certificates(id uuid,company_id uuid,certificate_fingerprint text,certificate_valid_from timestamptz,certificate_valid_to timestamptz,status text,encryption_status text);
    create table public.tenant_ediel_profiles(id uuid,company_id uuid,environment text,market text,is_enabled boolean,valid_from timestamptz,valid_to timestamptz);
    create table public.tenant_actor_identifiers(id uuid,company_id uuid,environment text,actor_id uuid,identifier_type text,identifier_value text,valid_from timestamptz,valid_to timestamptz);
@@ -39,6 +42,9 @@ try {
   await db.exec(readFileSync(new URL('../supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql', import.meta.url), 'utf8')); checks++
   await db.exec(readFileSync(new URL('../supabase/migrations/20260930154424_ediel_readiness_current_rule_dependencies.sql', import.meta.url), 'utf8')); checks++
   await db.exec(readFileSync(new URL('../supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql', import.meta.url), 'utf8')); checks++
+  const routeHistory = readFileSync(new URL('../supabase/migrations/20260601184500_ediel_runtime_hardening_rls_route_history.sql', import.meta.url), 'utf8')
+  await db.exec(routeHistory.slice(routeHistory.indexOf('create or replace function public.gridex_capture_ediel_route_profile_history'), routeHistory.lastIndexOf('commit;')))
+  await db.exec(readFileSync(new URL('../supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql', import.meta.url), 'utf8')); checks++
   const args = [uid(1), uid(2), uid(3), 'electricity_supplier', 'PRODAT', 'Z01', 'L', null, 'f'.repeat(40), 'a'.repeat(64)]
   const placeholders = args.map((_, n) => `$${n + 1}`).join(',')
   const readiness = async () => (await db.query(`select public.ediel_scoped_capability_readiness_v1(${placeholders}) result`, args)).rows[0].result
@@ -47,6 +53,7 @@ try {
    insert into ediel_rule_packs values('${uid(100)}','PRODAT','electricity','active',repeat('a',64),'26.A','3','2000-01-01',null);
    insert into ediel_message_profiles values('${uid(101)}','${uid(100)}','scoped-z01','L','{"reasonForTransaction":"Z22"}',true,'Z01','outbound');
    insert into ediel_route_profiles(id,company_id,environment,is_enabled,is_active,communication_route_id,sender_ediel_id,receiver_ediel_id) values('${uid(4)}','${uid(1)}','production',true,true,'${uid(5)}','54321','91101');
+   insert into communication_routes values('${uid(5)}','${uid(1)}',true,'production','original@example.invalid','original@example.invalid','91101');
    insert into tenant_ediel_profiles values('${uid(6)}','${uid(1)}','production','electricity',true,'2000-01-01',null);
    insert into tenant_actor_identifiers values('${uid(7)}','${uid(1)}','production','${uid(3)}','EdielId','54321','2000-01-01',null);
    insert into tenant_actor_roles values('${uid(8)}','${uid(1)}','production','${uid(3)}','electricity_supplier','2000-01-01',null),('${uid(9)}','${uid(1)}','production','${uid(3)}','grid_owner','2000-01-01',null);
@@ -56,8 +63,13 @@ try {
   assert.equal((await readiness()).dependencyHash, first.dependencyHash); checks++
   await db.exec(`update ediel_route_profiles set receiver_subaddress='changed' where id='${uid(4)}'`)
   const routeChanged = await readiness(); assert.notEqual(routeChanged.dependencyHash, first.dependencyHash); checks++
+  assert.deepEqual((await db.query('select route_version from ediel_route_history order by route_version')).rows, [{ route_version: 1 }, { route_version: 2 }]); checks++
+  await db.exec(`update ediel_route_profiles set updated_at=clock_timestamp() where id='${uid(4)}'`)
+  assert.equal((await readiness()).dependencyHash, routeChanged.dependencyHash); checks++
+  await db.exec(`update communication_routes set target_email='changed@example.invalid' where id='${uid(5)}'`)
+  const addressChanged = await readiness(); assert.notEqual(addressChanged.dependencyHash, routeChanged.dependencyHash); checks++
   await db.exec(`update ediel_message_profiles set profile=profile||'{"ownSourceRevision":"new"}' where id='${uid(101)}'`)
-  const changed = await readiness(); assert.notEqual(changed.dependencyHash, routeChanged.dependencyHash); checks++
+  const changed = await readiness(); assert.notEqual(changed.dependencyHash, addressChanged.dependencyHash); checks++
   await assert.rejects(db.query(`select public.ediel_record_scoped_capability_evidence_v1(${placeholders},$11,$12::uuid[],$13::timestamptz)`, [...args, changed.dependencyHash, [], '2099-01-01']), /ediel_scoped_capability_evidence_required/); checks++
   const evidenceIds = ['TGT', 'AGT', 'SHADOW_PRODUCTION', 'LIVE_TENANT_INTEGRITY', 'RESTORE_REPLAY'].map((type, index) => ({ type, id: uid(20 + index) }))
   for (const evidence of evidenceIds) {
@@ -86,6 +98,13 @@ try {
   await db.query('select public.ediel_require_scoped_capability_for_message_v1($1,$2)', [uid(1),uid(2)]); checks++
   await db.exec(`update ediel_certification_evidence set status='revoked' where id='${uid(20)}'`)
   assert.equal((await readiness()).ready, false); checks++
+  await assert.rejects(db.exec(`update ediel_route_profiles set company_id='${uid(999)}' where id='${uid(4)}'`), /ediel_route_history_tenant_immutable/); checks++
+  await db.exec(`insert into platform_actor_routes values('${uid(300)}','${uid(301)}','production','PRODAT','23-DDQ-PRODAT',null,'SMTP','wrong@example.invalid','91101','91101',true,'active','authentic-fixture-only','{}');update ediel_route_profiles set metadata=jsonb_build_object('platform_actor_route_id','${uid(300)}') where id='${uid(4)}'`)
+  await assert.rejects(readiness(), /ediel_scoped_capability_evidence_required/); checks++
+  await db.exec(`update platform_actor_routes set communication_address='changed@example.invalid',party_id='OTHER' where id='${uid(300)}'`)
+  await assert.rejects(readiness(), /ediel_scoped_capability_evidence_required/); checks++
+  await db.exec(`update platform_actor_routes set party_id='91101' where id='${uid(300)}'`)
+  assert.equal((await readiness()).dependencies.selectedRouteSecurity.registryRoute.id, uid(300)); checks++
   const acl = await db.query(`select has_function_privilege('authenticated','public.ediel_scoped_capability_readiness_v1(uuid,uuid,uuid,text,text,text,text,uuid,text,text)','execute') rpc,has_table_privilege('service_role','gridex_ediel_readiness.evidence','insert') direct_write`)
   assert.deepEqual(acl.rows, [{ rpc: false, direct_write: false }]); checks++
   await assert.rejects(db.exec('delete from gridex_ediel_readiness.evidence'), /ediel_scoped_evidence_immutable/); checks++
