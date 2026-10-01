@@ -248,6 +248,7 @@
     "20261001000459_ediel_immutable_inbound_reception_response_requests.sql": "ac9d54e65564c53124a8c1a4d4ed6a947ec41c0d3cc0585cf5194311aff11eb7",
     "20261001020640_ediel_service_permission_manual_source_commands.sql": "a29947c7e39e2cec87c59074ced5edcaccd7bd2ca0a44617066b9f766dcce7e9",
     "20261001025903_ediel_registry_zero_route_import_hold.sql": "7921e317f7421c581a27ff497702b505ceafe54b4d01d8eca476cc9fd184e1fc",
-    "20261001031233_ediel_registry_declared_route_source_fields.sql": "18aaa6dc7838327dcd5ef88d5d9f444984e1fe9f4d6ee1101b2396cc093154f2"
+    "20261001031233_ediel_registry_declared_route_source_fields.sql": "18aaa6dc7838327dcd5ef88d5d9f444984e1fe9f4d6ee1101b2396cc093154f2",
+    "20261001040159_ediel_registry_market_source_isolation.sql": "a4829b1f3aee9c1ba2b5fd7ceb052749731458d35e7dc61fb2d2894469910369"
   }
 }

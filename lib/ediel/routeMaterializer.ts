@@ -1,4 +1,5 @@
 //lib/ediel/routeMaterializer.ts
+import { requireElRegistryRouteSource } from "@/lib/actor-registry/registryMarketSource";
 import { supabaseService } from "@/lib/supabase/service";
 import { evaluateRouteProfileProductionReadiness } from "@/lib/ediel/routeProfileProductionReadiness";
 import { makeCustomerOperationBlocker } from "@/lib/customer-operations/blockers";
@@ -294,10 +295,8 @@ async function upsertRouteProfile(params: {
       : (text(params.senderSettings.sender_subaddress_utilts) ??
         text(params.senderSettings.sender_subaddress) ??
         text(params.senderSettings.sender_sub_address));
-  const receiverEdielId =
-    text(params.route.party_id) ??
-    text(params.route.interchange_party_id) ??
-    text(params.gridOwner.ediel_id);
+  const receiverEdielId = text(params.route.interchange_party_id);
+  if (!receiverEdielId) throw new Error("ediel_registry_technical_receiver_required");
   const configuredApplicationReference =
     text(params.route.application_reference) ??
     text(params.senderSettings.application_reference) ??
@@ -525,6 +524,9 @@ export async function materializeCompanyGridOwnerRoute(params: {
       companyMarketPartyRouteId: null,
     };
   }
+
+  const source = await requireElRegistryRouteSource(route.id);
+  if (source.actorId !== route.actor_id || source.wire.family !== messageFamily || source.wire.environment !== route.environment) throw new Error("ediel_registry_materialization_scope_mismatch");
 
   const gridOwner = await getGridOwnerForCompanyMaterialization(params.gridOwnerId);
   if (!gridOwner) {
@@ -778,6 +780,7 @@ export async function materializePlatformActorRoute(params: {
 }): Promise<RouteMaterializationResult[]> {
   const route = await getPlatformActorRoute(params.platformActorRouteId);
   if (!route) return [];
+  await requireElRegistryRouteSource(route.id);
   const messageFamily = upper(route.message_family);
   const messageCode =
     text(metadata(route.metadata).message_code) ??

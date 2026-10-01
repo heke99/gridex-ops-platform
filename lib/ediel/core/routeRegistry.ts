@@ -258,3 +258,15 @@ export async function resolveCanonicalRouteContext(params: {
     routeSelectionSource: resolvedRoute.source,
   }
 }
+
+/** Call only after the actual protected original/operation replay branch.
+ * Fresh mapped business routes use the same private source/dispatch authority;
+ * technical/common ACK routes are qualified by their separate opaque owners. */
+export async function assertFreshBusinessRegistryRouteSource(context:CanonicalRouteContext,messageFamily:string):Promise<void>{
+  if(!['PRODAT','UTILTS','AI'].includes(messageFamily))return
+  const {readRegistryDispatchSource}=await import('@/lib/actor-registry/registryMarketSource')
+  const profileId=context.routeRuntime?.route_profile_id
+  if(!context.companyId||!profileId)throw new Error('ediel_registry_owned_route_profile_required')
+  const source=await readRegistryDispatchSource({companyId:context.companyId,communicationRouteId:context.route.id,routeProfileId:profileId,environment:context.environment,messageFamily,applicationReference:context.applicationReference})
+  if(source&&(source.wire.interchangePartyId!==context.receiverEdielId||source.wire.address!==context.receiverEmail||source.wire.subaddress!==context.receiverSubAddress))throw new Error('ediel_registry_dispatch_context_mismatch')
+}

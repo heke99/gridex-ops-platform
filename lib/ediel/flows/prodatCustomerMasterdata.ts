@@ -1,3 +1,4 @@
+import { readRegistryRouteSource, type SourceQualifiedRegistryRoute } from '@/lib/actor-registry/registryMarketSource';
 // lib/ediel/flows/prodatCustomerMasterdata.ts
 
 import { getGridOwnerById } from "@/lib/masterdata/db";
@@ -376,15 +377,16 @@ async function findVerifiedPlatformActorRoute(input: {
     .eq("environment", input.environment)
     .eq("status", "active")
     .eq("is_verified", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(100);
   if (error) {
     const code = (error as { code?: string }).code ?? "";
     if (["42P01", "42703", "PGRST204", "PGRST205"].includes(code)) return null;
     throw error;
   }
-  return text((data as { id?: string } | null)?.id);
+  const sources = await Promise.all(((data ?? []) as Array<{ id: string }>).map(row => readRegistryRouteSource(row.id)));
+  const qualified = sources.filter((source): source is SourceQualifiedRegistryRoute => source.status === "source_qualified").filter(source => source.market === "EL");
+  if (qualified.length > 1) throw new Error("ediel_registry_current_el_route_ambiguous");
+  return qualified[0]?.routeId ?? null;
 }
 
 async function findCompanyMarketPartyRoute(input: {

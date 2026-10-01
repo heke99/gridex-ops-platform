@@ -1,5 +1,6 @@
 'use server'
 
+import { readRegistryRouteSource, verifyElRegistryActor, type SourceQualifiedRegistryRoute } from '@/lib/actor-registry/registryMarketSource'
 import { revalidatePath } from 'next/cache'
 import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
 import { applyActorRegistryRecords, decodeRegistryUpload, readActorRegistryPriorResult } from '@/lib/actor-registry/importActorRegistry'
@@ -466,15 +467,16 @@ async function syncVerifiedActorToCustomerMasterdata(actorId: string, userId: st
   if (edielResult.error && edielResult.error.code !== 'PGRST116') throw edielResult.error
   const edielId = edielResult.data?.identifier_value ? String(edielResult.data.identifier_value) : null
 
-  const routeResult = await supabaseService
-    .from('platform_actor_routes')
-    .select('communication_address')
-    .eq('actor_id', actorId)
-    .not('communication_address', 'is', null)
-    .limit(1)
-    .maybeSingle()
-  if (routeResult.error && routeResult.error.code !== 'PGRST116') throw routeResult.error
-  const email = routeResult.data?.communication_address ? String(routeResult.data.communication_address) : null
+  const routeResult = await supabaseService.from('platform_actor_routes').select('id').eq('actor_id', actorId).eq('is_verified', true)
+  if (routeResult.error) throw routeResult.error
+  const qualified = await Promise.all((routeResult.data ?? []).map(row => readRegistryRouteSource(String(row.id))))
+  const elSources = qualified.filter((source): source is SourceQualifiedRegistryRoute => source.status === 'source_qualified').filter(source => source.market === 'EL')
+  if (!elSources.length || elSources.some(source => source.actorId !== actorId || source.legalEdielId !== edielId)) throw new Error('ediel_registry_current_el_route_source_required')
+  const countries = new Set(elSources.map(source => source.countryCode))
+  if (countries.size !== 1) throw new Error('ediel_registry_current_el_country_conflict')
+  const emails = new Set(elSources.map(source => source.wire.address))
+  const email = emails.size === 1 ? [...emails][0] : null
+  const country = [...countries][0]
 
   if (roles.has('grid_owner')) {
     const existing = await supabaseService.from('grid_owners').select('id').eq('ediel_id', edielId ?? '').maybeSingle()
@@ -485,7 +487,7 @@ async function syncVerifiedActorToCustomerMasterdata(actorId: string, userId: st
       ediel_id: edielId,
       org_number: actor.org_number ?? null,
       email,
-      country: 'SE',
+      country,
       is_active: true,
       lifecycle_status: 'active',
       verified_for_customer_flow: true,
@@ -526,22 +528,7 @@ export async function verifyPlatformActorForCustomerFlowAction(formData: FormDat
   const context = await requirePlatformAdminActionAccess()
   const actorId = value(formData, 'actorId')
   if (!actorId) throw new Error('actorId saknas.')
-  const registryActor = await supabaseService.from('platform_market_actors').select('metadata').eq('id', actorId).single()
-  if (registryActor.error) throw registryActor.error
-  if ((registryActor.data?.metadata as Record<string, unknown> | null)?.market === 'GAS') throw new Error('gas_actor_not_enabled_for_el_market')
-
-  const actorUpdate = await supabaseService
-    .from('platform_market_actors')
-    .update({ match_status: 'verified', visible_to_tenants: true, verified_at: new Date().toISOString(), verified_by: context.userId, status: 'active', updated_at: new Date().toISOString() })
-    .eq('id', actorId)
-  if (actorUpdate.error) throw actorUpdate.error
-
-  const routeUpdate = await supabaseService
-    .from('platform_actor_routes')
-    .update({ status: 'active', is_verified: true, auto_send_allowed: false, updated_at: new Date().toISOString() })
-    .eq('actor_id', actorId)
-    .eq('status', 'needs_review')
-  if (routeUpdate.error) throw routeUpdate.error
+  await verifyElRegistryActor({ actorUserId: context.userId, actorId })
 
   await syncVerifiedActorToCustomerMasterdata(actorId, context.userId)
 
