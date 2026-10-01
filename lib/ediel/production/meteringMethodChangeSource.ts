@@ -2,6 +2,8 @@ import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {canonicalProdatMethodChangeTuple} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import {supabaseService} from '@/lib/supabase/service'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
+import {createHash} from 'node:crypto'
+export type MeteringMethodChangeSendBasis=Readonly<{kind:'agreement'|'certification'|'not_applicable'}>
 export type MeteringMethodChangeBasis={status:'authorized';companyId:string;environment:'test'|'production';eventId:string;supplyPeriodId:string;supplyStateVersion:number;supplySourceMessageId:string;customerId:string;siteId:string;meteringPointId:string;legalActorId:string;legalSenderId:string;legalReceiverId:string;pointId:string;identityAgency:'9'|'89';gridArea:string;effectiveAt:string;subtype:'F'|'G';reason:string;method:string;contractId:string;contractRevision:string;sourceReference:string;sourceVersion:string;sourceDigest:string}
 export type MeteringMethodChangeHeld={status:'held';missing:string[]}
 export async function readMeteringMethodChangeSource(input:{companyId:string;eventId:string;actorUserId:string}):Promise<MeteringMethodChangeBasis|MeteringMethodChangeHeld>{
@@ -25,12 +27,14 @@ export function assertMeteringMethodChangeCanonicalRoute(b:MeteringMethodChangeB
 
 /** The message ID is only a selector. Native origin/raw/source checks own the
  * authority; Z09F/G cannot fall back to a previously received or portal method. */
-export async function assertMeteringMethodChangeSendSource(message:import('@/lib/ediel/types').EdielMessageRow,actorUserId:string){
- if(!message.company_id||message.direction!=='outbound'||message.message_family!=='PRODAT'||message.message_code!=='Z09')return
- const{data,error}=await supabaseService.rpc('ediel_metering_method_change_message_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
+export async function assertMeteringMethodChangeSendSource(message:import('@/lib/ediel/types').EdielMessageRow,actorUserId:string):Promise<MeteringMethodChangeSendBasis>{
+ if(message.direction!=='outbound'||message.message_family!=='PRODAT'||message.message_code!=='Z09')return Object.freeze({kind:'not_applicable'})
+ if(!message.company_id)throw Error('metering_method_change_company_required')
+ const{data,error}=await supabaseService.rpc('ediel_metering_method_change_send_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
  if(error)throw error
- if(data?.status==='held')throw Error('metering_method_change_current_source_held')
- if(data&&(data.basis?.status!=='authorized'||data.intentId!==message.intent_id))throw Error('metering_method_change_message_origin_mismatch')
- const{error:guardError}=await supabaseService.rpc('ediel_require_metering_method_change_source_current_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
- if(guardError)throw guardError
+ if(!data||data.version!==1||!['agreement','certification','not_applicable'].includes(data.kind)
+  ||data.companyId!==message.company_id||data.environment!==message.environment||data.messageId!==message.id
+  ||data.sourcePayloadHash!==createHash('sha256').update(message.raw_payload??'','utf8').digest('hex')
+  ||data.intentId!==message.intent_id)throw Error('metering_method_change_message_origin_mismatch')
+ return Object.freeze({kind:data.kind})
 }

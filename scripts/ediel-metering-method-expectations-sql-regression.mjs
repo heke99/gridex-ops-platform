@@ -98,5 +98,45 @@ try{
  await rejects(`update gridex_method_expectations.bindings set due_day=current_date`,/immutable_fixture_boundary/)
  const acl=(await db.query(`select has_function_privilege('anon','public.gridex_ediel_metering_method_expectations_v1(jsonb)','execute') exposed,has_function_privilege('service_role','public.require_metering_method_expectation_binding_v1(ediel_messages,jsonb)','execute') internal,has_table_privilege('service_role','gridex_method_expectations.observations','insert') forged`)).rows[0]
  assert.deepEqual(acl,{exposed:false,internal:false,forged:false});checks++
+ // Actual new source-kind helper, with explicitly synthetic existing fixture
+ // registration/current-run owner boundaries. No authentic original is seeded.
+ await db.exec(`alter table ediel_messages add column message_standard text default 'edifact';alter table ediel_messages add column intent_id uuid;
+ create table gridex_metering_method_changes.origins(company_id uuid,message_id uuid);
+ insert into gridex_metering_method_changes.origins select '${c}',message_id from fixture_originals;
+ create schema gridex_negative_fixtures;
+ create table gridex_negative_fixtures.positive_consumptions(company_id uuid,message_id uuid);
+ create table gridex_negative_fixtures.negative_prepared_consumptions(company_id uuid,message_id uuid);
+ create table fixture_certifications(message_id uuid primary key,qualification jsonb,live boolean default true);
+ create function gridex_negative_fixtures.require_positive_message_v1(c uuid,msg uuid,code text) returns jsonb language plpgsql as $$declare q jsonb;begin select qualification into q from public.fixture_certifications where message_id=msg and live;if q is null then raise exception 'current_test_original_required';end if;return q;end$$;
+ create function gridex_negative_fixtures.require_negative_message_v1(c uuid,msg uuid,code text) returns jsonb language sql as $$select gridex_negative_fixtures.require_positive_message_v1(c,msg,code)$$;
+ create function gridex_metering_method_changes.fixture_qualification_v1(q jsonb,c uuid,positive boolean) returns boolean language sql as $$select q->>'companyId'=c::text and q->>'version'='1' and q->>'roleCode'='supplier' and q->>'suite'='PRODAT' and q->'authorizesBusinessEffect'='false'::jsonb and case when positive then q->>'kind'='source_qualified_positive_fixture' and q->'expectedDiagnosticCodes'='[]'::jsonb else q->>'kind'='source_qualified_negative_fixture' and jsonb_array_length(q->'expectedDiagnosticCodes')>0 end$$;
+ create function public.ediel_require_metering_method_change_source_current_v1(c uuid,msg uuid,actor uuid) returns void language plpgsql as $$begin if public.gridex_actor_has_company_permission(actor,c,'communication.send') is not true and public.gridex_actor_has_company_permission(actor,c,'ediel.send') is not true then raise exception 'actor_forbidden';end if;end$$;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930235044_ediel_method_watch_certification_source_kind.sql',import.meta.url),'utf8'));checks++
+ await db.exec("insert into fixture_permissions values('ediel.send')")
+ async function certification(n,negative=false){
+  const mid=uid(n),raw=`SYNTHETIC-CERTIFICATION-${n}`,qualification={kind:negative?'source_qualified_negative_fixture':'source_qualified_positive_fixture',version:1,companyId:c,roleCode:'supplier',suite:'PRODAT',authorizesBusinessEffect:false,expectedDiagnosticCodes:negative?['EXACT-OWN-ERROR']:[]}
+  await db.exec(`insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,status) values('${mid}','${c}','test','outbound','PRODAT','Z09',${literal(raw)},'prepared');
+   insert into gridex_negative_fixtures.${negative?'negative_prepared_consumptions':'positive_consumptions'} values('${c}','${mid}');
+   insert into fixture_certifications values('${mid}',${json(qualification)}||jsonb_build_object('wireSha256',encode(sha256(convert_to(${literal(raw)},'UTF8')),'hex')),true);`)
+  return mid
+ }
+ async function sourceKind(mid){return(await db.exec(`set role service_role;select public.ediel_metering_method_change_send_basis_v1('${c}','${mid}','${actor}') result;reset role;`))[1].rows[0].result.kind}
+ for(const negative of [false,true]){
+  const mid=await certification(negative?302:301,negative)
+  assert.equal(await sourceKind(mid),'certification');checks++
+  assert.deepEqual((await db.query(`select gridex_method_expectations.require_binding_v1(m,'{}') result from ediel_messages m where id='${mid}'`)).rows[0].result,{});checks++
+  await rejects(`select gridex_method_expectations.require_binding_v1(m,'{"meteringMethodExpectationPlan":{}}') from ediel_messages m where id='${mid}'`,/certification_watch_not_applicable/)
+  assert.deepEqual(await invoke('register',{messageId:mid}),[]);checks++
+ }
+ const live=await certification(303);await db.exec(`update fixture_certifications set live=false where message_id='${live}'`)
+ await rejects(`select gridex_method_expectations.require_binding_v1(m,'{}') from ediel_messages m where id='${live}'`,/current_test_original_required/)
+ const ambiguousFixture=await certification(304);await db.exec(`insert into gridex_negative_fixtures.negative_prepared_consumptions values('${c}','${ambiguousFixture}')`)
+ await rejects(`select gridex_method_expectations.require_binding_v1(m,'{}') from ediel_messages m where id='${ambiguousFixture}'`,/fixture_source_ambiguous/)
+ const spoof=await certification(305);await db.exec(`update fixture_certifications set qualification=jsonb_set(qualification,'{wireSha256}','"wrong"') where message_id='${spoof}'`)
+ await rejects(`select gridex_method_expectations.require_binding_v1(m,'{}') from ediel_messages m where id='${spoof}'`,/current_test_original_required/)
+ const production=await certification(306);await db.exec(`update ediel_messages set environment='production' where id='${production}'`)
+ assert.equal((await db.query(`select gridex_metering_method_changes.certification_basis_v1(m) result from ediel_messages m where id='${production}'`)).rows[0].result,null);checks++
+ assert.equal(await sourceKind(request.mid),'agreement');checks++
+ await rejects(`set role service_role;select gridex_metering_method_changes.certification_basis_v1(m) from ediel_messages m`,/permission denied/)
  console.log(`PASS ${checks} targeted TM40 PostgreSQL checks; synthetic immutable-owner boundaries, not native replay/authentic source proof`)
 }catch(error){console.error(error.message,error.where??'');process.exitCode=1}finally{await db.close()}
