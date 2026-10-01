@@ -457,7 +457,9 @@ function applyUtiltsIssuerIdentityGuide(message:EdielMessageRow,result:UtiltsRun
    description:'En tidigare autentisk källa i samma juridiska avsändares namespace har samma fält203. Identiteter gäller över tid och alla avsändarens applikationer.',
    aperakErcCode:'42',aperakFieldCode:'203',aperakText:'INCORRECT DATA',aperakInvalidOccurrence:{segmentIndex:bgm.index,elementIndex:2,componentIndex:0}})
  }
- for(const collision of facts.transactionReferenceCollisions){
+ // A rejected physical header stops own-transaction guide checks. Preserve
+ // earlier header diagnostics rather than replacing them with issuer203.
+ for(const collision of facts.messageReferenceCollision||result.ackPlan.utiltsHeaderRejection?[]:facts.transactionReferenceCollisions){
   const observed=result.facts.transactions[collision.transactionIndex],physical=ides[collision.transactionIndex]
   if(!observed||observed.transactionId!==collision.transactionId||!physical)throw new Error('ediel_utilts_issuer_identity_source_mismatch')
   issues.push({severity:'error',kind:'application',code:'UTILTS_ISSUER_TRANSACTION_REFERENCE_DUPLICATE',title:'Transaktionsidentiteten har redan använts',
@@ -468,7 +470,7 @@ function applyUtiltsIssuerIdentityGuide(message:EdielMessageRow,result:UtiltsRun
  let qualified=issues.length?rebuildUtiltsRuntimeResult({message,result,issues:[...result.validation.issues,...issues]}):result
  if(facts.messageReferenceCollision){
   const own=decideUtiltsRuntimeAckPlan({message,facts:result.facts,validation:rebuildValidation(issues.filter(item=>item.aperakFieldCode==='203'))})
-  qualified={...qualified,ackPlan:{...qualified.ackPlan,utiltsHeaderRejection:{applicationErrors:own.aperakApplicationErrors}}}
+  qualified={...qualified,ackPlan:{...qualified.ackPlan,utiltsHeaderRejection:{applicationErrors:[...(result.ackPlan.utiltsHeaderRejection?.applicationErrors??[]),...own.aperakApplicationErrors]}}}
  }
  if(facts.status!=='held')return qualified
  const held=new Set(qualified.transactionDispositions.filter(item=>item.disposition==='accepted').map(item=>item.transactionId))
