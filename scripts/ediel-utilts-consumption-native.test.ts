@@ -103,24 +103,32 @@ async function seed() {
    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id) VALUES(${lit(ids.point)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},'735999260731000007','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');`)
   const insertSource = async (raw: string, code = 'E66', environment = 'test') => {
+    // Template parties are bound to this fixture's own receiver and issuer.
+    raw = raw.replaceAll('+91100:ZZ+', `+${ids.issuer}:ZZ+`).replaceAll('NAD+MS+91100:', `NAD+MS+${ids.issuer}:`)
+      .replaceAll('+21660:ZZ+', `+${ids.ediel}:ZZ+`).replaceAll('NAD+MR+21660:', `NAD+MR+${ids.ediel}:`)
     const fixture = utiltsNativeSourceFixture(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw, randomUUID())
     const { id, parsed } = fixture
     raw = fixture.raw
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
      SELECT ${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},${lit(ids.request)},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.message_code=${lit(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
-    // Synthetic reviewed history-coverage ground for this fresh issuer: no prior
-    // issued originals exist in its namespace. Bound to the actual admission.
+    // Synthetic reviewed history-coverage ground: the fixture issuer is fresh,
+    // so its complete prior issuance history is exactly the identifiers this
+    // namespace already observed. Bound to the actual admission; genuine reuse
+    // of a 203/505 reference is still reported as a collision by the reader.
     sql(`INSERT INTO gridex_utilts_issuer.source_absence_grounds(source_message_id,source_payload_hash,namespace_id,issuer_version_id,mandate_version_id,namespace_epoch,scope,identifiers_scope,
       registry_version,registry_original_uri,registry_original_bytes,registry_sha256,deletion_history_version,deletion_history_original_uri,deletion_history_bytes,deletion_history_sha256,
       retention_decision_ref,retention_decision_version,retention_decision_bytes,retention_decision_sha256,normalized_issued_identifiers,approval_ref,approval_version,approval_bytes,approval_sha256,approved_at,approved_by)
      SELECT a.source_message_id,a.source_payload_hash,a.namespace_id,a.issuer_version_id,a.mandate_version_id,a.namespace_epoch,'over_time_all_issuer_applications','other_prior_issued_originals',
       'SYNTHETIC-1','synthetic://native/registry',convert_to('SYNTHETIC registry','UTF8'),encode(sha256(convert_to('SYNTHETIC registry','UTF8')),'hex'),
       'SYNTHETIC-1','synthetic://native/deletions',convert_to('SYNTHETIC deletions','UTF8'),encode(sha256(convert_to('SYNTHETIC deletions','UTF8')),'hex'),
-      'SYNTHETIC-RETENTION','1',convert_to('SYNTHETIC retention','UTF8'),encode(sha256(convert_to('SYNTHETIC retention','UTF8')),'hex'),'[]'::jsonb,
+      'SYNTHETIC-RETENTION','1',convert_to('SYNTHETIC retention','UTF8'),encode(sha256(convert_to('SYNTHETIC retention','UTF8')),'hex'),
+      coalesce((SELECT jsonb_agg(jsonb_build_object('field',o.field_number,'reference',o.physical_reference,'originalIssuanceReference',o.source_message_id::text,
+        'originalSourceSha256',pa.source_payload_hash,'originEvidenceSha256',pa.source_payload_hash) ORDER BY o.source_message_id,o.field_number,o.physical_reference)
+       FROM gridex_utilts_issuer.observed_identifiers o JOIN gridex_utilts_issuer.source_admissions pa ON pa.source_message_id=o.source_message_id
+       WHERE o.namespace_id=a.namespace_id AND o.source_message_id<>a.source_message_id),'[]'::jsonb),
       'SYNTHETIC-APPROVAL','1',convert_to('SYNTHETIC approval','UTF8'),encode(sha256(convert_to('SYNTHETIC approval','UTF8')),'hex'),clock_timestamp(),${lit(ids.actor)}
-     FROM gridex_utilts_issuer.source_admissions a WHERE a.source_message_id=${lit(id)} AND a.namespace_id IS NOT NULL
-      AND NOT EXISTS(SELECT FROM gridex_utilts_issuer.source_admissions prior WHERE prior.namespace_id=a.namespace_id AND prior.source_message_id<>a.source_message_id);`)
+     FROM gridex_utilts_issuer.source_admissions a WHERE a.source_message_id=${lit(id)} AND a.namespace_id IS NOT NULL;`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     return data as unknown as EdielMessageRow

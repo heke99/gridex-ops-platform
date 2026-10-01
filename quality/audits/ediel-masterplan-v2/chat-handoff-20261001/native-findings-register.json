@@ -180,6 +180,24 @@
       "severity": "test",
       "cause": "inbound fixtures kept template NAD+FR/DO and lacked the UNB test indicator; legal-context derivation correctly held them",
       "fix": "fixtures rewrite legal parties to fixture identities and set UNB ack/test indicators; capture rule-pack basis after recording, in production order"
+    },
+    {
+      "id": "NATIVE-FIX-220000",
+      "severity": "high",
+      "cause": "0930 rebuilt the dispatch base body and dropped 20260925235000 scoping (malformed PRODAT unscoped; stale Z08 LK row with non-Z08 bytes exempted)",
+      "fix": "migration 20261001220000 restores it exactly"
+    },
+    {
+      "id": "NATIVE-FIX-CLOSURE-RESIDUE",
+      "severity": "test",
+      "cause": "closure-wire test left a force-inserted malformed outbound row; the wire-reference namespace correctly failed closed for every later outbound allocation (76 downstream failures)",
+      "fix": "test removes its row in finally"
+    },
+    {
+      "id": "NATIVE-FIX-UTILTS-FIXTURE-OWNERSHIP",
+      "severity": "test",
+      "cause": "UTILTS consumption/S02 fixtures lacked UNB test indicator, tenant receiver identity, issuer registry/history ground and the production recording step",
+      "fix": "fixture-only: owned identities, synthetic approved issuer + coverage ground, recordFinalCanonicalUtiltsDecision in production order"
     }
   ],
   "open": [
@@ -253,6 +271,12 @@
       "severity": "medium",
       "cause": "variant of 142690: customer-contract-documents and invoice-file retention buckets also have DELETE-only storage policies for authenticated",
       "fix": "verify with their native suites; apply the same delete-only visibility if they fail the same way"
+    },
+    {
+      "id": "NATIVE-OPEN-11",
+      "severity": "medium",
+      "cause": "UTILTS consumption tests feed E30/E72/E73/S01/S06 to a supplier fixture; the source-edition catalog allows only grid_owner/metering_collector/balance_responsible/ISR receivers for those codes, so inbound legal context correctly holds them. Remaining ~95 consumption failures also include issuer message-reference reuse across derived sources and R1-R4 collision cases.",
+      "fix": "Per-test receiver role matching the catalog, distinct document references for distinct derived messages; continue cluster by cluster. CI runs the full native suite as an absolute gate."
     }
   ],
   "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
