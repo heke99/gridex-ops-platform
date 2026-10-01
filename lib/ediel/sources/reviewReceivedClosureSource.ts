@@ -69,7 +69,7 @@ export async function reviewReceivedClosureSource(input:{companyId:string;enviro
           const facility=await readSelectedFacilityEvidence({companyId:input.companyId,environment:input.environment,
             meteringPointId:String(point.id),siteId:String(point.site_id),objectId:object.objectId,signal:AbortSignal.timeout(5000)})
           if(facility.gridOwner.ediel_id!==wire.legalSender)throw new Error('closure_sender_unavailable')
-          const {source,coverage,legacyEndDateProjection}=await resolveClosureCoverage(seed,wire,readset,point)
+          const {source,coverage,legacyEndDateProjection}=await resolveClosureCoverage(seed,wire,readset,point,input.reviewerUserId)
           const business:ReviewedClosureBusiness={version:1,owner:'reviewed-received-closure-v1',coverage:'reviewed_post_ledger_closure',
             sourceDisposition:'not_established',businessDisposition:'reviewed',graphNamespace:'legacy_unqualified',
             sourceMessageId:input.sourceMessageId,sourcePayloadHash:seed.evidence.sourcePayloadHash,sourceReceivedAt:original.message_received_at!,

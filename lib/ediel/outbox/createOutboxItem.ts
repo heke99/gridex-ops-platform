@@ -14,9 +14,19 @@ export type CreateEdielOutboxItemInput = {
   lockKey?: string | null
   intentId?: string | null
   payload?: Record<string, unknown> | null
+  /** First response origination may queue a newly inserted outbox, while an
+   * existing retry/failed entry retains its established state. */
+  queueOnlyIfInserted?: boolean
+}
+
+function isAcknowledgement(message: EdielMessageRow): boolean {
+  return ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(message.message_family)
 }
 
 function outboxLockKey(message: EdielMessageRow, sourceMessageId?: string | null): string {
+  // An own ACK is the immutable response original, including its exact scope.
+  // Several own objects/transactions can answer one inbound source.
+  if (isAcknowledgement(message)) return [message.company_id ?? 'platform', message.environment, 'ack', message.id].join(':')
   return [
     message.company_id ?? 'platform',
     message.environment,
@@ -40,7 +50,7 @@ function routeProfileIdForOutbox(input: CreateEdielOutboxItemInput): string | nu
 }
 
 export async function createOutboxItem(input: CreateEdielOutboxItemInput): Promise<Record<string, unknown> | null> {
-  const lockKey = input.lockKey ?? outboxLockKey(input.message, input.sourceMessageId)
+  let lockKey = isAcknowledgement(input.message) ? outboxLockKey(input.message) : input.lockKey ?? outboxLockKey(input.message, input.sourceMessageId)
   const row = {
     company_id: input.message.company_id ?? null,
     ediel_message_id: input.message.id,
@@ -61,30 +71,52 @@ export async function createOutboxItem(input: CreateEdielOutboxItemInput): Promi
   }
   const outbox = tenantDb(row.company_id).from('ediel_outbox') as ReturnType<typeof supabaseService.from>
 
-  // The unique lock is the concurrency arbiter. A retry must never overwrite
-  // sending/sent/uncertain state with queued via ON CONFLICT DO UPDATE.
-  const { data, error } = await outbox
-    .upsert(row, { onConflict: 'lock_key', ignoreDuplicates: true })
-    .select('*')
-    .maybeSingle()
-
-  if (error) throw error
-
-  let saved = data as Record<string, unknown> | null
-  let newlyQueued = Boolean(saved)
-  if (!saved) {
-    const { data: existing, error: lookupError } = await outbox
-      .select('*').eq('lock_key', lockKey).maybeSingle()
-    if (lookupError) throw lookupError
-    if (!existing) throw new Error('ediel_outbox_lock_conflict_without_row')
-    const prior = existing as Record<string, unknown>
+  const assertIdentity = (prior: Record<string, unknown>) => {
     if (prior.company_id !== row.company_id || prior.environment !== row.environment ||
         prior.ediel_message_id !== row.ediel_message_id || prior.source_message_id !== row.source_message_id ||
         prior.route_profile_id !== row.route_profile_id) {
       throw new Error('ediel_outbox_lock_identity_conflict')
     }
-    saved = prior
-    if (row.status === 'queued' && ['draft', 'prepared', 'failed'].includes(String(prior.status))) {
+  }
+  let saved: Record<string, unknown> | null = null
+  let newlyQueued = false
+  if (isAcknowledgement(input.message)) {
+    // Retain the exact old message's entry even when its original lock predates
+    // ACK-id keys. An ambiguous legacy history is held, never arbitrarily picked.
+    const { data: existing, error: lookupError } = await outbox.select('*')
+      .eq('ediel_message_id', row.ediel_message_id).eq('environment', row.environment).limit(2)
+    if (lookupError) throw lookupError
+    const entries = existing as Record<string, unknown>[] | null
+    if (entries && entries.length > 1) throw new Error('ediel_outbox_message_identity_ambiguous')
+    if (entries?.length) {
+      saved = entries[0]
+      assertIdentity(saved)
+      const originalLock = typeof saved.lock_key === 'string' && saved.lock_key.trim() ? saved.lock_key : null
+      if (!originalLock) throw new Error('ediel_outbox_original_lock_unavailable')
+      lockKey = originalLock
+    }
+  }
+  if (!saved) {
+    // A first response's unique ACK-id key arbitrates concurrent origination.
+    // ignoreDuplicates never overwrites an existing transport/retry state.
+    const { data, error } = await outbox
+      .upsert(row, { onConflict: 'lock_key', ignoreDuplicates: true })
+      .select('*').maybeSingle()
+    if (error) throw error
+    saved = data as Record<string, unknown> | null
+    newlyQueued = Boolean(saved)
+    if (!saved) {
+      const { data: existing, error: lookupError } = await outbox
+        .select('*').eq('lock_key', lockKey).maybeSingle()
+      if (lookupError) throw lookupError
+      if (!existing) throw new Error('ediel_outbox_lock_conflict_without_row')
+      saved = existing as Record<string, unknown>
+      assertIdentity(saved)
+    }
+  }
+  if (!newlyQueued) {
+    const prior = saved
+    if (!input.queueOnlyIfInserted && row.status === 'queued' && ['draft', 'prepared', 'failed'].includes(String(prior.status))) {
       const { data: updated, error: updateError } = await outbox
         .update({ status: 'queued', queued_at: row.queued_at, last_error: null, updated_by: input.actorUserId })
         .eq('id', prior.id as string)

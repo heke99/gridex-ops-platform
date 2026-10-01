@@ -6,11 +6,15 @@ import { meterChangeSendIssue } from '@/lib/ediel/prodat/prodatMeterChangeAuthor
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { changeRaw, changeBody } from './fixtures/prodat-meter-change'
 import { alphabets } from './fixtures/prodat-register'
-const row = (raw: string, standard: 'xml' | 'ai_list', code?: string) => ({ raw_payload: raw, message_standard: standard, message_family: standard === 'xml' ? 'NBS_XML' : 'AI_LIST', message_code: code, direction: 'outbound', environment: 'test', parsed_payload: {} } as EdielMessageRow)
+import { buildAiListCsv } from '@/lib/ediel/aiList'
+const row = (raw: string, standard: 'xml' | 'ai_list', code?: string) => ({ raw_payload: raw, message_standard: standard, message_family: standard === 'xml' ? 'NBS_XML' : 'AI_LIST', message_code: code, direction: 'outbound', environment: 'test', message_created_at: '2026-09-30T12:00:00.000Z', created_at: '2026-09-30T12:00:00.000Z', parsed_payload: {} } as EdielMessageRow)
+const csv = (name: string) => buildAiListCsv({listType:'AI',senderEdielId:'12345',senderName:'Supplier',receiverEdielId:'54321',receiverName:'Network',
+  createdAt:'2026-09-30T12:00:00Z',fromDate:'2026-10-01',toDate:'2026-11-01',details:[{anlaggningsId:'735123456789012345',kodlista:'9',
+    natavrakningsomrade:'NET',balansansvarsId:'BRP',elanvandarId:'199001011234',elanvandarNamn:name}]})
 
 it.each([
-  ['ai_list', 'Ver20140401;A;B\n1;2;3?'],
-  ['ai_list', 'A;B\n1;2;3?'],
+  ['ai_list', csv('Literal?')],
+  ['ai_list', csv("Literal?'UNH+data")],
   ['xml', '<Document><Text>literal?</Text></Document>'],
 ] as const)('preserves actual %s raw/row/guards despite EDIFACT service characters', (messageStandard, rawPayload) => {
   const parse = preflightEdielPayload({ rawPayload, messageStandard, mode: 'parse' })

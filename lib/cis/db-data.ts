@@ -1,5 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
-import type { UtiltsConsumptionContractV1 } from '@/lib/ediel/utilts/consumptionContract'
+import type { UtiltsConsumptionContract } from '@/lib/ediel/utilts/consumptionContract'
 import type {
   BillingUnderlayRow,
   GridOwnerDataRequestRow,
@@ -224,6 +224,7 @@ export async function createGridOwnerDataRequest(input: {
   requestPayload?: Record<string, unknown> | null
 }): Promise<GridOwnerDataRequestRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
@@ -335,6 +336,7 @@ export async function createPartnerExport(input: {
   notes?: string | null
 }): Promise<PartnerExportRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
@@ -759,6 +761,7 @@ export async function ingestMeteringValue(input: {
   rawPayload?: Record<string, unknown>
 }): Promise<MeteringValueRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId,
@@ -893,7 +896,7 @@ export async function ingestBillingUnderlay(input: {
   underlayMonth?: number | null
   underlayYear?: number | null
   status: 'pending' | 'received' | 'validated' | 'exported' | 'failed'
-  totalKwh?: number | null
+  totalKwh?: number | string | null
   totalSekExVat?: number | null
   currency?: string
   sourceSystem?: string
@@ -902,10 +905,12 @@ export async function ingestBillingUnderlay(input: {
   expectedCompanyId?: string
   immutableAttribution?: boolean
   boundSourceMessageId?: string
-  boundContracts?: readonly UtiltsConsumptionContractV1[]
+  boundContracts?: readonly UtiltsConsumptionContract[]
 }): Promise<BillingUnderlayRow> {
+  if (typeof input.totalKwh === 'string' && !input.immutableAttribution) throw new Error('utilts_consumption_binding_conflict:unbound_decimal')
   const now = new Date().toISOString()
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
@@ -935,7 +940,7 @@ export async function ingestBillingUnderlay(input: {
     // Stored contracts, complete contributor membership and ownership locks are
     // resolved again in the same database transaction as the authoritative insert.
     const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_consume_utilts_billing_v1', args: {
-      p_company_id: string; p_source_message_id: string; p_actor_id: string | null; p_expected_contracts: readonly UtiltsConsumptionContractV1[]
+      p_company_id: string; p_source_message_id: string; p_actor_id: string | null; p_expected_contracts: readonly UtiltsConsumptionContract[]
     }) => PromiseLike<{ data: unknown; error: unknown }>
     const { data, error } = await rpc('gridex_consume_utilts_billing_v1', { p_company_id: companyId, p_source_message_id: input.boundSourceMessageId, p_actor_id: input.actorUserId, p_expected_contracts: input.boundContracts })
     if (error) throw error

@@ -1,3 +1,5 @@
+import {readExistingZ01Original} from '@/lib/ediel/prodat/z01OriginalReplay'
+import {z01WireReferencesFromIntent} from '@/lib/ediel/prodat/z01WireReferences'
 // lib/ediel/intent/renderGateway.ts
 //
 // RenderGateway (Batch 1). The single sanctioned bridge that turns a validated
@@ -28,10 +30,14 @@ import {
 import type { EdielIntentBlockingReason, EdielMessageIntent } from '@/lib/ediel/intent/types'
 import { assertProdatZ01Renderable } from '@/lib/ediel/profiles/prodatZ01Guard'
 import { tenantDb } from '@/lib/supabase/tenantDb'
+import { buildServicePermissionDraft } from '@/lib/ediel/intent/renderers/servicePermission'
+import { reserveServicePermissionOrigin, type ServicePermissionOriginBasis, type ServicePermissionOriginInput } from '@/lib/ediel/services/permissionOrigin'
+import { getEdielMessageById } from '@/lib/ediel/db'
+import { buildServiceReportingContext } from '@/lib/ediel/services/reporting'
 
 export type RenderGatewayResult =
   | {
-      status: 'queued'
+      status: 'queued' | 'existing'
       intentId: string
       message: EdielMessageRow
       blockingReasons: never[]
@@ -42,6 +48,51 @@ export type RenderGatewayResult =
       message: null
       blockingReasons: EdielIntentBlockingReason[]
     }
+
+export async function renderAndQueueServicePermission(params: {
+  intentId: string; origin: ServicePermissionOriginInput; basis: ServicePermissionOriginBasis;
+  routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>; outboundRequestId: string
+}): Promise<RenderGatewayResult | { status: 'existing'; intentId: string; message: EdielMessageRow; blockingReasons: never[] }> {
+  const gate = await loadValidatedIntent(params.intentId)
+  if (!gate.ok) return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
+  const reservation = await reserveServicePermissionOrigin({ ...params.origin, intentId: params.intentId })
+  if (reservation.status === 'held') return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: reservation.missing.map(code => ({ code, message: code, severity: 'block' })) }
+  let message = reservation.messageId ? await getEdielMessageById(reservation.messageId) : null
+  if (message && message.company_id !== params.origin.providerCompanyId) throw new Error('ediel_permission_existing_message_tenant_mismatch')
+  if (message && message.status !== 'draft') return { status: 'existing', intentId: params.intentId, message, blockingReasons: [] }
+  try {
+    if (!message) {
+      const draft = await buildServicePermissionDraft({ actorUserId: params.origin.actorUserId, basis: params.basis, intent: gate.intent, routeContext: params.routeContext, outboundRequestId: params.outboundRequestId })
+      try {
+        message = await finalizeOutboundDraft({ actorUserId: params.origin.actorUserId, requestType: 'metering_access', routeContext: params.routeContext, draft, outboundRequestId: params.outboundRequestId,
+          reportingContext: params.basis.code === 'Z13' ? buildServiceReportingContext(params.basis,gate.intent,params.routeContext,params.origin.actorUserId) : undefined,
+          duplicateCheck: { sourceType: 'manual', sourceId: params.intentId, receiverEdielId: params.routeContext.receiverEdielId, messageFamily: 'PRODAT', messageCode: params.origin.code, messageVersion: draft.messageVersion } })
+      } catch (error) {
+        // A concurrent canonical insert is atomically bound by the database.
+        // Reuse only that exact permission's persisted message, never rerender.
+        if ((error as { code?: string })?.code !== '23505') throw error
+        const concurrent = await reserveServicePermissionOrigin({ ...params.origin, intentId: params.intentId })
+        if (concurrent.status !== 'reserved' || !concurrent.messageId) throw error
+        message = await getEdielMessageById(concurrent.messageId)
+        if (!message || message.company_id !== params.origin.providerCompanyId) throw error
+        if (message.status !== 'draft') return { status: 'existing', intentId: params.intentId, message, blockingReasons: [] }
+      }
+    }
+    // A canonical duplicate is reusable only when the database has bound it to
+    // this immutable operation. A prior sent Z18 may never be linked or queued.
+    const bound = await reserveServicePermissionOrigin({ ...params.origin, intentId: params.intentId })
+    if (bound.status !== 'reserved' || bound.messageId !== message.id || message.intent_id !== params.intentId || message.outbound_request_id !== params.outboundRequestId) throw new Error('ediel_permission_current_operation_message_required')
+    if (message.status !== 'draft') return { status: 'existing', intentId: params.intentId, message, blockingReasons: [] }
+    await updateIntentLifecycle(params.intentId, { renderStatus: 'rendered', edielMessageId: message.id, outboundRequestId: params.outboundRequestId, actorUserId: params.origin.actorUserId })
+    await queuePreparedEdielMessage({ actorUserId: params.origin.actorUserId, messageId: message.id, intentId: params.intentId, outboundRequestId: params.outboundRequestId, externalReference: message.external_reference })
+    await updateIntentLifecycle(params.intentId, { outboxStatus: 'queued', actorUserId: params.origin.actorUserId })
+    return { status: 'queued', intentId: params.intentId, message, blockingReasons: [] }
+  } catch (error) {
+    const reason = classifyRenderError(error)
+    await updateIntentLifecycle(params.intentId, { renderStatus: 'failed', blockingReasons: [reason], actorUserId: params.origin.actorUserId })
+    return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: [reason] }
+  }
+}
 
 async function loadValidatedIntent(intentId: string): Promise<
   | { ok: true; intent: EdielMessageIntent }
@@ -155,6 +206,14 @@ export async function renderAndQueueFacilityLookupZ01(params: {
   outboundRequestId: string
   operationId: string
 }): Promise<RenderGatewayResult> {
+  const storedIntent = await getEdielMessageIntentById(params.intentId)
+  if(storedIntent?.edielMessageId){
+    try{
+      const original=await readExistingZ01Original({intent:storedIntent,actorUserId:params.actorUserId,companyId:params.routeContext.companyId,environment:params.routeContext.environment,
+        outboundRequestId:params.outboundRequestId,operationId:params.operationId,customerId:params.request.customer_id,siteId:params.request.customer_site_id,routeId:params.routeContext.route.id})
+      if(original)return {status:'existing',intentId:params.intentId,message:original,blockingReasons:[]}
+    }catch(error){return {status:'blocked',intentId:params.intentId,message:null,blockingReasons:[classifyRenderError(error)]}}
+  }
   const gate = await loadValidatedIntent(params.intentId)
   if (!gate.ok) {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
@@ -193,6 +252,8 @@ export async function renderAndQueueFacilityLookupZ01(params: {
 
   try {
     const { draft } = await buildFacilityLookupZ01Draft({
+      companyId: gate.intent.companyId,
+      wireReferences: z01WireReferencesFromIntent(gate.intent),
       actorUserId: params.actorUserId,
       request: params.request,
       routeContext: params.routeContext,
@@ -276,6 +337,14 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
   messageVersion: string
   routeProfileId: string
 }): Promise<RenderGatewayResult> {
+  const storedIntent = await getEdielMessageIntentById(params.intentId)
+  if(storedIntent?.edielMessageId){
+    try{
+      const original=await readExistingZ01Original({intent:storedIntent,actorUserId:params.actorUserId,companyId:params.routeContext.companyId,environment:params.routeContext.environment,
+        outboundRequestId:params.outboundRequestId,operationId:params.operationId,customerId:params.dataRequest.customer_id,siteId:params.dataRequest.site_id,routeId:params.routeContext.route.id,dataRequestId:params.dataRequest.id})
+      if(original)return {status:'existing',intentId:params.intentId,message:original,blockingReasons:[]}
+    }catch(error){return {status:'blocked',intentId:params.intentId,message:null,blockingReasons:[classifyRenderError(error)]}}
+  }
   const gate = await loadValidatedIntent(params.intentId)
   if (!gate.ok) {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
@@ -283,14 +352,16 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
 
   try {
     const { linkEdielMessage } = await import('@/lib/ediel/db')
+    const wireReferences = z01WireReferencesFromIntent(gate.intent)
 
     const draft = await buildCustomerMasterdataZ01Draft({
       actorUserId: params.actorUserId,
       routeContext: params.routeContext,
       dataRequest: params.dataRequest,
       gridOwner: params.gridOwner,
-      externalReference: params.externalReference,
-      transactionReference: params.transactionReference,
+      wireReferences,
+      externalReference: wireReferences.documentReference,
+      transactionReference: wireReferences.transactionReference,
       messageVersion: params.messageVersion,
       operationId: params.operationId,
     })
@@ -354,7 +425,7 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
       actorUserId: params.actorUserId,
       messageId: message.id,
       outboundRequestId: params.outboundRequestId,
-      externalReference: params.externalReference,
+      externalReference: message.external_reference ?? wireReferences.documentReference,
       intentId: params.intentId,
       payload: {
         edielCode: 'Z01',

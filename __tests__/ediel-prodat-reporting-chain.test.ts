@@ -1,8 +1,14 @@
+import {transportJournalFixture} from './fixtures/ediel-transport-journal';
 import { beforeEach, it, expect, vi } from 'vitest';
 import type { ReactElement, ReactNode } from 'react';
 import { reportingId, reportingNow, reportingPrepared } from './fixtures/prodat-reporting-permission';
-const io = vi.hoisted(() => ({ from: vi.fn(), runtime: vi.fn(), send: vi.fn(), archive: vi.fn(), authorize: vi.fn(), operational: vi.fn(), company: vi.fn() }));
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }));
+import { createHash } from 'node:crypto';
+import { encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding';
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer';
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy';
+import { canonicalRegisteredEdielGuideScopes } from '@/lib/ediel/rulebook/canonicalEdielFacade';
+const io = vi.hoisted(() => ({ from: vi.fn(), runtime: vi.fn(), send: vi.fn(), archive: vi.fn(), authorize: vi.fn(), operational: vi.fn(), company: vi.fn(),rpc:vi.fn() }));
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from,rpc:io.rpc } }));
 vi.mock('@/lib/admin/guards', () => ({ requirePlatformAdminActionAccess: async () => ({ userId: '00000000-0000-4000-8000-000000000012' }), requireCompanyScopedActionAccess: io.authorize, isPlatformAdminContext: () => true }));
 vi.mock('@/lib/ediel/actionAccess', () => ({ requireEdielWriteActionAccess: async () => ({ userId: '00000000-0000-4000-8000-000000000012' }) }));
 vi.mock('@/lib/tenant/scope', () => ({ assertUserCanOperateCompany: io.company }));
@@ -18,7 +24,8 @@ import { createAndSendSystemTestOutboundForRunAction, sendSystemTestOutboundMess
 import { runTgtAutopilotForRun } from '@/lib/ediel/testing/tgtAutopilot';
 import { loadTgtReportingValidationContext } from '@/lib/ediel/testing/tgtReportingPermissionContext';
 import type { EdielMessageRow } from '@/lib/ediel/types';
-type Row = Record<string, unknown>;
+type Row = Record<string, unknown>;let journal:ReturnType<typeof transportJournalFixture>;
+let native: ReturnType<typeof reportingNativeBoundary>;
 let db: Record<string, Row[]>, reads: Array<{
     table: string;
     filters: Array<[
@@ -26,6 +33,98 @@ let db: Record<string, Row[]>, reads: Array<{
         unknown
     ]>;
 }>, seq: number;
+/** Declared synthetic native boundary for these consumer regressions. The real
+ * renderer, opaque fixture adapter, reporting/date/canonical validators and
+ * tenant checks execute. This supplies no authentic original or native
+ * acceptance evidence and cannot authorize production business effects. */
+function reportingNativeBoundary() {
+    const originals = new Map<string, { raw: string; qualification: Row }>();
+    const prepared = new Map<string, { raw: string; qualification: Row; actor: string; consumed: boolean }>();
+    const owners = new Map<string, { company: string; raw: string; fixtureWitness: string; consumed: boolean }>();
+    const hash = (raw: string) => createHash('sha256').update(encodeEdifactLatin1(raw)).digest('hex');
+    let registrationAvailable = true;
+    const assertContext = (input: Row) => {
+        const run = db.ediel_test_runs.find(r => r.id === input.runId && r.company_id === input.companyId);
+        if (!run || input.companyId !== reportingId(10) || input.actorUserId !== reportingId(12) || input.stepNo !== 1 || run.status !== 'in_progress') throw Error('synthetic_positive_owner_scope');
+        return run;
+    };
+    async function rpc(name: string, args: Row) {
+        if (name === 'gridex_ediel_positive_fixture_read_v1') {
+            if (!registrationAvailable) return { data: null, error: null };
+            const input = args.p_context as Row, run = assertContext(input), raw = String(input.rawPayload);
+            const wire = tokenizeEdifact(raw), unb = wire.segments.filter(s => s.tag === 'UNB');
+            if (unb.length !== 1 || segmentComposite(unb[0], 11, wire.una)[0] !== '1') throw Error('synthetic_positive_test_only');
+            const registrationId = reportingId(seq++), wireSha256 = hash(raw);
+            const qualification = { kind: 'source_qualified_positive_fixture', version: 1, registrationId, companyId: input.companyId,
+                runId: input.runId, roleCode: run.role_code, caseCode: run.test_case_code, suite: run.test_suite, revision: 'declared-synthetic-original-v1', stepNo: input.stepNo,
+                wireSha256, originalFileSha256: wireSha256, expectedOutcome: 'positive', expectedDiagnosticCodes: [], testReceiverEdielId: segmentComposite(unb[0], 3, wire.una)[0],
+                validUntil: '2026-12-01T00:00:00.000Z', sourceReference: 'declared consumer-test original boundary', ownerDecisionReference: 'synthetic publisher port only', authorizesBusinessEffect: false };
+            originals.set(registrationId, { raw, qualification });
+            return { data: qualification, error: null };
+        }
+        if (name === 'gridex_ediel_positive_fixture_prepare_v1') {
+            const input = args.p_context as Row; assertContext(input);
+            const original = originals.get(String(input.registrationId));
+            if (!original || original.raw !== input.rawPayload) throw Error('synthetic_positive_original_required');
+            const witnessId = reportingId(seq++);
+            prepared.set(witnessId, { ...original, actor: String(input.actorUserId), consumed: false });
+            return { data: { witnessId, qualification: original.qualification }, error: null };
+        }
+        if (name === 'resolve_canonical_ediel_rule_pack_with_witness_v1') {
+            const policy = resolveCanonicalEdielPolicy({ family: String(args.p_family), messageCode: String(args.p_message_code), subtypeOrReasonCode: String(args.p_transaction_subtype), direction: args.p_direction as 'outbound', referenceDate: String(args.p_business_date), mode: 'catalog_evidence' });
+            const guide = canonicalRegisteredEdielGuideScopes().find(g => g.family === policy.family && g.canonicalGuideRevision === policy.guide.guideRevision);
+            if (!guide) throw Error('synthetic_original_named_guide_required');
+            const profileKey = `${policy.family}:${policy.code}:${policy.subtype}:${guide.guideVersion}:r${guide.guideRevision}`;
+            const profile = { family: policy.family, messageCode: policy.code, guideVersion: guide.guideVersion, guideRevision: guide.guideRevision, canonicalDirection: policy.direction, transactionSubtype: policy.subtype, reasonForTransaction: policy.transactionReasonCode };
+            const row = { rule_pack_id: reportingId(70), message_profile_id: reportingId(71), market: 'electricity', family: policy.family, guide_version: guide.guideVersion, guide_revision: guide.guideRevision,
+                unh_association_code: policy.associationAssignedCode, valid_from: policy.guide.effectiveFrom, valid_to: policy.guide.effectiveTo, source_document: 'Declared synthetic named-registry boundary', source_hash: 'a'.repeat(64), field_matrix_version: null,
+                profile_key: profileKey, business_process: policy.processGroup, phase: policy.phase, profile, parser_ready: true, builder_ready: true, validator_ready: true, ack_ready: true, state_machine_ready: true };
+            return { data: [{ ...row, original_version: `${guide.guideVersion}:r${guide.guideRevision}`, original_snapshot: { rulePack: { id: row.rule_pack_id, source_hash: row.source_hash, guide_version: row.guide_version, guide_revision: row.guide_revision },
+                messageProfile: { id: row.message_profile_id, rule_pack_id: row.rule_pack_id, profile_key: profileKey, profile }, guideSources: [] } }], error: null };
+        }
+        if (name === 'ediel_prepare_outbound_owner_witness_v1') {
+            const input = args.p_input as Row, fixtureWitness = String(input.sourceQualifiedPositiveFixtureWitnessId), fixture = prepared.get(fixtureWitness);
+            if (!fixture || fixture.consumed || fixture.raw !== input.rawPayload || fixture.actor !== input.actorUserId || fixture.qualification.companyId !== input.companyId || input.environment !== 'test') throw Error('synthetic_same_positive_token_required');
+            const witnessId = reportingId(seq++);
+            owners.set(witnessId, { company: String(input.companyId), raw: String(input.rawPayload), fixtureWitness, consumed: false });
+            return { data: { version: 1, witnessId, evidence: input.rulePackEvidence }, error: null };
+        }
+        if (name === 'ediel_capture_source_rule_pack_basis_v1') {
+            const message = db.ediel_messages.find(m => m.id === args.p_message_id && m.company_id === args.p_company_id);
+            if (!message) throw Error('synthetic_owned_saved_original_required');
+            return { data: { rulePackId: message.canonical_rule_pack_id, messageProfileId: message.rule_profile_version_id, profileKey: message.rule_profile_key,
+                version: message.rule_profile_version, sourceHash: message.rule_pack_checksum, snapshot: message.rule_pack_snapshot }, error: null };
+        }
+        if (name === 'gridex_ediel_repair_accepted_transport_projection_v1') {
+            const result = await journal.rpc(name, args);
+            if (result.data) {
+                const projection = result.data as Row;
+                const message = db.ediel_messages.find(m => m.id === args.p_message_id && m.company_id === args.p_company_id && m.environment === args.p_environment);
+                if (!message || createHash('sha256').update(String(message.raw_payload), 'utf8').digest('hex') !== projection.originalHash) throw Error('synthetic_frozen_projection_scope');
+                if (!['acknowledged', 'delivered'].includes(String(message.status))) message.status = 'sent';
+                message.message_sent_at ??= projection.observedAt;
+            }
+            return result;
+        }
+        if (name === 'ediel_project_accepted_source_state_v1') {
+            const { data } = await journal.rpc('gridex_ediel_accepted_transport_projection_v1', args);
+            const projection = data as Row | null;
+            if (!projection || projection.originalHash !== args.p_expected_original_hash) throw Error('synthetic_source_projection_requires_private_acceptance');
+            return { data: { status: 'source_projection', companyId: projection.companyId, environment: projection.environment, messageId: projection.messageId,
+                originalHash: projection.originalHash, observedAt: projection.observedAt, authorizesProviderEntry: false }, error: null };
+        }
+        if (name === 'ediel_prodat_recovery_original_basis_v1') return { data: null, error: null };
+        return journal.rpc(name, args);
+    }
+    function consume(message: Row) {
+        const snapshot = message.execution_context_snapshot as Row, witness = owners.get(String(snapshot?.outboundOwnerWitnessId));
+        const fixture = witness ? prepared.get(witness.fixtureWitness) : null;
+        if (!witness || !fixture || witness.consumed || fixture.consumed || message.company_id !== witness.company || message.raw_payload !== witness.raw
+            || snapshot.sourceQualifiedPositiveFixtureWitnessId !== witness.fixtureWitness) throw Error('synthetic_one_use_original_insert_required');
+        witness.consumed = fixture.consumed = true;
+    }
+    return { rpc, consume, disableRegistration: () => { registrationAvailable = false; } };
+}
 function from(table: string) {
     const filters: Array<[
         string,
@@ -39,6 +138,7 @@ function from(table: string) {
         const all = db[table] ??= [], found = all.filter(r => predicates.every(p => p(r))).slice(0, cap);
         let result = found;
         if (operation === 'insert') {
+            if (table === 'ediel_messages') values.forEach(native.consume);
             result = values.map(v => ({ id: reportingId(seq++), created_at: new Date(reportingNow).toISOString(), updated_at: new Date(reportingNow).toISOString(), ...v }));
             db[table] = [...all, ...result];
         }
@@ -75,7 +175,24 @@ async function saveFromActiveForm(overrides:Record<string,string>={}) {
     expect(io.send).not.toHaveBeenCalled();
     return data;
 }
-beforeEach(() => { vi.clearAllMocks(); vi.spyOn(Date, 'now').mockReturnValue(reportingNow); seq = 100; reads = []; const p = reportingPrepared(); db = { ediel_test_runs: [{ ...p.run, notes: null, status: 'in_progress', started_at: '2026-09-01T00:00:00.000Z', encryption_mode: 'none' }], ediel_messages: [], ediel_test_run_messages: [] }; io.from.mockImplementation(from); p.runtime.settings!.routeProfileId = reportingId(80); db.ediel_test_runs[0].route_profile_id = reportingId(80); db.ediel_route_profiles = [{ id: reportingId(80), company_id: reportingId(10), environment: 'test', is_enabled: true, is_active: true, communication_route_id: reportingId(81), transport_security_mode: 'unencrypted', encryption_mode: 'none', mailbox: 'tgt-file-engine' }]; io.runtime.mockResolvedValue(p.runtime); io.send.mockResolvedValue({ accepted: ['portal@example.invalid'], rejected: [], messageId: 'synthetic-provider-id' }); io.archive.mockResolvedValue(undefined); });
+beforeEach(() => { vi.clearAllMocks();journal=transportJournalFixture();native=reportingNativeBoundary();io.rpc.mockImplementation(native.rpc); vi.spyOn(Date, 'now').mockReturnValue(reportingNow); seq = 100; reads = []; const p = reportingPrepared(); db = { ediel_test_runs: [{ ...p.run, notes: null, status: 'in_progress', started_at: '2026-09-01T00:00:00.000Z', encryption_mode: 'none' }], ediel_messages: [], ediel_test_run_messages: [],user_profiles:[{id:reportingId(12),user_status:'active'}],company_memberships:[{company_id:reportingId(10),user_id:reportingId(12),status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'}] }; io.from.mockImplementation(from); p.runtime.settings!.routeProfileId = reportingId(80); db.ediel_test_runs[0].route_profile_id = reportingId(80); db.ediel_route_profiles = [{ id: reportingId(80), company_id: reportingId(10), environment: 'test', is_enabled: true, is_active: true, communication_route_id: reportingId(81), transport_security_mode: 'unencrypted', encryption_mode: 'none', mailbox: 'tgt-file-engine' }]; io.runtime.mockResolvedValue(p.runtime); io.send.mockImplementation(async(input,entry)=>{await journal.beforeProvider(input,entry);return{ accepted: ['portal@example.invalid'], rejected: [], messageId: 'synthetic-provider-id' };}); io.archive.mockResolvedValue(undefined); });
+it('a reporting assessment cannot replace a missing source-qualified positive original', async () => {
+    await saveFromActiveForm(); native.disableRegistration();
+    await expect(runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) })).rejects.toThrow('ediel_positive_fixture_original_required');
+    expect(db.ediel_messages).toHaveLength(0); expect(db.ediel_test_run_messages).toHaveLength(0);
+    expect(io.archive).not.toHaveBeenCalled(); expect(io.send).not.toHaveBeenCalled();
+});
+it('the actual opaque adapter rejects a private-original response for different bytes before insert', async () => {
+    await saveFromActiveForm();
+    io.rpc.mockImplementation(async (name: string, args: Row) => {
+        const result = await native.rpc(name, args);
+        return name === 'gridex_ediel_positive_fixture_read_v1' && result.data && typeof result.data === 'object'
+            ? { ...result, data: { ...result.data, wireSha256: 'b'.repeat(64) } } : result;
+    });
+    await expect(runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) })).rejects.toThrow('ediel_positive_fixture_authority_scope_invalid');
+    expect(db.ediel_messages).toHaveLength(0); expect(db.ediel_test_run_messages).toHaveLength(0);
+    expect(io.archive).not.toHaveBeenCalled(); expect(io.send).not.toHaveBeenCalled();
+});
 it('active form/action saves notes then actual create-send chain keeps one exact association and reaches mocked provider', async () => { await saveFromActiveForm(); const form = new FormData(); form.set('testRunId', String(db.ediel_test_runs[0].id)); form.set('testCaseCode', '8.1.3'); await expect(createAndSendSystemTestOutboundForRunAction(form)).rejects.toThrow(/REDIRECT:.*ackStatus=sent/); expect(db.ediel_test_run_messages).toHaveLength(1); expect(db.ediel_test_run_messages[0].step_no).toBe(1); expect(io.send).toHaveBeenCalledTimes(1); });
 it('real autopilot association supports direct-send with omitted step and no reattachment', async () => { await saveFromActiveForm(); const draft = await runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) }); expect(draft.action).toBe('created_gridex_draft'); const form = new FormData(); form.set('edielMessageId', draft.messageId!); form.set('testRunId', reportingId(11)); await expect(sendSystemTestOutboundMessageAction(form)).rejects.toThrow(/REDIRECT:.*ackStatus=sent/); expect(db.ediel_test_run_messages).toHaveLength(1); expect(io.send).toHaveBeenCalledTimes(1); });
 it('owner reload checks tenant-filtered exact link before run filtering', async () => { await saveFromActiveForm(); const draft = await runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) }); expect(draft.action).toBe('created_gridex_draft'); await loadTgtReportingValidationContext(db.ediel_messages[0] as unknown as EdielMessageRow); expect(reads.some(r => r.table === 'ediel_test_run_messages' && r.filters.some(([k, v]) => k === 'company_id' && v === reportingId(10)) && r.filters.some(([k, v]) => k === 'ediel_message_id' && v === draft.messageId) && !r.filters.some(([k]) => k === 'test_run_id' || k === 'step_no'))).toBe(true); });

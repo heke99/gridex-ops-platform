@@ -8,8 +8,8 @@ export default function ReceivedStructureReview({companyId,sourceMessageId,envir
   const [pending,startTransition]=useTransition()
   const [result,setResult]=useState<{accepted:boolean;message:string;assessmentId?:string}|null>(null)
   return <section aria-labelledby={`${prefix}-title`} className="rounded-3xl border border-slate-200 bg-white p-6">
-    <h2 id={`${prefix}-title`} className="text-lg font-semibold text-slate-900">{closure?'Granska leveransavslutet för strukturkontroll':'Godkänn hela strukturunderlaget'}</h2>
-    <p className="mt-2 text-sm text-slate-700">{closure?'Granska originalets avslut (Z05L/LK), orsak, samtliga objekt och exakt stopptid. Kontrollen stöder avslut vid midnatt svensk normaltid. Systemet kräver en tidigare granskad leveransperiod och ett registrerat avslut. Återtaganden och ersättningar kan inte godkännas här. Ingen marknadskvittens skickas.':'Granska originalmeddelandet nedan. Åtgärden är separat från att tillämpa enstaka masterdatafält. Systemet verifierar originalkälla, samtliga objekt, parter och daterad leveransperiod. Den skickar ingen marknadskvittens.'}</p>
+    <h2 id={`${prefix}-title`} className="text-lg font-semibold text-slate-900">{closure?'Granska leveransavslutet för strukturkontroll':'Granska originalets strukturunderlag'}</h2>
+    <p className="mt-2 text-sm text-slate-700">{closure?'Granska originalets avslut (Z05L/LK), orsak, samtliga objekt och exakt stopptid. Kontrollen stöder avslut vid midnatt svensk normaltid. Systemet kräver en tidigare granskad leveransperiod och ett registrerat avslut. Återtaganden och ersättningar kan inte godkännas här. Ingen marknadskvittens skickas.':'Granska originalmeddelandet nedan. Systemet bedömer originalkälla, varje eget objekt, parter och daterad leveransperiod. Godkända objekt kan därefter tillämpas separat; övriga förblir avvisade eller spärrade. Granskningen ändrar ingen strukturhistorik och skickar ingen marknadskvittens.'}</p>
     <form className="mt-4 space-y-4" onSubmit={event=>{
       event.preventDefault()
       const form=new FormData(event.currentTarget)

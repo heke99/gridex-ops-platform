@@ -1,0 +1,111 @@
+[
+  {
+    "ids": [
+      "TEN-13"
+    ],
+    "owner": "/root/matrix_projections; native correction utilts_ack",
+    "covered_rule_ids": [
+      "TEN-13"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/core/referenceRegistry.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "supabase/migrations/20261001051413_ediel_utilts_aperak_dm_source_capacity.sql"
+    ],
+    "confirmed_code_gap": "Resolved actual namespace/native ownDM capacity: new forward51413 consumes the same immutable full source-generated UAP ownDmMax70 only for RFFDM in the durable reference namespace and both actual U/receivedERR response owner guards. Renderer retains complete parent entropy plus group suffix, copied original references remain distinct from newly generated own IDs. UNB/UNH/BGM/IDE/P/legal issuer capacities and historical immutable outcomes are unchanged; invalid own50535 observations use rejected-only V3 with no consumption effect.",
+    "assessment": "Fresh U source/consumer review and independent clear; source-owned native namespace51413 is present at actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d. This closes only the recorded DM-capacity component of TEN13, not authentic global issuer/mandate/history evidence.",
+    "literal_frozen_record": {
+      "id": "TEN-13",
+      "area": "Identifierarutrymme",
+      "kind": "Normkrav + intern verkställighet",
+      "applies_to": "BGM/UNB/IDE/tillstånd",
+      "trigger": "Allokering och korrelation",
+      "condition": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO.",
+      "on_pass": "Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+      "on_failure": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "callsite_owner": "identity allocator / correlator",
+      "source": "P §2.2,3; U §3.9,5.5; SYS",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-TEN-13"
+    },
+    "normative_source": "P §2.2,3; U §3.9,5.5; SYS",
+    "exact_requirement": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO.",
+    "exact_expected": "Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+    "exact_prohibited": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+    "commits": [
+      "58690403",
+      "6e0e21b4",
+      "f40575f8",
+      "86bb049b",
+      "9b0d48bd"
+    ],
+    "blockers": [
+      "Broad final candidate native/RLS/concurrency/replay tests NOT_RUN.",
+      "Authentic issuer/mandate/original identifier history/deletion/retention grounds remain required independently."
+    ],
+    "planned_tests": [
+      "Exact expected: Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+      "Exact prohibited: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "Fixed-candidate native directRPC, races, real privilege boundaries and full consumer tests NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-13"
+    ],
+    "owner": "/root/matrix_projections; native correction utilts_ack",
+    "covered_rule_ids": [
+      "TEN-13"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/core/referenceRegistry.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "supabase/migrations/20261001051413_ediel_utilts_aperak_dm_source_capacity.sql"
+    ],
+    "confirmed_code_gap": "Resolved actual namespace/native ownDM capacity: new forward51413 consumes the same immutable full source-generated UAP ownDmMax70 only for RFFDM in the durable reference namespace and both actual U/receivedERR response owner guards. Renderer retains complete parent entropy plus group suffix, copied original references remain distinct from newly generated own IDs. UNB/UNH/BGM/IDE/P/legal issuer capacities and historical immutable outcomes are unchanged; invalid own50535 observations use rejected-only V3 with no consumption effect.",
+    "assessment": "Fresh U source/consumer review and independent clear; source-owned native namespace51413 is present at actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d. This closes only the recorded DM-capacity component of TEN13, not authentic global issuer/mandate/history evidence.",
+    "literal_frozen_record": {
+      "id": "AT-TEN-13",
+      "name": "Regelkontrakt: TEN-13",
+      "given": "BGM/UNB/IDE/tillstånd",
+      "when": "Allokering och korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "expected": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+      "prohibited": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "rule_ids": [
+        "TEN-13"
+      ],
+      "layer": "Planerat regelbeteendeprov",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    },
+    "normative_source": [
+      "P §2.2,3; U §3.9,5.5; SYS"
+    ],
+    "exact_requirement": "BGM/UNB/IDE/tillstånd",
+    "exact_expected": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+    "exact_prohibited": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+    "commits": [
+      "58690403",
+      "6e0e21b4",
+      "f40575f8",
+      "86bb049b",
+      "9b0d48bd"
+    ],
+    "blockers": [
+      "Broad final candidate native/RLS/concurrency/replay tests NOT_RUN.",
+      "Authentic issuer/mandate/original identifier history/deletion/retention grounds remain required independently."
+    ],
+    "planned_tests": [
+      "Exact expected: Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+      "Exact prohibited: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "Fixed-candidate native directRPC, races, real privilege boundaries and full consumer tests NOT_RUN."
+    ]
+  }
+]

@@ -1,3 +1,4 @@
+import { sumUtiltsDecimals, retainedV1NumberDecimal } from './exactDecimal'
 import { normalizeAndStoreMeteringValue } from '@/lib/metering/normalizeMeteringValues'
 import { updateMeterValueBillingReadiness } from '@/lib/billing/meterValueBillingMatcher'
 import { ingestBillingUnderlay } from '@/lib/cis/db'
@@ -49,8 +50,10 @@ export async function createBoundUtiltsBilling(input: BoundSinkInput & { existin
   if (!contributors.length) return null
   const context = contributors[0].billing
   if (accepted.some(contract => !consumptionEqual(contract.billing, context))) consumptionConflict('billing_context_mismatch')
-  const totalKwh = contributors.reduce((sum, c) => sum + c.billingContributionOrdinals.reduce((total, ordinal) => total + c.observations[ordinal].quantity, 0), 0)
-  if (!Number.isFinite(totalKwh)) consumptionConflict('billing_total')
+  const totalKwh = sumUtiltsDecimals(contributors.flatMap(contract => contract.billingContributionOrdinals.map(ordinal => {
+    const quantity = contract.observations[ordinal].quantity
+    return typeof quantity === 'string' ? quantity : retainedV1NumberDecimal(quantity)
+  })))
   return ingestBillingUnderlay({
     actorUserId: input.actorUserId, customerId: context.customerId!, siteId: context.siteId, meteringPointId: context.meteringPointId,
     gridOwnerId: context.gridOwnerId, sourceRequestId: context.sourceRequestId, underlayMonth: context.month, underlayYear: context.year,

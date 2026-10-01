@@ -1,0 +1,58 @@
+{
+  "assessment_kind": "implementation_source_read",
+  "changes_frozen_requirements": false,
+  "formal_verification_status": "NOT_PROMOTED",
+  "rule_ids": ["ENV-03", "AT-ENV-03"],
+  "originals": [
+    {
+      "id": "P",
+      "path": "/workspace/scratch/a67b8bbe9d11/evidence/originals/260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B(6).pdf",
+      "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+      "pages": 140,
+      "matches_frozen_manifest": true,
+      "extraction_command": "pdftotext -layout '/workspace/scratch/a67b8bbe9d11/evidence/originals/260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B(6).pdf' /tmp/ediel-prodat-current-authority-review.txt",
+      "read_clauses": [
+        {"pages": [41, 84], "field": "UNH/UNT0062", "technical_profile": "PRODAT:D:97A:UN:E2SE6A", "constraint": "decoded reference an..14"},
+        {"pages": [97, 105], "field": "UNH/UNT0062", "technical_profile": "APERAK:D:96A:UN:E2SE6A", "constraint": "decoded reference an..14"},
+        {"pages": [41, 84, 97, 105], "field": "UNH/UNT0062", "technical_profile": "same P PRODAT/APERAK profiles with gas E2SE6B", "constraint": "decoded reference an..14 as a defensive syntax bound, no gas market activation"}
+      ],
+      "availability_change": "Full original bytes were recovered and freshly rehashed; earlier unavailable-full-P-bytes statements must be reassessed per actual clause. This does not establish a completed whole-guide or UNSM review."
+    },
+    {
+      "id": "U",
+      "path": "/workspace/scratch/d2ff6a61f553/ediel-originals-20260930/Start av elbolag/260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf",
+      "sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
+      "pages": 135,
+      "matches_frozen_manifest": true,
+      "extraction_command": "pdftotext -layout '/workspace/scratch/d2ff6a61f553/ediel-originals-20260930/Start av elbolag/260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf' /tmp/ediel-utilts-current-authority-review.txt",
+      "read_clauses": [
+        {"pages": [71, 100], "field": "UNH/UNT0062", "technical_profile": "UTILTS:D:02B:UN:E5SE5A", "constraint": "decoded reference an..14, including physical UTILTS ERR"},
+        {"pages": [112, 120], "field": "UNH/UNT0062", "technical_profile": "APERAK:D:04A:UN:E5SE5A", "constraint": "decoded reference an..14"}
+      ],
+      "document_identity_note": "The frozen filename and byte hash remain governing source identity; its printed footer naming is recorded without creating a new guide revision."
+    },
+    {
+      "id": "U-prior",
+      "path": "/workspace/scratch/a67b8bbe9d11/evidence/originals/251001_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-3.pdf",
+      "sha256": "fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798",
+      "matches_frozen_amendment": true,
+      "extraction_command": "pdftotext -layout '/workspace/scratch/a67b8bbe9d11/evidence/originals/251001_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-3.pdf' /tmp/ediel-utilts-prior-authority-review.txt",
+      "read_clauses": [
+        {"pages": [72, 104, 116, 125], "field": "UNH/UNT0062", "constraint": "same an..14 for prior same E5SE5A technical profiles"}
+      ]
+    }
+  ],
+  "integrity_command": "sha256sum each exact original PDF path; compare with frozen source_manifest.json and prior amendment hash",
+  "confirmed_code_gap": "The shared envelope validator and builder had no source-profile 0062 length check; fresh native namespace admitted up to35. Manual/API/native fresh paths could therefore accept source-forbidden15-character technical references.",
+  "correction_scope": "One pure source constraint drives the existing codec/envelope validator, actual rulebook raw admission and generated native fresh prepare/birth/journal/apply/source-assessment fences. Syntaxrejected observations and fixed original/effect/transport results retain their existing separate owner authority.",
+  "fixture_exception": "A matching actual private prepared/consumed negative original with this exact expected diagnostic may retain intentional malformed test bytes. Public metadata flags or fabricated qualification objects grant nothing; no authentic registrations are seeded.",
+  "remaining_source_limits": ["No CONTRL0062 length is inferred without the authentic governing clause.", "This bounded review does not claim the complete UN/Cefact UNSM grammar.", "A defensive bound for source-proven gas profiles grants no gas business activation."],
+  "proof": {
+    "focused_ts": "59 tests in5files passed",
+    "declared_sql_mechanics": "39 actual historical lexer/new predicate-wrapper checks passed with explicitly modeled actor/source/journal/fixture/reader boundaries",
+    "generator_check": "passed",
+    "native_replay_e2e": "NOT_RUN",
+    "broad_suite": "NOT_RUN",
+    "full_typecheck": "NOT_RUN"
+  }
+}

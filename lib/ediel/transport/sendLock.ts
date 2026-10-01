@@ -2,15 +2,20 @@ import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeT
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {assertMeterChangeSendBoundary} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
-import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import type {ProdatDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import {assertDeathStatusSendBoundary,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder'
 import { evaluateEdielProductionSendLock } from '@/lib/ediel/core/productionGuards'
 
-export function assertEdielSendLock(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): void {
+export function assertEdielSendLock(message: EdielMessageRow,dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,ackSourceQualification?:SourceQualifiedOutboundAck,deathStatusContext?:DeathStatusValidationContext,prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence,customerMasterdataContext?:CustomerMasterdataValidationContext): void {
   assertProdatFreeTextSendBoundary(message)
   if(!gasApplicabilitySendIssue(message))assertMeterChangeSendBoundary(message)
-  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext)
+  assertDeathStatusSendBoundary(message,deathStatusContext)
+  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,prodatCommonHeaderRejectionEvidence,customerMasterdataContext)
   const protocolErrors = preflight.issues.filter(issue => (issue.code.startsWith('PRODAT_REGISTER_') || issue.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_')) && issue.severity === 'error')
   if (protocolErrors.length) throw new Error(protocolErrors.map(issue => `${issue.code}: ${issue.description}`).join(' | '))
   const lock = evaluateEdielProductionSendLock(message, preflight)

@@ -1,4 +1,5 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 import {observationHandoffMessage,energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {ownerId} from './helpers/sourceOwnerFixtures'
 import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
@@ -7,6 +8,7 @@ import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceived
 import {createUtiltsRuntimeAcks} from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import {buildUtiltsTransactionPersistencePayload} from '@/lib/ediel/utilts/transactionPersistence'
 import {priorE30PointWire,priorE66MembershipWire} from './helpers/priorUtiltsStructureFixtures'
+import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),ack:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc,from:io.from}}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
@@ -17,6 +19,30 @@ beforeEach(()=>{
  io.rpc.mockImplementation(()=>({abortSignal:async()=>({data:null,error:{message:'private unavailable'}})}))
 })
 afterEach(()=>vi.useRealTimers())
+/** Declared private ACK-read boundary only. The real active tenant actor gate,
+ * immutable source/hash DTO checks, runtime and held-transaction logic execute.
+ * Empty originals means no existing response; this supplies no native outcome,
+ * technical endpoint authority or permission to release the held readings. */
+function ackReadBoundary(source:ReturnType<typeof input>['message'],options:{membership?:boolean;permission?:boolean;foreignSource?:boolean}={}){
+ io.from.mockImplementation((table:string)=>{
+  const rows=table==='user_profiles'?[{id:ownerId(9),user_status:'active'}]:table==='company_memberships'&&options.membership!==false
+   ?[{company_id:source.company_id,user_id:ownerId(9),status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'}]:[]
+  if(!['user_profiles','company_memberships'].includes(table))throw Error(`unexpected_ack_actor_table:${table}`)
+  const filters:Array<(row:Record<string,unknown>)=>boolean>=[]
+  const query={select:()=>query,eq:(key:string,value:unknown)=>{filters.push(row=>row[key]===value);return query},not:(key:string,_operator:string,value:unknown)=>{filters.push(row=>row[key]!==value);return query},
+   maybeSingle:async()=>({data:rows.find(row=>filters.every(filter=>filter(row)))??null,error:null})}
+  return query
+ })
+ io.rpc.mockImplementation((name:string,args:Record<string,unknown>)=>{
+  if(name==='gridex_actor_has_company_permission')return{data:options.permission!==false&&args.p_company_id===source.company_id&&args.p_actor_user_id===ownerId(9)&&['communication.write','ediel_testing.write'].includes(String(args.p_permission)),error:null}
+  if(name==='gridex_read_outbound_acks_for_source_v1'){
+   if(args.p_source_message_id!==source.id||args.p_ack_family!=='CONTRL')throw Error('unexpected_ack_read_scope')
+   return{data:{version:1,sourceMessageId:source.id,companyId:options.foreignSource?ownerId(99):source.company_id,environment:source.environment,
+    sourcePayloadHash:createHash('sha256').update(source.raw_payload!,'utf8').digest('hex'),originals:[]},error:null}
+  }
+  throw Error(`unexpected_ack_read_rpc:${name}`)
+ })
+}
 function input(energy=false,referenceDate='2026-10-01'){
  const message=energy?energyHandoffMessage('2026-10-01',ownerId(2)):observationHandoffMessage('2026-10-01',ownerId(2))
  message.id=ownerId(1);message.sender_ediel_id='91100';message.receiver_ediel_id='21660'
@@ -56,14 +82,18 @@ it.each(['second-reading','energy'] as const)('prior E30 %s without period/resol
   :["SEQ++2'","QTY+136:1'","DTM+597:202610150000:203'"]
  const lines=priorE30PointWire('E24','METER-1','735999260731000007').split('\n')
  const end=lines.findIndex(line=>line.startsWith('UNT+'))
- lines.splice(end,0,...extra);lines[end+extra.length]=`UNT+${lines.length-2}+1'`
+ lines.splice(end,0,...extra);lines[end+extra.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  message.raw_payload=lines.join('\n')
  const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E30',direction:'inbound',referenceDate:'2026-09-30',
   applicationReference:message.application_reference,mode:'parse'})
  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy})
  expect(runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected'}])
  expect(runtime.validation.issues.map(issue=>issue.code)).toEqual(expect.arrayContaining([
-  'UTILTS_MISSING_DELIVERY_PERIOD','UTILTS_PROFILE_PERIOD_MISSING','UTILTS_PROFILE_RESOLUTION_MISSING',
+  'UTILTS_PROFILE_PERIOD_MISSING','UTILTS_PROFILE_RESOLUTION_MISSING',
+ ]))
+ expect(runtime.validation.issues).toEqual(expect.arrayContaining([
+  expect.objectContaining({aperakErcCode:'41',aperakFieldCode:'245',referenceNumber:'GRIDEX2607E66001'}),
+  expect.objectContaining({aperakErcCode:'41',aperakFieldCode:'508',referenceNumber:'GRIDEX2607E66001'}),
  ]))
 })
 it('an invalid singleton E30 calendar date cannot claim the no-period exception',()=>{
@@ -105,6 +135,7 @@ it('activated original monthly readings without approved structure are held, not
 })
 it('held transactions cannot fall through to positive APERAK even with original BGM AB',async()=>{
  const args=input(),result=await qualifyReceivedUtiltsStructure(args)
+ ackReadBoundary(args.message)
  expect(await createUtiltsRuntimeAcks({actorUserId:ownerId(9),sourceMessage:args.message,ackPlan:result.runtime.ackPlan,transactionDispositions:result.runtime.transactionDispositions})).toEqual(['synthetic-contrl'])
  expect(io.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
 })
@@ -122,12 +153,21 @@ it('holds a regulating-object E66 IDE without borrowing a metering-point identit
  expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
   runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
  expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
+ ackReadBoundary(args.message)
  expect(await createUtiltsRuntimeAcks({actorUserId:ownerId(9),sourceMessage:args.message,ackPlan:result.runtime.ackPlan,
   transactionDispositions:result.runtime.transactionDispositions})).toEqual(['synthetic-contrl'])
  expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
   dispositions:result.runtime.transactionDispositions,matches:[{transactionReference:'GRIDEX2607E66001',
    externalMeteringPointId:'735999260731000007',externalGridAreaId:'TES',meteringPointId:ownerId(8)}]})[0])
   .toMatchObject({meteringPointId:null,externalMeteringPointId:null,quantities:[]})
+})
+it.each(['membership','permission','foreignSource'] as const)('held transaction ACK preparation rejects %s at the real actor/protected source boundary',async failure=>{
+ const args=input(),result=await qualifyReceivedUtiltsStructure(args)
+ ackReadBoundary(args.message,{membership:failure!=='membership',permission:failure!=='permission',foreignSource:failure==='foreignSource'})
+ await expect(createUtiltsRuntimeAcks({actorUserId:ownerId(9),sourceMessage:args.message,ackPlan:result.runtime.ackPlan,transactionDispositions:result.runtime.transactionDispositions}))
+  .rejects.toThrow(failure==='membership'?'ediel_tenant_actor_forbidden':failure==='permission'?'ediel_tenant_permission_forbidden':'ediel_existing_ack_original_source_mismatch')
+ expect(io.ack).not.toHaveBeenCalled()
+ expect(result.runtime.transactionDispositions).toMatchObject([{disposition:'internal_review',responseType:'none'}])
 })
 it('isolates LOC+175 and LOC+172 sibling IDEs through disposition, ACK and persistence',async()=>{
  const args=input(true)
@@ -137,7 +177,7 @@ it('isolates LOC+175 and LOC+172 sibling IDEs through disposition, ACK and persi
  const sibling=lines.slice(start,end).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002'))
  lines[start+1]=lines[start+1].replace('LOC+172','LOC+175')
  lines.splice(end,0,...sibling)
- lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ lines[end+sibling.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.facts.transactions).toMatchObject([
@@ -164,7 +204,7 @@ it('does not borrow a sibling LOC+172 when an E66 IDE lacks both identities',()=
  const start=lines.findIndex(line=>line.startsWith('IDE+24+'))
  const end=lines.findIndex(line=>line.startsWith('UNT+'))
  lines.splice(end,0,...lines.slice(start,end).filter(line=>!line.startsWith('LOC+172')).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002')))
- lines[lines.findIndex(line=>line.startsWith('UNT+'))]=`UNT+${lines.length-2}+1'`
+ lines[lines.findIndex(line=>line.startsWith('UNT+'))]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  const runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(runtime.transactionDispositions).toMatchObject([{disposition:'accepted'},{disposition:'guide_rejected'}])
@@ -173,7 +213,7 @@ it('does not borrow a sibling LOC+172 when an E66 IDE lacks both identities',()=
 })
 it('holds an ambiguous E66 IDE with both object domains instead of consuming it as LOC+172',async()=>{
  const args=input(true)
- args.message.raw_payload=args.message.raw_payload!.replace("LOC+239+TES:SVK:260'", "LOC+175+735999260731000007::9'\nLOC+239+TES:SVK:260'")
+ args.message.raw_payload=recountEdifactUnt(args.message.raw_payload!.replace("LOC+239+TES:SVK:260'", "LOC+175+735999260731000007::9'\nLOC+239+TES:SVK:260'"))
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  const result=await qualifyReceivedUtiltsStructure(args)
  expect(result.runtime.transactionDispositions).toMatchObject([{disposition:'internal_review',responseType:'none'}])
@@ -204,7 +244,7 @@ it('checks a GS1 LOC+175 check digit per IDE and keeps distributor IDs outside G
  lines[start+1]=lines[start+1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000006::9')
  sibling[1]=sibling[1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')
  lines.splice(end,0,...sibling)
- lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ lines[end+sibling.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  const runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(runtime.validation.issues.filter(issue=>issue.aperakFieldCode==='533')).toMatchObject([
@@ -228,7 +268,7 @@ it('keeps a valid LOC+172 sibling while LOC+175 agency fails field 533',async()=
  const sibling=lines.slice(start,end).map(line=>line.replace('GRIDEX2607E66001','GRIDEX2607E66002'))
  lines[start+1]=lines[start+1].replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::260')
  lines.splice(end,0,...sibling)
- lines[end+sibling.length]=`UNT+${lines.length-2}+1'`
+ lines[end+sibling.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions).toMatchObject([
@@ -245,7 +285,12 @@ it('keeps a valid LOC+172 sibling while LOC+175 agency fails field 533',async()=
 })
 it('holds an unproved reading while preserving an exempt energy sibling in the same physical message',async()=>{
  const args=input()
- const lines=args.message.raw_payload!.split('\n')
+ // Both own IDEs belong to the same quarter-resolution transfer. The first
+ // retains its actual opening/closing meter readings; only its interval changes.
+ const lines=args.message.raw_payload!.replace('202607010000202608010000:719','202607010000202607010015:719')
+  .replace('DTM+597:202608010000:203','DTM+597:202607010020:203')
+  .replace('DTM+597:202608010000:203','DTM+597:202607010015:203')
+  .replace('DTM+354:1:802','DTM+354:15:806').split('\n')
  const close=lines.findIndex(line=>line.startsWith('UNT+'))
  const second=[
   "IDE+24+GRIDEX2607E66002'", "LOC+172+735999260731000007::9'", "LOC+239+TES:SVK:260'",
@@ -254,7 +299,7 @@ it('holds an unproved reading while preserving an exempt energy sibling in the s
   "SEQ++1'", "QTY+136:500'", "DTM+597:202607010000:203'", "STS+7++21::260'",
  ]
  lines.splice(close,0,...second)
- lines[close+second.length]=`UNT+${lines.length-2}+1'`
+ lines[close+second.length]=`UNT+${lines.findIndex(line => line.startsWith('UNT+')) - lines.findIndex(line => line.startsWith('UNH+')) + 1}+1'`
  args.message.raw_payload=lines.join('\n')
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([
@@ -310,6 +355,7 @@ it.each(['E30-energy','E30-readings','S07'] as const)('qualifies the real %s par
  args.message.raw_payload=args.message.raw_payload!.replace('?+0200:406','?+0100:406').replace('QTY+220:11000','QTY+220:10500')
   .replace('BGM+E66::260',code==='S07'?'BGM+S07:SVK:260':'BGM+E30::260')
   .replace(/23-DDQ-E66-[ST]/g,args.message.application_reference)
+ if(code==='E30')args.message.raw_payload=recountEdifactUnt(args.message.raw_payload.replace("MEA+AAZ++KWH'\n",''))
  args.canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:'2026-10-01',applicationReference:args.message.application_reference,mode:'parse'})
  args.runtime=runUtiltsRuntimeForMessage(args.message,{canonicalPolicy:args.canonicalPolicy})
  expect(args.runtime.transactionDispositions,JSON.stringify(args.runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])

@@ -1,4 +1,4 @@
-import type { Classification, Installation, Purpose, ReportingObject, ReportingSelection, RequestAssociation, RequestOrigin, RequestPurpose, ServerSource, Term, ExpectedContext } from './prodatReportingPermissionTypes';
+import type { Classification, Installation, Purpose, ReportingObject, ReportingSelection, RequestAssociation, RequestOrigin, RequestPurpose, ServerSource, ServiceReportingSource, Term, ExpectedContext } from './prodatReportingPermissionTypes';
 import { copyReportingParty as party, copyReportingRef as ref, copyReportingSelector as selector, copyReportingSourceIdentity as identity, copyReportingScope, copyReportingRoute, reportingRecord as record, reportingText as text, reportingUuid as uuid, reportingEnum as oneOf, reportingArray as array, reportingInvalid as invalid, reportingMinute, reportingEvaluationMinute } from './prodatReportingPermissionStrict';
 export * from './prodatReportingPermissionTypes';
 export { reportingBusinessMinute, reportingEvaluationMinute } from './prodatReportingPermissionStrict';
@@ -75,10 +75,10 @@ function association(v: unknown): RequestAssociation {
         return invalid();
     return { kind: 'known', origin: origin(r.origin), requestKey: uuid(r.requestKey), requestRevision: uuid(r.requestRevision), li: text(r.li, 35), anj: text(r.anj, 35), customer: party(r.customer), legalRequester: party(r.legalRequester), process: ref(r.process, 'process'), authorization: ref(r.authorization, 'authorization'), reason: oneOf(r.reason, ['S17', 'S18']), purpose: requestPurpose(r.purpose), allowedInstallations: allowed };
 }
-export function copyReportingObjects(value: unknown): ReportingObject[] {
+export function copyReportingObjects(value: unknown, service = false): ReportingObject[] {
     const objects = array(value).map((v): ReportingObject => {
         const r = record(v, ['objectKey', 'requestKey', 'selector', 'process', 'authorization', 'li', 'anj', 'customer', 'legalRequester', 'expectedReason', 'term', 'classification', 'purpose', 'code', 'installation', 'requestAssociation']);
-        const base = { objectKey: uuid(r.objectKey), requestKey: uuid(r.requestKey), selector: selector(r.selector), process: ref(r.process, 'process'), authorization: ref(r.authorization, 'authorization'), li: text(r.li, 35), anj: text(r.anj, 35), customer: party(r.customer), legalRequester: party(r.legalRequester), expectedReason: oneOf(r.expectedReason, ['S17', 'S18']), term: term(r.term), classification: classification(r.classification), purpose: purpose(r.purpose) };
+        const base = { objectKey: uuid(r.objectKey), requestKey: uuid(r.requestKey), selector: service && r.selector === null ? null : selector(r.selector), process: ref(r.process, 'process'), authorization: ref(r.authorization, 'authorization'), li: text(r.li, 35), anj: text(r.anj, 35), customer: party(r.customer), legalRequester: party(r.legalRequester), expectedReason: oneOf(r.expectedReason, ['S17', 'S18']), term: term(r.term), classification: classification(r.classification), purpose: purpose(r.purpose) };
         const refs = [base.process, base.authorization, ...(base.term.kind === 'unknown' ? [] : [base.term.declaration]), ...(base.classification.kind === 'unknown' ? [] : [base.classification.record]), ...(base.purpose.kind === 'unknown' ? [] : base.purpose.kind === 'absent' ? [base.purpose.declaration] : [base.purpose.assessment])];
         if (base.process.key !== base.requestKey || refs.some(x => x.requestKey !== base.requestKey || x.revision !== base.process.revision))
             return invalid();
@@ -103,12 +103,30 @@ export function copyReportingSource(value: unknown): ServerSource {
         return invalid();
     return { kind: 'tgt', scope: copyReportingScope(r.scope), source: identity(r.source), factsRevision: uuid(r.factsRevision), actorId: uuid(r.actorId), sourceNote: text(r.sourceNote, 2000), route: copyReportingRoute(r.route) };
 }
+function copyServiceSource(value: unknown): ServiceReportingSource {
+    const r = record(value, ['kind','companyId','assignmentId','assignmentVersion','scopeBasisVersion','permissionId','evidenceId','evidenceVersion','evidenceSha256','actorId','intentId','environment','code','route']);
+    if (r.kind !== 'service_permission' || typeof r.assignmentVersion !== 'number' || !Number.isSafeInteger(r.assignmentVersion) || r.assignmentVersion < 1 || typeof r.scopeBasisVersion !== 'number' || !Number.isSafeInteger(r.scopeBasisVersion) || r.scopeBasisVersion<1 || !/^[a-f0-9]{64}$/.test(String(r.evidenceSha256))) return invalid();
+    const rt = record(r.route, ['routeProfileId','communicationRouteId','legalSender','legalRecipient','senderId','receiverId','senderQualifier','receiverQualifier','senderSubaddress','receiverSubaddress','applicationReference','transportType','mailbox','receiverEmail']);
+    const nullable = (v: unknown) => v === null ? null : text(v);
+    return { kind:'service_permission', companyId:uuid(r.companyId), assignmentId:uuid(r.assignmentId), assignmentVersion:r.assignmentVersion,scopeBasisVersion:r.scopeBasisVersion,
+        permissionId:uuid(r.permissionId), evidenceId:uuid(r.evidenceId), evidenceVersion:text(r.evidenceVersion), evidenceSha256:text(r.evidenceSha256,64),
+        actorId:uuid(r.actorId), intentId:uuid(r.intentId), environment:oneOf(r.environment,['test','production']), code:oneOf(r.code,['Z13']),
+        route:{ routeProfileId:uuid(rt.routeProfileId), communicationRouteId:uuid(rt.communicationRouteId), legalSender:party(rt.legalSender), legalRecipient:party(rt.legalRecipient),
+            senderId:text(rt.senderId),receiverId:text(rt.receiverId),senderQualifier:text(rt.senderQualifier,3),receiverQualifier:text(rt.receiverQualifier,3),
+            senderSubaddress:nullable(rt.senderSubaddress),receiverSubaddress:nullable(rt.receiverSubaddress), applicationReference:text(rt.applicationReference),
+            transportType:oneOf(rt.transportType,['smtp']),mailbox:nullable(rt.mailbox),receiverEmail:nullable(rt.receiverEmail) } };
+}
 export function copyReportingSelection(value: unknown): ReportingSelection {
     const s = value && typeof value === 'object' ? (value as Record<string, unknown>).source : null;
     if (kind(s) === 'caller_selection') {
         const r = record(value, ['source', 'objects', 'evaluationUtcMs']), source = record(r.source, ['kind', 'reference']);
         reportingEvaluationMinute(r.evaluationUtcMs);
         return { source: { kind: 'caller_selection', reference: text(source.reference) }, objects: copyReportingObjects(r.objects), evaluationUtcMs: r.evaluationUtcMs as number };
+    }
+    if (kind(s) === 'service_permission') {
+        const r = record(value,['source','objects']), source=copyServiceSource(r.source), objects=copyReportingObjects(r.objects,true);
+        if (objects.length !== 1 || objects.some(o=>o.code !== 'Z13' || o.selector !== null || o.requestKey !== source.permissionId || o.process.revision !== source.evidenceId || JSON.stringify(o.legalRequester) !== JSON.stringify(source.route.legalSender))) return invalid();
+        return {source,objects};
     }
     const r = record(value, ['source', 'objects']), source = copyReportingSource(r.source), objects = copyReportingObjects(r.objects);
     if (objects.some(o => o.code !== 'Z13' || o.process.revision !== source.factsRevision || JSON.stringify(o.legalRequester) !== JSON.stringify(source.route.legalSender)))
@@ -119,7 +137,7 @@ export function copyReportingExpected(value: unknown): ExpectedContext {
     const r = record(value, ['source', 'objects', 'evaluationUtcMs']);
     reportingEvaluationMinute(r.evaluationUtcMs);
     const e = copyReportingSelection({ source: r.source, objects: r.objects });
-    if (e.source.kind !== 'tgt')
+    if (e.source.kind !== 'tgt' && e.source.kind !== 'service_permission')
         return invalid();
     return { source: e.source, objects: e.objects, evaluationUtcMs: r.evaluationUtcMs as number };
 }

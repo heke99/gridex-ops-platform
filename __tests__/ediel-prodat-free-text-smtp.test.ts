@@ -1,7 +1,10 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { raw, line, alphabets, type Parts } from './fixtures/prodat-register'
-import { head } from './fixtures/prodat-identity'
+import { head, own } from './fixtures/prodat-identity'
+import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 
 const io = vi.hoisted(() => ({ effects: [] as string[] }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
@@ -29,12 +32,21 @@ for (const code of ['Z01', 'Z13', 'Z14', 'Z15', 'Z18']) {
 }
 
 for (const text of [false, true]) it(`valid optional FTX=${text} reaches the existing route boundary without a new text hold`, async () => {
-  const body: Parts[] = [...head(), line('1', '735123456789012345', undefined, '9'), ...(text ? [['FTX', 'ACB', '', '', ['VALID TEXT']] as Parts] : [])]
+  const object = own('1', '735123456789012345', 'OWN')
+  const body: Parts[] = [...head(), ...object.slice(0, 2), ...(text ? [['FTX', 'ACB', '', '', ['VALID TEXT']] as Parts] : []), ...object.slice(2)]
+  const payload = raw(body, 'Z01').replace('UNB+UNOC:3+S+R+', 'UNB+UNOC:3+12345:ZZ+54321:ZZ+')
+  const wire = tokenizeEdifact(payload)
+  const companyId = '00000000-0000-4000-8000-000000000002'
+  const registerEvidence = createProdatRegisterEvidence({ code: 'Z01', rawSegments: wire.segments.map(s => s.raw), una: wire.una, facts: {
+    market: 'electricity',
+    endUserAddressObjects: [selectedAddressFact('735123456789012345', companyId, '9', '001', ['Street'])],
+    invoiceeObjects: [selectedInvoiceeFact('735123456789012345', companyId, '9', '001', ['Street'], '', '12345', 'City')],
+  } })
   const message = {
     id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
     direction: 'outbound', environment: 'test', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z01',
     receiver_email: 'synthetic@example.invalid', communication_route_id: '00000000-0000-4000-8000-000000000003',
-    raw_payload: raw(body, 'Z01'), parsed_payload: {},
+    raw_payload: payload, created_at: '2026-09-17T11:00:00Z', parsed_payload: { prodatEngine: { registerEvidence } },
   } as unknown as EdielMessageRow
   const before = message.raw_payload
   await expect(sendEdielMessageViaSmtp(message, { actorUserId: '00000000-0000-4000-8000-000000000004' })).rejects.toThrow('UNEXPECTED_DATABASE_BOUNDARY')

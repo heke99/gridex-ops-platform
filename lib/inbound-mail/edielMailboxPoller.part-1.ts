@@ -48,6 +48,7 @@ export type InboundEmailAttachmentInput = {
 export type StoreInboundEmailInput = {
   mailboxId: string;
   companyId?: string | null;
+  actorUserId?: string | null;
   environment?: string | null;
   internetMessageId?: string | null;
   fromAddress?: string | null;

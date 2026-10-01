@@ -7,6 +7,8 @@ import { claimEdielOutboxItem } from '@/lib/ediel/outbox/claimOutboxItems'
 import { projectSentEdielSourceState } from '@/lib/ediel/outbox/projectSentSources'
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { isSmtpDeliveryUncertain, SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
+import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
+import { repairAcceptedEdielMessageProjection } from '@/lib/ediel/transport/acceptedProjectionRepair'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -133,44 +135,23 @@ export async function sendOutboxItem(params: {
     return { status: 'blocked', messageId: null, error: 'missing_company_scope' }
   }
   const operation = environment === 'production' ? 'ediel.production.send' : 'ediel.test.process'
-  const tenantDecision = await getTenantOperationDecision(companyId, operation)
-  if (!tenantDecision.allowed) {
-    await updateOutboxStatus({
-      outboxItemId: params.outboxItemId, sendAttemptId, workerId,
-      payload: {
-        status: 'blocked_tenant_state', blocked_reason: tenantDecision.reason_code, blocked_at: new Date().toISOString(),
-        company_status_snapshot: tenantDecision.company_status, operation_decision_snapshot: tenantDecision, locked_at: null, locked_by: null, updated_at: new Date().toISOString(),
-      },
-    })
-    return { status: 'blocked', messageId: null, error: tenantDecision.reason_code }
-  }
-  const sendLockReason = await assertNoActiveSendLock({ companyId, environment, outboxItemId: params.outboxItemId })
-  if (sendLockReason) {
-    await updateOutboxStatus({
-      outboxItemId: params.outboxItemId,
-      sendAttemptId,
-      workerId,
-      payload: {
-        status: 'blocked',
-        last_error: sendLockReason,
-        locked_at: null,
-        locked_by: null,
-        updated_by: params.actorUserId,
-        updated_at: new Date().toISOString(),
-      },
-    })
-    return { status: 'blocked', messageId: null, error: sendLockReason }
-  }
-
   let providerAccepted = false
   let providerMessageId: string | null = null
 
   try {
     const message = await getEdielMessageById(edielMessageId, { companyId })
     if (!message) throw new Error('ediel_message_not_found')
+    if (message.company_id !== companyId || message.environment !== environment || !['test','production'].includes(String(environment))) {
+      throw new Error('ediel_outbox_message_scope_mismatch')
+    }
+    const established = await readAcceptedEdielTransportProjection({ companyId, environment: message.environment,
+      actorUserId: params.actorUserId, messageId: message.id })
 
-    if (['provider_accepted', 'sent', 'delivered', 'acknowledged'].includes(String(message.status))) {
-      const technicalSentAt = message.message_sent_at ?? new Date().toISOString()
+    if (established) {
+      providerAccepted = true
+      providerMessageId = established.providerReceipt.messageId
+      const repaired = await repairAcceptedEdielMessageProjection({ message, actorUserId: params.actorUserId, projection: established })
+      const technicalSentAt = repaired.observedAt
       await projectSentEdielSourceState({
         message,
         sentAt: technicalSentAt,
@@ -190,7 +171,29 @@ export async function sendOutboxItem(params: {
           updated_at: new Date().toISOString(),
         },
       })
-      return { status: 'sent', messageId: null }
+      return { status: 'sent', messageId: providerMessageId }
+    }
+    if (['provider_accepted','sent','delivered','acknowledged'].includes(String(message.status))) {
+      await updateOutboxStatus({ outboxItemId: params.outboxItemId, sendAttemptId, workerId,
+        payload: { status: 'blocked', last_error: 'ediel_historical_transport_receipt_unavailable', locked_at: null,
+          locked_by: null, updated_by: params.actorUserId, updated_at: new Date().toISOString() } })
+      return { status: 'blocked', messageId: null, error: 'ediel_historical_transport_receipt_unavailable' }
+    }
+
+    const tenantDecision = await getTenantOperationDecision(companyId, operation)
+    if (!tenantDecision.allowed) {
+      await updateOutboxStatus({ outboxItemId: params.outboxItemId, sendAttemptId, workerId,
+        payload: { status: 'blocked_tenant_state', blocked_reason: tenantDecision.reason_code, blocked_at: new Date().toISOString(),
+          company_status_snapshot: tenantDecision.company_status, operation_decision_snapshot: tenantDecision,
+          locked_at: null, locked_by: null, updated_at: new Date().toISOString() } })
+      return { status: 'blocked', messageId: null, error: tenantDecision.reason_code }
+    }
+    const sendLockReason = await assertNoActiveSendLock({ companyId, environment, outboxItemId: params.outboxItemId })
+    if (sendLockReason) {
+      await updateOutboxStatus({ outboxItemId: params.outboxItemId, sendAttemptId, workerId,
+        payload: { status: 'blocked', last_error: sendLockReason, locked_at: null, locked_by: null,
+          updated_by: params.actorUserId, updated_at: new Date().toISOString() } })
+      return { status: 'blocked', messageId: null, error: sendLockReason }
     }
 
     const routeContract = await evaluateEdielRouteContract(message)
@@ -264,7 +267,11 @@ export async function sendOutboxItem(params: {
     if (!persistedMessage || !['provider_accepted', 'sent', 'delivered', 'acknowledged'].includes(String(persistedMessage.status))) {
       throw new Error('ediel_post_send_canonical_message_not_persisted')
     }
-    const technicalSentAt = persistedMessage.message_sent_at ?? new Date().toISOString()
+    const technicalSentAt = result.dispatchObservedAt
+    if (!technicalSentAt || !Number.isFinite(Date.parse(technicalSentAt))
+      || !persistedMessage.message_sent_at || Date.parse(persistedMessage.message_sent_at) !== Date.parse(technicalSentAt)) {
+      throw new Error('ediel_post_send_frozen_observation_clock_required')
+    }
     await projectSentEdielSourceState({
       message: persistedMessage,
       sentAt: technicalSentAt,

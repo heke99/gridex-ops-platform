@@ -1,5 +1,8 @@
+import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
+import { recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 import { supabaseService } from '@/lib/supabase/service'
-import { tenantDb } from '@/lib/supabase/tenantDb'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
@@ -39,60 +42,23 @@ function isUnsafeBatch7aTransactionConflict(error: unknown): boolean {
 }
 
 async function findExistingInboundEdielMessageByCanonicalIdentity(input: {
-  companyId: string
-  inboundEmailMessageId?: string | null
-  parsed: ParsedEdifactEnvelope
-}): Promise<string | null> {
+  companyId: string; environment: 'test' | 'production'; inboundEmailMessageId?: string | null; parsed: ParsedEdifactEnvelope
+}): Promise<EdielMessageRow | null> {
   if (input.inboundEmailMessageId) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('direction', 'inbound')
-      .eq('inbound_email_message_id', input.inboundEmailMessageId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (!error) {
-      const id = (data as { id?: string } | null)?.id ?? null
-      if (id) return id
-    }
+    let query=supabaseService.from('ediel_messages').select('*').eq('company_id',input.companyId).eq('direction','inbound').eq('environment',input.environment).eq('inbound_email_message_id',input.inboundEmailMessageId)
+    query=input.parsed.receiverEdielId?query.eq('receiver_ediel_id',input.parsed.receiverEdielId):query.is('receiver_ediel_id',null)
+    query=input.parsed.applicationReference?query.eq('application_reference',input.parsed.applicationReference):query.is('application_reference',null)
+    const {data,error}=await query.limit(2)
+    if(error)throw error
+    if((data??[]).length>1)throw new Error('ediel_inbound_duplicate_identity_ambiguous')
+    if(data?.[0])return data[0] as EdielMessageRow
   }
-
-  if (input.parsed.interchangeReference && input.parsed.senderEdielId && input.parsed.receiverEdielId) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('direction', 'inbound')
-      .eq('sender_ediel_id', input.parsed.senderEdielId)
-      .eq('receiver_ediel_id', input.parsed.receiverEdielId)
-      .eq('interchange_reference', input.parsed.interchangeReference)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (!error) return (data as { id?: string } | null)?.id ?? null
-    console.warn('[inbound-mail] Kunde inte kontrollera befintlig inbound ediel_message via interchange', error)
-  }
-
-  return null
+  return findInboundDuplicateByCanonicalIdentity(buildInboundCanonicalIdentity({companyId:input.companyId,environment:input.environment,senderEdielId:input.parsed.senderEdielId,receiverEdielId:input.parsed.receiverEdielId,applicationReference:input.parsed.applicationReference,interchangeReference:input.parsed.interchangeReference,transactionReference:input.parsed.transactionReference,externalReference:input.parsed.bgmReference}))
 }
-
-async function assertSameUtiltsSource(input: {
-  id: string; companyId: string; environment: string | null; parsed: ParsedEdifactEnvelope
-}): Promise<void> {
-  if (input.parsed.messageFamily !== 'UTILTS') return
-  type SourceRead = { eq(column: 'id', id: string): SourceRead; maybeSingle(): PromiseLike<{ data: Pick<import('@/lib/ediel/types').EdielMessageRow, 'id' | 'company_id' | 'environment' | 'direction' | 'message_family' | 'message_code' | 'raw_payload'> | null; error: unknown }> }
-  const query = tenantDb(input.companyId).from('ediel_messages')
-    .select('id,company_id,environment,direction,message_family,message_code,raw_payload') as SourceRead
-  const { data, error } = await query.eq('id', input.id).maybeSingle()
-  if (error) throw error
-  if (!data || data.raw_payload !== input.parsed.rawPayload || data.company_id !== input.companyId ||
-    data.environment !== input.environment || data.direction !== 'inbound' || data.message_family !== 'UTILTS' || data.message_code !== parsedMessageCode(input.parsed)) {
-    throw new Error('INBOUND_UTILTS_SOURCE_CONFLICT')
-  }
+function assertSameInboundSource(row:EdielMessageRow,input:{companyId:string;environment:'test'|'production';parsed:ParsedEdifactEnvelope}):void {
+  if(row.company_id!==input.companyId||row.environment!==input.environment||row.direction!=='inbound'||row.message_standard!=='edifact'
+    ||row.message_family!==input.parsed.messageFamily||row.message_code!==parsedMessageCode(input.parsed)||row.raw_payload!==input.parsed.rawPayload
+    ||(row.receiver_ediel_id??null)!==(input.parsed.receiverEdielId??null)||(row.application_reference??null)!==(input.parsed.applicationReference??null))throw new Error('canonical_inbound_duplicate_scope_or_original_conflict')
 }
 
 function isNegativeContrL(parsed: ParsedEdifactEnvelope): boolean {
@@ -330,6 +296,7 @@ export async function createParseResult(input: {
 
 export async function createInboundEdielMessage(input: {
   companyId: string
+  actorUserId?: string | null
   environment?: string | null
   inboundEmailMessageId: string
   parseResultId?: string | null
@@ -338,7 +305,8 @@ export async function createInboundEdielMessage(input: {
   meteringPointMatch?: InboundEntityMatch | null
   tenantResolution?: InboundTenantResolution | null
 }): Promise<string | null> {
-  const matchedOutboundId = input.outboundMatch?.status === 'matched' ? input.outboundMatch.entityId : null
+  if(!input.actorUserId||!input.parseResultId)throw new Error('ediel_real_reception_actor_and_parse_required')
+  await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
   const matchedOutboundRequestId =
     input.outboundMatch?.status === 'matched' && input.outboundMatch.entityType === 'outbound_request'
       ? input.outboundMatch.entityId
@@ -365,6 +333,7 @@ export async function createInboundEdielMessage(input: {
 
   const normalizedEnvironment =
     input.environment === 'test' || input.environment === 'production' ? input.environment : null
+  if(!normalizedEnvironment)throw new Error('ediel_inbound_duplicate_scope_required')
   const matchedOperationId =
     typeof matchedOutbound.operation_id === 'string' ? matchedOutbound.operation_id : null
 
@@ -388,7 +357,6 @@ export async function createInboundEdielMessage(input: {
     transaction_reference: input.parsed.transactionReference,
     application_reference: input.parsed.applicationReference,
     external_reference: input.parsed.bgmReference,
-    original_message_id: input.parsed.bgmReference,
     raw_payload: input.parsed.rawPayload,
     parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
     validation_report: mergeTenantResolutionIntoPayload({ status: 'parsed_by_batch_7a1_inbound_mail_engine' }, input.tenantResolution),
@@ -424,29 +392,21 @@ export async function createInboundEdielMessage(input: {
     ...ackColumnsForParsed(input.parsed),
   }
 
-  const existingId = await findExistingInboundEdielMessageByCanonicalIdentity({
-    companyId: input.companyId,
-    inboundEmailMessageId: input.inboundEmailMessageId,
-    parsed: input.parsed,
-  })
-  if (existingId) await assertSameUtiltsSource({ id: existingId, companyId: input.companyId, environment: normalizedEnvironment, parsed: input.parsed })
-
-  // Retrying an existing PRODAT is not a new receipt, even if its old time is unknown.
-  const updatePayload: Partial<typeof insertPayload> = { ...insertPayload }
-  if (input.parsed.messageFamily === 'PRODAT') delete updatePayload.message_received_at
-
-  const result = existingId
-    ? await supabaseService
-        .from('ediel_messages')
-        .update({ ...updatePayload, updated_at: nowIso() })
-        .eq('id', existingId)
-        .select('id')
-        .maybeSingle()
-    : await supabaseService
-        .from('ediel_messages')
-        .insert(insertPayload)
-        .select('id')
-        .maybeSingle()
+  const observe=async(messageId:string)=>{
+    const r=await recordInboundReception({companyId:input.companyId,messageId,actorUserId:input.actorUserId!,inboundEmailMessageId:input.inboundEmailMessageId,parseResultId:input.parseResultId!})
+    requireFirstReception(r)
+  }
+  const existing = await findExistingInboundEdielMessageByCanonicalIdentity({companyId:input.companyId,environment:normalizedEnvironment,inboundEmailMessageId:input.inboundEmailMessageId,parsed:input.parsed})
+  if(existing){
+    await observe(existing.id)
+    assertSameInboundSource(existing,{companyId:input.companyId,environment:normalizedEnvironment,parsed:input.parsed})
+    return existing.id
+  }
+  const {data:mailSource,error:mailSourceError}=await supabaseService.from('inbound_email_messages').select('id,company_id,environment,received_at').eq('id',input.inboundEmailMessageId).maybeSingle()
+  if(mailSourceError)throw mailSourceError
+  if(!mailSource||mailSource.id!==input.inboundEmailMessageId||(mailSource.company_id!==null&&mailSource.company_id!==input.companyId)||(mailSource.environment!==null&&mailSource.environment!==normalizedEnvironment)||typeof mailSource.received_at!=='string'||!Number.isFinite(Date.parse(mailSource.received_at)))throw new Error('ediel_actual_inbound_receipt_clock_required')
+  insertPayload.message_received_at=new Date(mailSource.received_at).toISOString()
+  const result=await supabaseService.from('ediel_messages').insert(insertPayload).select('id').maybeSingle()
 
   if (result.error) {
     if (input.parsed.messageFamily === 'UTILTS' && result.error.code === 'P0U01') {
@@ -467,18 +427,20 @@ export async function createInboundEdielMessage(input: {
     if (isPostgresUniqueViolation(result.error)) {
       const existingAfterConflict = await findExistingInboundEdielMessageByCanonicalIdentity({
         companyId: input.companyId,
+        environment: normalizedEnvironment,
         inboundEmailMessageId: input.inboundEmailMessageId,
         parsed: input.parsed,
       })
 
       if (existingAfterConflict) {
-        await assertSameUtiltsSource({ id: existingAfterConflict, companyId: input.companyId, environment: normalizedEnvironment, parsed: input.parsed })
+        await observe(existingAfterConflict.id)
+        assertSameInboundSource(existingAfterConflict,{companyId:input.companyId,environment:normalizedEnvironment,parsed:input.parsed})
         console.info('[inbound-mail] Inbound ediel_message fanns redan, återanvänder befintlig rad efter unique conflict.', {
-          existingAfterConflict,
+          existingAfterConflict:existingAfterConflict.id,
           inboundEmailMessageId: input.inboundEmailMessageId,
           interchangeReference: input.parsed.interchangeReference,
         })
-        return existingAfterConflict
+        return existingAfterConflict.id
       }
 
       if (isUnsafeBatch7aTransactionConflict(result.error)) {
@@ -494,9 +456,10 @@ export async function createInboundEdielMessage(input: {
     return null
   }
 
-  const edielMessageId = (result.data as { id?: string } | null)?.id ?? existingId
+  const edielMessageId = (result.data as { id?: string } | null)?.id ?? null
 
   if (edielMessageId) {
+    await observe(edielMessageId)
     await supabaseService.from('ediel_message_events').insert({
       company_id: input.companyId,
       ediel_message_id: edielMessageId,
@@ -1005,6 +968,7 @@ export async function applySafeInboundStatusUpdate(input: {
 
   const inboundEdielMessageId = await createInboundEdielMessage({
     companyId: input.companyId,
+    actorUserId: input.actorUserId,
     environment: input.environment,
     inboundEmailMessageId: input.inboundEmailMessageId ?? '',
     parseResultId: input.parseResultId ?? null,
@@ -1013,6 +977,8 @@ export async function applySafeInboundStatusUpdate(input: {
     meteringPointMatch: input.meteringPointMatch,
     tenantResolution: input.tenantResolution ?? null,
   })
+
+  if(!inboundEdielMessageId)throw new Error('ediel_inbound_original_persistence_required')
 
   const responsePayload = payloadForInbound({
     parsed: input.parsed,

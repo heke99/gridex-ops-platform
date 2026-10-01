@@ -1,7 +1,12 @@
+import {prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement} from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import {isProdatFieldInInapplicableParent} from '@/lib/ediel/prodat/prodatParentApplicability'
+import {prodatEndUserWireSubtype} from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import {prodatProductMarket} from '@/lib/ediel/rulebook/prodatProductScope'
+import { canonicalProdat26AFieldRules, prodatRegisterFieldScope } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { prodatFreeTextField, prodatFreeTextPresent } from '@/lib/ediel/prodat/prodatFreeText'
 import {prodatComponentEvidence,type ProdatFailureEvidence} from '@/lib/ediel/prodat/prodatFailureEvidence'
-import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
-import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
+import {prodatFieldDiagnostic, prodatErrorOccurrence, type ProdatErrorOccurrence} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
+import { prodatRegisterFieldState, prodatRegisterTokens } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatRegisterGroups, prodatRegisterRuleScopes, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatDateExcludedBySubtype, prodatDateField, prodatDateRuleScopes, prodatDateState, prodatDateValue, prodatDateSyntaxIssues } from '@/lib/ediel/prodat/prodatDateFields'
 import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
@@ -34,7 +39,16 @@ export type RulebookFieldRule = {
   source?: 'static' | 'registry'
 }
 
+export type ProdatIgnoredField = {
+  fieldNumber: string
+  sourceRule: 'PRODAT26A:P119'
+  occurrence: ProdatErrorOccurrence
+}
+
 export type FieldMatrixEvaluationInput = {
+  /** P119 incoming exclusions are distinct from outgoing construction checks. */
+  direction?: 'inbound' | 'outbound'
+  onIgnoredField?: (field: ProdatIgnoredField) => void
   una?: EdifactServiceStringAdvice
   family?: string | null
   code?: string | null
@@ -42,6 +56,17 @@ export type FieldMatrixEvaluationInput = {
   applicationReference?: string | null
   expectedApplicationReference?: string | null
   mode?: 'send' | 'parse' | 'test'
+}
+
+/** Emit a projection of an existing field decision, never an independent rule. */
+export function recordIgnoredProdatField(input: FieldMatrixEvaluationInput, fieldNumber: string | undefined, scopedSegments: readonly string[], scope?: ProdatErrorOccurrence['scope'], lineIndex?: number): void {
+  if (input.direction !== 'inbound' || !fieldNumber || !input.onIgnoredField) return
+  const physical = scopedSegments.length ? scopedSegments : lineIndex === undefined ? scopedSegments
+    : prodatRegisterGroups(input.rawSegments ?? [], input.una, input.code).groups.find(group => group.lineIndex === lineIndex)?.segments.map(segment => segment.raw) ?? []
+  const descriptor = canonicalProdat26AFieldRules(input.code ?? '').find(rule => rule.fieldNumber === fieldNumber)
+  if (!descriptor || !fieldRulePresentInScope({...descriptor, requirement:'forbidden'}, {...input, rawSegments:physical})) return
+  const occurrence = prodatErrorOccurrence(input, physical, scope ?? (prodatRegisterFieldScope(fieldNumber) === 'header' ? 'header' : prodatRegisterFieldScope(fieldNumber) === 'local' ? 'register' : 'object'), lineIndex)
+  if (occurrence) input.onIgnoredField({fieldNumber, sourceRule:'PRODAT26A:P119', occurrence})
 }
 
 function normalize(value: string | null | undefined): string {
@@ -607,9 +632,27 @@ export function validateFieldMatrixPayload(
       // validation: an explicitly supplied inapplicable date must be rejected.
       const excludedDate = date?.dateScope === 'line' && prodatCharacteristicValues('223', scopedSegments, input.una)
         .some(reason => prodatDateExcludedBySubtype(code, reason, date.fieldNumber))
-      const rule: RulebookFieldRule = excludedDate ? { ...baseRule, requirement: 'forbidden' } : baseRule
+      const sourceSubtype = family === 'PRODAT' && input.direction === 'inbound'
+        ? prodatEndUserWireSubtype(code, prodatRegisterTokens(scopedSegments, input.una), input.una ?? parseUna(null)) : null
+      const sourceRequirement = sourceSubtype && prodatSourceSubtypeRule(code, baseRule.fieldNumber ?? '')
+        ? resolveProdatSourceSubtypeRequirement({messageCode:code, fieldNumber:baseRule.fieldNumber ?? '', subtype:sourceSubtype, market:prodatProductMarket(input)}) : null
+      const inactiveParent = sourceSubtype && isProdatFieldInInapplicableParent({messageCode:code,subtype:sourceSubtype,fieldNumber:baseRule.fieldNumber})
+      const rule: RulebookFieldRule = excludedDate || inactiveParent || sourceRequirement === 'forbidden'
+        ? { ...baseRule, requirement:'forbidden' } : baseRule
       const scopedInput = { ...input, rawSegments: scopedSegments }
       const emit = (finding: Omit<EdielRulebookIssue, 'blocking'>, kind: 'missing' | 'invalid' = 'invalid',failureEvidence?:ProdatFailureEvidence) => issues.push(issue({...finding, ...(family === 'PRODAT' ? {prodatDiagnostic:prodatFieldDiagnostic(rule.fieldNumber,kind,input,scopedSegments,`PRODAT26A:§2.2:${code}:${rule.fieldNumber}`,undefined,undefined,failureEvidence)} : {})}))
+      // P26.A r3 p119: resolve national applicability BEFORE reading contents.
+      // Full syntax remains an earlier gate; gray dates retain their separately
+      // prescribed format check. No negative APERAK merely for extra X/D-false.
+      if (family === 'PRODAT' && input.direction === 'inbound'
+        && (rule.requirement === 'forbidden' || rule.requirement === 'not_used')) {
+        recordIgnoredProdatField(input, rule.fieldNumber, scopedSegments)
+        const ignoredDate = date ? prodatDateState(date.fieldNumber, scopedSegments, input.una) : null
+        if (ignoredDate?.malformed) emit({severity:'error',code:rule.errorCodeIfInvalid ?? 'FIELD_MATRIX_FIELD_FORMAT_INVALID',
+          title:`${rule.label} har ogiltigt datum eller format`,
+          description:`${rule.segmentPath}: kontrollera C507-format och kalender enligt P26.A s.43,49–52 och bilaga4 s.119.`,fieldPath:rule.segmentPath})
+        continue
+      }
       const present = fieldRulePresentInScope(rule, scopedInput)
       if (rule.requirement === 'forbidden' || rule.requirement === 'not_used') {
         if (!present) continue

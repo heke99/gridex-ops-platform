@@ -1,14 +1,32 @@
+import {captureEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import {loadRecoveryReportingValidationContext} from '@/lib/ediel/recovery/reportingContext'
+import {assertBrpChangeSendSource} from '@/lib/ediel/production/brpChangeSource'
+import {assertMeteringMethodChangeSendSource} from '@/lib/ediel/production/meteringMethodChangeSource'
 import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeText'
+import { assertEdifactLatin1Representable, encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
+import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
+import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
+import { assertAiListOutboundMessage } from '@/lib/ediel/aiListFormat'
+import { assertScopedEdielProductionCapability } from '@/lib/ediel/scopedCapabilityReadiness'
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
 import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {readFreshEdielSendValidationSources} from '@/lib/ediel/production/sendValidationSources'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
+import {loadServiceReportingValidationContext} from '@/lib/ediel/services/reporting'
 import {hasProdatDateEventMessage} from '@/lib/ediel/prodat/prodatDateEventAuthority'
-import {loadTgtDateEventValidationContext} from '@/lib/ediel/testing/tgtDateEventContext'
-import {assertRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
+import {loadProdatDateEventValidationContext} from '@/lib/ediel/production/dateEventContext'
+import {assertRulebookAllowsSend, assertRegistryRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
+import { prepareEdielBusinessExpectationPlan, prepareEdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
+import {prepareEdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
 import {assertEdielSendLock} from './sendLock'
+import { inspectCmsRecipientCertificateSet } from './cmsRecipientSet'
+import { resolveSourceQualifiedNegativeFixtureForMessage } from '@/lib/ediel/testing/negativeFixtureAuthority'
+import { readProdatTransportRetryBasis } from '@/lib/ediel/recovery/transportRetry'
+import { readAcceptedEdielTransportProjection } from './acceptedProjection'
+import { repairAcceptedEdielMessageProjection, repairObservedEdielSmtpProjection } from './acceptedProjectionRepair'
 // Extracted from index.ts; keep public imports on the facade module.
 
 
@@ -16,7 +34,7 @@ import {assertEdielSendLock} from './sendLock'
 
 
 
-import { updateEdielMessageStatus, createEdielMessageEvent } from '@/lib/ediel/db'
+import { createEdielMessageEvent } from '@/lib/ediel/db'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
 
 
@@ -37,7 +55,7 @@ import { sendCorrectionFencedEmail, type OutboundDispatchOwner } from '@/lib/edi
 import { SmtpDeliveryUncertainError } from './smtpOutcome'
 
 import type { EdielSmtpMimeMode, SmtpSendResult } from './index.part-1'
-import { applyMessageFamilyEncryptionPolicy, assertRouteTransportSecurity, assertTransportFamily, buildInnerEdifactMimeForSmime, buildMultipartValidationBase64Mime, buildOuterSmimeMime, buildSinglePartEdielBase64Mime, buildSinglePartEdielMime, encodeBase64Mime, encryptSmimeEnvelopedData, encryptionModeFromMimeMode, extractEdielSubjectFromPayload, findRelatedOutboundForInboundAck, inferAckOutcomeFromPayload, inferAttachmentExtension, inferBodyText, inferMimeType, inspectCmsRecipientInfo, isEdifactMessage, normalizeEdifactForSmtp, parseEdifactEnvelope, requireActorUserId, resolveSmtpMimeMode, routeCertificateEnvironment, safePreview, sanitizeMimeToken, sha256, storeTransportPayloadSnapshot } from './index.part-1'
+import { applyMessageFamilyEncryptionPolicy, assertRouteTransportSecurity, assertTransportFamily, buildInnerEdifactMimeForSmime, buildMultipartValidationBase64Mime, buildOuterSmimeMime, buildSinglePartEdielBase64Mime, buildSinglePartEdielMime, encodeBase64Mime, encryptSmimeEnvelopedData, encryptionModeFromMimeMode, extractEdielSubjectFromPayload, findRelatedOutboundForInboundAck, inferAckOutcomeFromPayload, inferAttachmentExtension, inferBodyText, inferMimeType, inspectCmsRecipientInfo, isEdifactMessage, parseEdifactEnvelope, requireActorUserId, resolveSmtpMimeMode, routeCertificateEnvironment, safePreview, sanitizeMimeToken, sha256, storeTransportPayloadSnapshot } from './index.part-1'
 
 export function buildInboundProdatMessageInput(params: {
   rawPayload: string
@@ -323,32 +341,84 @@ export async function sendEdielMessageViaSmtp(
   accepted: string[]
   rejected: string[]
   messageId: string | null
+  dispatchObservedAt: string
 }> {
   const actorUserId = requireActorUserId(params?.actorUserId)
+  if (!message.company_id) throw new Error('ediel_transport_company_required')
+  const established = await readAcceptedEdielTransportProjection({ companyId: message.company_id,
+    environment: message.environment, actorUserId, messageId: message.id })
+  if (established) {
+    try {
+      const repaired = await repairAcceptedEdielMessageProjection({ message, actorUserId, projection: established })
+      return { accepted: repaired.providerReceipt.accepted, rejected: [], messageId: repaired.providerReceipt.messageId,
+        dispatchObservedAt: repaired.observedAt }
+    } catch (error) { throw new SmtpDeliveryUncertainError(error, established.providerReceipt.messageId) }
+  }
+  if (['provider_accepted','sent','delivered','acknowledged'].includes(String(message.status))) {
+    throw new Error('ediel_historical_transport_receipt_unavailable')
+  }
+  const formatIssue = wireFormatIdentityIssue({ rawPayload: message.raw_payload, messageStandard: message.message_standard, mimeType: message.mime_type })
+  if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
+  if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
+  const {deathStatusContext,customerMasterdataContext,ackSourceQualification,prodatCommonHeaderRejectionEvidence:commonHeaderEvidence}=await readFreshEdielSendValidationSources(message,actorUserId)
+  await assertBrpChangeSendSource(message, actorUserId)
+  const methodSendBasis = await assertMeteringMethodChangeSendSource(message, actorUserId)
+  await assertUtiltsPositiveAckAuthorityForSend(message)
+  assertAiListOutboundMessage(message)
+  await assertScopedEdielProductionCapability(message)
   assertProdatFreeTextSendBoundary(message)
-  const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message)].filter(Boolean)
+  const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message,deathStatusContext)].filter(Boolean)
   if(sourceHolds.length){
     const messages=sourceHolds.map(i=>`${i!.code}: ${i!.description}`)
     // Add the existing pure protected diagnostics before this new early hold;
     // no route/context loader or provider is invoked for a GAS boundary defect.
     if(sourceHolds.some(i=>i?.code.startsWith('PRODAT_GAS_'))){
-      try{for(const issue of validateEdielMessageRowWithRulebook(message,'send').issues){
+      try{for(const issue of validateEdielMessageRowWithRulebook(message,'send',undefined,undefined,ackSourceQualification,deathStatusContext,undefined,customerMasterdataContext).issues){
         if((issue.scope==='prodat_dependent'||issue.scope==='prodat_register')&&(issue.blocking||issue.severity==='error'))messages.push(`${issue.code}: ${issue.description}`)
       }}catch(error){messages.push(error instanceof Error?error.message:String(error))}
     }
     throw new Error([...new Set(messages)].join(' | '))
   }
-  if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message);assertEdielSendLock(message)}
+  if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message,undefined,undefined,undefined,deathStatusContext,ackSourceQualification);assertEdielSendLock(message,undefined,undefined,ackSourceQualification,deathStatusContext)}
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
-  if(hasReportingPermissionMessage(message)){
-    const reportingContext=await loadTgtReportingValidationContext(message)
-    assertRulebookAllowsSend(message,undefined,reportingContext)
-    assertEdielSendLock(message,undefined,reportingContext)
-  }
-  if(hasProdatDateEventMessage(message)){
-    const dateEventContext=await loadTgtDateEventValidationContext(message)
-    assertRulebookAllowsSend(message,dateEventContext)
-    assertEdielSendLock(message,dateEventContext)
+  const recoveryReporting = await loadRecoveryReportingValidationContext(message, actorUserId)
+  const reportingContext = hasReportingPermissionMessage(message)
+    ? recoveryReporting?.status === 'qualified' ? recoveryReporting.context
+      : message.parsed_payload?.sourcePermissionBasis
+        ? await loadServiceReportingValidationContext(message, actorUserId)
+        : await loadTgtReportingValidationContext(message)
+    : undefined
+  const dateEventContext = hasProdatDateEventMessage(message) ? await loadProdatDateEventValidationContext(message, actorUserId) : undefined
+  const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({ message, actorUserId })
+  const admission = isEdifactMessage(message) ? await assertRegistryRulebookAllowsSend(message, dateEventContext, reportingContext, negativeFixture,deathStatusContext,ackSourceQualification??undefined,customerMasterdataContext) : null
+  if (reportingContext || dateEventContext || deathStatusContext || customerMasterdataContext || ackSourceQualification || commonHeaderEvidence) assertEdielSendLock(message, dateEventContext, reportingContext,ackSourceQualification,deathStatusContext,commonHeaderEvidence,customerMasterdataContext)
+  const technicalSyntaxAckEvidence = admission?.technicalSyntaxAckEvidence ?? null
+  const prodatCommonHeaderRejectionEvidence=admission?.prodatCommonHeaderRejectionEvidence ?? null
+  const sourceRulePackEvidence = !prodatCommonHeaderRejectionEvidence && ['PRODAT','UTILTS','APERAK','UTILTS_ERR'].includes(message.message_family)
+    ? await captureEdielSourceRulePackEvidence(message.company_id, message.id) : null
+  if (message.message_family === 'CONTRL' && !technicalSyntaxAckEvidence) throw new Error('ediel_technical_ack_basis_required')
+  if (sourceRulePackEvidence && (!admission?.rulePackSnapshot || sourceRulePackEvidence.profileKey !== admission.rulePackSnapshot.profileKey
+      || sourceRulePackEvidence.messageProfileId !== admission.rulePackSnapshot.profileVersionId || sourceRulePackEvidence.version !== admission.rulePackSnapshot.version
+      || sourceRulePackEvidence.sourceHash !== admission.rulePackSnapshot.checksum)) throw new Error('ediel_send_original_rule_pack_mismatch')
+  const policy = admission?.canonicalPolicy
+  const admissionDecision = policy ? Object.freeze({ version: 1, referenceDate: policy.referenceDate,
+    family: policy.family, code: policy.code, subtype: policy.subtype, profileKey: policy.profileKey,
+    guide: policy.guide, associationAssignedCode: policy.associationAssignedCode, sourceTrace: policy.sourceTrace }) : null
+  const businessExpectationPlan = policy ? prepareEdielBusinessExpectationPlan(message, policy) : null
+  const technicalExpectationPlan = policy ? prepareEdielTechnicalExpectationPlan(message, policy) : null
+  const meteringMethodExpectationPlan = policy && methodSendBasis.kind !== 'certification'
+    ? prepareEdielMeteringMethodExpectationPlan(message, policy) : null
+
+  if (!message.company_id) throw new Error('ediel_transport_company_required')
+  const recoveryAuthorization = params?.dispatchOwner?.kind === 'worker'
+    ? await readProdatTransportRetryBasis({ companyId: message.company_id, messageId: message.id,
+      outboxId: params.dispatchOwner.outboxId, actorUserId })
+    : null
+  if (isEdifactMessage(message)) {
+    const { error } = await supabaseService.rpc('ediel_reserve_wire_reference_namespace_v1', {
+      p_company_id: message.company_id, p_message_id: message.id,
+    })
+    if (error) throw error
   }
 
   if (!message.receiver_email?.trim()) {
@@ -402,12 +472,8 @@ export async function sendEdielMessageViaSmtp(
     })
   const routeEncryptionMode = effectiveEncryptionMode
   const mimeMode = resolveSmtpMimeMode(params?.smtpMimeMode, routeEncryptionMode)
-  const edifactPayloadMode =
-    mimeMode === 'ediel-singlepart-lines' || mimeMode === 'nodemailer-attachment'
-      ? 'lines'
-      : 'compact'
-  const normalizedPayload = isEdifactMessage(message)
-    ? normalizeEdifactForSmtp(bodyText, edifactPayloadMode)
+  const normalizedPayload = isEdifactMessage(message) || message.message_standard === 'ai_list'
+    ? message.raw_payload ?? ''
     : bodyText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n')
   const contentType = isEdifactMessage(message)
     ? 'application/EDIFACT'
@@ -415,6 +481,9 @@ export async function sendEdielMessageViaSmtp(
       ? 'application/xml'
       : inferMimeType(message)
   const mimeEncoding: BufferEncoding = isEdifactMessage(message) ? 'latin1' : 'utf8'
+  const payloadBytes = isEdifactMessage(message)
+    ? encodeEdifactLatin1(normalizedPayload)
+    : Buffer.from(normalizedPayload, mimeEncoding)
   const contentTransferEncoding =
     mimeMode === 'nodemailer-attachment'
       ? 'nodemailer-managed'
@@ -481,7 +550,7 @@ export async function sendEdielMessageViaSmtp(
 
   const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
-    payload: Buffer.from(normalizedPayload, mimeEncoding), encoding: mimeEncoding,
+    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, meteringMethodExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,
   })
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
@@ -501,7 +570,7 @@ export async function sendEdielMessageViaSmtp(
       attachments: [
         {
           filename: fileName,
-          content: Buffer.from(normalizedPayload, mimeEncoding),
+          content: payloadBytes,
           contentType,
           contentDisposition: 'attachment',
         },
@@ -517,6 +586,7 @@ export async function sendEdielMessageViaSmtp(
       message.receiver_sub_address ??
       null
     const outboundRecipientCertificate = await resolveOutboundRecipientCertificate({
+      companyId: message.company_id,
       certificateId: effectiveCertificateId,
       receiverEdielId: routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null,
       receiverSubaddress,
@@ -533,7 +603,7 @@ export async function sendEdielMessageViaSmtp(
         message.sender_ediel_id ??
         null,
     })
-    const recipientCertificatePem = outboundRecipientCertificate.publicCertificatePem
+    const recipientCertificatePems = outboundRecipientCertificate.recipientCertificates.map(certificate => certificate.publicCertificatePem)
     usedReceiverCertificateId = outboundRecipientCertificate.id
     const recipientCertPath = null
     const innerMime = buildInnerEdifactMimeForSmime({
@@ -543,13 +613,14 @@ export async function sendEdielMessageViaSmtp(
     })
     const encryptedDer = await encryptSmimeEnvelopedData({
       innerMime,
-      recipientCertPath,
-      recipientCertificatePem,
+      recipientCertificatePems,
     })
     const cmsRecipientInfo = await inspectCmsRecipientInfo({
       encryptedDer,
       expectedSerialNumber: outboundRecipientCertificate.serialNumber,
     })
+    const recipientSet = inspectCmsRecipientCertificateSet({ encryptedDer, recipientCertificatePems })
+    cmsRecipientInfo.expectedReceiverPresent = cmsRecipientInfo.expectedReceiverPresent && recipientSet.expectedReceiverPresent
     cmsExpectedReceiverPresent = cmsRecipientInfo.expectedReceiverPresent
     if (!cmsRecipientInfo.expectedReceiverPresent) {
       await createEdielMessageEvent({
@@ -587,7 +658,7 @@ export async function sendEdielMessageViaSmtp(
     rawMimePreview = safePreview(rawMime.toString('ascii'), 900)
     innerMimePreview = safePreview(innerMime.toString('ascii'), 900)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
-    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(payloadBytes), 900)
     encryptedPayloadLength = encryptedDer.length
     const encryptedPayloadRef = `smtp-smime://${message.id}/${sha256(encryptedDer).slice(0, 24)}`
 
@@ -604,6 +675,8 @@ export async function sendEdielMessageViaSmtp(
         encryptedPayloadSha256: sha256(encryptedDer),
         recipientCertPath,
         expectedReceiverCertificate: describeCertificate(outboundRecipientCertificate.raw),
+        expectedReceiverCertificates: outboundRecipientCertificate.recipientCertificates.map(c => ({ id: c.id, serialNumber: c.serialNumber, fingerprintSha256: c.fingerprintSha256 })),
+        sourceRecipientTrustEvidence: outboundRecipientCertificate.trustEvidence,
         actualCmsRecipientSerials: cmsRecipientInfo.serialNumbers,
         actual_cms_recipient_serial: cmsRecipientInfo.serialNumbers[0] ?? null,
         cmsExpectedReceiverPresent: cmsRecipientInfo.expectedReceiverPresent,
@@ -668,7 +741,7 @@ export async function sendEdielMessageViaSmtp(
 
     rawMimePreview = safePreview(rawMime.toString('ascii'), 1200)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
-    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(payloadBytes), 900)
 
     await createEdielMessageEvent({
       actorUserId,
@@ -686,7 +759,7 @@ export async function sendEdielMessageViaSmtp(
         decodedPayloadLength: normalizedPayload.length,
         decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
         decodedPayloadPreview,
-        encodedPayloadLength: Buffer.from(normalizedPayload, mimeEncoding).toString('base64').length,
+        encodedPayloadLength: payloadBytes.toString('base64').length,
         encodedPayloadPreview,
         rawMimePreview,
       },
@@ -711,7 +784,7 @@ export async function sendEdielMessageViaSmtp(
 
     rawMimePreview = safePreview(rawMime.toString('ascii'), 900)
     decodedPayloadPreview = safePreview(normalizedPayload, 900)
-    encodedPayloadPreview = safePreview(encodeBase64Mime(Buffer.from(normalizedPayload, mimeEncoding)), 900)
+    encodedPayloadPreview = safePreview(encodeBase64Mime(payloadBytes), 900)
 
     await createEdielMessageEvent({
       actorUserId,
@@ -727,7 +800,7 @@ export async function sendEdielMessageViaSmtp(
         decodedPayloadLength: normalizedPayload.length,
         decodedPayloadHasLineBreaks: /[\r\n]/.test(normalizedPayload),
         decodedPayloadPreview,
-        encodedPayloadLength: Buffer.from(normalizedPayload, mimeEncoding).toString('base64').length,
+        encodedPayloadLength: payloadBytes.toString('base64').length,
         encodedPayloadPreview,
         rawMimePreview,
       },
@@ -781,18 +854,23 @@ export async function sendEdielMessageViaSmtp(
 
     throw new Error(`SMTP accepterade inte mottagaren. accepted=${accepted.join(',') || 'tomt'} rejected=${rejected.join(',') || 'tomt'}`)
   }
+  const dispatchObservedAt = result.dispatchObservedAt
+  if (typeof dispatchObservedAt !== 'string' || !Number.isFinite(Date.parse(dispatchObservedAt))) {
+    throw new SmtpDeliveryUncertainError(new Error('ediel_transport_observation_clock_required'), result.messageId ?? null)
+  }
   if (result.dispatchReplay) {
     // A witnessed receipt repairs mutable projections without claiming the
     // newly prepared MIME/route was sent. Its server observation is not an ACK.
     try {
-      await updateEdielMessageStatus({ actorUserId, edielMessageId: message.id, status: 'sent', messageSentAt: result.dispatchObservedAt })
+      await repairObservedEdielSmtpProjection({ message, actorUserId, observedAt: dispatchObservedAt, smtpMessageId: result.messageId ?? null })
       await createEdielMessageEvent({ actorUserId, edielMessageId: message.id, eventType: 'manual_note', eventStatus: 'info',
         message: 'SMTP status projection repaired from immutable provider receipt; no provider invocation.',
         payload: { correctionDispatchProjectionRepair: true, smtpMessageId: result.messageId ?? null, observedAt: result.dispatchObservedAt ?? null } })
-      return { accepted, rejected, messageId: result.messageId ?? null }
+      return { accepted, rejected, messageId: result.messageId ?? null, dispatchObservedAt }
     } catch (error) { throw new SmtpDeliveryUncertainError(error, result.messageId ?? null) }
   }
   try {
+    await repairObservedEdielSmtpProjection({ message, actorUserId, observedAt: dispatchObservedAt, smtpMessageId: result.messageId ?? null })
     await supabaseService
       .from('ediel_messages')
       .update({
@@ -805,16 +883,11 @@ export async function sendEdielMessageViaSmtp(
         updated_at: new Date().toISOString(),
       })
       .eq('id', message.id)
+      .eq('company_id', message.company_id)
+      .eq('environment', message.environment)
       .then(({ error }) => {
         if (error) throw error
       })
-
-    await updateEdielMessageStatus({
-      actorUserId,
-      edielMessageId: message.id,
-      status: 'sent',
-      messageSentAt: new Date().toISOString(),
-    })
 
     await createEdielMessageEvent({
       actorUserId,
@@ -851,6 +924,7 @@ export async function sendEdielMessageViaSmtp(
       accepted,
       rejected,
       messageId: result.messageId ?? null,
+      dispatchObservedAt,
     }
   } catch (error) {
     // SMTP already accepted. A failed status/event write cannot establish

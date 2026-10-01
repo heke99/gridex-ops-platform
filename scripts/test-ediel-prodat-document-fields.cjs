@@ -5,6 +5,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
 const { test } = require('node:test')
 const root=path.resolve(__dirname,'..')
@@ -38,6 +39,8 @@ async function runtime(){
  export { parseInboundProdatBusinessData } from '@/lib/ediel/inboundCases';
  `,{identifier:path.join(root,'lib/ediel/document-test.ts')})
  await entry.link((name,parent)=>{
+    const sourceData = loadEdielSourceTestData(name, root, modules)
+    if (sourceData) return sourceData
   if(name==='@/lib/supabase/service') return service
   if(blocked.has(name))return blocked.get(name)
   if(name==='crypto'||name==='node:crypto')return crypto
@@ -45,7 +48,7 @@ async function runtime(){
   const base=name.startsWith('@/')?path.join(root,name.slice(2)):path.resolve(path.dirname(parent.identifier),name)
   const file=['.ts','/index.ts'].map(ext=>base+ext).find(fs.existsSync)
   assert(file&&file.startsWith(path.join(root,'lib/ediel/')),'Only actual Ediel source is loaded')
-  if(!modules.has(file))modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{identifier:file}))
+  if(!modules.has(file))modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'transform',sourceUrl:file}),{identifier:file}))
   return modules.get(file)
  })
  await entry.evaluate();return entry.namespace
@@ -169,8 +172,9 @@ for(const requestAck of [undefined,false,true])test(`compatibility builder emits
  assert.equal(bgm.raw,`BGM+Z03+DOC?+1+9+${requestAck===false?'NA':'AB'}`)
 })
 
+const ackLegalHeader=[['NAD','FR',['12345','','9'],'','','','','','','SE'],['NAD','DO',['54321','','9'],'','','','','','','SE']]
 for(const [label,id] of [['literal colon','DOC:1'],['literal plus','DOC+1'],['literal terminator',"DOC'1"],['literal release','DOC?'],['case and zeroes','000aBc'],['max length','D'.repeat(35)]])test(`real APERAK renderer references actual BGM, not stale ids (${label})`,async()=>{
- const a=await api,raw=wire([['BGM','Z03',id,'9','AB']])
+ const a=await api,raw=wire([['BGM','Z03',id,'9','AB'],...ackLegalHeader],[['LIN','1','',['OBJECT','','','9']],['RFF',['LI','SOURCE-LI']]])
  const result=a.renderAperakEdiel({source:{id:'LOCAL-UUID',messageFamily:'PRODAT',messageCode:'Z03',rawPayload:raw,externalReference:'STALE'},refs:{documentReference:'WRONG',messageReference:'UNH-DISTINCT',interchangeReference:'INTERCHANGE'},externalReference:'ACK',transactionReference:'CASE',outcome:'positive'})
  assert.equal(result.diagnostics.previousMessageReference,id)
  assert(result.segments.includes(`RFF+ACW:${encode(id)}`))
@@ -179,9 +183,9 @@ for(const id of ['', ['DOC','OTHER'], 'D'.repeat(36)])test(`real APERAK renderer
  const a=await api,raw=wire([['BGM','Z03',id,'9','AB']])
  assert.throws(()=>a.renderAperakEdiel({source:{id:'LOCAL-UUID',messageFamily:'PRODAT',rawPayload:raw,externalReference:'STALE'},refs:{documentReference:'WRONG',messageReference:'UNH-DISTINCT'},externalReference:'ACK',transactionReference:'CASE',outcome:'negative'}),/aperak_prodat_document_reference_required/)
 })
-test('APERAK source selection preserves structured-only legacy input',async()=>{
- const a=await api,result=a.renderAperakEdiel({source:{id:'legacy',messageFamily:'PRODAT'},refs:{documentReference:'LEGACY'},externalReference:'ACK',transactionReference:'CASE',outcome:'positive'})
- assert(result.segments.includes('RFF+ACW:LEGACY'))
+test('APERAK source selection holds structured-only input without its own original legal header',async()=>{
+ const a=await api
+ assert.throws(()=>a.renderAperakEdiel({source:{id:'legacy',messageFamily:'PRODAT'},refs:{documentReference:'LEGACY'},externalReference:'ACK',transactionReference:'CASE',outcome:'positive'}),/entydiga juridiska parter/)
 })
 for(const code of ['','Z03:DECOY','Z04'])test(`profile selection uses actual BGM ${JSON.stringify(code)} instead of stale Z03`,async()=>{
  const a=await api,tokens=a.tokenizeEdifact(wire([['BGM',code,'DOCUMENT','9','AB']]))

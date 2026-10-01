@@ -12,6 +12,8 @@ import { getLatestSystemClockHealth } from "@/lib/ediel/operations/runtimeHealth
 import type { ActorSettingRow, BrpSettingRow, MailboxRow, ProductionReadinessIssue, ProductionReadinessResult, RouteProfileRow, SendLockRow } from './productionReadiness.part-1'
 import { addIssue, bool, deriveProductionReadinessStatus, getCompany, getLatestGoLiveEvents, getLatestMessage, isActiveCompanyStatus, isDynamicReceiverRoute, isEnabled, isFixedReceiverRoute, isKnownTestEdielId, pickPrimary, routeMatchesMessageFamily, safeCount, safeSelect, text, upper } from './productionReadiness.part-1'
 
+/** Aggregate operations dashboard only. Sending authority is the independently
+ * versioned tenant/actor/role/capability evidence in scopedCapabilityReadiness. */
 export async function getCompanyProductionReadiness(
   companyId: string,
   options: {

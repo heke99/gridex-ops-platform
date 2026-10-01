@@ -139,6 +139,9 @@ export function applyUtiltsTestAckPlanOverride(params: {
 }): UtiltsRuntimeAckPlan {
   const testCaseCode = normalizeTestCaseCode(params.testCaseCode)
   const base = params.runtime.ackPlan
+  // A certification fixture cannot grant acceptance over physical syntax or
+  // message-header rejection from the canonical engine.
+  if (!params.runtime.validation.syntaxOk || base.utiltsHeaderRejection) return base
 
   if (isAgtUeContext(testCaseCode)) {
     const mapped = remapAgtDetails(params.runtime)

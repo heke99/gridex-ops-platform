@@ -25,7 +25,12 @@ export type TgtDateEventSource = {
   kind: 'tgt'; companyId: string; runId: string; roleCode: string; caseCode: string; suite: string; stepNo: number
   code: 'Z06' | 'Z09' | 'Z10'; sourceDigest: string; actorId: string; reference: string; route: ProdatDateEventRoute
 }
-export type ProdatDateEventSource = { kind: 'caller_selection'; reference: string } | TgtDateEventSource
+export type ProductionContractDateEventSource = {
+  kind: 'production_contract'; companyId: string; environment: 'test' | 'production'; code: 'Z09';
+  eventId: string; sourceDigest: string; sourceVersion: string; actorId: string; reference: string;
+  route: Omit<ProdatDateEventRoute, 'settingsId' | 'transportProfileId'>
+}
+export type ProdatDateEventSource = { kind: 'caller_selection'; reference: string } | TgtDateEventSource | ProductionContractDateEventSource
 const invalid = (): never => { throw new Error('prodat_date_event_evidence_invalid') }
 function object(value: unknown, keys: readonly string[]): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return invalid()
@@ -77,20 +82,29 @@ export function copyProdatDateEventObjects(value: unknown): ProdatDateEventObjec
   }
   return result
 }
-/** Explicit allowlist: runtime records may contain unrelated private configuration. */
-export function copyProdatDateEventRoute(value: unknown): ProdatDateEventRoute {
-  const v = object(value, ['settingsId', 'actorSettingId', 'routeProfileId', 'communicationRouteId', 'transportProfileId', 'legalSender', 'legalRecipient', 'senderId', 'receiverId', 'senderQualifier', 'receiverQualifier', 'senderSubaddress', 'receiverSubaddress', 'transportType', 'mailbox', 'receiverEmail', 'applicationReference', 'suppliers'])
+function copyDateEventRouteCore(v: Record<string, unknown>): Omit<ProdatDateEventRoute, 'settingsId' | 'transportProfileId'> {
   if (!Array.isArray(v.suppliers)) return invalid()
-  return {
-    settingsId: text(v.settingsId), actorSettingId: text(v.actorSettingId), routeProfileId: nullableText(v.routeProfileId), communicationRouteId: nullableText(v.communicationRouteId), transportProfileId: nullableText(v.transportProfileId),
+  return { actorSettingId: text(v.actorSettingId), routeProfileId: nullableText(v.routeProfileId), communicationRouteId: nullableText(v.communicationRouteId),
     legalSender: party(v.legalSender), legalRecipient: party(v.legalRecipient), senderId: text(v.senderId), receiverId: text(v.receiverId), senderQualifier: text(v.senderQualifier), receiverQualifier: text(v.receiverQualifier),
     senderSubaddress: nullableText(v.senderSubaddress), receiverSubaddress: nullableText(v.receiverSubaddress), transportType: text(v.transportType), mailbox: nullableText(v.mailbox), receiverEmail: nullableText(v.receiverEmail), applicationReference: text(v.applicationReference),
     suppliers: v.suppliers.map(value => { const entry = object(value, ['meteringPointId', 'identityAgency', 'supplier', 'recipient']); return { ...identity(entry), supplier: party(entry.supplier), recipient: party(entry.recipient) } }),
   }
 }
+/** Explicit allowlist: runtime records may contain unrelated private configuration. */
+export function copyProdatDateEventRoute(value: unknown): ProdatDateEventRoute {
+  const v = object(value, ['settingsId', 'actorSettingId', 'routeProfileId', 'communicationRouteId', 'transportProfileId', 'legalSender', 'legalRecipient', 'senderId', 'receiverId', 'senderQualifier', 'receiverQualifier', 'senderSubaddress', 'receiverSubaddress', 'transportType', 'mailbox', 'receiverEmail', 'applicationReference', 'suppliers'])
+  return { ...copyDateEventRouteCore(v), settingsId: text(v.settingsId), transportProfileId: nullableText(v.transportProfileId) }
+}
 export function copyProdatDateEventSource(value: unknown): ProdatDateEventSource {
-  const v = object(value, ['kind', 'reference', 'companyId', 'runId', 'roleCode', 'caseCode', 'suite', 'stepNo', 'code', 'sourceDigest', 'actorId', 'route'])
+  const v = object(value, ['kind', 'reference', 'companyId', 'runId', 'roleCode', 'caseCode', 'suite', 'stepNo', 'code', 'sourceDigest', 'actorId', 'route', 'environment', 'eventId', 'sourceVersion'])
   if (v.kind === 'caller_selection') { object(value, ['kind', 'reference']); return { kind: 'caller_selection', reference: text(v.reference) } }
+  if (v.kind === 'production_contract') {
+    object(value, ['kind', 'reference', 'companyId', 'code', 'sourceDigest', 'actorId', 'route', 'environment', 'eventId', 'sourceVersion'])
+    if (v.code !== 'Z09' || !['test', 'production'].includes(String(v.environment))) return invalid()
+    const routeInput = object(v.route, ['actorSettingId', 'routeProfileId', 'communicationRouteId', 'legalSender', 'legalRecipient', 'senderId', 'receiverId', 'senderQualifier', 'receiverQualifier', 'senderSubaddress', 'receiverSubaddress', 'transportType', 'mailbox', 'receiverEmail', 'applicationReference', 'suppliers'])
+    const route = copyDateEventRouteCore(routeInput)
+    return { kind: 'production_contract', companyId: text(v.companyId), environment: v.environment as 'test' | 'production', code: 'Z09', eventId: text(v.eventId), sourceVersion: text(v.sourceVersion), sourceDigest: text(v.sourceDigest), actorId: text(v.actorId), reference: text(v.reference), route }
+  }
   if (v.kind !== 'tgt' || (v.code !== 'Z06' && v.code !== 'Z09' && v.code !== 'Z10') || typeof v.stepNo !== 'number' || !Number.isInteger(v.stepNo) || v.stepNo < 1) return invalid()
   return { kind: 'tgt', companyId: text(v.companyId), runId: text(v.runId), roleCode: text(v.roleCode), caseCode: text(v.caseCode), suite: text(v.suite), stepNo: v.stepNo, code: v.code as TgtDateEventSource['code'], sourceDigest: text(v.sourceDigest), actorId: text(v.actorId), reference: text(v.reference), route: copyProdatDateEventRoute(v.route) }
 }

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { readManualServicePermissionOptions, type ManualServicePermissionOption } from '@/lib/ediel/services/manualPermissionOptions'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -134,6 +135,16 @@ export default async function CustomerInfoRequestsPage() {
         listCustomerInfoRequestResourceOptions(companyId),
       ])
     : [[], [], [], [], { sites: [], meteringPoints: [], gridOwners: [] }]
+
+  let permissionAssignmentOptions: ManualServicePermissionOption[] = []
+  let permissionAssignmentReadFailed = false
+  if (companyId && user && permissions.length) {
+    try {
+      permissionAssignmentOptions = await readManualServicePermissionOptions({ companyId, actorUserId: user.id, permissionIds: permissions.slice(0, 12).map((permission) => permission.id) })
+    } catch {
+      permissionAssignmentReadFailed = true
+    }
+  }
 
   const blockedRequests = requests.filter((request) => ['blocked', 'route_missing', 'negative_aperak', 'manual_review_required', 'missing_authorization'].includes(request.status))
   const activeScopes = authorizationScopes.filter((scopeRow) => scopeRow.status === 'active')
@@ -337,32 +348,28 @@ export default async function CustomerInfoRequestsPage() {
                   <div className="mt-1 text-xs leading-5 text-slate-600">{permission.requested_start_date ?? 'Start saknas'} → {permission.requested_end_date ?? 'tills vidare'}</div>
                   {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}
                   <div className="mt-3 grid gap-2">
-                    <form action={queueMeteringPermissionZ13Action}>
+                    <form action={queueMeteringPermissionZ13Action} className="grid gap-2">
                       <input type="hidden" name="permission_id" value={permission.id} />
+                      <label htmlFor={`permission-assignment-${permission.id}`} className="text-xs text-slate-700">Kopplat tjänsteuppdrag</label>
+                      <select id={`permission-assignment-${permission.id}`} name="service_assignment_selection" defaultValue="" className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs">
+                        <option value="">Använd endast ett entydigt kopplat uppdrag</option>
+                        {permissionAssignmentOptions.filter((option) => option.permissionId === permission.id).map((option) => (
+                          <option key={option.assignmentId} value={`${option.assignmentId}:${option.assignmentVersion}`}>{option.beneficiaryLabel ?? option.beneficiaryCompanyId} · {option.purpose} · {option.mode} · {option.status}</option>
+                        ))}
+                      </select>
+                      {permissionAssignmentReadFailed ? <p className="text-xs text-amber-900">Uppdragen kunde inte läsas. Begäran kräver kontroll innan den kan förberedas.</p> : null}
+                      {!permissionAssignmentOptions.some((option) => option.permissionId === permission.id) ? <p className="text-xs text-slate-600">Saknas ett aktuellt källbelagt uppdrag skapas en uppgift för manuell kontroll.</p> : null}
                       <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
-                        Kontrollera fullmakt och förbered Z13
+                        Kontrollera uppdrag och förbered Z13
                       </button>
                     </form>
                     <details className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Registrera Z14-svar manuellt</summary>
+                      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Koppla mottaget Z14-svar</summary>
                       <form action={applyZ14SnapshotAction} className="mt-3 grid gap-2">
                         <input type="hidden" name="permission_id" value={permission.id} />
-                        <input name="permission_reference" placeholder="Tillståndets id/RFF+Z09" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        <div className="grid gap-2 md:grid-cols-2">
-                          <input name="approved_start_date" type="date" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                          <input name="approved_end_date" type="date" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        </div>
-                        <div className="grid gap-2 md:grid-cols-2">
-                          <input name="facility_id" placeholder="Anläggnings-id/LIN" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                          <input name="grid_area_code" placeholder="Nätområde/RFF+Z05" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        </div>
-                        <input name="resolution_code" placeholder="Tidslängd, t.ex. 15 min" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        <input name="report_frequency" placeholder="Rapporteringsfrekvens" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
-                        <select name="site_status" defaultValue="approved" className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs">
-                          <option value="approved">Godkänd</option>
-                          <option value="rejected">Nekad</option>
-                        </select>
-                        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Spara Z14-status</button>
+                        <label className="text-xs text-slate-600" htmlFor={`z14-source-${permission.id}`}>Id för det mottagna Z14-meddelandet</label>
+                        <input id={`z14-source-${permission.id}`} name="source_message_id" required placeholder="Meddelande-id" className="h-9 rounded-lg border border-slate-300 px-3 text-xs" />
+                        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Koppla och behandla mottaget svar</button>
                       </form>
                     </details>
                   </div>

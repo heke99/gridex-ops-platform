@@ -1,4 +1,4 @@
-import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite,segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -192,6 +192,52 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
   const facts = parseEdifactMessageFacts(rawPayload)
   const una = parseUna(rawPayload)
   const rawSegments = facts.rawSegments
+  // ACK facts use the same service alphabet and physical components as their
+  // guide/correlation consumers; no literal delimiter or metadata fallback.
+  if (facts.messageType === 'APERAK' || facts.messageType === 'CONTRL') {
+    const family=facts.messageType, present=(value:string | undefined)=>value?.length?value:null
+    const unb=(index:number)=>segmentComposite(facts.unb,index,una)
+    const refs=referenceList(facts.segments,una)
+    return {
+      family,messageFamilyForStorage:family,messageStandard:'edifact',messageCode:family,subtype:null,direction,
+      version:present(segmentComposite(facts.unh,2,una)[4]),applicationReference:present(unb(7)[0]),
+      sender:present(unb(2)[0]),receiver:present(unb(3)[0]),senderSubAddress:present(unb(2)[2]),receiverSubAddress:present(unb(3)[2]),
+      interchangeReference:present(unb(5)[0]),messageReference:present(segmentComposite(facts.unh,1,una)[0]),
+      documentReference:present(segmentComposite(facts.bgm,2,una)[0]),transactionReference:referenceValue(refs,'LI','ACW','DM'),
+      businessReference:referenceValue(refs,'LI','ACW'),relatedReference:referenceValue(refs,'ACW','Z07'),facilityId:null,meteringPointId:null,gridArea:null,permissionId:null,
+      period:null,quantities:[],statuses:[],references:refs,processGroup:processGroupForMessage(family,family),una,rawSegments:facts.rawSegments,
+      facts:{parsedBy:'canonicalMessage',sourceFacts:{messageType:family,messageCode:facts.messageCode,documentReference:facts.documentReference}},parserWarnings:[],
+    }
+  }
+  if(facts.messageType==='UTILTS') {
+    const present=(value:string|undefined)=>value!==undefined&&value!==''?value:null
+    const components=(segment:EdifactTokenizedSegment|null|undefined,index:number)=>segmentComposite(segment?{...segment,raw:segmentUntrimmedRaw(segment)}:segment,index,una)
+    const scalar=(segment:EdifactTokenizedSegment|null|undefined,index:number)=>present(components(segment,index)[0])
+    const bgmCode=scalar(facts.bgm,1),family=bgmCode==='ERR'?'UTILTS_ERR':'UTILTS'
+    const messageCode=family==='UTILTS_ERR'?'UTILTS_ERR':bgmCode
+    const refs:CanonicalEdielReference[]=facts.segments.filter(segment=>segment.tag==='RFF').flatMap(segment=>{
+      const values=components(segment,1),qualifier=present(values[0]),value=present(values[1])
+      return qualifier&&value?[{qualifier,value,raw:segmentUntrimmedRaw(segment)}]:[]
+    })
+    const loc=(qualifier:string)=>scalar(facts.segments.find(segment=>segment.tag==='LOC'&&scalar(segment,1)===qualifier),2)
+    const dtm=(qualifier:string)=>present(components(facts.segments.find(segment=>segment.tag==='DTM'&&scalar(segment,1)===qualifier),1)[1])
+    const point=loc('172')
+    return {
+      family,messageFamilyForStorage:family,messageStandard:'edifact',messageCode,subtype:null,direction,
+      version:present(components(facts.unh,2)[4]),applicationReference:scalar(facts.unb,7),una,
+      sender:scalar(facts.unb,2),receiver:scalar(facts.unb,3),senderSubAddress:present(components(facts.unb,2)[2]),receiverSubAddress:present(components(facts.unb,3)[2]),
+      interchangeReference:scalar(facts.unb,5),messageReference:scalar(facts.unh,1),documentReference:scalar(facts.bgm,2),
+      transactionReference:referenceValue(refs,'TN','LI','ACW')??scalar(facts.segments.find(segment=>segment.tag==='IDE'),2),
+      businessReference:referenceValue(refs,'LI','ACW','AGO','TN'),relatedReference:referenceValue(refs,'ACW','AGO','E31','Z07'),
+      facilityId:referenceValue(refs,'Z05')??point,meteringPointId:point,gridArea:loc('239'),permissionId:referenceValue(refs,'Z07','AHL'),
+      period:dtm('324')??dtm('163')??dtm('719'),quantities:facts.segments.filter(segment=>segment.tag==='QTY').map(segment=>{
+        const values=components(segment,1)
+        return {qualifier:present(values[0]),value:present(values[1]),raw:segmentUntrimmedRaw(segment)}
+      }),statuses:facts.segments.filter(segment=>segment.tag==='STS').map(segment=>segmentUntrimmedRaw(segment)),references:refs,
+      processGroup:processGroupForMessage(family,messageCode),rawSegments,
+      facts:{parsedBy:'canonicalMessage',sourceFacts:{messageType:facts.messageType,messageCode:bgmCode,documentReference:scalar(facts.bgm,2),lineItemCount:facts.lineItems.length}},parserWarnings:[],
+    }
+  }
   const unbRaw = facts.unb?.raw ?? firstSegment(rawSegments, 'UNB+')
   const unhRaw = facts.unh?.raw ?? firstSegment(rawSegments, 'UNH+')
   const bgmRaw = facts.bgm?.raw ?? firstSegment(rawSegments, 'BGM+')

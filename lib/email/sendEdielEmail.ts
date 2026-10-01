@@ -1,7 +1,8 @@
 import nodemailer from 'nodemailer'
+import MailComposer from 'nodemailer/lib/mail-composer'
 import type SMTPTransport from 'nodemailer/lib/smtp-transport'
 import { assertEdielSmtpReadiness, edielSmtpConfig } from '@/lib/ediel/mailReadiness'
-import { archiveSmimeRawMime, isSmimeRawMime } from '@/lib/ediel/transport/smimeTransportArchive'
+import { archiveTransportRawMime, type TransportMimeArchiveContext } from '@/lib/ediel/transport/rawMimeArchive'
 
 export type SendEdielEmailInput =
   | {
@@ -23,7 +24,7 @@ export type SendEdielEmailInput =
       }>
     }
 
-export type EdielProviderEntry = { beforeProviderCall: (binding: Record<string, unknown>) => Promise<void> }
+export type EdielProviderEntry = { archiveContext?: TransportMimeArchiveContext; beforeProviderCall: (binding: Record<string, unknown>) => Promise<void> }
 
 export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielProviderEntry): Promise<{
   accepted: unknown[]
@@ -37,6 +38,7 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
     host: config.host,
     port: config.port,
     secure: config.secure,
+    requireTLS: true,
     auth: {
       user: config.user ?? '',
       pass: config.password,
@@ -45,22 +47,18 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
   }
   const transporter = nodemailer.createTransport(transportOptions)
 
+  if (!entry?.archiveContext) throw new Error('ediel_transport_archive_context_required')
   if ('raw' in input) {
-    // S/MIME transport is an evidence-bearing operation. The exact RFC822 bytes
-    // must be durably archived and read back before SMTP submission. The
-    // archive binder also upgrades the immediately preceding transport snapshot
-    // from its temporary smtp-smime:// reference to the private storage object.
-    if (isSmimeRawMime(input.raw)) {
-      await archiveSmimeRawMime(input.raw)
-    }
-
-    await entry?.beforeProviderCall({mode:'raw',from:input.envelopeFrom ?? config.from,to:input.to,rawBase64:input.raw.toString('base64')})
+    // Caller-owned bytes may change while archive/provider gates await I/O.
+    const raw = Buffer.from(input.raw)
+    const archive = await archiveTransportRawMime(raw, entry.archiveContext)
+    await entry.beforeProviderCall({mode:'raw',from:input.envelopeFrom ?? config.from,to:input.to,rawBase64:raw.toString('base64'),...archive})
     const result = await transporter.sendMail({
       envelope: {
         from: input.envelopeFrom ?? config.from,
         to: [input.to],
       },
-      raw: input.raw,
+      raw,
     })
     return {
       accepted: Array.isArray(result.accepted) ? result.accepted : [],
@@ -70,10 +68,9 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
     }
   }
 
-  await entry?.beforeProviderCall({mode:'attachment',from:input.from ?? config.from,to:input.to,replyTo:config.replyTo ?? null,subject:input.subject,text:input.text ?? null,html:input.html ?? null,
-    attachments:input.attachments?.map(a=>({...a,content:undefined,contentBase64:Buffer.isBuffer(a.content)?a.content.toString('base64'):Buffer.from(a.content).toString('base64')})) ?? [],
-    headers:{'X-Gridex-Mail-Lane':'ediel-strato','X-Gridex-Ediel-Provider':readiness.provider}})
-  const result = await transporter.sendMail({
+  // Compile once before archival. Sending options again would let Nodemailer
+  // create a different Message-ID/boundary/date after the evidence was stored.
+  const mailOptions = {
     from: input.from ?? config.from,
     to: input.to,
     replyTo: config.replyTo ?? undefined,
@@ -85,7 +82,13 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
       'X-Gridex-Mail-Lane': 'ediel-strato',
       'X-Gridex-Ediel-Provider': readiness.provider,
     },
-  })
+  }
+  const raw = await new MailComposer(mailOptions).compile().build()
+  const archive = await archiveTransportRawMime(raw, entry.archiveContext)
+  await entry.beforeProviderCall({mode:'attachment',from:input.from ?? config.from,to:input.to,replyTo:config.replyTo ?? null,subject:input.subject,text:input.text ?? null,html:input.html ?? null,
+    attachments:input.attachments?.map(a=>({...a,content:undefined,contentBase64:Buffer.isBuffer(a.content)?a.content.toString('base64'):Buffer.from(a.content).toString('base64')})) ?? [],
+    headers:mailOptions.headers,rawBase64:raw.toString('base64'),...archive})
+  const result = await transporter.sendMail({ envelope: {from:input.from ?? config.from,to:[input.to]}, raw })
   return {
     accepted: Array.isArray(result.accepted) ? result.accepted : [],
     rejected: Array.isArray(result.rejected) ? result.rejected : [],

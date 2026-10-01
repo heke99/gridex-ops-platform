@@ -100,6 +100,7 @@ export async function createGridOwnerDataRequest(input: {
   requestPayload?: Record<string, unknown> | null
 }): Promise<GridOwnerDataRequestRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,

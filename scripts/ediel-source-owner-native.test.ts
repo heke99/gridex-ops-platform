@@ -1357,7 +1357,7 @@ it('a genuine non-midnight original is held by producer and direct append, even 
  const point=await findStructuralReviewPoint(f.ids.company,object.objectId!),assessedAt=new Date().toISOString()
  const receiver=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:f.ids.company,environment:'test',asOf:assessedAt,requireExactCounts:true})
  const facility=await readSelectedFacilityEvidence({companyId:f.ids.company,environment:'test',meteringPointId:f.ids.point,siteId:f.ids.site,objectId:object.objectId!,signal:AbortSignal.timeout(5000)})
- const {source,coverage,legacyEndDateProjection}=await resolveClosureCoverage(ownerSeed,wire,snapshot,point)
+ const {source,coverage,legacyEndDateProjection}=await resolveClosureCoverage(ownerSeed,wire,snapshot,point,f.ids.reviewer)
  const business={version:1,owner:'reviewed-received-closure-v1',coverage:'reviewed_post_ledger_closure',sourceDisposition:'not_established',businessDisposition:'reviewed',graphNamespace:'legacy_unqualified',
   sourceMessageId:message.id,sourcePayloadHash:ownerSeed.evidence.sourcePayloadHash,sourceReceivedAt:message.message_received_at,companyId:f.ids.company,environment:'test',object,assessedAt,wire,reviewerUserId:f.ids.reviewer,
   reviewStatement:'original_supply_closure',customerId:f.ids.customer,meteringPointId:f.ids.point,siteId:f.ids.site,switchRequestId:coverage.switchRequestId,supplyPeriodId:coverage.supplyPeriodId,coverageWindow:coverage,

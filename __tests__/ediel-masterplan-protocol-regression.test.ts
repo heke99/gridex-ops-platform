@@ -32,7 +32,7 @@ describe('masterplan PRODAT parent applicability', () => {
     expect(positive.segments.some(segment => segment.startsWith('NAD+IT+'))).toBe(true)
   })
   it('accepts omitted Z14N groups without requiring their children or unrelated business facts', () => {
-    expect(validateCanonicalPolicyFields({ policy: parentPolicy('N'), rawSegments: [] })).toEqual([])
+    expect(validateCanonicalPolicyFields({ policy: parentPolicy('N'), rawSegments: ['CCI++Z13', 'CAV+Z96'] })).toEqual([])
   })
   it('does not require business facts for inapplicable Z14N parent D cells', () => {
     const evaluations = evaluateProdatDependentConditions({ messageCode: 'Z14', facts: { canonicalSubtype: 'N' } })

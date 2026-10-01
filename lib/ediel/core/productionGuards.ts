@@ -68,19 +68,6 @@ export function isEdielPortalParty(value?: string | null): boolean {
   return ['91100', '91109'].includes(text(value))
 }
 
-function hasSystemTestAckSendBypass(message: ProductionGuardMessageLike | EdielMessageRow): boolean {
-  const validationReport =
-    message.validation_report && typeof message.validation_report === 'object'
-      ? message.validation_report as Record<string, unknown>
-      : {}
-  const marker =
-    validationReport.systemTestAckSend && typeof validationReport.systemTestAckSend === 'object'
-      ? validationReport.systemTestAckSend as Record<string, unknown>
-      : null
-
-  return marker?.enabled === true && marker.source === 'system_test_ack_action'
-}
-
 function assertNoProductionTgtFields(params: {
   id?: string | null
   environment?: EdielEnvironment | string | null
@@ -126,7 +113,6 @@ export function evaluateEdielProductionSendLock(
   preflight?: EdielPayloadPreflightResult | null
 ): EdielSendLockResult {
   const issues: EdielSendLockIssue[] = []
-  const systemTestAckSend = hasSystemTestAckSendBypass(message)
 
   if (message.environment !== 'production') {
     return { locked: false, status: 'ready', issues }
@@ -144,7 +130,7 @@ export function evaluateEdielProductionSendLock(
     })
   }
 
-  if (message.test_flag === 1 && !systemTestAckSend) {
+  if (message.test_flag === 1) {
     issues.push({
       code: 'production_test_flag',
       severity: 'blocked',
@@ -153,8 +139,7 @@ export function evaluateEdielProductionSendLock(
   }
 
   if (
-    (isEdielPortalParty(message.sender_ediel_id) || isEdielPortalParty(message.receiver_ediel_id)) &&
-    !systemTestAckSend
+    (isEdielPortalParty(message.sender_ediel_id) || isEdielPortalParty(message.receiver_ediel_id))
   ) {
     issues.push({
       code: 'ediel_portal_party_in_production',
@@ -163,7 +148,7 @@ export function evaluateEdielProductionSendLock(
     })
   }
 
-  if (isTgtApplicationReference(message.application_reference) && !systemTestAckSend) {
+  if (isTgtApplicationReference(message.application_reference)) {
     issues.push({
       code: 'tgt_application_reference_in_production',
       severity: 'blocked',

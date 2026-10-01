@@ -1,4 +1,5 @@
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
+import {receivedUtiltsOwnerFixture,utiltsNamedOwnerWitness,utiltsCanonicalOwnerRpc,utiltsOwnerCompany,resetUtiltsCanonicalOwnerIo} from './helpers/utiltsCanonicalOwnerIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -6,8 +7,9 @@ import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdiel
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, alphabets, type Parts } from './fixtures/prodat-register'
 
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(),registry:vi.fn(),rpc:vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async()=>({...await vi.importActual<object>('@/lib/ediel/rulebook/canonicalRulePackRegistry'),resolveCanonicalRulePack:io.registry}))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -31,7 +33,7 @@ function wire(code = 'Z04', date = '202607010000', body?: Parts[], alphabet: rea
 }
 function source(code = 'Z04', date = '202607010000', body?: Parts[], alphabet?: readonly string[]) {
   const value = wire(code, date, body, alphabet)
-  return { id: 'source-1', company_id: 'tenant-a', environment: 'test', direction: 'inbound', message_standard: 'edifact',
+  return { id: 'source-1', company_id: utiltsOwnerCompany, environment: 'test', direction: 'inbound', message_standard: 'edifact',
     message_family: 'PRODAT', message_code: code, metering_point_id: 'meter-tenant-a', raw_payload: value,
     immutable_payload_hash: hash(value), message_received_at: '2026-06-20T09:00:00.000Z',
     parsed_payload: { meterNumber: 'CACHED-WRONG', authority: true }, status: 'validated' }
@@ -60,8 +62,9 @@ function match(overrides: Row = {}) {
     meteringPointId: 'meter-tenant-a', customerId: null, siteId: null, gridOwnerId: null, matchStatus: 'matched', ...overrides }
 }
 beforeEach(() => {
-  vi.clearAllMocks(); queryCalls.length = 0
-  incoming = observationHandoffMessage(); rows = [source()]; count = 1; dbError = null
+  vi.clearAllMocks(); resetUtiltsCanonicalOwnerIo(); queryCalls.length = 0
+  incoming = receivedUtiltsOwnerFixture(observationHandoffMessage()); rows = [source()]; count = 1; dbError = null
+  io.registry.mockImplementation(utiltsNamedOwnerWitness);io.rpc.mockImplementation(utiltsCanonicalOwnerRpc)
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.ack.mockResolvedValue([]); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([match()]); io.from.mockImplementation(query)
 })
@@ -133,21 +136,21 @@ it.each([
   expect(JSON.stringify(report)).not.toMatch(/source-1|SECOND-PRIVATE|OTHER-TENANT/)
 })
 it('accepts the same receipt instant in a different offset, retaining the incoming SELECT literal', async () => {
-  incoming.message_received_at = '2026-09-30T22:00:00.000002+02:00'
+  incoming = receivedUtiltsOwnerFixture({ ...incoming, message_received_at: '2026-09-30T22:00:00.000002+02:00' })
   rows[0].message_received_at = '2026-06-20T11:00:00.000001+02:00'
   rows[0].received_prodat_context = context(rows[0], { sourceReceivedAt: '2026-06-20T09:00:00.000001Z' })
   expect((await run()).sources[0]).toMatchObject({ receiptContext: { status: 'recorded' } })
   expect(queryCalls).toContainEqual(['lte', 'message_received_at', '2026-09-30T22:00:00.000002+02:00'])
 })
 it.each(['2026-09-30T20:00:00.000002Z', '2026-09-30T22:00:00.000002+02:00'])('does not claim a receive context existed at the UTILTS cutoff when it was captured later: %s', async capturedAt => {
-  incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
+  incoming = receivedUtiltsOwnerFixture({ ...incoming, message_received_at: '2026-09-30T20:00:00.000001Z' })
   rows[0].received_prodat_context = context(rows[0], { capturedAt })
   const result = await run()
   expect(result).toMatchObject({ status: 'read_failed', sources: [], issues: [{ code: 'source_receive_context_unavailable' }] })
   assertNoSourceData(result)
 })
 it('allows equality at the capture cutoff to microsecond precision', async () => {
-  incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
+  incoming = receivedUtiltsOwnerFixture({ ...incoming, message_received_at: '2026-09-30T20:00:00.000001Z' })
   rows[0].received_prodat_context = context(rows[0], { capturedAt: '2026-09-30T22:00:00.000001+02:00' })
   expect((await run()).sources[0]).toMatchObject({ receiptContext: { status: 'recorded' } })
 })

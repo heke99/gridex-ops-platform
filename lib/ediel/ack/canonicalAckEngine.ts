@@ -11,6 +11,17 @@ export type CanonicalAckMatrixRule = {
 }
 
 const ACK_MATRIX: readonly CanonicalAckMatrixRule[] = [
+  // AI §2–3 / AI01: the supplier's physical CSV list has no EDIFACT ACK.
+  // This grants no source/role/profile activation and does not cover BI.
+  {
+    family: 'AI_LIST',
+    code: 'AI',
+    technicalAck: 'none',
+    applicationAck: 'none',
+    businessResponses: [],
+    negativeApplicationResponse: 'none',
+    acknowledgeIncomingMessageWith: [],
+  },
   {
     family: 'CONTRL',
     code: '*',
@@ -72,7 +83,7 @@ function normalize(value: unknown): string {
 }
 
 /**
- * Resolve only explicitly supported Ediel/EDIFACT acknowledgement families.
+ * Resolve only explicitly supported Ediel acknowledgement families/codes.
  * Unknown families must fail closed: manufacturing a default CONTRL policy can
  * turn an unsupported business message into a seemingly valid protocol path.
  */

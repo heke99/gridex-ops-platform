@@ -46,7 +46,7 @@ export function evaluateProdatEndUserAddress(input:AddressPolicyInput):AddressPo
     if(fact.availability==='unavailable') {if(address.some(v=>v.trim()))fail('FORBIDDEN',`${key}: adress får inte anges när underlaget säger att den saknas`);continue}
     available=true
     const expected=prodatEndUserAddressWireLines(fact.addressLines)
-    if([0,1,2].some(i=>(address[i]??'').trim()!==(expected[i]??'')))fail('VALUE_MISMATCH',`${key}: adressens komponenter avviker från valt underlag`)
+    if([0,1,2].some(i=>(fact.source.kind==='customer_masterdata'?(address[i]??''):(address[i]??'').trim())!==(expected[i]??'')))fail('VALUE_MISMATCH',`${key}: adressens komponenter avviker från valt underlag`)
   }
   if(!first.length)fail('SCOPE_INVALID','inget första objekt finns')
   for(const fact of facts)if(!seen.has(JSON.stringify([fact.meteringPointId,fact.identityAgency])))fail('SOURCE_OBJECT_MISSING','valt källobjekt saknas i meddelandet')

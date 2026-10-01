@@ -1,5 +1,19 @@
 import type { EdielDirection, EdielEnvironment } from '@/lib/ediel/types'
 
+/** Version admission and business timestamps have different source authority. */
+export type EdielMessageTimeAnchors = Readonly<{
+  documentDate: string | null
+  documentTimestamp: Readonly<{ value: string; format: string | null; originalOffset: string | null; timeBasis: 'fixed_UTC_plus_1' | 'source_declared' }> | null
+  localIngressAt: string | null
+  actualSendAt: string | null
+  admissionAt: string
+  admissionDate: string
+  admissionSource: 'local_ingress' | 'message_persisted' | 'pre_send' | 'explicit'
+  businessEffectiveDate: string
+  measurementPeriods: readonly Readonly<{ qualifier: string; value: string; format: string | null; originalOffset: string | null; timeBasis: 'fixed_UTC_plus_1' | 'source_declared' }>[]
+  replayAt: string | null
+}>
+
 export type EdielExecutionFamily = 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL' | 'UTILTS_ERR'
 
 export type EdielExecutionContext = Readonly<{
@@ -12,6 +26,7 @@ export type EdielExecutionContext = Readonly<{
   transactionSubtype: string | null
   businessProcess: string
   businessDate: string
+  timeAnchors?: EdielMessageTimeAnchors | null
   senderActorId: string
   senderEdielId: string
   senderRole: string
@@ -113,6 +128,15 @@ export function validateEdielExecutionContext(
     issues.push({ field: 'businessDate', code: 'invalid_business_date', message: 'Affärsdatum måste vara ett verkligt YYYY-MM-DD-datum.' })
   }
 
+  if (input.timeAnchors) {
+    const admission = new Date(input.timeAnchors.admissionAt)
+    if (Number.isNaN(admission.getTime()) || !validBusinessDate(input.timeAnchors.admissionDate)
+      || stockholmBusinessDate(admission) !== input.timeAnchors.admissionDate
+      || input.timeAnchors.businessEffectiveDate !== businessDate) {
+      issues.push({ field: 'timeAnchors', code: 'inconsistent_time_anchors', message: 'Admissionstid och affärstid måste vara separata, giltiga och sammanhängande.' })
+    }
+  }
+
   if (input.environment === 'production') {
     const applicationReference = nonEmpty(input.applicationReference)?.toUpperCase() ?? ''
     if (applicationReference.includes('TGT') || applicationReference.includes('AGT') || applicationReference.includes('EDIELPORTAL')) {
@@ -147,6 +171,11 @@ export function createEdielExecutionContext(input: EdielExecutionContextInput): 
     transactionSubtype: nullableText(input.transactionSubtype),
     businessProcess: nonEmpty(input.businessProcess)!,
     businessDate: nonEmpty(input.businessDate)!,
+    ...(input.timeAnchors ? { timeAnchors: Object.freeze({
+      ...input.timeAnchors,
+      documentTimestamp: input.timeAnchors.documentTimestamp ? Object.freeze({ ...input.timeAnchors.documentTimestamp }) : null,
+      measurementPeriods: Object.freeze(input.timeAnchors.measurementPeriods.map(period => Object.freeze({ ...period }))),
+    }) } : {}),
     senderActorId: nonEmpty(input.senderActorId)!,
     senderEdielId: nonEmpty(input.senderEdielId)!,
     senderRole: nonEmpty(input.senderRole)!,

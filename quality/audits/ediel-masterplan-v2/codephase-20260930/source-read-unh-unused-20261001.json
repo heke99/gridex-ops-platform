@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "scope": "P national UNH unused elements, not full UNSM",
+  "source": {
+    "id": "P",
+    "path": "/workspace/scratch/a67b8bbe9d11/evidence/originals/260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B(6).pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "pages": [
+      40,
+      41,
+      96,
+      97,
+      119
+    ],
+    "extraction": "pdftotext -layout <exact PDF path> /tmp/ediel-prodat-current-authority-review.txt",
+    "verification": "sha256sum <exact PDF path>; compare frozen source_manifest P"
+  },
+  "requirements": {
+    "unused": [
+      "UNH/0068",
+      "UNH/S010 including0070/0073"
+    ],
+    "syntax": "Optional UNH fields remain generic syntax valid; national use is separate.",
+    "outbound": "Fresh source-proven PRODAT and P-APERAK profiles must leave unused components empty.",
+    "inbound": "P-APERAK national guide holds nonempty X. P119 received PRODAT X is preserved and ignored, with no invented national error or functional information."
+  },
+  "consumers": [
+    "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+    "lib/ediel/rulebook/ackGuidePolicy.ts",
+    "lib/ediel/rulebook/validator.ts",
+    "lib/ediel/core/runtimeDecision.ts",
+    "supabase/migrations/20261001053253_ediel_source_owned_unused_unh_elements.sql"
+  ],
+  "nativeScope": "Fresh original prepare/birth and fresh generic/H prepare/enter after fixed delegate; new accepted national source assessments; incoming ACK application after committed-original read. Genuine negative exception uses existing private exact-source prepared/consumed fixture port only.",
+  "proofLimits": [
+    "Targeted TS and declared synthetic PG boundary mechanics only.",
+    "No native database, actual authenticated fixture registration, provider, concurrency, full UNSM, full-suite or formal PASSED claim.",
+    "Old immutable receipts/originals are not retrospectively revalidated or backfilled."
+  ]
+}

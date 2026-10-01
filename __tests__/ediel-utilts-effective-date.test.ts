@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
 import {
   assertUtiltsOutboundMessageAllowed,
+  assertUtiltsMessageUseAllowed,
   assertUtiltsRejectionReasonAllowed,
   assertUtiltsTransactionReasonAllowed,
   resolveUtiltsProcessabilityPolicy,
@@ -36,6 +37,12 @@ describe('effective-dated UTILTS canonical rules', () => {
     expect(future.removedFieldNumbers).toEqual(['535', '536', '537', '538'])
     expect(future.removedRejectionReasonCodes).toContain('E19')
     expect(future.removedTransactionReasonCodes).toContain('Z03')
+  })
+
+  it.each(['2026-09-30', '2026-10-01'])('holds unused S06 outbound while retaining historical parsing on %s', date => {
+    expect(() => assertUtiltsOutboundMessageAllowed({referenceDate:date, messageCode:'S06'})).toThrow('utilts_s06_outbound_not_in_use')
+    expect(resolveUtiltsProcessabilityPolicy(date).activeOutboundMessageCodes).not.toContain('S06')
+    expect(() => assertUtiltsMessageUseAllowed({referenceDate:date, messageCode:'S06', mode:'historical_replay'})).not.toThrow()
   })
 
   it('blocks removed future codes and discontinued S08 outbound', () => {

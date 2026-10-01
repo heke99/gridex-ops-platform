@@ -52,3 +52,9 @@ export function stripUna(rawPayload: string | null | undefined): string {
   const raw = String(rawPayload ?? '')
   return raw.toUpperCase().startsWith('UNA') ? raw.slice(9) : raw
 }
+
+/** Escape a data value before combining it with EDIFACT structure. */
+export function escapeEdifactData(value: string | number | null | undefined, una: EdifactServiceStringAdvice = DEFAULT_UNA): string {
+  const reserved = new Set([una.releaseCharacter, una.componentDataElementSeparator, una.dataElementSeparator, una.segmentTerminator])
+  return Array.from(String(value ?? ''), char => reserved.has(char) ? `${una.releaseCharacter}${char}` : char).join('')
+}

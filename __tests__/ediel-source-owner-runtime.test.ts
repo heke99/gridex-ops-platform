@@ -1,7 +1,7 @@
 import {beforeEach,expect,it,vi} from 'vitest'
 import {OWNER,ownerId,ownerRows,ownerSource} from './helpers/sourceOwnerFixtures'
 const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false}))
-vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>({profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3',sourceHash:'a'.repeat(64),messageProfileId:'00000000-0000-4000-8000-000000000011',rulePackId:'00000000-0000-4000-8000-000000000012'})}))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async importOriginal=>({...(await importOriginal<typeof import('@/lib/ediel/rulebook/canonicalRulePackRegistry')>()),resolveCanonicalRulePack:async()=> (await import('./helpers/sourceOwnerFixtures')).ownerRulePackEvidence()}))
 vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
@@ -37,10 +37,10 @@ it('uses a real fully accepted canonical register source as the positive oracle'
 it('composes the real canonical, tenant, selected-party and committed Z04 owners, then witnesses separately',async()=>{
  const state=await record();const receipt=await apply(state)
  expect(receipt).toMatchObject({status:'recorded',sourceDisposition:'accepted',assessmentId:ownerId(31),witnessId:ownerId(32)})
- expect(io.calls.map(x=>x.name)).toEqual(['gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
+ expect(io.calls.map(x=>x.name)).toEqual(['gridex_record_prodat_source_validation_v4','ediel_apply_supply_source_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
  const fact=objectFacts();expect(fact.objects).toHaveLength(1)
  expect(fact.objects[0]).toMatchObject({disposition:'accepted',reasons:[],object:{messageIndex:0,messageReference:'M',objectId:OWNER.external,identityAgency:'9'},business:{owner:'inbound-z04-switch-confirmation-v1',switchRequestId:OWNER.switch,supplyPeriodId:OWNER.supply,effectiveFrom:{fieldNumber:'210',marketMinute:'202610010000',utc:'2026-09-30T23:00:00.000Z'}},party:{receiver:{evidence:{completeness:'exact_count'}},parties:{legalSender:'12345',legalReceiver:'54321',transportSender:'12345',transportReceiver:'54321'}}})
- expect(await state.session!.finish()).toEqual(receipt);expect(io.calls).toHaveLength(3)
+ expect(await state.session!.finish()).toEqual(receipt);expect(io.calls).toHaveLength(4)
 })
 it('cannot rehydrate approval capability from copied canonical receipt JSON',async()=>{const {receipt}=await record();expect(createReceivedSourceOwnerSession(JSON.parse(JSON.stringify(receipt)))).toBeNull()})
 it('a caller-provided commit-shaped object cannot impersonate the successful business path',async()=>{
@@ -63,8 +63,8 @@ for(const [table,key,value] of [
  ['metering_points','meter_point_id','FOREIGN'],['metering_points','site_id',ownerId(99)],['customer_sites','grid_owner_id',ownerId(99)],
  ['customer_supply_periods','start_date','2026-10-02'],
 ] as const)it(`withholds mismatched ${table}.${key}`,async()=>{const s=await record();io.rows[table][0][key]=value;expect(await apply(s)).toMatchObject({sourceDisposition:'not_established'});expect(objectFacts()?.objects[0].disposition).toBe('unavailable')})
-it.each(['gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])('rejects a foreign-company %s receipt',async name=>{
- io.badReceipt=name;const s=await record();if(name==='gridex_record_source_validation_v1'){expect(s.session).toBeNull();return}expect(await apply(s)).toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'})
+it.each(['gridex_record_prodat_source_validation_v4','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])('rejects a foreign-company %s receipt',async name=>{
+ io.badReceipt=name;const s=await record();if(name==='gridex_record_prodat_source_validation_v4'){expect(s.session).toBeNull();return}expect(await apply(s)).toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'})
 })
 it('binds the committed message to the immutable original rather than its mutable report',async()=>{
  const s=await record();const original=s.row.raw_payload;s.row.raw_payload=String(original).replace('12345:14','99999:14')
