@@ -1,0 +1,2 @@
+PASS: synthetic additive full-facet + delta + structural whole-row composition; five-key provenance, wrong cells, scope, identity authority, ambiguity, current revoke and missing epoch fences. Authentic issuer/native/full-chain NOT RUN.
+{"kind":"ai_legal_technical_current_composition","mechanicalAssertions":84,"native":false,"authenticIssuer":false,"wholeAcceptance":false}

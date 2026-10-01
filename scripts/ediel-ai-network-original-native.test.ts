@@ -34,6 +34,16 @@ it('genuine customer and legal/network original producers supply dated AI intent
  effects.smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'});const count=effects.smtp.mock.calls.length;await sendEdielMessageViaSmtp(queued,{actorUserId:purpose.uploader.id,smtpMimeMode:'nodemailer-attachment'});expect(effects.smtp.mock.calls.length).toBe(count+1)
  await expect(prepareAndQueueAiList({...request,listType:'BI'})).rejects.toThrow();expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_code='BI'`)).toBe(0)
  expect((await revokeNetworkRegistrySource({...source,companyId:f.companyId,actorUserId:network.reviewer.id,reason:'Synthetic withdrawal of actual network source'})).status).toBe('held');await expect(prepareAndQueueAiList(request)).rejects.toThrow(/network_registry/)
+ // Immutable original disclosure is a separate current READ phase. It uses
+ // its actual native binding despite withdrawn current registry authority and
+ // produces no new intent, original, queue action or provider invocation.
+ const immutableCounts=()=>sql(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),'intents',(SELECT count(*) FROM public.ediel_message_intents WHERE company_id=${literal(f.companyId)}),'origins',(SELECT count(*) FROM gridex_ai_processing.outbound_origins WHERE company_id=${literal(f.companyId)}),'bindings',(SELECT count(*) FROM gridex_ai_processing.outbound_origin_bindings WHERE company_id=${literal(f.companyId)}))`)
+ const readCounts=immutableCounts(),readProviderCalls=effects.smtp.mock.calls.length
+ const readOrigin=()=>supabaseService.rpc('gridex_ai_outbound_origin_status_v1',{p_company_id:f.companyId,p_actor_user_id:f.reader.id,p_intent_id:queued.intent_id!})
+ const readResult=await readOrigin();expect(readResult.error).toBeNull();expect(readResult.data).toMatchObject({status:'bound',messageId:queued.id,payloadHash:createHash('sha256').update(queued.raw_payload!,'utf8').digest('hex')})
+ expect(immutableCounts()).toEqual(readCounts);expect(effects.smtp.mock.calls.length).toBe(readProviderCalls)
+ sql(`UPDATE auth.users SET banned_until=clock_timestamp()+interval '1 hour' WHERE id=${literal(f.reader.id)}`)
+ try{expect((await readOrigin()).error?.message).toContain('ediel_tenant_actor_forbidden');expect(immutableCounts()).toEqual(readCounts)}finally{sql(`UPDATE auth.users SET banned_until=NULL WHERE id=${literal(f.reader.id)}`)}
  const sent=await getEdielMessageById(queued.id);expect(sent).not.toBeNull();const acceptedCount=effects.smtp.mock.calls.length;await sendEdielMessageViaSmtp(sent!,{actorUserId:purpose.uploader.id,smtpMimeMode:'nodemailer-attachment'});expect(effects.smtp.mock.calls.length).toBe(acceptedCount)
  expect((await supabaseService.from('ediel_messages').select('raw_payload').eq('id',queued.id).single()).data?.raw_payload).toBe(queued.raw_payload)
 },120000)

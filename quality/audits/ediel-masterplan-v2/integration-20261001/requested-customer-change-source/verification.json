@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "purpose": "prodat_z09e_requested_customer_change",
+  "scope": [
+    "SC030",
+    "AT-Z09E-SUPPLIER"
+  ],
+  "criterionApproval": false,
+  "acceptedCriteria": [],
+  "baseCommit": "87de7df1",
+  "newMigration": "20261001084106_ediel_requested_customer_change_source_owner.sql",
+  "sourceFiles": [
+    {
+      "path": "supabase/migrations/20261001084106_ediel_requested_customer_change_source_owner.sql",
+      "sha256": "82ded69d225dd9f135ac6bb075f6f7605838a230b4272cc773633ae5017511ba"
+    },
+    {
+      "path": "lib/ediel/production/requestedCustomerChangeSource.ts",
+      "sha256": "6073ff24d552b7f0f6f75cf7e0154e65f78afac319ada1aa77fc0f3c43de4bdb"
+    },
+    {
+      "path": "lib/ediel/production/requestedCustomerChangeHttp.ts",
+      "sha256": "653532de7869f5cba688ac442cacf87e9db34690e8a7de22c9f4319c072a8d3b"
+    },
+    {
+      "path": "lib/ediel/flows/prodatRequestedCustomerChange.ts",
+      "sha256": "d82b72f136f823a5d30560b1161f5d9d720ccf1bfa4629b2909d70bdff58fb26"
+    },
+    {
+      "path": "app/admin/ediel/requested-customer-changes/page.tsx",
+      "sha256": "305cfd4539134ed31617d91bc13b65369d70843c60ff04a9af274c63a3ccb4f1"
+    },
+    {
+      "path": "app/admin/ediel/requested-customer-changes/workspace.tsx",
+      "sha256": "01a71d68793102727b7419579533301fc45e21f066c8d3954f03cf588f9ea38a"
+    },
+    {
+      "path": "__tests__/ediel-requested-customer-change-source.test.ts",
+      "sha256": "00d21e43e84c141fea99c83d3d8404c06583c8f95695780778534cacc22938a2"
+    },
+    {
+      "path": "__tests__/ediel-requested-customer-change-http.test.ts",
+      "sha256": "946385e86c1680cd8ba201eb0b6bd57031bd68d7e7ed7115b82fcba6f85011aa"
+    },
+    {
+      "path": "scripts/ediel-requested-customer-change-source-sql-regression.mjs",
+      "sha256": "01388c62ff4d49b50e04980ab58894273a11b6243466e72bda12cf5d4f1c9fe7"
+    },
+    {
+      "path": "scripts/ediel-requested-customer-change-source-native.test.ts",
+      "sha256": "339b59e3f420854a4cc46bcdee44d2131af5e62568b5ae009813fa32227ad0fa"
+    },
+    {
+      "path": "scripts/helpers/ediel-requested-customer-change-native-fixture.ts",
+      "sha256": "2b9c358557136574cf6d77a038288fbbaf4ff4a2b245c886e77fad1ce780e5e7"
+    },
+    {
+      "path": "scripts/ediel-requested-customer-change-browser-native.config.ts",
+      "sha256": "56eb1c7ca208a306381b423597a37524d1890568249448970f7c01326aea7530"
+    },
+    {
+      "path": "scripts/ediel-requested-customer-change-browser-native.test.ts",
+      "sha256": "a9f99fa65f51586f3a0f48818377a1d5bb730990ee790cfe0bb64e8a6310f068"
+    },
+    {
+      "path": "e2e/browser/ediel-requested-customer-change-source-local.spec.mjs",
+      "sha256": "4e8377821e9e6f2fd83a16177b4205b710d34beda1462fe50cefbb3ee293784e"
+    },
+    {
+      "path": "app/api/ediel/requested-customer-change-sources/[artifactId]/queue/route.ts",
+      "sha256": "e53f793fceb36b3132d057db62232443aead338d212469ea30ba90e1101ac411"
+    },
+    {
+      "path": "app/api/ediel/requested-customer-change-sources/[artifactId]/review/route.ts",
+      "sha256": "9edc4503fc895a3b0345ba1487fed0ea04650d9cffb5ab48d10360f10f7a2e44"
+    },
+    {
+      "path": "app/api/ediel/requested-customer-change-sources/[artifactId]/route.ts",
+      "sha256": "cac9d477392a7d7d0d79808ff48f2ee18a8c5584592fdca9d333dd9901e1d8dc"
+    },
+    {
+      "path": "app/api/ediel/requested-customer-change-sources/[artifactId]/source/route.ts",
+      "sha256": "76d99bb8ecb5990ffdc1c5817b31934ca678f919ded6b1ee21ee711b3ddacce1"
+    },
+    {
+      "path": "app/api/ediel/requested-customer-change-sources/route.ts",
+      "sha256": "2f91100f950c0dbb780b64df42a5eacdd2d23dac6fe8369cad34b4aeae0fddda"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "unit",
+      "status": "PASS",
+      "tests": 18,
+      "files": 2,
+      "receipt": "unit.log",
+      "limits": "RPC/API unit wiring mocks are not native authority or whole criterion acceptance."
+    },
+    {
+      "kind": "bounded_sql",
+      "status": "PASS",
+      "checks": 20,
+      "receipt": "bounded-sql-green.log",
+      "limits": "Actual source producer/actor/HMAC/SQL bodies; synthetic independent source/catalogue ports and disposable external issuer facts. PGlite is not authentic native replay."
+    },
+    {
+      "kind": "regression_red",
+      "status": "EXPECTED_FAILURE_OBSERVED",
+      "receipts": [
+        "clock-null-red.log",
+        "clock-expiry-red.log"
+      ],
+      "causes": [
+        "Signed NULL receipt clocks authorized",
+        "Expired authority remained authorized under transaction-start clocks"
+      ]
+    },
+    {
+      "kind": "scoped_app_typecheck",
+      "status": "PASS",
+      "receipt": "scoped-app-typecheck.log"
+    },
+    {
+      "kind": "scoped_scripts_typecheck",
+      "status": "PASS",
+      "receipt": "scoped-scripts-typecheck.log"
+    },
+    {
+      "kind": "lint",
+      "status": "PASS",
+      "receipt": "lint.log"
+    }
+  ],
+  "notRun": [
+    "Authentic full clean native replay",
+    "Authentic ancestor upgrade replay",
+    "Public GoTrue HTTP positive/negative/revocation native suite",
+    "Interactive Playwright browser upload/read/review/queue/mobile/foreign access",
+    "Build on integrated frozen candidate",
+    "Exact-head CI",
+    "Whole original expected/prohibited acceptance"
+  ],
+  "preparedNativeTests": 3,
+  "preparedBrowserTests": 2,
+  "browserFixtureEnvironment": "GRIDEX_REQUESTED_CUSTOMER_CHANGE_FIXTURE_PATH",
+  "externalPrerequisites": [
+    "Actual competent DSO/counterparty issuer key registration with legal authority source",
+    "Actual legal representation for this own-company, environment and exact bilateral requested customer change agreement",
+    "Authentic signed whole original receipt authorizing the exact source hash, own point/customer/supply tuple, physical customer/invoicee fields and current clause"
+  ],
+  "internalRemaining": [
+    "Authentic candidate execution and any first causes it finds",
+    "Root ordinary native/browser workflow inclusion and central migration manifest registration",
+    "Independent per-purpose DB05 retention adapters for newly identified copy classes",
+    "Final same-candidate per-literal expected/prohibited evidence rebind"
+  ],
+  "byteCopyInventory": [
+    {
+      "class": "requested_customer_change_original_pdf",
+      "table": "gridex_requested_customer_changes.artifacts",
+      "columns": [
+        "source_bytes"
+      ],
+      "boundBytes": 8388608,
+      "owner": "public.ediel_archive_requested_customer_change_v1",
+      "metadata": [
+        "id",
+        "company_id",
+        "environment",
+        "source_hash",
+        "source_reference",
+        "source_version",
+        "created_at"
+      ],
+      "removal": "Separate class/purpose decision and current origin revocation before byte erasure; no current purge adapter in this packet."
+    },
+    {
+      "class": "requested_customer_change_agreed_edifact_original",
+      "table": "gridex_requested_customer_changes.artifacts",
+      "columns": [
+        "raw_payload"
+      ],
+      "boundBytes": 1048576,
+      "owner": "public.ediel_archive_requested_customer_change_v1",
+      "metadata": [
+        "claims.payloadHash",
+        "agreement_id",
+        "supply_period_id",
+        "contract_id"
+      ],
+      "removal": "Exact source original class; cannot cascade with PDF or bilateral/death artifacts."
+    },
+    {
+      "class": "requested_customer_change_customer_token_copy",
+      "table": "gridex_requested_customer_changes.artifacts",
+      "columns": [
+        "claims.customerTokens"
+      ],
+      "owner": "private source_claims_v1 physical first own register reconstruction",
+      "metadata": [
+        "claims_hash",
+        "claims.scope"
+      ],
+      "removal": "Separate structured PII copy and immutable claims hash continuity; whole claims JSON is signed evidence."
+    },
+    {
+      "class": "requested_customer_change_event_edifact_copy",
+      "table": "gridex_customer_life_events.events",
+      "columns": [
+        "approved_raw_payload"
+      ],
+      "owner": "public.ediel_review_requested_customer_change_v1 atomic authorized event",
+      "metadata": [
+        "approved_payload_hash",
+        "approved_scope",
+        "source_sha256",
+        "legal_decision_reference"
+      ],
+      "removal": "Existing source event current qualification must hold after originating artifact purge; preserve immutable accepted original/provider receipts."
+    },
+    {
+      "class": "requested_customer_change_normal_outbound_original_copies",
+      "table": "Existing gridex_customer_life_events.originals / desired_changes and public.ediel_messages / ediel_outbox",
+      "columns": [
+        "Existing original rendered payload and source snapshot fields"
+      ],
+      "owner": "Existing prepareAndQueueCustomerLifeEventZ09 and native atomic original owner",
+      "removal": "Existing independently scoped outbound original/intent/journal retention owners; no blanket cascade introduced."
+    }
+  ]
+}

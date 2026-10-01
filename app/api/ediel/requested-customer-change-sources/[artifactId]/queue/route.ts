@@ -1,0 +1,6 @@
+import {NextRequest,NextResponse} from 'next/server'
+import {prepareAndQueueRequestedCustomerChange} from '@/lib/ediel/flows/prodatRequestedCustomerChange'
+import {requestedCustomerChangeHttp,requestedCustomerChangeHeaders,requestedCustomerChangeQueueCommand,readRequestedCustomerChangeJson,artifactSelector} from '@/lib/ediel/production/requestedCustomerChangeHttp'
+export const runtime='nodejs'
+export const dynamic='force-dynamic'
+export async function POST(request:NextRequest,{params}:{params:Promise<{artifactId:string}>}){return requestedCustomerChangeHttp(['communication.write','customers.write','contracts.write'],async guard=>{const artifactId=artifactSelector.parse((await params).artifactId),command=requestedCustomerChangeQueueCommand.parse(await readRequestedCustomerChangeJson(request,2048));const result=await prepareAndQueueRequestedCustomerChange({...command,artifactId,companyId:guard.companyId!,actorUserId:guard.userId});if(result.status==='held')return NextResponse.json({status:'held',missing:result.missing},{status:409,headers:requestedCustomerChangeHeaders});return NextResponse.json({status:result.status,messageId:result.message.id},{status:result.status==='queued'?202:200,headers:requestedCustomerChangeHeaders})})}

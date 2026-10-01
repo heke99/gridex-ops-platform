@@ -53,13 +53,14 @@ export function parseAiBiTechnicalFile(raw:string,expectedType?:AiBiTechnicalLis
   return {header,rows}
 }
 
-/** Shared actual-send guard also protects stored/manual/direct drafts. The
- * platform's DDQ/DGI exporter is the supplier; file party order stays fixed. */
+/** Shared physical format/field guard. Header parties are legal; message-row
+ * parties are technical. The same protected AI original/current source owner
+ * binds both actual tuples before persistence or provider entry. */
 export function assertAiListOutboundMessage(message:{message_standard?:string|null;message_family?:string|null;raw_payload?:string|null;sender_ediel_id?:string|null;receiver_ediel_id?:string|null;file_name?:string|null;mime_type?:string|null}):void {
   if(message.message_standard!=='ai_list'&&message.message_family!=='AI_LIST'&&message.message_family!=='BI_LIST')return
   const parsed=parseAiBiTechnicalFile(message.raw_payload ?? '')
   assertAiListOutboundType(parsed.header.listType)
-  if(parsed.header.supplierEdielId!==message.sender_ediel_id||parsed.header.networkEdielId!==message.receiver_ediel_id)throw new Error('ai_list_outbound_party_scope_mismatch')
+  if(![message.sender_ediel_id,message.receiver_ediel_id].every(value=>typeof value==='string'&&value.length>0&&value.length<=35&&value===value.trim()&&!/[\x00-\x20\x7f]/.test(value)))throw new Error('ai_list_outbound_technical_parties_required')
   if(parsed.rows.some(row=>row.columns.slice(11,17).some(Boolean)))throw new Error('ai_list_supplier_network_fields_present')
   if(!message.file_name?.toLowerCase().endsWith('.csv')||!isAiListCsvMediaType(message.mime_type))throw new Error('ai_list_csv_file_type_required')
 }

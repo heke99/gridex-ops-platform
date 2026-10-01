@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "checks": 204,
+  "scope": "actual original five-table custody, unchanged consumer function metadata, five independent signed purpose policies and current separate reviews, >1MB original, perclass erasure/replay/no delete or truncate, private availability barrier after retirement",
+  "authority": "Explicitly synthetic auth/schema/issuer and UNQUALIFIED original source rows; NOT real BRP declaration, certification, native race/browser or whole DB05",
+  "newMigrationSha256": "0f913ccbe8a9b51858ae34bc9a050007d3c917648237bb80e6e2916ad184de3e",
+  "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js /tmp/ediel-toolchain/node_modules/.bin/node scripts/ediel-brp-certification-copy-retention-sql-regression.mjs"
+}
