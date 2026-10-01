@@ -107,7 +107,7 @@ export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceIn
     const prepared = input.contracts[index]
     const comparison = contract.version === 1 && prepared.version === 2 && row.idempotentReplay === true
       ? legacyUtiltsRetryComparison(prepared,input.rawPayload) : prepared
-    if (!row.seriesId || row.contractVersion !== contract.version || !/^[a-f0-9]{64}$/.test(row.contractHash ?? '') || !consumptionEqual(contract, comparison) ||
+    if (contract.version===3 || !row.seriesId || row.contractVersion !== contract.version || !/^[a-f0-9]{64}$/.test(row.contractHash ?? '') || !consumptionEqual(contract, comparison) ||
       contract.companyId !== input.companyId || contract.environment !== input.environment || contract.messageCode !== input.messageCode || contract.transactionId !== item.transactionId) consumptionConflict('returned_contract')
     returnedAuthority.set(row, { sourceMessageId: input.sourceMessageId, contract: structuredClone(contract) })
   }
@@ -193,6 +193,10 @@ export function buildUtiltsTransactionPersistencePayload(input: {
 export async function persistUtiltsTransactionResults(input: UtiltsBoundPersistenceInput): Promise<UtiltsTransactionPersistenceResult[]> {
   if (!input.rawPayload || input.contracts.length !== input.transactions.length) consumptionConflict('prepared_contract_missing')
   input.contracts.forEach(validateUtiltsConsumptionContract)
+  input.contracts.forEach((contract,index)=>{
+    const item=input.transactions[index]
+    if(contract.version===3 && (item.disposition!=='guide_rejected' || item.responseType!=='negative_aperak' || !item.issueCodes.includes('UTILTS_TRANSACTION_ID_INVALID'))) consumptionConflict('rejected_diagnostic_outcome')
+  })
   // Narrow server-only boundary until the exact native-generated public types
   // arrive. No generated file is hand-edited or global client type weakened.
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_persist_utilts_consumption_v1', args: {
@@ -207,7 +211,7 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
     p_message_code: input.messageCode,
     p_raw_payload: input.rawPayload,
     p_transactions: input.transactions.map((item, index) => ({ ...item,
-      quantities: input.contracts[index].version === 2 ? item.quantities.map((quantity,quantityIndex) => {
+      quantities: input.contracts[index].version !== 1 ? item.quantities.map((quantity,quantityIndex) => {
         if (quantity.value === null) return quantity
         const transaction=physical[index]
         const source=transaction?.observations.flatMap(observation=>observation.quantities)[quantityIndex]

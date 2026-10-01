@@ -2,7 +2,8 @@ import { isCanonicalUtiltsDecimal } from './exactDecimal'
 import {canonicalUtiltsDecimal} from './exactDecimal'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {canonicalUtiltsTransactions} from './canonicalObservationScope'
-import {isValidUtiltsTransactionReference} from './physicalReference'
+import {isCopyableUtiltsReference,isValidUtiltsTransactionReference} from './physicalReference'
+import {CANONICAL_ACK_GUIDE_CONSTRAINTS} from '@/lib/ediel/rulebook/ackGuidePolicy'
 /** V1 enumerates business-write inputs, not arbitrary normalized diagnostics.
  * Source/actor/invocation lineage is deliberately outside reusable content. */
 export type UtiltsConsumptionAttribution = {
@@ -80,7 +81,15 @@ export type UtiltsConsumptionContractV2 = Omit<UtiltsConsumptionContractV1, 'ver
   projectionVersion: 'utilts-consumption-v2'
   observations: Array<Omit<UtiltsConsumptionObservation, 'quantity'> & {quantity:string}>
 }
-export type UtiltsConsumptionContract = UtiltsConsumptionContractV1 | UtiltsConsumptionContractV2
+/** V3 records only an observed invalid own505 national rejection. It carries
+ * no consumption, attribution or billing authority and is never a stored
+ * business contract. Existing V1/V2 write content stays immutable. */
+export type UtiltsRejectedDiagnosticContractV3 = Omit<UtiltsConsumptionContractV2,'version'|'projectionVersion'|'observations'> & {
+  version:3
+  projectionVersion:'utilts-rejected-diagnostic-v3'
+  observations:[]
+}
+export type UtiltsConsumptionContract = UtiltsConsumptionContractV1 | UtiltsConsumptionContractV2 | UtiltsRejectedDiagnosticContractV3
 
 export function consumptionConflict(reason: string): never {
   throw new Error(`utilts_consumption_binding_conflict:${reason}`)
@@ -128,10 +137,10 @@ function attribution(value: unknown, billing = false) {
 export function validateUtiltsConsumptionContract(value: unknown): UtiltsConsumptionContract {
   const c = object(value)
   keys(c, 'version projectionVersion attributionVersion companyId environment messageCode transactionId seriesKind profileKey profileVersion rulePackHash guideRevision interpretation observations metering billing billingContributionOrdinals sourceType')
-  if (!((c.version === 1 && c.projectionVersion === 'utilts-consumption-v1') || (c.version === 2 && c.projectionVersion === 'utilts-consumption-v2')) || c.attributionVersion !== 'tenant-match-v1' || c.sourceType !== 'ediel_utilts') consumptionConflict('unsupported_version')
+  if (!((c.version === 1 && c.projectionVersion === 'utilts-consumption-v1') || (c.version === 2 && c.projectionVersion === 'utilts-consumption-v2') || (c.version===3 && c.projectionVersion==='utilts-rejected-diagnostic-v3')) || c.attributionVersion !== 'tenant-match-v1' || c.sourceType !== 'ediel_utilts') consumptionConflict('unsupported_version')
   for (const key of ['companyId', 'messageCode', 'seriesKind', 'guideRevision']) text(c[key], false)
   if(c.version===1) text(c.transactionId,false)
-  else if(!isValidUtiltsTransactionReference(c.transactionId)) consumptionConflict('transaction_reference')
+  else if(c.version===3 ? !isCopyableUtiltsReference(c.transactionId,CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.originalAcwMax) || isValidUtiltsTransactionReference(c.transactionId) : !isValidUtiltsTransactionReference(c.transactionId)) consumptionConflict('transaction_reference')
   text(c.profileKey)
   text(c.profileVersion); text(c.rulePackHash)
   if (!['test', 'production'].includes(String(c.environment))) consumptionConflict('environment')
@@ -143,6 +152,7 @@ export function validateUtiltsConsumptionContract(value: unknown): UtiltsConsump
   if (!['explicit-offset-v1', 'no-consumption-v1'].includes(String(i.timestampPolicy))) consumptionConflict('timestamp_policy')
   attribution(c.metering); attribution(c.billing, true)
   if (!Array.isArray(c.observations) || !Array.isArray(c.billingContributionOrdinals)) consumptionConflict('observation_array')
+  if(c.version===3 && (c.observations.length!==0 || c.billingContributionOrdinals.length!==0 || i.timestampPolicy!=='no-consumption-v1' || object(c.metering).capability!=='skip' || object(c.billing).capability!=='skip')) consumptionConflict('rejected_diagnostic_effect_forbidden')
   const sourceOrdinals = new Set<number>()
   for (const [index, value] of c.observations.entries()) {
     const o = object(value)

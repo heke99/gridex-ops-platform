@@ -9,7 +9,7 @@ import { matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint 
 import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
 import { addNormalizedResolution, normalizeEdifactResolution } from './resolution'
 import { resolveUtiltsTransactionId } from './transactionIdentity'
-import {physicalUtiltsReference} from './physicalReference'
+import {physicalUtiltsReference,isValidUtiltsTransactionReference} from './physicalReference'
 import { utiltsSeriesKind } from './transactionPersistence'
 import { canonicalAbsoluteInstant, consumptionConflict, validateUtiltsConsumptionContract, type UtiltsConsumptionAttribution, type UtiltsConsumptionContract, type UtiltsBillingContext } from './consumptionContract'
 import {utiltsRuntimeSegments,type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
@@ -130,8 +130,9 @@ export async function prepareUtiltsConsumptionContracts(input: {
       periodStart, periodEnd, month: date ? new Date(date).getUTCMonth() + 1 : null, year: date ? new Date(date).getUTCFullYear() : null,
       status: 'received', sourceSystem: 'ediel_utilts', currency: 'SEK',
     }
+    const rejectedDiagnostic=disposition.disposition==='guide_rejected' && disposition.responseType==='negative_aperak' && disposition.issueCodes.includes('UTILTS_TRANSACTION_ID_INVALID') && !isValidUtiltsTransactionReference(transactionId)
     result.push(validateUtiltsConsumptionContract({
-      version: 2, projectionVersion: 'utilts-consumption-v2', attributionVersion: 'tenant-match-v1', companyId, environment: message.environment,
+      version: rejectedDiagnostic ? 3 : 2, projectionVersion: rejectedDiagnostic ? 'utilts-rejected-diagnostic-v3' : 'utilts-consumption-v2', attributionVersion: 'tenant-match-v1', companyId, environment: message.environment,
       messageCode: policy.code, transactionId, seriesKind: utiltsSeriesKind(policy.code), profileKey: policy.profileKey,
       profileVersion: message.rule_profile_version ?? null, rulePackHash: message.rule_pack_checksum ?? null, guideRevision: policy.guide.guideRevision,
       interpretation: { localPeriodStart: transaction.deliveryPeriodStart, localPeriodEnd: transaction.deliveryPeriodEnd, localRegistration: transaction.registrationTime,
