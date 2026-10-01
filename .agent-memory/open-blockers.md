@@ -1,3 +1,13 @@
+## Sparad överlämning — 2026-10-01 (aktuell)
+
+Användaren bad om commit/sammanfogning/publicering och ny chatt. Runtime/integrationsversion `d396c2284f692a84dc961ee04935acb40a69c908`, tree `f20f8d843042f8b725c417c4e55670bf4d2227ad`, branch `codex/ediel-composed-rules-20261001`; senare dokument-HEAD läses från Git. P15, OPS/ACK134500 och H142000 med terminal expression-materialization är färdiga och real-mergade. Slutkandidat inte fryst, qualifiedCodeSha=NULL och heavy/final qualification NOT_RUN. Main/#310/#418/#422 orörda; ingen ny PR.
+
+Fullständig konkret överlämning: `quality/audits/ediel-masterplan-v2/chat-handoff-20261001/remaining-work.md`, `checkpoint.json` och `checkpoint-branches.json`. Tre separata WIP-commits är bevarade: ACK1346006376e27e, contract terminal9dca678f (5RED, produktion142500 ej skriven), original-intake native7cc1b343. Merga inte overifierad WIP blint. Börja med terminalguard-forward, sedan ACKlegacy actual actors/callers och native registration; kodfas med riktade kontroller. Frys först därefter och gör full aktuell autentisk slutverifiering. Återanvänd tidigare bevis enbart på deras verkliga SHA/omfattning.
+
+352-ID-matrisens gamla kodluckor:274code-ready-not-verified/24verification-only/52externalt/2remaining(ACK09); nya contract/BRP terminalbehörighetsfynd är dessutom kvar och dokumenterade i WIP. Ingen formalacceptans eller procent. Senaste root H117 SQL-mekanik/14API-unit, OPS77 SQL-mekanik/79unit, P15 11+44unit, ACK79 SQL-mekanik, union15selftests PASS; 945/848checksums och33/121/231integrityPASS. Mekanik är inte autentisk native.
+
+Publiceringskvitto för dokumentets egen HEAD kontrolleras via actual remote refs och bootstrap history-publication manifest/Actionsrun; dokumentet är skrivet före det publiceringssteget. Äldre avsnitt nedan behåller enbart sin historiska version/omfattning.
+
 ## Active coherent rule composition — 2026-10-01
 
 Isolated `codex/ediel-composed-rules-20261001` preserves published c8f666d9, later local536cdc16 and source-owner3c7342c6 histories. Existing owners and all previous PR refs remain untouched. Full121/231 original criteria unchanged. Six isolated package owners are composing real caller chains, with focused regression/type/lint and immediate auth/transaction tests. Heavy replay/native/browser/build/fullCI is deferred to a frozen candidate. Final qualification is NOT_RUN. Earlier sections below are historical; source code and fresh receipts take precedence. Both inherited memory editions remain available in these exact immutable Git commits, and no inherited green result qualifies composed code.

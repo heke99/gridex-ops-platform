@@ -1,0 +1,70 @@
+{
+  "scope": "User-requested saved handoff; NOT frozen candidate or full acceptance",
+  "runtimeCodeSha": "d396c2284f692a84dc961ee04935acb40a69c908",
+  "runtimeCodeTree": "f20f8d843042f8b725c417c4e55670bf4d2227ad",
+  "integrationBranch": "codex/ediel-composed-rules-20261001",
+  "mainObserved": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "mainMerged": false,
+  "newPr": null,
+  "preservedPrs": [
+    421,
+    423,
+    424
+  ],
+  "separateTenantServicePrs": [
+    418,
+    422
+  ],
+  "pausedPr310": "untouched",
+  "qualifiedCodeSha": null,
+  "finalQualification": "NOT_RUN for composed current code",
+  "wipBranches": [
+    {
+      "source": "6376e27e011d219ab2710f0c6ebccc56c6821176",
+      "tree": "eadbc24214917dd11b0179b065d7921aca8ec7a4",
+      "sourceParents": [
+        "32aae260e12c56044f3b57dc9411ee7b1d4fd6a9"
+      ],
+      "sourceRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+      "targetRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+      "expectedTarget": ""
+    },
+    {
+      "source": "9dca678fe75a6a52128cf5b47cd79e6d8d5d3f14",
+      "tree": "2d86ad93ba387a20b07483e870ec9d3fc0f3244b",
+      "sourceParents": [
+        "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+      ],
+      "sourceRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+      "targetRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+      "expectedTarget": ""
+    },
+    {
+      "source": "7cc1b3438a8382645179c36595596271634b83fe",
+      "tree": "1100cb4d0aed799c3d169621d32a29670aa8b819",
+      "sourceParents": [
+        "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+      ],
+      "sourceRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+      "targetRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+      "expectedTarget": ""
+    }
+  ],
+  "matrixHistoricalGapCounts": {
+    "rule_cards": 121,
+    "acceptance_contracts": 231,
+    "exact_ids": 352,
+    "code_statuses": {
+      "CODE_READY_NOT_VERIFIED": 274,
+      "ALREADY_IMPLEMENTED_VERIFICATION_ONLY": 24,
+      "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED": 52,
+      "REMAINING_CODE_WORK": 2
+    }
+  },
+  "additionalCurrentInternalFindings": [
+    "Contract/BRP terminal actor guards still unimplemented; five RED test failures saved separately",
+    "ACK134600 WIP all actual actor/phase callers and compatibility fencing not yet qualified",
+    "Native original-intake test WIP needs both above dependency/interface settlement and config registration"
+  ],
+  "publication": "Source and three WIP refs are to be atomically normal-pushed using immutable raw Git bundle. Actual resulting source SHA/tree, run and postchecks persist in history-publication bootstrap manifest/run; verify refs on resume. No force."
+}
