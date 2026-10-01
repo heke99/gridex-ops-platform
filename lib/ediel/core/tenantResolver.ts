@@ -7,6 +7,9 @@ import {
 } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
+import { readInboundAckSourceCorrelation, qualifyInboundAckSourceCandidates } from '@/lib/ediel/ack/sourceCorrelation'
+import { resolveCanonicalTenantEdielIdentityWithEvidence } from '@/lib/ediel/tenant/tenantEdielIdentity'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import {
   extractMarketActorEdielIdFromRawPayload,
   resolveInboundTenantFromIdentifiers,
@@ -76,85 +79,88 @@ function snapshotFromMessage(message: EdielMessageRow): CanonicalPartySnapshot {
   })
 
   return {
-    sender: trimOrNull(message.unb_sender_id) ?? trimOrNull(message.sender_ediel_id) ?? canonical.sender,
+    sender: canonical.sender ?? trimOrNull(message.unb_sender_id) ?? trimOrNull(message.sender_ediel_id),
     senderSubAddress:
-      trimOrNull(message.unb_sender_subaddress) ??
+      canonical.senderSubAddress ?? trimOrNull(message.unb_sender_subaddress) ??
       trimOrNull(message.sender_sub_address) ??
-      canonical.senderSubAddress,
+      null,
     receiver:
-      trimOrNull(message.unb_receiver_id) ?? trimOrNull(message.receiver_ediel_id) ?? canonical.receiver,
+      canonical.receiver ?? trimOrNull(message.unb_receiver_id) ?? trimOrNull(message.receiver_ediel_id),
     receiverSubAddress:
-      trimOrNull(message.unb_receiver_subaddress) ??
+      canonical.receiverSubAddress ?? trimOrNull(message.unb_receiver_subaddress) ??
       trimOrNull(message.receiver_sub_address) ??
-      canonical.receiverSubAddress,
+      null,
     applicationReference:
-      trimOrNull(message.application_reference) ?? canonical.applicationReference,
-    interchangeReference: trimOrNull(message.interchange_reference) ?? canonical.interchangeReference,
-    messageFamily: trimOrNull(message.message_family) ?? canonical.messageFamilyForStorage,
-    messageCode: trimOrNull(String(message.message_code ?? '')) ?? canonical.messageCode,
-    bgmReference: trimOrNull(message.bgm_reference) ?? canonical.documentReference,
-    messageReference: trimOrNull(message.message_reference) ?? canonical.messageReference,
-    transactionReference: trimOrNull(message.transaction_reference) ?? canonical.transactionReference,
+      canonical.applicationReference ?? trimOrNull(message.application_reference),
+    interchangeReference: canonical.interchangeReference ?? trimOrNull(message.interchange_reference),
+    messageFamily: canonical.messageFamilyForStorage ?? trimOrNull(message.message_family),
+    messageCode: canonical.messageCode ?? trimOrNull(String(message.message_code ?? '')),
+    bgmReference: canonical.documentReference ?? trimOrNull(message.bgm_reference),
+    messageReference: canonical.messageReference ?? trimOrNull(message.message_reference),
+    transactionReference: canonical.transactionReference ?? trimOrNull(message.transaction_reference),
     businessReference:
-      trimOrNull(message.external_reference) ??
-      canonical.businessReference ??
-      canonical.transactionReference,
-    relatedReference: trimOrNull(message.correlation_reference) ?? canonical.relatedReference,
+      canonical.businessReference ?? canonical.transactionReference ?? trimOrNull(message.external_reference),
+    relatedReference: canonical.relatedReference ?? trimOrNull(message.correlation_reference),
   }
 }
 
 async function evidenceFromOriginalReferences(
-  snapshot: CanonicalPartySnapshot,
+  message: EdielMessageRow,
 ): Promise<TenantEvidence[]> {
-  const references = [
-    ['UNB_REF', snapshot.interchangeReference],
-    ['BGM_REF', snapshot.bgmReference],
-    ['RFF_LI', snapshot.businessReference],
-    ['RFF_ACW', snapshot.relatedReference],
-    ['RFF_TN', snapshot.transactionReference],
-    ['DOC_REF', snapshot.bgmReference],
-    ['IDE', snapshot.transactionReference],
-  ] as const
-
-  const values: Array<{ referenceType: string; referenceValue: string }> = references.flatMap(([
-    referenceType,
-    referenceValue,
-  ]) => {
-    const clean = trimOrNull(referenceValue)
-    return clean ? [{ referenceType, referenceValue: clean }] : []
-  })
-
-  if (values.length === 0) return []
-
-  const rows: Array<Record<string, unknown>> = []
-  for (const value of values) {
-    const { data, error } = await supabaseService
+  const ackMessage = { ...message, company_id: message.company_id ?? null,
+    environment: message.environment ?? null, raw_payload: message.raw_payload ?? null }
+  let correlation: ReturnType<typeof readInboundAckSourceCorrelation>
+  try { correlation = readInboundAckSourceCorrelation(ackMessage) } catch { return [] }
+  const sourceIds = new Set<string>()
+  // Search globally before company filtering: a supplied company must not
+  // conceal a collision in a shared legal sender/application namespace.
+  for (const reference of correlation.lookupReferences) {
+    const { data, error, count } = await supabaseService
       .from('ediel_business_references')
-      .select('id,company_id,reference_type,reference_value,business_object_type,business_object_id')
-      .eq('reference_type', value.referenceType)
-      .eq('reference_value', value.referenceValue)
-      .limit(20)
-
+      .select('source_message_id', { count: 'exact' })
+      .eq('reference_type', reference.type)
+      .eq('reference_value', reference.value)
+      .limit(8193)
+      .abortSignal(AbortSignal.timeout(2000))
     if (error) throw error
-    rows.push(...((data ?? []) as Array<Record<string, unknown>>))
+    if (count == null || count > 8192 || count !== (data ?? []).length) return []
+    for (const row of (data ?? []) as Array<{ source_message_id?: string | null }>) {
+      if (row.source_message_id) sourceIds.add(row.source_message_id)
+    }
   }
-
-  return rows.flatMap((row) => {
-    const companyId = trimOrNull(row.company_id)
-    if (!companyId) return []
-    return [{
-      companyId,
-      source: 'ediel_business_references',
-      score: 160,
-      details: {
-        businessReferenceId: row.id,
-        referenceType: row.reference_type,
-        referenceValue: row.reference_value,
-        businessObjectType: row.business_object_type,
-        businessObjectId: row.business_object_id,
-      },
-    }]
-  })
+  if (!sourceIds.size || sourceIds.size > 8192) return []
+  const { data, error, count } = await supabaseService.from('ediel_messages')
+    .select('*', { count: 'exact' }).in('id', [...sourceIds]).limit(8193)
+    .abortSignal(AbortSignal.timeout(2000))
+  if (error) throw error
+  if (count == null || count !== sourceIds.size || count !== (data ?? []).length) return []
+  const candidates = ((data ?? []) as EdielMessageRow[]).map(source => ({ ...source,
+    company_id: source.company_id ?? null, environment: source.environment ?? null,
+    raw_payload: source.raw_payload ?? null }))
+  const qualified = qualifyInboundAckSourceCandidates({ ackMessage,
+    candidates, expectedCompanyId: message.company_id })
+  if (qualified.status !== 'unique' || !qualified.sourceMessage.company_id) return []
+  const source = qualified.sourceMessage
+  const companyId = source.company_id as string
+  if (message.environment !== 'production' && message.environment !== 'test') return []
+  try {
+    const { identity } = await resolveCanonicalTenantEdielIdentityWithEvidence({ companyId,
+      environment: message.environment, asOf: new Date().toISOString(), requireExactCounts: true })
+    const wire = tokenizeEdifact(source.raw_payload ?? '')
+    const family = segmentComposite(wire.segments.find(segment => segment.tag === 'UNH'), 2, wire.una)[0]
+    const senderQualifier = family === 'PRODAT' ? 'FR' : family === 'UTILTS' ? 'MS' : null
+    const legalSenders = senderQualifier ? [...new Set(wire.segments
+      .filter(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, wire.una)[0] === senderQualifier)
+      .map(segment => segmentComposite(segment, 2, wire.una)[0]).filter(Boolean))] : []
+    const sourceSnapshot = snapshotFromMessage(source)
+    if (identity.transportEdielId !== sourceSnapshot.sender
+      || (senderQualifier && (legalSenders.length !== 1 || legalSenders[0] !== identity.legalEdielId))) return []
+    return [{ companyId, source: 'ediel_business_references', score: 300,
+      details: { sourceMessageId: source.id, qualifiedPhysicalScope: qualified.correlation.scope,
+        acknowledgedReferences: qualified.correlation.acknowledgedReferences,
+        legalActorId: identity.legalActorId, legalEdielId: identity.legalEdielId,
+        transportEdielId: identity.transportEdielId } }]
+  } catch { return [] }
 }
 
 function chooseCompany(evidence: TenantEvidence[]): {
@@ -282,7 +288,9 @@ async function patchMessageTenant(params: {
   const { data, error } = await supabaseService
     .from('ediel_messages')
     .update({
-      company_id: params.companyId,
+      // Existing sealed provenance is immutable. An attribution mismatch holds
+      // it before processing; clearing/reassigning an old receipt is not repair.
+      ...(params.status === 'tenant_resolved' ? { company_id: params.companyId,
       unb_sender_id: params.snapshot.sender,
       unb_sender_subaddress: params.snapshot.senderSubAddress,
       unb_receiver_id: params.snapshot.receiver,
@@ -291,7 +299,7 @@ async function patchMessageTenant(params: {
       interchange_reference: params.snapshot.interchangeReference,
       message_reference: params.snapshot.messageReference,
       bgm_code: params.snapshot.messageCode,
-      bgm_reference: params.snapshot.bgmReference,
+      bgm_reference: params.snapshot.bgmReference } : {}),
       tenant_resolution_status: params.status,
       business_match_status: params.status === 'tenant_resolved' ? 'not_checked' : 'business_blocked',
       processing_status: params.status === 'tenant_resolved' ? params.message.status : 'routing_unresolved',
@@ -332,7 +340,8 @@ export async function resolveInboundTenantForMessage(params: {
     messageCode: snapshot.messageCode,
   })
 
-  if (sharedResolution.status === 'resolved' && sharedResolution.companyId) {
+  const referenceFallbackAllowed = isReferenceRoutableAckFamily(snapshot)
+  if (!referenceFallbackAllowed && sharedResolution.status === 'resolved' && sharedResolution.companyId) {
     const message = await patchMessageTenant({
       message: params.message,
       snapshot,
@@ -361,13 +370,13 @@ export async function resolveInboundTenantForMessage(params: {
     }
   }
 
-  const referenceFallbackAllowed = isReferenceRoutableAckFamily(snapshot)
-  const referenceEvidence = referenceFallbackAllowed ? await evidenceFromOriginalReferences(snapshot) : []
+  const referenceEvidence = referenceFallbackAllowed ? await evidenceFromOriginalReferences(params.message) : []
   const evidence = compactEvidence([
     ...evidenceFromSharedResolution(sharedResolution),
     ...referenceEvidence,
   ])
-  const choice = chooseCompany(evidence)
+  // Routing hints are diagnostics, never an ACK original-context authority.
+  const choice = chooseCompany(referenceEvidence)
 
   if (choice.status === 'tenant_resolved' && choice.companyId) {
     const referenceResolution = tenantResolutionFromReferenceChoice({
