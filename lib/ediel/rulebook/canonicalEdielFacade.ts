@@ -217,3 +217,10 @@ export function canonicalProdatFieldWireDescriptor(fieldNumber:string):Readonly<
  const row=PRODAT_26A_FIELD_MATRIX.find(item=>item.fieldNumber===fieldNumber)
  return row?Object.freeze({fieldNumber:row.fieldNumber,fieldKey:row.fieldKey,segmentPath:row.segmentPath}):null
 }
+
+/** Frozen P26.A field217 code table: Z04=15 minutes, Z02=Hour.
+ * Z01 Profile and Z03 administrator choice do not establish exact resolution;
+ * field222 reporting frequency is a distinct domain and is never consulted. */
+export function canonicalProdatMeasurementResolution(value:string|null|undefined):'15'|'60'|null {
+ return value==='Z04'?'15':value==='Z02'?'60':null
+}

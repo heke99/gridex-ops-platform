@@ -1,3 +1,4 @@
+import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
@@ -80,6 +81,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,legalSupplier:routeContext.senderEdielId,legalNetwork:routeContext.receiverEdielId})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -126,7 +129,11 @@ export async function prepareAndQueueUtiltsE73(params: {
       transactionReason: 'Begäran om saknade validerade mätvärden',
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
-      readingFrequency: meteringPoint?.reading_frequency ?? null,
+      readingFrequency: sourceStructure.fields.reportingFrequency,
+      resolution:sourceStructure.resolution,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
     },
   })
 
@@ -245,6 +252,8 @@ export async function prepareAndQueueUtiltsE66(params: {
     },
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:params.periodStart??dataRequest.requested_period_start,periodEnd:params.periodEnd??dataRequest.requested_period_end,legalSupplier:routeContext.senderEdielId,legalNetwork:routeContext.receiverEdielId})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -289,12 +298,11 @@ export async function prepareAndQueueUtiltsE66(params: {
       registrationTime: params.registrationTime ?? new Date().toISOString(),
       quantity: params.quantity ?? 0,
       unit: 'KWH',
-      resolution:
-        meteringPoint?.reading_frequency === 'monthly'
-          ? '1440'
-          : meteringPoint?.reading_frequency === 'daily'
-            ? '1440'
-            : '15',
+      resolution:sourceStructure.resolution,
+      readingFrequency:sourceStructure.fields.reportingFrequency,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
       siteType: site?.site_type ?? 'consumption',
     },
   })
