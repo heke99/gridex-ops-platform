@@ -75,7 +75,7 @@ async function actors(company: string) {
 it('installed source producer ACLs require authenticated session actors while execution-only H consumers retain service ownership', () => {
   for (const signature of authenticatedIntakeSignatures) {
     const actual = sql<{ oid: number; securityDefiner: boolean; authenticated: boolean; service: boolean; anonymous: boolean }>(`SELECT jsonb_build_object(
-      'oid',p.oid,'securityDefiner',p.prosecdef,'authenticated',has_function_privilege('authenticated',p.oid,'EXECUTE'),
+      'oid',p.oid::bigint,'securityDefiner',p.prosecdef,'authenticated',has_function_privilege('authenticated',p.oid,'EXECUTE'),
       'service',has_function_privilege('service_role',p.oid,'EXECUTE'),'anonymous',has_function_privilege('anon',p.oid,'EXECUTE'))
       FROM pg_proc p WHERE p.oid=to_regprocedure(${literal('public.' + signature)})`)
     expect(actual, signature).toMatchObject({ securityDefiner: true, authenticated: true, service: false, anonymous: false })
