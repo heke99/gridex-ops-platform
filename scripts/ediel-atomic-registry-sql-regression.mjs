@@ -56,5 +56,34 @@ try{
  await assert.rejects(apply('LEGACY SOURCE',[actor('LEGACY')]),/legacy_run_requires_reconciliation/);checks++
  await assert.rejects(db.exec(`DELETE FROM gridex_registry_import.batches`),/batch_immutable/);checks++
  assert.equal((await db.query(`SELECT has_function_privilege('authenticated','public.ediel_apply_actor_registry_v1(uuid,text,text,text,text,jsonb)','EXECUTE') allowed`)).rows[0].allowed,false);checks++
+ // Create an actual immutable prior zero-route result under the previous sole
+ // owner, then install the forward. Replay must retain that exact prior result.
+ const priorZeroActor={...actor('LEGACY-NO-ROUTE'),routes:[]}
+ const priorZero=await apply('SYNTHETIC PRIOR ZERO ROUTES',[priorZeroActor]);assert.deepEqual(priorZero.routeIds,[])
+ await db.exec(readFileSync(new URL('20261001025903_ediel_registry_zero_route_import_hold.sql',root),'utf8'));checks++
+ const priorZeroReplay=await apply('SYNTHETIC PRIOR ZERO ROUTES',[priorZeroActor])
+ assert.deepEqual(priorZeroReplay,{...priorZero,reusedExistingRun:true});checks++
+ const counts=async()=> (await db.query(`SELECT
+  (SELECT count(*)::int FROM platform_market_actors) actors,
+  (SELECT count(*)::int FROM platform_actor_identifiers) identifiers,
+  (SELECT count(*)::int FROM platform_actor_roles) roles,
+  (SELECT count(*)::int FROM platform_actor_routes) routes,
+  (SELECT count(*)::int FROM platform_actor_certificates) certificates,
+  (SELECT count(*)::int FROM actor_registry_import_runs) runs,
+  (SELECT count(*)::int FROM actor_registry_import_items) items,
+  (SELECT count(*)::int FROM platform_actor_import_runs) ui_runs,
+  (SELECT count(*)::int FROM platform_actor_import_issues) issues,
+  (SELECT count(*)::int FROM gridex_registry_import.batches) batches`)).rows[0]
+ const beforeZero=await counts()
+ await assert.rejects(apply('SYNTHETIC FRESH ZERO ROUTES',[{...actor('FRESH-ZERO'),routes:[]}]),/zero_routes_source_held/)
+ assert.deepEqual(await counts(),beforeZero);checks++
+ await assert.rejects(apply('SYNTHETIC HELD ALL ROUTES',[actor(null)]),/zero_routes_source_held/)
+ assert.deepEqual(await counts(),beforeZero);checks++
+ await assert.rejects(apply('SYNTHETIC ZERO ROUTES UNAUTHORIZED',[{...actor('ZERO-UNAUTHORIZED'),routes:[]}],uid(99)),/platform_actor_required/)
+ await assert.rejects(apply('SYNTHETIC PRIOR ZERO ROUTES',[priorZeroActor],uid(99)),/platform_actor_required/);checks++
+ await assert.rejects(apply('SYNTHETIC ZERO ROUTES BAD HASH',[{...actor('ZERO-BAD-HASH'),routes:[]}],uid(1),'a'.repeat(64)),/exact_source_hash/);checks++
+ const mixed=await apply('SYNTHETIC MIXED LEGAL SOURCE',[{...actor('MIXED-NO-ROUTE'),routes:[]},actor('MIXED-OWN-ROUTE')])
+ assert.equal(mixed.created,2);assert.equal(mixed.routeIds.length,1);assert.equal(mixed.activation,'held_pending_current_source_readiness');checks++
+ assert.equal((await db.query(`SELECT has_function_privilege('authenticated','public.ediel_apply_actor_registry_v1(uuid,text,text,text,text,jsonb)','EXECUTE') allowed`)).rows[0].allowed,false);checks++
  console.log(`PASS ${checks} targeted atomic registry PostgreSQL checks; synthetic source/authorization fixture, not native/issuer evidence`)
 }finally{await db.close()}

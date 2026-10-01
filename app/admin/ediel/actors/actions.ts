@@ -282,6 +282,16 @@ async function buildActorImportPreview(records: ActorImportRecord[]): Promise<Ac
     }
   }
 
+  if (summary.routesSeen === 0) {
+    summary.issues.push({
+      recordName: 'Importfilen',
+      issueType: 'ediel_registry_zero_routes_source_held',
+      severity: 'blocking',
+      message: 'Importen saknar routes. Kontrollera originalfilens format och kommunikationsuppgifter; importen kan inte tillämpas som lyckad.',
+      metadata: { recordsSeen: summary.recordsSeen, routesSeen: 0 },
+    })
+  }
+
   return summary
 }
 
@@ -298,11 +308,11 @@ async function createActorImportPreviewRun(input: {
     .insert({
       source: input.fileName,
       import_type: input.importType,
-      status: preview.conflicts > 0 ? 'completed_with_warnings' : 'completed',
+      status: preview.issues.length > 0 ? 'completed_with_warnings' : 'completed',
       records_seen: preview.recordsSeen,
       records_upserted: 0,
       records_failed: preview.issues.filter((issue) => issue.severity === 'blocking').length,
-      safe: preview.conflicts === 0,
+      safe: !preview.issues.some((issue) => issue.severity === 'blocking'),
       completed_at: new Date().toISOString(),
       created_by: input.userId,
       metadata: {
@@ -383,6 +393,11 @@ export async function importPlatformActorsAction(formData: FormData) {
   }
 
   const preview = await buildActorImportPreview(parsed)
+  if (preview.routesSeen === 0) {
+    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
+    revalidatePath('/admin/ediel/actors')
+    throw new Error('ediel_registry_zero_routes_source_held: Importen saknar routes. Granska originalfilens format och kommunikationsuppgifter innan tillämpning.')
+  }
   if (preview.conflicts > 0) {
     await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
     throw new Error('Importen stoppades eftersom förhandsgranskningen hittade konflikt i Ediel-ID/aktörsmatchning. Lös granskningspunkterna innan importen godkänns.')

@@ -45,14 +45,18 @@ export async function applyActorRegistryRecords(input: {
   })
   if (error) throw error
   if (!data || typeof data.importRunId !== 'string' || !Array.isArray(data.routeIds) || !Number.isInteger(data.totalRecords)) throw new Error('ediel_registry_atomic_apply_result_invalid')
+  // Historical immutable batches still replay their own result in the native
+  // owner. A zero-route result must not be presented as a successful import.
+  if (data.routeIds.length === 0) throw new Error('ediel_registry_zero_routes_source_held')
   return data
 }
 
 export async function importActorRegistryXml(input: {
-  xml: string; sourceFilename?: string | null; uploadedBy?: string | null; forceReprocess?: boolean
+  xml: string; sourceBytes?: Buffer; sourceFilename?: string | null; uploadedBy?: string | null; forceReprocess?: boolean
 }): Promise<ActorRegistryImportSummary> {
   if (!input.uploadedBy) throw new Error('ediel_registry_authenticated_platform_actor_required')
+  if (input.sourceBytes && decodeRegistryUpload(input.sourceBytes, 'companies_xml') !== input.xml) throw new Error('ediel_registry_source_bytes_text_mismatch')
   // Exact same bytes always replay the immutable result. forceReprocess can no
   // longer invent a timestamp-suffixed source hash or adopt a partial old run.
-  return applyActorRegistryRecords({ sourceBytes: input.xml, sourceKind: 'companies_xml', sourceFilename: input.sourceFilename, actorUserId: input.uploadedBy, actors: parseActorRegistryXml(input.xml) })
+  return applyActorRegistryRecords({ sourceBytes: input.sourceBytes ?? input.xml, sourceKind: 'companies_xml', sourceFilename: input.sourceFilename, actorUserId: input.uploadedBy, actors: parseActorRegistryXml(input.xml) })
 }
