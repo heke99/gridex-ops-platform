@@ -7,6 +7,12 @@
   },
   "fixed": [
     {
+      "id": "TENANT-FIX-01",
+      "severity": "critical",
+      "cause": "F-3 outbound_dispatch_events written without company_id (createOutboundDispatchEvent and admin writers; same on main); F-3 user_permission_overrides platform-wide denies classified as tenant; F-8/F-10 ai_list_imports unique message id not tenant scoped",
+      "fix": "migration 20261001230000: dispatch-event tenant trigger from outbound_requests + backfill; overrides reclassified mixed with deny-only check; ai_list_imports company bound to source message and tenant-scoped unique key. Local tenant-isolation-invariants: all checks passed; retention/ai-purpose native PASS."
+    },
+    {
       "id": "NATIVE-FIX-01",
       "cause": "Canonical replay lacks legacy-seeded permission catalog keys",
       "fix": "setup adds catalog keys only (b1be6949)"
@@ -201,12 +207,6 @@
     }
   ],
   "open": [
-    {
-      "id": "TENANT-OPEN-01",
-      "severity": "critical-until-disproven",
-      "cause": "CI clean-migration-replay on 0f61f08f: tenant-isolation-invariants after the native/browser runs report F-3 outbound_dispatch_events 178 rows without company_id, F-3 user_permission_overrides 2 rows without company_id, F-8/F-10 unique index ai_list_imports_source_ediel_message_id_key not scoped by company_id.",
-      "fix": "Investigate first: which writers create NULL-company rows (product path vs native fixture), whether the index allows cross-tenant collision/oracle; forward fix with tests. Browser-native record/blob/finance-copy retention also fail."
-    },
     {
       "id": "NATIVE-OPEN-01",
       "tests": "ediel-utilts-consumption-native (~120), utilts-err-gateway, utilts-s02",
