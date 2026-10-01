@@ -50,7 +50,16 @@ export async function readUtiltsIssuerIdentityAuthority(input:{message:EdielMess
   physical={messageReference:segmentComposite({...bgms[0],raw:segmentUntrimmedRaw(bgms[0])},2,wire.una)[0]||null,
    transactions:wire.segments.filter(t=>t.tag==='IDE').map((t,transactionIndex)=>({transactionIndex,transactionId:segmentComposite({...t,raw:segmentUntrimmedRaw(t)},2,wire.una)[0]}))}
  }catch{return held(message,policy,'ediel_utilts_issuer_source_scope_unavailable')}
- const {data,error}=await supabaseService.rpc('gridex_read_utilts_issuer_identity_authority_v1',{p_company_id:message.company_id,p_message_id:message.id})
+ let reply:Awaited<ReturnType<typeof supabaseService.rpc>>
+ try{
+  reply=await supabaseService.rpc('gridex_read_utilts_issuer_identity_authority_v1',{p_company_id:message.company_id,p_message_id:message.id})
+ }catch{
+  // This local transport incident proves no namespace/history fact. Preserve
+  // the one operational owner's independent national guide diagnostics while
+  // holding only otherwise accepted own transactions without an absence claim.
+  return held(message,policy,'ediel_utilts_issuer_identity_read_failed')
+ }
+ const {data,error}=reply
  if(error||!data)return held(message,policy,'ediel_utilts_foreign_issuer_basis_unavailable')
  const result=data as {version?:unknown;companyId?:unknown;environment?:unknown;sourceMessageId?:unknown;sourcePayloadHash?:unknown;
   status?:unknown;authorityVersionId?:unknown;namespaceEpoch?:unknown;messageReferenceCollision?:unknown;transactionReferenceCollisions?:unknown;holdReason?:unknown}

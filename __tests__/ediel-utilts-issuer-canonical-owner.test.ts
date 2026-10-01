@@ -7,6 +7,7 @@ import * as engine from '@/lib/ediel/utiltsEngine'
 import {resolveCanonicalRuntimeDecisionWithRegistry,readCanonicalUtiltsIssuerIdentityAuthority,finalizeCanonicalUtiltsRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {utiltsIssuerIdentityFacts} from '@/lib/ediel/utilts/issuerIdentityAuthority'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
+import {recountEdifactUnt} from './helpers/recountEdifactUnt'
 
 const company='10000000-0000-4000-8000-000000000001'
 function source(){return {...energyHandoffMessage('2026-09-30',company),id:'20000000-0000-4000-8000-000000000001'}}
@@ -73,6 +74,17 @@ describe('same-owner UTILTS issuer authority integration',()=>{
   expect(decision.responsePlan.some(response=>response.family==='APERAK'||response.family==='UTILTS_ERR')).toBe(false)
   expect(run.mock.calls.filter(([,options])=>!options?.guideOnly)).toHaveLength(0)
   expect(io.registry).not.toHaveBeenCalled()
+ })
+ it.each(['returned','thrown'])('preserves independent national own505 rejection under %s issuer infrastructure failure',async kind=>{
+  const message=source();message.raw_payload=recountEdifactUnt(message.raw_payload!.replace('IDE+24+GRIDEX2607E66001','IDE+24+'))
+  if(kind==='returned')io.rpc.mockResolvedValue({data:null,error:{message:'network unavailable'}})
+  else io.rpc.mockRejectedValue(new Error('network unavailable'))
+  const run=vi.spyOn(engine,'runUtiltsRuntimeForMessage')
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  expect(run.mock.calls.filter(([,options])=>!options?.guideOnly)).toHaveLength(1)
+  expect(decision.responsePlan).toContainEqual(expect.objectContaining({family:'APERAK',outcome:'negative',applicationErrors:expect.arrayContaining([expect.objectContaining({ercCode:'41',fieldCode:'505'})])}))
+  expect(decision.utiltsTransactionValidation?.transactions.every(own=>own.disposition!=='accepted')).toBe(true)
+  expect(decision.issues.some(issue=>issue.code==='UTILTS_ISSUER_MESSAGE_REFERENCE_DUPLICATE'||issue.code==='UTILTS_ISSUER_TRANSACTION_REFERENCE_DUPLICATE')).toBe(false)
  })
  it('keeps an authenticated known field203 collision while historical absence remains separately held',async()=>{
   const message=source();io.rpc.mockResolvedValue(nativeReply(message,{status:'held',messageReferenceCollision:true,holdReason:'ediel_utilts_identity_history_coverage_unavailable'}))
