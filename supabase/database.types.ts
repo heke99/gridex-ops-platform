@@ -1790,21 +1790,21 @@ export type Database = {
           {
             foreignKeyName: "ai_list_imports_source_ediel_message_id_fkey"
             columns: ["source_ediel_message_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "ediel_message_ack_state_v"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_list_imports_source_ediel_message_id_fkey"
             columns: ["source_ediel_message_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "ediel_messages"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_list_imports_source_ediel_message_id_fkey"
             columns: ["source_ediel_message_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "ediel_overdue_message_acks_v"
             referencedColumns: ["id"]
           },
