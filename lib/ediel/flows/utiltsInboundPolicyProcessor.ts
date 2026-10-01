@@ -2,7 +2,7 @@ import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus 
 import { ensureActorUserId } from '@/lib/ediel/flows/shared'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
-import type {CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { resolveUtiltsInboundBusinessOutcome } from '@/lib/ediel/utilts/inboundBusinessOutcome'
@@ -112,9 +112,10 @@ async function processExplicitNonBillingOutcome(params: {
     sourceMessage: params.message,
     explicitTestCaseCode: params.testCaseCode ?? null,
   })
+  const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:params.canonicalDecision,message:params.message})??undefined
   const structuralQualification = await qualifyReceivedUtiltsStructure({
-    message: params.message, canonicalPolicy: policy,
-    runtime: runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy }),
+    message: params.message, canonicalPolicy: policy,issuerIdentityAuthority,
+    runtime: runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy,issuerIdentityAuthority }),
   })
   const runtime = structuralQualification.runtime
   await recordFinalCanonicalUtiltsDecision({original:params.message,validated:params.message,initialDecision:params.canonicalDecision,runtime})
