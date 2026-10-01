@@ -898,7 +898,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createCanonicalOutboundMessage({actorUserId:context.userId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput});
+  const message = await createCanonicalOutboundMessage({actorUserId:context.userId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context});
 
   if (testRunId) {
     await attachEdielMessageToTestRun({

@@ -458,7 +458,7 @@ async function createDraftForStep(params: {
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createCanonicalOutboundMessage({actorUserId:params.actorUserId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput});
+  const message = await createCanonicalOutboundMessage({actorUserId:params.actorUserId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context});
   await attachEdielMessageToTestRun({
     companyId: params.evaluation.testRun.company_id,
     testRunId: params.evaluation.testRun.id,
