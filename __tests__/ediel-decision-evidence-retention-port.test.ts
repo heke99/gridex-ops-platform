@@ -13,7 +13,7 @@ it('archives exact document bytes with actual session actor and source selectors
  expect(await submitDecisionEvidenceRetention(input)).toMatchObject({issuerQualified:false})
  expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_submit_decision_evidence_retention_v1',{p_company_id:company,p_actor_user_id:actor,p_retention_class:input.retentionClass,p_target_id:target,p_document_base64:document.toString('base64'),p_issuer_receipt:null})
 })
-it.each(['artifact_retention_decision_original_bytes','blob_retention_decision_original_bytes','record_retention_decision_original_bytes','process_retention_decision_original_bytes','decision_evidence_policy_original_bytes','finance_retention_decision_original_bytes'] as const)('keeps independent original namespace %s',async retentionClass=>{
+it.each(['artifact_retention_decision_original_bytes','blob_retention_decision_original_bytes','record_retention_decision_original_bytes','process_retention_decision_original_bytes','decision_evidence_policy_original_bytes','finance_retention_decision_original_bytes','invoice_file_retention_decision_original_bytes','customer_retention_decision_original_bytes','life_event_classification_source_original_bytes','life_event_classification_receipt_original_bytes','life_event_classification_revocation_original_bytes'] as const)('keeps independent original namespace %s',async retentionClass=>{
  io.rpc.mockResolvedValue({data:{status:'submitted',policyId:policy,retentionClass,targetId:target,documentHash,sourceHash:'b'.repeat(64),issuerQualified:false},error:null})
  await submitDecisionEvidenceRetention({...input,retentionClass});expect(io.rpc.mock.calls[0][1].p_retention_class).toBe(retentionClass)
 })

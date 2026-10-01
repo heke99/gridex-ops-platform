@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "createdAt": "2026-10-01T09:15:53.943428+00:00",
+  "baseHead": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "baseTree": "0a057a9f2175f3b8d52f8f6b29ff616e94a9107f",
+  "status": "partial_masterplan_not_approved",
+  "recreatedAfterWorkspaceLoss": true,
+  "previousUnpublishedCommitsRestored": false,
+  "classes": {
+    "decisionOriginals": [
+      "customer_retention_decision_original_bytes",
+      "invoice_file_retention_decision_original_bytes"
+    ],
+    "classificationCopies": [
+      "life_event_classification_source_original_bytes",
+      "life_event_classification_receipt_original_bytes",
+      "life_event_classification_revocation_original_bytes"
+    ]
+  },
+  "freshReceipts": {
+    "additionalOriginalSql": {
+      "artifact": "additional-original-sql-receipt.json",
+      "status": "PASS",
+      "checks": 109,
+      "boundary": "actual customer producer and new invoice table/receipt under declared synthetic schema/auth/issuer; unapproved invoice capture fixture",
+      "latePhysicalProbes": "same-transaction late DENY/native expiry with retained bytes and no tombstone/revocation on rollback; NOT native concurrency"
+    },
+    "copySql": {
+      "artifact": "copy-sql-receipt.json",
+      "status": "PASS",
+      "checks": 151,
+      "boundary": "actual23512 STABLE function declaration/fullbody; directFORSHARE RED/privateVOLATILE GREEN; synthetic issuer/auth and UNQUALIFIED original rows; finite late-write probes, no concurrent native claim"
+    },
+    "unit": {
+      "artifact": "unit-receipt.json",
+      "status": "PASS",
+      "tests": 28,
+      "passed": 28,
+      "files": 2,
+      "boundary": "finite named GoTrue/nativeRPC port and HTTP mechanics; issuerQualified false for namespace cases"
+    },
+    "scopedTypecheck": {
+      "status": "PASS",
+      "command": "node node_modules/typescript/bin/tsc --project tsconfig.ediel-retention-original-copy.json --pretty false",
+      "fullAppTypecheck": false
+    },
+    "lint": {
+      "status": "PASS",
+      "scope": "six changed own TS/TSX/test/runner files"
+    },
+    "diffCheck": {
+      "status": "PASS"
+    }
+  },
+  "requiredNotRun": {
+    "genuineSupabaseCleanAndUpgrade": "NOT_RUN_LOCAL_ROOT_EXACT_HEAD_REQUIRED",
+    "nativePositiveCustomerDecisionOriginal": "PREPARED_NOT_RUN",
+    "nativePositiveInvoiceDecisionOriginal": "NOT_RUN",
+    "nativePositiveThreeClassificationCopies": "NOT_RUN_AUTHENTIC_ORIGINAL_PRODUCER_CHAIN_REQUIRED_NO_PRIVATE_APPROVED_SEED",
+    "nativeAfterWaitOrConcurrentRace": "NOT_RUN",
+    "interactiveBrowser": "NOT_RUN",
+    "sameCandidateBuildAndCI": "ROOT_PENDING_FREEZE_REBIND"
+  },
+  "dependencies": [
+    "actual NEW20261001071000_ediel_invoice_file_copy_class_retention.sql from native owner before071500",
+    "published064500/070700 unchanged",
+    "new081731 shared permission nativeclock from recovery owner; no permissionbody edits in this packet",
+    "new54122 actual classification owner independent tuple3helper preserved; both guarded old23512 and bridged classification consumers need same-head proof"
+  ],
+  "remainingOwnWork": [
+    "BRP contract_declarations agreement_original/source_original two distinct byteclasses allocated next",
+    "certification_classifications workbook_original/classification_original + certification_classification_revocations.source_original three distinct byteclasses allocated next",
+    "67 original criterion review/frozen-candidate rebind still pending; no row accepted by these bounded receipts"
+  ],
+  "otherDB05Gaps": "separate residual journal/issuer/key/signed-receipt/metadata/audit purposes allocated by root; not erased by these five classes",
+  "externalAuthority": "no real issuer competence or lawful retain/journal period supplied or fabricated; mechanism fixtures are explicitly synthetic",
+  "files": [
+    {
+      "path": "supabase/migrations/20261001071500_ediel_customer_invoice_retention_decision_original_classes.sql",
+      "sha256": "3fd8db0570fb134904db81e224bd4eb51dd02ce74eed14471c7ff022705898d5"
+    },
+    {
+      "path": "supabase/migrations/20261001081500_ediel_customer_classification_copy_retention.sql",
+      "sha256": "6486387a60a50bce9e7fc366cef61051a9f844c1d9e3b4ad57c40b71346b5de1"
+    },
+    {
+      "path": "scripts/ediel-additional-decision-original-sql-regression.mjs",
+      "sha256": "4d43ab21973a583cb68e0e008b60f8788eaf3d12f9d256f9f18f4bf3fac55cb0"
+    },
+    {
+      "path": "scripts/ediel-classification-copy-retention-sql-regression.mjs",
+      "sha256": "1b28a1965417d254198294d0ef8214e0e1337abdc5c3cd57c54c6605b39d6b62"
+    },
+    {
+      "path": "scripts/ediel-classification-copy-retention-native.test.ts",
+      "sha256": "808f27bc6bfe1ca3b3b91578c7b57c15e6f94dc370c518d81618e411734c870e"
+    },
+    {
+      "path": "lib/ediel/retention/decisionEvidenceClasses.ts",
+      "sha256": "1aebe4e542629d6f2f1e1b2874b10bae9950fd7e3d64df3a57cecce2a0fa20da"
+    },
+    {
+      "path": "app/retention/decision-evidence/workspace.tsx",
+      "sha256": "5522ea23fb61fad28444ec8349f63b24477146f467b84dd081e68e51ddaef856"
+    },
+    {
+      "path": "__tests__/ediel-decision-evidence-retention-port.test.ts",
+      "sha256": "505ab5d94c0370eebdd127332807f73dcf96cb6330358ded1c807747013fda49"
+    },
+    {
+      "path": "tsconfig.ediel-retention-original-copy.json",
+      "sha256": "1ec88f6674bd28c36a6c05b5991041f1ddf9823a8bfda06b94a85f2dfded2b5f"
+    }
+  ]
+}
