@@ -1,0 +1,28 @@
+{
+  "repository": "heke99/gridex-ops-platform",
+  "source": "1d7172ebe3ba01d5390a845f7087d546a9d2c3d2",
+  "tree": "f22804877b49cb78217f790de138e931cf67848f",
+  "sourceParents": [
+    "f3624a22b3f9dc8f848eefbe03239fcf454090a6"
+  ],
+  "sourceRef": "refs/heads/codex/ediel-composed-rules-20261001",
+  "targetRef": "refs/heads/codex/ediel-composed-rules-20261001",
+  "expectedTarget": "",
+  "bootstrapParent": "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+  "prerequisites": [
+    "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+    "3c7342c64c83b705e85c18f300705166a1732ad6"
+  ],
+  "requiredAncestors": [
+    "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+    "3c7342c64c83b705e85c18f300705166a1732ad6",
+    "536cdc16fcae4b7bb073229540f7e6718ca7e78d",
+    "bba3163741c513a94938c63ffe88cf6089be78d1",
+    "0023ee685fd25e0f21a9c7ef2a4e3bfae3de24e2",
+    "056d6505d27cc5b8d26356de9c42b3c3544c92a6",
+    "823606064a9a908ab6d94b848ef36fb1103525a0"
+  ],
+  "bundleBytes": 1061483,
+  "bundleSha256": "838c12f998dcb47ebb70297b0801e30b21f5c012e6ef9b19af42bb62865a338a",
+  "scope": "Exact codephase commit publication only; no final acceptance, production, main merge or traffic"
+}

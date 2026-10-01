@@ -1,0 +1,71 @@
+name: Publish preserved Ediel codephase commits
+on:
+  push:
+    branches: [codex/ediel-history-publication-20261001]
+permissions:
+  contents: write
+concurrency:
+  group: ediel-isolated-history-publication-20261001
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'heke99/gridex-ops-platform' && github.ref == 'refs/heads/codex/ediel-history-publication-20261001'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          submodules: false
+          lfs: false
+      - name: Verify immutable objects and publish exact isolated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          def run(*args):
+              result=subprocess.run(['git','-c','core.hooksPath=/dev/null',*args],check=True,capture_output=True,text=True)
+              return result.stdout.strip()
+          assert os.environ['GITHUB_REPOSITORY']=='heke99/gridex-ops-platform'
+          assert os.environ['GITHUB_EVENT_NAME']=='push'
+          assert os.environ['GITHUB_REF']=='refs/heads/codex/ediel-history-publication-20261001'
+          directory=pathlib.Path('quality/audits/ediel-masterplan-v2/history-publication')
+          raw=(directory/'manifest.json').read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='52b6cc1e88f3dad41347df0404cc3f81c14bab4c18136b126c53601c9741f96c'
+          m=json.loads(raw)
+          assert m['source']=='1d7172ebe3ba01d5390a845f7087d546a9d2c3d2' and m['tree']=='f22804877b49cb78217f790de138e931cf67848f'
+          assert m['targetRef']=='refs/heads/codex/ediel-composed-rules-20261001'
+          assert run('rev-parse','HEAD')==os.environ['GITHUB_SHA']
+          assert run('show','-s','--format=%P','HEAD')==m['bootstrapParent']
+          bundle=directory/'source.bundle'
+          assert bundle.stat().st_size==m['bundleBytes']
+          assert hashlib.sha256(bundle.read_bytes()).hexdigest()==m['bundleSha256']
+          assert run('bundle','list-heads',str(bundle))==m['source']+' '+m['sourceRef']
+          for prerequisite in m['prerequisites']:
+              run('fetch','--no-tags','--no-recurse-submodules','origin',prerequisite)
+          run('bundle','verify',str(bundle))
+          run('fetch','--no-tags','--no-recurse-submodules',str(bundle),m['sourceRef']+':refs/remotes/publication/source')
+          assert run('rev-parse','refs/remotes/publication/source')==m['source']
+          assert run('rev-parse',m['source']+'^{tree}')==m['tree']
+          assert run('show','-s','--format=%P',m['source']).split()==m['sourceParents']
+          for ancestor in m['requiredAncestors']:
+              run('merge-base','--is-ancestor',ancestor,m['source'])
+          run('fsck','--connectivity-only','--no-dangling',m['source'])
+          def remote_head():
+              lines=run('ls-remote','--heads','origin',m['targetRef']).splitlines()
+              assert len(lines)<=1
+              if not lines:return ''
+              sha,ref=lines[0].split()
+              assert ref==m['targetRef']
+              return sha
+          assert remote_head()==m['expectedTarget'],'Target changed; refuse publication'
+          if m['expectedTarget']:
+              run('merge-base','--is-ancestor',m['expectedTarget'],m['source'])
+          # Normal push only. A divergent concurrent writer is rejected by Git.
+          run('push','--porcelain','origin',m['source']+':'+m['targetRef'])
+          assert remote_head()==m['source']
+          print(json.dumps({'publishedHead':m['source'],'tree':m['tree'],'sourceParents':m['sourceParents'],
+              'bundleSha256':m['bundleSha256'],'scope':m['scope']}))
+          PY
