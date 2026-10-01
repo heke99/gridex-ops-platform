@@ -6,6 +6,7 @@ import { COMPANY, OTHER, row } from '@/__tests__/helpers/receivedSourceInventory
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
+import {buildReceivedUtiltsFunctionalValidation} from '@/lib/ediel/core/receivedUtiltsFunctionalValidation'
 import {buildReceivedUtiltsHeaderValidation} from '@/lib/ediel/core/receivedUtiltsHeaderValidation'
 import {buildReceivedUtiltsTransactionValidation} from '@/lib/ediel/core/receivedUtiltsTransactionValidation'
 
@@ -109,4 +110,16 @@ test('the additive actual header facet remains outside frozen canonical facts an
  input.decision.applicationDecision='accepted';assert.equal(build(input),null)
  input.decision.applicationDecision='rejected';input.decision.syntaxDecision='rejected';assert.equal(build(input),null)
  input.decision.syntaxDecision='accepted';(input.decision.utiltsHeaderValidation as {sourcePayloadHash:string}).sourcePayloadHash='0'.repeat(64);assert.equal(build(input),null)
+})
+
+test('the actual own functional ERR subset is additive, source bound, and cannot borrow an accepted response',()=>{
+ const message=energyHandoffMessage('2026-10-01',COMPANY);message.raw_payload=message.raw_payload!.replace('QTY+136:500','QTY+136:500.0000')
+ const runtime=runUtiltsRuntimeForMessage(message),input=fixture(),context={version:1,contextOrigin:'database_insert',sourceMessageId:OTHER,companyId:COMPANY,environment:'test',messageCode:'E66',payloadHash:evidenceHash(message.raw_payload),sourceReceivedAt:message.message_received_at,capturedAt:'2026-10-01T20:00:00Z'}
+ input.original={...message,id:OTHER,execution_context_snapshot:{receivedUtiltsContext:context}};input.validated=structuredClone(input.original)
+ Object.assign(input.decision,{syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'rejected',utiltsTransactionValidation:buildReceivedUtiltsTransactionValidation({source:message,transactions:runtime.transactionDispositions}),utiltsFunctionalValidation:buildReceivedUtiltsFunctionalValidation({source:message,runtime})})
+ input.decision.validationReport.rulePackEvidence=originalRuleWitnessFixture({profileKey:'UTILTS:E66:E5SE5A:4',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)})
+ const evidence=build(input);assert.ok(evidence);assert.deepEqual(evidence.utiltsFunctionalValidation?.transactions[0].errors,[{code:'E51',referenceQualifier:'TN',referenceNumber:'GRIDEX2607E66001'}]);assert.equal(Object.hasOwn(JSON.parse(evidence.factsText),'utiltsFunctionalValidation'),false)
+ input.decision.functionalDecision='accepted';assert.equal(build(input),null)
+ input.decision.functionalDecision='rejected';input.decision.syntaxDecision='rejected';assert.equal(build(input),null)
+ input.decision.syntaxDecision='accepted';(input.decision.utiltsFunctionalValidation as {sourcePayloadHash:string}).sourcePayloadHash='0'.repeat(64);assert.equal(build(input),null)
 })

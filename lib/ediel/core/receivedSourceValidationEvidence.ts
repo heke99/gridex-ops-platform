@@ -4,10 +4,11 @@ import { bindReceivedRegisterValidation } from '@/lib/ediel/core/receivedRegiste
 import {bindReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from '@/lib/ediel/core/receivedUtiltsTransactionValidation'
 import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {bindReceivedUtiltsHeaderValidation,type ReceivedUtiltsHeaderValidation} from './receivedUtiltsHeaderValidation'
+import {bindReceivedUtiltsFunctionalValidation,type ReceivedUtiltsFunctionalValidation} from './receivedUtiltsFunctionalValidation'
 
 type SourceFacts = { id: unknown; company_id?: unknown; environment: unknown; direction: unknown; message_family: unknown; message_standard: unknown; raw_payload: unknown; message_code: unknown; message_received_at: unknown; execution_context_snapshot?: unknown }
-type RuntimeFacts = { syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown>; prodatRegisterValidation?: unknown;utiltsTransactionValidation?:unknown;utiltsHeaderValidation?:unknown }
-export type SourceValidationInput = { companyId: string; environment: 'test' | 'production'; sourceMessageId: string; sourcePayloadHash: string; factsText: string;utiltsTransactionValidation?:ReceivedUtiltsTransactionValidation;utiltsHeaderValidation?:ReceivedUtiltsHeaderValidation }
+type RuntimeFacts = { syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown>; prodatRegisterValidation?: unknown;utiltsTransactionValidation?:unknown;utiltsHeaderValidation?:unknown;utiltsFunctionalValidation?:unknown }
+export type SourceValidationInput = { companyId: string; environment: 'test' | 'production'; sourceMessageId: string; sourcePayloadHash: string; factsText: string;utiltsTransactionValidation?:ReceivedUtiltsTransactionValidation;utiltsHeaderValidation?:ReceivedUtiltsHeaderValidation;utiltsFunctionalValidation?:ReceivedUtiltsFunctionalValidation }
 const CONTEXT_KEYS = ['version','contextOrigin','sourceMessageId','companyId','environment','messageCode','payloadHash','sourceReceivedAt','capturedAt']
 const states = new Set(['accepted','rejected','not_applicable','manual_review'])
 
@@ -61,10 +62,14 @@ export function buildReceivedSourceValidationEvidence(input: { original: SourceF
   if(decision.utiltsHeaderValidation!==undefined && (!utiltsHeaderValidation || decision.syntaxDecision!=='accepted'
     || !['rejected','manual_review'].includes(String(decision.applicationDecision)) || !utiltsTransactionValidation
     || utiltsTransactionValidation.transactions.some(transaction=>transaction.disposition!=='guide_rejected' || transaction.responseType!=='negative_aperak'))) return null
+  if(!utilts && decision.utiltsFunctionalValidation!==undefined) return null
+  const utiltsFunctionalValidation=decision.utiltsFunctionalValidation!==undefined && utiltsTransactionValidation ? bindReceivedUtiltsFunctionalValidation(decision.utiltsFunctionalValidation,original.raw_payload,utiltsTransactionValidation) : null
+  if(decision.utiltsFunctionalValidation!==undefined && (!utiltsFunctionalValidation || decision.syntaxDecision!=='accepted'
+    || !['rejected','manual_review'].includes(String(decision.functionalDecision)))) return null
   const hasRegisterValidation = decision.prodatRegisterValidation !== undefined
   const registerValidation = hasRegisterValidation ? bindReceivedRegisterValidation(decision.prodatRegisterValidation, original.raw_payload) : null
   if (hasRegisterValidation && (!registerValidation || !rulePackEvidence)) return null
-  return { companyId: original.company_id, environment: original.environment, sourceMessageId: original.id, sourcePayloadHash,...(utiltsTransactionValidation ? {utiltsTransactionValidation} : {}),...(utiltsHeaderValidation ? {utiltsHeaderValidation} : {}),
+  return { companyId: original.company_id, environment: original.environment, sourceMessageId: original.id, sourcePayloadHash,...(utiltsTransactionValidation ? {utiltsTransactionValidation} : {}),...(utiltsHeaderValidation ? {utiltsHeaderValidation} : {}),...(utiltsFunctionalValidation ? {utiltsFunctionalValidation} : {}),
     factsText: JSON.stringify({ version: 1, owner: 'canonical-runtime-with-registry-v1', sourceDisposition: 'not_established',
       objectDisposition: 'not_checked', partyDisposition: 'not_checked', coverage: 'canonical_runtime_only', originalTenantMatch: 'matched',
       syntaxDecision: decision.syntaxDecision, applicationDecision: decision.applicationDecision, functionalDecision: decision.functionalDecision,
