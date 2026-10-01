@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach,describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import * as utiltsRuntime from '@/lib/ediel/utiltsEngine'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalRuntimeDecision, resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { processInboundUtiltsMessageByCanonicalPolicy } from '@/lib/ediel/flows/utiltsInboundPolicyProcessor'
+import {receivedUtiltsOwnerFixture} from './helpers/utiltsCanonicalOwnerIo'
+import {s02PlanningFixture,s02PlanningPair} from './helpers/utiltsS02PlanningFixture'
 
 const mocks = vi.hoisted(() => ({ getMessage: vi.fn(), processActual: vi.fn(), rpc: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: mocks.rpc } }))
@@ -55,7 +56,7 @@ const VALID_MONTHLY_E66 = [
 ].join('\n')
 
 function message(documentDate: string, receivedDate: string): EdielMessageRow {
-  return {
+  return receivedUtiltsOwnerFixture({
     id: 'retained-utilts-decision', company_id: 'tenant-a',
     message_family: 'UTILTS', message_code: 'E66', message_standard: 'edifact',
     direction: 'inbound', environment: 'test', message_version: 'E5SE5A',
@@ -64,26 +65,37 @@ function message(documentDate: string, receivedDate: string): EdielMessageRow {
     message_received_at: `${receivedDate}T12:00:00Z`, created_at: `${receivedDate}T12:00:00Z`,
     metering_point_id: 'meter-a', business_match_status: 'matched',
     validation_report: null,
-  } as unknown as EdielMessageRow
+  } as unknown as EdielMessageRow)
 }
+
+beforeEach(()=>{
+  vi.clearAllMocks()
+  mocks.rpc.mockImplementation(async(_name,args)=>({data:[activationEvidence(args.p_business_date==='2026-09-30' ? '3' : '4',args.p_message_code)],error:null}))
+})
 
 describe('UTILTS decision reuse across document and receipt dates', () => {
   it.each([
-    ['2026-09-30', '2026-10-01', true],
+    ['2026-09-30', '2026-10-01', false],
     ['2026-10-01', '2026-09-30', false],
-  ])('keeps policy date %s when receipt date is %s', (documentDate, receivedDate, expectsE19) => {
+    ['2026-09-29', '2026-09-30', true],
+  ])('keeps document date %s separate from admission date %s', (documentDate, receivedDate, expectsE19) => {
     const decision = resolveCanonicalRuntimeDecision(message(documentDate, receivedDate))
     expect(decision.syntaxDecision).toBe('accepted')
-    expect(decision.policy?.referenceDate).toBe(documentDate)
+    expect(decision.policy?.referenceDate).toBe(receivedDate)
+    expect(decision.policy?.timeAnchors?.documentDate).toBe(documentDate)
+    expect(decision.policy?.timeAnchors?.admissionSource).toBe('local_ingress')
     expect(decision.issues.some(issue => issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH')).toBe(expectsE19)
+    if(documentDate>receivedDate)expect(decision.responsePlan).toContainEqual(expect.objectContaining({family:'APERAK',applicationErrors:expect.arrayContaining([expect.objectContaining({fieldCode:'205'})])}))
   })
 
   it.each([
-    ['2026-09-30', '2026-10-01', true],
+    ['2026-09-30', '2026-10-01', false],
     ['2026-10-01', '2026-09-30', false],
-  ])('uses the canonical date for direct runtime calls: document %s, receipt %s', (documentDate, receivedDate, expectsE19) => {
+    ['2026-09-29', '2026-09-30', true],
+  ])('uses genuine admission for direct runtime calls: document %s, receipt %s', (documentDate, receivedDate, expectsE19) => {
     const runtime = utiltsRuntime.runUtiltsRuntimeForMessage(message(documentDate, receivedDate))
     expect(runtime.validation.issues.some(issue => issue.code === 'UTILTS_E66_METER_READING_ENERGY_MISMATCH')).toBe(expectsE19)
+    if(documentDate>receivedDate)expect(runtime.validation.issues).toContainEqual(expect.objectContaining({aperakFieldCode:'205'}))
   })
 
   it('rejects an incomplete retained decision instead of selecting a new processability profile', () => {
@@ -94,27 +106,27 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
 
   it('passes the already selected policy to actual metering processing', async () => {
     const source = message('2026-09-30', '2026-10-01')
-    const decision = resolveCanonicalRuntimeDecision(source)
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
     mocks.getMessage.mockResolvedValue(source)
     mocks.processActual.mockResolvedValue({ message: source })
-    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: decision.policy! })
+    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: decision.policy!,canonicalDecision:decision })
     expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy).toBe(decision.policy)
   })
 
-  it('derives a direct call from the same document-date authority', async () => {
+  it('derives a direct call from the same genuine ingress authority', async () => {
     const source = message('2026-09-30', '2026-10-01')
     mocks.getMessage.mockResolvedValue(source)
     await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id })
-    expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy.referenceDate).toBe('2026-09-30')
+    expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy.referenceDate).toBe('2026-10-01')
   })
 
   it('retains the selected policy on the non-billing branch', async () => {
-    const source = { ...message('2026-09-30', '2026-10-01'), message_code: 'S02', metering_point_id: null }
-    const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'S02', direction: 'inbound', referenceDate: '2026-09-30', applicationReference: '23-DDQ-S02-S', mode: 'parse' })
+    const source = receivedUtiltsOwnerFixture(s02PlanningFixture({company:'fixture',transactions:[s02PlanningPair('clean',true)[0]]}))
+    const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source),policy=decision.policy!
     mocks.getMessage.mockResolvedValue(source)
     const runtimeSpy = vi.spyOn(utiltsRuntime, 'runUtiltsRuntimeForMessage').mockImplementationOnce(() => { throw new Error('test-stop-before-non-billing-persistence') })
     try {
-      await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy })).rejects.toThrow('test-stop-before-non-billing-persistence')
+      await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy,canonicalDecision:decision })).rejects.toThrow('test-stop-before-non-billing-persistence')
       expect(runtimeSpy.mock.lastCall?.[1]?.canonicalPolicy).toBe(policy)
     } finally {
       runtimeSpy.mockRestore()
@@ -123,37 +135,43 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
 })
 
 // Database activation evidence is synthetic; protocol/policy/validator code is real.
-function activationEvidence(revision: '3' | '4') {
+function activationEvidence(revision: '3' | '4',code='E66') {
   const version = `25-A-${revision}`
-  return {
+  const row={
     rule_pack_id: '11111111-1111-4111-8111-111111111111',
     message_profile_id: '22222222-2222-4222-8222-222222222222',
     market: 'electricity', family: 'UTILTS', guide_version: version, guide_revision: revision,
     unh_association_code: 'E5SE5A', valid_from: revision === '3' ? '2025-06-01' : '2026-10-01',
     valid_to: revision === '3' ? '2026-09-30' : null,
     source_document: `UTILTS ${version}`, source_hash: 'a'.repeat(64),
-    field_matrix_version: version, profile_key: `UTILTS:E66:E5SE5A:${revision}`,
+    field_matrix_version: version, profile_key: `UTILTS:${code}:E5SE5A:${revision}`,
     business_process: 'metering_values', phase: null,
-    profile: { family: 'UTILTS', messageCode: 'E66', guideVersion: version, guideRevision: revision },
+    profile: { family: 'UTILTS', messageCode: code, guideVersion: version, guideRevision: revision },
     parser_ready: true, builder_ready: true, validator_ready: true, ack_ready: true, state_machine_ready: true,
   }
+  return {...row,original_version:`${version}:r${revision}`,original_snapshot:{
+    rulePack:{id:row.rule_pack_id,source_hash:row.source_hash,guide_version:version,guide_revision:revision},
+    messageProfile:{id:row.message_profile_id,rule_pack_id:row.rule_pack_id,profile_key:row.profile_key},
+    guideSources:[{id:'55555555-5555-4555-8555-555555555555',rule_pack_id:row.rule_pack_id}],
+  }}
 }
 
 describe('UTILTS selected reference survives registry verification', () => {
   it.each([
-    ['2026-09-30', '2026-10-01', '3'],
-    ['2026-10-01', '2026-09-30', '4'],
-  ] as const)('runtime preserves document date %s and selected reference when receipt is %s', async (date, received, revision) => {
+    ['2026-09-30', '2026-10-01', '4'],
+    ['2026-10-01', '2026-09-30', '3'],
+  ] as const)('runtime preserves document date %s separately from selected admission %s', async (date, received, revision) => {
     mocks.rpc.mockReset().mockResolvedValue({ data: [activationEvidence(revision)], error: null })
     const source = message(date, received)
     const result = await resolveCanonicalRuntimeDecisionWithRegistry(source)
     expect(result.syntaxDecision).toBe('accepted')
-    expect(result.policy?.referenceDate).toBe(date)
+    expect(result.policy?.referenceDate).toBe(received)
+    expect(result.policy?.timeAnchors?.documentDate).toBe(date)
     expect(result.policy?.applicationReference).toBe('23-DDQ-E66-S')
     expect(result.issues.some(issue => issue.code === 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')).toBe(false)
     expect(result.validationReport).toHaveProperty('rulePackEvidence.rulePackId', activationEvidence(revision).rule_pack_id)
     expect(mocks.rpc).toHaveBeenCalledOnce()
-    expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack', expect.objectContaining({ p_business_date: date, p_family: 'UTILTS' }))
+    expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack_with_witness_v1', expect.objectContaining({ p_business_date: received, p_family: 'UTILTS' }))
   })
 
   it.each([['2026-09-30', '3'], ['2026-10-01', '4']] as const)('public validator retains E66 reference on %s', async (date, revision) => {
@@ -161,7 +179,7 @@ describe('UTILTS selected reference survives registry verification', () => {
     const source = message(date, date)
     const result = await validateRulebookMessageWithRegistry({
       family: 'UTILTS', code: 'E66', direction: 'inbound', mode: 'parse',
-      businessDate: date, applicationReference: source.application_reference,
+      businessDate: date, admissionAt:`${date}T12:00:00Z`,applicationReference: source.application_reference,
       rawPayload: source.raw_payload?.replace('QTY+136:500', 'QTY+136:1000'), version: 'E5SE5A',
     })
     expect(result.blocking).toBe(false)

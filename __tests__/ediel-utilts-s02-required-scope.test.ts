@@ -1,15 +1,21 @@
 import { expect, it, vi } from 'vitest'
 import { s02PlanningFixture, s02PlanningPair, s02PlanningSecondSequence, type S02PlanningDefect } from './helpers/utiltsS02PlanningFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
-import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { buildUtiltsTransactionPersistencePayload } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { validateUtilts } from '@/lib/ediel/utilts/validateUtilts'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+
+// Own SG11 QTY135 requirements belong to the retained 25-A-4 guide. The
+// Oct 1–14 admission grace must not silently change this fixture's criterion.
+const currentPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'S02',direction:'inbound',referenceDate:'2026-10-01',applicationReference:'23-DDQ-S02-S',mode:'parse'})
+const currentRuntime=(source:EdielMessageRow)=>runUtiltsRuntimeForMessage(source,{canonicalPolicy:currentPolicy})
 
 it.each([true, false])('clean S02 owns two distinct forecast points/quantities and no billing contract, own first=%s', async ownFirst => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', ownFirst) })
-  const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
+  const runtime = currentRuntime(source), policy = currentPolicy
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   const qualified = await qualifyReceivedUtiltsStructure({ message: source, runtime, canonicalPolicy: policy })
   expect(qualified.hasInternalReview).toBe(false)
@@ -29,7 +35,7 @@ it.each([true, false])('clean S02 owns two distinct forecast points/quantities a
 const cases = (['missing-point', 'missing-quantity', 'missing-both'] as const).flatMap(defect => [true, false].map(ownFirst => ({ defect, ownFirst })))
 it.each(cases)('S02 $defect is its own guide rejection beside a clean sibling, own first=$ownFirst', async ({ defect, ownFirst }) => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair(defect, ownFirst) })
-  const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
+  const runtime = currentRuntime(source), policy = currentPolicy
   const qualified = await qualifyReceivedUtiltsStructure({ message: source, runtime, canonicalPolicy: policy })
   expect(runtime.validation.syntaxOk).toBe(true)
   expect(qualified.hasInternalReview).toBe(false)
@@ -44,7 +50,7 @@ it.each(cases)('S02 $defect is its own guide rejection beside a clean sibling, o
 
 it('a real zero forecast remains an own QTY135 value', () => {
   const transactions = s02PlanningPair('clean', true).map(row => row.reference === 'S02-OWN' ? { ...row, quantity: 0 } : row)
-  const source = s02PlanningFixture({ company: 's02-synthetic', transactions }), runtime = runUtiltsRuntimeForMessage(source)
+  const source = s02PlanningFixture({ company: 's02-synthetic', transactions }), runtime = currentRuntime(source)
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.facts.transactions.find(row => row.transactionId === 'S02-OWN')?.quantities).toMatchObject([{ qualifier: '135', value: 0 }])
 })
@@ -53,7 +59,7 @@ it.each(['wrong-qualifier', 'before-sequence'] as const)('S02 %s quantity cannot
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
   source.raw_payload = source.raw_payload!.replace("SEQ++1'\nQTY+135:111'", defect === 'wrong-qualifier'
     ? "SEQ++1'\nQTY+136:111'" : "QTY+135:111'\nSEQ++1'")
-  const runtime = runUtiltsRuntimeForMessage(source)
+  const runtime = currentRuntime(source)
   expect(runtime.validation.syntaxOk).toBe(true)
   expect(runtime.transactionDispositions.find(row => row.transactionId === 'S02-OWN')).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
   expect(runtime.transactionDispositions.find(row => row.transactionId === 'S02-SIBLING')).toMatchObject({ disposition: 'accepted', responseType: 'positive_aperak' })
@@ -63,7 +69,7 @@ it.each(['wrong-qualifier', 'before-sequence'] as const)('S02 %s quantity cannot
 it('S02 agency89 guide syntax retains an internal hold when physical point authority is unavailable', async () => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: [s02PlanningPair('clean', true)[0]] })
   source.raw_payload = source.raw_payload!.replace('735999260731000007::9', '735999260731000007::89')
-  const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
+  const runtime = currentRuntime(source), policy = currentPolicy
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   const qualified = await qualifyReceivedUtiltsStructure({ message: source, runtime, canonicalPolicy: policy })
   expect(qualified.hasInternalReview).toBe(true)
@@ -73,13 +79,13 @@ it('S02 agency89 guide syntax retains an internal hold when physical point autho
 it.each([null, '23-DDQ-E66-S'])('clean physical S02 outranks absent/stale row application reference %s', applicationReference => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
   source.application_reference = applicationReference
-  expect(runUtiltsRuntimeForMessage(source).validation.ok).toBe(true)
+  expect(currentRuntime(source).validation.ok).toBe(true)
 })
 
 it.each(['E5SE9X', 'E5SE4A'])('clean physical S02 outranks stale row association %s at both guide boundaries', association => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
   source.message_version = association
-  expect(runUtiltsRuntimeForMessage(source).validation.ok).toBe(true)
+  expect(currentRuntime(source).validation.ok).toBe(true)
 })
 
 it('the actual raw UTILTS validator accepts clean S02 without row policy metadata', () => {
@@ -91,7 +97,7 @@ it('the actual raw UTILTS validator accepts clean S02 without row policy metadat
 it('missing canonical physical membership cannot erase existing mandatory guide refusals', () => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: [s02PlanningPair('missing-both', true)[0]] })
   source.raw_payload = source.raw_payload!.replace('UNH+1+UTILTS:', 'UNH+1+PRODAT:')
-  const runtime = runUtiltsRuntimeForMessage(source)
+  const runtime = currentRuntime(source)
   expect(runtime.facts.utiltsObservedTransactions).toEqual([])
   expect(runtime.validation.ok).toBe(false)
   expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
@@ -100,7 +106,10 @@ it('missing canonical physical membership cannot erase existing mandatory guide 
 it('unsupported physical association remains a structured guide refusal', () => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
   source.raw_payload = source.raw_payload!.replace('E5SE5A', 'E5SE9X')
-  const runtime = runUtiltsRuntimeForMessage(source)
+  // Without a retained original guide, the shared registry keeps the unknown
+  // association held. The explicit current guide below can diagnose its wire.
+  expect(()=>runUtiltsRuntimeForMessage(source)).toThrow('ediel_guide_resolution_missing:UTILTS')
+  const runtime = currentRuntime(source)
   expect(runtime.validation.ok).toBe(false)
   expect(runtime.transactionDispositions.every(row => row.disposition === 'guide_rejected')).toBe(true)
 })
@@ -108,7 +117,7 @@ it('unsupported physical association remains a structured guide refusal', () => 
 it.each([null, 333])('own second monthly SEQ requires its own QTY135=%s, independent of first quantity and sibling', quantity => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
   source.raw_payload = s02PlanningSecondSequence(source.raw_payload!, quantity)
-  const runtime = runUtiltsRuntimeForMessage(source)
+  const runtime = currentRuntime(source)
   expect(runtime.validation.syntaxOk).toBe(true)
   expect(runtime.transactionDispositions.find(row => row.transactionId === 'S02-OWN')).toMatchObject({
     disposition: quantity === null ? 'guide_rejected' : 'accepted', responseType: quantity === null ? 'negative_aperak' : 'positive_aperak' })

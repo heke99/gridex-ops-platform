@@ -11,7 +11,7 @@ export function validateUtilts(rawPayload: string,options:{evaluationAt?:string|
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: 'UTILTS',
-    message_code: physical.messageFamily==='UTILTS' ? physical.messageCode : null,
+    message_code: physical.messageFamily==='UTILTS' ? physical.messageCode ?? '' : '',
     message_version: null,
     process_type: null,
     environment: 'test',
