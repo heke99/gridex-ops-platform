@@ -447,5 +447,43 @@ try {
  assert.notEqual((await db.query('select gridex_ack_authority.wire_v1($1) r',[ackRaw().replace('UNZ+1+OWN-AP','UNZ+1+OTHER')])).rows[0].r,null);checks++
  assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[{...positiveInput,action:'enter'}])).rows[0].r.proceed,false);checks++
  await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(151)]);checks++
+ // Source-permitted Z14N omission uses the ACTUAL prospective register owner,
+ // response facet, seal, INSERT and immutable scope authority. These canonical
+ // facets are declared IO; this does not claim real guide/issuer acceptance.
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001044856_ediel_source_profile_message_reference_bounds.sql',import.meta.url),'utf8'));checks++
+ const permissionLexer=readFileSync(new URL('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql',import.meta.url),'utf8')
+ await db.exec(permissionLexer.slice(permissionLexer.indexOf('CREATE FUNCTION gridex_received_sources.wire_tokens_bounded_v1'),permissionLexer.indexOf('CREATE FUNCTION gridex_received_sources.permission_wire_v1')))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001053815_ediel_identityless_permission_register_scope.sql',import.meta.url),'utf8'));checks++
+ await db.exec("update ediel_message_profiles set profile_key='DB:Z14:N',message_code='Z14',transaction_subtype='N'")
+ const nNamed=(await db.query("select jsonb_build_object('rulePack',(select to_jsonb(p) from ediel_rule_packs p),'messageProfile',(select to_jsonb(p) from ediel_message_profiles p),'guideSources',(select jsonb_agg(to_jsonb(s) order by id) from ediel_rule_pack_sources s)) s")).rows[0].s
+ const nEvidence={...pFreshEvidence,profileKey:'DB:Z14:N',snapshot:{...pFreshEvidence.snapshot,profileKey:'DB:Z14:N',...nNamed}}
+ const nSource=await counted(pSource.replace("LIN+1++OBJECT1'RFF+LI:L1'LIN+2++OBJECT2'RFF+LI:L2'",
+  "LIN+1'CCI++Z13'CAV+Z96'CCI++Z23'CAV+A76'RFF+LI:L1'LIN+2'CCI++Z13'CAV+Z96'CCI++Z23'CAV+INVALID'RFF+LI:L2'"))
+ const nLines=(await db.query('select gridex_received_sources.closure_wire_tokens_v2($1) t',[nSource])).rows[0].t.filter(t=>t.tag==='LIN')
+ const nHash=(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[nSource])).rows[0].h
+ const nRegister={...ownRegister,objects:nLines.map((line,index)=>({...ownRegister.objects[0],objectId:null,identityAgency:null,
+  registers:[{lineIndex:index,lineNumber:String(index+1),registerIndex:null,registerPosition:1,segmentIndex:line.index}]}))}
+ const nResponse={scope:'object',lineIndex:nLines[1].index,ercCode:'42',fieldCode:'322',text:'Felaktigt Tillståndets status INVALID',id:null,li:'L2'}
+ const nFacet={version:1,sourcePayloadHash:nHash,objects:nLines.map((line,index)=>({lineIndex:line.index,registerLineIndices:[line.index],id:null,li:`L${index+1}`,outcome:index===1?'negative':'held'})),responses:[nResponse]}
+ const nFacts={...pFacts,applicationDecision:'rejected',reasonCodes:['FIXTURE_SAME_OWNER_QUALIFIED_FIELD_322'],registerValidation:nRegister,rulePackEvidence:{...nEvidence,snapshot:nNamed}}
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','PRODAT','Z14',$3,now())",[uid(160),uid(1),nSource]);await legal(160)
+ await db.query("insert into gridex_received_sources.sources values($1,$2,'test',$3,'{\"contextOrigin\":\"database_insert\"}',$4)",[uid(160),uid(1),nHash,nSource])
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',$3,$4)",[uid(160),uid(1),nHash,nEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(160),nEvidence])
+ const recordN=async(facts=nFacts,facet=nFacet)=>{await db.exec('set role service_role');try{return(await db.query('select public.gridex_record_prodat_source_validation_v3($1,$2,$3,$4,$5,$6,$7) r',[uid(1),'test',uid(160),nHash,JSON.stringify(facts),null,JSON.stringify(facet)])).rows[0].r}finally{await db.exec('reset role')}}
+ const nReceipt=await recordN();assert.ok(nReceipt.assessmentId);checks++
+ for(const object of nRegister.objects){assert.equal((await db.query('select gridex_received_sources.identity_omission_scope_v1($1,$2) ok',[nSource,object])).rows[0].ok,true);checks++}
+ assert.equal((await db.query('select gridex_received_sources.identity_omission_scope_v1($1,$2) ok',[nSource.replaceAll('CAV+Z96','CAV+S17'),nRegister.objects[1]])).rows[0].ok,false);checks++
+ const nRaw=await counted((await pAck('N-NEGATIVE','negative','negative')).replace("ERC+41::260'FTX+AAO++209::260+Anläggnings-id saknas'RFF+LI:L1'RFF+Z07:OBJECT1'",'')
+  .replace('ERC+41::260','ERC+42::260').replace('209::260+Anläggnings-id saknas','322::260+Felaktigt Tillståndets status INVALID').replace("RFF+Z07:OBJECT2'",''))
+ const prepareN=async(raw=nRaw)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:raw,relatedMessageId:uid(160),rulePackEvidence:nEvidence}])).rows[0].r
+ const nSeal=await prepareN();assert.ok(nSeal.witnessId);checks++
+ await assert.rejects(prepareN(nRaw.replace('RFF+LI:L2','RFF+LI:L1')),/native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareN(await counted(nRaw.replace("RFF+LI:L2'","RFF+LI:L2'RFF+Z07:INVENTED'"))),/prodat_response_native_scope_invalid/);checks++
+ await assert.rejects(prepareN(nRaw.replace('ERC+42::260','ERC+100::260').replace('FTX+AAO++322::260+Felaktigt Tillståndets status INVALID','FTX+AAO+++OK')),/native_ack_guide_invalid/);checks++
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,$7,$8,$9,$10,$11,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(161),uid(1),nRaw,uid(160),nEvidence.rulePackId,nEvidence.messageProfileId,nEvidence.profileKey,nEvidence.version,nEvidence.sourceHash,nSeal.evidence.snapshot,{outboundOwnerWitnessId:nSeal.witnessId}]);checks++
+ assert.deepEqual((await db.query('select scope_reference,physical_source_reference,outcome from gridex_ediel_ack_guide.outbound_prodat_scopes where source_message_id=$1',[uid(160)])).rows,
+  [{scope_reference:String(nLines[1].index),physical_source_reference:{lineIndex:nLines[1].index,id:null,li:'L2'},outcome:'negative'}]);checks++
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(161)]);checks++
+ await assert.rejects(prepareN(),/scope_already_fixed/);checks++
  console.log(`Focused PostgreSQL outbound original owner seal/one-use atomic insertion/named version/raw scope/ACL/native Z08 binding checks: ${checks} PASS`)
 } catch(e){console.error(e.stack,e.where??'',e.position??'',e.routine??'');process.exitCode=1} finally{await db.close()}

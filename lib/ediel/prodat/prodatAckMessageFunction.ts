@@ -3,6 +3,7 @@ import {prodatRegisterGroups,prodatRegisterMessageSegments,type ProdatRegisterGr
 import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
 import {prodatErrorOccurrence,validProdatWireDiagnostic} from './prodatFieldDiagnostic'
 import {prodatHeaderFieldRejection} from './prodatHeaderDateRejection'
+import {isProdatIdentityOmissionScope} from './prodatIdentityOmissionScope'
 import type {ProdatAckObjectScope} from '@/lib/ediel/ack/sourceCorrelation'
 import type {AperakEngineApplicationError,AperakEngineOutcome} from '@/lib/ediel/aperakEngine'
 
@@ -91,6 +92,8 @@ export function prodatAckObjectScopes(params:{
 }):ProdatAckObjectScope[]{
  const {sourceWire}=params
  const message=prodatRegisterMessageSegments(sourceWire.segments,sourceWire.una)
+ const bgm=message.find(segment=>segment.tag==='BGM')
+ const sourceCode=bgm?segmentComposite(bgm,1,sourceWire.una)[0]:''
  const owner=prodatRegisterGroups(message,sourceWire.una,params.messageCode)
  const first=owner.groups.filter(group=>group.registerPosition===1)
  const occurrences=first.map(group=>prodatErrorOccurrence({rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una,code:params.messageCode},group.segments.map(token=>token.raw),'object',group.lineIndex))
@@ -112,8 +115,13 @@ export function prodatAckObjectScopes(params:{
     )throw new Error('aperak_prodat_requested_scope_unqualified')
    const group=owner.groups.find(group=>group.lineIndex===actual.lineIndex)
    const firstGroup=group?.validRegisterChain&&group.firstLineIndex!==null?owner.groups.find(candidate=>candidate.lineIndex===group.firstLineIndex):group
-   if(!firstGroup||firstGroup.registerPosition!==1||!firstGroup.itemId
-    ||first.filter(candidate=>candidate.itemId===firstGroup.itemId&&candidate.identityAgency===firstGroup.identityAgency).length!==1
+   // Field209's sole matrix/subtype owner may permit an absent identity.
+   // Such a negative scope is still its actual first LIN and unique own LI;
+   // two absent identities never become one global null object or fake Z07.
+   const qualifiedIdentity=firstGroup&&(firstGroup.itemId
+    ?first.filter(candidate=>candidate.itemId===firstGroup.itemId&&candidate.identityAgency===firstGroup.identityAgency).length===1
+    :isProdatIdentityOmissionScope(sourceCode,firstGroup,sourceWire.una)&&uniqueOwn(actual.lineItemReference))
+   if(!firstGroup||firstGroup.registerPosition!==1||!qualifiedIdentity
     ||(actual.lineItemReference?!uniqueOwn(actual.lineItemReference):actual.ownReferences?.lineItemReference.kind!=='absent'))throw new Error('aperak_prodat_requested_scope_unqualified')
    return scopeFor(firstGroup)
   })
