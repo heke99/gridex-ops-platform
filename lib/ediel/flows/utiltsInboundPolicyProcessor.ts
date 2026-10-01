@@ -2,6 +2,8 @@ import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus 
 import { ensureActorUserId } from '@/lib/ediel/flows/shared'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import type {CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { resolveUtiltsInboundBusinessOutcome } from '@/lib/ediel/utilts/inboundBusinessOutcome'
 import {
@@ -94,6 +96,7 @@ async function processExplicitNonBillingOutcome(params: {
   message: EdielMessageRow
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
+  canonicalDecision: CanonicalRuntimeDecision
 }): Promise<UtiltsProcessResult> {
   const policy = resolveInboundPolicy(params.message, params.canonicalPolicy)
   const outcome = resolveUtiltsInboundBusinessOutcome(policy)
@@ -114,6 +117,7 @@ async function processExplicitNonBillingOutcome(params: {
     runtime: runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy }),
   })
   const runtime = structuralQualification.runtime
+  await recordFinalCanonicalUtiltsDecision({original:params.message,validated:params.message,initialDecision:params.canonicalDecision,runtime})
   const ackPlan = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
     ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: runtimeTestCaseCode })
   const persisted = await persistNonBillingTransactions({
@@ -224,13 +228,15 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
   edielMessageId: string
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
+  canonicalDecision?: CanonicalRuntimeDecision | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message) throw new Error('Ediel-meddelande hittades inte')
   if (message.message_family !== 'UTILTS') throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
 
-  const policy = resolveInboundPolicy(message, params.canonicalPolicy)
+  const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
+  const policy = resolveInboundPolicy(message, initialDecision.policy)
   const outcome = resolveUtiltsInboundBusinessOutcome(policy)
 
   if (outcome.kind === 'actual_metering_values') {
@@ -242,6 +248,7 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
       edielMessageId: params.edielMessageId,
       testCaseCode: params.testCaseCode ?? null,
       canonicalPolicy: policy,
+      canonicalDecision: initialDecision,
     })
   }
 
@@ -250,5 +257,6 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
     message,
     testCaseCode: params.testCaseCode ?? null,
     canonicalPolicy: policy,
+    canonicalDecision: initialDecision,
   })
 }

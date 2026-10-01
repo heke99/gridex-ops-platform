@@ -1,10 +1,12 @@
 import { isEvidenceRecord, isEvidenceUuid, evidenceHash } from '@/lib/ediel/utilts/durableSourceDiscovery'
 import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInventory'
 import { bindReceivedRegisterValidation } from '@/lib/ediel/core/receivedRegisterValidationBinding'
+import {bindReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from '@/lib/ediel/core/receivedUtiltsTransactionValidation'
+import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 
 type SourceFacts = { id: unknown; company_id?: unknown; environment: unknown; direction: unknown; message_family: unknown; message_standard: unknown; raw_payload: unknown; message_code: unknown; message_received_at: unknown; execution_context_snapshot?: unknown }
-type RuntimeFacts = { syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown>; prodatRegisterValidation?: unknown }
-export type SourceValidationInput = { companyId: string; environment: 'test' | 'production'; sourceMessageId: string; sourcePayloadHash: string; factsText: string }
+type RuntimeFacts = { syntaxDecision: unknown; applicationDecision: unknown; functionalDecision: unknown; canonical: { messageReference: unknown }; issues: Array<{ code: unknown }>; validationReport: Record<string, unknown>; prodatRegisterValidation?: unknown;utiltsTransactionValidation?:unknown }
+export type SourceValidationInput = { companyId: string; environment: 'test' | 'production'; sourceMessageId: string; sourcePayloadHash: string; factsText: string;utiltsTransactionValidation?:ReceivedUtiltsTransactionValidation }
 const CONTEXT_KEYS = ['version','contextOrigin','sourceMessageId','companyId','environment','messageCode','payloadHash','sourceReceivedAt','capturedAt']
 const states = new Set(['accepted','rejected','not_applicable','manual_review'])
 
@@ -39,28 +41,24 @@ export function buildReceivedSourceValidationEvidence(input: { original: SourceF
   const reasonCodes = [...new Set(decision.issues.map(issue => issue.code))]
   if (reasonCodes.length > 128 || !reasonCodes.every(code => typeof code === 'string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(code))) return null
   const evidence = decision.validationReport.rulePackEvidence
-  let rulePackEvidence: { profileKey: string; messageProfileId: string; rulePackId: string; sourceHash: string } | null = null
+  let rulePackEvidence: ReturnType<typeof receivedOriginalRulePackWitness> = null
   if (evidence != null) {
-    if (!isEvidenceRecord(evidence) || typeof evidence.profileKey !== 'string' || evidence.profileKey.length > 128
-      || !isEvidenceUuid(evidence.messageProfileId) || !isEvidenceUuid(evidence.rulePackId)
-      || typeof evidence.sourceHash !== 'string' || !/^[a-f0-9]{64}$/.test(evidence.sourceHash)) return null
-    // Runtime keeps its source-owned semantic profile key. Persistence must
-    // use the separate activation key returned by that same live registry read.
-    // Retain historical callers already carrying the technical key; an explicit
-    // malformed activation key must never fall back to a different namespace.
-    const databaseProfileKey = Object.hasOwn(evidence,'databaseProfileKey') ? evidence.databaseProfileKey : evidence.profileKey
-    if (typeof databaseProfileKey !== 'string' || !/^[^\x00-\x1f\x7f]{1,128}$/.test(databaseProfileKey)
-      || databaseProfileKey !== databaseProfileKey.trim()) return null
-    rulePackEvidence = { profileKey: databaseProfileKey, messageProfileId: evidence.messageProfileId, rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash }
+    if(!isEvidenceRecord(evidence) || !isEvidenceUuid(evidence.messageProfileId) || !isEvidenceUuid(evidence.rulePackId)
+      || (Object.hasOwn(evidence,'databaseProfileKey') && (typeof evidence.databaseProfileKey!=='string' || !evidence.databaseProfileKey))) return null
+    rulePackEvidence=receivedOriginalRulePackWitness(evidence)
+    if(!rulePackEvidence) return null
   }
   // Registry-unavailable acceptance is never silently downgraded to evidence
   // with an unknown rule version. Rejection can legitimately precede registry.
   if (decision.applicationDecision === 'accepted' && rulePackEvidence === null) return null
   if ((ack || utilts) && decision.prodatRegisterValidation !== undefined) return null
+  if(!utilts && decision.utiltsTransactionValidation!==undefined) return null
+  const utiltsTransactionValidation=decision.utiltsTransactionValidation!==undefined ? bindReceivedUtiltsTransactionValidation(decision.utiltsTransactionValidation,original.raw_payload) : null
+  if(decision.utiltsTransactionValidation!==undefined && !utiltsTransactionValidation) return null
   const hasRegisterValidation = decision.prodatRegisterValidation !== undefined
   const registerValidation = hasRegisterValidation ? bindReceivedRegisterValidation(decision.prodatRegisterValidation, original.raw_payload) : null
   if (hasRegisterValidation && (!registerValidation || !rulePackEvidence)) return null
-  return { companyId: original.company_id, environment: original.environment, sourceMessageId: original.id, sourcePayloadHash,
+  return { companyId: original.company_id, environment: original.environment, sourceMessageId: original.id, sourcePayloadHash,...(utiltsTransactionValidation ? {utiltsTransactionValidation} : {}),
     factsText: JSON.stringify({ version: 1, owner: 'canonical-runtime-with-registry-v1', sourceDisposition: 'not_established',
       objectDisposition: 'not_checked', partyDisposition: 'not_checked', coverage: 'canonical_runtime_only', originalTenantMatch: 'matched',
       syntaxDecision: decision.syntaxDecision, applicationDecision: decision.applicationDecision, functionalDecision: decision.functionalDecision,

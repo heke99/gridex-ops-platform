@@ -1,4 +1,5 @@
 import { test } from 'vitest'
+import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
 import assert from 'node:assert/strict'
 import { buildReceivedSourceValidationEvidence as build } from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import { COMPANY, OTHER, row } from '@/__tests__/helpers/receivedSourceInventoryFixtures'
@@ -18,7 +19,7 @@ test('fresh canonical rejection is source-bound facet evidence, not source appro
 })
 test('accepted canonical fields require bound real rule/version identifiers and remain not source approval',()=>{
  const input=fixture();input.decision.syntaxDecision='accepted';input.decision.applicationDecision='accepted';input.decision.functionalDecision='accepted';input.decision.issues=[]
- input.decision.validationReport.rulePackEvidence={profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
+ input.decision.validationReport.rulePackEvidence=originalRuleWitnessFixture({profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)})
  const result=build(input);assert.ok(result);const facts=JSON.parse(result.factsText)
  assert.equal(facts.applicationDecision,'accepted');assert.equal(facts.sourceDisposition,'not_established');assert.equal(facts.rulePackEvidence.sourceHash,'a'.repeat(64))
 })
@@ -51,7 +52,7 @@ test('evidence preparation does not mutate either source or canonical decisions'
 
 test('keeps the runtime semantic profile separate from its actual database activation key',()=>{
  const input=fixture();input.decision.applicationDecision='accepted'
- input.decision.validationReport.rulePackEvidence={profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
+ input.decision.validationReport.rulePackEvidence={...originalRuleWitnessFixture({profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}),profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3'}
  const result=build(input);assert.ok(result)
  assert.equal(JSON.parse(result.factsText).rulePackEvidence.profileKey,'PRODAT:Z04:L:26.A:r3')
  assert.equal((input.decision.validationReport.rulePackEvidence as {profileKey:string}).profileKey,'prodat_z04_supplier_switch_confirmation')

@@ -3,7 +3,8 @@ import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPol
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import type {CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
@@ -348,6 +349,7 @@ export async function processInboundUtiltsMessage(params: {
   edielMessageId: string
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
+  canonicalDecision?: CanonicalRuntimeDecision | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -366,7 +368,8 @@ export async function processInboundUtiltsMessage(params: {
   // normalized UTILTS facts. The final ACK decision is run again after canonical
   // business matching, because live/test must use the same production rule: object
   // identity/processability is validated before period/observation-count checks.
-  const canonicalPolicy = params.canonicalPolicy ?? resolveCanonicalMessagePolicy(message)
+  const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
+  const canonicalPolicy = initialDecision.policy
   if (!canonicalPolicy || canonicalPolicy.family !== 'UTILTS' || canonicalPolicy.code !== message.message_code || canonicalPolicy.direction !== 'inbound') {
     throw new Error(`utilts_inbound_policy_context_mismatch:${message.id}`)
   }
@@ -422,6 +425,7 @@ export async function processInboundUtiltsMessage(params: {
     runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy }),
   })
   const runtime = structuralQualification.runtime
+  await recordFinalCanonicalUtiltsDecision({original:message,validated:runtimeSourceMessage,initialDecision,runtime})
   const structuralDecisionRequired = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
   const ackPlan = structuralDecisionRequired ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({
     runtime, testCaseCode: runtimeTestCaseCode,

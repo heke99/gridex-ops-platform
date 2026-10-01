@@ -1,4 +1,5 @@
 import {test, expect} from 'vitest'
+import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
 import {buildReceivedSourceValidationEvidence as build} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {COMPANY, OTHER, row} from './helpers/receivedSourceInventoryFixtures'
 
@@ -7,7 +8,7 @@ function fixture() {
   const original = {id:source.sourceMessageId,company_id:COMPANY,environment:'test',direction:'inbound',message_family:'PRODAT',message_standard:'edifact',
     raw_payload:source.rawPayload,message_code:source.messageCode,message_received_at:source.sourceReceivedAt,execution_context_snapshot:{receivedProdatContext:source.receivedContext}}
   return {original,validated:structuredClone(original),resolvedCompanyId:COMPANY,decision:{syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',
-    canonical:{messageReference:'MSG1'},issues:[],validationReport:{rulePackEvidence:{profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}},
+    canonical:{messageReference:'MSG1'},issues:[],validationReport:{rulePackEvidence:originalRuleWitnessFixture({profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)})},
     prodatRegisterValidation:{version:1,owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',objects:[
       {messageIndex:0,messageReference:'MSG1',objectId:'MP-A',identityAgency:'9',disposition:'accepted',reasons:[],registers:[{lineIndex:0,lineNumber:'1',registerIndex:null,registerPosition:1,segmentIndex:3}]},
       {messageIndex:0,messageReference:'MSG1',objectId:'MP-B',identityAgency:'89',disposition:'rejected',reasons:['PRODAT_REGISTER_INVALID'],registers:[{lineIndex:1,lineNumber:'2',registerIndex:null,registerPosition:1,segmentIndex:4}]},

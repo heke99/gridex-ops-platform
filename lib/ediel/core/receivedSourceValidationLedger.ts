@@ -30,14 +30,17 @@ export async function recordReceivedSourceValidation(input: {
     const capturedOriginal = structuredClone(input.original)
     const evidence = buildReceivedSourceValidationEvidence({...input, original: capturedOriginal})
     if (!evidence) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
-    const { data, error } = await supabaseService.rpc('gridex_record_source_validation_v1', {
+    const utilts=capturedOriginal.message_family==='UTILTS'
+    const transactionFactsHash=evidence.utiltsTransactionValidation ? evidenceHash(JSON.stringify(evidence.utiltsTransactionValidation)) : null
+    const { data, error } = await supabaseService.rpc(utilts ? 'gridex_record_utilts_source_validation_v1' : 'gridex_record_source_validation_v1', {
       p_company_id: evidence.companyId, p_environment: evidence.environment, p_source_message_id: evidence.sourceMessageId,
       p_source_payload_hash: evidence.sourcePayloadHash, p_facts_text: evidence.factsText,
+      ...(utilts ? {p_transaction_facts_text:evidence.utiltsTransactionValidation ? JSON.stringify(evidence.utiltsTransactionValidation) : null} : {}),
     }).abortSignal(AbortSignal.timeout(2000))
     const factsHash = evidenceHash(evidence.factsText)
     if (error || !isEvidenceRecord(data) || data.version !== 1 || data.companyId !== evidence.companyId || data.environment !== evidence.environment
       || data.sourceMessageId !== evidence.sourceMessageId || data.sourcePayloadHash !== evidence.sourcePayloadHash || data.factsHash !== factsHash
-      || data.sourceDisposition !== 'not_established' || !isEvidenceUuid(data.assessmentId)) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
+      || data.sourceDisposition !== 'not_established' || !isEvidenceUuid(data.assessmentId) || (utilts && data.transactionFactsHash!==transactionFactsHash)) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
     const receipt: ReceivedSourceValidationReceipt = { status: 'recorded', sourceDisposition: 'not_established', assessmentId: data.assessmentId, factsHash }
     if (capturedOriginal.message_family === 'PRODAT') freshOwnerSeeds.set(receipt, {original: capturedOriginal, evidence, assessmentId: data.assessmentId})
     return receipt
