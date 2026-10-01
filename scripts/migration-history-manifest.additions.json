@@ -161,6 +161,7 @@
     "20260930180445_ediel_accepted_transport_projection_v1.sql": "84e3be8aa2625065c0f30746d1c3e749356f0ce0892134ffddc3f3091b3546ae",
     "20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql": "3f0f51efae58e4b267b22beefd972299acce55b205b574f24b15ae023613f9b7",
     "20260930184042_ediel_service_administration_commands_v1.sql": "c14ed560924522b748e879e1187b7e7793d95ea2ae69e9a97cda7b727f93a689",
-    "20260930194512_ediel_service_recovery_current_origin_bridge.sql": "9c326ae1df78feb6dc63932260fe85d616cd953f9154bd049f187c5f45d46026"
+    "20260930194512_ediel_service_recovery_current_origin_bridge.sql": "9c326ae1df78feb6dc63932260fe85d616cd953f9154bd049f187c5f45d46026",
+    "20260930200545_ediel_brp_change_source_origination.sql": "88d089467f607b2d4dbaddf113421c63eb2e67fcf4fc29e6c6e2b789b33eb050"
   }
 }
