@@ -2,7 +2,8 @@ import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
-import {bindSourceQualifiedNegativeFixtureDraft,readSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureForMessage,sourceQualifiedNegativeFixtureMatchesMessage,sourceQualifiedNegativeFixtureMatchesDraft} from '@/lib/ediel/testing/negativeFixtureAuthority'
+import {bindSourceQualifiedNegativeFixtureDraft,readSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureForMessage,sourceQualifiedNegativeFixtureMatchesMessage,sourceQualifiedNegativeFixtureMatchesDraft,sourceQualifiedNegativeFixtureAllowsPreflight} from '@/lib/ediel/testing/negativeFixtureAuthority'
+import type {EdielPayloadPreflightResult} from '@/lib/ediel/core/messageBuilder'
 import {encodeEdifactLatin1} from '@/lib/ediel/core/edifactEncoding'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 const raw="UNA:+.? 'UNB+UNOC:3+S:ZZ+TEST:ZZ+260930:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+DOC'UNT+3+M'UNZ+1+I'"
@@ -44,5 +45,15 @@ describe('source-qualified negative fixture capability, synthetic port responses
  })
  it('does not mint a draft exception for mismatched diagnostic expectation',async()=>{
   expect(await resolveSourceQualifiedNegativeFixtureDraft({companyId:'synthetic-company',runId:'synthetic-run',stepNo:1,actorUserId:'synthetic-actor',rawPayload:raw,diagnosticCodes:['LOCAL_CONFIG_FAILED']})).toBeNull()
+ })
+ it('qualifies only the exact preflight failure on the persisted test port',async()=>{
+  const m=message(),qualification=await resolveSourceQualifiedNegativeFixtureForMessage({message:m,actorUserId:'synthetic-actor'})
+  const preflight={ok:false,blocking:true,issues:[{code:'NATIONAL_FIELD_MISSING',severity:'error'}]} as EdielPayloadPreflightResult
+  expect(sourceQualifiedNegativeFixtureAllowsPreflight({message:m,preflight,qualification})).toBe(true)
+  expect(sourceQualifiedNegativeFixtureAllowsPreflight({message:{...m,environment:'production'},preflight,qualification})).toBe(false)
+  expect(sourceQualifiedNegativeFixtureAllowsPreflight({message:m,preflight,qualification:{...qualification!}})).toBe(false)
+  for(const code of ['LOCAL_UNEXPECTED','CANONICAL_AUTHORITY_MISSING','PRODAT_REGISTER_SCOPE','PRODAT_DEPENDENT_PREFLIGHT_UNKNOWN']){
+   expect(sourceQualifiedNegativeFixtureAllowsPreflight({message:m,preflight:{...preflight,issues:[{code,severity:'error',title:'Synthetic',description:'synthetic'}]},qualification})).toBe(false)
+  }
  })
 })

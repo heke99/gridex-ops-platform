@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import type { EdielPayloadPreflightResult } from '@/lib/ediel/core/messageBuilder'
 import { supabaseService } from '@/lib/supabase/service'
 
 export type SourceQualifiedNegativeFixture = Readonly<{
@@ -58,6 +59,15 @@ export function sourceQualifiedNegativeFixtureMatchesMessage(input: {message:Edi
   return Boolean(binding && binding.messageId === input.message.id && input.message.direction === 'outbound' && input.message.environment === 'test' && input.message.message_standard === 'edifact'
     && input.message.company_id && matchesRaw(binding.registration,input.message.company_id,input.message.raw_payload ?? '')
     && input.diagnosticCodes.length > 0 && JSON.stringify(codes(input.diagnosticCodes)) === JSON.stringify(codes(binding.registration.expectedDiagnosticCodes)))
+}
+/** The preflight still reports the deliberately failed national test. Only its
+ * exact registered original and expected findings may proceed on the test
+ * port. Local authority failures and protected register/D facts stay blocking;
+ * production, crypto, routing and tenant gates keep their own strict evidence. */
+export function sourceQualifiedNegativeFixtureAllowsPreflight(input:{message:EdielMessageRow;preflight:EdielPayloadPreflightResult;qualification?:SourceQualifiedNegativeFixture|null}):boolean {
+ const errors=input.preflight.issues.filter(issue=>issue.severity==='error')
+ return input.preflight.blocking&&errors.length>0&&!errors.some(issue=>issue.code.startsWith('CANONICAL_')||issue.code.startsWith('PRODAT_REGISTER_')||issue.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_'))
+  &&sourceQualifiedNegativeFixtureMatchesMessage({message:input.message,qualification:input.qualification,diagnosticCodes:errors.map(issue=>issue.code)})
 }
 type DraftIdentity = {companyId?:string | null;environment?:string | null;direction?:string | null;rawPayload?:string | null}
 /** Recheck the prospective opaque port against the final creation bytes after
