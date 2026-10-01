@@ -65,3 +65,14 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - **Migrations are NOT applied by the deploy.** Production DB has neither `20261001200000` nor `20261001210000` until someone applies them with explicit user permission.
 - Follow-up PR: `applyCustomerContactChange` falls back to the previous sequential path when the RPC is missing (PGRST202/42883), so OPS/API profile saves keep working before the migration. Remove the fallback once all environments have the migration.
 - Next: user decision on applying migrations to production; P1c needs an identity-provider decision.
+
+## Production migration status (2026-10-01 ~21:15 UTC)
+- #430 merged (`8f4c33c`): RPC-missing fallback is live, profile saves are safe without the migration.
+- User said "kör det" to applying migrations. NOT applied, because:
+  - Production Supabase project is not identifiable (Vercel `NEXT_PUBLIC_SUPABASE_URL` is a sensitive env; not decrypted).
+  - `gridex-ops-dev` (only full-schema project) is at `20260904222450`; main has many later migrations (e.g. Ediel 2026-09-23/24). Applying 20261001200000/20261001210000 would skip them out of order.
+- Needed from user: which project is production, and whether the whole pending migration backlog should be applied in order (coordinate with the Ediel track).
+
+## T10 per-customer support quotas (2026-10-01 ~22:15 UTC)
+- `SUPPORT_CUSTOMER_QUOTAS` in `lib/customer-service/supportConversation.ts`: 10 new customer cases/24 h, 30 customer messages/h; `429 support_quota_exceeded` (contract already declares 429; no new OpenAPI release). Idempotent replays bypass the case quota. `tenantSelect` gained optional count/head options.
+- Production migration queue: files 1–24 + 26 applied; drift repair added 5 canonical columns (permissions.category, roles.updated_at, customer_contacts.created_by/updated_by, customer_sites.annual_production_kwh); resume from file 25 strictly sequentially (in progress via subagent, user approves each Supabase call).
