@@ -126,6 +126,16 @@ try {
  await assert.rejects(prepareAck('313','T'),/utilts_negative_ack_reservation_unavailable/);checks++
  const borrowed=ackRaw().replace("ERC+100::260'FTX+AAO+++OK'RFF+DM:OWN-DM'RFF+ACW:T'UNT+12+AP1","RFF+ACW:T'ERC+100::260'FTX+AAO+++OK'RFF+DM:OWN-DM'UNT+12+AP1");await assert.rejects(prepareAck('312','T',borrowed),/ediel_native_ack_guide_invalid/);checks++
  const ownMissing=ackRaw().replace("RFF+ACW:T'UNT+12+AP1","ERC+100::260'RFF+DM:SECOND-DM'RFF+ACW:T'UNT+14+AP1");await assert.rejects(prepareAck('312','T',ownMissing),/ediel_native_ack_guide_invalid/);checks++
+ // Native direct-source guide rejects unsupported ERC and invented field/text
+ // even when the source reservation itself is otherwise authentic.
+ await assert.rejects(prepareAck('313','NEG',ackRaw('313','NEG').replace('ERC+42::260','ERC+999::260')),/ediel_native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareAck('313','NEG',ackRaw('313','NEG').replace('INCORRECT DATA Bad','INCORRECT DATA')),/ediel_native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareAck('313','NEG',ackRaw('313','NEG').replace('505::260','505::999')),/ediel_native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareAck('312','T',ackRaw().replace('202609301200','202602301200')),/ediel_native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareAck('312','T',ackRaw().replace('735:?+0100:406','735:?+0200:406')),/ediel_native_ack_guide_invalid/);checks++
+ await assert.rejects(db.exec("update gridex_ediel_ack_guide.editions set projection='{}'"),/received_source_evidence_is_append_only/);checks++
+ await assert.rejects(db.exec('delete from gridex_ediel_ack_guide.source_bindings'),/received_source_evidence_is_append_only/);checks++
+ const guideAcl=(await db.query("select has_function_privilege('service_role','gridex_ediel_ack_guide.bind_source_v1(public.ediel_messages,text,jsonb)','execute') bind_authority,has_table_privilege('service_role','gridex_ediel_ack_guide.editions','insert') publish_edition")).rows[0];assert.deepEqual(guideAcl,{bind_authority:false,publish_edition:false});checks++
  const insertAck=async(id,code,sealed,transaction='T')=>db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,'DB:E66',$7,$8,$9,$10,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(id),uid(1),ackRaw(code,transaction),uid(70),uid(100),uid(101),w.evidence.version,w.evidence.sourceHash,sealed.evidence.snapshot,{outboundOwnerWitnessId:sealed.witnessId}])
  await insertAck(74,'313',negative,'NEG');await db.query('insert into gridex_ediel_inbound_context.receipts values($1,$2)',[uid(74),{basisKind:'prescribed_outbound_ack',originalSourceMessageId:uid(70)}]);assert.equal((await require(74)).version,w.evidence.version);checks++
  const negativeInput={action:'prepare',companyId:uid(1),environment:'test',messageId:uid(74),attemptId:uid(75),actorUserId:uid(7),binding:{originalHash:(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[ackRaw('313','NEG')])).rows[0].h,sourceRulePackEvidence:negative.evidence}}
