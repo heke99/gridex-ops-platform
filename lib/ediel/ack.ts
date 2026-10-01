@@ -12,6 +12,7 @@ import { contrlSourceEnvelope, renderContrl2Ediel2 } from '@/lib/ediel/contrlEng
 import { renderAperakEdiel, usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
 import { inferEdielFileName } from '@/lib/ediel/classify'
 import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
+import { readPhysicalUtiltsDocumentIdentity } from '@/lib/ediel/core/physicalDocumentReference'
 import {
   defaultAckStatuses,
   deriveEdielAckDefaults,
@@ -392,7 +393,12 @@ function buildAperakSegments(params: {
   utiltsHeaderRejected?: boolean
   prodatAcknowledgementLineIndices?:readonly number[]
 }) {
-  const refs = parseEdifactRefs(params.sourceMessage)
+  const sourceDocument = usesUtiltsAperakProfile(params.sourceMessage.message_family)
+    ? readPhysicalUtiltsDocumentIdentity(params.sourceMessage.raw_payload) : null
+  if (usesUtiltsAperakProfile(params.sourceMessage.message_family) && !sourceDocument) {
+    throw new Error('aperak_utilts_original_document_scope_unavailable')
+  }
+  const refs = sourceDocument ? { documentReference: sourceDocument.reference } : parseEdifactRefs(params.sourceMessage)
   const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: params.sourceMessage.message_family })
   const rendered = renderAperakEdiel({
     source: {
