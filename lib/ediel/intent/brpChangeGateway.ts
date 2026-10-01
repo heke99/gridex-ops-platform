@@ -23,7 +23,7 @@ export async function renderAndQueueBrpChange(input: { intentId: string; actorUs
   if (reservation.status === 'held') return reservation
   const outboundRequestId = reservation.outboundRequestId
   if (reservation.messageId) {
-    const { data, error } = await (tenantDb(input.companyId).from('ediel_messages').select('*') as ScopedSelect).eq('id', reservation.messageId).maybeSingle()
+    const { data, error } = await (tenantDb(input.companyId).from('ediel_messages').select('*') as ScopedSelect).eq('id', reservation.messageId).returns<EdielMessageRow[]>().maybeSingle()
     if (error) throw error
     if (!data || data.intent_id !== intent.id || data.outbound_request_id !== outboundRequestId || data.source_operation_id !== input.eventId) throw new Error('brp_change_existing_message_conflict')
     if (data.status !== 'draft') return { status: 'existing' as const, message: data as EdielMessageRow }
@@ -37,7 +37,7 @@ export async function renderAndQueueBrpChange(input: { intentId: string; actorUs
     if (!(error && typeof error === 'object' && 'code' in error && error.code === '23505')) throw error
     const current = await reserveBrpChangeSource({ ...source, intentId: intent.id, outboundRequestId })
     if (current.status !== 'reserved' || !current.messageId) throw error
-    const { data, error: readError } = await (tenantDb(input.companyId).from('ediel_messages').select('*') as ScopedSelect).eq('id', current.messageId).maybeSingle()
+    const { data, error: readError } = await (tenantDb(input.companyId).from('ediel_messages').select('*') as ScopedSelect).eq('id', current.messageId).returns<EdielMessageRow[]>().maybeSingle()
     if (readError || !data) throw readError ?? error
     message = data as EdielMessageRow
   }

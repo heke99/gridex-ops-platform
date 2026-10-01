@@ -29,7 +29,7 @@ export async function prepareAndQueueBrpChangeZ09(input: { companyId: string; ev
     payload: { actorRole: 'supplier', brpChangeEventId: basis.eventId }, actorUserId: input.actorUserId,
     routeProfile: { applicationReference: route.applicationReference, actorRole: 'supplier' } })
   const { data, error } = await (tenantDb(basis.companyId).from('outbound_requests').select('id') as ScopedSelect).eq('source_type', 'manual').eq('source_id', intent.id)
-    .eq('request_type', 'customer_masterdata').limit(2)
+    .eq('request_type', 'customer_masterdata').limit(2).returns<Array<{ id: string }>>()
   if (error) throw error
   if (data && data.length > 1) throw new Error('brp_change_outbound_request_ambiguous')
   const requestId = data?.[0]?.id ?? (await createOutboundRequest({ actorUserId: input.actorUserId, customerId: basis.customerId, meteringPointId: basis.meteringPointId,
