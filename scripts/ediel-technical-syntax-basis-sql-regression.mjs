@@ -55,6 +55,9 @@ try {
  await syntax(10);const basis=await capture(10);assert.equal(basis.syntaxDecision,'rejected');assert.equal(basis.originalUNB.uciReference,'ORIGINAL-REF-L');assert.equal(basis.originalUNB.applicationReference,'');assert.equal(Object.hasOwn(basis,'rulePackId'),false);checks++
  const guarded=async(id)=>(await db.query('select gridex_ediel_technical_ack.require_contrl_v1(m) evidence from ediel_messages m where id=$1',[uid(id)])).rows[0].evidence
  await insert(20,ack('ORIGINAL-REF-LONG-OWN'),{direction:'outbound',family:'CONTRL',code:'CONTRL',related:10});assert.deepEqual(await guarded(20),basis);checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930200005_ediel_persisted_technical_contrl_basis_read.sql',import.meta.url),'utf8'));
+ await db.exec('set role service_role');const persisted=(await db.query('select public.ediel_read_persisted_technical_contrl_basis_v1($1,$2,$3) result',[uid(1),'test',uid(20)])).rows[0].result;await db.exec('reset role');assert.equal(persisted.ackMessage.related_message_id,uid(10));assert.deepEqual(persisted.technicalSyntaxAckEvidence,basis);checks++
+ await assert.rejects(db.query('select gridex_ediel_technical_ack.read_persisted_contrl_v1($1,$2,$3)',[uid(99),'test',uid(20)]),/ediel_technical_ack_basis_required/);checks++
  await insert(21,ack('ORIGINAL-REF-LONG-OWN',{action:'1'}),{direction:'outbound',family:'CONTRL',related:10});await assert.rejects(guarded(21),/ediel_technical_ack_basis_required/);checks++
  await insert(22,ack('ORIGINAL-REF-LONG-OWN',{sender:'LOCAL:14:OTHER'}),{direction:'outbound',family:'CONTRL',related:10});await assert.rejects(guarded(22),/ediel_technical_ack_basis_required/);checks++
  await insert(23,ack('ORIGINAL-REF-LONG-OWN',{app:'GUESSED'}),{direction:'outbound',family:'CONTRL',related:10});await assert.rejects(guarded(23),/ediel_technical_ack_basis_required/);checks++

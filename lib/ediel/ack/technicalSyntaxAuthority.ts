@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 
 const authenticatedTechnicalEvidence = new WeakSet<object>()
 function freezeEvidence<T>(value: T, seen = new WeakSet<object>()): T {
@@ -59,7 +60,6 @@ function decodeTechnicalEvidence(value: unknown): TechnicalSyntaxAckEvidence {
     || !['test', 'production'].includes(e.environment ?? '') || !['accepted', 'rejected'].includes(e.syntaxDecision ?? '')
     || !/^[a-f0-9]{64}$/.test(e.sourceHash ?? '') || !validEnvelope(e.originalUNB, e.transportEdielId)) throw new Error('ediel_technical_ack_basis_required')
   const evidence = freezeEvidence(e as TechnicalSyntaxAckEvidence)
-  authenticatedTechnicalEvidence.add(evidence)
   return evidence
 }
 
@@ -85,6 +85,7 @@ async function technicalEvidence(action: 'capture' | 'require', companyId: strin
     ? 'ediel_historical_technical_ack_basis_unavailable' : 'ediel_technical_ack_basis_required', { cause: error })
   const evidence = decodeTechnicalEvidence(data)
   if (evidence.companyId !== companyId || evidence.sourceMessageId !== sourceMessageId) throw new Error('ediel_technical_ack_basis_required')
+  authenticatedTechnicalEvidence.add(evidence)
   return evidence
 }
 
@@ -110,6 +111,29 @@ export function captureEdielTechnicalSyntaxAckEvidence(companyId: string, source
 }
 export function requireEdielTechnicalSyntaxAckEvidence(companyId: string, sourceMessageId: string) {
   return technicalEvidence('require', companyId, sourceMessageId)
+}
+
+/** Qualification of the actual persisted ACK/source pointer in one protected
+ * read. The caller's related_message_id is deliberately never sent to SQL. */
+export async function readPersistedEdielTechnicalContrlBasis(input: {
+  companyId: string
+  environment: 'test' | 'production'
+  ackMessageId: string
+  expectedRawPayload: string
+}): Promise<{ ackMessage: EdielMessageRow; evidence: TechnicalSyntaxAckEvidence }> {
+  const { data, error } = await supabaseService.rpc('ediel_read_persisted_technical_contrl_basis_v1', {
+    p_company_id: input.companyId, p_environment: input.environment, p_ack_message_id: input.ackMessageId,
+  })
+  const result = data as { version?: unknown; ackMessage?: Partial<EdielMessageRow>; technicalSyntaxAckEvidence?: unknown } | null
+  const ack = result?.ackMessage
+  if (error || result?.version !== 1 || !ack || ack.id !== input.ackMessageId || ack.company_id !== input.companyId
+    || ack.environment !== input.environment || ack.direction !== 'outbound' || ack.message_family !== 'CONTRL'
+    || ack.raw_payload !== input.expectedRawPayload) throw new Error('ediel_technical_ack_basis_required', { cause: error })
+  const evidence = decodeTechnicalEvidence(result.technicalSyntaxAckEvidence)
+  if (evidence.companyId !== input.companyId || evidence.environment !== input.environment
+    || evidence.sourceMessageId !== ack.related_message_id) throw new Error('ediel_technical_ack_basis_required')
+  authenticatedTechnicalEvidence.add(evidence)
+  return { ackMessage: ack as EdielMessageRow, evidence }
 }
 
 /** Header/endpoint projection for the technical syntax owner only. A returned

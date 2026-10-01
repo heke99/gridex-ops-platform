@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc } }))
-import { captureEdielTechnicalSyntaxAckEvidence, requireEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision, technicalSyntaxAckQualification } from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import { captureEdielTechnicalSyntaxAckEvidence, requireEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision, technicalSyntaxAckQualification, readPersistedEdielTechnicalContrlBasis } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 const envelope = { sender: ['REMOTE','14','SUB-R'], receiver: ['LOCAL','14','SUB-L'], interchangeReference: 'ORIGINAL-REFERENCE-LONG', uciReference: 'ORIGINAL-REFER', applicationReference: '', testIndicator: '1' }
 const basis = { kind: 'technical_syntax_ack', version: 1, companyId: 'company', sourceMessageId: 'source', sourceHash: 'a'.repeat(64), environment: 'test', observedAt: '2026-09-30T12:00:00Z', syntaxAssessmentId: 'assessment', syntaxDecision: 'rejected', transportActorId: 'actor', transportEdielId: 'LOCAL', originalUNB: envelope }
 describe('protected technical syntax authority adapters', () => {
@@ -46,6 +46,20 @@ describe('protected technical syntax authority adapters', () => {
   expect(technicalSyntaxAckQualification({evidence:e,companyId:'other',environment:'test'})).toBeNull()
   expect(Object.isFrozen(e.originalUNB.receiver)).toBe(true)
   expect(Object.isFrozen(e.originalUNB)).toBe(true)
+ })
+ it('qualifies actual persisted ACK/source atomically without caller pointer authority', async () => {
+  const ack={id:'ack',company_id:'company',environment:'test',direction:'outbound',message_family:'CONTRL',raw_payload:'actual raw',related_message_id:'source'}
+  rpc.mockResolvedValue({data:{version:1,ackMessage:ack,technicalSyntaxAckEvidence:structuredClone(basis)},error:null})
+  const result=await readPersistedEdielTechnicalContrlBasis({companyId:'company',environment:'test',ackMessageId:'ack',expectedRawPayload:'actual raw'})
+  expect(result.ackMessage).toEqual(ack)
+  expect(technicalSyntaxAckQualification({evidence:result.evidence,companyId:'company',environment:'test',sourceMessageId:'source'})).toBe(result.evidence)
+  expect(rpc.mock.calls[0]).toEqual(['ediel_read_persisted_technical_contrl_basis_v1',{p_company_id:'company',p_environment:'test',p_ack_message_id:'ack'}])
+ })
+ it('rejects persisted raw/pointer scope mismatch before qualifying its evidence', async () => {
+  const e=structuredClone(basis)
+  rpc.mockResolvedValue({data:{version:1,ackMessage:{id:'ack',company_id:'company',environment:'test',direction:'outbound',message_family:'CONTRL',raw_payload:'actual raw',related_message_id:'other'},technicalSyntaxAckEvidence:e},error:null})
+  await expect(readPersistedEdielTechnicalContrlBasis({companyId:'company',environment:'test',ackMessageId:'ack',expectedRawPayload:'actual raw'})).rejects.toThrow('ediel_technical_ack_basis_required')
+  expect(technicalSyntaxAckQualification({evidence:e,companyId:'company',environment:'test'})).toBeNull()
  })
  it('records only the actual common syntax owner facet with an exact raw hash', async () => {
   rpc.mockResolvedValue({data:{syntaxAssessmentId:'assessment',scope:'canonical_syntax_only',authorizesBusinessEffect:false},error:null})
