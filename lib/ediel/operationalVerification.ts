@@ -293,8 +293,8 @@ async function getCurrentMeteringPoint(companyId:string|null,meteringPointId: st
 
 export async function buildSafeMasterdataProposal(message: EdielMessageRow): Promise<EdielMasterdataChangeProposal[]> {
   const payload = asRecord(message.parsed_payload)
-  const site = await getCurrentSite(message.company_id,message.site_id)
-  const meteringPoint = await getCurrentMeteringPoint(message.company_id,message.metering_point_id)
+  const site = await getCurrentSite(message.company_id??null,message.site_id)
+  const meteringPoint = await getCurrentMeteringPoint(message.company_id??null,message.metering_point_id)
   const proposals: EdielMasterdataChangeProposal[] = []
 
   addProposalIfChanged({
