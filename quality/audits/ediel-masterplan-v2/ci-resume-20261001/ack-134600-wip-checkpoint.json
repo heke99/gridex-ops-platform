@@ -1,0 +1,76 @@
+{
+  "owner": "/root/ack_prodat",
+  "status": "WIP_NOT_QUALIFIED",
+  "reason": "User-requested checkpoint/new chat; no new regressions started after parent checkpoint instruction.",
+  "created_at": "2026-10-01T14:34:43.517635+00:00",
+  "repository": "/workspace/scratch/145123787247/gridex-ack-checkpoint/",
+  "branch": "wip/ack-private-technical-chain-134600-checkpoint-20261001",
+  "base_code_sha": "a8db3a1178b1cc73013133a751f94a2a57dd8198",
+  "working_tree": "CLEAN",
+  "files": [
+    {
+      "path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+      "sha256": "61515ab11deaa0476e366f352f8c9ea8933fc369939849e4447a5ecf5f49e852"
+    },
+    {
+      "path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+    },
+    {
+      "path": "lib/ediel/rulebook/validator.ts",
+      "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+    },
+    {
+      "path": "lib/ediel/core/outboundAckOriginals.ts",
+      "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+    },
+    {
+      "path": "lib/ediel/core/ackPolicy.ts",
+      "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+    },
+    {
+      "path": "lib/ediel/core/ackDraftSource.ts",
+      "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+    },
+    {
+      "path": "lib/ediel/core/dedupe.ts",
+      "sha256": "05b4777ba73699d6c24acd51778067474806ed09d2765455cbc2f1aa4357b6b8"
+    }
+  ],
+  "implemented_unverified": [
+    "134600 private retained_source_v1: namespace coverage plus ALL current canonical keys/reservations and first payload hash; actual technical source/reply tuples and original UNB/UCI; complete-chain authority versus held-only discovery; no public cache authority/backfill.",
+    "Installed require_contrl_v1 source-only provenance local relation projection and source discovery forward; guarded body edits aim to preserve OID/ACL/owner/config and existing syntax predicates. NOT mechanically verified.",
+    "Shared helper phase send uses exact current communication.send OR existing ediel.send; read and prepare permissions unchanged; native V2 persisted reader/source original-list actor/phase gates before/after native inner reads. NOT mechanically verified.",
+    "Actual TS SMTP validator passes supplied executionActorUserId to persisted CONTRL RPCv2 phase send; old actorless persisted read cannot qualify this caller.",
+    "Actual readExistingAckBeforeDraft passes actor phase prepare to finder/originals RPCv2; current local WRITE exact, no test/SEND aliases.",
+    "Optional actor/phase compatibility signatures fail closed before RPC if actual actor absent; two dedupe type fields retain existing spread forwarding."
+  ],
+  "verification": {
+    "134600_actual_sql": "NOT_RUN",
+    "134600_units_types_lint": "NOT_RUN",
+    "134600_peer_review": "NOT_REVIEWED per /root/utilts checkpoint message",
+    "native_authentic_DB_UI_CI": "NOT_RUN",
+    "prior_134500": "Verified coherent prior packet delivered separately: 79 cumulative mechanical SQL PASS + canonical eslint0, not authentic native acceptance. /workspace/scratch/145123787247/ack-v1-incident-common-reader-delta-20261001.json; SQL b6cdfc3aef4e6019949b26942e25916f252aa3ebab9334beedfaa3c609aef803/script af348de115a2003ce5f9d51da445c9e9e18e58de0536eb40d8c9c60e5802eb85."
+  },
+  "remaining_internal": [
+    "Write bounded actual SQL regression by composing existing51 script + existing134500 extension79, then new actual134600 migration; private synthetic namespaces/captured-source rows only, no privilege fixture production authority. Probe authentic helper mechanics for complete ancient chain no birth/business witness, NULL/foreign public relation/cache mutation, ALLkeys missing/firsthash mismatch/hash mutation/source receipt missing/ambiguous original, preserved empty application and first14 uniqueness.",
+    "Probe actual read_v1/read_scope_v2/create_v1/create_scope_v2 reuse/readonly no remint, current actor READ/WRITE/SEND permission separation including ediel.send, executor distinct/revoked historical creator, membership/company/endpoint/profile current deny and terminal clock expiry, no attempted replay writes.",
+    "Confirm native graph locking/OID/owner/ACL/security/config/defaults/returns, and no helper recursion. Assess persisted require_contrl projection timing at fresh atomic creation and native namespace/immutable render trigger order; avoid weakening fresh-source admission.",
+    "Update existing technical-syntax-authority and technical-contrl-canonical-admission tests to V2 response version2/executionActorUserId/executionPhase; supply actual actor+phase, missing actor/current deny/phase mismatch regression. These fixtures still expect V1 and now require update.",
+    "Update original-dedupe/missing-LI/identity-omission/retained-first tests to actual actor + V2 receipt response while preserving exact original contract; run relevant canonical lint/type checks and targeted unit tests.",
+    "Inventory/fence actorless public source ports used by kernel CONTRL prepare/current common-header source prepare, inbound source syntax record/capture, null-tenant endpoint source reads. Existing TS actor gates do not replace final native execution authorization. Root owns kernel/inboundProcessing; agree actual actor/phase native V2 interfaces before their bounded adapter edits.",
+    "Review early technicalSyntaxAckEvidence validator branch for applicability to actual persisted send paths so provenance-only evidence cannot bypass current SEND qualification. Retain valid prepare-only technical source consumer behavior.",
+    "Root-owned db.ts adapter outstanding: findSequencedAckForSource params add actorUserId:string, forward actorUserId and phase read to findExistingAckForSource; no actual production caller found, missing actor must fail closed.",
+    "Public source original-list V1 remains actorless provenance compatibility. Explicit authorizesExecution false fencing is incomplete there; new TS uses V2. Assess all other compatibility readers/old service role execution adapters, preserving genuine source-only historical reads.",
+    "Native transport source-only require_contrl is reused; actual transport actor/phase guards remain recovery owner. Verify precise final current sender guard after new inner selector waits on every actual effect/replay return, coordinate owner rather than broad engine rewrite.",
+    "Obtain bounded independent /root/utilts review and then deliver coherent final exact manifest; root alone imports/publishes qualified package and registers migration/checksum/types."
+  ],
+  "precise_missing_external_basis": "A retained technical original with no genuine private source/reply capture, complete namespace reservations+first hash, immutable original bytes/hash/render time or retained native guide/archive remains held; never backfill public relation/outcome caches or declare synthetic sources authentic. Exact missing record/version/issuer/archive must be listed when current native proof identifies it.",
+  "prohibitions": [
+    "Do not mark134600 implemented/verified acceptance, import it into root candidate, run customer/Ediel traffic or production migrations based on this WIP.",
+    "Original gridex-ack isolated clone still has unowned historical merge conflicts; checkpoint worktree is clean and only7 bounded WIP files are committed on current root base. No shared root index/staging/publication was touched."
+  ],
+  "code_head": "a1d82cd44803ed3632623a74f8b6feafd330b688",
+  "code_tree": "8a845370789377c8fe8243b5beeddd9dbd86b180",
+  "provenance": "Code SHA/tree identify the preceding WIP runtime commit. This evidence-only checkpoint document is committed separately; it does not qualify a new runtime candidate."
+}
