@@ -1,3 +1,4 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 // lib/ediel/flows/aiListFlow.ts
 
 import { getGridOwnerById } from '@/lib/masterdata/db'
@@ -38,16 +39,7 @@ export async function prepareAndQueueAiList(params: {
   if(!isEvidenceUuid(params.actorUserId)||!isEvidenceUuid(params.companyId))throw new Error('ai_list_actor_company_context_required')
   const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await makeServerClient()
-  const permissions=await Promise.all(['communication.write','ediel_testing.write'].map(async permission=>{
-    const {data,error}=await supabase.rpc('gridex_actor_has_company_permission',{p_actor_user_id:actorUserId,p_company_id:params.companyId,p_permission:permission}).abortSignal(AbortSignal.timeout(2000))
-    return !error&&data===true
-  }))
-  const [{data:membership,error:membershipError,count:membershipCount},{data:profile,error:profileError}]=await Promise.all([
-    supabase.from('company_memberships').select('company_id,user_id,status,is_active,accepted_at,disabled_at,removed_at,suspended_at',{count:'exact'}).eq('company_id',params.companyId).eq('user_id',actorUserId).limit(2).abortSignal(AbortSignal.timeout(2000)),
-    supabase.from('user_profiles').select('id,user_status').eq('id',actorUserId).abortSignal(AbortSignal.timeout(2000)).maybeSingle(),
-  ])
-  const member=membership?.[0]
-  if(!permissions.some(Boolean)||membershipError||profileError||membershipCount!==1||membership?.length!==1||member?.status!=='active'||member.is_active!==true||!member.accepted_at||member.disabled_at||member.removed_at||member.suspended_at||profile?.user_status!=='active')throw new Error('ai_list_tenant_authorization_required')
+  await assertEdielTenantActor({companyId:params.companyId,actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
   const {data:siteData,error:siteError}=await supabase.from('customer_sites').select('*').eq('id',params.siteId).eq('company_id',params.companyId).eq('customer_id',params.customerId).abortSignal(AbortSignal.timeout(2000)).maybeSingle()
   if(siteError||!siteData)throw new Error('ai_list_customer_site_scope_mismatch')
   const site=siteData as unknown as CustomerSiteRow
