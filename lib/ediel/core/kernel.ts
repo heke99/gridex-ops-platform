@@ -8,13 +8,13 @@ import {
 import {
   createCanonicalAckConflictEvent,
   createEdielMessage,
-  findSequencedAckForSource,
 } from '@/lib/ediel/db'
 import {
   hasCanonicalAckDuplicate, findOutboundEdielMessageDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {isListedProdatDocumentCode,prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prepareEdielOutboundOwnerWitness } from '@/lib/ediel/core/outboundOwnerWitness'
 import type { EdielSourceRulePackEvidence } from '@/lib/ediel/core/sourceRulePackEvidence'
@@ -284,71 +284,51 @@ export async function createCanonicalAckMessage(params: {
     : {companyId,actorUserId,permission:'communication.write'})
   const draftWithSourceSnapshot = params.draft
 
-  const allowSequencedUtiltsErr =
-    params.ackFamily === 'UTILTS_ERR' &&
-    typeof draftWithSourceSnapshot.parsedPayload?.utiltsErrSequenceToken === 'string' &&
-    draftWithSourceSnapshot.parsedPayload.utiltsErrSequenceToken.trim().length > 0
-
-  // A transaction response belongs to the full original IDE, even when two
-  // rejected IDEs have the same ERR code. Unscoped ERRs retain code sequencing.
-  const transactionAckFamily = params.ackFamily === 'APERAK' || params.ackFamily === 'UTILTS_ERR'
-    ? params.ackFamily : null
-  const allowSequencedTransactionAck =
-    transactionAckFamily !== null &&
-    draftWithSourceSnapshot.parsedPayload?.ackScope === 'transaction' &&
-    typeof draftWithSourceSnapshot.parsedPayload?.relatedTransactionReference === 'string' &&
-    draftWithSourceSnapshot.parsedPayload.relatedTransactionReference.trim().length > 0
-
-  const sequenceToken = allowSequencedTransactionAck
-    ? sequenceString(draftWithSourceSnapshot.parsedPayload?.relatedTransactionReference)
-    : allowSequencedUtiltsErr
-      ? sequenceString(draftWithSourceSnapshot.parsedPayload?.utiltsErrSequenceToken)
-      : null
-
-  const sequencedDuplicate =
-    allowSequencedTransactionAck && transactionAckFamily && sequenceToken
-      ? await findSequencedAckForSource({
-          sourceMessageId: params.sourceMessage.id,
-          ackFamily: transactionAckFamily,
-          outcome: params.outcome ?? null,
-          sequenceField: 'relatedTransactionReference',
-          sequenceValue: sequenceToken,
-        })
-      : allowSequencedUtiltsErr && sequenceToken
-        ? await findSequencedAckForSource({
-            sourceMessageId: params.sourceMessage.id,
-            ackFamily: 'UTILTS_ERR',
-            outcome: params.outcome ?? null,
-            sequenceField: 'utiltsErrSequenceToken',
-            sequenceValue: sequenceToken,
-          })
-        : null
-
-  const duplicate = sequencedDuplicate ?? (allowSequencedUtiltsErr || allowSequencedTransactionAck
-    ? null
-    : await hasCanonicalAckDuplicate({
-        sourceMessageId: params.sourceMessage.id,
-        ackFamily: params.ackFamily,
-        outcome: params.outcome,
-      }))
+  // The same shared wire projection defines the scope of a prospective ACK.
+  // Caller caches/error-code sequence tokens cannot coalesce independent IDEs.
+  const correlation=readPhysicalAckSourceCorrelation({id:'prospective-ack',company_id:companyId,
+    environment,direction:'outbound',message_family:params.ackFamily,raw_payload:draftWithSourceSnapshot.rawPayload ?? null})
+  if(params.outcome && correlation.classification.outcome!==params.outcome)
+    throw new Error('canonical_ack_draft_physical_outcome_mismatch')
+  const scoped=correlation.scope==='transaction'||correlation.scope==='object'
+  const references=[...new Set(correlation.acknowledgedReferences)].sort()
+  const sequenceToken=scoped ? references.length===1 ? references[0]
+    : `${correlation.scope}:${createHash('sha256').update(JSON.stringify(references),'utf8').digest('hex')}` : null
+  const duplicateParams={sourceMessageId:params.sourceMessage.id,ackFamily:params.ackFamily,
+    outcome:scoped ? undefined : params.outcome,ackScope:correlation.scope,acknowledgedReferences:references}
+  const duplicate=await hasCanonicalAckDuplicate(duplicateParams)
+  const assertPriorOriginal=(existing:EdielMessageRow)=>{
+    if(existing.company_id!==companyId || existing.environment!==environment || existing.direction!=='outbound'
+      || existing.related_message_id!==params.sourceMessage.id || existing.message_family!==params.ackFamily)
+      throw new Error('canonical_ack_duplicate_scope_mismatch')
+    const desired=correlation.classification.outcome
+    if(correlation.scopedOutcomes?.length){
+      const prior=readPhysicalAckSourceCorrelation(existing)
+      if(!correlation.scopedOutcomes.every(own=>prior.scopedOutcomes?.some(result=>result.reference===own.reference && result.outcome===own.outcome)))
+        throw new Error('blocked_final_ack_exists: Originalets objektspecifika ACK-utfall är oföränderligt.')
+    }else if(existing.ack_outcome!==desired)
+      throw new Error('blocked_final_ack_exists: Originalets ACK-utfall är oföränderligt.')
+  }
+  const persistOwnAck=async(input:CreateEdielMessageInput):Promise<EdielMessageRow>=>{
+    try{return await createEdielMessage(input)}catch(error){
+      if(isPostgresUniqueViolation(error)){
+        const prior=await hasCanonicalAckDuplicate(duplicateParams)
+        if(prior){assertPriorOriginal(prior);return prior}
+        if(isLegacyAckPerSourceConstraint(error) && scoped)
+          throw new Error('canonical_ack_legacy_unscoped_constraint_requires_forward_migration')
+      }
+      throw error
+    }
+  }
 
   if (duplicate) {
     if (duplicate.company_id !== companyId || duplicate.environment !== environment || duplicate.direction !== 'outbound'
         || duplicate.related_message_id !== params.sourceMessage.id || duplicate.message_family !== params.ackFamily) throw new Error('canonical_ack_duplicate_scope_mismatch')
     const attemptedOutcome = params.outcome ?? null
-    const parsedPayload = duplicate.parsed_payload ?? {}
-    const existingOutcome =
-      duplicate.ack_outcome === 'positive' || duplicate.ack_outcome === 'negative'
-        ? duplicate.ack_outcome
-        : parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
-          ? parsedPayload.ackOutcome
-          : null
-
-    const conflictingOutcome = Boolean(
-      attemptedOutcome &&
-        existingOutcome &&
-        attemptedOutcome !== existingOutcome
-    )
+    const existingOutcome=duplicate.ack_outcome
+    let priorConflict:Error|null=null
+    try{assertPriorOriginal(duplicate)}catch(error){priorConflict=error instanceof Error ? error : new Error(String(error))}
+    const conflictingOutcome=Boolean(priorConflict)
     const finalDuplicate = isFinalCanonicalAckStatus(duplicate.status)
 
     await createCanonicalAckConflictEvent({
@@ -372,13 +352,7 @@ export async function createCanonicalAckMessage(params: {
       },
     }).catch(()=>null)
 
-    if (conflictingOutcome) {
-      throw new Error(
-        finalDuplicate
-          ? `blocked_final_ack_exists: Final ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras.`
-          : `conflicting_ack_draft_exists: ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras tills den gamla draften ersätts.`
-      )
-    }
+    if(priorConflict)throw priorConflict
 
     return duplicate
   }
@@ -400,11 +374,11 @@ export async function createCanonicalAckMessage(params: {
       direction:'outbound',mode:'send',companyId,environment,applicationReference:route.applicationReference,
       technicalSyntaxAckEvidence:evidence,version:input.messageVersion,parsedPayload:input.parsedPayload})
     if(validation.fieldRuleSource!=='technical_source'||validation.blocking||!validation.technicalSyntaxAckEvidence)throw new Error('canonical_technical_ack_validation_required')
-    return createEdielMessage(input)
+    return persistOwnAck(input)
   }
 
   if(params.ackFamily==='APERAK' && prodatWire && !isListedProdatDocumentCode(prodatDocumentValue('202',prodatWire.segments,prodatWire.una))) {
-    if(params.outcome!=='negative' || allowSequencedTransactionAck)throw new Error('canonical_common_header_negative_only')
+    if(params.outcome!=='negative' || scoped)throw new Error('canonical_common_header_negative_only')
     const {sourceMessage,evidence}=await readProdatCommonHeaderRejectionEvidence({companyId,environment,
       sourceMessageId:params.sourceMessage.id,expectedRawPayload:params.sourceMessage.raw_payload!,actorUserId})
     const syntax=await requireEdielTechnicalSyntaxAckEvidence(companyId,sourceMessage.id)
@@ -421,7 +395,9 @@ export async function createCanonicalAckMessage(params: {
       senderEdielId:route.senderEdielId,senderSubAddress:route.senderSubAddress,senderEmail:route.senderEmail,
       receiverEdielId:route.receiverEdielId,receiverSubAddress:route.receiverSubAddress,receiverEmail:route.receiverEmail,
       mailbox:route.mailbox,applicationReference:evidence.identities.applicationReference,relatedMessageId:sourceMessage.id,
-      sourceOperationId:`ediel_ack:${sourceMessage.id}:APERAK:message`,ackOutcome:'negative',canonicalRulePackId:null,
+      sourceOperationId:`ediel_ack:${sourceMessage.id}:APERAK:message`,ackOutcome:'negative',
+      externalReference:params.draft.externalReference ?? refs.externalReference,transactionReference:params.draft.transactionReference ?? refs.transactionReference,
+      correlationReference:params.draft.correlationReference ?? refs.correlationReference,canonicalRulePackId:null,
       ruleProfileKey:null,ruleProfileVersionId:null,ruleProfileVersion:null,rulePackChecksum:null,rulePackSnapshot:null,
       executionContextSnapshot:null,outboundRequestId:null,switchRequestId:null,gridOwnerDataRequestId:null,partnerExportId:null,
       customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null,originalMessageCode:null}
@@ -431,7 +407,7 @@ export async function createCanonicalAckMessage(params: {
     if(validation.fieldRuleSource!=='common_header_source' || validation.blocking || validation.prodatCommonHeaderRejectionEvidence!==evidence)
       throw new Error('canonical_common_header_ack_validation_required')
     const sealed=await prepareProdatCommonHeaderNegativeAckWitness({evidence,route,actorUserId,rawPayload:input.rawPayload!})
-    return createEdielMessage({...input,executionContextSnapshot:{prodatCommonHeaderNegativeWitnessId:sealed.witnessId}})
+    return persistOwnAck({...input,executionContextSnapshot:{prodatCommonHeaderNegativeWitnessId:sealed.witnessId}})
   }
 
   // A committed own response is replayed above before today's legal role,
@@ -459,14 +435,12 @@ export async function createCanonicalAckMessage(params: {
     ackFamily: params.ackFamily,
   })
 
-  const refs = allowSequencedUtiltsErr || allowSequencedTransactionAck
-    ? {
+  const refs = {
         ...baseRefs,
         externalReference: draftWithSourceSnapshot.externalReference ?? baseRefs.externalReference,
         transactionReference: draftWithSourceSnapshot.transactionReference ?? baseRefs.transactionReference,
         correlationReference: draftWithSourceSnapshot.correlationReference ?? baseRefs.correlationReference,
       }
-    : baseRefs
 
   const input: CreateEdielMessageInput = {
     ...draftWithSourceSnapshot,
@@ -484,7 +458,9 @@ export async function createCanonicalAckMessage(params: {
     originalTransactionId: refs.originalTransactionId,
     originalMessageCode: refs.originalMessageCode,
     relatedMessageId: params.sourceMessage.id,
-    ackOutcome: params.outcome ?? draftWithSourceSnapshot.ackOutcome ?? null,
+    ackOutcome: correlation.classification.outcome as 'positive'|'negative',
+    parsedPayload:{...draftWithSourceSnapshot.parsedPayload,ackScope:correlation.scope,
+      relatedTransactionReference:scoped && references.length===1 ? references[0] : null},
   }
 
   const rulePackSnapshot = await assertOutboundDraftAllowedByCanonicalPolicy({
@@ -517,39 +493,7 @@ export async function createCanonicalAckMessage(params: {
     },
   }
 
-  try {
-    return await createEdielMessage(canonicalAckInput)
-  } catch (error) {
-    if (isPostgresUniqueViolation(error) && sequenceToken) {
-      const existing = allowSequencedTransactionAck && transactionAckFamily
-        ? await findSequencedAckForSource({
-            sourceMessageId: params.sourceMessage.id,
-            ackFamily: transactionAckFamily,
-            outcome: params.outcome ?? null,
-            sequenceField: 'relatedTransactionReference',
-            sequenceValue: sequenceToken,
-          })
-        : allowSequencedUtiltsErr
-          ? await findSequencedAckForSource({
-              sourceMessageId: params.sourceMessage.id,
-              ackFamily: 'UTILTS_ERR',
-              outcome: params.outcome ?? null,
-              sequenceField: 'utiltsErrSequenceToken',
-              sequenceValue: sequenceToken,
-            })
-          : null
-
-      if (existing) return existing
-    }
-
-    if (isPostgresUniqueViolation(error) && isLegacyAckPerSourceConstraint(error) && params.ackFamily === 'APERAK' && allowSequencedTransactionAck) {
-      throw new Error(
-        'Databasen blockerar fortfarande flera APERAK per källmeddelande via uq_ediel_messages_outbound_ack_per_source. Kör SQL-migrationen ediel_ack_transaction_scope.sql i Supabase och kör sedan engine igen.'
-      )
-    }
-
-    throw error
-  }
+  return persistOwnAck(canonicalAckInput)
 }
 
 /**

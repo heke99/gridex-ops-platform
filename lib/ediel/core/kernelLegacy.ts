@@ -7,10 +7,8 @@ import type {
   EdielMessageStandard,
 } from '@/lib/ediel/types'
 import {
-  createCanonicalAckConflictEvent,
   createCanonicalDuplicateBlockEvent,
   createEdielMessage,
-  findSequencedAckForSource,
 } from '@/lib/ediel/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import {
@@ -18,14 +16,12 @@ import {
   resolveCanonicalRouteContext,
 } from '@/lib/ediel/core/routeRegistry'
 import {
-  buildCanonicalAckReferences,
   buildCanonicalOutboundReferences,
 } from '@/lib/ediel/core/referenceRegistry'
 import {
   buildInboundCanonicalIdentity,
   findInboundDuplicateByCanonicalIdentity,
   findOutboundEdielMessageDuplicate,
-  hasCanonicalAckDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import {
   resolveCanonicalInboundAcceptedVersions,
@@ -47,29 +43,6 @@ function isPostgresUniqueViolation(error: unknown): boolean {
     (typeof candidate.message === 'string' &&
       candidate.message.includes('duplicate key value violates unique constraint'))
   )
-}
-
-function postgresErrorMessage(error: unknown): string {
-  if (!error || typeof error !== 'object') return ''
-  const candidate = error as { message?: unknown; details?: unknown }
-  return [candidate.message, candidate.details]
-    .filter((item): item is string => typeof item === 'string')
-    .join(' ')
-}
-
-function isLegacyAckPerSourceConstraint(error: unknown): boolean {
-  const text = postgresErrorMessage(error)
-  return text.includes('uq_ediel_messages_outbound_ack_per_source')
-}
-
-function sequenceString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-const FINAL_CANONICAL_ACK_STATUSES = new Set(['sent', 'acknowledged', 'validated'])
-
-function isFinalCanonicalAckStatus(value: unknown): boolean {
-  return FINAL_CANONICAL_ACK_STATUSES.has(String(value ?? '').toLowerCase())
 }
 
 export async function resolveCanonicalOutboundContext(params: {
@@ -395,6 +368,8 @@ export async function finalizeCanonicalOutboundDraft(params: {
   })
 }
 
+/** Retained import compatibility consumes the public source-qualified gateway.
+ * There is one ACK owner and one physical original deduplication path. */
 export async function createCanonicalAckMessage(params: {
   actorUserId?: string | null
   sourceMessage: EdielMessageRow
@@ -402,180 +377,8 @@ export async function createCanonicalAckMessage(params: {
   outcome?: 'positive' | 'negative'
   draft: CreateEdielMessageInput
 }) {
-  const actorUserId = ensureActorUserId(params.actorUserId)
-
-  const allowSequencedUtiltsErr =
-    params.ackFamily === 'UTILTS_ERR' &&
-    typeof params.draft.parsedPayload?.utiltsErrSequenceToken === 'string' &&
-    params.draft.parsedPayload.utiltsErrSequenceToken.trim().length > 0
-
-  const allowSequencedAperak =
-    params.ackFamily === 'APERAK' &&
-    params.draft.parsedPayload?.ackScope === 'transaction' &&
-    typeof params.draft.parsedPayload?.relatedTransactionReference === 'string' &&
-    params.draft.parsedPayload.relatedTransactionReference.trim().length > 0
-
-  const sequenceToken = allowSequencedAperak
-    ? sequenceString(params.draft.parsedPayload?.relatedTransactionReference)
-    : allowSequencedUtiltsErr
-      ? sequenceString(params.draft.parsedPayload?.utiltsErrSequenceToken)
-      : null
-
-  const sequencedDuplicate =
-    allowSequencedAperak && sequenceToken
-      ? await findSequencedAckForSource({
-          sourceMessageId: params.sourceMessage.id,
-          ackFamily: 'APERAK',
-          outcome: params.outcome ?? null,
-          sequenceField: 'relatedTransactionReference',
-          sequenceValue: sequenceToken,
-        })
-      : allowSequencedUtiltsErr && sequenceToken
-        ? await findSequencedAckForSource({
-            sourceMessageId: params.sourceMessage.id,
-            ackFamily: 'UTILTS_ERR',
-            outcome: params.outcome ?? null,
-            sequenceField: 'utiltsErrSequenceToken',
-            sequenceValue: sequenceToken,
-          })
-        : null
-
-  const duplicate = sequencedDuplicate ?? (allowSequencedUtiltsErr || allowSequencedAperak
-    ? null
-    : await hasCanonicalAckDuplicate({
-        sourceMessageId: params.sourceMessage.id,
-        ackFamily: params.ackFamily,
-        outcome: params.outcome,
-      }))
-
-  if (duplicate) {
-    const attemptedOutcome = params.outcome ?? null
-    const parsedPayload = duplicate.parsed_payload ?? {}
-    const existingOutcome =
-      duplicate.ack_outcome === 'positive' || duplicate.ack_outcome === 'negative'
-        ? duplicate.ack_outcome
-        : parsedPayload.ackOutcome === 'positive' || parsedPayload.ackOutcome === 'negative'
-          ? parsedPayload.ackOutcome
-          : null
-
-    const conflictingOutcome = Boolean(
-      attemptedOutcome &&
-        existingOutcome &&
-        attemptedOutcome !== existingOutcome
-    )
-    const finalDuplicate = isFinalCanonicalAckStatus(duplicate.status)
-
-    await createCanonicalAckConflictEvent({
-      actorUserId,
-      edielMessageId: params.sourceMessage.id,
-      ackFamily: params.ackFamily,
-      sourceMessageId: params.sourceMessage.id,
-      attemptedOutcome,
-      existingAckMessageId: duplicate.id,
-      existingOutcome,
-      reason: conflictingOutcome
-        ? 'conflicting_outcome'
-        : attemptedOutcome
-          ? 'duplicate_same_outcome'
-          : 'duplicate_same_family',
-      payload: {
-        duplicateBlockedIn: 'kernel',
-        existingAckStatus: duplicate.status,
-        finalDuplicate,
-        blockReason: finalDuplicate && conflictingOutcome ? 'blocked_final_ack_exists' : null,
-      },
-    })
-
-    if (conflictingOutcome) {
-      throw new Error(
-        finalDuplicate
-          ? `blocked_final_ack_exists: Final ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras.`
-          : `conflicting_ack_draft_exists: ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras tills den gamla draften ersätts.`
-      )
-    }
-
-    return duplicate
-  }
-
-  const baseRefs = buildCanonicalAckReferences({
-    sourceMessage: params.sourceMessage,
-    ackFamily: params.ackFamily,
-  })
-
-  const refs = allowSequencedUtiltsErr || allowSequencedAperak
-    ? {
-        ...baseRefs,
-        externalReference: params.draft.externalReference ?? baseRefs.externalReference,
-        transactionReference: params.draft.transactionReference ?? baseRefs.transactionReference,
-        correlationReference: params.draft.correlationReference ?? baseRefs.correlationReference,
-      }
-    : baseRefs
-
-  const input: CreateEdielMessageInput = {
-    ...params.draft,
-    actorUserId,
-    companyId: params.draft.companyId ?? params.sourceMessage.company_id ?? null,
-    externalReference: refs.externalReference,
-    transactionReference: refs.transactionReference,
-    correlationReference: refs.correlationReference,
-    originalMessageId: refs.originalMessageId,
-    originalTransactionId: refs.originalTransactionId,
-    originalMessageCode: refs.originalMessageCode,
-    relatedMessageId: params.sourceMessage.id,
-    ackOutcome: params.outcome ?? params.draft.ackOutcome ?? null,
-  }
-
-  const rulePackSnapshot = await assertOutboundDraftAllowedByFieldRules({
-    draft: input,
-    messageVersion: input.messageVersion ?? null,
-  })
-  const canonicalAckInput: CreateEdielMessageInput = {
-    ...input,
-    ruleProfileKey: rulePackSnapshot.profileKey,
-    ruleProfileVersionId: rulePackSnapshot.profileVersionId,
-    ruleProfileVersion: rulePackSnapshot.version,
-    rulePackChecksum: rulePackSnapshot.checksum,
-    rulePackSnapshot: {
-      ...rulePackSnapshot,
-      resolvedAt: new Date().toISOString(),
-      family: params.ackFamily,
-      code: String(input.messageCode),
-    },
-  }
-
-  try {
-    return await createEdielMessage(canonicalAckInput)
-  } catch (error) {
-    if (isPostgresUniqueViolation(error) && sequenceToken) {
-      const existing = allowSequencedAperak
-        ? await findSequencedAckForSource({
-            sourceMessageId: params.sourceMessage.id,
-            ackFamily: 'APERAK',
-            outcome: params.outcome ?? null,
-            sequenceField: 'relatedTransactionReference',
-            sequenceValue: sequenceToken,
-          })
-        : allowSequencedUtiltsErr
-          ? await findSequencedAckForSource({
-              sourceMessageId: params.sourceMessage.id,
-              ackFamily: 'UTILTS_ERR',
-              outcome: params.outcome ?? null,
-              sequenceField: 'utiltsErrSequenceToken',
-              sequenceValue: sequenceToken,
-            })
-          : null
-
-      if (existing) return existing
-    }
-
-    if (isPostgresUniqueViolation(error) && isLegacyAckPerSourceConstraint(error) && allowSequencedAperak) {
-      throw new Error(
-        'Databasen blockerar fortfarande flera APERAK per källmeddelande via uq_ediel_messages_outbound_ack_per_source. Kör SQL-migrationen ediel_ack_transaction_scope.sql i Supabase och kör sedan engine igen.'
-      )
-    }
-
-    throw error
-  }
+  const canonical=await import('./kernel')
+  return canonical.createCanonicalAckMessage(params)
 }
 
 export function buildCanonicalReferencesForOutbound(params: {
