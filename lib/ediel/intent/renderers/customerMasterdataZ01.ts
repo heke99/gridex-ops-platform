@@ -1,3 +1,4 @@
+import {requireZ01LegalSender} from '@/lib/ediel/prodat/z01LegalParties'
 import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
 import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import { getCustomerExportContext, requireContextCompanyId } from '@/lib/cis/db-shared'
@@ -84,6 +85,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     meteringPointId: input.dataRequest.metering_point_id,
   })
   const companyId = requireContextCompanyId(context, 'Bygg canonical PRODAT Z01')
+  const legalSenderId=requireZ01LegalSender(input.routeContext,companyId)
 
   if (clean(input.dataRequest.company_id) && clean(input.dataRequest.company_id) !== companyId) {
     throw new Error('z01_customer_masterdata_tenant_mismatch')
@@ -151,6 +153,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     },
     context: {
       code: 'Z01',
+      legalSenderId,
       bgmReference: input.externalReference,
       transactionReference: input.transactionReference,
       senderEdielId: input.routeContext.senderEdielId,

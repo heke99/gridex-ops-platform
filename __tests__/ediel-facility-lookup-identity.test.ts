@@ -12,7 +12,7 @@ import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenize
 import {prepareCustomerMasterdataSource,bindCustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
 import {customerMasterdataSendIssue} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import {getCustomerExportContext} from '@/lib/cis/db-shared'
-const input={companyId:'COMPANY',actorUserId:'ACTOR',request:{id:'REQUEST',customer_id:'CUSTOMER',customer_site_id:'SITE',grid_owner_id:'DSO',grid_area_code:'NET',price_area:'SE3'},routeContext:{senderEdielId:'12345',receiverEdielId:'54321',environment:'test',applicationReference:'23-DDQ-PRODAT',route:{id:'ROUTE'}},outboundRequestId:'OUT',operationId:'OP',intentId:'INTENT',gridOwner:{owner_code:'NET'}} as unknown as Parameters<typeof buildFacilityLookupZ01Draft>[0]
+const input={companyId:'COMPANY',actorUserId:'ACTOR',request:{id:'REQUEST',customer_id:'CUSTOMER',customer_site_id:'SITE',grid_owner_id:'DSO',grid_area_code:'NET',price_area:'SE3'},routeContext:{companyId:'COMPANY',actor:{senderEdielId:'12345',legalActorEdielId:'12345',tenantIdentity:{companyId:'COMPANY',environment:'test',legalEdielId:'12345',transportEdielId:'12345'}},senderEdielId:'12345',receiverEdielId:'54321',environment:'test',applicationReference:'23-DDQ-PRODAT',route:{id:'ROUTE'}},outboundRequestId:'OUT',operationId:'OP',intentId:'INTENT',gridOwner:{owner_code:'NET'}} as unknown as Parameters<typeof buildFacilityLookupZ01Draft>[0]
 async function qualifiedMasterdata(data:Record<string,unknown>){
  const projection={status:'authorized',companyId:'COMPANY',customerId:'CUSTOMER',environment:'test',asOf:'2026-10-01T00:00:00Z',sourceKind:'registered_customer_address',sourceReference:'registered-source',sourceDigest:'d'.repeat(64),sourceContextId:'00000000-0000-4000-8000-000000000111',...data}
  state.sourceRpc.mockResolvedValueOnce({data:projection,error:null})
@@ -105,6 +105,27 @@ describe('facility lookup uses the shared source-owned customer identity',()=>{
     expect(ud).toBe('NAD+UD+199001011234:SE2:260++Source:Own name+Own street:Box 12+Own city++00123+FI')
     expect(draft.parsedPayload?.customerMasterdataSourceContextId).toBe('00000000-0000-4000-8000-000000000111')
     expect(getCustomerExportContext).toHaveBeenCalledWith(expect.objectContaining({companyId:'COMPANY',actorUserId:'ACTOR',environment:'test'}))
+  })
+
+  it.each(['facility','masterdata'] as const)('keeps juridical supplier separate from a represented UNB sender through %s Z01',async kind=>{
+    state.customer={personal_number:'199001011234',full_name:'Test Person'}
+    state.realEnvelope=true
+    state.customerMasterdata=await qualifiedMasterdata({customerIdentity:{id:'199001011234',qualifier:'SE2',agency:'260'},endUserMasterdata:{nameParts:['Test Person'],streetParts:['Street'],postalCode:'12345',city:'City',country:'FI'}})
+    const route={...input.routeContext,actor:{...input.routeContext.actor,senderEdielId:'77777',legalActorEdielId:'12345',tenantIdentity:{...input.routeContext.actor.tenantIdentity!,companyId:'COMPANY',environment:'test' as const,legalEdielId:'12345',transportEdielId:'77777'}},senderEdielId:'77777'}
+    const draft=kind==='facility'?(await buildFacilityLookupZ01Draft({...input,routeContext:route})).draft:await buildCustomerMasterdataZ01Draft({...masterdataInput,routeContext:route})
+    const unb=tokenizeEdifact(draft.rawPayload!).segments.find(x=>x.tag==='UNB')!
+    expect(segmentComposite(unb,2)[0]).toBe('77777')
+    expect(state.envelope?.senderEdielId).toBe('77777')
+    expect(state.envelope?.segments).toEqual(expect.arrayContaining([expect.stringContaining('NAD+FR+12345:160:SVK')]))
+    expect(state.envelope?.segments).not.toEqual(expect.arrayContaining([expect.stringContaining('NAD+FR+77777:160:SVK')]))
+  })
+  it.each(['facility','masterdata'] as const)('holds absent or inconsistent legal sender without transport fallback through %s Z01',async kind=>{
+    state.customer={personal_number:'199001011234',full_name:'Test Person'}
+    for(const actor of [{...input.routeContext.actor,legalActorEdielId:''},{...input.routeContext.actor,tenantIdentity:null},{...input.routeContext.actor,tenantIdentity:{...input.routeContext.actor.tenantIdentity!,companyId:'FOREIGN'}}]){
+      const route={...input.routeContext,actor}
+      await expect(kind==='facility'?buildFacilityLookupZ01Draft({...input,routeContext:route}):buildCustomerMasterdataZ01Draft({...masterdataInput,routeContext:route})).rejects.toThrow('z01_verified_legal_sender_required')
+    }
+    expect(state.envelope).toBeNull()
   })
 
   it('requires the known request tenant before querying any customer data',async()=>{

@@ -1,3 +1,4 @@
+import {requireZ01LegalSender} from '@/lib/ediel/prodat/z01LegalParties'
 import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
 import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 // lib/ediel/intent/renderers/facilityLookupZ01.ts
@@ -95,6 +96,7 @@ export async function buildFacilityLookupZ01Draft(input: {
     meteringPointId: null,
   })
   const companyId = requireContextCompanyId(context, 'Bygg facility lookup PRODAT Z01')
+  const legalSenderId=requireZ01LegalSender(input.routeContext,companyId)
   if (companyId !== input.companyId) throw new Error('facility_lookup_tenant_mismatch')
   const customer = (context.customer ?? null) as unknown as JsonRecord | null
   const site = (context.site ?? null) as unknown as JsonRecord | null
@@ -126,6 +128,7 @@ export async function buildFacilityLookupZ01Draft(input: {
   const rendered = renderProdat26A({
     context: {
       code: 'Z01',
+      legalSenderId,
       bgmReference: externalReference,
       transactionReference,
       senderEdielId: input.routeContext.senderEdielId,
