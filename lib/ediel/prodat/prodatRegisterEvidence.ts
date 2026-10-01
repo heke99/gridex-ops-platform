@@ -5,7 +5,7 @@ import {copyMeterChangeSelection} from './prodatMeterChangeFacts'
 import {assertReportingAuthority} from './prodatReportingPermissionAuthority'
 import type {ExpectedContext,PureSelection,TgtEvidence,ServiceReportingEvidence} from './prodatReportingPermissionContext'
 import {copyReportingSelection} from './prodatReportingPermissionContext'
-import {assertProdatDateEventAuthority,type ProdatDateEventRow,type TgtDateEventValidationContext} from './prodatDateEventAuthority'
+import {assertProdatDateEventAuthority,type ProdatDateEventRow,type ProdatDateEventValidationContext} from './prodatDateEventAuthority'
 import {copyProdatDateEventObjects,copyProdatDateEventSource} from './prodatDateEvents'
 import {copyProdatInvoiceeObjects,assertInvoiceeOwnership} from './prodatInvoicee'
 import {copyProdatEndUserAddressObjects,assertProdatAddressOwnership} from './prodatEndUserAddress'
@@ -71,7 +71,7 @@ export function createProdatRegisterEvidence(input:{code:string;rawSegments:read
   const facts:ProdatRegisterEvidence['facts']={...copied,...(selection?.source.kind==='caller_selection'?{reportingPermission:{source:selection.source,objects:selection.objects}}:{})}
   return {version:1,code:input.code,bodyBinding:bodyBinding(input.rawSegments,input.una ?? parseUna(null)),facts}
 }
-export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown;companyId?:string|null;runId?:string|null;stepNo?:number|null;dateEventRow?:ProdatDateEventRow;dateEventContext?:TgtDateEventValidationContext;reportingContext?:ExpectedContext}):ProdatDependentConditionFacts|undefined {
+export function readProdatRegisterEvidence(input:{code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;parsedPayload?:unknown;companyId?:string|null;runId?:string|null;stepNo?:number|null;dateEventRow?:ProdatDateEventRow;dateEventContext?:ProdatDateEventValidationContext;reportingContext?:ExpectedContext}):ProdatDependentConditionFacts|undefined {
   const engine=record(record(input.parsedPayload)?.prodatEngine)
   if (!engine || !Object.hasOwn(engine,'registerEvidence')) return undefined
   const evidence=record(engine.registerEvidence)

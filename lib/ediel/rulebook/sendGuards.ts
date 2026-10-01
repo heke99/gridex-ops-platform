@@ -2,12 +2,12 @@ import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeT
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {assertMeterChangeSendBoundary} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
-import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {ProdatDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { type RulebookValidationResult, validateEdielMessageRowWithRulebook } from '@/lib/ediel/rulebook/validator'
 import { sourceQualifiedNegativeFixtureMatchesMessage, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 
-export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext,negativeFixture?:SourceQualifiedNegativeFixture | null): RulebookValidationResult | null {
+export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,negativeFixture?:SourceQualifiedNegativeFixture | null): RulebookValidationResult | null {
   if (message.direction !== 'outbound') return null
   assertProdatFreeTextSendBoundary(message)
   if(!gasApplicabilitySendIssue(message))assertMeterChangeSendBoundary(message)

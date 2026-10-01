@@ -18,7 +18,7 @@ import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermission
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import {prodatDateEventAuthorityIssue} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatDateEvents} from './prodatDateEventPolicy'
-import type {ProdatDateEventRow,TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {ProdatDateEventRow,ProdatDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from './prodatEndUserAddressPolicy'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -55,7 +55,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Draft metadata from the canonical renderer. Used to verify that production
    * PRODAT D-conditions were already resolved with the original business facts. */
   dateEventRow?:ProdatDateEventRow
-  dateEventContext?:TgtDateEventValidationContext
+  dateEventContext?:ProdatDateEventValidationContext
   reportingContext?:ExpectedContext
   parsedPayload?: Record<string, unknown> | null
 }
@@ -577,7 +577,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
 export function validateEdielMessageRowWithRulebook(
   message: EdielMessageRow,
   mode: 'send' | 'parse' | 'test' = 'send',
-  dateEventContext?:TgtDateEventValidationContext,
+  dateEventContext?:ProdatDateEventValidationContext,
   reportingContext?:ExpectedContext,
 ): RulebookValidationResult {
   return validateRulebookMessage({
