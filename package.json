@@ -302,7 +302,7 @@
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.100.0",
     "fast-xml-parser": "5.11.2",
-    "imapflow": "1.7.8",
+    "imapflow": "2.2.1",
     "ldapts": "^8.1.8",
     "next": "16.3.8",
     "node-forge": "^1.4.0",
@@ -332,7 +332,7 @@
   "overrides": {
     "postcss": "8.5.25",
     "sharp": "0.35.4",
-    "ip-address": "10.3.1",
+    "ip-address": "10.7.2",
     "nanoid": "3.3.18",
     "js-yaml": "4.3.1",
     "brace-expansion": "1.1.18",

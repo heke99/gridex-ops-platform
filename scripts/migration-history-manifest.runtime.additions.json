@@ -112,6 +112,8 @@
     "20261001063426_ediel_customer_owner_entry_lock_prefix.sql": "05e6b88000bf8e3c6b837de243b8e5b623ce82d2c1c8cd5eb507593feafb813f",
     "20261001061731_ediel_private_source_alias_catalog_path.sql": "9c23d8ce815e3bf895920f9dcb9828e3aef13f6eb6d9843b12fd149d6a8aed90",
     "20261001084343_ediel_inbound_reception_canonical_permission.sql": "11850b80756e7766e5068adfbe73a37697a153d471539a12f088e8232173e471",
-    "20261001083335_ediel_bilateral_prodat_owned_end_and_recorded_supply_currentness.sql": "a6217a52872044cd8a9e80cea09653a3a3ae580f4f9e1fde60511a8383d16ff8"
+    "20261001083335_ediel_bilateral_prodat_owned_end_and_recorded_supply_currentness.sql": "a6217a52872044cd8a9e80cea09653a3a3ae580f4f9e1fde60511a8383d16ff8",
+    "20261001200000_support_case_idempotency_unique.sql": "24908b47be1243935ddc36b640116681b1daf68fdc1bcca1be59f462a31bc934",
+    "20261001210000_customer_contact_change_transaction.sql": "7a51c303c7ea10b391a6d546ac56564c8f512830e56d668eb00915a31562ffe4"
   }
 }

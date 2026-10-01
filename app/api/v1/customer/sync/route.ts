@@ -22,7 +22,11 @@ export async function POST(request: NextRequest) {
     const body = parseTenantCustomerSyncPayload(
       await readJsonObject(request),
     ) as TenantCustomerSyncPayload
-    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'])
+    const context = await requireCustomerPortalApiContextForIdentifiers(request, portalIdentifiersFromPayload(body), ['customer_sync.write'], {
+      // Tenant master-data sync is the explicit link operation and a machine flow (logged as API client).
+      mode: 'link',
+      allowIdentifierBoundWrite: true,
+    })
     if (!context.ok) return context.response
     client = context.client
 

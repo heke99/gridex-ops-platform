@@ -7,7 +7,8 @@ import {
   type IntegrationApiClient,
   type IntegrationScopeRequirement,
 } from '@/lib/integrations/apiAuth'
-import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPortalIdentifiers } from '@/lib/customer-portal/customerResolver'
+import { portalIdentifiersFromRequest, resolvePortalCustomer, type CustomerPortalIdentifiers, type PortalCustomerBinding, type PortalResolveMode } from '@/lib/customer-portal/customerResolver'
+import { portalIdentityEnforcement, reportPortalIdentityWouldReject } from '@/lib/customer-portal/identityEnforcement'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { canonicalApiError, normalizeApiBlockers } from '@/lib/api/apiError'
 import { ApiInputError } from '@/lib/api/strictRequest'
@@ -176,10 +177,52 @@ export function portalIdentifiersFromPayload(payload: unknown): Partial<Customer
   }
 }
 
+export type CustomerPortalContextOptions = {
+  /** Explicit link operation; reads and ordinary writes never link. */
+  mode?: PortalResolveMode
+  /**
+   * Allow a mutating request that is bound only by tenant-supplied identifiers. Reserved for tenant
+   * machine flows (e.g. master-data sync) that are logged as the API client, never as the end customer.
+   */
+  allowIdentifierBoundWrite?: boolean
+  /** Always enforce the binding rule, independent of the rollout flag (new endpoints). */
+  enforceBinding?: boolean
+}
+
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+
+/** Mutations on behalf of an end customer require an actively linked portal account. */
+export function customerPortalBindingAllowsRequest(
+  method: string,
+  binding: PortalCustomerBinding,
+  options: CustomerPortalContextOptions = {},
+): boolean {
+  if (READ_METHODS.has(method.toUpperCase())) return true
+  if (binding === 'portal_account') return true
+  return options.allowIdentifierBoundWrite === true
+}
+
+/** Applies the rollout flag: in `report` mode a rejected binding is logged and allowed. */
+function bindingGate(method: string, binding: PortalCustomerBinding, options: CustomerPortalContextOptions, client: IntegrationApiClient): boolean {
+  if (customerPortalBindingAllowsRequest(method, binding, options)) return true
+  if (options.enforceBinding || portalIdentityEnforcement() === 'enforce') return false
+  reportPortalIdentityWouldReject({ code: 'customer_identity_binding_required', companyId: client.company_id, apiClientId: client.id, method })
+  return true
+}
+
+function bindingRequiredError() {
+  return jsonError(
+    'Ändringar för slutkund kräver en aktivt kopplad portalanvändare. Kundnummer eller e-post räcker inte som verifiering.',
+    403,
+    'customer_identity_binding_required',
+  )
+}
+
 export async function requireCustomerPortalApiContextForIdentifiers(
   request: NextRequest,
   identifiers: Partial<CustomerPortalIdentifiers>,
-  scopes: IntegrationScopeRequirement = ['customer_portal.read']
+  scopes: IntegrationScopeRequirement = ['customer_portal.read'],
+  options: CustomerPortalContextOptions = {},
 ): Promise<
   | { ok: true; client: IntegrationApiClient; identity: LinkedPortalIdentity; startedAt: number }
   | { ok: false; response: NextResponse; startedAt: number }
@@ -191,7 +234,7 @@ export async function requireCustomerPortalApiContextForIdentifiers(
     return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
   }
 
-  const resolution = await resolvePortalCustomer({ client: auth.client, request, identifiers })
+  const resolution = await resolvePortalCustomer({ client: auth.client, request, identifiers, mode: options.mode, strict: options.enforceBinding })
   if (!resolution.ok) {
     await logIntegrationApiRequest({
       client: auth.client,
@@ -204,16 +247,30 @@ export async function requireCustomerPortalApiContextForIdentifiers(
     return { ok: false, response: jsonError(resolution.error, resolution.status, resolution.code), startedAt }
   }
 
+  if (!bindingGate(request.method, resolution.binding, options, auth.client)) {
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 403, startedAt, errorCode: 'customer_identity_binding_required' })
+    return { ok: false, response: bindingRequiredError(), startedAt }
+  }
+
   return { ok: true, client: auth.client, identity: resolution.customer, startedAt }
 }
 
 export async function resolveLinkedPortalIdentity(
   request: NextRequest,
-  client: IntegrationApiClient
+  client: IntegrationApiClient,
+  options: CustomerPortalContextOptions = {},
 ): Promise<{ ok: true; identity: LinkedPortalIdentity } | { ok: false; status: number; error: string; code: string }> {
-  const resolution = await resolvePortalCustomer({ request, client })
+  const resolution = await resolvePortalCustomer({ request, client, mode: options.mode, strict: options.enforceBinding })
   if (!resolution.ok) {
     return { ok: false, status: resolution.status, error: resolution.error, code: resolution.code }
+  }
+  if (!bindingGate(request.method, resolution.binding, options, client)) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Ändringar för slutkund kräver en aktivt kopplad portalanvändare. Kundnummer eller e-post räcker inte som verifiering.',
+      code: 'customer_identity_binding_required',
+    }
   }
 
   return { ok: true, identity: resolution.customer }
@@ -221,7 +278,8 @@ export async function resolveLinkedPortalIdentity(
 
 export async function requireCustomerPortalApiContext(
   request: NextRequest,
-  scopes: IntegrationScopeRequirement = ['customer_portal.read']
+  scopes: IntegrationScopeRequirement = ['customer_portal.read'],
+  options: CustomerPortalContextOptions = {},
 ): Promise<
   | { ok: true; client: IntegrationApiClient; identity: LinkedPortalIdentity; startedAt: number }
   | { ok: false; response: NextResponse; startedAt: number }
@@ -233,7 +291,7 @@ export async function requireCustomerPortalApiContext(
     return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
   }
 
-  const identity = await resolveLinkedPortalIdentity(request, auth.client)
+  const identity = await resolveLinkedPortalIdentity(request, auth.client, options)
   if (!identity.ok) {
     await logIntegrationApiRequest({
       client: auth.client,

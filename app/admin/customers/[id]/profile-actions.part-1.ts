@@ -5,11 +5,19 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 import { supabaseService } from "@/lib/supabase/service"
+import { ContactChangeTransactionError, applyCustomerContactChange } from "@/lib/customer-service/contactChangeTransaction"
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates"
 import { logAdminActionAndUsage, logUsageEvent } from "@/lib/audit/actionLogger"
 import type { CustomerActionState } from "./customer-action-state"
+import {
+  CustomerContactChangeError,
+  assertProfileEditableStatus,
+  normalizeContactEmail,
+  normalizeContactPhone,
+  planPrimaryContactSync,
+} from "@/lib/customer-service/contactChange"
 
 export class CustomerActionError extends Error {
   code: string;
@@ -223,12 +231,17 @@ export async function saveCustomerProfileImpl(
   const orgNumberInput = normalizeOptionalString(
     getNullableString(formData, "org_number"),
   );
-  const email = normalizeOptionalString(getNullableString(formData, "email"));
-  const phone = normalizeOptionalString(getNullableString(formData, "phone"));
+  // The OPS form always posts these fields, so an empty value is an explicit clear. Values are
+  // validated only when they change, so legacy stored formats never block unrelated edits.
+  const rawEmail = normalizeOptionalString(getNullableString(formData, "email")) ?? null;
+  const rawPhone = normalizeOptionalString(getNullableString(formData, "phone")) ?? null;
+  const rawStatus = getNullableString(formData, "status");
+  const expectedUpdatedAt = normalizeOptionalString(
+    getNullableString(formData, "expected_updated_at"),
+  );
   const apartmentNumber = normalizeOptionalString(
     getNullableString(formData, "apartment_number"),
   );
-  const status = getNullableString(formData, "status") ?? "draft";
 
   requireValue(
     firstName,
@@ -271,6 +284,16 @@ export async function saveCustomerProfileImpl(
 
   if (beforeError) throw beforeError;
 
+  if (
+    expectedUpdatedAt &&
+    String((before as Record<string, unknown>).updated_at ?? "") !== expectedUpdatedAt
+  ) {
+    throw new CustomerActionError(
+      "version_conflict",
+      "Kunden har ändrats av någon annan sedan du öppnade formuläret. Ladda om och gör ändringen igen.",
+    );
+  }
+
   if (String((before as Record<string, unknown>).status ?? '').toLowerCase() === "archived") {
     throw new CustomerActionError(
       "customer_archived_profile_locked",
@@ -278,46 +301,27 @@ export async function saveCustomerProfileImpl(
     );
   }
 
+  const stored = before as Record<string, unknown>;
+  let email: string | null;
+  let phone: string | null;
+  let status: string;
+  try {
+    email = rawEmail === (stored.email ?? null) ? rawEmail : normalizeContactEmail(rawEmail ?? "") ?? null;
+    phone = rawPhone === (stored.phone ?? null) ? rawPhone : normalizeContactPhone(rawPhone ?? "") ?? null;
+    status = rawStatus && rawStatus === stored.status
+      ? rawStatus
+      : assertProfileEditableStatus(rawStatus, "draft");
+  } catch (error) {
+    if (error instanceof CustomerContactChangeError) {
+      throw new CustomerActionError(error.code, error.message);
+    }
+    throw error;
+  }
+
   const companyId = await assertUserCanOperateCompany(
     actorUserId,
     typeof before.company_id === "string" ? before.company_id : null,
   );
-
-  const { data: updated, error: updateError } = await supabaseService
-    .from("customers")
-    .update({
-      customer_type: customerType,
-      status,
-      first_name: firstName,
-      last_name: lastName,
-      full_name: fullName,
-      company_name: companyName,
-      personal_number: personalNumber,
-      org_number: orgNumber,
-      email,
-      phone,
-      apartment_number: apartmentNumber,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", customerId)
-    .eq("company_id", companyId)
-    .select("*")
-    .single();
-
-  if (updateError) throw updateError;
-
-  const { data: existingPrimaryContact, error: contactLookupError } =
-    await supabaseService
-      .from("customer_contacts")
-      .select("*")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .eq("is_primary", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-  if (contactLookupError) throw contactLookupError;
 
   const primaryContactName =
     customerType === "private"
@@ -326,48 +330,49 @@ export async function saveCustomerProfileImpl(
         companyName ||
         null;
 
-  if (existingPrimaryContact) {
-    const { error: contactUpdateError } = await supabaseService
-      .from("customer_contacts")
-      .update({
-        name: primaryContactName,
-        email,
-        phone,
-      })
-      .eq("id", existingPrimaryContact.id)
-      .eq("company_id", companyId);
-
-    if (contactUpdateError) throw contactUpdateError;
-  } else if (primaryContactName || email || phone) {
-    const { error: contactInsertError } = await supabaseService
-      .from("customer_contacts")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        type: "primary",
-        name: primaryContactName,
-        email,
-        phone,
-        title: null,
-        is_primary: true,
-      });
-
-    if (contactInsertError) throw contactInsertError;
-  }
-
-  await insertAuditLog({
-    actorUserId,
-    entityType: "customer",
-    entityId: customerId,
-    action: "customer_profile_updated",
-    companyId,
-    oldValues: before,
-    newValues: updated,
-    metadata: {
-      companyId,
-      syncedPrimaryContact: true,
-    },
+  const contactPatch = planPrimaryContactSync({
+    customerType,
+    contactName: primaryContactName,
+    email,
+    phone,
   });
+
+  // One transaction (tenantservice P2b): version lock, customer, primary contact, audit and
+  // outbox. Without a form version the version read above is the lock, so a concurrent save
+  // between read and write is still rejected.
+  try {
+    await applyCustomerContactChange({
+      companyId,
+      customerId,
+      actor: { kind: "staff", userId: actorUserId },
+      channel: "ops",
+      expectedUpdatedAt: expectedUpdatedAt ?? (typeof stored.updated_at === "string" ? stored.updated_at : null),
+      customerPatch: {
+        customer_type: customerType,
+        status,
+        first_name: firstName,
+        last_name: lastName,
+        full_name: fullName,
+        company_name: companyName,
+        personal_number: personalNumber,
+        org_number: orgNumber,
+        email,
+        phone,
+        apartment_number: apartmentNumber,
+      },
+      contactPatch,
+    });
+  } catch (error) {
+    if (error instanceof ContactChangeTransactionError) {
+      throw new CustomerActionError(
+        error.code === "customer_archived" ? "customer_archived_profile_locked" : error.code === "not_authorized" ? "forbidden" : error.code,
+        error.code === "version_conflict"
+          ? "Kunden har ändrats av någon annan samtidigt. Ladda om och gör ändringen igen."
+          : error.message,
+      );
+    }
+    throw error;
+  }
 
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath(`/admin/customers/${customerId}/profile`);

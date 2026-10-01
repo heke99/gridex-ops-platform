@@ -1,4 +1,5 @@
 //app/api/v1/customer-portal/sync/route.ts
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import {
@@ -10,6 +11,7 @@ import {
   requireIdempotencyKey,
 } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertPortalIdentityTransitionAllowed } from '@/lib/customer-portal/identityTransition'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
@@ -194,6 +196,13 @@ async function upsertIdentity(input: {
   matchMethod: string
   metadata: Record<string, unknown>
 }) {
+  const existing = await tenantSelect(input.companyId, 'customer_portal_identities', 'id,status,customer_id,auth_user_id,customer_portal_user_id')
+    .eq('provider', 'gridex_website')
+    .eq('external_customer_id', input.externalCustomerId)
+    .maybeSingle()
+  if (existing.error) throw existing.error
+  assertPortalIdentityTransitionAllowed(existing.data as Record<string, unknown> | null, input)
+
   const now = new Date().toISOString()
   const payload = {
     company_id: input.companyId,

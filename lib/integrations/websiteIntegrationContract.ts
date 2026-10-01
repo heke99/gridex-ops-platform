@@ -6,7 +6,7 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-08-22.2' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-01.1' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -25,6 +25,13 @@ export const CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIG
 
 export const WEBSITE_TENANT_REQUIRED_ENVIRONMENT_VARIABLES = ['GRIDEX_API_KEY'] as const
 export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
+
+/**
+ * 2026-10-01.1 adds the customer support API (`/api/v1/customer/support/cases*`, scopes
+ * customer_support.read/.write). Customer-portal mutations require an actively
+ * linked portal user: identifier-only matches (customer number or e-mail) are
+ * rejected with customer_identity_binding_required, and reads never create links.
+ */
 
 /**
  * 2026-08-22.2 makes website settlement semantics explicit: only fixed contracts

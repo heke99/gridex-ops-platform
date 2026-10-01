@@ -834,3 +834,9 @@ External requests are concrete in external-evidence-requests-20260930.md, not se
 Root exact-lock npm ci passed470 packages. SC072 actual full97A +independent T24.A6 oracle4/4; GAS/current-source finite boundary units26/26 and mixed full-source facet units7/7 (33/33 across3files); scripts/application TypeScript passed; RBAC service-client review24 checks/0warnings; all885 migration hashes verified. These are scoped local mechanics. New native11 reception tests are mandatory prepared fixtures, NOT_RUN. Actual033 CI clean/upgrade/independent-clean artifacts hash-check and byte-match; this does not qualify new/final head. Whole352 accepted0; no market traffic or main merge.
 
 2026-10-01: isolated coherent family composition; preserved both inherited memory source commits bba31637 and3c7342c6. Full final-candidate qualification remains NOT_RUN.
+## 2026-10-01 — Tenantservice #425 (local) and #429 (CI)
+| Scope | Result | Limit |
+| --- | --- | --- |
+| #425 vitest | 396 files / 6303 tests PASS | Mocked DB; native/live RLS not run |
+| #425 typecheck, lint, api:docs, api:compatibility, api:release:verify, security:rbac, build | PASS | |
+| #429 clean-migration-replay | 29 RED → 1 RED (F16 expectation) → fixed; final run pending | Native suite only runs in CI |

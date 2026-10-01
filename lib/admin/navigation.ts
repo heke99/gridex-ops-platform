@@ -58,6 +58,14 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
       { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
+    ],
+  },
+  {
+    key: 'cases',
+    title: 'Ärenden',
+    description: 'Kundsupport via webb, telefon och OPS',
+    items: [
+      { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'operations.tasks' },
       { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'EDIEL-meddelanden, utskick och kommunikationshistorik', pageKey: 'operations.tasks' },
       { key: 'ediel.requested_change_sources', label: 'Ändringsunderlag', href: '/admin/ediel/requested-changes', description: 'Original, separat granskning och begäran för dödsfall eller avtalad mätning', requiredPermissions: ['communication.read'] },
       { key: 'ediel.regulated_supply_sources', label: 'Reglerad leveransgrund', href: '/admin/ediel/regulated-supply', description: 'Arkiverade original och separat granskad leveransgrund', requiredPermissions: ['communication.read'] },
@@ -65,16 +73,23 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     ],
   },
   {
+    key: 'billing',
+    title: 'Fakturering',
+    description: 'Underlag, export och fakturapartner',
+    items: [
+      { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag till fakturering/export', pageKey: 'billing.workspace' },
+      { key: 'billing_export', label: 'Exportcenter', href: '/admin/billing/export-center', description: 'Redo rader, blockerare och exporthistorik', pageKey: 'billing.export_center' },
+      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
+    ],
+  },
+  {
     key: 'operations',
-    title: 'Operations',
+    title: 'Drift',
     description: 'Byten, mätvärden och underlag',
     items: [
       { key: 'switches', label: 'Leverantörsbyten', href: '/admin/operations/switches', description: 'Start, status och slutförande', pageKey: 'operations.switches' },
       { key: 'metering', label: 'Mätvärden', href: '/admin/metering', description: 'Mätvärdesrequests och inkomna värden', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analytics', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
-      { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag till fakturering/export', pageKey: 'billing.workspace' },
-      { key: 'billing_export', label: 'Exportcenter', href: '/admin/billing/export-center', description: 'Redo rader, blockerare och exporthistorik', pageKey: 'billing.export_center' },
-      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
       { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Extern kommunikation i affärsspråk', pageKey: 'outbound.queue' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],

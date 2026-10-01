@@ -66,6 +66,8 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-08-22.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-08-22.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-22.2/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-08-22.2.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-22.2/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-08-22.2.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-01.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-10-01.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-01.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-10-01.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/customer-portal-v1.json', scopes: [], description: 'Current OpenAPI specification for customer portal integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/integration/context', scopes: ['integration_context.read'], description: 'Verify the authenticated API client and retrieve its public integration context.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/public-contracts', scopes: ['api_contracts.read'], description: 'Retrieve contracts published to the general API channel.', rateLimitClass: 'read' },
@@ -102,6 +104,11 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/customer/notifications', scopes: ['customer_notifications.read'], description: 'Retrieve customer notifications.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/customer/notifications/read', scopes: ['customer_notifications.write'], description: 'Mark customer notifications as read.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/customer/profile-update', scopes: ['customer_contact.write', 'customer_facility_data.write'], description: 'Submit a customer contact or site-address update.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/customer/support/cases', scopes: ['customer_support.read'], description: 'List the customer’s support cases.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/customer/support/cases', scopes: ['customer_support.write'], description: 'Open a support case with the customer’s first message.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/customer/support/cases/[reference]', scopes: ['customer_support.read'], description: 'Retrieve a support case with its customer-visible messages.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/customer/support/cases/[reference]/messages', scopes: ['customer_support.read'], description: 'List customer-visible messages of a support case.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/customer/support/cases/[reference]/messages', scopes: ['customer_support.write'], description: 'Add a customer message to an open support case.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/customer/move-out', scopes: ['customer_facility_data.write'], description: 'Submit a customer move-out request.', idempotencyRequired: true, rateLimitClass: 'write' },
 ]
 

@@ -1,4 +1,5 @@
 import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
+import { resolveInvoiceDeliveryFor, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
@@ -105,15 +106,15 @@ async function loadContracts(companyId: string, contractIds: string[]) {
   return map
 }
 
-async function loadCustomerNumber(companyId: string, customerId: string) {
+async function loadInvoiceCustomer(companyId: string, customerId: string) {
   const result = await supabaseService
     .from('customers')
-    .select('customer_number')
+    .select('customer_number,full_name,company_name,invoice_email,billing_street,billing_postal_code,billing_city')
     .eq('company_id', companyId)
     .eq('id', customerId)
     .maybeSingle()
   if (result.error) throw result.error
-  return text(result.data?.customer_number)
+  return (result.data ?? null) as (InvoiceDeliveryCustomer & { customer_number?: string | null }) | null
 }
 
 async function loadPriceSnapshot(companyId: string, snapshotId: string | null) {
@@ -232,7 +233,10 @@ async function createDraft(input: {
   if (!priceSnapshot) throw new Error('Exakt kontraktsprissnapshot saknas.')
   const calculationSnapshot = buildCalculationSnapshot({ underlay: input.underlay, contract: input.contract, priceSnapshot, pricing, billingMonth: input.billingMonth })
   const calculationHash = hash(calculationSnapshot)
-  const customerNumber = await loadCustomerNumber(input.companyId, customerId)
+  const invoiceCustomer = await loadInvoiceCustomer(input.companyId, customerId)
+  const customerNumber = text(invoiceCustomer?.customer_number)
+  // Same effective recipient/delivery as billing readiness and export.
+  const delivery = resolveInvoiceDeliveryFor('document', { contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer })
   const runId = randomUUID()
   const itemId = randomUUID()
   const now = new Date().toISOString()
@@ -240,13 +244,13 @@ async function createDraft(input: {
   const runKey = `invoice-review-run:${canonicalKey}`
   const approval = { status: 'pending_review', prepared_at: now, prepared_by: input.actorUserId, calculation_snapshot_sha256: calculationHash }
   const invoiceAddress = {
-    recipient: text(input.contract.invoice_recipient),
-    email: text(input.contract.invoice_email),
-    reference: text(input.contract.invoice_reference),
-    street: text(input.contract.billing_street),
-    postal_code: text(input.contract.billing_postal_code),
-    city: text(input.contract.billing_city),
-    country: text(input.contract.billing_country) ?? 'SE',
+    recipient: delivery.recipient,
+    email: delivery.email,
+    reference: delivery.reference,
+    street: delivery.postalAddress?.street ?? null,
+    postal_code: delivery.postalAddress?.postalCode ?? null,
+    city: delivery.postalAddress?.city ?? null,
+    country: delivery.postalAddress?.country ?? text(input.contract.billing_country) ?? 'SE',
   }
   const legacyItem = {
     id: itemId,
