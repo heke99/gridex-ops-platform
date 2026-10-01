@@ -250,6 +250,9 @@ export async function hasCanonicalAckDuplicate(params: {
   outcome?: 'positive' | 'negative'
   ackScope?: 'interchange'|'message'|'transaction'|'object'
   acknowledgedReferences?: readonly string[]
+  acknowledgedProdatObjects?: Parameters<typeof findExistingAckForSource>[0]['acknowledgedProdatObjects']
+  expectedSource?: EdielMessageRow
+  expectedTechnicalCompanyId?: string
 }): Promise<EdielMessageRow | null> {
   const exact = await findExistingAckForSource({
     ...params,

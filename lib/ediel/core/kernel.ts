@@ -292,23 +292,37 @@ export async function createCanonicalAckMessage(params: {
   // The same shared wire projection defines the scope of a prospective ACK.
   // Caller caches/error-code sequence tokens cannot coalesce independent IDEs.
   const correlation=readPhysicalAckSourceCorrelation({id:'prospective-ack',company_id:companyId,
-    environment,direction:'outbound',message_family:params.ackFamily,raw_payload:draftWithSourceSnapshot.rawPayload ?? null})
+    environment,direction:'outbound',message_family:params.ackFamily,raw_payload:draftWithSourceSnapshot.rawPayload ?? null},params.sourceMessage)
   if(params.outcome && correlation.classification.outcome!==params.outcome)
     throw new Error('canonical_ack_draft_physical_outcome_mismatch')
   const scoped=correlation.scope==='transaction'||correlation.scope==='object'
   const references=[...new Set(correlation.acknowledgedReferences)].sort()
-  const sequenceToken=scoped ? references.length===1 ? references[0]
+  // Missing LI has no string substitute. Its real object/agency/first-LIN
+  // tuple provides the operation namespace, independently of the outcome.
+  const objectScopes=correlation.prodatObjectOutcomes?.map(({outcome,...scope})=>scope)
+    .sort((a,b)=>a.firstLineIndex-b.firstLineIndex)
+  const sequenceToken=objectScopes?.some(scope=>scope.lineItemReference===null)
+    ? `object:${createHash('sha256').update(JSON.stringify(objectScopes),'utf8').digest('hex')}`
+    : scoped ? references.length===1 ? references[0]
     : `${correlation.scope}:${createHash('sha256').update(JSON.stringify(references),'utf8').digest('hex')}` : null
   const duplicateParams={sourceMessageId:params.sourceMessage.id,ackFamily:params.ackFamily,
-    outcome:scoped ? undefined : params.outcome,ackScope:correlation.scope,acknowledgedReferences:references}
+    outcome:scoped ? undefined : params.outcome,ackScope:correlation.scope,acknowledgedReferences:references,
+    acknowledgedProdatObjects:objectScopes,expectedSource:params.sourceMessage,
+    expectedTechnicalCompanyId:params.sourceMessage.company_id===null?companyId:undefined}
   const duplicate=await hasCanonicalAckDuplicate(duplicateParams)
   const assertPriorOriginal=(existing:EdielMessageRow)=>{
     if(existing.company_id!==companyId || existing.environment!==environment || existing.direction!=='outbound'
       || existing.related_message_id!==params.sourceMessage.id || existing.message_family!==params.ackFamily)
       throw new Error('canonical_ack_duplicate_scope_mismatch')
     const desired=correlation.classification.outcome
-    if(correlation.scopedOutcomes?.length){
-      const prior=readPhysicalAckSourceCorrelation(existing)
+    if(correlation.prodatObjectOutcomes?.length){
+      const prior=readPhysicalAckSourceCorrelation(existing,params.sourceMessage)
+      if(!correlation.prodatObjectOutcomes.every(own=>prior.prodatObjectOutcomes?.some(result=>
+        result.objectId===own.objectId&&result.identityAgency===own.identityAgency&&result.firstLineIndex===own.firstLineIndex
+        &&result.lineItemReference===own.lineItemReference&&result.outcome===own.outcome)))
+        throw new Error('blocked_final_ack_exists: Originalets objektspecifika ACK-utfall är oföränderligt.')
+    }else if(correlation.scopedOutcomes?.length){
+      const prior=readPhysicalAckSourceCorrelation(existing,params.sourceMessage)
       if(!correlation.scopedOutcomes.every(own=>prior.scopedOutcomes?.some(result=>result.reference===own.reference && result.outcome===own.outcome)))
         throw new Error('blocked_final_ack_exists: Originalets objektspecifika ACK-utfall är oföränderligt.')
     }else if(existing.ack_outcome!==desired)
