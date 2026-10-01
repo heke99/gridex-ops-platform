@@ -11,7 +11,7 @@ import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { contrlSourceEnvelope, renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
 import { renderAperakEdiel, usesUtiltsAperakProfile } from '@/lib/ediel/aperakEngine'
 import { inferEdielFileName } from '@/lib/ediel/classify'
-import { buildCanonicalAckReferences } from '@/lib/ediel/core/referenceRegistry'
+import { buildCanonicalAckReferences,buildEdielTransactionReference } from '@/lib/ediel/core/referenceRegistry'
 import { readPhysicalUtiltsDocumentIdentity } from '@/lib/ediel/core/physicalDocumentReference'
 import {
   defaultAckStatuses,
@@ -79,32 +79,6 @@ function escapeEdifactText(value?: string | null, maxLength = 70): string {
   return text.replace(/\?/g, '??').replace(/:/g, '?:')
 }
 
-
-function compactUtcTimestampWithSeconds(date = new Date()): string {
-  const year = String(date.getUTCFullYear()).slice(2)
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(date.getUTCDate()).padStart(2, '0')
-  const hours = String(date.getUTCHours()).padStart(2, '0')
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-  const seconds = String(date.getUTCSeconds()).padStart(2, '0')
-  return `${year}${month}${day}${hours}${minutes}${seconds}`
-}
-
-function randomEdifactToken(length = 6): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let result = ''
-  for (let index = 0; index < length; index += 1) {
-    result += chars[Math.floor(Math.random() * chars.length)]
-  }
-  return result
-}
-
-function buildUtiltsErrDocumentReference(): string {
-  // Edielportalen de-duplicates UTILTS-ERR on BGM/1004, not only UNB/0020.
-  // Keep the varying timestamp/random part inside the first 35 chars; otherwise
-  // sanitize/truncation can turn every retry into the same message id.
-  return sanitizeEdifactToken(`UTILTSERR-${compactUtcTimestampWithSeconds()}-${randomEdifactToken(6)}`, 35) ?? 'UTILTSERR'
-}
 
 function swedishDateTimeFromEdifactUnb(rawPayload?: string | null): string | null {
   const segments = segmentsFromRawPayload(rawPayload)
@@ -470,19 +444,6 @@ function edifactElement(segment: string | null | undefined, index: number): stri
 }
 
 
-function sequencedAckReference(params: {
-  ackFamily: AckFamily
-  sequenceToken: string
-  fallbackReference?: string | null
-}): string {
-  const family = sanitizeEdifactToken(params.ackFamily, 10) ?? 'ACK'
-  const sequenceToken = sanitizeEdifactToken(params.sequenceToken, 18) ?? randomEdifactToken(6)
-  const timestamp = compactUtcTimestampWithSeconds()
-  const random = randomEdifactToken(3)
-  const candidate = `${family}-${sequenceToken}-${timestamp}-${random}`
-  return sanitizeEdifactToken(candidate, 35) ?? sanitizeEdifactToken(params.fallbackReference, 35) ?? `${family}-${timestamp}`
-}
-
 function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourceGroup[] {
   const wire = tokenizeEdifact(sourceMessage.raw_payload)
   const headers = wire.segments.filter(segment => segment.tag === 'UNH')
@@ -619,17 +580,6 @@ function segmentByPrefixWithValue(segments: readonly string[], prefix: string, e
   ) ?? null
 }
 
-function utiltsErrTransactionId(params: {
-  transactionReference: string
-  index: number
-  sourceTransactionId?: string | null
-}): string {
-  const base = sanitizeEdifactToken(params.transactionReference, 28) ?? 'UTILTSERR'
-  const suffix = String(params.index + 1)
-  const sourceTail = sanitizeEdifactToken(params.sourceTransactionId, 8)
-  return sanitizeEdifactToken(`${base}${suffix}${sourceTail ? `-${sourceTail}` : ''}`, 35) ?? `${base}${suffix}`
-}
-
 function shouldUseS02FunctionalTgtFallback(sourceMessage: EdielMessageRow, codes: readonly string[]): boolean {
   const family = String(sourceMessage.message_family ?? '').toUpperCase()
   const code = String(sourceMessage.message_code ?? '').toUpperCase()
@@ -754,7 +704,7 @@ function buildUtiltsErrSegments(params: {
 
   const segments: Array<string | null> = [
     // U p72: the S01–S07 code-list condition does not apply to ERR.
-    `BGM+ERR::260+${buildUtiltsErrDocumentReference()}+9+AB`,
+    `BGM+ERR::260+${params.externalReference}+9+AB`,
     // U §3.6.1–2: message date uses Swedish standard time all year.
     `DTM+137:${standardTimeMinute()}:203`,
     'DTM+735:?+0100:406',
@@ -782,11 +732,7 @@ function buildUtiltsErrSegments(params: {
       allCodes: uniqueCodes,
     })
 
-    const outboundTransactionId = utiltsErrTransactionId({
-      transactionReference: params.transactionReference,
-      index,
-      sourceTransactionId: group?.transactionId ?? null,
-    })
+    const outboundTransactionId = buildEdielTransactionReference({family:'UTILTS_ERR',code:'ERR'})
 
     segments.push(`IDE+24+${outboundTransactionId}`)
 
@@ -850,18 +796,10 @@ function buildAckDraft(params: {
       ? sanitizeEdifactToken(params.relatedTransactionReference, 18)
       : null
 
-  const sequenceToken = utiltsErrSequenceToken ?? aperakSequenceToken
-
-  const sequencedReference = sequenceToken
-    ? sequencedAckReference({
-        ackFamily: params.ackFamily,
-        sequenceToken,
-        fallbackReference: refs.externalReference ?? params.sourceMessage.id,
-      })
-    : null
-
-  const ackExternalReference = sequencedReference ?? refs.externalReference
-  const ackTransactionReference = sequencedReference ?? refs.transactionReference
+  // Sequence metadata identifies the source response plan, not a namespace
+  // prefix. Keep independently allocated own BGM/transaction entropy intact.
+  const ackExternalReference = refs.externalReference
+  const ackTransactionReference = refs.transactionReference
 
   const parties = sourceParties(params.sourceMessage)
   // Every ACK reverses the original technical UNB route. Legal NAD parties are
