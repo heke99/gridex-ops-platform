@@ -18,8 +18,9 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-export default async function CustomerCasesPage() {
+export default async function CustomerCasesPage({ searchParams }: { searchParams: Promise<{ customer?: string; channel?: string }> }) {
   const context = await requireAdminPageKeyAccess('operations.tasks')
+  const query = await searchParams
   const scope = await resolveAdminTenantReadScope(context)
   const [allCases, customers] = await Promise.all([
     listCustomerCases({ companyId: scope.companyId, limit: 200 }),
@@ -40,11 +41,11 @@ export default async function CustomerCasesPage() {
         </section>
 
         {!scope.isPlatformAdmin && scope.companyId ? (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section id="new-case" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Nytt supportärende</h2>
             <form action={createCustomerCaseFromFormAction} className="mt-4 grid gap-3 lg:grid-cols-2">
               <input type="hidden" name="expected_company_id" value={scope.companyId} />
-              <select name="customer_id" required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <select name="customer_id" required aria-label="Kund" defaultValue={customers.some((customer) => customer.id === query.customer) ? query.customer : ""} className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Välj kund</option>
                 {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.label}</option>)}
               </select>
@@ -52,7 +53,7 @@ export default async function CustomerCasesPage() {
                 <option value="low">Låg</option><option value="normal">Normal</option><option value="high">Hög</option><option value="urgent">Akut</option>
               </select>
               <input name="title" required maxLength={180} placeholder="Rubrik" className="rounded-xl border border-slate-300 px-3 py-2 text-sm lg:col-span-2" />
-              <select name="channel" defaultValue="admin" aria-label="Kanal" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+              <select name="channel" defaultValue={query.channel === 'phone' ? 'phone' : 'admin'} aria-label="Kanal" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
                 <option value="admin">Registrerat i OPS</option><option value="phone">Telefon</option>
               </select>
               <input name="category" placeholder="Kategori, t.ex. faktura eller avtal" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />

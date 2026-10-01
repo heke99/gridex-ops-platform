@@ -1,4 +1,6 @@
 // Extracted from page.tsx; keep public imports on the facade module.
+import { activeTenantGroup, tenantWorkspaceGroups } from "./workspaceGroups";
+import { hasPermissionRequirement } from "@/lib/admin/accessModel";
 import Link from "next/link"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isPlatformAdminContext, requireAdminPageAccess } from "@/lib/admin/guards"
@@ -688,10 +690,15 @@ export async function CustomerAdminDetailPage({
     ].includes(String(request.status ?? "").toLowerCase()),
   );
   const showFoldedTechnicalPanels = isPlatformAdmin && activeTab === "ediel-operations";
+  const tenantGroups = tenantWorkspaceGroups((tab) => canShowCustomerWorkspaceTab(tab, isPlatformAdmin, canReadContracts));
+  const activeGroup = activeTenantGroup(tenantGroups, activeTab);
+  const canRegisterContact = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["cases.write"] });
+  const canEditCustomer = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["masterdata.write"] });
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="sticky top-0 z-20 rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-700">Kundkort</p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
@@ -723,6 +730,38 @@ export async function CustomerAdminDetailPage({
             ) : null}
           </div>
         </div>
+        {customer.status !== "archived" ? (
+          <div className="flex flex-wrap items-center gap-2" aria-label="Åtgärder för kunden">
+            {canRegisterContact ? (
+              <Link
+                href={`/admin/customer-cases?customer=${encodeURIComponent(id)}&channel=phone#new-case`}
+                className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+              >
+                Registrera kontakt
+              </Link>
+            ) : null}
+            {canEditCustomer ? (
+              <Link
+                href={customerTabHref(id, "profile")}
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600"
+              >
+                Ändra uppgifter
+              </Link>
+            ) : null}
+            <details className="relative">
+              <summary className="cursor-pointer list-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600">
+                Fler åtgärder
+              </summary>
+              <div className="absolute right-0 z-30 mt-2 grid min-w-56 gap-1 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-lg">
+                <Link href={customerTabHref(id, "communication")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Ärenden &amp; historik</Link>
+                <Link href={customerTabHref(id, "billing-metering")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Fakturor</Link>
+                {canReadContracts ? <Link href={customerTabHref(id, "contracts")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Avtal</Link> : null}
+                <Link href={customerTabHref(id, "sites")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Anläggningar</Link>
+              </div>
+            </details>
+          </div>
+        ) : null}
+        </div>
       </section>
 
       {isPlatformAdmin && activeTab === "technical-details" ? (
@@ -749,6 +788,7 @@ export async function CustomerAdminDetailPage({
         </section>
       ) : null}
 
+      {isPlatformAdmin ? (
       <nav
         aria-label="Kundkortets delar"
         className="flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm"
@@ -770,6 +810,42 @@ export async function CustomerAdminDetailPage({
             </Link>
           ))}
       </nav>
+      ) : (
+      <nav aria-label="Kundkortets delar" className="grid gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          {tenantGroups.map((group) => (
+            <Link
+              key={group.id}
+              href={customerTabHref(id, group.tabs[0])}
+              aria-current={activeGroup?.id === group.id ? "page" : undefined}
+              className={`rounded-full border px-3 py-1.5 font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600 ${
+                activeGroup?.id === group.id
+                  ? "border-emerald-700 bg-emerald-700 text-white"
+                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {group.label}
+            </Link>
+          ))}
+        </div>
+        {activeGroup && activeGroup.tabs.length > 1 ? (
+          <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2" aria-label={`${activeGroup.label}: delar`}>
+            {activeGroup.tabs.map((tabId) => (
+              <Link
+                key={tabId}
+                href={customerTabHref(id, tabId)}
+                aria-current={activeTab === tabId ? "true" : undefined}
+                className={`rounded-full px-3 py-1 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600 ${
+                  activeTab === tabId ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                {CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === tabId)?.label ?? tabId}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+      </nav>
+      )}
 
       {activeTab === "overview" ? (
         <SectionAnchor

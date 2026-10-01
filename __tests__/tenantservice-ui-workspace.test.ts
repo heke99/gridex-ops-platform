@@ -52,3 +52,31 @@ describe('tenant workspace UI (P5)', () => {
     expect(list).toContain('name="expected_company_id"')
   })
 })
+
+describe('customer card for tenant staff (P5b)', () => {
+  it('groups tenant tabs into five primary sections', async () => {
+    const { tenantWorkspaceGroups, activeTenantGroup } = await import('@/app/admin/customers/[id]/workspaceGroups')
+    const groups = tenantWorkspaceGroups(() => true)
+    expect(groups.map((group) => group.label)).toEqual(['Översikt', 'Uppgifter', 'Avtal & anläggningar', 'Fakturor', 'Ärenden & historik'])
+    expect(activeTenantGroup(groups, 'notes').label).toBe('Ärenden & historik')
+    const withoutContracts = tenantWorkspaceGroups((tab) => tab !== 'contracts')
+    expect(withoutContracts.find((group) => group.id === 'agreements')?.tabs).toEqual(['sites'])
+  })
+
+  it('header has one primary and at most two secondary actions, permission-gated and hidden when archived', () => {
+    const page = readFileSync('app/admin/customers/[id]/page.part-4.tsx', 'utf8')
+    expect(page).toContain('sticky top-0')
+    expect(page).toContain('>\n                Registrera kontakt')
+    expect(page).toContain('Ändra uppgifter')
+    expect(page).toContain('Fler åtgärder')
+    expect(page).toContain('anyOf: ["cases.write"]')
+    expect(page).toContain('anyOf: ["masterdata.write"]')
+    expect(page).toContain('customer.status !== "archived" ?')
+  })
+
+  it('"Registrera kontakt" preselects the customer and phone channel on the case form', () => {
+    const list = readFileSync('app/admin/customer-cases/page.tsx', 'utf8')
+    expect(list).toContain('customers.some((customer) => customer.id === query.customer)')
+    expect(list).toContain("query.channel === 'phone'")
+  })
+})
