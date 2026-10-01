@@ -7,10 +7,15 @@ import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { buildAperakDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+
+// Modeled transport configuration only; no outbox/provider/send is exercised.
+vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'gridex@example.invalid',host:'smtp.example.invalid',port:587})}))
 
 type Row = Record<string, unknown>
 const database = vi.hoisted(() => ({ tables: new Map<string, Row[]>(), failErrReference: null as string | null,
-  raceErrReference: null as string | null, raceCommitted: false }))
+  raceErrReference: null as string | null, raceCommitted: false,sourceBases:new Map<string,Row>(),bornOriginals:new Map<string,Row>() }))
 vi.mock('@/lib/supabase/service', () => {
   const value = (row: Row, key: string) => {
     const [base, member] = key.split('->>')
@@ -27,10 +32,12 @@ vi.mock('@/lib/supabase/service', () => {
     eq(key: string, expected: unknown) { this.filters.push(row => value(row, key) === expected); return this }
     is(key: string, expected: unknown) { this.filters.push(row => (value(row, key) ?? null) === expected); return this }
     in(key: string, expected: unknown[]) { this.filters.push(row => expected.includes(value(row, key))); return this }
-    not(key: string, operation: string, expected: string) {
-      if (operation !== 'in') throw Error(`unexpected_filter:${operation}`)
-      const excluded = expected.replace(/^\(|\)$/g, '').split(',')
-      this.filters.push(row => !excluded.includes(String(value(row, key))))
+    not(key: string, operation: string, expected: string|null) {
+      if(operation==='is')this.filters.push(row=>value(row,key)!==expected)
+      else if(operation==='in') {
+        const excluded = expected!.replace(/^\(|\)$/g, '').split(',')
+        this.filters.push(row => !excluded.includes(String(value(row, key))))
+      } else throw Error(`unexpected_filter:${operation}`)
       return this
     }
     order() { return this }
@@ -56,10 +63,14 @@ vi.mock('@/lib/supabase/service', () => {
           data = payloads.map(row => ({ id: randomUUID(), created_at: new Date().toISOString(), ...row }))
           if (this.table === 'ediel_messages' && payloads.some(row => row.message_family === 'UTILTS_ERR' &&
             database.raceErrReference !== null && (row.parsed_payload as Row)?.relatedTransactionReference === database.raceErrReference)) {
-            if (database.raceCommitted) rows.push(...data)
+            if (database.raceCommitted) {
+              rows.push(...data)
+              for(const row of data)database.bornOriginals.set(String(row.id),structuredClone(row))
+            }
             return { data: null, error: { code: '23505', message: 'synthetic_unique_ack_insert' }, count: 0 }
           }
           rows.push(...data)
+          if(this.table==='ediel_messages')for(const row of data)database.bornOriginals.set(String(row.id),structuredClone(row))
         } else {
           data = rows.filter(row => this.filters.every(filter => filter(row))).slice(0, this.cap)
           if (this.mode === 'update') data.forEach(row => Object.assign(row, this.payload))
@@ -69,7 +80,46 @@ vi.mock('@/lib/supabase/service', () => {
     }
   }
   return { supabaseService: { from: (table: string) => new Query(table), rpc: async (name: string, args: Row) => {
-      if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error('unexpected_rpc')
+      if(name==='gridex_actor_has_company_permission')return{error:null,data:database.tables.get('company_memberships')!.some(row=>row.company_id===args.p_company_id&&row.user_id===args.p_actor_user_id&&row.status==='active')}
+      if(name==='ediel_read_source_rule_pack_basis_v1') {
+        const basis=database.sourceBases.get(String(args.p_message_id))
+        if((basis?.sourceMessage as Row)?.company_id!==args.p_company_id)throw Error('synthetic_source_basis_scope_unavailable')
+        return{error:null,data:structuredClone(basis)}
+      }
+      if(name==='ediel_require_technical_syntax_ack_basis_v1') {
+        const basis=database.sourceBases.get(String(args.p_message_id)),source=basis?.sourceMessage as EdielMessageRow|undefined
+        if(!source||source.company_id!==args.p_company_id)throw Error('synthetic_technical_original_scope_unavailable')
+        const wire=EdifactEnvelopeCodec.decode(source.raw_payload!)
+        const unb=wire.segments.find(segment=>segment.tag==='UNB')
+        return{error:null,data:{kind:'technical_syntax_ack',version:1,companyId:source.company_id,environment:source.environment,sourceMessageId:source.id,
+          sourceHash:createHash('sha256').update(source.raw_payload!).digest('hex'),observedAt:source.message_received_at,syntaxAssessmentId:randomUUID(),syntaxDecision:'accepted',
+          transportActorId:String(database.tables.get('ediel_actor_settings')![0].id),transportEdielId:wire.receiver,
+          originalUNB:{sender:segmentComposite(unb,2,wire.una),receiver:segmentComposite(unb,3,wire.una),interchangeReference:wire.interchangeReference,uciReference:wire.interchangeReference!.slice(0,14),applicationReference:wire.applicationReference,testIndicator:wire.testIndicator}}}
+      }
+      if(name==='ediel_read_technical_syntax_ack_route_v1') {
+        const source=database.sourceBases.get(String(args.p_source_message_id))?.sourceMessage as EdielMessageRow
+        const wire=EdifactEnvelopeCodec.decode(source.raw_payload!)
+        return{error:null,data:{kind:'technical_syntax_ack_route',companyId:source.company_id,environment:source.environment,sourceMessageId:source.id,
+          sourceHash:createHash('sha256').update(source.raw_payload!).digest('hex'),authorizesBusinessEffect:false,
+          route:database.tables.get('communication_routes')![0],routeRuntime:database.tables.get('ediel_route_runtime_v')![0],
+          senderEdielId:wire.receiver,senderQualifier:wire.receiverQualifier,senderSubAddress:wire.receiverSubAddress,
+          receiverEdielId:wire.sender,receiverQualifier:wire.senderQualifier,receiverSubAddress:wire.senderSubAddress,
+          receiverMessageSubAddress:wire.senderSubAddress,applicationReference:wire.applicationReference,
+          senderEmail:args.p_smtp_from,mailbox:args.p_smtp_from,receiverEmail:'counterparty@example.invalid',routeKey:'modeled-local-only'}}
+      }
+      if(name==='ediel_prepare_outbound_owner_witness_v1') {
+        const input=args.p_input as Row,basis=database.sourceBases.get(String(input.relatedMessageId))
+        if(!basis || JSON.stringify(input.rulePackEvidence)!==JSON.stringify(basis.sourceRulePackEvidence))throw Error('synthetic_original_named_basis_mismatch')
+        return{error:null,data:{version:1,witnessId:randomUUID(),evidence:structuredClone(input.rulePackEvidence)}}
+      }
+      if(name==='gridex_read_outbound_acks_for_source_v1') {
+        const source=database.tables.get('ediel_messages')!.find(row=>row.id===args.p_source_message_id)!
+        return{error:null,data:{version:1,sourceMessageId:source.id,companyId:source.company_id,environment:source.environment,
+          sourcePayloadHash:createHash('sha256').update(String(source.raw_payload)).digest('hex'),
+          originals:[...database.bornOriginals.values()].filter(row=>row.related_message_id===source.id&&row.message_family===args.p_ack_family&&row.direction==='outbound')
+          .map(row=>({status:'qualified',message:structuredClone(row),payloadHash:createHash('sha256').update(String(row.raw_payload)).digest('hex')}))}}
+      }
+      if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error(`unexpected_rpc:${name}`)
       // ACK-only harness: model an already committed consumer reservation.
       // Actual receipt/series/contract proof stays in the native suite.
       const source = database.tables.get('ediel_messages')!.find(row => row.id === args.p_source_message_id &&
@@ -86,6 +136,7 @@ vi.mock('@/lib/supabase/service', () => {
 
 beforeEach(() => {
   database.tables.clear()
+  database.sourceBases.clear();database.bornOriginals.clear()
   database.failErrReference = null
   database.raceErrReference = null
   database.raceCommitted = false
@@ -104,20 +155,32 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
     rule_profile_version_id: randomUUID(), rule_profile_version: 'E5SE5A-r3', rule_pack_checksum: 'a'.repeat(64),
   } as EdielMessageRow
   if (transform) source.raw_payload = transform(source.raw_payload!)
-  const runtime = runUtiltsRuntimeForMessage(source)
+  const selected=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:date,applicationReference:source.application_reference,mode:'parse'})
+  const runtime = runUtiltsRuntimeForMessage(source,{canonicalPolicy:selected})
   const reservations: Row[] = runtime.transactionDispositions.map(row => ({
     id: randomUUID(), company_id: company, environment: 'test', source_message_id: source.id,
     source_transaction_id: row.transactionId, planned_response_type: row.responseType, finalized_at: null,
   }))
+  // External source/insert/preparation IO only. The real gateway, protected
+  // capability ports, renderer and guide run; native receipt/actor/SQL proof
+  // remains a separate phase and is not established by these modeled rows.
+  const revision=selected.guide.guideRevision.split('-').at(-1)!,profileKey=`UTILTS:E66:E5SE5A:${revision}`,version=`${selected.guide.guideRevision}:r${revision}`
+  const sourceRulePackEvidence={rulePackId:source.canonical_rule_pack_id,messageProfileId:source.rule_profile_version_id,profileKey,version,sourceHash:source.rule_pack_checksum,
+    snapshot:{profileKey,profileVersionId:source.rule_profile_version_id,version,checksum:source.rule_pack_checksum,
+      rulePack:{id:source.canonical_rule_pack_id,family:'UTILTS',guide_version:selected.guide.guideRevision,guide_revision:revision,source_hash:source.rule_pack_checksum},
+      messageProfile:{id:source.rule_profile_version_id,rule_pack_id:source.canonical_rule_pack_id,profile_key:profileKey},guideSources:[]}}
+  database.sourceBases.set(source.id,{version:1,sourceMessage:structuredClone(source),sourceRulePackEvidence})
   for (const [table, rows] of Object.entries({
     ediel_messages: [source], ediel_message_events: [], ediel_ack_transaction_results: reservations,
+    company_memberships:[{company_id:company,user_id:actor,status:'active',is_active:true,accepted_at:`${date}T00:00:00Z`}],
+    user_profiles:[{id:actor,user_status:'active'}],
     ediel_actor_settings: [{ id: actor, company_id: company, environment: 'test', is_active: true, ediel_id: '21660', sender_subaddress: 'DDQ' }],
     tenant_ediel_profiles: [{ id: randomUUID(), company_id: company, environment: 'test', market: 'electricity', is_enabled: true }],
     tenant_actor_identifiers: [{ id: randomUUID(), company_id: company, environment: 'test', actor_id: actor, identifier_type: 'EdielId', identifier_value: '21660' }],
     tenant_actor_roles: [{ id: randomUUID(), company_id: company, environment: 'test', actor_id: actor, role_code: 'DDQ' }],
     tenant_counterparty_relations: [],
     communication_routes: [{ id: route, company_id: company, route_name: 'Synthetic local route', is_active: true, route_scope: 'ediel_ack', environment_type: 'bilateral_test', grid_owner_id: null, target_system: 'synthetic-local-only' }],
-    ediel_route_runtime_v: [{ communication_route_id: route, company_id: company, route_profile_id: profile, environment: 'test' }],
+    ediel_route_runtime_v: [{ communication_route_id: route, company_id: company, route_profile_id: profile, environment: 'test',is_enabled:true }],
   })) database.tables.set(table, rows as Row[])
   const finalize = () => createUtiltsRuntimeAcks({ actorUserId: actor, sourceMessage: source,
     ackPlan: runtime.ackPlan, transactionDispositions: runtime.transactionDispositions })
@@ -180,16 +243,16 @@ it('cannot forge header scope from an unreferenced transaction error on a valid 
     .toThrow('utilts_header_aperak_scope_invalid')
 })
 
-it('serializes a canonical deduplicated NAD header double fault', async () => {
+it('preserves actual NAD header faults while holding an unaddressable legal actor response', async () => {
   const f = seed([{ reference: 'HEADER-NAD-FAULT', outcome: 'accepted' }], '2026-10-01',
     raw => raw.replace('NAD+MS+91100:SVK:260', 'NAD+MS+ABC:SVK:XXX'))
-  expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toMatchObject([{ ercCode: '42', fieldCode: '207' }])
-  expect(f.runtime.ackPlan.utiltsHeaderRejection?.applicationErrors).toHaveLength(1)
-  await f.finalize()
+  const errors=f.runtime.ackPlan.utiltsHeaderRejection!.applicationErrors
+  expect(errors).toEqual(expect.arrayContaining([expect.objectContaining({ ercCode: '42', fieldCode: '207',text:'INCORRECT DATA ABC' }),expect.objectContaining({ ercCode: '42', fieldCode: '207',text:'INCORRECT DATA XXX' })]))
+  expect(errors).toHaveLength(2)
+  await expect(f.finalize()).rejects.toThrow(/ACK_APERAK_LEGAL_PARTY_INVALID/)
   const aperaks = f.acks().filter(row => row.message_family === 'APERAK')
-  expect(aperaks).toHaveLength(1)
-  expect(aperaks[0].raw_payload).toContain('FTX+AAO++207::260+INCORRECT DATA')
-  expect(aperaks[0].raw_payload).not.toContain('RFF+ACW:')
+  expect(aperaks).toEqual([])
+  expect(f.reservations.every(row=>!row.final_response_type)).toBe(true)
 })
 
 it.each([
@@ -260,7 +323,7 @@ it('real mixed accepted, guide-negative and two same-code functional-negative ID
   expect({ acks: f.acks(), reservations: f.reservations }).toEqual(before)
 })
 
-it('legacy message-scoped ERRs retain code sequencing and identical retry', async () => {
+it('legacy caller code metadata cannot split an immutable physical own-IDE ERR', async () => {
   const f = seed([{ reference: 'LEGACY-ERR-IDE', outcome: 'processability_rejected' }])
   const create = async (code: string) => {
     const draft = buildUtiltsErrDraft({ actorUserId: f.actor, sourceMessage: f.source, messageText: code })
@@ -270,12 +333,11 @@ it('legacy message-scoped ERRs retain code sequencing and identical retry', asyn
     return createCanonicalAckMessage({ actorUserId: f.actor, sourceMessage: f.source, ackFamily: 'UTILTS_ERR', outcome: 'negative', draft })
   }
   const first = await create('E87'), second = await create('E10')
-  expect(second.id).not.toBe(first.id)
-  expect(first.source_operation_id).toBe(`ediel_ack:${f.source.id}:UTILTS_ERR:E87`)
-  expect(second.source_operation_id).toBe(`ediel_ack:${f.source.id}:UTILTS_ERR:E10`)
+  expect(second).toEqual(first)
+  expect(first.source_operation_id).toBe(`ediel_ack:${f.source.id}:UTILTS_ERR:LEGACY-ERR-IDE`)
   expect(await create('E87')).toEqual(first)
   expect(await create('E10')).toEqual(second)
-  expect(f.acks()).toHaveLength(2)
+  expect(f.acks()).toHaveLength(1)
 })
 
 it.each([true, false])('a unique insert failure recovers only the same IDE ERR when committed=%s', async committed => {
