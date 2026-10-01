@@ -1,9 +1,8 @@
 import {it,expect} from 'vitest'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
-// Actual APERAK encode uses the default alphabet. Codec exposes partial UNA
-// overrides for the outer framing but builds business/header elements with the
-// canonical default alphabet; no general custom-UNA encode claim is made here.
+// Business segments are serialized in the default alphabet. The codec
+// transcodes framing and data into the requested output service alphabet.
 for(const [suffix,decoded] of [['plain','plain'],["plain'",'plain'],["plain'''",'plain'],["tail?'","tail'"],["tail?''","tail'"],["tail?'''","tail'"],["tail??'",'tail?'],["tail???'","tail?'"],["tail????'",'tail??']] as const){
  it(`actual codec preserves escaped content and removes only terminators: ${suffix}`,()=>{
   const raw=EdifactEnvelopeCodec.encode({ acknowledgementRequest: true,sender:'12345',receiver:'54321',interchangeReference:'I',environment:'test',messages:[{messageReference:'M',messageTypeToken:'APERAK:D:96A:UN:E2SE2B',businessSegments:[`FTX+AAO+++${suffix}`]}]})
@@ -17,9 +16,12 @@ for(const tag of ['UNA','UNB','UNH','UNT','UNZ'])it(`retains envelope tag reject
 for(const [body,value] of [["  FTX+AAO+++MID?'END'\r\n  ","MID'END"],["FTX+AAO+++END?'?''","END''"],["FTX+AAO+++END???''","END?'"],["FTX+AAO+++END??",'END?']] as const)it(`released middle/repeated data and whitespace ${body}`,()=>{
  const t=tokenizeEdifact(encode([body]));expect(segmentComposite(t.segments.find(s=>s.tag==='FTX')!,4,t.una)).toEqual([value]);expect(t.segments.filter(s=>s.tag==='UNT')).toHaveLength(1)
 })
-it('preserves compatible partial UNA framing without general body transcoding',()=>{
- const raw=encode(['FTX+AAO+++END!~'],{releaseCharacter:'!',segmentTerminator:'~'}),t=tokenizeEdifact(raw)
+it('transcodes default-serialized data into compatible partial UNA framing',()=>{
+ const raw=encode(['FTX+AAO+++END?~'],{releaseCharacter:'!',segmentTerminator:'~'}),t=tokenizeEdifact(raw)
  expect(segmentComposite(t.segments.find(s=>s.tag==='FTX')!,4,t.una)).toEqual(['END~']);expect(t.segments.filter(s=>s.tag==='UNT')).toHaveLength(1)
- const general=encode(['FTX+AAO+++END'],{componentDataElementSeparator:'*',dataElementSeparator:';'})
- expect(general).toContain('UNH+M+APERAK:D:96A:UN:E2SE2B'); // existing partial interface, not a new full-UNA guarantee
+ const literal=tokenizeEdifact(encode(['FTX+AAO+++END!~'],{releaseCharacter:'!',segmentTerminator:'~'}))
+ expect(segmentComposite(literal.segments.find(s=>s.tag==='FTX')!,4,literal.una)).toEqual(['END!~'])
+ const general=tokenizeEdifact(encode(['FTX+AAO+++END'],{componentDataElementSeparator:'*',dataElementSeparator:';'}))
+ expect(segmentComposite(general.segments.find(s=>s.tag==='UNH')!,2,general.una)).toEqual(['APERAK','D','96A','UN','E2SE2B'])
+ expect(segmentComposite(general.segments.find(s=>s.tag==='FTX')!,4,general.una)).toEqual(['END'])
 })
