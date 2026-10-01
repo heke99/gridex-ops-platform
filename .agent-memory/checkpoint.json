@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Compose existing Ediel v2 rule families and real consumers",
+  "active_item": "Finish coherent original rule caller families; no final candidate yet",
   "current_audit": "quality/audits/ediel-masterplan-v2/integration-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Complete all internal source-owned producers and consumers; collect authentic clean/ancestor-upgrade replay, generated artifacts and native/browser results on owned draft #424; freeze and qualify one final exact public head, then literal 352-ID review.",
+  "next_action": "Integrate bounded P15/ACKv1/OPS native status closure, update unchanged352-ID matrix, publish saved codephase; then freeze authentic full qualifier",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1381,5 +1381,21 @@
       310
     ],
     "qualification": "IN_PROGRESS, no final same-candidate acceptance"
+  },
+  "ediel_composed_codephase_20261001": {
+    "last_actual_published_head": "1d7172ebe3ba01d5390a845f7087d546a9d2c3d2",
+    "last_actual_published_tree": "f22804877b49cb78217f790de138e931cf67848f",
+    "publication_run": 36861867953,
+    "qualified_code_sha": null,
+    "frozen": false,
+    "final_qualification": "NOT_RUN",
+    "matrix_code_only": {
+      "CODE_READY_NOT_VERIFIED": 266,
+      "ALREADY_IMPLEMENTED_VERIFICATION_ONLY": 24,
+      "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED": 52,
+      "REMAINING_CODE_WORK": 10
+    },
+    "current_receipt": "quality/audits/ediel-masterplan-v2/coherent-status-li-codephase-20261001.json",
+    "heavy_checks": "Deferred until composed candidate is frozen; old green results remain bound to original versions."
   }
 }

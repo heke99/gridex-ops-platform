@@ -3,6 +3,8 @@
 # local stack; it is stopped before a second, independent candidate clean run.
 set -euo pipefail
 CANDIDATE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CANDIDATE_SHA="$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)"
+CANDIDATE_TREE="$(git -C "$CANDIDATE_ROOT" rev-parse 'HEAD^{tree}')"
 cd "$CANDIDATE_ROOT"
 [[ "${GITHUB_ACTIONS:-}" == true && -n "${RUNNER_TEMP:-}" ]] || { echo 'upgrade_disposable_ci_runner_required' >&2; exit 1; }
 [[ -z "${GRIDEX_REPLAY_DB_URL:-}" ]] || { echo 'upgrade_external_database_forbidden' >&2; exit 1; }
@@ -11,7 +13,21 @@ UPGRADE_BASE=d30fa0203f0499a8e15faeddda7676af81296c86
 UPGRADE_WORK="$(mktemp -d "$RUNNER_TEMP/gridex-upgrade.XXXXXX")"
 UPGRADE_OUT="$CANDIDATE_ROOT/rem002-upgrade"
 mkdir -p "$UPGRADE_OUT"
-upgrade_cleanup() { git -C "$CANDIDATE_ROOT" worktree remove --force "$UPGRADE_WORK/base" >/dev/null 2>&1 || true; rm -rf "$UPGRADE_WORK"; }
+upgrade_cleanup() {
+ local redaction_failed=0
+ if [[ -f "$UPGRADE_WORK/native-status.json" ]]; then
+  if ! python3 "$CANDIDATE_ROOT/scripts/gridex-redact-native-evidence.py" \
+   --local-secrets "$UPGRADE_WORK/native-status.json" --root "$UPGRADE_OUT" \
+   --root "$CANDIDATE_ROOT/rem002-upgrade-replay.log"; then
+   rm -rf "$UPGRADE_OUT"
+   rm -f "$CANDIDATE_ROOT/rem002-upgrade-replay.log"
+   redaction_failed=1
+  fi
+ fi
+ git -C "$CANDIDATE_ROOT" worktree remove --force "$UPGRADE_WORK/base" >/dev/null 2>&1 || true
+ rm -rf "$UPGRADE_WORK"
+ [[ "$redaction_failed" == 0 ]] || { echo 'native_evidence_redaction_failed; evidence_removed' >&2; return 1; }
+}
 trap upgrade_cleanup EXIT
 python3 "$CANDIDATE_ROOT/scripts/gridex-ediel-upgrade-inputs.py" --base "$UPGRADE_BASE" --out "$UPGRADE_WORK/plan"
 cp "$UPGRADE_WORK/plan/upgrade-inputs.json" "$UPGRADE_OUT/upgrade-inputs.json"
@@ -38,11 +54,31 @@ generate_upgrade_artifacts() {
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/retained-before.json"
  while IFS= read -r migration; do
   printf 'UPGRADE_APPLY: %s\n' "${migration##*/}"
+  if [[ "${migration##*/}" == 20261001110500_ediel_utilts_current_execution_actor.sql ]]; then
+    psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 \
+      -v candidate_sha="$CANDIDATE_SHA" -v candidate_tree="$CANDIDATE_TREE" \
+      -f "$CANDIDATE_ROOT/scripts/sql/ediel-utilts-pre-actor-catalog.sql" \
+      > "$UPGRADE_OUT/utilts-pre110500.json"
+    [[ -s "$UPGRADE_OUT/utilts-pre110500.json" ]] || { echo 'pre110500_original_public6_missing' >&2; exit 1; }
+  fi
   if [[ "${migration##*/}" == 20261001000500_ediel_artifact_retention_decision_and_purge.sql ]]; then
     psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/ediel-retention-replay-role-diagnostic.sql"
   fi
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$migration"
  done < "$UPGRADE_WORK/plan/upgrade-inputs.list"
+ mkdir -p "$UPGRADE_OUT/upgraded"
+ supabase status -o json > "$UPGRADE_WORK/native-status.json"
+ (
+  cd "$CANDIDATE_ROOT"
+  GRIDEX_NATIVE_STATUS="$UPGRADE_WORK/native-status.json" \
+  GRIDEX_NATIVE_DATABASE_PHASE=upgrade \
+  GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH="$UPGRADE_OUT/utilts-pre110500.json" \
+  GRIDEX_UTILTS_CATALOG_RECEIPT_PATH="$UPGRADE_OUT/upgraded/utilts-catalog.json" \
+  npx vitest run scripts/ediel-utilts-consumption-native.test.ts \
+   --config scripts/ediel-source-owner-native.config.ts \
+   -t 'native catalog binds preserved UTILTS OIDs to the only actor-protected callable chain' \
+   --reporter=default --reporter=junit --outputFile="$UPGRADE_OUT/utilts-catalog-upgrade-junit.xml"
+ )
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/retained-after.json"
  cmp "$UPGRADE_OUT/retained-before.json" "$UPGRADE_OUT/retained-after.json"
  # An old original acquires no prospective legal approval as a side effect.

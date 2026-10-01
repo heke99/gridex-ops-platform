@@ -36,6 +36,13 @@ try {
  CREATE FUNCTION gridex_ediel_ack_replay.lock_current_graph_v2() RETURNS void LANGUAGE plpgsql AS $$BEGIN RETURN;END$$;
  CREATE FUNCTION gridex_bilateral_prodat.lock_source_receipts_v1() RETURNS void LANGUAGE plpgsql AS $$BEGIN RETURN;END$$;
  CREATE FUNCTION gridex_ediel_duplicate_responses.is_duplicate_ack_v1(a uuid) RETURNS boolean LANGUAGE sql AS $$SELECT EXISTS(SELECT FROM gridex_ediel_duplicate_responses.declared_consumed_ids WHERE id=a)$$;
+ -- Declared per-original boundary; installed full-source/guide body is tested
+ -- separately by duplicate-103-owner-sql-regression, not claimed by this stub.
+ CREATE FUNCTION gridex_ediel_duplicate_responses.read_business_original_v1(c uuid,e text,s uuid,u uuid,f text,a uuid,phase text) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE m jsonb;BEGIN
+  IF phase<>'read' OR public.gridex_actor_has_company_permission(u,c,'communication.read') IS NOT TRUE THEN RAISE EXCEPTION 'reader_required';END IF;
+  IF a IS NULL THEN RETURN jsonb_build_object('sourceMessageId',s);END IF;
+  SELECT message||jsonb_build_object('related_message_id',s,'ack_outcome','negative') INTO m FROM gridex_ack_authority.declared_originals WHERE id=a AND source_id=s AND family=f AND status='qualified';
+  RETURN jsonb_build_object('ackMessage',m);END$$;
  CREATE FUNCTION gridex_ack_authority.read_outbound_originals_v1(s uuid,f text) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE answer jsonb;wait_ms int;BEGIN
   SELECT milliseconds INTO wait_ms FROM gridex_ack_authority.declared_delay;IF wait_ms>0 THEN PERFORM pg_sleep(wait_ms/1000.0);END IF;
   SELECT jsonb_build_object('version',1,'sourceMessageId',m.id,'companyId',m.company_id,'environment',m.environment,'originals',coalesce((SELECT jsonb_agg(jsonb_build_object('status',o.status,'message',o.message)) FROM gridex_ack_authority.declared_originals o WHERE o.source_id=s AND o.family=f),'[]')) INTO answer FROM public.ediel_messages m WHERE m.id=s;

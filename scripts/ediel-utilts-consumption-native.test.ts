@@ -1,5 +1,6 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
 import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointRequest'
@@ -42,9 +43,9 @@ const nativePersistenceRpc = supabaseService.rpc.bind(supabaseService) as unknow
 ) => PromiseLike<{ data: unknown; error: { message: string; code: string } | null }>
 const DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const lit = (value: unknown) => value === null ? 'NULL' : "'" + String(typeof value === 'object' ? JSON.stringify(value) : value).replaceAll("'", "''") + "'"
-function sql<T = unknown>(input: string): T {
+function sql<T = unknown>(input: string, maxBuffer = 2000000): T {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('native_local_only')
-  const result = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input, encoding: 'utf8', timeout: 10000, maxBuffer: 2000000 }).trim()
+  const result = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input, encoding: 'utf8', timeout: 10000, maxBuffer }).trim()
   // Unwrapped PostgreSQL booleans use t/f in unaligned text output. JSONB
   // booleans already use true/false; keep every other result strict JSON.
   if (result === 't' || result === 'f') return (result === 't') as T
@@ -877,6 +878,225 @@ it('private storage and old unbound function are unavailable to service callers'
     expect(sql(`SELECT has_function_privilege(${lit(role)},'public.gridex_consume_utilts_billing_v1(uuid,uuid,uuid,jsonb)','EXECUTE')`)).toBe(false)
   }
 })
+
+// Run this only against the frozen, completely replayed native database. OID
+// dependencies and effective role ACLs are database observations; untracked
+// string-body/dynamic calls are a separate installed-source inventory below.
+const persistenceCatalogOwners = [
+  ['public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',
+    '20261001110500_ediel_utilts_current_execution_actor.sql', 'public.gridex_persist_utilts_consumption_v1'],
+  ['gridex_utilts_binding.require_execution_actor_v1(uuid,uuid)',
+    '20261001110500_ediel_utilts_current_execution_actor.sql', 'gridex_utilts_binding.require_execution_actor_v1'],
+  ['gridex_utilts_binding.persist_consumption_before_actor_v1(uuid,text,uuid,text,text,jsonb)',
+    '20261001051410_ediel_utilts_persist_reading_followup_owner.sql', 'public.gridex_persist_utilts_consumption_v1'],
+  ['gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)',
+    '20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql', 'gridex_utilts_binding.persist_consumption_before_precision_v1'],
+  ['gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)',
+    '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v1'],
+  ['gridex_utilts_binding.persist_series_legacy_v1(uuid,text,uuid,text,jsonb)',
+    '20260928181500_utilts_held_retry_stable_reservation.sql', 'gridex_utilts_binding.persist_series_v1'],
+  ['gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)',
+    '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v2'],
+  ['public.gridex_persist_utilts_transactions_v1(uuid,text,uuid,text,jsonb)',
+    '20260923135706_ediel_utilts_consumption_binding_v1.sql', 'public.gridex_persist_utilts_transactions_v1'],
+] as const
+
+function committedPersistenceBody(revision: string, migration: string, functionName: string) {
+  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  expect(createHash('sha256').update(source).digest('hex'), migration).toBe(manifest.files[migration])
+  // This extracts one specifically named, checksum-bound migration body. It
+  // never treats a search of the installed catalog as dependency proof.
+  const escapedName = functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const headers = [...source.matchAll(new RegExp(`\\bcreate\\s+(?:or\\s+replace\\s+)?function\\s+${escapedName}\\s*\\(`, 'gi'))]
+  expect(headers, `${migration}:${functionName}`).toHaveLength(1)
+  const afterHeader = source.slice(headers[0].index)
+  const delimiter = afterHeader.match(/\$(?:[A-Za-z_][A-Za-z_0-9]*)?\$/)
+  expect(delimiter, `${migration}:${functionName}:body delimiter`).not.toBeNull()
+  const bodyStart = delimiter!.index! + delimiter![0].length
+  const bodyEnd = afterHeader.indexOf(delimiter![0], bodyStart)
+  expect(bodyEnd, `${migration}:${functionName}:body end`).toBeGreaterThan(bodyStart)
+  return { body: afterHeader.slice(bodyStart, bodyEnd), migrationHash: createHash('sha256').update(source).digest('hex') }
+}
+
+type PersistenceCatalogFunction = {
+  oid: number; signature: string; name: string; schema: string; owner: string; language: string;
+  securityDefiner: boolean; kind: string; config: string[] | null; argumentNames: string[] | null;
+  defaultCount: number; defaults: string | null; source: string; definition: string | null; publicExecute: boolean;
+  acl: { grantee: string; privilege: string; grantable: boolean }[];
+}
+type PersistenceCatalogRole = {
+  root: string; effectiveRole: string; superuser: boolean; createRole: boolean;
+  inheritedPrivileges: boolean; setRoleAllowed: boolean; setRolePath: string[];
+}
+type PersistenceCatalogDependency = {
+  targetOid: number; target: string; classOid: number; objectOid: number; subId: number;
+  kind: string; description: string; functionSignature: string | null; path: string[];
+}
+type PersistenceCatalogReceipt = {
+  serverVersion: string; serverVersionNumber: string; database: string; capturedAt: string;
+  databaseIdentity: { systemIdentifier: string; databaseOid: string; serverAddress: string; serverPort: number; postmasterStartedAt: string };
+  roles: PersistenceCatalogRole[]; roleMemberships: Record<string, unknown>[];
+  functions: PersistenceCatalogFunction[];
+  roleMatrix: { root: string; effectiveRole: string; signature: string; execute: boolean; schemaUsage: boolean }[];
+  dependencies: PersistenceCatalogDependency[]; triggers: Record<string, unknown>[]; policies: Record<string, unknown>[];
+  migrations: { version: string; name: string }[];
+}
+
+it('native catalog binds preserved UTILTS OIDs to the only actor-protected callable chain', () => {
+  const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  const tree = execFileSync('git', ['rev-parse', `${revision}^{tree}`], { encoding: 'utf8' }).trim()
+  const signatures = persistenceCatalogOwners.map(([signature]) => signature)
+  const allowed = new Set<string>(signatures)
+  const publicEntry = signatures[0]
+  const privateOwners = signatures.filter(signature => signature.startsWith('gridex_utilts_binding.'))
+  const catalog = sql<PersistenceCatalogReceipt>(`WITH RECURSIVE
+   app_roots AS (SELECT oid,rolname FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','authenticator')),
+   set_roles(root_oid,role_oid,path) AS (
+    SELECT oid,oid,ARRAY[oid] FROM app_roots
+    UNION ALL SELECT s.root_oid,m.roleid,s.path||m.roleid FROM set_roles s JOIN pg_auth_members m ON m.member=s.role_oid
+     WHERE coalesce((to_jsonb(m)->>'set_option')::boolean,true) AND NOT m.roleid=ANY(s.path)),
+   effective_roles AS (SELECT DISTINCT root_oid,role_oid FROM set_roles),
+   private_targets AS (SELECT to_regprocedure(signature)::oid AS oid,signature FROM unnest(ARRAY[${privateOwners.map(lit).join(',')}]) signature),
+   reverse_dependants(target_oid,target,class_oid,object_oid,sub_id,kind,path) AS (
+    SELECT t.oid,t.signature,d.classid,d.objid,d.objsubid,d.deptype,ARRAY[d.classid::text||':'||d.objid::text||':'||d.objsubid::text]
+     FROM private_targets t JOIN pg_depend d ON d.refclassid='pg_proc'::regclass AND d.refobjid=t.oid
+    UNION ALL SELECT r.target_oid,r.target,d.classid,d.objid,d.objsubid,d.deptype,r.path||(d.classid::text||':'||d.objid::text||':'||d.objsubid::text)
+     FROM reverse_dependants r JOIN pg_depend d ON d.refclassid=r.class_oid AND d.refobjid=r.object_oid AND d.refobjsubid=r.sub_id
+     WHERE NOT (d.classid::text||':'||d.objid::text||':'||d.objsubid::text)=ANY(r.path)),
+   installed_functions AS (SELECT p.*,n.nspname,l.lanname,
+     format('%I.%I(%s)',n.nspname,p.proname,regexp_replace(oidvectortypes(p.proargtypes),',\\s*',',','g')) AS signature
+     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang
+     WHERE n.nspname IN ('public','graphql_public') OR n.nspname LIKE 'gridex\\_%' ESCAPE '\\')
+   SELECT jsonb_build_object(
+    'serverVersion',version(),'serverVersionNumber',current_setting('server_version_num'),'database',current_database(),'capturedAt',clock_timestamp(),
+    'databaseIdentity',jsonb_build_object('systemIdentifier',(SELECT system_identifier::text FROM pg_control_system()),
+      'databaseOid',(SELECT oid::text FROM pg_database WHERE datname=current_database()),'serverAddress',inet_server_addr()::text,
+      'serverPort',inet_server_port(),'postmasterStartedAt',to_char(pg_postmaster_start_time() AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')),
+    'roles',(SELECT jsonb_agg(jsonb_build_object('root',a.rolname,'effectiveRole',r.rolname,'superuser',r.rolsuper,'createRole',r.rolcreaterole,
+      'inheritedPrivileges',pg_has_role(a.oid,r.oid,'USAGE'),'setRoleAllowed',pg_has_role(a.oid,r.oid,'SET'),'setRolePath',(SELECT jsonb_agg(x.rolname ORDER BY v.ordinality)
+       FROM unnest(s.path) WITH ORDINALITY v(oid,ordinality) JOIN pg_roles x ON x.oid=v.oid)) ORDER BY a.rolname,r.rolname)
+      FROM set_roles s JOIN app_roots a ON a.oid=s.root_oid JOIN pg_roles r ON r.oid=s.role_oid),
+    'roleMemberships',(SELECT coalesce(jsonb_agg(to_jsonb(m)||jsonb_build_object('roleName',r.rolname,'memberName',u.rolname) ORDER BY r.rolname,u.rolname),'[]'::jsonb)
+      FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid JOIN pg_roles u ON u.oid=m.member),
+    'functions',(SELECT coalesce(jsonb_agg(jsonb_build_object('oid',p.oid,'signature',p.signature,'name',p.proname,'schema',p.nspname,
+      'owner',pg_get_userbyid(p.proowner),'language',p.lanname,'securityDefiner',p.prosecdef,'kind',p.prokind,'config',p.proconfig,
+      'argumentNames',p.proargnames,'identityArguments',pg_get_function_identity_arguments(p.oid),'returnType',format_type(p.prorettype,NULL),
+      'defaultCount',p.pronargdefaults,'defaults',pg_get_expr(p.proargdefaults,0),
+      'source',p.prosrc,'definition',CASE WHEN p.prokind='a' THEN NULL ELSE pg_get_functiondef(p.oid) END,
+      'aggregate',(SELECT to_jsonb(a) FROM pg_aggregate a WHERE a.aggfnoid=p.oid),
+      'publicExecute',EXISTS(SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'),
+      'acl',(SELECT jsonb_agg(jsonb_build_object('grantee',CASE WHEN acl.grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(acl.grantee) END,
+       'privilege',acl.privilege_type,'grantable',acl.is_grantable) ORDER BY acl.grantee,acl.privilege_type)
+       FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl)) ORDER BY p.signature),'[]'::jsonb) FROM installed_functions p),
+    'roleMatrix',(SELECT coalesce(jsonb_agg(jsonb_build_object('root',a.rolname,'effectiveRole',r.rolname,'signature',p.signature,
+      'execute',has_function_privilege(r.oid,p.oid,'EXECUTE'),'schemaUsage',has_schema_privilege(r.oid,p.pronamespace,'USAGE')) ORDER BY a.rolname,r.rolname,p.signature),'[]'::jsonb)
+      FROM effective_roles s JOIN app_roots a ON a.oid=s.root_oid JOIN pg_roles r ON r.oid=s.role_oid CROSS JOIN installed_functions p),
+    'dependencies',(SELECT coalesce(jsonb_agg(jsonb_build_object('targetOid',r.target_oid,'target',r.target,'classOid',r.class_oid,'objectOid',r.object_oid,
+      'subId',r.sub_id,'kind',r.kind,'description',pg_describe_object(r.class_oid,r.object_oid,r.sub_id),'functionSignature',p.signature,'path',r.path)
+      ORDER BY r.target,r.path),'[]'::jsonb) FROM reverse_dependants r LEFT JOIN installed_functions p ON r.class_oid='pg_proc'::regclass AND p.oid=r.object_oid),
+    'triggers',(SELECT coalesce(jsonb_agg(jsonb_build_object('table',n.nspname||'.'||c.relname,'name',t.tgname,'enabled',t.tgenabled,
+      'functionOid',t.tgfoid,'function',p.signature,'definition',pg_get_triggerdef(t.oid)) ORDER BY n.nspname,c.relname,t.tgname),'[]'::jsonb)
+      FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace JOIN installed_functions p ON p.oid=t.tgfoid WHERE NOT t.tgisinternal),
+    'policies',(SELECT coalesce(jsonb_agg(jsonb_build_object('table',n.nspname||'.'||c.relname,'name',p.polname,'command',p.polcmd,'roles',p.polroles,
+      'using',pg_get_expr(p.polqual,p.polrelid),'check',pg_get_expr(p.polwithcheck,p.polrelid)) ORDER BY n.nspname,c.relname,p.polname),'[]'::jsonb)
+      FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' OR n.nspname LIKE 'gridex\\_%' ESCAPE '\\'),
+    'migrations',(SELECT jsonb_agg(jsonb_build_object('version',version,'name',name) ORDER BY version) FROM supabase_migrations.schema_migrations));`, 32_000_000)
+  const actual = new Map(catalog.functions.map(fn => [fn.signature, fn]))
+  const expected = persistenceCatalogOwners.map(([signature, migration, functionName]) => ({ signature, migration, ...committedPersistenceBody(revision, migration, functionName) }))
+  // Conservative named-call discovery supplies the late-bound callsite review.
+  // It neither parses PL/pgSQL nor proves dynamically assembled SQL absent.
+  const privateNames = privateOwners.map(signature => signature.slice(signature.indexOf('.') + 1, signature.indexOf('(')))
+  const namedCallsites = catalog.functions.filter(fn => privateNames.some(name => fn.source.includes(name)))
+  const dynamicDefinitions = catalog.functions.filter(fn => fn.language === 'plpgsql' && /\bEXECUTE\b/i.test(fn.source))
+  const preupgradePath = process.env.GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
+  const before = preupgradePath ? JSON.parse(readFileSync(preupgradePath, 'utf8')) as {
+    format: string; codeSha: string; codeTree: string; beforeMigrationVersion: string; predecessorSignature: string;
+    oldPublic6Oid: number; sourceHash: string; serverVersionNumber: string; databaseIdentity: PersistenceCatalogReceipt['databaseIdentity'];
+  } : null
+  const databasePhase = process.env.GRIDEX_NATIVE_DATABASE_PHASE
+  const predecessor = actual.get(signatures[2])
+  const databaseIdentityKeys = ['systemIdentifier', 'databaseOid', 'serverAddress', 'serverPort', 'postmasterStartedAt'] as const
+  const beforeMatches = before !== null && before.format === 'gridex_utilts_pre_actor_catalog_v1'
+    && before.codeSha === revision && before.codeTree === tree && before.beforeMigrationVersion === '20261001110500'
+    && before.predecessorSignature === 'public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'
+    && Number.isSafeInteger(before.oldPublic6Oid) && before.oldPublic6Oid > 0 && before.oldPublic6Oid === predecessor?.oid
+    && before.sourceHash === createHash('sha256').update(predecessor?.source ?? '').digest('hex')
+    && before.serverVersionNumber === catalog.serverVersionNumber
+    && databaseIdentityKeys.every(key => before.databaseIdentity?.[key] === catalog.databaseIdentity[key])
+  const receiptPath = process.env.GRIDEX_UTILTS_CATALOG_RECEIPT_PATH || `/tmp/gridex-utilts-catalog-${revision}.json`
+  const receipt = { format: 'gridex_utilts_native_catalog_v1', codeSha: revision, codeTree: tree,
+    databasePhase: databasePhase || 'not_declared',
+    oldPublic6Absent: !actual.has('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'),
+    observedPreservedOld6Oid: actual.get(signatures[2])?.oid ?? null, preupgradeOld6Oid: before?.oldPublic6Oid ?? null,
+    preActorCatalog: before, preActorCatalogHash: preupgradePath ? createHash('sha256').update(readFileSync(preupgradePath)).digest('hex') : null,
+    oidPreservationCompared: beforeMatches,
+    expectedOwners: expected.map(({ body, ...source }) => ({ ...source, bodyHash: createHash('sha256').update(body).digest('hex') })),
+    namedCallsites: namedCallsites.map(fn => fn.signature), dynamicDefinitions: dynamicDefinitions.map(fn => fn.signature),
+    limitations: ['pg_depend does not record calls in string bodies or dynamically assembled SQL.',
+      'Named-call discovery rejects unreviewed literal producer paths; it is not a PL/pgSQL parser or proof about computed identifiers.',
+      'All installed public/gridex callable definitions, effective ACLs, triggers and policies are retained for separate source/phase review.',
+      'OID preservation across upgrade requires the genuine pre-upgrade OID receipt.'], catalog }
+  writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 })
+  console.info('EDIEL_UTILTS_NATIVE_CATALOG', JSON.stringify({ codeSha: revision, codeTree: tree, receiptPath,
+    receiptHash: createHash('sha256').update(readFileSync(receiptPath)).digest('hex'),
+    predecessorOid: receipt.observedPreservedOld6Oid, public7Oid: actual.get(publicEntry)?.oid,
+    functionCount: catalog.functions.length, effectiveRoleCount: catalog.roles.length, dependencyCount: catalog.dependencies.length,
+    oidPreservationCompared: receipt.oidPreservationCompared, dynamicDefinitionCount: dynamicDefinitions.length }))
+  expect(catalog.roles.map(role => role.root)).toEqual(expect.arrayContaining(['anon', 'authenticated', 'service_role', 'authenticator']))
+  expect(['clean', 'upgrade'], 'declare the actual native database phase').toContain(databasePhase)
+  if (databasePhase === 'upgrade') expect(before, 'upgrade qualification requires the genuine pre110500 catalog receipt').not.toBeNull()
+  if (before) {
+    expect(before.format).toBe('gridex_utilts_pre_actor_catalog_v1')
+    expect(before.codeSha).toBe(revision)
+    expect(before.codeTree).toBe(tree)
+    expect(before.beforeMigrationVersion).toBe('20261001110500')
+    expect(before.predecessorSignature).toBe('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)')
+    expect(Number.isSafeInteger(before.oldPublic6Oid) && before.oldPublic6Oid > 0).toBe(true)
+    expect(before.serverVersionNumber).toBe(catalog.serverVersionNumber)
+    expect(before.databaseIdentity).toEqual(catalog.databaseIdentity)
+    expect(before.sourceHash).toBe(createHash('sha256').update(predecessor?.source ?? '').digest('hex'))
+  }
+  expect(catalog.functions.length).toBeGreaterThan(signatures.length)
+  expect(receipt.oldPublic6Absent).toBe(true)
+  expect(new Set(signatures.map(signature => actual.get(signature)?.oid)).size).toBe(signatures.length)
+  for (const owner of expected) {
+    const fn = actual.get(owner.signature)
+    expect(fn, owner.signature).toBeDefined()
+    expect(fn!.source, owner.signature).toBe(owner.body)
+    expect(fn!.kind, owner.signature).toBe('f')
+    expect(fn!.language, owner.signature).toBe('plpgsql')
+    expect(fn!.securityDefiner, owner.signature).toBe(owner.signature !== 'public.gridex_persist_utilts_transactions_v1(uuid,text,uuid,text,jsonb)')
+    expect(fn!.owner, owner.signature).toBe(actual.get(publicEntry)!.owner)
+    expect(fn!.publicExecute, owner.signature).toBe(false)
+    expect(fn!.config, owner.signature).toContain(owner.signature.includes('persist_series_legacy_v1') || owner.signature.includes('persist_series_v2')
+      || owner.signature.includes('persist_consumption_before_precision_v1') ? 'search_path=pg_catalog, public, extensions' : 'search_path=pg_catalog')
+    expect(fn!.config!.every(setting => setting.startsWith('search_path=') || setting.toLowerCase() === 'timezone=utc'), owner.signature).toBe(true)
+  }
+  expect(actual.get(publicEntry)!.argumentNames).toEqual(['p_company_id', 'p_environment', 'p_source_message_id', 'p_message_code', 'p_raw_payload', 'p_transactions', 'p_actor_user_id'])
+  expect(actual.get(publicEntry)!.defaultCount).toBe(1)
+  expect(actual.get(publicEntry)!.defaults).toBe('NULL::uuid')
+  for (const role of catalog.roles) {
+    expect(role.setRoleAllowed, `${role.root}→${role.effectiveRole}: actual PostgreSQL SET privilege`).toBe(true)
+    expect(role.superuser, `${role.root}→${role.effectiveRole}`).toBe(false)
+    expect(role.createRole, `${role.root}→${role.effectiveRole}`).toBe(false)
+    expect(role.effectiveRole, `${role.root} must not SET ROLE to a storage owner`).not.toBe(actual.get(publicEntry)!.owner)
+    if (role.root === 'anon' || role.root === 'authenticated') expect(role.effectiveRole).not.toBe('service_role')
+  }
+  for (const row of catalog.roleMatrix.filter(row => allowed.has(row.signature))) {
+    const permitted = row.signature === publicEntry && row.effectiveRole === 'service_role' && (row.root === 'service_role' || row.root === 'authenticator')
+    expect(row.execute, `${row.root}→${row.effectiveRole}:${row.signature}`).toBe(permitted)
+  }
+  for (const dependency of catalog.dependencies) {
+    expect(dependency.functionSignature, `unreviewed tracked dependant: ${dependency.description}`).not.toBeNull()
+    expect(allowed.has(dependency.functionSignature!), `unreviewed tracked dependant: ${dependency.description}`).toBe(true)
+  }
+  for (const fn of namedCallsites) expect(allowed.has(fn.signature), `unreviewed late-bound named producer: ${fn.signature}`).toBe(true)
+  if (before) {
+    expect(actual.get(signatures[2])!.oid, 'renamed predecessor must preserve the genuine pre-upgrade public6 OID').toBe(before.oldPublic6Oid)
+    expect(receipt.oidPreservationCompared).toBe(true)
+  }
+}, 30_000)
 it.each(['missing-contract', 'corrupt-contract-hash', 'corrupt-raw-hash'])('native %s evidence cannot authorize replay', async kind => {
   const f = await seed(), input = await f.prepare(), rows = await persistUtiltsTransactionResults(input), before = snapshot(f.original.id)
   const payload = input.transactions.map((item, i) => ({ ...item, consumptionContract: input.contracts[i] }))

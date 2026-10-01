@@ -1,3 +1,15 @@
+## Current saved codephase — 2026-10-01
+
+Active branch `codex/ediel-composed-rules-20261001`; last actual published head `1d7172ebe3ba01d5390a845f7087d546a9d2c3d2`, tree `f22804877b49cb78217f790de138e931cf67848f`. Exact preserved-commit publication run36861867953 succeeded. This is publication evidence, never runtime/final acceptance. Genuine bba/3c composition, H0023 and intake056/823 original commits are retained. #424/#421 and main remain untouched.
+
+Private ACK source/read/status and actual scope producer/replay now share the same original qualifier. Source link/outcome are projected from private binding and wire/birth evidence without mutable cache repair. Protected missing-LI allocation preserves the real failed physical subset/V6, prior original and current actor; atomic rollback/replay checks pass. Canonical isolated Node22/package-lock checks: 51 cumulative ACK SQL mechanics, 145 cumulative LI SQL mechanics, 36 ACK/LI +17 status unit tests, app types and scoped lint0errors pass. These finite SQL ports are explicitly not authentic native/concurrency proof. Exact files/log hashes: `quality/audits/ediel-masterplan-v2/coherent-status-li-codephase-20261001.json`.
+
+Current matrix retains all352 exact IDs and unchanged formal criteria: 266 CODE_READY_NOT_VERIFIED,24 ALREADY_IMPLEMENTED_VERIFICATION_ONLY,52 EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED,10 REMAINING_CODE_WORK. Independent bounded review cleared43 old component gaps and found a real P15 inherited meter/register receipt gap, now owned by history. Five P15-family rows reopened; remaining ACK09/ATACK09/TR05/SC040/ATTR05 await actual incident/v1/OPS closure. No percentage or whole-contract promotion.
+
+Next action: finish and integrate ACK v1/incident, selected structural origins and OPS native ACK status/UI; update only matching bounded matrix gaps; save/publish coherent packages. Native OID/catalog and same-stack pre110500 upgrade capture are prepared, not run. Then freeze one composed candidate and run authentic clean/ancestor/applied-TXT upgrade, generated DB artifacts, nativeHTTP/security/concurrency/UI/browser/build and all mandatory CI on exact published head. Separate qualified codeSha/evidenceSha. Heavy qualification remains NOT_RUN for current code.
+
+No main merge, production migration, real customer communication or Ediel/counterparty/TGT/AGT traffic. #310 untouched; #418/#422 stay separate. Earlier sections below retain only their original source/version/scope.
+
 ## Saved coherent packages — 2026-10-01
 
 Active branch `codex/ediel-composed-rules-20261001`; genuine composition parents bba3163741c513a94938c63ffe88cf6089be78d1 and 3c7342c64c83b705e85c18f300705166a1732ad6. Published #424 and source #421 remain unchanged. Original121 rules/231 contracts and33 specification files pass immutable integrity. Current app/test types PASS; bounded status28 SQL mechanics +53 TS status/native-list/H tests PASS; scoped lint PASS. Owner packet receipts preserve their exact file hashes and scope. No authentic native/replay/browser/build/final CI qualification is inferred.

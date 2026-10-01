@@ -103,6 +103,14 @@ def main():
                     continue
                 raise ValueError(f'Unknown assessment ID: {own_id}')
             by_id.setdefault(own_id, []).append(assessment)
+    # A dated remaining finding must not live forever after its exact code
+    # component is integrated. Only explicit per-ID, literal-preserving root
+    # resolutions supersede the identical gap; other owners' findings remain.
+    resolution_path = BASE / 'component-resolutions-20261001.json'
+    resolutions = json.loads(resolution_path.read_text()) if resolution_path.is_file() else {'records': []}
+    resolution_by_id = {r['id']: r for r in resolutions['records']}
+    if len(resolution_by_id) != len(resolutions['records']):
+        raise ValueError('Duplicate component resolution ID')
     head = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
     git_state = subprocess.check_output(['git', '-C', str(root), 'status', '--porcelain=v1'], text=True)
     git_diff = subprocess.check_output(['git', '-C', str(root), 'diff', 'HEAD', '--binary'])
@@ -112,6 +120,26 @@ def main():
             own_id = literal['id']; old = previous[own_id]
             linked = [own_id] if kind == 'rule_card' else literal['rule_ids']
             assessments = by_id.get(own_id, [])
+            resolution = resolution_by_id.get(own_id)
+            if resolution and resolution['literal'] != literal:
+                raise ValueError(f'Component resolution changed frozen literal: {own_id}')
+            if resolution and resolution['approved_by_integrator']:
+                if resolution['resolution']['remaining_internal_code_criteria']:
+                    raise ValueError(f'Unfinished component cannot be resolved: {own_id}')
+                reviewed = []
+                for a in assessments:
+                    assessment_hash = hashlib.sha256(json.dumps(a, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+                    exact_finding = a.get('confirmed_code_gap') in resolution['old_gap_texts'] or assessment_hash in resolution.get('exact_stale_assessment_sha256s', [])
+                    if a['code_status'] in ('REMAINING_CODE_WORK', 'COORDINATION_BLOCKED') and exact_finding:
+                        a = {**a, 'code_status': 'CODE_READY_NOT_VERIFIED',
+                            'superseded_component_finding': {'original_code_status': a['code_status'],
+                                'original_assessment': a, 'catalog': str(resolution_path.relative_to(root)),
+                                'catalog_sha256': digest(resolution_path), 'id': own_id,
+                                'resolution': resolution['resolution'], 'formal_acceptance_unchanged': True},
+                            'code_paths': sorted(set(a.get('code_paths', []) + resolution['implementation']['code_files'])),
+                            'planned_tests': sorted(set(a.get('planned_tests', []) + resolution['regressions']['concrete_test_files']))}
+                    reviewed.append(a)
+                assessments = reviewed
             # Implementation assessment never implies that an acceptance's full
             # expected/prohibited oracle was executed or formally passed.
             # No later optimistic component may erase a different owner's
@@ -166,6 +194,7 @@ def main():
                     'current_owner_dependency_or_blocker_notes': [b for a in assessments for b in a.get('blockers', [])],
                     'meaning': 'Integration dependency order; capability activation still requires its own current authentic evidence and native consumer gate.'},
                 'code_status': status,
+                'current_component_resolution': resolution,
                 'fresh_normative_component_coverage': {'reviewed_rule_components': sorted(covered_rules),
                     'unreviewed_rule_components': unreviewed_parts,
                     'required_actual_consumer_owners': required_consumers,
@@ -203,6 +232,7 @@ def main():
         'counts': {'rule_cards': len(rules), 'acceptance_contracts': len(contracts), 'exact_ids': len(rows),
             'code_statuses': dict(Counter(r['code_status'] for r in rows))},
         'frozen_related_catalogs': catalog, 'rows': rows, 'fresh_callsite_assessments': by_call,
+        'component_resolution_catalog': {'path': str(resolution_path.relative_to(root)), 'sha256': digest(resolution_path)} if resolution_path.is_file() else None,
         'formal_acceptance': 'No frozen requirement or formal acceptance status changed by this matrix',
         'final_candidate_status': 'NOT_ESTABLISHED_BY_MATRIX_GENERATION',
         'test_phase': {'run_status': 'NOT_RUN', 'criteria': [

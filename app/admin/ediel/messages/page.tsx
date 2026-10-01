@@ -4,6 +4,7 @@ import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import { listBusinessAckStatusForSources, listEdielMessages } from '@/lib/ediel/db'
+import { businessAckStatusPresentation } from '@/lib/ediel/inbound/businessAckReadModel'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
  deleteAllEdielMessagesAction,
@@ -22,6 +23,7 @@ type RowWithAcks = {
  ackMessages: EdielMessageRow[]
  heldOriginalIds: string[]
  statusUnavailable: boolean
+ displayStatus: string
 }
 
 function firstParam(value: string | string[] | undefined): string | null {
@@ -188,7 +190,6 @@ export default async function AdminEdielMessagesPage({
  const ackMessagesBySource = await listBusinessAckStatusForSources({
  actorUserId: context.userId,
  sourceMessageIds: topLevelMessages
- .filter((message) => message.direction === 'inbound')
  .map((message) => message.id),
  companyId,
  })
@@ -198,6 +199,9 @@ export default async function AdminEdielMessagesPage({
  ackMessages: message.direction === 'inbound' ? ackMessagesBySource.get(message.id)?.messages ?? [] : [],
  heldOriginalIds: ackMessagesBySource.get(message.id)?.heldOriginalIds ?? [],
  statusUnavailable: Boolean(ackMessagesBySource.get(message.id) && 'holdReason' in ackMessagesBySource.get(message.id)!),
+ displayStatus: message.status === 'acknowledged'
+ ? businessAckStatusPresentation(ackMessagesBySource.get(message.id) ?? { messages: [], heldOriginalIds: [], holdReason: 'unavailable' }).state
+ : message.status,
  }))
 
  return (
@@ -273,7 +277,7 @@ export default async function AdminEdielMessagesPage({
  Inga Ediel-meddelanden hittades för filtret.
  </div>
  ) : (
- rows.map(({ message, ackMessages, heldOriginalIds, statusUnavailable }) => {
+ rows.map(({ message, ackMessages, heldOriginalIds, statusUnavailable, displayStatus }) => {
  const isInboundUtilts = message.direction === 'inbound' && message.message_family === 'UTILTS'
  const hasContrl = hasAckFamily(ackMessages, 'CONTRL')
  const hasAperak = hasAckFamily(ackMessages, 'APERAK')
@@ -292,7 +296,7 @@ export default async function AdminEdielMessagesPage({
  <Pill text={messageVersion(message)} />
  <Pill text={message.application_reference} />
  <Pill text={message.direction} />
- <Pill text={message.status} />
+ <Pill text={displayStatus} />
  </div>
 
  {isInboundUtilts ? (

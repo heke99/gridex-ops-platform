@@ -293,23 +293,88 @@ DO $readers$ DECLARE definition text;needle text;BEGIN
  needle:='ORDER BY m.created_at,m.id LOOP';IF position(needle IN definition)=0 THEN RAISE EXCEPTION 'duplicate_original_reader_shape_changed';END IF;
  EXECUTE replace(definition,needle,needle||chr(10)||'  IF gridex_ediel_duplicate_responses.is_duplicate_ack_v1(ack.id) THEN CONTINUE;END IF;');
 END $readers$;
+-- Retained ACK relation/outcome columns are read-model caches. Derive the full
+-- installed per-original qualifier with a private source binding and local row
+-- projection; retain every guide, namespace, wire, receipt and domain predicate.
+CREATE FUNCTION gridex_ediel_duplicate_responses.require_business_read_actor_v1(c uuid,actor uuid,phase text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$BEGIN
+ IF phase NOT IN('prepare','read') OR phase IS NULL OR c IS NULL OR actor IS NULL
+  OR NOT EXISTS(SELECT FROM public.companies WHERE id=c AND status='active' AND is_active)
+  OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=actor AND user_status='active')
+  OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=c AND user_id=actor AND status='active' AND is_active AND accepted_at IS NOT NULL)
+  OR public.gridex_actor_has_company_permission(actor,c,CASE phase WHEN 'prepare' THEN 'communication.write' ELSE 'communication.read' END) IS NOT TRUE
+ THEN RAISE EXCEPTION 'ediel_business_ack_current_actor_required' USING ERRCODE='42501';END IF;
+END$$;
+CREATE FUNCTION gridex_ediel_duplicate_responses.require_business_binding_v1(c uuid,env text,source_id uuid,ack_id uuid,family text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$DECLARE basis jsonb;entry jsonb;BEGIN
+ basis:=gridex_ack_authority.read_outbound_originals_v1(source_id,family);
+ IF basis->>'sourceMessageId' IS DISTINCT FROM source_id::text OR basis->>'companyId' IS DISTINCT FROM c::text OR basis->>'environment' IS DISTINCT FROM env THEN RAISE EXCEPTION 'ediel_business_ack_own_original_required';END IF;
+ SELECT x INTO entry FROM jsonb_array_elements(basis->'originals')x WHERE x#>>'{message,id}'=ack_id::text;
+ IF entry->>'status' IS DISTINCT FROM 'qualified' THEN RAISE EXCEPTION 'ediel_business_ack_own_original_required';END IF;
+END$$;
+CREATE FUNCTION gridex_ediel_duplicate_responses.require_business_creation_outcome_v1(c uuid,env text,source_id uuid,ack public.ediel_messages,outcome text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$DECLARE receipt gridex_ediel_ack_replay.creation_receipts%rowtype;source public.ediel_messages%rowtype;BEGIN
+ SELECT * INTO receipt FROM gridex_ediel_ack_replay.creation_receipts WHERE ack_message_id=ack.id FOR SHARE;
+ IF receipt.ack_message_id IS NULL THEN RETURN;END IF;
+ SELECT * INTO STRICT source FROM public.ediel_messages WHERE id=source_id FOR SHARE;
+ IF receipt.company_id IS DISTINCT FROM c OR receipt.environment IS DISTINCT FROM env OR receipt.source_message_id IS DISTINCT FROM source_id
+  OR receipt.family IS DISTINCT FROM ack.message_family OR receipt.ack_payload_hash IS DISTINCT FROM encode(sha256(convert_to(ack.raw_payload,'UTF8')),'hex')
+  OR receipt.source_payload_hash IS DISTINCT FROM encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex') OR receipt.outcome IS DISTINCT FROM outcome
+ THEN RAISE EXCEPTION 'ediel_business_ack_creation_outcome_changed';END IF;
+END$$;
+DO $business_original$DECLARE definition text;body text;needle text;BEGIN
+ definition:=pg_get_functiondef('gridex_ediel_outbound_owner.require_v1(uuid,uuid)'::regprocedure);
+ SELECT prosrc INTO STRICT body FROM pg_proc WHERE oid='gridex_ediel_outbound_owner.require_v1(uuid,uuid)'::regprocedure;
+ needle:='PERFORM gridex_ediel_outbound_owner.assert_message_v1(m,w);';
+ IF position(needle IN body)=0 OR position('gridex_ediel_outbound_owner.consumptions' IN body)=0 THEN RAISE EXCEPTION 'ediel_business_ack_installed_owner_required';END IF;
+ definition:=replace(replace(definition,'gridex_ediel_outbound_owner.require_v1(','gridex_ediel_duplicate_responses.require_business_owner_v1('),'p_message_id uuid)','p_message_id uuid, p_source_id uuid)');
+ body:=replace(body,needle,'IF w.related_message_id IS DISTINCT FROM p_source_id THEN RAISE EXCEPTION ''ediel_business_ack_private_relation_changed'';END IF; m.related_message_id:=p_source_id; '||needle);
+ EXECUTE replace(definition,(SELECT prosrc FROM pg_proc WHERE oid='gridex_ediel_outbound_owner.require_v1(uuid,uuid)'::regprocedure),body);
+ definition:=pg_get_functiondef('gridex_ediel_ack_replay.read_exact_v2(uuid,text,uuid,uuid,text,uuid)'::regprocedure);
+ SELECT prosrc INTO STRICT body FROM pg_proc WHERE oid='gridex_ediel_ack_replay.read_exact_v2(uuid,text,uuid,uuid,text,uuid)'::regprocedure;
+ IF position('require_readonly_guide_v2' IN body)=0 OR position('require_readonly_prodat_ledger_v2' IN body)=0 OR position('ediel_ack_replay_physical_source_mismatch' IN body)=0 THEN RAISE EXCEPTION 'ediel_business_ack_installed_full_reader_required';END IF;
+ definition:=replace(replace(definition,'gridex_ediel_ack_replay.read_exact_v2(','gridex_ediel_duplicate_responses.read_business_original_v1('),'ack_id uuid)','ack_id uuid, phase text)');
+ needle:=$guard$IF public.gridex_actor_has_company_permission(actor,c,'communication.write') IS NOT TRUE
+  AND NOT(env='test' AND (family='CONTRL' OR common_source) AND public.gridex_actor_has_company_permission(actor,c,'ediel_testing.write') IS TRUE) THEN$guard$;
+ IF position(needle IN body)=0 THEN RAISE EXCEPTION 'ediel_business_ack_installed_phase_guard_required';END IF;
+ body:=replace(body,needle,'IF public.gridex_actor_has_company_permission(actor,c,CASE phase WHEN ''prepare'' THEN ''communication.write'' WHEN ''read'' THEN ''communication.read'' END) IS NOT TRUE THEN');
+ body:=replace(body,'AND m.related_message_id=source.id AND m.message_family=family','AND m.message_family=family');
+ body:=replace(body,'AND related_message_id=source.id AND message_family=family FOR SHARE;','AND message_family=family FOR SHARE;');
+ needle:=' IF NOT EXISTS(SELECT FROM gridex_ediel_wire_namespace.coverage';
+ IF position(needle IN body)=0 THEN RAISE EXCEPTION 'ediel_business_ack_installed_wire_guard_required';END IF;
+ body:=replace(body,needle,' PERFORM gridex_ediel_duplicate_responses.require_business_binding_v1(c,env,source.id,ack.id,family); ack.related_message_id:=source.id;'||chr(10)||needle);
+ body:=replace(body,'gridex_ediel_outbound_owner.require_v1(c,ack.id)','gridex_ediel_duplicate_responses.require_business_owner_v1(c,ack.id,source.id)');
+ needle:='IF wire_outcome IS NULL OR ack.ack_outcome IS NOT NULL AND ack.ack_outcome IS DISTINCT FROM wire_outcome THEN';
+ IF position(needle IN body)=0 THEN RAISE EXCEPTION 'ediel_business_ack_installed_wire_outcome_required';END IF;
+ body:=replace(body,needle,'IF wire_outcome IS NULL THEN');
+ needle:=' RETURN jsonb_build_object(''version'',1,''sourceMessage'',to_jsonb(source),''ackMessage''';
+ IF position(needle IN body)=0 THEN RAISE EXCEPTION 'ediel_business_ack_installed_original_return_required';END IF;
+ body:=replace(body,needle,' PERFORM gridex_ediel_duplicate_responses.require_business_creation_outcome_v1(c,env,source.id,ack,wire_outcome);'||chr(10)||' PERFORM gridex_ediel_duplicate_responses.read_business_original_v1(c,env,source.id,actor,family,NULL,phase);'||chr(10)||' PERFORM gridex_ediel_duplicate_responses.require_business_read_actor_v1(c,actor,phase);'||chr(10)||needle);
+ body:=replace(body,'IF ack_id IS NULL THEN RETURN jsonb_build_object','IF ack_id IS NULL THEN PERFORM gridex_ediel_duplicate_responses.require_business_read_actor_v1(c,actor,phase);RETURN jsonb_build_object');
+ body:=replace(body,'IF coalesce(cardinality(ids),0)=0 THEN RETURN NULL;END IF;','IF coalesce(cardinality(ids),0)=0 THEN PERFORM gridex_ediel_duplicate_responses.require_business_read_actor_v1(c,actor,phase);RETURN NULL;END IF;');
+ EXECUTE replace(definition,(SELECT prosrc FROM pg_proc WHERE oid='gridex_ediel_ack_replay.read_exact_v2(uuid,text,uuid,uuid,text,uuid)'::regprocedure),body);
+END$business_original$;
 CREATE FUNCTION public.ediel_list_business_acks_for_source_v1(p_company_id uuid,p_source_message_id uuid,p_actor_user_id uuid,p_environment text DEFAULT NULL,p_ack_family text DEFAULT NULL) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
-DECLARE s public.ediel_messages%rowtype;m public.ediel_messages%rowtype;family text;qualified jsonb;items jsonb:='[]';BEGIN
+DECLARE s public.ediel_messages%rowtype;m public.ediel_messages%rowtype;family text;source_family text;qualified jsonb;basis jsonb;entry jsonb;items jsonb:='[]';BEGIN
  PERFORM gridex_prodat_object_batch.require_service_v1();PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_bilateral_prodat.lock_source_receipts_v1();
  IF p_company_id IS NULL OR p_actor_user_id IS NULL OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=p_actor_user_id AND user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=p_company_id AND user_id=p_actor_user_id AND status='active' AND is_active AND accepted_at IS NOT NULL)
   OR public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'communication.write') IS NOT TRUE THEN RAISE EXCEPTION 'ediel_business_ack_current_actor_required' USING ERRCODE='42501';END IF;
  SELECT * INTO s FROM public.ediel_messages WHERE id=p_source_message_id AND direction='inbound' AND(company_id=p_company_id OR company_id IS NULL) FOR SHARE;
  IF s.id IS NULL OR(p_environment IS NOT NULL AND p_environment IS DISTINCT FROM s.environment) THEN RAISE EXCEPTION 'ediel_business_ack_original_scope_required';END IF;
- family:=coalesce(p_ack_family,CASE WHEN s.message_family IN('PRODAT','UTILTS','UTILTS_ERR') THEN 'APERAK' WHEN s.message_family='APERAK' THEN 'CONTRL' END);
+ source_family:=coalesce(p_ack_family,CASE WHEN s.message_family IN('PRODAT','UTILTS','UTILTS_ERR') THEN 'APERAK' WHEN s.message_family='APERAK' THEN 'CONTRL' END);
  -- Even an empty candidate set requires the actual current private original.
- PERFORM gridex_ediel_ack_replay.read_exact_v2(p_company_id,s.environment,s.id,p_actor_user_id,family,NULL);
- FOR m IN SELECT a.* FROM public.ediel_messages a WHERE a.company_id=p_company_id AND a.environment=s.environment AND a.direction='outbound' AND a.related_message_id=s.id AND a.message_family IN('CONTRL','APERAK','UTILTS_ERR') AND(p_ack_family IS NULL OR a.message_family=p_ack_family) AND NOT gridex_ediel_duplicate_responses.is_duplicate_ack_v1(a.id) ORDER BY a.created_at DESC,a.id DESC FOR SHARE LOOP
-  qualified:=gridex_ediel_ack_replay.read_exact_v2(p_company_id,s.environment,s.id,p_actor_user_id,m.message_family,m.id);
-  IF qualified#>>'{ackMessage,id}' IS DISTINCT FROM m.id::text THEN RAISE EXCEPTION 'ediel_business_ack_own_original_required';END IF;
-  items:=items||jsonb_build_array(qualified->'ackMessage');
+ PERFORM gridex_ediel_duplicate_responses.read_business_original_v1(p_company_id,s.environment,s.id,p_actor_user_id,source_family,NULL,'prepare');
+ FOREACH family IN ARRAY CASE WHEN p_ack_family IS NULL THEN ARRAY['CONTRL','APERAK','UTILTS_ERR'] ELSE ARRAY[p_ack_family] END LOOP
+  basis:=gridex_ack_authority.read_outbound_originals_v1(s.id,family);
+  IF basis->>'sourceMessageId' IS DISTINCT FROM s.id::text OR basis->>'companyId' IS DISTINCT FROM p_company_id::text OR basis->>'environment' IS DISTINCT FROM s.environment THEN RAISE EXCEPTION 'ediel_business_ack_own_original_required';END IF;
+  FOR entry IN SELECT value FROM jsonb_array_elements(basis->'originals') LOOP
+   IF entry->>'status' IS DISTINCT FROM 'qualified' THEN RAISE EXCEPTION 'ediel_business_ack_own_original_required';END IF;
+   m:=jsonb_populate_record(NULL::public.ediel_messages,entry->'message');
+   qualified:=gridex_ediel_duplicate_responses.read_business_original_v1(p_company_id,s.environment,s.id,p_actor_user_id,family,m.id,'prepare');
+   IF qualified#>>'{ackMessage,id}' IS DISTINCT FROM m.id::text THEN RAISE EXCEPTION 'ediel_business_ack_own_original_required';END IF;
+   items:=items||jsonb_build_array(qualified->'ackMessage');
+  END LOOP;
  END LOOP;
  PERFORM gridex_ediel_duplicate_responses.require_actor_v1(p_company_id,p_actor_user_id,'prepare');
- PERFORM gridex_ediel_ack_replay.read_exact_v2(p_company_id,s.environment,s.id,p_actor_user_id,family,NULL);
+ PERFORM gridex_ediel_duplicate_responses.read_business_original_v1(p_company_id,s.environment,s.id,p_actor_user_id,source_family,NULL,'prepare');
+ SELECT coalesce(jsonb_agg(value ORDER BY value->>'created_at' DESC,value->>'id' DESC),'[]') INTO items FROM jsonb_array_elements(items);
  RETURN jsonb_build_object('version',1,'companyId',p_company_id,'sourceMessageId',s.id,'environment',s.environment,'ackFamily',p_ack_family,'messages',items);
 END$$;
 -- Readonly predicate grants disclose only a boolean for actual public ACK IDs.

@@ -47,7 +47,6 @@ import {
 import { linkEdielMessage, updateEdielMessageStatus } from "@/lib/ediel/db";
 import {
   getAutomaticAckPolicy,
-  getCanonicalAckState,
   type EdielAperakApplicationError,
 } from "@/lib/ediel/ack";
 import { createCanonicalAckMessage } from "@/lib/ediel/core/kernel";
@@ -184,14 +183,15 @@ async function readCanonicalAckSnapshot(source: EdielMessageRow, actorUserId: st
   });
 
   return {
-    canonicalAckState: source ? getCanonicalAckState(source) : null,
+    // Incoming sources own generated originals, not an aggregate incoming-ACK
+    // result. Public status caches cannot turn their existence into acceptance.
+    canonicalAckState: ackMessages.length > 0 ? 'ack_originals_qualified' : 'ack_status_unproven',
     ackMessages: ackMessages.map((row) => ({
       id: row.id,
       family: row.message_family,
       code: row.message_code,
       status: row.status,
-      functionalCheckStatus: row.functional_check_status,
-      syntaxCheckStatus: row.syntax_check_status,
+      outcome: row.ack_outcome,
     })),
   };
 }

@@ -50,6 +50,15 @@ else
   DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 fi
 
+# The native catalog probe qualifies this actual clean stack. Its receipt stays
+# with already-redacted/uploaded browser evidence, and cannot claim old OIDs.
+if [[ -z "$EXTERNAL_DB" ]]; then
+  export GRIDEX_NATIVE_DATABASE_PHASE=clean
+  export GRIDEX_UTILTS_CATALOG_RECEIPT_PATH="$ROOT/e2e-artifacts/native/utilts-catalog-clean.json"
+  unset GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
+  mkdir -p "$ROOT/e2e-artifacts/native"
+fi
+
 cleanup(){
   set +e
   if [[ -z "${EXTERNAL_DB:-}" ]]; then

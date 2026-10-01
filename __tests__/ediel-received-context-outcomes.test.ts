@@ -1,6 +1,5 @@
-import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource } from './helpers/utiltsCurrentOwnerFixture'
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, currentUtiltsActorQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
-import {receivedUtiltsOwnerFixture,utiltsNamedOwnerWitness,utiltsCanonicalOwnerRpc,utiltsOwnerCompany,resetUtiltsCanonicalOwnerIo} from './helpers/utiltsCanonicalOwnerIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -47,7 +46,7 @@ function query() {
 beforeEach(() => {
   vi.clearAllMocks(); incoming = observationHandoffMessage('2026-09-30','11111111-1111-4111-8111-111111111111'); rows = []
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(query)
+  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation((table: string) => currentUtiltsActorQuery(table) ?? query())
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, meteringPointId: 'meter-tenant-a', externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
   io.rpc.mockImplementation(createUtiltsFinalValidationIo())
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
@@ -64,9 +63,10 @@ function withoutDiagnostic(value: unknown, parent = ''): unknown {
 }
 async function capture(accepted: boolean) {
   qualifyUtiltsFixtureSource(incoming)
-  for (const mock of [io.update, io.event, io.ack, io.persist, io.ingest, io.from]) mock.mockClear()
+  for (const mock of [io.update, io.event, io.ack, io.persist, io.ingest, io.from, io.rpc]) mock.mockClear()
   const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: incoming.created_at, applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-  const result = await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy: policy })
+  const result = await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id, canonicalPolicy: policy })
+  expect(io.rpc.mock.calls[0]).toEqual(['gridex_actor_has_company_permission', { p_actor_user_id: UTILTS_FIXTURE_ACTOR, p_company_id: incoming.company_id, p_permission: 'metering.write' }])
   expect(result).toMatchObject({ ackIds: ['ack-1'], outboundRequestId: null, ingestedMeterValueId: accepted ? 'value-1' : null,
     ingestedMeterValueIds: accepted ? ['value-1'] : [], billingUnderlayId: null })
   expect(io.persist).toHaveBeenCalledOnce()

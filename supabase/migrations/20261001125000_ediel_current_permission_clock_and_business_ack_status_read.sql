@@ -24,7 +24,7 @@ CREATE FUNCTION public.ediel_read_business_ack_status_v1(
  p_ack_family text DEFAULT NULL,p_environment text DEFAULT NULL
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE source public.ediel_messages%rowtype;company uuid;basis jsonb;entry jsonb;
- family text;items jsonb:='[]';held uuid[]:='{}';correlation record;snapshot jsonb;receipt jsonb;
+ family text;items jsonb:='[]';held uuid[]:='{}';correlation record;snapshot jsonb;receipt jsonb;qualified jsonb;
  latest_capture timestamptz;latest_ack uuid;ambiguous_summary boolean:=false;BEGIN
  PERFORM gridex_prodat_object_batch.require_service_v1();
  IF p_source_message_id IS NULL OR p_actor_user_id IS NULL
@@ -48,6 +48,7 @@ DECLARE source public.ediel_messages%rowtype;company uuid;basis jsonb;entry json
   THEN RAISE EXCEPTION 'ediel_business_ack_status_reader_required' USING ERRCODE='42501';END IF;
  IF source.direction='inbound' THEN
  FOREACH family IN ARRAY CASE WHEN p_ack_family IS NULL THEN ARRAY['CONTRL','APERAK','UTILTS_ERR'] ELSE ARRAY[p_ack_family] END LOOP
+  PERFORM gridex_ediel_duplicate_responses.read_business_original_v1(company,source.environment,source.id,p_actor_user_id,family,NULL,'read');
   basis:=gridex_ack_authority.read_outbound_originals_v1(source.id,family);
   IF basis->>'sourceMessageId' IS DISTINCT FROM source.id::text OR basis->>'environment' IS DISTINCT FROM source.environment
    OR (basis->>'companyId' IS NOT NULL AND basis->>'companyId' IS DISTINCT FROM company::text)
@@ -56,7 +57,10 @@ DECLARE source public.ediel_messages%rowtype;company uuid;basis jsonb;entry json
    IF gridex_ediel_duplicate_responses.is_duplicate_ack_v1((entry#>>'{message,id}')::uuid) THEN CONTINUE;END IF;
    -- A native consumption/witness may qualify an original whose mutable
    -- public relation is absent. Project the private binding; never repair it.
-   IF entry->>'status'='qualified' THEN items:=items||jsonb_build_array((entry->'message')||jsonb_build_object('related_message_id',source.id));
+   IF entry->>'status'='qualified' THEN
+    qualified:=gridex_ediel_duplicate_responses.read_business_original_v1(company,source.environment,source.id,p_actor_user_id,family,(entry#>>'{message,id}')::uuid,'read');
+    IF qualified#>>'{ackMessage,id}' IS DISTINCT FROM entry#>>'{message,id}' THEN RAISE EXCEPTION 'ediel_business_ack_status_native_scope_mismatch';END IF;
+    items:=items||jsonb_build_array(qualified->'ackMessage');
    ELSE held:=array_append(held,(entry#>>'{message,id}')::uuid);END IF;
   END LOOP;
  END LOOP;

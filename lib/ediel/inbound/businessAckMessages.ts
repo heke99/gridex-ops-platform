@@ -2,8 +2,9 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { AckFamily } from '@/lib/ediel/core/ackPolicy'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
-/** Current native actor/original owner supplies the list. Only actual private
- * duplicate-response receipt IDs are excluded, including failed/cancelled ACKs. */
+/** Current native actor/original owner supplies the list. Its returned relation
+ * and outcome are private-source/raw-original projections, without DB repair.
+ * Only actual duplicate-response receipt IDs are excluded. */
 export async function listBusinessAckMessagesForSource(input: {
   companyId: string | null | undefined
   sourceMessageId: string
@@ -23,6 +24,7 @@ export async function listBusinessAckMessagesForSource(input: {
       result.ackFamily !== (input.ackFamily ?? null) || !Array.isArray(result.messages) || result.messages.some(m =>
         m.company_id !== input.companyId || m.environment !== result.environment || m.related_message_id !== input.sourceMessageId ||
         m.direction !== 'outbound' || !['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(m.message_family) ||
+        !['positive', 'negative'].includes(m.ack_outcome ?? '') ||
         (input.ackFamily && m.message_family !== input.ackFamily))) throw new Error('ediel_business_ack_native_scope_mismatch')
   return result.messages
 }

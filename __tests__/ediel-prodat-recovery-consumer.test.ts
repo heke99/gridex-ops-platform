@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prepareAndQueueProdatRecovery } from '@/lib/ediel/recovery/prodatRecovery'
 import { source, head, own } from './fixtures/prodat-identity'
 import { raw } from './fixtures/prodat-register'
-const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), route: vi.fn(), finalize: vi.fn(), request: vi.fn(), queue: vi.fn(), intent: vi.fn(), basis: vi.fn(), dates: vi.fn(), reporting: vi.fn(),serviceOrigin:vi.fn() }))
+const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), route: vi.fn(), finalize: vi.fn(), request: vi.fn(), queue: vi.fn(), intent: vi.fn(), basis: vi.fn(), dates: vi.fn(), reporting: vi.fn(),serviceOrigin:vi.fn(),references:vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc, from: io.from } }))
 vi.mock('@/lib/ediel/core/kernel', () => ({ resolveCanonicalOutboundContext: io.route, finalizeCanonicalOutboundDraft: io.finalize }))
 vi.mock('@/lib/cis/db', () => ({ createOutboundRequest: io.request }))
@@ -13,6 +13,7 @@ vi.mock('@/lib/ediel/recovery/sourceContext', () => ({ readRecoveryOperationBasi
 vi.mock('@/lib/ediel/production/dateEventContext', () => ({ loadProdatDateEventValidationContext: io.dates,recoveryDateEventScope: (value: unknown) => value }))
 vi.mock('@/lib/ediel/recovery/reportingContext', () => ({ loadRecoveryReportingContext: io.reporting }))
 vi.mock('@/lib/ediel/services/permissionOrigin', () => ({ loadServicePermissionRecoveryOrigin: io.serviceOrigin }))
+vi.mock('@/lib/ediel/recovery/correctionReferences', () => ({ prepareProdatCorrectionReferences: io.references }))
 const scope = { companyId: 'tenant-a', actorUserId: 'actual-actor', originalMessageId: 'original', operationId: 'operation' }
 const wire = raw([...head(), ...own('1', '735123456789012345', 'OWN')], 'Z01').replace("23-DDQ-PRODAT'", "23-DDQ-PRODAT++++1'")
 const original = { ...source(wire), id: 'original', direction: 'outbound' as const, company_id: 'tenant-a', customer_id: 'customer', status: 'sent' as const }
@@ -24,7 +25,7 @@ function messages() {
 }
 function authorized(extra: Record<string, unknown> = {}) { return { data: { status: 'authorized', operationId: 'operation', originalMessageId: 'original', kind: 'aperak_correction', previousAttemptId: null, newMessageId: 'new-message', ...extra }, error: null } }
 beforeEach(() => {
-  vi.resetAllMocks(); messages();io.rpc.mockResolvedValue(authorized());io.queue.mockResolvedValue(undefined)
+  vi.resetAllMocks(); messages();io.rpc.mockResolvedValue(authorized());io.queue.mockResolvedValue(undefined);io.references.mockImplementation(async input=>input.correctedRawPayload)
   io.route.mockResolvedValue({ route: { id: 'current-route' },actor: { marketRoles: ['electricity_supplier'] },routeRuntime: { route_profile_id: 'current-profile' }, environment: 'test', companyId: 'tenant-a' });io.request.mockResolvedValue({ id: 'new-request' });io.finalize.mockResolvedValue(corrected)
   io.intent.mockResolvedValue({ id: 'new-intent' });io.basis.mockResolvedValue({ originalMessageId: 'original',operationId: 'operation',allowedObjects: [] });io.dates.mockResolvedValue(undefined);io.reporting.mockResolvedValue({ originalMessage: original,context: undefined });io.serviceOrigin.mockResolvedValue(undefined)
 })
@@ -71,5 +72,20 @@ describe('source qualified manual PRODAT recovery', () => {
     io.rpc.mockResolvedValue(authorized({ newMessageId: null }));io.basis.mockResolvedValue(undefined)
     await expect(prepareAndQueueProdatRecovery(command)).rejects.toThrow('current_basis_required')
     expect(io.intent).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
+  })
+  it('uses the native producer wire before authorization, idempotent binding and queue', async () => {
+    const normalized=wire.replace('LI:OWN',`LI:Z01${'A'.repeat(32)}`)
+    io.references.mockResolvedValue(normalized)
+    const query={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:{...corrected,raw_payload:normalized},error:null})};query.select.mockReturnValue(query);query.eq.mockReturnValue(query);io.from.mockReturnValue(query)
+    expect(await prepareAndQueueProdatRecovery(command)).toMatchObject({status:'queued',messageId:'new-message'})
+    expect(io.references).toHaveBeenCalledExactlyOnceWith(command)
+    expect(io.references.mock.invocationCallOrder[0]).toBeLessThan(io.rpc.mock.invocationCallOrder[0])
+    expect(io.rpc.mock.calls[0][1]).toMatchObject({p_corrected_raw_payload:normalized,p_actor_user_id:scope.actorUserId})
+    expect(io.queue).toHaveBeenCalledOnce();expect(io.finalize).not.toHaveBeenCalled()
+  })
+  it('a refused current reference producer cannot authorize or mutate a correction', async () => {
+    const error=Error('prodat_recovery_execution_actor_forbidden');io.references.mockRejectedValue(error)
+    await expect(prepareAndQueueProdatRecovery(command)).rejects.toBe(error)
+    expect(io.rpc).not.toHaveBeenCalled();expect(io.from).not.toHaveBeenCalled();expect(io.intent).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
   })
 })

@@ -451,7 +451,7 @@ export default async function AdminEdielMessageDetailPage({
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
  <div className="flex flex-wrap gap-2">
- <Pill text={message.status} />
+ <Pill text={message.status === 'acknowledged' ? String(canonicalAckState) : message.status} />
  <Pill text={message.direction} />
  <Pill text={message.environment} />
  <Pill text={message.message_standard} />

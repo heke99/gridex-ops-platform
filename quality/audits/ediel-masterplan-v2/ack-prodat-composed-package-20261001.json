@@ -19,7 +19,7 @@
     },
     {
       "path": "__tests__/ediel-business-ack-native-list.test.ts",
-      "sha256": "8656e92a7a124f5f7a8b86c7dc3129c5ac4f2e48e5415f916e4586dbf713d59c"
+      "sha256": "3acdfefde04d769aad2b6d7052c2dedba52a76922e724b68938ad5f1766b66a4"
     },
     {
       "path": "__tests__/ediel-duplicate-103-orchestrator.test.ts",
@@ -107,7 +107,7 @@
     },
     {
       "path": "lib/ediel/inbound/businessAckMessages.ts",
-      "sha256": "53b9bcb56baf329e062a0ac9ecf9069dbf1aa9e238eb380b6d328ef182ae3fdb"
+      "sha256": "83ad3a00e9cbdd4790d5c5ce9f2567000f912b59006f4bc8270c4aea0635b9f3"
     },
     {
       "path": "lib/ediel/inbound/duplicateResponses.ts",
@@ -139,11 +139,11 @@
     },
     {
       "path": "scripts/ediel-duplicate-103-owner-sql-regression.mjs",
-      "sha256": "7a3608218b5fb5742bdff1be6aed5197e67460bb797eba8b713c8608868923ca"
+      "sha256": "de49251411f34fe31a16402e8444ac4d15d6410fb9f11d7f49a7338f874bc781"
     },
     {
       "path": "supabase/migrations/20261001124000_ediel_genuine_reception_duplicate_103_response_owner.sql",
-      "sha256": "66e7b3a4b7c25421bf8764bc29ac8974b0974eb6a9b7e2b4af9ce6f49010df69"
+      "sha256": "15a69eb8004f41608503ae374286f0d4d92a5eca083f0eb1ed6e160ad0779b4c"
     }
   ],
   "completed_internal_components": [
@@ -153,13 +153,14 @@
     "Private immutable intent/consumption binds new reception to negative103 canonical ACK, prepared outbox, audit/event and result in one transaction; ordinary business readers exclude only actual private consumption IDs.",
     "New response DTM178 uses actual NEW arrival; old original reception and its replay clock stay immutable.",
     "Canonical preparation catalog103735 remains independent of transport SEND: duplicate103 source/prepare/commit and all affected ACK draft authorities requirecommunication.write; transportrechecks communication.send/ediel.send. Native objectbatch source/completed permissions remainunchanged; unpublished124001 removed.",
-    "Native duplicate source/retained result/route/finalcommit/transport/current business-original reader recheck purpose and clock-sensitive roles/namespaces after inner waits. Terminallegalrole-expiry causes fullattempt rollback; ownUNB generation reuses canonicalreferenceRegistry."
+    "Native duplicate source/retained result/route/finalcommit/transport/current business-original reader recheck purpose and clock-sensitive roles/namespaces after inner waits. Terminallegalrole-expiry causes fullattempt rollback; ownUNB generation reuses canonicalreferenceRegistry.",
+    "2026-10-01 bounded full per-original source/guide qualifier with explicit prepare WRITE/read READ and ephemeral private-source relation/outcome projection; no public cache authorization or DB repair"
   ],
   "source_provenance": [
     {
       "rule": "ACK-09",
       "contract": "AT-ACK-09",
-      "registry_source": "T \u00a72.1; P \u00a73.2; SYS",
+      "registry_source": "T §2.1; P §3.2; SYS",
       "normative_detail": "P26-A16-B page92 national103 compares BGM1004 of earlier received message; page91 A901 actual received PRODAT date/time; page99 DTM178 actual arrival",
       "retained_text": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
       "retained_tables": "docs/ediel/masterplan-v2/annex/source_tables.json",
@@ -176,7 +177,10 @@
     "latest_affected_unit": "6files60/60PASS at2026-10-01T13:03:29Z; /tmp/ack-prepare-phase-final-focused.log",
     "latest_native_forward_mechanics": "29PASS preparation-only localcommit, send-only transport, no-send denial, pending-company deny, expired-role finalrollback, canonicalcatalog noassignments, originals/ACKread/privateACL; /tmp/ack103-prepare-phase-final.log",
     "latest_scoped_eslint": "7files0errors; /tmp/ack-prepare-phase-lint.log",
-    "earlier_focused_unit_reuse": "Earlier16files150/150 onpre-correction version remains baseline only; affectedlatest60 requalified, fullcandidate rootpending."
+    "earlier_focused_unit_reuse": "Earlier16files150/150 onpre-correction version remains baseline only; affectedlatest60 requalified, fullcandidate rootpending.",
+    "latest_reader_delta_unit": "3files27/27PASS at2026-10-01T14:29:53Z using vitest4.1.11; /tmp/ack-private-business-original-units.log",
+    "latest_reader_delta_native_mechanics": "38PASS actual installed read_exact/owner/private candidate function plus actual124000 forward; finite source/context/guide IO; relationNULL/foreign, wrongcache, READ/WRITE separation, immutablebirthoutcome mismatch, immutableguide preservation, captured-profile denial/currentdeny, terminal timedDENY-after-guidewait rollback; /tmp/ack-private-business-original-delta.log; NOT native acceptance",
+    "latest_reader_delta_lint": "3files0errors; /tmp/ack-private-business-original-lint-final.log"
   },
   "remaining_scope": [
     "Parent owns composition of current read-policy port and shared business ACK status projections in db/inbound snapshot/UI.",
@@ -193,5 +197,16 @@
     "finding": "No new blocking issue in bounded ACL/source alias/installed current graph ordering review. Public metadata preserved, private ACL closed, importer and verifier acquire write-compatible graph before advisory/rows.",
     "mechanical_probes": "28/28 pristine and28/28 recordedTXTupgrade independently rerun",
     "limits": "Short synthetic graph/platform-admin fixture; no authentic current issuer/full native concurrent qualification."
+  },
+  "reader_delta_interface": {
+    "private": "gridex_ediel_duplicate_responses.read_business_original_v1(uuid,text,uuid,uuid,text,uuid,text)",
+    "phase": {
+      "prepare": "communication.write",
+      "read": "communication.read"
+    },
+    "source": "Derived bounded copy of installed read_exact_v2; all source/namespace/wire/guide/ledger/domain guards retained; exact private candidate binding and original owner assertion with local record relation projection",
+    "effect": "readonly; stored public related_message_id/ack_outcome remain untouched",
+    "root_consumer": "125000 current READ status port (root owns wiring)",
+    "shared_originals": "original read_exact_v2/owner require_v1 remain unchanged; parent owns remaining shared reader wiring"
   }
 }
