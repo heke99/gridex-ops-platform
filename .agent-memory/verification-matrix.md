@@ -1,3 +1,17 @@
+## Active — 2026-09-30 full Ediel masterplan v2 code phase (in progress)
+
+Root is sole integrator/publisher for draft #421, with six isolated package owners. Integrated local checkpoint `bd40962b9201bc4438e1e21362fd704bf8fbb72f`; last published remote `0b8c1c37c0806f99e18c36d8ccd576bbda117442` has the exact tree of local `0c39065f`. Later commits and current WIP are preserved and still incomplete. Baseline `885137de838481be6cda58f9af45df6c1655edfe` and all earlier commits remain intact. #418/#422 are read-only coordination contracts; #310 is untouched.
+
+Continue through protected object/transaction ACK consumers, fresh native technical timers, atomic accepted-source projections, source-qualified P09 life events, F/G metering method changes and TM-METHOD40, P15 exact point structure and mandatory committed retry fixtures. Independent bounded reviews have found real consumer gaps; packet-ready is not whole-plan completion. Preserve frozen 33 originals, 121 rules and 231 literal acceptance contracts. Working matrix/receipts: `quality/audits/ediel-masterplan-v2/codephase-20260930/`.
+
+Quick checks actually run: exact inbound scope regression 6 PASS and bounded independent review clear; targeted technical/business/inherited-guide tests 20 PASS across four files; actual gateway and source tests 47 PASS across five files. Serial application typecheck last failed with process facade/request payload types; scoped process corrections are integrated, rerun pending. Migration integrity last passed 743 files/647 timestamp groups; newer migrations still need exact-hash registration. Embedded SQL packet checks are explicitly synthetic mechanics, not native PostgreSQL or authentic original evidence.
+
+Mandatory CI on the older published `0b8c1c37` was inspected once: full unit and committed retry fixture have actual failures; guide probe needs Node22 TypeScript transform; final schema/type parity is stale after forward migrations. Scoped fixes and fixture corrections continue. No current or final-candidate all-green claim. Full final-candidate unit/native clean+upgrade replay/schema-type parity/security/browser/manual phase remains separate and NOT_RUN. No formal acceptance status promotion; retain historical SC-044 only at its proved original SHA/scope.
+
+External source originals, legal/privacy/retention decisions, archive/deletion continuity, positive object registry/mandate and versioned owner registers remain held where missing. New support never manufactures that evidence or activates traffic. No force push, main merge, production change, real Ediel/TGT/counterparty send or market activation.
+
+All checkpoint sections below are historical and superseded for the active next action. Their verification retains the original exact SHA and scope.
+
 ## Current — 2026-09-30 #421 coherent syntax/header code package; final-head CI pending
 
 Supersedes earlier not-executed/probe-only next-action text. Test-only head e0bd3641f617edb92e508bd62c2767730e20fca1 actually ran OPS36702357516/replay109844514929: 439/442, three confirmed mismatches (UNT999 accepted series+contract; OTHER positive CONTRL but no accepted storage; SC045 two APERAKs). Last all-green d30/native439 retained.

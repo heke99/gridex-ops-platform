@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Complete actual source-qualified outbound/ACK gateways, AI intent/export byte binding, normal/P11/CALL03 live producers, U header/own-IDE facets and native shared ACK guide projection; independent C/I review, quick checks; publish exact-tree draft checkpoint without force. Full final-candidate tests remain a separate later phase.",
+  "next_action": "Continue remaining real consumer integrations and independent Critical/Important review; serial quick checks and meaningful nonforce exact-tree draft checkpoint. Final fixed-candidate broad verification remains later and NOT_RUN.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1288,25 +1288,37 @@
   "ediel_full_code_phase_20260930": {
     "status": "IN_PROGRESS",
     "baseline_local_and_remote": "885137de838481be6cda58f9af45df6c1655edfe",
-    "current_integrated_local": "fc2e2311",
+    "current_integrated_local": "bd40962b9201bc4438e1e21362fd704bf8fbb72f",
     "last_published_remote": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
     "last_published_local_equivalent": "0c39065f",
     "formal_acceptance_statuses": "unchanged",
     "latest_code_packets": [
-      "d6bd145f DSN actual source observations and current API/UI",
-      "43fde3d5 shared immutable accepted transport receipt",
-      "fdaf43bb P15 current supply continuity",
-      "5d25da6e/fbbe4cda normal atomic switch and actual initial source scope",
-      "61856b69/fc2e2311 source-approved physical BRP change"
+      "protected exact inbound dedupe/current tenant source",
+      "current actual gateway original witnesses and opaque fixture ports",
+      "source-guided APERAK/ERR native consumers and opaque historical versions",
+      "qualified AI prospective original/send journal and environment phases",
+      "P119 ignored fields/P15 dated structure consumers",
+      "normal switch/C withdrawal actual request payload scope"
     ],
     "latest_quick_checks": {
-      "dsn_typescript": "49 passing assertions, five files",
-      "dsn_embedded_sql": "23 passing explicitly synthetic checks",
-      "dsn_lint": "zero errors/warnings",
-      "full_application_typecheck": "PASS serialized Node22, 4096MB after BRP typed query fix; baseline default2048MB attempt OOM is not a code result"
+      "inbound_original_scope": "6 PASS; bounded independent review no open Critical/Important",
+      "targeted_policy_sources": "20 PASS across four files; 47 PASS across five files",
+      "full_application_typecheck": "last EXIT2 process facade/payload typing; scoped corrections integrated, rerun pending",
+      "migration_integrity": "743 files/647 groups PASS before newest migrations; exact hash registration pending",
+      "embedded_sql": "explicitly synthetic scoped mechanics only; no native/authentic proof"
     },
     "external_state": "draft, no merge or production/counterparty traffic; #418/#422 contracts read only and #310 untouched",
     "final_test_phase": "NOT_RUN fixed final candidate: full unit/native clean+upgrade replay/type-schema parity/security/browser/manual; mandatory CI preserved",
-    "historic_checkpoint_scope": "all older accepted/native/CI entries retain their original exact SHA and narrower scope; never imply final-candidate verification"
+    "historic_checkpoint_scope": "all older accepted/native/CI entries retain their original exact SHA and narrower scope; never imply final-candidate verification",
+    "remaining_code_integration": [
+      "ACK exact object/transaction consumer scope",
+      "native shared technical timer consumers",
+      "atomic accepted-source projection",
+      "P09 life event source context and actual gateway/send consumers",
+      "F/G method producer/current source guard and TM-METHOD40",
+      "P15 exact point source bridge",
+      "mandatory committed retry fixture"
+    ],
+    "last_published_ci": "0b8c1c37 inspected once: actual full-unit/retry fixture failures, Node22 guide transform and schema/type parity pending; no current all-green claim"
   }
 }
