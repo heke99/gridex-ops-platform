@@ -25,6 +25,7 @@ import {
   inferEdielFamilyAndCodeFromRawPayload,
   inferEdielFileName,
 } from '@/lib/ediel/classify'
+import {buildEdielInterchangeReference,buildEdielTransactionReference} from '@/lib/ediel/core/referenceRegistry'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { renderProdat, renderProdat26A } from '@/lib/ediel/prodatEngine'
@@ -69,7 +70,13 @@ export type ProdatSwitchValidationResult = {
   issues: ProdatSwitchValidationIssue[]
 }
 
+export type ProdatSwitchWireReferences=Readonly<{documentReference:string;transactionReference:string;interchangeReference:string;messageReference:string}>
+export function allocateProdatSwitchWireReferences(code:ProdatSwitchCode,contextId:string,senderEdielId:string,receiverEdielId:string):ProdatSwitchWireReferences{
+ return Object.freeze({documentReference:buildEdielTransactionReference({family:'PRODAT',code,relatedMessageId:contextId}),transactionReference:buildEdielTransactionReference({family:'PRODAT',code:'LI',relatedMessageId:contextId}),interchangeReference:buildEdielInterchangeReference({senderEdielId,receiverEdielId}),messageReference:'1'})
+}
+
 type BaseSwitchOutboundInput = {
+  wireReferences?: ProdatSwitchWireReferences
   actorUserId?: string | null
   senderEdielId: string
   senderName?: string | null
@@ -590,11 +597,11 @@ function buildProdatSwitchOutboundDraft(
       correlationReference: input.correlationReference ?? null,
     })
 
-    const externalReference = buildProdatDocumentReference(
+    const externalReference = input.wireReferences?.documentReference ?? buildProdatDocumentReference(
       code,
       refs.externalReference ?? input.switchRequest.external_reference ?? input.switchRequest.id
     )
-    const transactionReference = buildProdatCaseReference(
+    const transactionReference = input.wireReferences?.transactionReference ?? buildProdatCaseReference(
       code,
       refs.transactionReference ?? input.transactionReference ?? input.switchRequest.id
     )
@@ -641,6 +648,7 @@ function buildProdatSwitchOutboundDraft(
     })
 
     const envelope = buildEdifactEnvelope({
+      ...(input.wireReferences?{interchangeReference:input.wireReferences.interchangeReference,messageReference:input.wireReferences.messageReference}:{}),
       acknowledgementRequest: ack.requiresContrl,
       senderEdielId: input.senderEdielId,
       senderSubAddress,

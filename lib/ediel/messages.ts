@@ -12,6 +12,8 @@ type BuildEdifactEnvelopeInput = {
   applicationReference?: string | null
   acknowledgementRequest: boolean
   testFlag?: 0 | 1 | number | null
+  interchangeReference?: string
+  messageReference?: string
   messageTypeToken: string
   segments: string[]
   companyId?: string | null
@@ -27,11 +29,11 @@ type BuiltEdifactEnvelope = {
 }
 
 export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdifactEnvelope {
-  const interchangeReference = buildEdielInterchangeReference({
+  const interchangeReference = input.interchangeReference ?? buildEdielInterchangeReference({
     senderEdielId: input.senderEdielId,
     receiverEdielId: input.receiverEdielId,
   })
-  const messageReference = '1'
+  const messageReference = input.messageReference ?? '1'
   const raw = EdifactEnvelopeCodec.encode({
     sender: input.senderEdielId,
     senderQualifier: input.senderQualifier,
