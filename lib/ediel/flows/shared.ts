@@ -119,7 +119,7 @@ export async function findOrCreateSwitchOutbound(params: {
     })
 
     if (existing) {
-      const existingPayload = existing.payload && typeof existing.payload === 'object' && !Array.isArray(existing.payload) ? existing.payload : {}
+      const existingPayload: Record<string, unknown> = existing.payload && typeof existing.payload === 'object' && !Array.isArray(existing.payload) ? existing.payload : {}
       if(existing.operation_id!==params.switchRequestId||existingPayload.environment!==params.environment||existing.customer_id!==params.customerId||existing.site_id!==params.siteId||existing.metering_point_id!==params.meteringPointId)throw new Error('switch_outbound_owned_operation_required')
       return existing
     }
