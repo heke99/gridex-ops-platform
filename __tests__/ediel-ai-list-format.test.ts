@@ -40,6 +40,13 @@ describe('AI14.A.3 positional supplier adapter',()=>{
     const parsed=parseAiBiListCsv({listType:'AI',raw:buildAiListCsv({...input,details:[{...detail,franDatum:null,tillDatum:null,elanvandarNamn:'First'},{...detail,franDatum:null,tillDatum:'20261020',elanvandarNamn:'Second'}]})})
     expect(parsed.rows.map(row=>row.customerName)).toEqual(['Second','First'])
   })
+  it('keeps one object chronological when its grid area changes',()=>{
+    const parsed=parseAiBiListCsv({listType:'AI',raw:buildAiListCsv({...input,details:[
+      {...detail,natavrakningsomrade:'AAA',franDatum:'20261015',tillDatum:null},
+      {...detail,natavrakningsomrade:'ZZZ',franDatum:null,tillDatum:'20261015'},
+    ]})})
+    expect(parsed.rows.map(row=>row.gridAreaCode)).toEqual(['ZZZ','AAA'])
+  })
   it('blocks internal/site labels when verified legal customer information is unavailable',()=>{
     const site={id:'INTERNAL-SITE',customer_id:'INTERNAL-CUSTOMER',facility_id:'735123456789012345',site_name:'Site Label'} as unknown as CustomerSiteRow
     expect(()=>buildAiListDetailFromSite({site})).toThrow('ai_list_verified_customer_identity_required')

@@ -78,7 +78,7 @@ function onlyAsciiToken(value?: string | null): string {
 }
 
 function compareDetails(a: AiListDetailRow, b: AiListDetailRow): number {
-  const object = [safe(a.natavrakningsomrade),safe(a.anlaggningsId),safe(a.kodlista)].join('|').localeCompare([safe(b.natavrakningsomrade),safe(b.anlaggningsId),safe(b.kodlista)].join('|'),'sv')
+  const object = [safe(a.anlaggningsId),safe(a.kodlista)].join('|').localeCompare([safe(b.anlaggningsId),safe(b.kodlista)].join('|'),'sv')
   if(object)return object
   const from=normalizeDate(a.franDatum).localeCompare(normalizeDate(b.franDatum))
   if(from)return from
