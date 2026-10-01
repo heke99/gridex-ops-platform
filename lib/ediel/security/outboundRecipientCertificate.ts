@@ -2,6 +2,7 @@ import { X509Certificate } from 'node:crypto'
 import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
 import { certificateMessageScopeBlocker, certificateSubaddressScopeBlocker } from '@/lib/ediel/certificateScope'
 import { supabaseService } from '@/lib/supabase/service'
+import { resolveEdielCertificateTrustAuthority, verifyEdielCertificateTrust, type EdielCertificateTrustResult } from '@/lib/ediel/security/certificateTrust'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import type { EdielRouteProfileRow } from '@/lib/ediel/types'
 
@@ -18,6 +19,7 @@ export type OutboundRecipientCertificate = {
   purpose: string | null
   environment: string | null
   raw: Record<string, unknown>
+  trustEvidence: Extract<EdielCertificateTrustResult, { verified: true }>
 }
 
 type CertificateRow = Record<string, unknown>
@@ -205,14 +207,14 @@ export function recipientCertificatePemValidityBlocker(pem: string, now = new Da
   } catch { return 'receiver_certificate_x509_invalid' }
 }
 
-/** The repository has no source-owned versioned trust-anchor/CRL verifier.
- * Row metadata cannot manufacture that evidence. Keep live transport held until
- * that owner exists; validity parsing above remains an independent hard guard. */
+/** Missing protected owner registration stays held. Mutable certificate row
+ * metadata cannot replace the versioned recipient/CA/CRL source authority. */
 export function recipientCertificateTrustBlocker(): string {
   return 'receiver_certificate_trust_and_revocation_evidence_missing'
 }
 
 export async function resolveOutboundRecipientCertificate(input: {
+  companyId?: string | null
   certificateId?: string | null
   receiverEdielId?: string | null
   receiverSubaddress?: string | null
@@ -395,6 +397,17 @@ export async function resolveOutboundRecipientCertificate(input: {
     }
   }
 
-  const trustBlocker = recipientCertificateTrustBlocker()
-  throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_HELD' }, `Sändning stoppad: ${trustBlocker}.`)
+  const companyId = String(input.companyId ?? '').trim()
+  if (!companyId || !['test', 'production'].includes(environment)) {
+    throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_SCOPE_REQUIRED' }, 'Sändning stoppad: verifierad tenant/miljö för certifikatauktoritet saknas.')
+  }
+  const trustScope = { companyId, environment: environment as 'test' | 'production', receiverEdielId }
+  const authority = await resolveEdielCertificateTrustAuthority(trustScope)
+  if (!authority) throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_HELD' }, `Sändning stoppad: ${recipientCertificateTrustBlocker()}.`)
+  const trustEvidence = await verifyEdielCertificateTrust({ scope: trustScope, leafPem: publicCertificatePem, authority, now })
+  if (!trustEvidence.verified) throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_HELD' }, `Sändning stoppad: ${trustEvidence.code}.`)
+  return { id: certificateId, publicCertificatePem, subject, issuer: textFrom(row, 'issuer', 'issuer'),
+    serialNumber: textFrom(row, 'serial_number', 'serialNumber'), fingerprintSha256: textFrom(row, 'fingerprint_sha256', 'fingerprintSha256', 'certificate_fingerprint'),
+    ownerEdielId, ownerSubaddress, usage, purpose, environment: certEnvironment, raw: row, trustEvidence }
+
 }
