@@ -45,14 +45,14 @@ async function requireAuthority(input: {
       (input.ackMessageId && result.ackRawHash !== createHash('sha256').update(input.ackRawPayload ?? '', 'utf8').digest('hex'))) throw new Error(STORAGE_REQUIRED)
 }
 
-/** CREATE needs committed accepted storage. Final ACK binding follows creation,
+/** CREATE needs the committed native source authority. Ordinary data requires accepted storage; incoming ERR requires its accepted original correlation. Final ACK binding follows creation,
  * avoiding a circular requirement for ordinary consumer finalization. */
 export async function assertUtiltsPositiveAckSourceAuthority(input: { sourceMessage: EdielMessageRow; draft: CreateEdielMessageInput }) {
-  const required = input.sourceMessage.message_family === 'UTILTS' && input.draft.messageFamily === 'APERAK' &&
+  const required = ['UTILTS','UTILTS_ERR'].includes(input.sourceMessage.message_family) && input.draft.messageFamily === 'APERAK' &&
     (input.draft.ackOutcome === 'positive' || input.draft.parsedPayload?.ackOutcome === 'positive')
   const wire = positiveUtiltsWire(input.draft.rawPayload, required)
   if (!wire) return
-  if (input.sourceMessage.message_family !== 'UTILTS' || input.sourceMessage.direction !== 'inbound' ||
+  if (!['UTILTS','UTILTS_ERR'].includes(input.sourceMessage.message_family) || input.sourceMessage.direction !== 'inbound' ||
       (input.draft.companyId != null && input.draft.companyId !== input.sourceMessage.company_id) || input.draft.environment !== input.sourceMessage.environment ||
       (input.draft.parsedPayload?.relatedTransactionReference && (wire.transactionIds.length !== 1 || input.draft.parsedPayload.relatedTransactionReference !== wire.transactionIds[0]))) throw new Error(STORAGE_REQUIRED)
   for (const transactionId of wire.transactionIds) await requireAuthority({ companyId: input.sourceMessage.company_id, environment: input.sourceMessage.environment,

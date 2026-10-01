@@ -605,18 +605,30 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
   const base = resolveCanonicalRuntimeDecision(message)
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
   if (base.policy.family === 'APERAK' || base.policy.family === 'CONTRL' || base.policy.family === 'UTILTS_ERR') {
-    if(base.applicationDecision !== 'accepted')return base
+    if(base.applicationDecision!=='accepted'){
+      const findings=validateCanonicalAckGuide({policy:base.policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una}).filter(entry=>entry.blocking||entry.severity==='error')
+      // Only a version-dependent ERR reason can await original qualification.
+      // Other malformed national structures remain rejected before source I/O.
+      if(base.policy.family!=='UTILTS_ERR'||!findings.length||findings.some(entry=>entry.code!=='ACK_UTILTS_ERR_ORIGINAL_REASON_SCOPE_REQUIRED'))return base
+    }
     try {
       const qualification=await readSourceBoundAckRulePackEvidence(message),{sourceMessage,evidence}=qualification
       const policy=sourceBoundAckCanonicalPolicy({qualification,policy:base.policy})
       const guideIssues=validateCanonicalAckGuide({policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una,sourceRawPayload:sourceMessage.raw_payload})
-      const issues=[...base.issues,...guideIssues.map(finding=>issue({layer:'application',severity:finding.severity,code:finding.code,title:finding.title,description:finding.description,source:policy.guide.documentName}))]
+      // A reason's admissibility belongs to the inherited original edition.
+      // Reproject only the previous guide pass; syntax and other diagnostics
+      // retain their original scope and cannot be cleared by this source read.
+      const previousGuide=validateCanonicalAckGuide({policy:base.policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una})
+      const retainedIssues=base.issues.filter(entry=>!previousGuide.some(old=>entry.layer==='application'&&entry.code===old.code&&entry.description===old.description&&entry.source===base.policy!.guide.documentName))
+      const issues=[...retainedIssues,...guideIssues.map(finding=>issue({layer:'application',severity:finding.severity,code:finding.code,title:finding.title,description:finding.description,source:policy.guide.documentName}))]
       const rejected=guideIssues.some(finding=>finding.blocking||finding.severity==='error')
       const applicationDecision:CanonicalDecisionState=rejected?'rejected':'accepted',functionalDecision:CanonicalDecisionState=rejected?'not_applicable':'accepted'
       const decisionTrace=[...base.decisionTrace,`Original ${sourceMessage.id}; oförändrat källpaket ${evidence.rulePackId}/${evidence.sourceHash}; originaledition ${policy.guide.guideRevision}.`]
       const sourceRules=[...base.sourceRules,`RULE_PACK_EVIDENCE:${evidence.profileKey}:${evidence.sourceHash}`]
       const rulePackEvidence={profileKey:evidence.profileKey,messageProfileId:evidence.messageProfileId,rulePackId:evidence.rulePackId,sourceHash:evidence.sourceHash,version:evidence.version,snapshot:{rulePack:evidence.snapshot.rulePack,messageProfile:evidence.snapshot.messageProfile,guideSources:evidence.snapshot.guideSources}}
-      return {...base,policy,applicationDecision,functionalDecision,issues,decisionTrace,sourceRules,validationReport:{...base.validationReport,canonicalPolicy:canonicalPolicyProjection(policy),applicationDecision,functionalDecision,issues,decisionTrace,sourceRules,rulePackEvidence,ackOriginalMessageId:sourceMessage.id,fieldRuleSource:'canonical_policy'}}
+      const responsePlan=[...base.responsePlan]
+      if(!rejected&&message.direction==='inbound'&&policy.family==='UTILTS_ERR'&&policy.ackRule.applicationAck==='APERAK')responsePlan.push({family:'APERAK',outcome:'positive',bgm:'312',ftx:'OK',reason:'UTILTS-ERR följer originalets frysta anvisning; positiv APERAK kräver även den beständiga egna originalkorrelationen.'})
+      return {...base,policy,applicationDecision,functionalDecision,responsePlan,issues,decisionTrace,sourceRules,validationReport:{...base.validationReport,canonicalPolicy:canonicalPolicyProjection(policy),applicationDecision,functionalDecision,responsePlan,issues,decisionTrace,sourceRules,rulePackEvidence,ackOriginalMessageId:sourceMessage.id,fieldRuleSource:'canonical_policy'}}
     } catch(error) {
       const failureDisposition=classifyEdielFailure(error),description=error instanceof Error?error.message:String(error)
       const issues=[...base.issues,issue({layer:'application',severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description,source:'readSourceBoundAckRulePackEvidence'})]
