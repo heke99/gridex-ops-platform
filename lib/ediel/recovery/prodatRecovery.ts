@@ -1,9 +1,17 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { createOutboundRequest } from '@/lib/cis/db'
-import { finalizeCanonicalOutboundDraft, resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { buildCanonicalParsedPayload, parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
-import { queuePreparedEdielMessage } from '@/lib/ediel/flows/shared'
+import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
+import { finalizeRecoveryDraft, queueRecoveryDraft } from '@/lib/ediel/intent/prodatRecoveryGateway'
+import { readRecoveryOperationBasis } from './sourceContext'
+import { loadProdatDateEventValidationContext, recoveryDateEventScope } from '@/lib/ediel/production/dateEventContext'
+import { loadRecoveryReportingContext } from './reportingContext'
+import { loadServicePermissionRecoveryOrigin } from '@/lib/ediel/services/permissionOrigin'
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { canonicalEdielActorRole } from '@/lib/ediel/actorRole'
 import { deriveEdielAckDefaults } from '@/lib/ediel/references'
 import type { CanonicalRouteRequestType } from '@/lib/ediel/core/routeRegistry'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
@@ -72,18 +80,46 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
     const canonical = parseCanonicalEdielPayload({ rawPayload: input.correctedRawPayload, direction: 'outbound', standardHint: 'edifact' })
     const envelope = EdifactEnvelopeCodec.decode(input.correctedRawPayload)
     if (canonical.family !== 'PRODAT' || !canonical.messageCode || !canonical.documentReference || !canonical.version
-      || !canonical.interchangeReference || envelope.environment !== original.environment) throw new Error('prodat_recovery_physical_context_required')
+      || !canonical.interchangeReference || !canonical.sender || !canonical.receiver || !canonical.applicationReference
+      || envelope.environment !== original.environment) throw new Error('prodat_recovery_physical_context_required')
     const type = requestType(canonical.messageCode)
     const route = await resolveCanonicalOutboundContext({ companyId: input.companyId, environment: original.environment, requestType: type,
       receiverEdielId: canonical.receiver, preferredRouteId: original.communication_route_id, applicationReference: canonical.applicationReference })
-    // The actual authorization UUID is the new request's identity. A permission
-    // or switch-wide request would deduplicate into an older sent message.
+    const basis = await readRecoveryOperationBasis({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId })
+    if (!basis || basis.originalMessageId !== original.id) throw new Error('prodat_recovery_current_basis_required')
+    const dateEventContext = recoveryDateEventScope(await loadProdatDateEventValidationContext(original, input.actorUserId), basis)
+    const reporting = await loadRecoveryReportingContext({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId })
+    const reportingContext = reporting.context
+    if (reporting.originalMessage.id !== original.id) throw new Error('prodat_recovery_reporting_original_conflict')
+    const serviceOrigin = type === 'metering_access' ? await loadServicePermissionRecoveryOrigin({
+      companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId,
+    }) : undefined
+    if (serviceOrigin && (serviceOrigin.originalMessage.id !== original.id || serviceOrigin.basis.environment !== original.environment
+      || serviceOrigin.basis.code !== canonical.messageCode)) throw new Error('prodat_recovery_service_origin_conflict')
+    const routeProfileId = route.routeRuntime?.route_profile_id
+    const legalRoles = (route.actor.marketRoles ?? []).map(canonicalEdielActorRole)
+    const actorRole = type === 'metering_access' && legalRoles.includes('esco') ? 'esco' : legalRoles.includes('supplier') ? 'supplier' : null
+    if (!actorRole || !routeProfileId || !canonical.messageReference) throw new Error('prodat_recovery_current_route_intent_required')
+    const intent = await createEdielMessageIntent({ companyId: input.companyId,environment: original.environment,market: 'electricity',messageFamily: 'PRODAT',messageCode: canonical.messageCode,
+      businessProcess: type === 'metering_access' ? 'metering_permission' : type === 'supplier_switch' ? 'supplier_switch' : 'customer_masterdata',direction: 'outbound',
+      senderEdielId: canonical.sender,senderSubaddress: canonical.senderSubAddress,receiverEdielId: canonical.receiver,receiverSubaddress: canonical.receiverSubAddress,
+      applicationReference: canonical.applicationReference,routeProfileId,communicationRouteId: route.route.id,customerId: original.customer_id,
+      customerSiteId: original.site_id,meteringPointId: original.metering_point_id,operationId: authorization.operationId,interchangeReference: canonical.interchangeReference,
+      messageReference: canonical.messageReference,transactionReference: canonical.transactionReference,idempotencyKey: `prodat-recovery:${authorization.operationId}`,
+      payload: { actorRole,recoveryOperationId: authorization.operationId,originalMessageId: original.id },actorUserId: input.actorUserId,
+      routeProfile: { applicationReference: route.applicationReference,actorRole } })
+    // The new intent UUID is the request identity. Shared permission/switch
+    // identity would deduplicate into an older sent message.
     const outbound = await createOutboundRequest({ actorUserId: input.actorUserId, customerId: original.customer_id,
       siteId: original.site_id, meteringPointId: original.metering_point_id, gridOwnerId: original.grid_owner_id,
       communicationRouteId: route.route.id, requestType: type === 'supplier_switch' ? 'supplier_switch' : type === 'metering_access' ? 'metering_access' : 'customer_masterdata',
-      sourceType: 'manual', sourceId: authorization.operationId, operationId: authorization.operationId,
+      sourceType: 'manual', sourceId: intent.id, operationId: authorization.operationId,
       environment: original.environment, failOnMissingEnvironment: true, payload: { recoveryOperationId: authorization.operationId, originalMessageId: original.id } })
-    const draft: CreateEdielMessageInput = { actorUserId: input.actorUserId, companyId: input.companyId, direction: 'outbound', messageStandard: 'edifact',
+    const wire = tokenizeEdifact(input.correctedRawPayload)
+    const protectedFacts = { market: 'electricity' as const,
+      ...(dateEventContext ? { dateEventSource: dateEventContext.source,dateEventObjects: dateEventContext.objects } : {}),
+      ...(reportingContext ? { reportingPermission: { source: reportingContext.source,objects: reportingContext.objects } } : {}) }
+    const draft: CreateEdielMessageInput = { actorUserId: input.actorUserId, companyId: input.companyId,intentId: intent.id,routeProfileId, direction: 'outbound', messageStandard: 'edifact',
       messageFamily: 'PRODAT', messageCode: canonical.messageCode, messageVersion: canonical.version, processType: type, environment: original.environment,
       testFlag: original.environment === 'test' ? 1 : 0, status: 'draft', transportType: 'smtp', rawPayload: input.correctedRawPayload,
       originalMessageId: original.id, originalMessageCode: original.message_code, sourceOperationId: authorization.operationId,
@@ -91,11 +127,16 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
       outboundRequestId: outbound.id, externalReference: canonical.documentReference, interchangeReference: canonical.interchangeReference,
       transactionReference: canonical.transactionReference, applicationReference: canonical.applicationReference,
       senderEdielId: canonical.sender, senderSubAddress: canonical.senderSubAddress, receiverEdielId: canonical.receiver, receiverSubAddress: canonical.receiverSubAddress,
-      parsedPayload: { ...buildCanonicalParsedPayload(canonical), recoveryOperationId: authorization.operationId },
+      parsedPayload: { ...buildCanonicalParsedPayload(canonical), recoveryOperationId: authorization.operationId,
+        ...(serviceOrigin ? { serviceAssignmentId: serviceOrigin.basis.assignmentId } : {}),
+        ...(dateEventContext?.source.kind === 'tgt' ? { testRunId: dateEventContext.source.runId,stepNo: dateEventContext.source.stepNo } : {}),
+        ...(reportingContext?.source.kind === 'tgt' ? { testRunId: reportingContext.source.scope.runId,stepNo: reportingContext.source.scope.stepNo } : {}),
+        ...(dateEventContext || reportingContext ? { prodatEngine: { registerEvidence: createProdatRegisterEvidence({ code: canonical.messageCode,rawSegments: wire.segments.map(s => s.raw),una: wire.una,facts: protectedFacts }) } } : {}) },
       ...deriveEdielAckDefaults({ family: 'PRODAT', code: canonical.messageCode }) }
     try {
-      message = await finalizeCanonicalOutboundDraft({ actorUserId: input.actorUserId, requestType: type, routeContext: route, draft, outboundRequestId: outbound.id,
-        duplicateCheck: { sourceType: 'manual', sourceId: authorization.operationId, messageFamily: 'PRODAT', messageCode: canonical.messageCode, receiverEdielId: canonical.receiver } })
+      message = await finalizeRecoveryDraft({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId,intent,
+        params: { actorUserId: input.actorUserId, requestType: type, routeContext: route, draft, outboundRequestId: outbound.id,reportingContext,dateEventContext,
+          duplicateCheck: { sourceType: 'manual', sourceId: intent.id, messageFamily: 'PRODAT', messageCode: canonical.messageCode, receiverEdielId: canonical.receiver } } })
     } catch (error) {
       if (!(typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')) throw error
       authorization = await authorize(input)
@@ -112,8 +153,6 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
     message = exact
   }
   if (message.status !== 'draft') return { status: 'existing' as const, kind: authorization.kind, operationId: authorization.operationId, messageId: message.id }
-  await supabaseService.rpc('ediel_require_prodat_recovery_current_v1', { p_company_id: input.companyId, p_message_id: message.id }).then(({ error }) => { if (error) throw error })
-  await queuePreparedEdielMessage({ actorUserId: input.actorUserId, messageId: message.id, outboundRequestId: message.outbound_request_id,
-    payload: { recoveryOperationId: authorization.operationId, originalMessageId: input.originalMessageId } })
+  await queueRecoveryDraft({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId,message })
   return { status: 'queued' as const, kind: authorization.kind, operationId: authorization.operationId, messageId: message.id }
 }

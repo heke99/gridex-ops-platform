@@ -2,15 +2,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { prepareAndQueueProdatRecovery } from '@/lib/ediel/recovery/prodatRecovery'
 import { source, head, own } from './fixtures/prodat-identity'
 import { raw } from './fixtures/prodat-register'
-const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), route: vi.fn(), finalize: vi.fn(), request: vi.fn(), queue: vi.fn() }))
+const io = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), route: vi.fn(), finalize: vi.fn(), request: vi.fn(), queue: vi.fn(), intent: vi.fn(), basis: vi.fn(), dates: vi.fn(), reporting: vi.fn(),serviceOrigin:vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc, from: io.from } }))
 vi.mock('@/lib/ediel/core/kernel', () => ({ resolveCanonicalOutboundContext: io.route, finalizeCanonicalOutboundDraft: io.finalize }))
 vi.mock('@/lib/cis/db', () => ({ createOutboundRequest: io.request }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ queuePreparedEdielMessage: io.queue }))
+vi.mock('@/lib/ediel/intent/prodatRecoveryGateway', () => ({ finalizeRecoveryDraft: io.finalize,queueRecoveryDraft: io.queue }))
+vi.mock('@/lib/ediel/intent/intentEngine', () => ({ createEdielMessageIntent: io.intent }))
+vi.mock('@/lib/ediel/recovery/sourceContext', () => ({ readRecoveryOperationBasis: io.basis }))
+vi.mock('@/lib/ediel/production/dateEventContext', () => ({ loadProdatDateEventValidationContext: io.dates,recoveryDateEventScope: (value: unknown) => value }))
+vi.mock('@/lib/ediel/recovery/reportingContext', () => ({ loadRecoveryReportingContext: io.reporting }))
+vi.mock('@/lib/ediel/services/permissionOrigin', () => ({ loadServicePermissionRecoveryOrigin: io.serviceOrigin }))
 const scope = { companyId: 'tenant-a', actorUserId: 'actual-actor', originalMessageId: 'original', operationId: 'operation' }
 const wire = raw([...head(), ...own('1', '735123456789012345', 'OWN')], 'Z01').replace("23-DDQ-PRODAT'", "23-DDQ-PRODAT++++1'")
 const original = { ...source(wire), id: 'original', direction: 'outbound' as const, company_id: 'tenant-a', customer_id: 'customer', status: 'sent' as const }
-const corrected = { ...original, id: 'new-message', status: 'draft' as const, original_message_id: 'original', source_operation_id: 'operation', outbound_request_id: 'new-request' }
+const corrected = { ...original, id: 'new-message', status: 'draft' as const, original_message_id: 'original', source_operation_id: 'operation', outbound_request_id: 'new-request',intent_id: 'new-intent' }
 const command = { ...scope, sourceAckMessageId: 'actual-negative-ack', correctedRawPayload: wire }
 function messages() {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn() }
@@ -19,7 +25,8 @@ function messages() {
 function authorized(extra: Record<string, unknown> = {}) { return { data: { status: 'authorized', operationId: 'operation', originalMessageId: 'original', kind: 'aperak_correction', previousAttemptId: null, newMessageId: 'new-message', ...extra }, error: null } }
 beforeEach(() => {
   vi.resetAllMocks(); messages();io.rpc.mockResolvedValue(authorized());io.queue.mockResolvedValue(undefined)
-  io.route.mockResolvedValue({ route: { id: 'current-route' }, environment: 'test', companyId: 'tenant-a' });io.request.mockResolvedValue({ id: 'new-request' });io.finalize.mockResolvedValue(corrected)
+  io.route.mockResolvedValue({ route: { id: 'current-route' },actor: { marketRoles: ['electricity_supplier'] },routeRuntime: { route_profile_id: 'current-profile' }, environment: 'test', companyId: 'tenant-a' });io.request.mockResolvedValue({ id: 'new-request' });io.finalize.mockResolvedValue(corrected)
+  io.intent.mockResolvedValue({ id: 'new-intent' });io.basis.mockResolvedValue({ originalMessageId: 'original',operationId: 'operation',allowedObjects: [] });io.dates.mockResolvedValue(undefined);io.reporting.mockResolvedValue({ originalMessage: original,context: undefined });io.serviceOrigin.mockResolvedValue(undefined)
 })
 describe('source qualified manual PRODAT recovery', () => {
   it('a missing/unknown loss proof stays held and cannot create an outbox or rerender', async () => {
@@ -39,15 +46,16 @@ describe('source qualified manual PRODAT recovery', () => {
     expect(await prepareAndQueueProdatRecovery(command)).toMatchObject({ status: 'existing', messageId: 'new-message' });expect(io.queue).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled()
   })
   it('rechecks source authority before queue and cannot fall back when the immutable ACK no longer qualifies', async () => {
-    io.rpc.mockResolvedValueOnce(authorized()).mockResolvedValueOnce({ data: null, error: { message: 'prodat_recovery_current_source_required' } })
-    await expect(prepareAndQueueProdatRecovery(command)).rejects.toEqual({ message: 'prodat_recovery_current_source_required' });expect(io.queue).not.toHaveBeenCalled()
+    io.queue.mockRejectedValue({ message: 'prodat_recovery_current_source_required' })
+    await expect(prepareAndQueueProdatRecovery(command)).rejects.toEqual({ message: 'prodat_recovery_current_source_required' });expect(io.finalize).not.toHaveBeenCalled()
   })
   it('uses a new operation request and current canonical finalizer, never inherits the old rule snapshot or ACK states', async () => {
     io.rpc.mockResolvedValueOnce(authorized({ newMessageId: null })).mockResolvedValueOnce(authorized()).mockResolvedValueOnce({ data: null, error: null })
     expect(await prepareAndQueueProdatRecovery(command)).toMatchObject({ status: 'queued', messageId: 'new-message' })
-    expect(io.request.mock.calls[0][0]).toMatchObject({ sourceType: 'manual', sourceId: 'operation', operationId: 'operation', environment: 'test' })
-    expect(io.finalize.mock.calls[0][0]).toMatchObject({ actorUserId: 'actual-actor', outboundRequestId: 'new-request', duplicateCheck: { sourceId: 'operation' }, draft: { companyId: 'tenant-a', originalMessageId: 'original', sourceOperationId: 'operation', rawPayload: wire, contrlStatus: 'pending', aperakStatus: 'not_required' } })
-    expect(io.finalize.mock.calls[0][0].draft.rulePackSnapshot).toBeUndefined();expect(io.finalize.mock.calls[0][0].draft.parsedPayload.prodatEngine).toBeUndefined()
+    expect(io.request.mock.calls[0][0]).toMatchObject({ sourceType: 'manual', sourceId: 'new-intent', operationId: 'operation', environment: 'test' })
+    expect(io.intent.mock.calls[0][0]).toMatchObject({ companyId: 'tenant-a',operationId: 'operation',idempotencyKey: 'prodat-recovery:operation',routeProfileId: 'current-profile' })
+    expect(io.finalize.mock.calls[0][0]).toMatchObject({ actorUserId: 'actual-actor',intent: { id: 'new-intent' },params: { outboundRequestId: 'new-request', duplicateCheck: { sourceId: 'new-intent' }, draft: { companyId: 'tenant-a',intentId: 'new-intent', originalMessageId: 'original', sourceOperationId: 'operation', rawPayload: wire, contrlStatus: 'pending', aperakStatus: 'not_required' } } })
+    expect(io.finalize.mock.calls[0][0].params.draft.rulePackSnapshot).toBeUndefined();expect(io.finalize.mock.calls[0][0].params.draft.parsedPayload.prodatEngine).toBeUndefined()
   })
   it('cannot queue a generic dedupe result until its exact private recovery binding matches', async () => {
     io.rpc.mockResolvedValueOnce(authorized({ newMessageId: null })).mockResolvedValueOnce(authorized())
@@ -58,5 +66,10 @@ describe('source qualified manual PRODAT recovery', () => {
     io.rpc.mockResolvedValue(authorized({ kind: 'verified_transfer_loss', previousAttemptId: 'other-negative-attempt' }))
     await expect(prepareAndQueueProdatRecovery({ ...scope, previousAttemptId: 'claimed-attempt' })).rejects.toThrow('attempt_conflict');expect(io.rpc).toHaveBeenCalledTimes(1)
     await expect(prepareAndQueueProdatRecovery({ ...scope, actorUserId: '', previousAttemptId: 'claimed-attempt' })).rejects.toThrow('scope_required')
+  })
+  it('holds a correction when fresh private protected context cannot qualify before intent/finalizer', async () => {
+    io.rpc.mockResolvedValue(authorized({ newMessageId: null }));io.basis.mockResolvedValue(undefined)
+    await expect(prepareAndQueueProdatRecovery(command)).rejects.toThrow('current_basis_required')
+    expect(io.intent).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
   })
 })
