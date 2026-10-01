@@ -1,3 +1,15 @@
+/** P26.A §2.3 p35 defines future constraints, not operational authorization. */
+export const EDIEL_ENERGY_SHARING_CAPABILITY = Object.freeze({
+  id: 'energy_sharing', effectiveFrom: '2027-01-01', activation: 'held',
+  messageCodes: Object.freeze(['Z13', 'Z14', 'Z15', 'Z18']),
+  forbiddenTransactionReasons: Object.freeze(['S18']),
+  measurementResolution: '15_minutes', measurementMethod: '15_minutes', installationType: 'production',
+  source: Object.freeze({ document: '260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B',
+    sha256: '83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95', section: '2.3', page: 35 }),
+  requiredActivationEvidence: Object.freeze(['legal_authority_decision', 'process_authority_decision', 'versioned_capability_owner_register']),
+} as const)
+
+
 export type EdielGuideFamily = 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL'
 
 export type AuthoritativeEdielGuide = {

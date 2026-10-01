@@ -1,3 +1,4 @@
+export { EDIEL_ENERGY_SHARING_CAPABILITY } from '@/lib/ediel/rulebook/guideRegistry'
 import {
   canonicalAckRequirements,
   resolveCanonicalAckMatrixRule,
