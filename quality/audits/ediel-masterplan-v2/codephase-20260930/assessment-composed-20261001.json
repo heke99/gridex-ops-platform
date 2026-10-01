@@ -1,0 +1,78 @@
+[
+ {
+  "owner": "root integrator; claude/zealous-rubin-6axb91",
+  "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+  "ids": [
+   "AT-Z03H-SUPPLIER",
+   "AT-Z04H-SUPPLIER",
+   "AT-Z05H-SUPPLIER"
+  ],
+  "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+  "confirmed_code_gap": "Composed schema made explicit national H unreachable: supplier_switch_requests check allowed only L/LK and the canonical trigger rewrote every switch row to L/Z22. Fixed by 20261001142540 (commit 1479de85), preserving only an explicit consistent H/Z25 decision. The bilateral Z03/Z04/Z05 H rule-pack profiles required by 20261001031053/013034 are absent from PRODAT 26.A r3; they must come from an authentic bilateral source.",
+  "code_paths": [
+   "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+   "lib/ediel/flows/prodatSwitch.ts",
+   "scripts/helpers/ediel-normal-switch-native-fixture.ts"
+  ],
+  "blockers": [
+   "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack."
+  ],
+  "planned_tests": [
+   "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json#NATIVE-OPEN-02",
+   "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19 cases blocked on profiles)"
+  ],
+  "commits": [
+   "1479de85"
+  ]
+ },
+ {
+  "owner": "root integrator; claude/zealous-rubin-6axb91",
+  "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+  "ids": [
+   "ESCO-07"
+  ],
+  "code_status": "CODE_READY_NOT_VERIFIED",
+  "confirmed_code_gap": "Composed defect: 062832 origin-current check compared Z13 bases without the 043917 requestTiming proof, so every Z13 service origin was held stale and recovery never re-verified timing. Fixed by 20261001142530 (re-verifies the same recorded timing proof, actor-free per 062832 origin authority). Bridges 062831/062833 keep the Z13 timing wrapper on creation.",
+  "code_paths": [
+   "supabase/migrations/20261001062831_ediel_service_context_timing_bridge_for_recovery_phase.sql",
+   "supabase/migrations/20261001062833_ediel_service_context_timing_bridge_restore.sql",
+   "supabase/migrations/20261001142530_ediel_service_origin_z13_request_timing_current.sql"
+  ],
+  "blockers": [],
+  "planned_tests": [
+   "Applied on native replay DB (rollback probe APPLIED_OK); service-evidence native suite still red on pre-existing fixtures (native-findings-register NATIVE-OPEN-03)."
+  ],
+  "commits": [
+   "297e96ae",
+   "f460fabf"
+  ]
+ },
+ {
+  "owner": "root integrator; claude/zealous-rubin-6axb91",
+  "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+  "ids": [
+   "ACK-09",
+   "AT-ACK-09",
+   "ACK-01",
+   "AT-ACK-01"
+  ],
+  "code_status": "CODE_READY_NOT_VERIFIED",
+  "confirmed_code_gap": "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
+  "code_paths": [
+   "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+   "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+   "lib/ediel/ack/technicalSyntaxAuthority.ts",
+   "lib/ediel/core/outboundAckOriginals.ts",
+   "lib/ediel/rulebook/validator.ts"
+  ],
+  "blockers": [],
+  "planned_tests": [
+   "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)",
+   "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json"
+  ],
+  "commits": [
+   "62441ae8",
+   "afdb19ab"
+  ]
+ }
+]

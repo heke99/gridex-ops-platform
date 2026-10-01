@@ -1,40 +1,14 @@
 {
   "title": "Ediel v2 additive code-phase work matrix",
-  "inventory_head": "a8db3a1178b1cc73013133a751f94a2a57dd8198",
+  "inventory_head": "e3cd12fe19e1f82116f162400a4852cea2497273",
   "integration_owner": "/root",
-  "inventory_worktree": "/workspace/scratch/145123787247/gridex",
+  "inventory_worktree": "/home/user/gridex-ops-platform",
   "inventory_git": {
-    "head": "a8db3a1178b1cc73013133a751f94a2a57dd8198",
+    "head": "e3cd12fe19e1f82116f162400a4852cea2497273",
     "working_tree_status": [
-      " M __tests__/ediel-prodat-recovery-consumer.test.ts",
-      " M app/admin/ediel/page.tsx",
-      " M e2e/browser/ediel-requested-change-local.spec.mjs",
-      " M lib/ediel/recovery/prodatRecovery.ts",
-      " M quality/audits/ediel-masterplan-v2/codephase-20260930/component-resolutions-20261001.json",
-      " M quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.json",
-      " M quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.md",
-      " M scripts/gridex-ediel-upgrade-replay.sh",
-      " M scripts/migration-history-manifest.json",
-      "?? __tests__/ediel-recovery-operator-actions.test.ts",
-      "?? __tests__/ediel-recovery-operator-workspace.test.ts",
-      "?? app/admin/ediel/prodat-recovery/",
-      "?? lib/ediel/recovery/operatorWorkspace.ts",
-      "?? quality/audits/ediel-masterplan-v2/ack-v1-incident-common-reader-delta-20261001.json",
-      "?? quality/audits/ediel-masterplan-v2/history-union-tools-code-check-receipt-20261001.json",
-      "?? quality/audits/ediel-masterplan-v2/integration-20261001/recovery-transport/operator-browser-owner-delta.json",
-      "?? quality/audits/ediel-masterplan-v2/integration-20261001/recovery-transport/operator-owner-delta.json",
-      "?? quality/audits/ediel-masterplan-v2/p15-source-provenance-package-20261001.json",
-      "?? scripts/ediel-ack-common-reader-flow-closure-sql-regression.mjs",
-      "?? scripts/ediel-prodat-recovery-ops-browser.mjs",
-      "?? scripts/ediel-recovery-operator-read-sql-regression.mjs",
-      "?? scripts/gridex-ediel-applied-txt-branch-upgrade.sh",
-      "?? scripts/gridex-ediel-history-union-inputs-selftest.py",
-      "?? scripts/gridex-ediel-history-union-inputs.py",
-      "?? scripts/gridex-ediel-history-union-upgrade-contract.json",
-      "?? supabase/migrations/20261001134500_ediel_ack_v1_incident_common_private_original_reader.sql",
-      "?? supabase/migrations/20261001141500_ediel_prodat_recovery_operator_read_port.sql"
+      "?? quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-composed-20261001.json"
     ],
-    "uncommitted_diff_sha256": "2d488ab57299132934091b6be833317fff95fd81c1adf1aa4e0a9c0ee9257808",
+    "uncommitted_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "is_fixed_candidate": false,
     "meaning": "Current named HEAD plus explicit working-tree state/path hashes; code-phase inventory is not a fixed, verified test candidate."
   },
@@ -18850,7 +18824,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -18899,7 +18873,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
@@ -19596,7 +19570,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -19645,7 +19619,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/transport/index.part-2.ts",
@@ -20162,7 +20136,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -20197,7 +20171,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utiltsEngine.ts",
@@ -20866,7 +20840,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -21251,7 +21225,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -21286,7 +21260,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -22307,7 +22281,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -22584,7 +22558,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/tenant/resolveInboundTenant.ts",
@@ -24533,7 +24507,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -24568,7 +24542,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
@@ -25398,7 +25372,7 @@
             "file_path": "lib/ediel/core/dedupe.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "05b4777ba73699d6c24acd51778067474806ed09d2765455cbc2f1aa4357b6b8"
+            "sha256": "f5891e35cb8e2e90390dd78f7e2476a6ee9c557f049e0d9ef7339d147fd43f55"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -25440,7 +25414,7 @@
             "file_path": "lib/ediel/db.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "028da2935f48c60f31e0134af712be3def234df7759e84503739fa389cfb7368"
+            "sha256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -28363,7 +28337,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/contrlEngine.ts",
@@ -28968,7 +28942,7 @@
             "file_path": "lib/ediel/core/ackPolicy.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+            "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f"
           },
           {
             "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
@@ -29853,7 +29827,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "supabase/migrations/20260930221910_ediel_complete_technical_header_observation.sql",
@@ -30217,7 +30191,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "quality/audits/ediel-masterplan-v2/g06-source-candidate-inventory-20260923.md",
@@ -30534,7 +30508,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "scripts/generate-ediel-unused-unh-projection.cjs",
@@ -31206,7 +31180,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/messageBuilder/payloadPreflight.ts",
@@ -39257,10 +39231,53 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "99b0d6fda03afe1ecb9a8b3814a18d3127e657f1aaa3fbfd76543da7473124fa"
+          },
+          {
+            "path": "supabase/migrations/20261001062831_ediel_service_context_timing_bridge_for_recovery_phase.sql",
+            "file_path": "supabase/migrations/20261001062831_ediel_service_context_timing_bridge_for_recovery_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "885be9e78ee90a9660d31eaad17192bbfd6c1612dd3cb2f167057b1a6e32d526"
+          },
+          {
+            "path": "supabase/migrations/20261001062833_ediel_service_context_timing_bridge_restore.sql",
+            "file_path": "supabase/migrations/20261001062833_ediel_service_context_timing_bridge_restore.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "8781ee49c8b23a76c12131bc1105b1b55df157ef72d5023d1555da17698d050e"
+          },
+          {
+            "path": "supabase/migrations/20261001142530_ediel_service_origin_z13_request_timing_current.sql",
+            "file_path": "supabase/migrations/20261001142530_ediel_service_origin_z13_request_timing_current.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "1b4431379f2d6f9898ab11fae18caebb06c9ca8438697bcf4919fb741e69a42c"
           }
         ],
         "callsite_contracts": [],
         "fresh_assessments": [
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "ESCO-07"
+            ],
+            "code_status": "CODE_READY_NOT_VERIFIED",
+            "confirmed_code_gap": "Composed defect: 062832 origin-current check compared Z13 bases without the 043917 requestTiming proof, so every Z13 service origin was held stale and recovery never re-verified timing. Fixed by 20261001142530 (re-verifies the same recorded timing proof, actor-free per 062832 origin authority). Bridges 062831/062833 keep the Z13 timing wrapper on creation.",
+            "code_paths": [
+              "supabase/migrations/20261001062831_ediel_service_context_timing_bridge_for_recovery_phase.sql",
+              "supabase/migrations/20261001062833_ediel_service_context_timing_bridge_restore.sql",
+              "supabase/migrations/20261001142530_ediel_service_origin_z13_request_timing_current.sql"
+            ],
+            "blockers": [],
+            "planned_tests": [
+              "Applied on native replay DB (rollback probe APPLIED_OK); service-evidence native suite still red on pre-existing fixtures (native-findings-register NATIVE-OPEN-03)."
+            ],
+            "commits": [
+              "297e96ae",
+              "f460fabf"
+            ]
+          },
           {
             "ids": [
               "ESCO-07",
@@ -39385,11 +39402,13 @@
         "previous_bounded_semantic_review": null
       },
       "confirmed_code_gaps": [
+        "Composed defect: 062832 origin-current check compared Z13 bases without the 043917 requestTiming proof, so every Z13 service origin was held stale and recovery never re-verified timing. Fixed by 20261001142530 (re-verifies the same recorded timing proof, actor-free per 062832 origin authority). Bridges 062831/062833 keep the Z13 timing wrapper on creation.",
         "Previously ACK could establish business state and live Z14/Z15 trusted broad mutable caller scope. Source-only atomic original/actor/own-object transition and immutable history now implemented; forward current-source attestation and cap correction still pending integration.",
         "Previously ACK could establish business state and live Z14/Z15 trusted broad mutable caller scope. Source-only atomic original/actor/own-object transition and immutable history now implemented; forward current-source attestation and cap correction still pending integration."
       ],
       "remaining_code_gaps": [],
       "resolved_or_reviewed_implementation_findings": [
+        "Composed defect: 062832 origin-current check compared Z13 bases without the 043917 requestTiming proof, so every Z13 service origin was held stale and recovery never re-verified timing. Fixed by 20261001142530 (re-verifies the same recorded timing proof, actor-free per 062832 origin authority). Bridges 062831/062833 keep the Z13 timing wrapper on creation.",
         "Previously ACK could establish business state and live Z14/Z15 trusted broad mutable caller scope. Source-only atomic original/actor/own-object transition and immutable history now implemented; forward current-source attestation and cap correction still pending integration.",
         "Previously ACK could establish business state and live Z14/Z15 trusted broad mutable caller scope. Source-only atomic original/actor/own-object transition and immutable history now implemented; forward current-source attestation and cap correction still pending integration."
       ],
@@ -39411,7 +39430,8 @@
           "actors_routing_grants_persistence"
         ],
         "actual_consumer_owners": [
-          "processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history"
+          "processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history",
+          "root integrator; claude/zealous-rubin-6axb91"
         ],
         "current_owner_dependency_or_blocker_notes": [
           "Verified legal mandate, authentic end-user/DSO approval and versioned actor/service assignment registry required before affected capability is activated.",
@@ -39455,6 +39475,7 @@
           "result": "NOT_VERIFIED"
         },
         "tests": [
+          "Applied on native replay DB (rollback probe APPLIED_OK); service-evidence native suite still red on pre-existing fixtures (native-findings-register NATIVE-OPEN-03).",
           "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
           "__tests__/ediel-closure-source-wire.test.ts",
           "__tests__/ediel-prodat-lifecycle.test.ts"
@@ -40595,7 +40616,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -40633,6 +40654,13 @@
             "sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653"
           },
           {
+            "path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
+          },
+          {
             "path": "lib/ediel/aperakEngine.ts",
             "file_path": "lib/ediel/aperakEngine.ts",
             "callable_locator": null,
@@ -40644,7 +40672,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -40665,7 +40693,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -40693,7 +40721,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -40701,6 +40729,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "50e748b05c12fcc1c361050502a5df0412fb32b7b2a737da8429332771ac327a"
+          },
+          {
+            "path": "lib/ediel/rulebook/validator.ts",
+            "file_path": "lib/ediel/rulebook/validator.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -40736,6 +40771,20 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "a08d9c16131e3afd879246932956e5698b605246c2ae4427e141b45eddfc9395"
+          },
+          {
+            "path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "file_path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "61515ab11deaa0476e366f352f8c9ea8933fc369939849e4447a5ecf5f49e852"
+          },
+          {
+            "path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "file_path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "7ef393bb1a39f9d8378b27e26801f2e871a640a3608e5d64af48fcdbf334dce0"
           }
         ],
         "callsite_contracts": [
@@ -40755,6 +40804,34 @@
           }
         ],
         "fresh_assessments": [
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "ACK-09",
+              "AT-ACK-09",
+              "ACK-01",
+              "AT-ACK-01"
+            ],
+            "code_status": "CODE_READY_NOT_VERIFIED",
+            "confirmed_code_gap": "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
+            "code_paths": [
+              "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+              "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+              "lib/ediel/ack/technicalSyntaxAuthority.ts",
+              "lib/ediel/core/outboundAckOriginals.ts",
+              "lib/ediel/rulebook/validator.ts"
+            ],
+            "blockers": [],
+            "planned_tests": [
+              "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)",
+              "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json"
+            ],
+            "commits": [
+              "62441ae8",
+              "afdb19ab"
+            ]
+          },
           {
             "ids": [
               "ACK-01"
@@ -40886,11 +40963,13 @@
         "previous_bounded_semantic_review": null
       },
       "confirmed_code_gaps": [
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification."
       ],
       "remaining_code_gaps": [],
       "resolved_or_reviewed_implementation_findings": [
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification."
       ],
@@ -40912,6 +40991,7 @@
           "actors_routing_grants_persistence"
         ],
         "actual_consumer_owners": [
+          "root integrator; claude/zealous-rubin-6axb91",
           "utilts_ack"
         ],
         "current_owner_dependency_or_blocker_notes": [],
@@ -40955,7 +41035,9 @@
           "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance.",
           "Lägg inte nationell APERAK-kontroll i CONTRL.",
           "__tests__/ediel-canonical-ack.test.ts",
-          "__tests__/utilts-aperak-contrl-central-engine.test.ts"
+          "__tests__/utilts-aperak-contrl-central-engine.test.ts",
+          "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json",
+          "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)"
         ]
       }
     },
@@ -40994,7 +41076,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -41050,14 +41132,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPolicy.ts",
             "file_path": "lib/ediel/core/ackPolicy.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+            "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -41071,7 +41153,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/originalAckPartyIdentities.ts",
@@ -41085,7 +41167,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
@@ -41120,7 +41202,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -41581,7 +41663,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-utilts-aperak-physical-document.test.ts",
@@ -41644,7 +41726,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -41665,7 +41747,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/physicalDocumentReference.ts",
@@ -41700,7 +41782,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -42094,7 +42176,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -42143,7 +42225,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -42164,7 +42246,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -42192,7 +42274,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -42476,7 +42558,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -42539,7 +42621,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -42567,7 +42649,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -42595,7 +42677,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -42616,7 +42698,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/errSourceCopy.ts",
@@ -43182,7 +43264,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -43245,7 +43327,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -43266,7 +43348,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -43294,7 +43376,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -43315,7 +43397,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -43660,7 +43742,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-received-prodat-response-validation.test.ts",
@@ -43730,7 +43812,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -43751,7 +43833,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
@@ -43800,7 +43882,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -43835,7 +43917,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -44386,7 +44468,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-received-prodat-response-validation.test.ts",
@@ -44477,14 +44559,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPolicy.ts",
             "file_path": "lib/ediel/core/ackPolicy.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+            "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -44505,7 +44587,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/originalAckPartyIdentities.ts",
@@ -44519,7 +44601,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedProdatApplicationObjects.ts",
@@ -44589,7 +44671,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -44659,7 +44741,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/safeApplyReview.ts",
@@ -45984,7 +46066,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -46022,6 +46104,13 @@
             "sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653"
           },
           {
+            "path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
+          },
+          {
             "path": "lib/ediel/aperakEngine.ts",
             "file_path": "lib/ediel/aperakEngine.ts",
             "callable_locator": null,
@@ -46033,7 +46122,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -46047,7 +46136,7 @@
             "file_path": "lib/ediel/core/dedupe.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "05b4777ba73699d6c24acd51778067474806ed09d2765455cbc2f1aa4357b6b8"
+            "sha256": "f5891e35cb8e2e90390dd78f7e2476a6ee9c557f049e0d9ef7339d147fd43f55"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -46068,7 +46157,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -46096,7 +46185,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/inbound/receptions.ts",
@@ -46118,6 +46207,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "50e748b05c12fcc1c361050502a5df0412fb32b7b2a737da8429332771ac327a"
+          },
+          {
+            "path": "lib/ediel/rulebook/validator.ts",
+            "file_path": "lib/ediel/rulebook/validator.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/canonicalMessageEngine.ts",
@@ -46195,6 +46291,20 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "a08d9c16131e3afd879246932956e5698b605246c2ae4427e141b45eddfc9395"
+          },
+          {
+            "path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "file_path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "61515ab11deaa0476e366f352f8c9ea8933fc369939849e4447a5ecf5f49e852"
+          },
+          {
+            "path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "file_path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "7ef393bb1a39f9d8378b27e26801f2e871a640a3608e5d64af48fcdbf334dce0"
           }
         ],
         "callsite_contracts": [],
@@ -46263,6 +46373,34 @@
               "d36e10e8"
             ],
             "inherited_review_source": "3c7342c64c83b705e85c18f300705166a1732ad6"
+          },
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "ACK-09",
+              "AT-ACK-09",
+              "ACK-01",
+              "AT-ACK-01"
+            ],
+            "code_status": "CODE_READY_NOT_VERIFIED",
+            "confirmed_code_gap": "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
+            "code_paths": [
+              "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+              "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+              "lib/ediel/ack/technicalSyntaxAuthority.ts",
+              "lib/ediel/core/outboundAckOriginals.ts",
+              "lib/ediel/rulebook/validator.ts"
+            ],
+            "blockers": [],
+            "planned_tests": [
+              "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)",
+              "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json"
+            ],
+            "commits": [
+              "62441ae8",
+              "afdb19ab"
+            ]
           },
           {
             "ids": [
@@ -46414,6 +46552,7 @@
       "confirmed_code_gaps": [
         "Actual live ingress reused by company+UNB/latest and overwrote saved PRODAT raw/status/context/ACK. Real new receipt and internal replay were not separately durable; autoACK old final lifecycle silently returned. Replaced ingress write with same shared canonical scope authority/full source equality, append immutable actual retained-mail/parse reception, source-owned first receipt clock, and NEW-mail durable held response request before any effect. Explicit receipt-aware kernel/autoACK consumers cannot reset/revalidate old originals/outcomes.",
         "Prospective cross-new-UNB UTILTS BGM203/IDE505 historical collision detection was absent. Actual unseeded versioned foreign-legal-issuer/full NADMS and separate full UNB transport-mandate authority plus authentic historical/deletion/retention grounds now qualifies sender-wide/all-application namespace. New genuine collision emits existing national42 at whole203 header or own505 IDE/ACW scope; SAMEcanonical-source mail/internal retry does not recapture or rewrite first committed result. This is functional namespace support only; identical whole UNB receipt support remains separate.",
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
         "Fresh literal and actual consumer re-review: internal replay/immutable ACK originals are implemented, but a newly received protocolduplicate is not yet a distinct persisted receipt/response request. Existing autoAck already_sent_success returns without a new outbox/provider request. Actors owns root-allocated prospective new-reception support; exact T/P duplicate response policy must be source-qualified and no new ERC is guessed. No silent discard is permitted; this row is not code-complete until that integration is implemented and independently reviewed.",
         "Fresh own literal/code assessment: Actors/root345ea3a and d36e10e8 distinguish an actual new mailbox receipt UUID from internal receipt replay, persist immutable reception and durable response request, preserve original raw/outcome and record explicit held source-policy capability instead of silent discard. Same genuine UNB/newmail receipt remains a separate held request; changed raw under that identity is a conflict; new actual UNB persists a new canonical business source. U sender203/505 collision detection now has independent source-backed support1d45782b through genuine versioned legalissuer/mandate admission and same canonical guide/native own-effect chain; it never resets earlier outcomes. WholeT exact duplicate response behavior still requires the authentic fullT original and verified capability/evidence. This code support does not invent an ERC/new resend and does not prove actual market delivery."
       ],
@@ -46422,7 +46561,8 @@
       ],
       "resolved_or_reviewed_implementation_findings": [
         "Actual live ingress reused by company+UNB/latest and overwrote saved PRODAT raw/status/context/ACK. Real new receipt and internal replay were not separately durable; autoACK old final lifecycle silently returned. Replaced ingress write with same shared canonical scope authority/full source equality, append immutable actual retained-mail/parse reception, source-owned first receipt clock, and NEW-mail durable held response request before any effect. Explicit receipt-aware kernel/autoACK consumers cannot reset/revalidate old originals/outcomes.",
-        "Prospective cross-new-UNB UTILTS BGM203/IDE505 historical collision detection was absent. Actual unseeded versioned foreign-legal-issuer/full NADMS and separate full UNB transport-mandate authority plus authentic historical/deletion/retention grounds now qualifies sender-wide/all-application namespace. New genuine collision emits existing national42 at whole203 header or own505 IDE/ACW scope; SAMEcanonical-source mail/internal retry does not recapture or rewrite first committed result. This is functional namespace support only; identical whole UNB receipt support remains separate."
+        "Prospective cross-new-UNB UTILTS BGM203/IDE505 historical collision detection was absent. Actual unseeded versioned foreign-legal-issuer/full NADMS and separate full UNB transport-mandate authority plus authentic historical/deletion/retention grounds now qualifies sender-wide/all-application namespace. New genuine collision emits existing national42 at whole203 header or own505 IDE/ACW scope; SAMEcanonical-source mail/internal retry does not recapture or rewrite first committed result. This is functional namespace support only; identical whole UNB receipt support remains separate.",
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending."
       ],
       "verification_gap": {
         "formal_status_unchanged": "NOT_VERIFIED",
@@ -46442,6 +46582,7 @@
         "actual_consumer_owners": [
           "actors_history (integration owner /root; functional namespace independent owner utilts_ack)",
           "integration owner /root with utilts_ack and authority namespace owners; actors_history independent tenant/source review",
+          "root integrator; claude/zealous-rubin-6axb91",
           "utilts_ack"
         ],
         "current_owner_dependency_or_blocker_notes": [
@@ -46610,7 +46751,9 @@
           "Same UNB different bytes records identity-conflict hold without mutating original; foreign company/env/source/parse/null actor/unknown actual clock/unretained bytes fail closed; source transport identity/clock/pointer cannot be rewritten after registration.",
           "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett.",
           "__tests__/ediel-ack-outbox-retry-safety.test.ts",
-          "__tests__/ediel-utilts-source-collision.test.ts"
+          "__tests__/ediel-utilts-source-collision.test.ts",
+          "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json",
+          "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)"
         ]
       }
     },
@@ -50082,7 +50225,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/outboundOwnerWitness.ts",
@@ -50124,7 +50267,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/transport/index.part-2.ts",
@@ -51180,7 +51323,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/outbox/projectSentSources.ts",
@@ -53990,7 +54133,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/sla/ackTimerCompletion.ts",
@@ -54444,7 +54587,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -54521,7 +54664,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -55246,7 +55389,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -55793,7 +55936,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -56990,7 +57133,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -59950,7 +60093,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/core/failureDisposition.ts",
@@ -59992,7 +60135,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/transport/inboundProcessor.ts",
@@ -60468,7 +60611,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-prodat-aperak-unused-document.test.ts",
@@ -60524,7 +60667,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -60545,7 +60688,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -60573,7 +60716,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -60594,7 +60737,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -62091,7 +62234,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -62154,7 +62297,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatServicePermission.ts",
@@ -62849,7 +62992,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -62884,7 +63027,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatServicePermission.ts",
@@ -66593,7 +66736,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatServicePermission.ts",
@@ -67015,7 +67158,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "app/api/ediel/services/commands/route.ts",
@@ -67085,14 +67228,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/dedupe.ts",
             "file_path": "lib/ediel/core/dedupe.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "05b4777ba73699d6c24acd51778067474806ed09d2765455cbc2f1aa4357b6b8"
+            "sha256": "f5891e35cb8e2e90390dd78f7e2476a6ee9c557f049e0d9ef7339d147fd43f55"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -67106,7 +67249,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/referenceGenerator.ts",
@@ -67141,7 +67284,7 @@
             "file_path": "lib/ediel/db.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "028da2935f48c60f31e0134af712be3def234df7759e84503739fa389cfb7368"
+            "sha256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0"
           },
           {
             "path": "lib/ediel/flows/inboundAckProcessing.ts",
@@ -67155,7 +67298,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatServicePermission.ts",
@@ -68050,7 +68193,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatServicePermission.ts",
@@ -69731,7 +69874,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatServicePermission.ts",
@@ -73663,7 +73806,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/contrlEngine.ts",
@@ -76302,7 +76445,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/contrlEngine.ts",
@@ -77444,7 +77587,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -77486,14 +77629,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/outboundAckOriginals.ts",
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -77521,7 +77664,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/sourceSwitchCommit.ts",
@@ -79756,7 +79899,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -79826,14 +79969,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPolicy.ts",
             "file_path": "lib/ediel/core/ackPolicy.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+            "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -79861,7 +80004,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -79882,7 +80025,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -80264,7 +80407,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -80306,14 +80449,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/outboundAckOriginals.ts",
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -80334,7 +80477,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -80625,7 +80768,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -80667,14 +80810,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/outboundAckOriginals.ts",
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -80695,7 +80838,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
@@ -81088,7 +81231,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -81130,7 +81273,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackSourceRulePackEvidence.ts",
@@ -81151,7 +81294,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -81172,7 +81315,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/utiltsDataRequest.part-2.ts",
@@ -81193,7 +81336,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/errSourceCopy.ts",
@@ -82327,7 +82470,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "app/api/ediel/services/commands/route.ts",
@@ -82369,7 +82512,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -82383,7 +82526,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/actorRegistry.ts",
@@ -82404,7 +82547,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/outboundOwnerWitness.ts",
@@ -82432,7 +82575,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatServicePermission.ts",
@@ -83092,7 +83235,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack/committedInboundAck.ts",
@@ -83106,7 +83249,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/messagePolicy.ts",
@@ -83120,7 +83263,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -83134,7 +83277,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/utiltsDataRequest.part-2.ts",
@@ -84073,7 +84216,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/transport/index.part-2.ts",
@@ -84887,7 +85030,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -85205,7 +85348,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -85247,14 +85390,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/outboundAckOriginals.ts",
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -85275,7 +85418,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -85533,7 +85676,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -85575,14 +85718,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/outboundAckOriginals.ts",
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
@@ -85610,7 +85753,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -88794,7 +88937,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/scopedCapabilityReadiness.ts",
@@ -89241,7 +89384,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -89325,7 +89468,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -90065,7 +90208,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -90998,7 +91141,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -91427,7 +91570,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -91511,7 +91654,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/testing/negativeFixtureAuthority.ts",
@@ -92766,7 +92909,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/core/edifactValidation.ts",
@@ -93168,7 +93311,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -93217,7 +93360,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
@@ -93917,7 +94060,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -93966,7 +94109,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/transport/index.part-2.ts",
@@ -94485,7 +94628,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -94520,7 +94663,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utiltsEngine.ts",
@@ -95192,7 +95335,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -95578,7 +95721,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -95613,7 +95756,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -96637,7 +96780,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -96915,7 +97058,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/tenant/resolveInboundTenant.ts",
@@ -98872,7 +99015,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
@@ -98907,7 +99050,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
@@ -99742,7 +99885,7 @@
             "file_path": "lib/ediel/core/dedupe.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "05b4777ba73699d6c24acd51778067474806ed09d2765455cbc2f1aa4357b6b8"
+            "sha256": "f5891e35cb8e2e90390dd78f7e2476a6ee9c557f049e0d9ef7339d147fd43f55"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -99784,7 +99927,7 @@
             "file_path": "lib/ediel/db.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "028da2935f48c60f31e0134af712be3def234df7759e84503739fa389cfb7368"
+            "sha256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -102719,7 +102862,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/contrlEngine.ts",
@@ -103326,7 +103469,7 @@
             "file_path": "lib/ediel/core/ackPolicy.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+            "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f"
           },
           {
             "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
@@ -104214,7 +104357,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "supabase/migrations/20260930221910_ediel_complete_technical_header_observation.sql",
@@ -104580,7 +104723,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "quality/audits/ediel-masterplan-v2/g06-source-candidate-inventory-20260923.md",
@@ -104899,7 +105042,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "scripts/generate-ediel-unused-unh-projection.cjs",
@@ -105580,7 +105723,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/messageBuilder/payloadPreflight.ts",
@@ -117188,7 +117331,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -117226,6 +117369,13 @@
             "sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653"
           },
           {
+            "path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
+          },
+          {
             "path": "lib/ediel/aperakEngine.ts",
             "file_path": "lib/ediel/aperakEngine.ts",
             "callable_locator": null,
@@ -117237,7 +117387,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -117258,7 +117408,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -117286,7 +117436,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -117294,6 +117444,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "50e748b05c12fcc1c361050502a5df0412fb32b7b2a737da8429332771ac327a"
+          },
+          {
+            "path": "lib/ediel/rulebook/validator.ts",
+            "file_path": "lib/ediel/rulebook/validator.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -117329,6 +117486,20 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "a08d9c16131e3afd879246932956e5698b605246c2ae4427e141b45eddfc9395"
+          },
+          {
+            "path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "file_path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "61515ab11deaa0476e366f352f8c9ea8933fc369939849e4447a5ecf5f49e852"
+          },
+          {
+            "path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "file_path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "7ef393bb1a39f9d8378b27e26801f2e871a640a3608e5d64af48fcdbf334dce0"
           }
         ],
         "callsite_contracts": [
@@ -117348,6 +117519,34 @@
           }
         ],
         "fresh_assessments": [
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "ACK-09",
+              "AT-ACK-09",
+              "ACK-01",
+              "AT-ACK-01"
+            ],
+            "code_status": "CODE_READY_NOT_VERIFIED",
+            "confirmed_code_gap": "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
+            "code_paths": [
+              "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+              "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+              "lib/ediel/ack/technicalSyntaxAuthority.ts",
+              "lib/ediel/core/outboundAckOriginals.ts",
+              "lib/ediel/rulebook/validator.ts"
+            ],
+            "blockers": [],
+            "planned_tests": [
+              "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)",
+              "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json"
+            ],
+            "commits": [
+              "62441ae8",
+              "afdb19ab"
+            ]
+          },
           {
             "ids": [
               "AT-ACK-01"
@@ -117489,11 +117688,13 @@
         "previous_bounded_semantic_review": null
       },
       "confirmed_code_gaps": [
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification."
       ],
       "remaining_code_gaps": [],
       "resolved_or_reviewed_implementation_findings": [
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
         "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification."
       ],
@@ -117515,6 +117716,7 @@
           "actors_routing_grants_persistence"
         ],
         "actual_consumer_owners": [
+          "root integrator; claude/zealous-rubin-6axb91",
           "utilts_ack"
         ],
         "current_owner_dependency_or_blocker_notes": [],
@@ -117558,7 +117760,9 @@
           "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance.",
           "Forbidden effect: Lägg inte nationell APERAK-kontroll i CONTRL.",
           "__tests__/ediel-canonical-ack.test.ts",
-          "__tests__/utilts-aperak-contrl-central-engine.test.ts"
+          "__tests__/utilts-aperak-contrl-central-engine.test.ts",
+          "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json",
+          "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)"
         ]
       }
     },
@@ -117598,7 +117802,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -117654,14 +117858,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPolicy.ts",
             "file_path": "lib/ediel/core/ackPolicy.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+            "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -117675,7 +117879,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/originalAckPartyIdentities.ts",
@@ -117689,7 +117893,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
@@ -117724,7 +117928,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -118198,7 +118402,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-utilts-aperak-physical-document.test.ts",
@@ -118261,7 +118465,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -118282,7 +118486,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/physicalDocumentReference.ts",
@@ -118317,7 +118521,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -118722,7 +118926,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -118771,7 +118975,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -118792,7 +118996,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -118820,7 +119024,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -119115,7 +119319,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -119178,7 +119382,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -119206,7 +119410,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -119234,7 +119438,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -119255,7 +119459,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/errSourceCopy.ts",
@@ -119832,7 +120036,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -119895,7 +120099,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -119916,7 +120120,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -119944,7 +120148,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -119965,7 +120169,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -120321,7 +120525,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-received-prodat-response-validation.test.ts",
@@ -120391,7 +120595,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -120412,7 +120616,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
@@ -120461,7 +120665,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -120496,7 +120700,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -121060,7 +121264,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-received-prodat-response-validation.test.ts",
@@ -121151,14 +121355,14 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPolicy.ts",
             "file_path": "lib/ediel/core/ackPolicy.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "06792f9de2eb8b0e17480d7d7d5695b59bb00c3db7fa801707466b67c73a8d92"
+            "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -121179,7 +121383,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/originalAckPartyIdentities.ts",
@@ -121193,7 +121397,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedProdatApplicationObjects.ts",
@@ -121263,7 +121467,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedErrApplicationAcks.ts",
@@ -121333,7 +121537,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/safeApplyReview.ts",
@@ -122681,7 +122885,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "lib/ediel/ack.ts",
@@ -122719,6 +122923,13 @@
             "sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653"
           },
           {
+            "path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
+          },
+          {
             "path": "lib/ediel/aperakEngine.ts",
             "file_path": "lib/ediel/aperakEngine.ts",
             "callable_locator": null,
@@ -122730,7 +122941,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -122744,7 +122955,7 @@
             "file_path": "lib/ediel/core/dedupe.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "05b4777ba73699d6c24acd51778067474806ed09d2765455cbc2f1aa4357b6b8"
+            "sha256": "f5891e35cb8e2e90390dd78f7e2476a6ee9c557f049e0d9ef7339d147fd43f55"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -122765,7 +122976,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -122793,7 +123004,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/inbound/receptions.ts",
@@ -122815,6 +123026,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "50e748b05c12fcc1c361050502a5df0412fb32b7b2a737da8429332771ac327a"
+          },
+          {
+            "path": "lib/ediel/rulebook/validator.ts",
+            "file_path": "lib/ediel/rulebook/validator.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/canonicalMessageEngine.ts",
@@ -122892,6 +123110,20 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "a08d9c16131e3afd879246932956e5698b605246c2ae4427e141b45eddfc9395"
+          },
+          {
+            "path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "file_path": "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "61515ab11deaa0476e366f352f8c9ea8933fc369939849e4447a5ecf5f49e852"
+          },
+          {
+            "path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "file_path": "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "7ef393bb1a39f9d8378b27e26801f2e871a640a3608e5d64af48fcdbf334dce0"
           }
         ],
         "callsite_contracts": [],
@@ -122960,6 +123192,34 @@
               "d36e10e8"
             ],
             "inherited_review_source": "3c7342c64c83b705e85c18f300705166a1732ad6"
+          },
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "ACK-09",
+              "AT-ACK-09",
+              "ACK-01",
+              "AT-ACK-01"
+            ],
+            "code_status": "CODE_READY_NOT_VERIFIED",
+            "confirmed_code_gap": "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
+            "code_paths": [
+              "supabase/migrations/20261001134600_ediel_retained_technical_ack_private_chain_and_phase.sql",
+              "supabase/migrations/20261001142520_ediel_technical_syntax_ports_current_actor_phase.sql",
+              "lib/ediel/ack/technicalSyntaxAuthority.ts",
+              "lib/ediel/core/outboundAckOriginals.ts",
+              "lib/ediel/rulebook/validator.ts"
+            ],
+            "blockers": [],
+            "planned_tests": [
+              "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)",
+              "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json"
+            ],
+            "commits": [
+              "62441ae8",
+              "afdb19ab"
+            ]
           },
           {
             "ids": [
@@ -123121,6 +123381,7 @@
       "confirmed_code_gaps": [
         "Actual live ingress reused by company+UNB/latest and overwrote saved PRODAT raw/status/context/ACK. Real new receipt and internal replay were not separately durable; autoACK old final lifecycle silently returned. Replaced ingress write with same shared canonical scope authority/full source equality, append immutable actual retained-mail/parse reception, source-owned first receipt clock, and NEW-mail durable held response request before any effect. Explicit receipt-aware kernel/autoACK consumers cannot reset/revalidate old originals/outcomes.",
         "Prospective cross-new-UNB UTILTS BGM203/IDE505 historical collision detection was absent. Actual unseeded versioned foreign-legal-issuer/full NADMS and separate full UNB transport-mandate authority plus authentic historical/deletion/retention grounds now qualifies sender-wide/all-application namespace. New genuine collision emits existing national42 at whole203 header or own505 IDE/ACW scope; SAMEcanonical-source mail/internal retry does not recapture or rewrite first committed result. This is functional namespace support only; identical whole UNB receipt support remains separate.",
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending.",
         "Fresh literal and actual consumer re-review: internal replay/immutable ACK originals are implemented, but a newly received protocolduplicate is not yet a distinct persisted receipt/response request. Existing autoAck already_sent_success returns without a new outbox/provider request. Actors owns root-allocated prospective new-reception support; exact T/P duplicate response policy must be source-qualified and no new ERC is guessed. No silent discard is permitted; this row is not code-complete until that integration is implemented and independently reviewed.",
         "Fresh own literal/code assessment: Actors/root345ea3a and d36e10e8 distinguish an actual new mailbox receipt UUID from internal receipt replay, persist immutable reception and durable response request, preserve original raw/outcome and record explicit held source-policy capability instead of silent discard. Same genuine UNB/newmail receipt remains a separate held request; changed raw under that identity is a conflict; new actual UNB persists a new canonical business source. U sender203/505 collision detection now has independent source-backed support1d45782b through genuine versioned legalissuer/mandate admission and same canonical guide/native own-effect chain; it never resets earlier outcomes. WholeT exact duplicate response behavior still requires the authentic fullT original and verified capability/evidence. This code support does not invent an ERC/new resend and does not prove actual market delivery."
       ],
@@ -123129,7 +123390,8 @@
       ],
       "resolved_or_reviewed_implementation_findings": [
         "Actual live ingress reused by company+UNB/latest and overwrote saved PRODAT raw/status/context/ACK. Real new receipt and internal replay were not separately durable; autoACK old final lifecycle silently returned. Replaced ingress write with same shared canonical scope authority/full source equality, append immutable actual retained-mail/parse reception, source-owned first receipt clock, and NEW-mail durable held response request before any effect. Explicit receipt-aware kernel/autoACK consumers cannot reset/revalidate old originals/outcomes.",
-        "Prospective cross-new-UNB UTILTS BGM203/IDE505 historical collision detection was absent. Actual unseeded versioned foreign-legal-issuer/full NADMS and separate full UNB transport-mandate authority plus authentic historical/deletion/retention grounds now qualifies sender-wide/all-application namespace. New genuine collision emits existing national42 at whole203 header or own505 IDE/ACW scope; SAMEcanonical-source mail/internal retry does not recapture or rewrite first committed result. This is functional namespace support only; identical whole UNB receipt support remains separate."
+        "Prospective cross-new-UNB UTILTS BGM203/IDE505 historical collision detection was absent. Actual unseeded versioned foreign-legal-issuer/full NADMS and separate full UNB transport-mandate authority plus authentic historical/deletion/retention grounds now qualifies sender-wide/all-application namespace. New genuine collision emits existing national42 at whole203 header or own505 IDE/ACW scope; SAMEcanonical-source mail/internal retry does not recapture or rewrite first committed result. This is functional namespace support only; identical whole UNB receipt support remains separate.",
+        "ACK134600 private retained technical chain and V2 actor/phase readers integrated (62441ae8); 20261001142520 adds native actor/phase gates on the four technical syntax ports and revokes actorless V1 from service_role; persisted CONTRL send can no longer be qualified by caller-supplied provenance. Native base vs head shows no new failures from 134600. Earlier ACK-09 duplicate-reception owner gap is addressed by integrated 20261001124000 but its independent native verification remains pending."
       ],
       "verification_gap": {
         "formal_status_unchanged": "NOT_EXECUTED",
@@ -123149,6 +123411,7 @@
         "actual_consumer_owners": [
           "actors_history (integration owner /root; functional namespace independent owner utilts_ack)",
           "integration owner /root with utilts_ack and authority namespace owners; actors_history independent tenant/source review",
+          "root integrator; claude/zealous-rubin-6axb91",
           "utilts_ack"
         ],
         "current_owner_dependency_or_blocker_notes": [
@@ -123316,7 +123579,9 @@
           "Same UNB different bytes records identity-conflict hold without mutating original; foreign company/env/source/parse/null actor/unknown actual clock/unretained bytes fail closed; source transport identity/clock/pointer cannot be rewritten after registration.",
           "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett. → Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
           "__tests__/ediel-ack-outbox-retry-safety.test.ts",
-          "__tests__/ediel-utilts-source-collision.test.ts"
+          "__tests__/ediel-utilts-source-collision.test.ts",
+          "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-suite-297e96ae.json",
+          "scripts/ediel-outbound-ack-replay-native.test.ts (actor/phase case; blocked by pre-existing 23502 fixture insert on ediel_messages)"
         ]
       }
     },
@@ -126914,7 +127179,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/outboundOwnerWitness.ts",
@@ -126956,7 +127221,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/transport/index.part-2.ts",
@@ -128025,7 +128290,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/outbox/projectSentSources.ts",
@@ -130842,7 +131107,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/sla/ackTimerCompletion.ts",
@@ -131297,7 +131562,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -131374,7 +131639,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -132108,7 +132373,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -132660,7 +132925,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/kernelLegacy.ts",
@@ -133870,7 +134135,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/rulebook/validatorLegacy.ts",
@@ -136843,7 +137108,7 @@
             "file_path": "lib/ediel/ack/technicalSyntaxAuthority.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b47431fcbc8e03bd6e6c887b6bb74b7b09cbef42af318ab9598dbc85a4a29afc"
+            "sha256": "fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e"
           },
           {
             "path": "lib/ediel/core/failureDisposition.ts",
@@ -136885,7 +137150,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/transport/inboundProcessor.ts",
@@ -137363,7 +137628,7 @@
             "file_path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+            "sha256": "80382d5142f4cb9312c5b46119d66b497ab8bcf55867afcf8f84b1d2b0e74941"
           },
           {
             "path": "__tests__/ediel-prodat-aperak-unused-document.test.ts",
@@ -137419,7 +137684,7 @@
             "file_path": "lib/ediel/core/ackDraftSource.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+            "sha256": "1013570998211dd6723430bc2a336a0104e2166813c253383cd02568adf9a267"
           },
           {
             "path": "lib/ediel/core/ackPreflight.ts",
@@ -137440,7 +137705,7 @@
             "file_path": "lib/ediel/core/outboundAckOriginals.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "f0d1dfab2e46727cd02f4849dab60964e6a17e36279cb56137d6930e5515cc4e"
+            "sha256": "abbad8fb77c8cecfe3455f20830f73497ec326b717d3db1d22e8bb57c5d56341"
           },
           {
             "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
@@ -137468,7 +137733,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/rulebook/ackGuidePolicy.ts",
@@ -137489,7 +137754,7 @@
             "file_path": "lib/ediel/rulebook/validator.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "0cb6899d07a344eed4ea337bee7c80a4c8750ded3c563f998e1095617aa98875"
+            "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
           },
           {
             "path": "lib/ediel/utilts/transactionPersistence.ts",
@@ -139078,7 +139343,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -139974,7 +140239,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -140700,7 +140965,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -140721,7 +140986,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -141897,7 +142162,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -143071,7 +143336,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -144155,7 +144420,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -145051,7 +145316,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -145777,7 +146042,7 @@
             "file_path": "lib/ediel/core/kernel.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "120823fee2fbd531d9577a9bc255286ddda6f46f3018c4a763a86f0930a572b1"
+            "sha256": "eab078e9db4e6da31312bbd5df2edb777e97d988fbe86aa95eba7ab6cad2380f"
           },
           {
             "path": "lib/ediel/core/runtimeDecision.ts",
@@ -145798,7 +146063,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -146974,7 +147239,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -148148,7 +148413,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -149190,7 +149455,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -150113,7 +150378,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -150891,7 +151156,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyEndFollowup.ts",
@@ -151641,7 +151906,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -152425,7 +152690,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -153203,7 +153468,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -153211,6 +153476,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "e55251ee640d25bc93995e54eabed92bf5df8579a43a2b181521a89f695f3f81"
+          },
+          {
+            "path": "lib/ediel/flows/prodatSwitch.ts",
+            "file_path": "lib/ediel/flows/prodatSwitch.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "101e4b4a55b2912350f5f624c4329348999081b6e040fea45c8110141806bd1c"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -153409,6 +153681,13 @@
             "sha256": "a02225cc5b4b4cc958f9ec64dda39592c6ea8de8a6d9fa37044e55d2f98632f1"
           },
           {
+            "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+            "file_path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "d8c4e2c4c8af0cbadabcfa0605184e66beece1b8f885c2f36df15dac730b2025"
+          },
+          {
             "path": "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
             "file_path": "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
             "callable_locator": null,
@@ -153421,6 +153700,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "bc3b3550a5f3a4b34344d4d5cac80d526ef7c6df504208d066fc58feab16c156"
+          },
+          {
+            "path": "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+            "file_path": "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "813c4629d15435c61f0edd942b3df7184a9686a1bbfaef5a94ff70be61f8d4c8"
           }
         ],
         "callsite_contracts": [
@@ -153481,6 +153767,32 @@
               "abfefdc6",
               "fff87b56",
               "083ed6a1"
+            ]
+          },
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "AT-Z03H-SUPPLIER",
+              "AT-Z04H-SUPPLIER",
+              "AT-Z05H-SUPPLIER"
+            ],
+            "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+            "confirmed_code_gap": "Composed schema made explicit national H unreachable: supplier_switch_requests check allowed only L/LK and the canonical trigger rewrote every switch row to L/Z22. Fixed by 20261001142540 (commit 1479de85), preserving only an explicit consistent H/Z25 decision. The bilateral Z03/Z04/Z05 H rule-pack profiles required by 20261001031053/013034 are absent from PRODAT 26.A r3; they must come from an authentic bilateral source.",
+            "code_paths": [
+              "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+              "lib/ediel/flows/prodatSwitch.ts",
+              "scripts/helpers/ediel-normal-switch-native-fixture.ts"
+            ],
+            "blockers": [
+              "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack."
+            ],
+            "planned_tests": [
+              "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json#NATIVE-OPEN-02",
+              "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19 cases blocked on profiles)"
+            ],
+            "commits": [
+              "1479de85"
             ]
           },
           {
@@ -153799,7 +154111,8 @@
         "previous_bounded_semantic_review": null
       },
       "confirmed_code_gaps": [
-        "Source-owned Z function and subtype reason registry exist, BGM suffix avoided; PRODAT owner reviewing producer/consumer negative boundary."
+        "Source-owned Z function and subtype reason registry exist, BGM suffix avoided; PRODAT owner reviewing producer/consumer negative boundary.",
+        "Composed schema made explicit national H unreachable: supplier_switch_requests check allowed only L/LK and the canonical trigger rewrote every switch row to L/Z22. Fixed by 20261001142540 (commit 1479de85), preserving only an explicit consistent H/Z25 decision. The bilateral Z03/Z04/Z05 H rule-pack profiles required by 20261001031053/013034 are absent from PRODAT 26.A r3; they must come from an authentic bilateral source."
       ],
       "remaining_code_gaps": [],
       "resolved_or_reviewed_implementation_findings": [
@@ -153827,9 +154140,11 @@
           "/root/authority_grammar",
           "/root/matrix_projections",
           "processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields",
-          "prodat (fält/identitet/AI); root är integrationsägare"
+          "prodat (fält/identitet/AI); root är integrationsägare",
+          "root integrator; claude/zealous-rubin-6axb91"
         ],
         "current_owner_dependency_or_blocker_notes": [
+          "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack.",
           "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
           "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
           "Konkret bilateral counterpart/legalactor/validity/approvedtransitionprofil saknas; tekniskfälttillåtlighet eller globalbool aktiverarintekapabilitet.",
@@ -153856,6 +154171,7 @@
       },
       "semantic_review_scope": "Only explicit fresh assessment scope is current; referenced-file existence/hash is not semantic conformance",
       "blockers": [
+        "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack.",
         "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
         "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
         "Konkret bilateral counterpart/legalactor/validity/approvedtransitionprofil saknas; tekniskfälttillåtlighet eller globalbool aktiverarintekapabilitet.",
@@ -153898,6 +154214,8 @@
           "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
           "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
           "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate.",
+          "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json#NATIVE-OPEN-02",
+          "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19 cases blocked on profiles)",
           "scripts/ediel-rule-regression.cjs",
           "scripts/ediel-z04-ack-native.test.ts",
           "scripts/gridex-supplier-remaining-business-regression.cjs",
@@ -154001,7 +154319,14 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
+          },
+          {
+            "path": "lib/ediel/flows/prodatSwitch.ts",
+            "file_path": "lib/ediel/flows/prodatSwitch.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "101e4b4a55b2912350f5f624c4329348999081b6e040fea45c8110141806bd1c"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -154172,6 +154497,13 @@
             "sha256": "a02225cc5b4b4cc958f9ec64dda39592c6ea8de8a6d9fa37044e55d2f98632f1"
           },
           {
+            "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+            "file_path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "d8c4e2c4c8af0cbadabcfa0605184e66beece1b8f885c2f36df15dac730b2025"
+          },
+          {
             "path": "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
             "file_path": "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
             "callable_locator": null,
@@ -154184,6 +154516,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "bc3b3550a5f3a4b34344d4d5cac80d526ef7c6df504208d066fc58feab16c156"
+          },
+          {
+            "path": "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+            "file_path": "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "813c4629d15435c61f0edd942b3df7184a9686a1bbfaef5a94ff70be61f8d4c8"
           }
         ],
         "callsite_contracts": [
@@ -154244,6 +154583,32 @@
               "abfefdc6",
               "fff87b56",
               "083ed6a1"
+            ]
+          },
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "AT-Z03H-SUPPLIER",
+              "AT-Z04H-SUPPLIER",
+              "AT-Z05H-SUPPLIER"
+            ],
+            "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+            "confirmed_code_gap": "Composed schema made explicit national H unreachable: supplier_switch_requests check allowed only L/LK and the canonical trigger rewrote every switch row to L/Z22. Fixed by 20261001142540 (commit 1479de85), preserving only an explicit consistent H/Z25 decision. The bilateral Z03/Z04/Z05 H rule-pack profiles required by 20261001031053/013034 are absent from PRODAT 26.A r3; they must come from an authentic bilateral source.",
+            "code_paths": [
+              "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+              "lib/ediel/flows/prodatSwitch.ts",
+              "scripts/helpers/ediel-normal-switch-native-fixture.ts"
+            ],
+            "blockers": [
+              "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack."
+            ],
+            "planned_tests": [
+              "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json#NATIVE-OPEN-02",
+              "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19 cases blocked on profiles)"
+            ],
+            "commits": [
+              "1479de85"
             ]
           },
           {
@@ -154551,6 +154916,7 @@
       },
       "confirmed_code_gaps": [
         "Source-owned Z function and subtype reason registry exist, BGM suffix avoided; PRODAT owner reviewing producer/consumer negative boundary.",
+        "Composed schema made explicit national H unreachable: supplier_switch_requests check allowed only L/LK and the canonical trigger rewrote every switch row to L/Z22. Fixed by 20261001142540 (commit 1479de85), preserving only an explicit consistent H/Z25 decision. The bilateral Z03/Z04/Z05 H rule-pack profiles required by 20261001031053/013034 are absent from PRODAT 26.A r3; they must come from an authentic bilateral source.",
         "Incomingunusedfält kunde avvisas; direction-aware ownscope ignore korrigerat, registerbas/topology återanvänds.",
         "Incomingunusedfält kunde avvisas; direction-aware ownscope ignore korrigerat, registerbas/topology återanvänds."
       ],
@@ -154580,9 +154946,11 @@
           "/root/authority_grammar",
           "/root/matrix_projections",
           "processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields",
-          "prodat (fält/identitet/AI); root är integrationsägare"
+          "prodat (fält/identitet/AI); root är integrationsägare",
+          "root integrator; claude/zealous-rubin-6axb91"
         ],
         "current_owner_dependency_or_blocker_notes": [
+          "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack.",
           "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
           "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
           "Konkret bilateral counterpart/legalactor/validity/approvedtransitionprofil saknas; tekniskfälttillåtlighet eller globalbool aktiverarintekapabilitet.",
@@ -154609,6 +154977,7 @@
       },
       "semantic_review_scope": "Only explicit fresh assessment scope is current; referenced-file existence/hash is not semantic conformance",
       "blockers": [
+        "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack.",
         "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
         "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
         "Konkret bilateral counterpart/legalactor/validity/approvedtransitionprofil saknas; tekniskfälttillåtlighet eller globalbool aktiverarintekapabilitet.",
@@ -154651,6 +155020,8 @@
           "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
           "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
           "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate.",
+          "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json#NATIVE-OPEN-02",
+          "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19 cases blocked on profiles)",
           "scripts/ediel-rule-regression.cjs",
           "scripts/ediel-z04-ack-native.test.ts",
           "scripts/gridex-supplier-remaining-business-regression.cjs",
@@ -154754,7 +155125,14 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
+          },
+          {
+            "path": "lib/ediel/flows/prodatSwitch.ts",
+            "file_path": "lib/ediel/flows/prodatSwitch.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "101e4b4a55b2912350f5f624c4329348999081b6e040fea45c8110141806bd1c"
           },
           {
             "path": "lib/ediel/flows/supplyMarketTransition.ts",
@@ -154904,6 +155282,13 @@
             "sha256": "a02225cc5b4b4cc958f9ec64dda39592c6ea8de8a6d9fa37044e55d2f98632f1"
           },
           {
+            "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+            "file_path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "d8c4e2c4c8af0cbadabcfa0605184e66beece1b8f885c2f36df15dac730b2025"
+          },
+          {
             "path": "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
             "file_path": "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
             "callable_locator": null,
@@ -154916,6 +155301,13 @@
             "callable_locator": null,
             "exists": true,
             "sha256": "bc3b3550a5f3a4b34344d4d5cac80d526ef7c6df504208d066fc58feab16c156"
+          },
+          {
+            "path": "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+            "file_path": "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+            "callable_locator": null,
+            "exists": true,
+            "sha256": "813c4629d15435c61f0edd942b3df7184a9686a1bbfaef5a94ff70be61f8d4c8"
           }
         ],
         "callsite_contracts": [
@@ -154976,6 +155368,32 @@
               "abfefdc6",
               "fff87b56",
               "083ed6a1"
+            ]
+          },
+          {
+            "owner": "root integrator; claude/zealous-rubin-6axb91",
+            "assessment": "Composed-candidate session 2026-10-01; evidence bound to commit and native/SQL receipts named in planned_tests. No formal acceptance.",
+            "ids": [
+              "AT-Z03H-SUPPLIER",
+              "AT-Z04H-SUPPLIER",
+              "AT-Z05H-SUPPLIER"
+            ],
+            "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+            "confirmed_code_gap": "Composed schema made explicit national H unreachable: supplier_switch_requests check allowed only L/LK and the canonical trigger rewrote every switch row to L/Z22. Fixed by 20261001142540 (commit 1479de85), preserving only an explicit consistent H/Z25 decision. The bilateral Z03/Z04/Z05 H rule-pack profiles required by 20261001031053/013034 are absent from PRODAT 26.A r3; they must come from an authentic bilateral source.",
+            "code_paths": [
+              "supabase/migrations/20261001142540_ediel_supplier_switch_explicit_h_variant.sql",
+              "lib/ediel/flows/prodatSwitch.ts",
+              "scripts/helpers/ediel-normal-switch-native-fixture.ts"
+            ],
+            "blockers": [
+              "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack."
+            ],
+            "planned_tests": [
+              "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json#NATIVE-OPEN-02",
+              "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19 cases blocked on profiles)"
+            ],
+            "commits": [
+              "1479de85"
             ]
           },
           {
@@ -155270,7 +155688,8 @@
         "previous_bounded_semantic_review": null
       },
       "confirmed_code_gaps": [
-        "Source-owned Z function and subtype reason registry exist, BGM suffix avoided; PRODAT owner reviewing producer/consumer negative boundary."
+        "Source-owned Z function and subtype reason registry exist, BGM suffix avoided; PRODAT owner reviewing producer/consumer negative boundary.",
+        "Composed schema made explicit national H unreachable: supplier_switch_requests check allowed only L/LK and the canonical trigger rewrote every switch row to L/Z22. Fixed by 20261001142540 (commit 1479de85), preserving only an explicit consistent H/Z25 decision. The bilateral Z03/Z04/Z05 H rule-pack profiles required by 20261001031053/013034 are absent from PRODAT 26.A r3; they must come from an authentic bilateral source."
       ],
       "remaining_code_gaps": [],
       "resolved_or_reviewed_implementation_findings": [
@@ -155298,9 +155717,11 @@
           "/root/authority_grammar",
           "/root/matrix_projections",
           "processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields",
-          "prodat (fält/identitet/AI); root är integrationsägare"
+          "prodat (fält/identitet/AI); root är integrationsägare",
+          "root integrator; claude/zealous-rubin-6axb91"
         ],
         "current_owner_dependency_or_blocker_notes": [
+          "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack.",
           "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
           "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
           "Konkret bilateral counterpart/legalactor/validity/approvedtransitionprofil saknas; tekniskfälttillåtlighet eller globalbool aktiverarintekapabilitet.",
@@ -155327,6 +155748,7 @@
       },
       "semantic_review_scope": "Only explicit fresh assessment scope is current; referenced-file existence/hash is not semantic conformance",
       "blockers": [
+        "Authentic bilateral agreement source for Z03/Z04/Z05 H profiles (issuer, version, archive) is not present; synthetic profiles are not inserted into the shared rule pack.",
         "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
         "Exact authentic bilateral transitions/fields/timers/profile activation required for this case; known reason code alone never creates ordinary market effects.",
         "Konkret bilateral counterpart/legalactor/validity/approvedtransitionprofil saknas; tekniskfälttillåtlighet eller globalbool aktiverarintekapabilitet.",
@@ -155369,6 +155791,8 @@
           "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
           "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
           "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate.",
+          "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/native-findings-register.json#NATIVE-OPEN-02",
+          "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19 cases blocked on profiles)",
           "scripts/ediel-rule-regression.cjs",
           "scripts/ediel-z04-ack-native.test.ts",
           "scripts/gridex-supplier-remaining-business-regression.cjs",
@@ -155472,7 +155896,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -156268,7 +156692,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -157136,7 +157560,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerLifeEvent.ts",
@@ -158707,7 +159131,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerLifeEvent.ts",
@@ -160094,7 +160518,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -161521,7 +161945,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -162954,7 +163378,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -164381,7 +164805,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -165744,7 +166168,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatBrpChange.ts",
@@ -166718,7 +167142,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
@@ -168030,7 +168454,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
@@ -169422,7 +169846,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -170889,7 +171313,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -172303,7 +172727,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -173694,7 +174118,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -175161,7 +175585,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -176575,7 +176999,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -177959,7 +178383,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -179381,7 +179805,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",
@@ -180744,7 +181168,7 @@
             "file_path": "lib/ediel/flows/inboundProcessing.ts",
             "callable_locator": null,
             "exists": true,
-            "sha256": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752"
+            "sha256": "f3fb6172f68e0e1d1a9ef1e9ca036b86de1b21922001327d938eea731dff81f3"
           },
           {
             "path": "lib/ediel/flows/prodatPermissionLifecycle.ts",

@@ -1,6 +1,6 @@
 # Ediel v2 code-phase work matrix
 
-Inventory code head: `a8db3a1178b1cc73013133a751f94a2a57dd8198`. Root is integration owner.
+Inventory code head: `e3cd12fe19e1f82116f162400a4852cea2497273`. Root is integration owner.
 
 352 exact frozen IDs are retained. Literal normative records, CALL/data/timer/state/field catalogs, inherited assessment provenance and individual final expected/prohibited criteria are in `work-matrix.json`.
 
@@ -67,12 +67,12 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | ESCO-04 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | ESCO-05 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | ESCO-06 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| ESCO-07 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| ESCO-07 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history, root integrator; claude/zealous-rubin-6axb91 |
 | ESCO-08 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | ESCO-09 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | ESCO-10 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | ESCO-11 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| ACK-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
+| ACK-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | root integrator; claude/zealous-rubin-6axb91, utilts_ack |
 | ACK-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, utilts_ack |
 | ACK-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | ACK-04 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
@@ -80,7 +80,7 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | ACK-06 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, utilts_ack |
 | ACK-07 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, utilts_ack |
 | ACK-08 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, /root/matrix_projections; actual supply processes / permission actors_history / coordinator root, matrix_projections_native_err, utilts_ack |
-| ACK-09 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | actors_history (integration owner /root; functional namespace independent owner utilts_ack), integration owner /root with utilts_ack and authority namespace owners; actors_history independent tenant/source review, utilts_ack |
+| ACK-09 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | actors_history (integration owner /root; functional namespace independent owner utilts_ack), integration owner /root with utilts_ack and authority namespace owners; actors_history independent tenant/source review, root integrator; claude/zealous-rubin-6axb91, utilts_ack |
 | U-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
@@ -265,7 +265,7 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-ESCO-09 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-ESCO-10 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-ESCO-11 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| AT-ACK-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
+| AT-ACK-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | root integrator; claude/zealous-rubin-6axb91, utilts_ack |
 | AT-ACK-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, utilts_ack |
 | AT-ACK-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-ACK-04 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
@@ -273,7 +273,7 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-ACK-06 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, utilts_ack |
 | AT-ACK-07 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, utilts_ack |
 | AT-ACK-08 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, /root/matrix_projections; actual supply processes / permission actors_history / coordinator root, matrix_projections_native_err, utilts_ack |
-| AT-ACK-09 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | actors_history (integration owner /root; functional namespace independent owner utilts_ack), integration owner /root with utilts_ack and authority namespace owners; actors_history independent tenant/source review, utilts_ack |
+| AT-ACK-09 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | actors_history (integration owner /root; functional namespace independent owner utilts_ack), integration owner /root with utilts_ack and authority namespace owners; actors_history independent tenant/source review, root integrator; claude/zealous-rubin-6axb91, utilts_ack |
 | AT-U-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-U-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-U-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
@@ -337,9 +337,9 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-Z05C-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z04A-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z04D-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z03H-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z04H-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z05H-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-Z03H-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare, root integrator; claude/zealous-rubin-6axb91 |
+| AT-Z04H-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare, root integrator; claude/zealous-rubin-6axb91 |
+| AT-Z05H-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare, root integrator; claude/zealous-rubin-6axb91 |
 | AT-Z08H-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z08LK-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z06E-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
