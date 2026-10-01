@@ -42,6 +42,18 @@ describe('inbound actual original duplicate scope',()=>{
     expect(io.actor).toHaveBeenCalledWith({companyId:'company',actorUserId:'actor',permission:'communication.write'})
     expect(io.create).not.toHaveBeenCalled();expect(io.event).toHaveBeenCalledOnce()
   })
+  it('retains a distinct explicit UNB original when old business references recur',async()=>{
+    io.rows=[row({transaction_reference:'SAME-IDE',external_reference:'SAME-BGM'})]
+    const next={...input,interchangeReference:'NEW-UNB',transactionReference:'SAME-IDE',externalReference:'SAME-BGM',
+      rawPayload:input.rawPayload!.replace('SAME-UNB','NEW-UNB')}
+    expect(await findInboundDuplicateByCanonicalIdentity(buildInboundCanonicalIdentity(next))).toBeNull()
+    expect(io.queries).toHaveLength(1)
+    expect(io.queries[0]).toContainEqual(['interchange_reference','NEW-UNB'])
+    expect(io.queries[0]).not.toContainEqual(['transaction_reference','SAME-IDE'])
+    await registerInboundCanonicalMessage({actorUserId:'actor',input:next})
+    expect(io.create).toHaveBeenCalledWith(expect.objectContaining({interchangeReference:'NEW-UNB',rawPayload:next.rawPayload}))
+    expect(io.event).not.toHaveBeenCalled()
+  })
   it('rejects altered original bytes and an inconsistent upstream scope before any write or event',async()=>{
     for(const patch of [{raw_payload:input.rawPayload+'changed'},{company_id:'foreign'},{environment:'production'},
       {direction:'outbound'},{message_family:'APERAK'},{message_code:'E73'}]){
