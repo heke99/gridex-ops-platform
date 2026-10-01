@@ -22,7 +22,7 @@ it('creates actual intent and source request before delegating to the guarded ga
  expect(i.transactionReference.length).toBeLessThanOrEqual(35)
  expect(i.transactionReference).not.toBe(i.interchangeReference)
  expect(i).toMatchObject({operationId:id(4),customerSiteId:id(6),meteringPointId:'735123456789012345'})
- expect(m.request.mock.calls[0][0]).toMatchObject({sourceId:id(8),operationId:id(4),meteringPointId:id(7)})
+ expect(m.request.mock.calls[0][0]).toMatchObject({sourceId:id(8),operationId:id(4),siteId:id(6),environment:'test',meteringPointId:id(7)})
  expect(m.render.mock.calls[0][0]).toMatchObject({intentId:id(8),outboundRequestId:id(9),eventId:id(4),actorUserId:id(11)})
  expect(m.intent.mock.invocationCallOrder[0]).toBeLessThan(m.render.mock.invocationCallOrder[0])
 })

@@ -32,7 +32,7 @@ export async function prepareAndQueueMeteringMethodChangeZ09(input: { companyId:
     .eq('request_type', 'customer_masterdata').limit(2).returns<Array<{ id: string }>>()
   if (error) throw error
   if (data && data.length > 1) throw new Error('metering_method_change_outbound_request_ambiguous')
-  const requestId = data?.[0]?.id ?? (await createOutboundRequest({ actorUserId: input.actorUserId, customerId: basis.customerId, meteringPointId: basis.meteringPointId,
+  const requestId = data?.[0]?.id ?? (await createOutboundRequest({ actorUserId: input.actorUserId, customerId: basis.customerId, siteId: basis.siteId, meteringPointId: basis.meteringPointId,
     requestType: 'customer_masterdata', sourceType: 'manual', sourceId: intent.id, communicationRouteId: route.route.id, operationId: basis.eventId,
     environment: basis.environment, failOnMissingEnvironment: true, payload: { meteringMethodChangeEventId: basis.eventId, intentId: intent.id } })).id
   return renderAndQueueMeteringMethodChange({ intentId: intent.id, actorUserId: input.actorUserId, companyId: basis.companyId, eventId: basis.eventId, routeContext: route, outboundRequestId: requestId })
