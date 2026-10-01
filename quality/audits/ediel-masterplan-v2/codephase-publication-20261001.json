@@ -1,0 +1,1206 @@
+{
+  "version": 1,
+  "kind": "intermediate_code_phase",
+  "basePublishedSha": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+  "publishedSha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+  "localSha": "66a66666aa1b8b28315ca7840ab07424da360a81",
+  "tree": "ce0a89e92b355d8ee06ad26779aed67d6fbe47df",
+  "commits": [
+    {
+      "localSha": "9e4a2c1f63ade802df913435e4c3ce5801069311",
+      "publishedSha": "66a3db11d4b3e797ab3440a9c39769b7405be206",
+      "treeSha": "7e7654f48839a0fe90dd4fb52d457c5c097cf256",
+      "message": "fix(ediel): seal send admission policy and reject metadata bypass"
+    },
+    {
+      "localSha": "14c4a1427815b2cb5ce011b3592f7b82e07b69b5",
+      "publishedSha": "a71739c948e8a886d09112b858568009b9f33184",
+      "treeSha": "d0f2d4444cbe14bf14b5f7a7edbda895f309a920",
+      "message": "test(ediel): type complete customer receipt fixtures"
+    },
+    {
+      "localSha": "1cb50f885d4f750257c6dce9a225cdcc1f8c1387",
+      "publishedSha": "c7142aa97de33bbdff6e3979f4c5faba7eee8df9",
+      "treeSha": "e372eeae97cfb17e20924696a0d533f3b7b2109a",
+      "message": "fix(ediel): keep future capability metadata in canonical validity authority"
+    },
+    {
+      "localSha": "6e3ebb71ec049528699d39f9c0ae5dfe28262bb2",
+      "publishedSha": "647d464fa020f4995e6ed7860dc00aba7ebe575c",
+      "treeSha": "533e1ef4cf94b27a96274f8ccddd11aa4ef6a3fc",
+      "message": "fix(ediel): attest permission objects and preserve reporting bounds"
+    },
+    {
+      "localSha": "e1267c9fc6bcd6e333532c230e2906398f90159a",
+      "publishedSha": "972116c5566fe148be231ebc5749f9493c8a03cc",
+      "treeSha": "9a380a9baa6bd69830414e21704c14cff0b6ef51",
+      "message": "fix(ediel): seal actual admission policy in immutable dispatch bindings"
+    },
+    {
+      "localSha": "478870a4bc4823bc1ea948bce2b5b6628ffed17f",
+      "publishedSha": "de771af8edecafd9ba4dac1b34906eeea92c7d30",
+      "treeSha": "416411c29f471b84ab12afae1dbbedca5c9b2714",
+      "message": "fix(ediel): apply Z02 core from sealed accepted own-object sources"
+    },
+    {
+      "localSha": "d18b76330c9e18557c344088b010093541f3353a",
+      "publishedSha": "ddfeae2514d83a4f45915d111335acf471ef84ca",
+      "treeSha": "54366ac48d1020150f4719839e92b9d94d835e42",
+      "message": "feat(ediel): bind business expectations to accepted transport and applied sources"
+    },
+    {
+      "localSha": "fe15ba934ba0fcd966eadcee7517814f485656de",
+      "publishedSha": "c3396ea939761dc2a4a19dcf124a1d42b8e2c5eb",
+      "treeSha": "12fd77b78539f7d3287fd47e9e8944e513496cb3",
+      "message": "fix(ediel): preserve source-qualified E30 energy and missing values"
+    },
+    {
+      "localSha": "c18ef5d229f8bd1ff8ca4c5e3925777cf3724d44",
+      "publishedSha": "2dc6c1a5f1f5ee4a00b5a7bdb02484467793edd8",
+      "treeSha": "6078e093f1758859384d514a002ca26960eaa69c",
+      "message": "fix(ediel): project AI source profile from canonical guide authority"
+    },
+    {
+      "localSha": "cf9eeceb250a3e7ed80cfb3faa2441bb0387f0a5",
+      "publishedSha": "3b06808b92898edd64165e10086ab88b23012d57",
+      "treeSha": "a906872416234cc2467e46453d61f0077d59fef5",
+      "message": "fix(ediel): derive scoped readiness from current source identity and profile"
+    },
+    {
+      "localSha": "4d0cae0ccd7ea58e263b3da53a8a3323ae0c3ed1",
+      "publishedSha": "6f8261b9c99707eb5f163afc57fc9abfe09d7886",
+      "treeSha": "4997bb2777dfeafcdddfd1ccd9c30dbcdd423845",
+      "message": "fix(ediel): share explicit any-of tenant permission checks"
+    },
+    {
+      "localSha": "b89c63075af72c081aac12268b09d4bb8fbb6af0",
+      "publishedSha": "caafa9b4c7a9661cb23506e9982eb6e3d0383cf6",
+      "treeSha": "10f8dd0d346899705e429beb08ce067a1c05689a",
+      "message": "feat(ediel): expose tenant scoped immutable transport copies"
+    },
+    {
+      "localSha": "05c930f0066374adcfae8dfdfe4f22f5edd7faa2",
+      "publishedSha": "9c0cfc1809727b9ba306ce3e55cb99030fed8b7c",
+      "treeSha": "8d1e6f476196e8deb1f344a1276d07af38b19ba9",
+      "message": "fix(ediel): retain conditional UTILTS fields across consumers"
+    },
+    {
+      "localSha": "d994a8c2241b5c482757f53a1fab6a667e1b76ba",
+      "publishedSha": "14b9fd548165065f48aa38a9b00d676353004ae0",
+      "treeSha": "a414291c03819f8be72a8f4661398e47467bbddd",
+      "message": "fix(ediel): bind Z02 mutation to actual originating dispatch proof"
+    },
+    {
+      "localSha": "eea0d41be60eefbb60cc0186c8bc9b0e0f0e09cf",
+      "publishedSha": "ed081dec56dfacda2e2c7145f0762a83469ba7ec",
+      "treeSha": "7f7dbc2f6ca8e2fe4b3c032a1c0455bdace2305c",
+      "message": "feat(ediel): apply source-bound regulated supply and cancellation profiles"
+    },
+    {
+      "localSha": "ec136ab4637d084eb14d1b3b1954f99ec97fc88d",
+      "publishedSha": "7b2a207a35a8c085e9a4768e9de334b471f2421b",
+      "treeSha": "46d8ee4feceff775a5b07c7166772debd49a97c2",
+      "message": "fix(ediel): reject normalized invalid projection windows"
+    },
+    {
+      "localSha": "062bd8ff5be1d99c85ee60584126532741042b61",
+      "publishedSha": "a5fef71504372dfbdc0ac9e8049597c6bc48506f",
+      "treeSha": "1d40dc1e39518aabdfa077527370f982a24b6f15",
+      "message": "test(ediel): source qualify actual SMTP admission fixtures"
+    },
+    {
+      "localSha": "5f03ac70655e784b3599c78e9cc0501370b8232a",
+      "publishedSha": "f59e4445e8ee46881b3f98e29963fbd0ce407a6a",
+      "treeSha": "b88f1a8d1e18b90fb9e77fa0e3d3983e7e0a5594",
+      "message": "feat(ediel): verify recipient trust from protected source authority"
+    },
+    {
+      "localSha": "1eeeeaff21929038dc2a27d723b977c9ee52a9f7",
+      "publishedSha": "557b681eb9f8e278063a86d8a73f30dbfa78e9de",
+      "treeSha": "def243e2f69c2696430488c1724fa5e2a95ac7dc",
+      "message": "fix(ediel): bind live PRODAT producers to selected legal customer facts"
+    },
+    {
+      "localSha": "e88444034647cf6d201026655173d4edbd3c7ff6",
+      "publishedSha": "e694af3c5d31c4eecd41946fe9b3e75613592f4e",
+      "treeSha": "39381ebd43c8357f8b5b32bd958cc1099848c4da",
+      "message": "fix(ediel): preserve JSON source authority provenance in readiness projection"
+    },
+    {
+      "localSha": "69d44dcfae07f0bcc2bdb9b2ad4e02e8423173a9",
+      "publishedSha": "a8bee46dfd7bbd9bb74b567d7aed7ca2dd447243",
+      "treeSha": "9510f06211c7e2ec0e4dedcdae705e71a40429c4",
+      "message": "fix(ediel): retain monotonic route history and scoped security dependencies"
+    },
+    {
+      "localSha": "e55bec7e8067e62b54045691af69cb7d796cb293",
+      "publishedSha": "85736e3e182353056c8ae70fa93a0bf1fd5fd966",
+      "treeSha": "9c09c397965516647e5aa1bb129a65b766b1bb12",
+      "message": "fix(ediel): hold unsupported expectation batches before transport"
+    },
+    {
+      "localSha": "c3f621f5624278e687e4ef81801e5fb868f52675",
+      "publishedSha": "5c5e025f9ae29dc336f8cb185145e9b93077618e",
+      "treeSha": "fbbfe5b674a1c88ab19479ef3c0566901aa49c31",
+      "message": "fix(ediel): reconcile only the qualified response expectation"
+    },
+    {
+      "localSha": "2c675fd7c44ede4501932f58e999e06539e0f494",
+      "publishedSha": "a832fb8e2d6e74fab99a05613814d97430bf7cc6",
+      "treeSha": "a75f94de57b02f2345c7d2e82173d5c2f5777a20",
+      "message": "feat(ediel): qualify ACK originals from complete physical scope"
+    },
+    {
+      "localSha": "25bff8d0fda8140ff0c8e3ada4f9aca2af26c5fc",
+      "publishedSha": "f3b94b26e4e30f9baef6dbe1ab516247ae3eed8f",
+      "treeSha": "a2f75bd59f8fbd0e323bf09b0b712da52fa7c0e6",
+      "message": "fix(ediel): parse ACK preflight with shared UNA-aware tokens"
+    },
+    {
+      "localSha": "6d8b929f206ea6893aa8c5ac35a30a6c50b3141f",
+      "publishedSha": "bb60ce22383fde9012da91ad2059271705ea8783",
+      "treeSha": "023ec18193e351646617c2072242f71fdf517ac1",
+      "message": "fix(ediel): preserve physical original CONTRL envelope identity"
+    },
+    {
+      "localSha": "7c9cfeb713507a7788eb5b0ab1d75bc080dd6a28",
+      "publishedSha": "6367b5876a77c78d789babe89aebf33377051444",
+      "treeSha": "e45060708b5421c9341db35e1e1b205ab3d4aac3",
+      "message": "feat(ediel): sweep business watches in authorized actor scopes"
+    },
+    {
+      "localSha": "b5a689c5180f122ff6e1072720df9473cfcae755",
+      "publishedSha": "4b6b5b8d2715c5196f95a7b2f110807afc68f53b",
+      "treeSha": "93e11391881d9d9f04b17001069c6cb3cea65112",
+      "message": "fix(ediel): require sourced legal decisions before AI personal-data storage"
+    },
+    {
+      "localSha": "00b742f990de00cfb22a0ba1e023acff937d54f0",
+      "publishedSha": "3f1cbfc681e3648e326d29d717a83d24506dbd5c",
+      "treeSha": "06a4760de1d839f59feb9683bb2c77da6c73c56e",
+      "message": "fix(ediel): authorize reconciliation decisions with current tenant actors"
+    },
+    {
+      "localSha": "ee0fbae1aa90cb5bda104d7117905ab649635170",
+      "publishedSha": "aeb8eb76219540657accb970890ccd79ace334bf",
+      "treeSha": "0bde578077ab44af07f13a8c7bd23f8855670d2e",
+      "message": "feat(ediel): resolve the complete source-owned recipient set"
+    },
+    {
+      "localSha": "fa1c7fe72406db88ea226a79ec5ee9395dcb70b0",
+      "publishedSha": "c46479541c21cbf4eaeb6ce7c8ab1c2bfb8eba81",
+      "treeSha": "376e89338bfda0533b42995d958d5910580dc29d",
+      "message": "fix(ediel): project confirmed AI delivery boundaries before scheduled dates"
+    },
+    {
+      "localSha": "c4f11f2cfa52c7c5eb5d48d3b9ff6ca47c20eedd",
+      "publishedSha": "29257602bcf3a4b7bcb54a6c2e69420c62beca7d",
+      "treeSha": "40ac71a0e95a436ef1027de45e1c5cbd8e49cd47",
+      "message": "fix(ediel): verify inbound legal tenant and physical ACK original context"
+    },
+    {
+      "localSha": "a0ca8b17e2d8c25b00b4f17b4fe0c1095d5179d3",
+      "publishedSha": "ad89082368ab2ee6c31e48548afcab9e1fc303e1",
+      "treeSha": "26d60ef92ddd5ae0a2e769e5616ea2c168e3af17",
+      "message": "feat(ediel): reserve physical wire references in durable shared namespaces"
+    },
+    {
+      "localSha": "8fb24c787565fa4713354326a3e8e390d5da93ae",
+      "publishedSha": "360f2bcc5b1c435a17a6667841c4af773bc34c62",
+      "treeSha": "708c701c637c2dbb42313713da94552e5f2c55f0",
+      "message": "fix(ediel): parse shared EDIFACT families with actual service alphabet"
+    },
+    {
+      "localSha": "f1b660707205437090bebcd58c7e2688e7386f42",
+      "publishedSha": "6234eaf28097b502dae7094a7cf7ddd9e89883fe",
+      "treeSha": "3e80a026daa3881ac5723819a37c1f0f30c8247e",
+      "message": "feat(ediel): originate source-bound service permission commands"
+    },
+    {
+      "localSha": "0d3790f64e6e681966df777f6cb882fba9a72e5c",
+      "publishedSha": "99adb190d3495af92a3343e0ea147e14fb52545b",
+      "treeSha": "ef277bc77bac26c2a6d9f03f03483738ddebbc1a",
+      "message": "fix(ediel): keep each AI object chronological across grid changes"
+    },
+    {
+      "localSha": "686efdff6019e79c4d1db5454e1d7f7d3a6b8f8b",
+      "publishedSha": "92b81ff3d084cd948bd9c7c2ea3a5cb50cf88fd9",
+      "treeSha": "028bcc374f55d68de7db02a1394f8d207596feb5",
+      "message": "fix(ediel): carry source reporting authority into canonical draft admission"
+    },
+    {
+      "localSha": "fbc8d2e914860e9ee82788ac43e67dc6aefb58b4",
+      "publishedSha": "2f7b8c18c7b26448f8f42d9fbee7d8e1f918c546",
+      "treeSha": "377b1b7b7f402c2fdbf8ed13a7d5d3e377829dc5",
+      "message": "feat(ediel): authorize prospective PRODAT recovery from immutable sources"
+    },
+    {
+      "localSha": "453a8998d54c71f0f37f0d8551400a5d68b15946",
+      "publishedSha": "574dc24943a4da62368046f3dc998d2a09b7df04",
+      "treeSha": "12c4b8ffbf6149d570899324617c124884ab79e1",
+      "message": "feat(ediel): qualify negative test originals through protected source authority"
+    },
+    {
+      "localSha": "194f50c0a67e37b6409c037de062b75d28b5b0eb",
+      "publishedSha": "81b81a5a109585db55a3c60e40716772ddb125ca",
+      "treeSha": "7cc3ca373ea0c1b8f54b3a4b1820bf3b6bc4fea3",
+      "message": "feat(ediel): persist qualified immutable inbound ACK source outcomes"
+    },
+    {
+      "localSha": "96b889358d7ab6c7ab1b4d69d14b5a4ba89d66a6",
+      "publishedSha": "e07251ff5ba7996accc3fd114448bb2c6195fff6",
+      "treeSha": "d5ae366738c0f4b641b8fef367a361fad26b1370",
+      "message": "fix(ediel): retain qualified fixture evidence across internal draft cloning"
+    },
+    {
+      "localSha": "4a98a9202ee4469ecac9b11fbb621e240f80e7c3",
+      "publishedSha": "695c3d0f307e366ce9fd479d866e582ec4e29f85",
+      "treeSha": "a586d1e31fcc347d8286857caa245bddb830a035",
+      "message": "feat(ediel): qualify immutable original for ACK admission reads"
+    },
+    {
+      "localSha": "6d19852321f645b73a23f67762a0390526a60f01",
+      "publishedSha": "b3335db4b02ed6ceefb89a4c04eec4eee69b7f9a",
+      "treeSha": "313ff44d62bcdf3b4d8261b64b30e7b6edc882b2",
+      "message": "feat(ediel): retrieve verified read-only transport archive copies"
+    },
+    {
+      "localSha": "2d03b8a5cc8e0249467a2f4dcb28ec6e039b14cd",
+      "publishedSha": "48029d2cc2ba43ed305113c936e781184b8093d6",
+      "treeSha": "c2bcd7dc57a45055afbfdfe15835a22c4c199949",
+      "message": "fix(ediel): encrypt and verify the full CMS recipient certificate set"
+    },
+    {
+      "localSha": "8c300b1327ac9d0e39ebb9eaf2899d5724bf1604",
+      "publishedSha": "fb2249c82bfada2e68e4b912c87b8c6d88b03066",
+      "treeSha": "97903203d7b72ba7610538eb70cbb2970f0439e7",
+      "message": "feat(ediel): capture immutable physical source legal actor context"
+    },
+    {
+      "localSha": "34143fc6318600291cdbd78f4459fd54076456fd",
+      "publishedSha": "bfb5e0aaac00c1069befef67ad1fc7990f086914",
+      "treeSha": "ecf2313ba66615ec8e585c67898445b3db95734c",
+      "message": "feat(ediel): apply actor registry sources atomically across real producers"
+    },
+    {
+      "localSha": "9da95acdcd2028f9e37e2494b7f3c761af534fa5",
+      "publishedSha": "8753cf160fe83d7c9db75db1b476f04f0b2a3f61",
+      "treeSha": "49b957da1700feec75f907899a907fc26e2da0e9",
+      "message": "fix(ediel): return frozen Z08 provider observation capture clock"
+    },
+    {
+      "localSha": "1b772d3799508763277480510e46278beba373c9",
+      "publishedSha": "6d0d22d4830d28c4f9de385a883324b6ed26834b",
+      "treeSha": "e06e298048317d9cf20004727edd53471e80f8fc",
+      "message": "fix(ediel): reconcile sealed AI sources atomically with immutable outcomes"
+    },
+    {
+      "localSha": "e98e7312ce0d3f8135c13f97926f702901851dc9",
+      "publishedSha": "ae0daaa707fa742d8f096080f73d6355b8825528",
+      "treeSha": "1125c6749070587710eec8bda4ab5d42d042527b",
+      "message": "fix(ediel): run isolated guide tests with TypeScript transform support"
+    },
+    {
+      "localSha": "ce84fe7d9d4f1a214e9bdedeae8b0dfd15cf4150",
+      "publishedSha": "8710247716cfb3c0c3cce8c964a42301b06dce7c",
+      "treeSha": "3f6a3e3b4d320e681e813089e5494cb0c99af3a9",
+      "message": "fix(ediel): admit source-qualified ACK guides through canonical runtime"
+    },
+    {
+      "localSha": "d083df5d7a8b7b8d6b64cc5da956abf7e069dd2b",
+      "publishedSha": "4a7cd6dea854ac7f9b3f0b2336eb618a773c5268",
+      "treeSha": "5d3376868d4b6c11b2041aece7fcdea37b48c9f5",
+      "message": "feat(ediel): read frozen accepted transport outcome before current admission"
+    },
+    {
+      "localSha": "303acb5ab76440a8b4b92870a0f2a3f09fe57530",
+      "publishedSha": "4879e66be6089c888bedc63cfe76533248378bee",
+      "treeSha": "2024f3663a214fa2e7ed84f6066f54d50b863473",
+      "message": "fix(ediel): hold AI personal mail before first raw storage"
+    },
+    {
+      "localSha": "79017adf1effaee435cd75174d267eff859accff",
+      "publishedSha": "61f4271482a53ef94126f9958f0833ae789ca328",
+      "treeSha": "56768e8ab055cb0809af6f3ea6ab170d08654ac0",
+      "message": "feat(ediel): freeze named original rule pack authority before new effects"
+    },
+    {
+      "localSha": "45e0fd9e342dc70daed135102087695acfcf08e1",
+      "publishedSha": "714bf0b805843ab6fbaa874115518ba5a641abb8",
+      "treeSha": "d8f31d9f31c934c5c03bfa20be53e2c21fa3e8b7",
+      "message": "fix(ediel): fence current origins and conflicting registry targets atomically"
+    },
+    {
+      "localSha": "36cc157fecc00d04ebff28f9585800810246df36",
+      "publishedSha": "dc35ab68c9acfb29ee5df8729ad6685872b24531",
+      "treeSha": "782d4ae27e6c8e07e4b4d719f6126d6b38659246",
+      "message": "feat(ediel): originate Z09D from immutable production contract events"
+    },
+    {
+      "localSha": "de8bd9a12c7df62096e3c5f0b246ebc92d3a76b7",
+      "publishedSha": "48eafcfb85d6ffcbce2a8ff955457def1a4b7364",
+      "treeSha": "75ba739e69dabc7280de97b0b002dd48f1088e79",
+      "message": "fix(ediel): select rulebook parsers from actual wire format"
+    },
+    {
+      "localSha": "c3ca61d4efde76f6749f3c22acdf29f84254b36e",
+      "publishedSha": "2409cae4a1ced1a3860dfbaa21fbfd38fbed29a0",
+      "treeSha": "c1879fd3de931aff337445520d402197b8ca5dae",
+      "message": "fix(ediel): project source-owned PRODAT labels to UNOC wire text"
+    },
+    {
+      "localSha": "e1e6a3dd14a3b78e6b06bb8301fd38908e0f2d14",
+      "publishedSha": "f439d54b98bd2e65c371d29e501209eb22d5c35e",
+      "treeSha": "a416fc99871f700c0655e8679dbb31f37a624a4a",
+      "message": "fix(ediel): retain independent qualified national negatives on registry incidents"
+    },
+    {
+      "localSha": "2075464f670c0db163ebe18c4b6f018ac5ffd022",
+      "publishedSha": "75a31c43e4a2d6a9208cabdd24d6041534f829ef",
+      "treeSha": "5cd078a110b9acdb5dfa9e2b45b8c8654f1430ab",
+      "message": "fix(ediel): separate physical ACK transport and legal source parties"
+    },
+    {
+      "localSha": "2bcbd74e111250278e6d8d197bc26444336e7abc",
+      "publishedSha": "43a941134275d8e289a3a5645b4657d7eb4ffc08",
+      "treeSha": "6424d40f663dee5e9f6cd46e42a0d958b486ec89",
+      "message": "feat(billing): freeze exact qualified Ediel source underlays"
+    },
+    {
+      "localSha": "58a50777366fa8fc3bb4fea278760ee444c41bcb",
+      "publishedSha": "a60aa2a90287ff901053ca06663028575cc2c7bd",
+      "treeSha": "0f45c40c986ee6239c320e5099a6d11d3d425286",
+      "message": "feat(ediel): bind source consumers to immutable legal and supply authority"
+    },
+    {
+      "localSha": "b8c593979ed8b65ade92741b423cdef31cc29130",
+      "publishedSha": "1b590017bf6b93f2fb342701fac27c7da476b92c",
+      "treeSha": "d972fad3b1cf8d965fd57d9eff9ac28ba4e35959",
+      "message": "fix(ediel): render UTILTS ACK legal parties from original NAD"
+    },
+    {
+      "localSha": "6bcfe7c7fc296b1ed4602e75cb66099a073c5c5c",
+      "publishedSha": "862429da3641b1ab02efcb6205532e93a45cfa59",
+      "treeSha": "1b3b5be7f2703a40e9676096e198d42aa66b4251",
+      "message": "feat(ediel): thread exact reporting and date authority through outbound finalization"
+    },
+    {
+      "localSha": "03452bf1527ca01b8e9a0dad4fc9bcc58e50972d",
+      "publishedSha": "52819169234ce134aa3dde001d4e2dbb5f4e0217",
+      "treeSha": "060a6b00821cde3518b15ee9e9a0e027880d9696",
+      "message": "fix(ediel): keep qualified negative originals confined to test transport"
+    },
+    {
+      "localSha": "1f436de6353751f7f31b24bd7e0a9e89a7a40197",
+      "publishedSha": "16e15a040a7984eed6cac089d855591d6d4917e9",
+      "treeSha": "71abd28f496e78780acd531a53d9972acd90806b",
+      "message": "fix(ediel): require opaque actual-original rule evidence for outgoing ACKs"
+    },
+    {
+      "localSha": "1a436b489cf2f06e689bb8a6b8b48f22e20e39b1",
+      "publishedSha": "91f4357185b47be8d5e416ba205f0a862c970095",
+      "treeSha": "fdccade432248048028b24e0b8a82490b8002a16",
+      "message": "feat(ediel): seal prospective UTILTS receipts and authorize transport retry cursors"
+    },
+    {
+      "localSha": "794a05e6dad0eb714a1165a0e35b888491431e00",
+      "publishedSha": "3a7957ba7b9bc5353361c8a342070c5b7bace524",
+      "treeSha": "5debd0ceee9b4299bf72bc46bd52e44019de0cea",
+      "message": "fix(ediel): bind first AI source storage to actual tenant header scope"
+    },
+    {
+      "localSha": "299de5fb4006680cd9b833f0df92fc15c5f7b3b5",
+      "publishedSha": "7f89aeff315869c1a405b9a7bd9b2a8764283e59",
+      "treeSha": "96b8ffdef6b2b2cdee8a6f36ec37d17ed230645d",
+      "message": "test(ediel): qualify own legal source headers for D-field ACK probes"
+    },
+    {
+      "localSha": "22a73d7d4ab127b8887535d84d9af4f0780b49fb",
+      "publishedSha": "993d510d0c81489bfc5bf2b749c7be41a0fb62bf",
+      "treeSha": "03750e6cf5efdbe6864397e2ba6bc5dc356b76e3",
+      "message": "feat(ediel): protect syntax-only CONTRL source and native original basis"
+    },
+    {
+      "localSha": "dd73e60b38b541b464354a4860a74de4b466bc13",
+      "publishedSha": "7db907b7518f5753f392a90d2fe386880ab679f1",
+      "treeSha": "0ac42b1dbd5ca8554c2a61cb7422c82075cd208d",
+      "message": "feat(ediel): add held service administration and immutable scope approval basis"
+    },
+    {
+      "localSha": "4962cbe82b923bfe7cdac957f6c3004c89873fc6",
+      "publishedSha": "8486594274d90a2639fcd718b82673fa97730e14",
+      "treeSha": "a03113b93be8cd90f922447e36de70d0c8b51bc2",
+      "message": "fix(ediel): reconcile complete physical AI sources before EDIFACT extraction"
+    },
+    {
+      "localSha": "467e9372646cd100e950a271cd650e85b8588bdc",
+      "publishedSha": "99004f07388c1a063c4aa5847cd4de4ca5cb1e29",
+      "treeSha": "d0d6932977047a84900896e214687a3d7a370cb6",
+      "message": "feat(ediel): bind canonical UTILTS decisions to own physical IDE facets"
+    },
+    {
+      "localSha": "4b66c456ebf3f27ca2b1f8d11bd1abd8c73ac62d",
+      "publishedSha": "a0d85fe28966d8bfe8f5ae5f5bc1076ef5006f0d",
+      "treeSha": "2974fb799eddc261f983bf7611e49f6caa6f11ea",
+      "message": "fix(ediel): freeze exact original rule witness through selected policy admission"
+    },
+    {
+      "localSha": "e7ae6a1bc299ae2129d9ab4bc571162542d0f856",
+      "publishedSha": "3e3bab29f8d1b2e2c9ce87d73b87fc2e414ca7fa",
+      "treeSha": "f69768728524798f94f876d238562071af9aa290",
+      "message": "fix(ediel): qualify technical ACK authority through opaque frozen RPC evidence"
+    },
+    {
+      "localSha": "65a54cf82a92e13d6433c8de136987bbe27f36cb",
+      "publishedSha": "bd8e16e34c4c56a679bec1fa72497aa58bc603b5",
+      "treeSha": "f7d56b37540eda5e7cc2095b1d14a39ca1c2c730",
+      "message": "feat(ediel): seal original outbound owner witness before atomic persistence"
+    },
+    {
+      "localSha": "237c01110268097ed4db962d4bf63dd566965f72",
+      "publishedSha": "f6133fd8dfd472c68b54789674d4be4797492a88",
+      "treeSha": "efd02c96600b2c2dce8c965b224a1364c10f9217",
+      "message": "feat(ediel): qualify service recovery origin without reusing original intent"
+    },
+    {
+      "localSha": "1fed068414a25eb8ef490c64327bf6832a0b1a38",
+      "publishedSha": "ace0ee69118af89fea829ceccc397ad2267e69d4",
+      "treeSha": "a71452d1e5efb3d725d49efd84d13b51bd276ef8",
+      "message": "fix(ediel): bind UTILTS precision and final runtime owner to own source"
+    },
+    {
+      "localSha": "70be2e237e6d5c14a94773f2ce806ae9cf9de5a6",
+      "publishedSha": "cd210e2a29fa53ec51527ed5ae06c63264c2a4ee",
+      "treeSha": "58df6eeac1288767b2f482c825d520701330f496",
+      "message": "fix(ediel): admit protected technical CONTRL through canonical guide authority"
+    },
+    {
+      "localSha": "6e301ba1116fdfa889d45319e68fb98a909484d2",
+      "publishedSha": "ade94aa2a297c43bdd6f499b8f40644d998d2e8b",
+      "treeSha": "e6434a7e3abb9d14c85cf6b0eac3e9c8464a6931",
+      "message": "fix(ediel): require current legal service origin for qualified corrections"
+    },
+    {
+      "localSha": "87465a52b4a438da780068bc9bbb7b279110c3de",
+      "publishedSha": "7ff0df80e739439c980088cfa52832a93d8f1d42",
+      "treeSha": "edb8f1ff9af41e312953a59a3ff04c55c1e7504e",
+      "message": "test(ediel): exercise durable SMTP entry and accepted no-resend fixtures"
+    },
+    {
+      "localSha": "166e45c45512ca820357d839d2128b7a0bb62019",
+      "publishedSha": "0a74d223718ba06ba979f18ab626677295eed732",
+      "treeSha": "07e5d1d76d4aaaf025c17bffb16d68b403b7ed39",
+      "message": "docs(ediel): add exact 352-ID code phase consumer and proof matrix checkpoint"
+    },
+    {
+      "localSha": "4c23b81295797d4986b2cc52c8948177a6644a64",
+      "publishedSha": "8f9a2cda0cc0ffb05899167b2c6b8adb37dd6b9a",
+      "treeSha": "cd90c40983a02e3636896d9cc153c2a6a72d39fa",
+      "message": "feat(ediel): bind corrections to current source and their own intent"
+    },
+    {
+      "localSha": "d4bf577a1029ff5d80e68e51b9cacbb48d0a329e",
+      "publishedSha": "14e1aa3774c582cdae6e10be0a2492f510f2844c",
+      "treeSha": "6213d868a01ec8524ce904b4696206c37bf1669e",
+      "message": "fix(ediel): enforce native positive ACK storage and exact original witness scope"
+    },
+    {
+      "localSha": "e849d2432bdd1e6133b80c549a92820bdf7098e3",
+      "publishedSha": "8be9c425bf91cea392864dfe0019d1d95241caa4",
+      "treeSha": "68c4038532a5a31a71fd92bf8c98d5af685b31a3",
+      "message": "feat(ediel): qualify persisted technical CONTRL from atomic protected source read"
+    },
+    {
+      "localSha": "2528dd1bcd6ab73816d0928d0291802260cef802",
+      "publishedSha": "98b1d82037434ac4e6aaa5e27831d320224f464d",
+      "treeSha": "6cba5b07315dae7abafe552632c6b250466cfba4",
+      "message": "fix(ediel): consume final UTILTS owner without changing original guide witness"
+    },
+    {
+      "localSha": "421c2742123b7ed1877c490807664615971e7458",
+      "publishedSha": "a52ce68079b57e60e39c07b6b71dd11d958402d0",
+      "treeSha": "91bbbe8270aa04153b097e7b30cdd8a242699d1f",
+      "message": "fix(ediel): qualify persisted CONTRL through actual protected original read"
+    },
+    {
+      "localSha": "bd0cd1855b6db8b6d6d0b54043e0cd25ef1bab89",
+      "publishedSha": "abdb1c30b534dffd477e5ca3dd6ebb27cdeff778",
+      "treeSha": "ef536546d55b5712eb5fb8263047957953425908",
+      "message": "fix(ediel): retain negative-only UTILTS owner under registry hold"
+    },
+    {
+      "localSha": "f9a8af5af2b9f442141cb5354684c13add301c0b",
+      "publishedSha": "5574fa9d7a131b5dc9c2ff67b0e4f98d95b597f1",
+      "treeSha": "ce2a455b2da398a1d29fa279cf1f50f1bdb5c06e",
+      "message": "fix(ediel): persist canonical own-IDE facets before UTILTS first effects"
+    },
+    {
+      "localSha": "aa7e18ad36b7310fffade243bb4d5be7707a0b53",
+      "publishedSha": "9fc17dc23799223062dbb8b5dfcfda2b4e234886",
+      "treeSha": "923a009b55a362c612a01e9b0135967b27f9f038",
+      "message": "feat(ediel): qualify AI outbound sources by export purpose and canonical profile"
+    },
+    {
+      "localSha": "0aada9f50a574656f2bef5f44b85ccb9d453b672",
+      "publishedSha": "8e6c24d30f9a5f2acd2cb903cbdbbe6f3d224d78",
+      "treeSha": "17a97f11138121135c59c633987c7e6f0913d989",
+      "message": "feat(ediel): apply reviewed structural sources atomically with dated projections"
+    },
+    {
+      "localSha": "a52016343ac180358cf079102d7ae30901962fb9",
+      "publishedSha": "21a0adb6aa896796e17c36df03eba9522d670e3b",
+      "treeSha": "0657ed39a1dc4a76c20a1044cda7745382520893",
+      "message": "feat(ediel): resolve syntax ACK routes from protected technical source"
+    },
+    {
+      "localSha": "e4ec99cf48b73e1d4b5ba2ee4cb43fa160bcdbfa",
+      "publishedSha": "36eb9ee57dbc796edbf087e7cb928a46c810b35b",
+      "treeSha": "a5fe78a44a7fd99ee6192f4b81e1d0049bc2be44",
+      "message": "fix(ediel): bind native H guide date and DSN mailbox to actual preparation"
+    },
+    {
+      "localSha": "6e5663b03a9da8b223aa8651df04fc1ed351a2d4",
+      "publishedSha": "2648861c159ee00f8cdf3467a9643b430db7b621",
+      "treeSha": "545e3aa5ff0959c6956a3d1f1b0f519c7804411f",
+      "message": "refactor(ediel): expose shared source ACK guide constraints"
+    },
+    {
+      "localSha": "80065e77c2ebc4ba09c3f6ca459d9dd8bfc11b7c",
+      "publishedSha": "62df9a97230565f96e171eeaed7b15622cecd9bf",
+      "treeSha": "53d098095641a281618e35347c947cccfd032da6",
+      "message": "fix(ediel): type tenant scope and dated structural projections explicitly"
+    },
+    {
+      "localSha": "6a8b3710689f279858d679c98a7f2110138bb203",
+      "publishedSha": "cd06389657a7887a976ca04d4838e6fba1ff2eb2",
+      "treeSha": "3d7e477d5f429023a3f7b9bb282b8d1719b1afe7",
+      "message": "fix(ediel): annotate inherited structural measurement facts"
+    },
+    {
+      "localSha": "43fde3d5c43ea9e9982b46436fe1c9706ddbdbba",
+      "publishedSha": "37c456dd2dc5da7fca1126f72f5d07771eeef240",
+      "treeSha": "b4f69eef1d141ca8d99930b8691ae55cf92fed8a",
+      "message": "refactor(ediel): share immutable accepted source receipt authority"
+    },
+    {
+      "localSha": "9a5f32fd1b198d050292b3501ed5fc453b4c95af",
+      "publishedSha": "3e9110b9ac27dc239dde0f88a00f956db3f78d7d",
+      "treeSha": "862615ffcac576e67a061ba49e830fdd4ecc342a",
+      "message": "fix(ediel): retain qualified reporting evaluation in recovery evidence"
+    },
+    {
+      "localSha": "3640898b392ca2598748360f1e1e6c3b7e12392e",
+      "publishedSha": "15761dd0ea8987bfa5c5687be52367609402660c",
+      "treeSha": "505f216e164202ddae40eba025865ac81ab82a0a",
+      "message": "fix(ediel): derive canonical syntax from physical wire only"
+    },
+    {
+      "localSha": "3d8834eae0f7ed7bcaf5c721d2e512b981db1f33",
+      "publishedSha": "380c3e56f0c469e422086892eaae2b74da36cf6b",
+      "treeSha": "7a12b50f9c674f4cb883ddff7c069fa974d1354f",
+      "message": "refactor(ediel): share remaining native ACK guide literals"
+    },
+    {
+      "localSha": "457eb2db9d891e8259573400c93408355de33f48",
+      "publishedSha": "6813529f48609122e5afc4a6d80befe3bac43889",
+      "treeSha": "9d47800d20f0616761c01a00c2f140536d40796d",
+      "message": "fix(ediel): preserve committed ACK receipts before fresh admission"
+    },
+    {
+      "localSha": "da34136e1727a08b8115ef5ac451599bd3974cd6",
+      "publishedSha": "7d23be286c628b17fac465d8fe43d10227f5f376",
+      "treeSha": "6ce17e126a64c3cc7bfababced6e773c6978ad8d",
+      "message": "fix(ediel): capture named UTILTS witness for actual negative ACKs"
+    },
+    {
+      "localSha": "61856b69fb97e4af83e4a566d2878f0b09988930",
+      "publishedSha": "719453e4477d4a77858d258f7fcee960baaf01da",
+      "treeSha": "ae3ab6048896989e4e2b651d47640bf0586039ed",
+      "message": "feat(ediel): originate source-approved per-relation BRP changes"
+    },
+    {
+      "localSha": "8fec5bad191353fbadf6581c32c4b0634bb2c382",
+      "publishedSha": "623dbcd77bad641a6d67616eb7155e0e93e69a6a",
+      "treeSha": "265f6e0ccc679d43a37993e1370c302e6872be6b",
+      "message": "fix(ediel): preserve typed source reporting selection in corrections"
+    },
+    {
+      "localSha": "590223d5e26765b4efe3d4411a524849ba5b29aa",
+      "publishedSha": "e36de3885e9d536ce89355c11e811a563f3b8b48",
+      "treeSha": "918f2c89c8c3202cfb8c0e2b5444e1a09224c863",
+      "message": "fix(ediel): preserve explicit prior structure type across temporal selection"
+    },
+    {
+      "localSha": "d6bd145f8399d8d916450c8e8ca806d197dc62d0",
+      "publishedSha": "378f1dcdc15e8d579876c9157d1ba4b0fb670a52",
+      "treeSha": "0d8f2786464bb61ba376cfeca4335b5dac6b3461",
+      "message": "feat(ediel): journal immutable source-matched DSN reports per attempt"
+    },
+    {
+      "localSha": "32c2a15a169670b647f5345b3e22a84153ba6568",
+      "publishedSha": "3f0a32e5c9a1de60c0aaceb47a105e28d7292c17",
+      "treeSha": "fcfb6f0b471d4c8e789427fdc464268065de2ee5",
+      "message": "fix(ediel): type scoped BRP query projections"
+    },
+    {
+      "localSha": "fdaf43bb7049a5d71bbce182fc0855954ca98713",
+      "publishedSha": "2ea0dc06b2b6fd098174ceb4df3de6ce40e483da",
+      "treeSha": "ec9fc326151890c630a8f10a12a92fe4fbbbd248",
+      "message": "fix(ediel): bind structural review to immutable current supply coverage"
+    },
+    {
+      "localSha": "5d25da6e81409a7d61a1a315acbc048d26e59c81",
+      "publishedSha": "25ed396da7179f44b8b2e317837a0962f1251a1f",
+      "treeSha": "8c8e47514c02cd650c7287d65e70fc519fc7583c",
+      "message": "feat(ediel): confirm normal supply switches from whole immutable sources"
+    },
+    {
+      "localSha": "fbbe4cda0a6d795c0d4426259386647f57ff1049",
+      "publishedSha": "40e9c79abd473f08bd83b1424a625c33d5f2694b",
+      "treeSha": "040c42a04f5342cf8861f0d96f23646c5fe7c239",
+      "message": "fix(ediel): retain exact initial supply scope after later transitions"
+    },
+    {
+      "localSha": "fc2e23112f79d0766ea98660586ca44820af4da5",
+      "publishedSha": "c92a3a9004f675482068a441376984c0b7b14130",
+      "treeSha": "dd04ed05ac8b3981a93c67870ea3aa41ac877294",
+      "message": "fix(ediel): bind BRP changes to approved physical supply scope"
+    },
+    {
+      "localSha": "052e41def70ff4e1d7c78223f8227052235237dd",
+      "publishedSha": "22e9d743ef5db8f9d75a4d18928eb812b1a16638",
+      "treeSha": "a013ac5e84572e1f0a0a6d843b87d358f58d5ce3",
+      "message": "docs(ediel): checkpoint ongoing integrated code phase without acceptance claims"
+    },
+    {
+      "localSha": "c89808a7105c1dc9762040931357b85b568d8bf1",
+      "publishedSha": "2f8adb17014e3e0f777d1b55fb38f3a8e842eac2",
+      "treeSha": "f78765ebed2530f3bd63a3260affc517e9467a61",
+      "message": "fix(ediel): retain physically rejected PRODAT agency facets without approval"
+    },
+    {
+      "localSha": "6b1912accfd13d8fc6ffff31770ca207d85fe549",
+      "publishedSha": "35c976022f681af6a54ab88c2dff5acb45826f35",
+      "treeSha": "9c41a73a5472c1205ca656b819920a8eb2030d21",
+      "message": "fix(ediel): bind actual UTILTS header diagnostics and failed wire values"
+    },
+    {
+      "localSha": "19e85d11546d26a4bce41ebcee8bbb31980752d0",
+      "publishedSha": "cd00034b3d037b1ed33691e99cd3d949aee9e17e",
+      "treeSha": "338e58113c43fd820acd3d5d97b8b396d8211507",
+      "message": "Bind native ACK guides to generated source editions and own response scopes"
+    },
+    {
+      "localSha": "7a59f7fee64c2e5318ce6a99d64b65429dda4d98",
+      "publishedSha": "d64aee87fddbb3251ae1d54c827f857f7965fecb",
+      "treeSha": "c8b8b9b9b5ce438992d4f24303bfe0a86802dbaa",
+      "message": "feat(ediel): qualify source-only PRODAT common header rejection"
+    },
+    {
+      "localSha": "a0421f49ac3db9d90c05924ec9e0b3cf148850d3",
+      "publishedSha": "18a3af9902940c6aeeeed927662f28e373ee6c7f",
+      "treeSha": "7666dd32334060c01af0dc4f9df537cd1d410891",
+      "message": "Bind native H bytes and SMTP observations to the original recipient"
+    },
+    {
+      "localSha": "dc966fd28e2a25dd205bada0947a4148a708067a",
+      "publishedSha": "0918f1bf6b0fcdc0e57d16d2111aab2c6093db84",
+      "treeSha": "2385bb05b4549802101394aad5d7f0835e3904ad",
+      "message": "fix(ediel): retain actual UTILTS header outcomes in canonical chain"
+    },
+    {
+      "localSha": "fc996a61d023dcbc5e603909cd5fe1bd18b2bf4d",
+      "publishedSha": "2b62ad1fe2d89f91a5adcd84f981a42112605b00",
+      "treeSha": "d3bb35cfcff9d11f017a18dc9bb48bebb4109b17",
+      "message": "test(ediel): model protected source owners in inbound field regressions"
+    },
+    {
+      "localSha": "d6ff501a0d6e928125a2783928698c4564f336d6",
+      "publishedSha": "d5ca39797722f99dbfc1c88696e51b06b08a17cb",
+      "treeSha": "62b6e17fbcfc2d793877c2c110a7ffbf4ccf5424",
+      "message": "test(ediel): protect canonical source and technical ACK gateways"
+    },
+    {
+      "localSha": "e1893319ee2adbd30147bcd0b5556a30e2e50b8e",
+      "publishedSha": "72a694f54a65a7db04de634e30a8b0b2fdd5a2b5",
+      "treeSha": "15b6ab171fb8236e3eff0737e7e930393831f775",
+      "message": "feat(ediel): render switch intents with exact preallocated wire references"
+    },
+    {
+      "localSha": "249878a2ce6374eb11a6018e50ea04a436389ea9",
+      "publishedSha": "8d422eb5f14d07b6ae6d02c07e152d0bf02fdf01",
+      "treeSha": "a6638bc6e00f27a0d0fb8023d66a63a8f9189826",
+      "message": "feat(ediel): project actual own-IDE national functional responses"
+    },
+    {
+      "localSha": "71258df40daca8000fa8376c2d4b4de7de41ef22",
+      "publishedSha": "4aa75d1dd7e59f2b04b3aba7ae914481b0acb67b",
+      "treeSha": "af1f24eae5f75ef417561e6e8e0bfcba79e39e3f",
+      "message": "feat(ediel): project actual UTILTS functional response authority"
+    },
+    {
+      "localSha": "9d68e14983b5f837e4150a1026037f0bf583029b",
+      "publishedSha": "ec12efc2c135c8d9d92a0988089b3e1f25bd0a00",
+      "treeSha": "5ca9ed209d70025d5839f19669cf3518a65aa8ce",
+      "message": "Probe native ACK code text calendar and immutable source guide authority"
+    },
+    {
+      "localSha": "e32acd18797efc30302e98f33f4b89a5e8ccf499",
+      "publishedSha": "60e32ee8c8141cec5f7cb0da8e47ee861b3fe726",
+      "treeSha": "b382de0d72c7a28871c3ebe4492b722098cabe73",
+      "message": "fix(ediel): preserve source data spaces through envelope encoding"
+    },
+    {
+      "localSha": "b809173a6253421caca419c49444e5e8f186091f",
+      "publishedSha": "0792805bced24efbb49c11310316e81796c7e82d",
+      "treeSha": "1aa6007838b7d1a126adf03e6920837d472e311a",
+      "message": "fix(ediel): preserve physical UTILTS ERR source references"
+    },
+    {
+      "localSha": "527701bb2fc62b50631fb26641786e20eb2ed365",
+      "publishedSha": "feedd883e170b88c50b91e9e248b278accee79b2",
+      "treeSha": "61704225fe4a3ccb73c5e057ad21f1f2a8c5ea3d",
+      "message": "feat(ediel): require exact ordinary intents at native transport entry"
+    },
+    {
+      "localSha": "ea40705d50827783a992821cda1271367b64c803",
+      "publishedSha": "db76e7a0cfa0b5122004c6819f28afc0e736ba35",
+      "treeSha": "18498f72475c04535d4292f4f7f374f9685cae15",
+      "message": "feat(ediel): originate AI exports through owned intents and immutable dated sources"
+    },
+    {
+      "localSha": "d134a3494db29fa8d231127b9470b0e1ceeae93f",
+      "publishedSha": "18cae8c1abc9d25b5cec217588b7ee261aedb044",
+      "treeSha": "19fbff493533e2dee022ec4a796a9d8420327373",
+      "message": "feat(ediel): seal source-owned positive and negative test originals"
+    },
+    {
+      "localSha": "155ce9227bfcf23e7af678908b60190949a022b6",
+      "publishedSha": "a609f77814ca0ce743156b903d528f37afd6570c",
+      "treeSha": "22bbd311fca8d0e424ee1e642ac402cb9aa001bc",
+      "message": "feat(ediel): persist canonical own UTILTS functional responses atomically"
+    },
+    {
+      "localSha": "47011cabc3737057235142ff1e6b2f11fd24e2c5",
+      "publishedSha": "1990d88fbbaaec0bbbc52848eaf03d677d9eaaa2",
+      "treeSha": "771cf7191cc0128884f95ea284386bf50c1cf9c0",
+      "message": "Require exact committed own functional outcomes before native UTILTS ERR"
+    },
+    {
+      "localSha": "6189c517eb7a59d1b3ba1caa377de92f8c60a6c3",
+      "publishedSha": "601cc984c3374e3b6b170efcec142cc69fa1b171",
+      "treeSha": "c6caabae7ffa29084608620f726d40d37c81d404",
+      "message": "fix(ediel): authorize genuine draft preparation before provider admission"
+    },
+    {
+      "localSha": "da0006ba1c9ee71fda7334e8236f078cde1d9caa",
+      "publishedSha": "1a7e4bd5f4455b94ff08d44eeb0ad94b394f418d",
+      "treeSha": "06d0a5b69a696f18c6748af6988fb1b7bce1a3f5",
+      "message": "feat(ediel): admit BRP tests through authentic positive original authority"
+    },
+    {
+      "localSha": "a77369b631cd6571b6506884bed16449600c1466",
+      "publishedSha": "9c77b18881629fef4142e6ea280d08dbfc010536",
+      "treeSha": "ffdec5771409aac245c3e5f97533363644b8717e",
+      "message": "Use the shared current send permission contract in native H"
+    },
+    {
+      "localSha": "b3d1a2400fc33d352bb6d87bdfa1467cf2a59254",
+      "publishedSha": "52be6b20f8775be03e1446eaa27d11206ca00807",
+      "treeSha": "95d10dfe9117254f5fd6c09c593aff905524c38f",
+      "message": "fix(ediel): bind closure review to exact immutable supply continuity"
+    },
+    {
+      "localSha": "9d6e0d3fba04871d4050ee246dac67a169e192be",
+      "publishedSha": "7e1261123c600d7161dd66f5de5e20808f80dc5e",
+      "treeSha": "634afcab93235e368b5d7c76a9737d0b0973570b",
+      "message": "fix(ediel): use actual route and dispatch types for AI origins"
+    },
+    {
+      "localSha": "1b1676ebdf6b637586d681ee59c537ebf25a89bd",
+      "publishedSha": "b7f0cc760e4b67360b053a486624a638a873b1c5",
+      "treeSha": "69e2c72a0bebc22770e27bbd7fcabbd67ccbdfd8",
+      "message": "fix(ediel): copy own original UTILTS ERR identity fields"
+    },
+    {
+      "localSha": "43b2b3deb64396623016ebb10186dea9b9165689",
+      "publishedSha": "54749a6e8c207a448f77c34c542c2e1a6aa6f36c",
+      "treeSha": "46409e17a628515a546f1ba1f9d07869c11d3867",
+      "message": "fix(ediel): use actual public canonical kernel module"
+    },
+    {
+      "localSha": "6e9ca5d73ce906aa537ed4f0b22f546a6e9d34e6",
+      "publishedSha": "2b6bc688f4035ced09f6a3709ed12bfd18728bdc",
+      "treeSha": "b7fe598429978ca7354ed8f77c31cf5e1c92721c",
+      "message": "fix(ediel): bind common negative ACK to exact configured route"
+    },
+    {
+      "localSha": "786753952cea2d402af7d10e0e4f50472da33650",
+      "publishedSha": "cc23641af0301050265d9b57af9c235e44e74556",
+      "treeSha": "e372684fe11bcf07a35b70777971ec84a71e8968",
+      "message": "fix(ediel): persist registered TGT drafts through canonical gateway"
+    },
+    {
+      "localSha": "bc5896eda00b11e3f840898231c274fff1d298dd",
+      "publishedSha": "1b176bd3a75f29e6b4d410dbc7bafbc9a651c0ac",
+      "treeSha": "cb3f28741c17488e1b8e1693534a7514c57fc8ee",
+      "message": "Refresh every Ediel rule and literal contract component without acceptance promotion"
+    },
+    {
+      "localSha": "e62c186247af916fb0453850e547af34c0da5975",
+      "publishedSha": "9cea322bfd3c2e01d44a74406c7c02b8a2068fe5",
+      "treeSha": "ffa135b9447db8d9b6d8e7f29cd90d29729262ba",
+      "message": "fix(ediel): bind shared transport to exact original bytes and scoped send authority"
+    },
+    {
+      "localSha": "4fdc6dd77fcd269f1bacc5ebfe94d4e4671e4090",
+      "publishedSha": "99a185a57c27d0b57fbe3f1c711fb4b9fb64eaf3",
+      "treeSha": "db1339ae57e9543d5958165e7d8dbf3d3ce994a6",
+      "message": "fix(ediel): qualify exact registered original guide scope"
+    },
+    {
+      "localSha": "88e73169449e8e47c75a39f9b3103e0c46b3b6a4",
+      "publishedSha": "ab5a450a55b69d20435725f1dc4a9d931afb80df",
+      "treeSha": "a95f2ab6a7d0f5aabd257158a06fd81f534eac53",
+      "message": "fix(ediel): separate original preparation proof from sender permission"
+    },
+    {
+      "localSha": "82c4d34eaddfea9a3292f0a3fc4a44dcd8998e73",
+      "publishedSha": "f3bbf0fa929ebbb34ee7fc56365d6f1263b09e61",
+      "treeSha": "10206deaaf0c294da64f439c54dd51b6dc0dbeed",
+      "message": "Preserve original global ERR scope with an explicit own response reference"
+    },
+    {
+      "localSha": "ec45b739bf5ec5452d566ee695179b767dd58938",
+      "publishedSha": "c3cec58d8992c6c7880f0af9ef64b61e6bfdbbfe",
+      "treeSha": "a3dd5aaf52e9188dfd8ee5a235b9078599cde116",
+      "message": "feat(ediel): retain global functional scope with own ERR responses"
+    },
+    {
+      "localSha": "345a2909c93ad29f24c6dfdfd1ba73a8ab8801a0",
+      "publishedSha": "4bc0a90b1b3cff98da48fd28d93cfb345ef2891b",
+      "treeSha": "b5475bf22ff9c0bd6cf82b8ba61d85c01a2f5918",
+      "message": "fix(ediel): apply current send permission contract to source projections"
+    },
+    {
+      "localSha": "5ab06499a81c2d6adb857c9acbedd80da4088719",
+      "publishedSha": "8059139e9fa2529df2a15403332c53227e6b923e",
+      "treeSha": "3eea09c56c46f42a7e76ac1697fac9f1b46199d5",
+      "message": "fix(ediel): bind AI finalization to private prospective original authority"
+    },
+    {
+      "localSha": "65ff52d8920b2a4e0dc9229f88f1115e0c0f017f",
+      "publishedSha": "9d1e107efffd02e651ae07c5c2a1a9a7cc6c9d1d",
+      "treeSha": "526dc9a28911b8ffe19f5cd3a40af4bd63de0a41",
+      "message": "fix(ediel): observe complete technical header before rejected body"
+    },
+    {
+      "localSha": "5e8a0a767c2e79af22c7dfb6b1641f1d42a21eb6",
+      "publishedSha": "b2e7fe22c5cbe367830c7a5934a4f6377b250bfc",
+      "treeSha": "22bc9848aae524b8b09c02dac485b7502cbd5733",
+      "message": "fix(ediel): retain source-owned TGT contexts through persistence"
+    },
+    {
+      "localSha": "fc3d6bc936444f8f9054fd355764c29e5f0659a4",
+      "publishedSha": "f5a1775f23e500237252c76e2c6a6e6b5eafc60c",
+      "treeSha": "e8211817d340c8a99ed156ca79b6b00e894dac29",
+      "message": "fix(ediel): use canonical UTILTS route scope vocabulary"
+    },
+    {
+      "localSha": "26cf025370580d0ad3d9abcaefae466d571d3890",
+      "publishedSha": "c4652ef2e1a0ccd5e301efcd3afeb4f810223746",
+      "treeSha": "1e810aabc1f15da3aa5b1b281caa8f908a7a52bb",
+      "message": "feat(ediel): originate normal switches through exact intents and native source binding"
+    },
+    {
+      "localSha": "27dfa024a5e33c3e16ce8e3fda8bbd97cf691fd1",
+      "publishedSha": "62bd54e223047b979c1a56d415ef97e98816c883",
+      "treeSha": "b22ba61cfebc459604c383f683574f2cf34353b5",
+      "message": "Share the original UTILTS ERR national guide across canonical consumers"
+    },
+    {
+      "localSha": "9f9fd388bb2a9ccd1e8388e008201ba257adc89e",
+      "publishedSha": "8a36e5c7fdf490e27f35a54ab8ba19faf5a12067",
+      "treeSha": "46b373f58a96af80ed26d1ac4cc911990cf8d355",
+      "message": "chore(ediel): register exact hashes of new integrated forward migrations"
+    },
+    {
+      "localSha": "e50e6657a728e40c0f34ff5d2ebfff60ac469ab2",
+      "publishedSha": "37e01a70574ae127c3108eb2ce816b82c7f4caec",
+      "treeSha": "ae73de8dd242fc6c47443163cb7b918de2b11118",
+      "message": "feat(ediel): originate source-bound switch cancellation without replacing original"
+    },
+    {
+      "localSha": "93ed16e84657e834090ce53f1198e313c2894338",
+      "publishedSha": "923055562e60cebe0cf559c9e09692668dd728e5",
+      "treeSha": "fd9e373ae79d00cf695e13141012a7d63e549a2a",
+      "message": "fix(ediel): narrow persisted common ACK snapshot before native qualification"
+    },
+    {
+      "localSha": "e36167eb975a8e265d272bbc471a8dc092b8c2ac",
+      "publishedSha": "fe7d3082b3417c5ba49511d777361b1b1d478117",
+      "treeSha": "4a6fde4ce818a140a93fa64e6854ac23dfd1f812",
+      "message": "fix(ediel): project sent sources from the frozen observation and business plan"
+    },
+    {
+      "localSha": "3f0402a814b670cc25eaf419046ce084c8b1631f",
+      "publishedSha": "9218afe047ede2a8417c7940a9aa299e1a7fb67a",
+      "treeSha": "6add18dd7f8a8a0dd983bc6f5ca1facc9569cd33",
+      "message": "fix(ediel): retain exact ignored PRODAT fields with canonical source facets"
+    },
+    {
+      "localSha": "cb573cc9793ecddf371a8e1d9789e2de30969e8f",
+      "publishedSha": "68486ac441f5868d48dfe8ac72b4f813bc275966",
+      "treeSha": "3f9918b6a52c3cd8c015c2ea28da4c41299500f3",
+      "message": "fix(ediel): render UTILTS acknowledgements in standard UTC plus one"
+    },
+    {
+      "localSha": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
+      "publishedSha": "cb7924a72c282b6d45025844a3f3ed82b4dfb1e1",
+      "treeSha": "37558b46e64588a99d67c4a6b791b50514549fa3",
+      "message": "fix(ediel): integrate actual original authorities in every outbound and ACK gateway"
+    },
+    {
+      "localSha": "7b51482e3820e811232e5bde425ef918e4dc5538",
+      "publishedSha": "b9f60739f948dddc9ce08c013390d27c1eb22ea1",
+      "treeSha": "ca6adfa57fe4bbcdb6d622b1ae79e289d1098117",
+      "message": "fix(ediel): route switch withdrawals to their source-bound cancellation owner"
+    },
+    {
+      "localSha": "10e2d6c1b5a765aa7f2bc6d080ad0a26ed7042da",
+      "publishedSha": "fc2573d4eda9ee1db6a3094c2f2535b0110fad0f",
+      "treeSha": "2cb3ccd1c4f4e288765675f37aec5d63c5d115a2",
+      "message": "fix(ediel): preserve switch facade contract for source-held cancellation"
+    },
+    {
+      "localSha": "40d8c80a744e38ddfac4c018d4d44ed9829fa5fc",
+      "publishedSha": "a8e74fdefaa655d104f21426a68c5ff9075e9c47",
+      "treeSha": "950605cabe9d0fc8f6e36736391952798655eac0",
+      "message": "refactor(ediel): share physical UTILTS header identity predicates"
+    },
+    {
+      "localSha": "6618187a984f52bce168e565383d89c6acbaae8f",
+      "publishedSha": "0dfabeaa5df767b2418aec88138b71a0bbdc61df",
+      "treeSha": "48930a6b5d6803288a378acbf4740fa891503cef",
+      "message": "fix(ediel): admit ACK and ERR through protected original guide scope"
+    },
+    {
+      "localSha": "9912e41f72c69aed3ab13258be61c81d61b31a38",
+      "publishedSha": "10f5127f157c7bb0d72f2e2de838798377a66585",
+      "treeSha": "1d7a366509f91d901b93a3de5ba4696810ba0480",
+      "message": "fix(ediel): consume qualified dated structure in export and UTILTS requests"
+    },
+    {
+      "localSha": "2acf1a05db0ff2e879aeef54eabfee2db27aceb8",
+      "publishedSha": "b9e8f513702ba089cc44dd25b45022e089bc2e31",
+      "treeSha": "0b0bcc72cbed0ef4627c04d55ce704fa31e54c34",
+      "message": "fix(ediel): qualify cancellation request environment from actual schema"
+    },
+    {
+      "localSha": "adfc0479620979543d1621ecb2b5742ece1c7e84",
+      "publishedSha": "974cd01206602b7cc29666de5ed66a14c28df0c8",
+      "treeSha": "0d3391715999d1922da99b81e881538069fb2cd2",
+      "message": "fix(ediel): qualify AI testing permissions by actual intent environment"
+    },
+    {
+      "localSha": "8d0b89cd44b65fa59eda62c7e58cfc98e4cccb7c",
+      "publishedSha": "ffae5689cdaab8aeffd69611a9278799c2f31ea1",
+      "treeSha": "81a935474ad996789065b15d6ab63733de9766f4",
+      "message": "fix(ediel): unwrap withdrawal results and read actual request environment payload"
+    },
+    {
+      "localSha": "8c60815382bf3fdd2b4680f2585572791370c26a",
+      "publishedSha": "ac617669045635cde89b1c735cea1b99bcaab3bc",
+      "treeSha": "8c5f8dbe08d67f9d659ac495f166681a64decca6",
+      "message": "fix(ediel): type the actual outbound request payload crosscheck"
+    },
+    {
+      "localSha": "7f1795c9605c95fc85b974b4883118cf2a06bff2",
+      "publishedSha": "1e857102d5e582a4c3651d8fbed4e62fffab9f72",
+      "treeSha": "e36e929bf946bb7363d84d0c8583a41975fa83fd",
+      "message": "fix(ediel): reuse canonical UTILTS legal identity in ERR guide"
+    },
+    {
+      "localSha": "dea704c98b966ded2a79fe599a6a8ccb4c37f564",
+      "publishedSha": "65a51b4f128d1b8c89d2eb5d26eb32cfe6b23047",
+      "treeSha": "2563960cf2bbeb3d695f7415a03a6baf3110146a",
+      "message": "fix(ediel): enforce original registered guides in native response paths"
+    },
+    {
+      "localSha": "8f02ae03c8188f209d0d84bd43b590d9376bd729",
+      "publishedSha": "a9553a0e5b22b61e0b3a7f27e49349cfb5a41520",
+      "treeSha": "ea1f62d62dfa1864e20f6bcb5bebf9d8de405aad",
+      "message": "fix(ediel): deduplicate only protected own outbound ACK originals"
+    },
+    {
+      "localSha": "b71d3915d76cdbe3e56d9c21f9864b56e3fe4109",
+      "publishedSha": "e98b6e3a4c14317d4fbc89c6c45c758a590e231c",
+      "treeSha": "7ee89658ebc8f649a0bbf27f7667de399011fee2",
+      "message": "fix(ediel): preserve each own mixed APERAK object outcome"
+    },
+    {
+      "localSha": "0330d8ced367c42b837ae7f0cffe0dd6c62b8470",
+      "publishedSha": "28c4379c5929306ea45da84730a929d5f94e12a4",
+      "treeSha": "5e201b6738d071e715fb093e1e87666271026e16",
+      "message": "test(ediel): bind final UTILTS fixture to version4 source ledger"
+    },
+    {
+      "localSha": "b7d664347253c4d6fbb0ea27fcdd30a662dee708",
+      "publishedSha": "14d6d80746933e0d9641eafb6cd09c91b9383d78",
+      "treeSha": "bd3742aa41f1304e76c5669087fa1e097672cca8",
+      "message": "fix(ediel): publish the shared technical expectation plan to native consumers"
+    },
+    {
+      "localSha": "48470699b8e153e2f087e9b4e2f5da11ba5f2319",
+      "publishedSha": "60667917f95a18f710a1359ed1c0b34fb114b798",
+      "treeSha": "097f3c9ca6f382aa4935d3980657465d97143512",
+      "message": "fix(ediel): preserve opaque original versions and physical ERR guide scope"
+    },
+    {
+      "localSha": "bd40962b9201bc4438e1e21362fd704bf8fbb72f",
+      "publishedSha": "97302f65c20f8260076cd770da19b9b8fa227d10",
+      "treeSha": "c1cf2d8fde7eed800e79f24dc139c35ea056a30e",
+      "message": "fix(ediel): bind inbound deduplication to the exact tenant source scope"
+    },
+    {
+      "localSha": "ac2232a3d7099027b47d32f06702a6e60b923d19",
+      "publishedSha": "76e62bb92c8b66aa7548fbee5764a42319a36c9b",
+      "treeSha": "ba95a940f7fac8892b3659470ab9de94a4849eef",
+      "message": "docs(ediel): distinguish active whole code phase from historical checkpoints"
+    },
+    {
+      "localSha": "0d258776f0f3685f0fb535326fca43ee5e07144b",
+      "publishedSha": "d6d4f7704683071051d0c9076a22f0394b2e1e15",
+      "treeSha": "3016654539e7da0caec6ea6fa40142871ae9f88d",
+      "message": "fix(ediel): qualify exact dated structural point through native source owner"
+    },
+    {
+      "localSha": "6ffd2fb33daa1de7c6d32a45dc23c97a75687d19",
+      "publishedSha": "1834594ef01e341d0529098a314d1b193306b20d",
+      "treeSha": "50b51466771c952590bd57b8ac4969a83837d04e",
+      "message": "fix(ediel): qualify the full requested ACK reference set"
+    },
+    {
+      "localSha": "3ef926cebae5d60cc0d9ba70c5d2ea27d393f14a",
+      "publishedSha": "076b32972a0071a8a2a80907df4aa99830583094",
+      "treeSha": "4f0e4f4e4732bdd6a9d717623dd59544754062ff",
+      "message": "fix(ediel): project frozen accepted source state atomically without ACK downgrade"
+    },
+    {
+      "localSha": "39184e0893f6aea07d952e170f3a3a745b47a230",
+      "publishedSha": "1326e2618eb8c13e9bb91f24205c6d0f7b141e4c",
+      "treeSha": "6cac0bc6f23919acc06202b761285a59b12405a8",
+      "message": "feat(ediel): bind qualified switch corrections and enforce actual production sources"
+    },
+    {
+      "localSha": "196920373eaf276a0ce6d7a80a4e830d4c718ab7",
+      "publishedSha": "b831c5582dc84a445d0a0e93c32e59891595712b",
+      "treeSha": "b4f589d0818163e29bf5847c126ad54ce41feeba",
+      "message": "fix(ediel): project regulated internal sites from the sole physical source owner"
+    },
+    {
+      "localSha": "56b359c571d2bf668ddf2d1de3b72477706ccee8",
+      "publishedSha": "d789944c205cdce1d5c1ceb7628a64f2a03e4c35",
+      "treeSha": "ae74a4e9368afd27d01eb262a415f9e6eef89538",
+      "message": "fix(ediel): share logical ACK policy identity across consumers"
+    },
+    {
+      "localSha": "4e9542f41448cb0d94ddaf8c71aed357bbac0f71",
+      "publishedSha": "798d10ef039b03645a0afc3189d7627d1628818f",
+      "treeSha": "a43141d89b280d87ff2ae87ae8281a03aca72a51",
+      "message": "fix(ediel): reuse ACK originals by physical scope and immutable own outcomes"
+    },
+    {
+      "localSha": "cdba2983b28f9ae394bffe2f33e06208a313b9f7",
+      "publishedSha": "7cf3b4a202048bcbdd595f44f0c43c87bf70106f",
+      "treeSha": "8e63be6acc33762c3aa0242b16f0a68094b622fa",
+      "message": "fix(ediel): bind BRP production to source-owned site and shared wire references"
+    },
+    {
+      "localSha": "e43a48cfe894b6a22e3e4800029a1455a52ba617",
+      "publishedSha": "d3f988b65f48ef008b694a7a31bdf5b19a171c22",
+      "treeSha": "62ac78bd0297871b676a17294e800f8aad357b9e",
+      "message": "fix(ediel): render service ANJ only from authentic frozen agreement source"
+    },
+    {
+      "localSha": "ac2d282a9467c0d195a7dab7382d5d67640094cb",
+      "publishedSha": "ace09ffdb874ed55ca9d1bcb95edf66bc349e8b9",
+      "treeSha": "68b858372c5dbafcce3222d65dbd99566e4676c3",
+      "message": "feat(ediel): originate agreed metering method changes through source-bound intent"
+    },
+    {
+      "localSha": "ed29702c68319dd26b175f276a1aff9c937cd509",
+      "publishedSha": "9dad08e0c5e0eca52548529fa69f90baf4aa231c",
+      "treeSha": "03af37e10f63d28cac14f9ac059fb6cd7fb301a1",
+      "message": "fix(ediel): bind method changes to complete source scope"
+    },
+    {
+      "localSha": "54706fcf7e147421bcb400c053386764724bea3c",
+      "publishedSha": "8d102088d7c8246b81ad5c32751b26f7d770c542",
+      "treeSha": "92110e92ead817373127db709c57722d8b3730f4",
+      "message": "fix(ediel): carry production contract source-owned site through actual intent and outbox"
+    },
+    {
+      "localSha": "4e3bc0f363eb4fe7c3892ec8808effa170063b13",
+      "publishedSha": "d96304765c07993944211091c7611fe94cc45421",
+      "treeSha": "1aabcd548a52d84f9a5311bce984d553aa8fb80c",
+      "message": "test(ediel): bind committed retry control to prospective V2 authority"
+    },
+    {
+      "localSha": "dfb155d6ed679e0c8a32c810d4a9d62d598bd05c",
+      "publishedSha": "4e909cfdfe2b6affb5ab59550d7e44ab544e92a9",
+      "treeSha": "451bc23d2382bff4f2934a21cbf5082eb553cb0e",
+      "message": "fix(ediel): freeze admitted technical watches and use source-owned send guards"
+    },
+    {
+      "localSha": "072035a78819d129cf81d1aa51a7bce6d7aa93a9",
+      "publishedSha": "d02b432b1938413f0521e9497bad7c47ad4aff7a",
+      "treeSha": "45ccb09b6d34da82f24e94a44f6587888c5a708f",
+      "message": "fix(ediel): project accepted SMTP receipts atomically across actual consumers"
+    },
+    {
+      "localSha": "a7a729c20452fda5d4d8f7931fb6b82a741d7dd1",
+      "publishedSha": "66abecd531b9b2a937c7e69f037fd0d874c2749f",
+      "treeSha": "5ded01d3ae45a57e5f9f7404586afbdc5fb7bc5d",
+      "message": "feat(ediel): watch source-qualified Z09 metering method changes"
+    },
+    {
+      "localSha": "d8a0f16a737c549c97eff06439e454fe2fe071ec",
+      "publishedSha": "97596cb4058ee32a70c3ac8e23a30703b70f551a",
+      "treeSha": "56300cb8d23e46eab9f826d21905830bdf8c870e",
+      "message": "fix(ediel): align method watch actions with transport actor permissions"
+    },
+    {
+      "localSha": "69aceb79106470baca8ca3c638bad97ba11d5013",
+      "publishedSha": "2282077f62e4b98270f8d0dbb77edbb9ac77427a",
+      "treeSha": "7af11f5abf9d901eafa4346111ec217af651e818",
+      "message": "fix(ediel): share logical ACK identity across native owner and sender watch"
+    },
+    {
+      "localSha": "013f252411ff43ec5ea63a934ca6ecee4224b539",
+      "publishedSha": "3116fddcbb64b9cb08f239ab03a416fbcc0f00f8",
+      "treeSha": "dfcaa76bc23f5dbd1d753b6188faaa999af7a755",
+      "message": "fix(ediel): atomically preserve native PRODAT ACK scope outcomes"
+    },
+    {
+      "localSha": "f8965424e999b3305dd0206185808a3749670f2e",
+      "publishedSha": "1ade346de4fd15ce1f79d1fcb65b79ce35bf4420",
+      "treeSha": "53565e43e7dbbbf85d7beaf543a3aff646196f27",
+      "message": "feat(ediel): source requested methods from signed agreement declarations"
+    },
+    {
+      "localSha": "680f59a1ccc5c88f58983419ae3596c65cb22cd6",
+      "publishedSha": "baa0228985abe6969c87a8c8c9b9fbbcbc03588c",
+      "treeSha": "a796ca34badc329e289d0bacf3888dfc00517475",
+      "message": "fix(ediel): preserve physical UTILTS identities through runtime consumers"
+    },
+    {
+      "localSha": "66a66666aa1b8b28315ca7840ab07424da360a81",
+      "publishedSha": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+      "treeSha": "ce0a89e92b355d8ee06ad26779aed67d6fbe47df",
+      "message": "docs(ediel): record forward migration hashes and separate final candidate test phase"
+    }
+  ],
+  "formalAcceptanceChanged": false,
+  "broadVerification": "NOT_RUN_FOR_FINAL_CANDIDATE"
+}
