@@ -55,3 +55,16 @@ describe('protected final response reads actual own structural effects',()=>{
   expect(receivedProdatFinalResponseQualification({plan:result!.plans[0],sourceMessage:{...f.message,raw_payload:input.rawPayload+' '}})).toBeNull()
  })
 })
+
+it('an actual committed customer-version receipt remains a distinct own primary proof',async()=>{
+  const f=fixture()
+  io.data={version:1,sourceMessage:f.message,responseFacet:{...f.facet,assessmentId:uuid(3),effectScopes:[{...f.effect,effectKind:'customer_version'}]}}
+  const result=await readReceivedProdatFinalResponsePlan({companyId:f.message.company_id,sourceMessageId:f.message.id,rawPayload:f.message.raw_payload!})
+  expect(result?.plans[0].effectKind).toBe('customer_version')
+  expect(receivedProdatFinalResponseQualification({plan:result!.plans[0],sourceMessage:f.message})).toEqual([f.effect.lineIndex])
+})
+it('an unsupported primary effect kind cannot qualify a positive reply',async()=>{
+  const f=fixture()
+  io.data={version:1,sourceMessage:f.message,responseFacet:{...f.facet,assessmentId:uuid(3),effectScopes:[{...f.effect,effectKind:'caller_acceptance'}]}}
+  expect(await readReceivedProdatFinalResponsePlan({companyId:f.message.company_id,sourceMessageId:f.message.id,rawPayload:f.message.raw_payload!})).toBeNull()
+})

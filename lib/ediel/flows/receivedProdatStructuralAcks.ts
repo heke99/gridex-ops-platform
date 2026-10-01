@@ -56,7 +56,7 @@ export async function createReceivedProdatStructuralAcks(input:{actorUserId:stri
   }
   await createOutboxItem({actorUserId:input.actorUserId,message:ack,sourceMessageId:source.id,status:retained?'prepared':'queued',queueOnlyIfInserted:true,
    payload:{createdBy:'reviewed_structural_source_effect',sourceMessageId:source.id,objectLineIndices:indices,
-    canonicalAssessmentId:plan.canonicalAssessmentId,objectAssessmentId:plan.objectAssessmentId,ackFamily:'APERAK',outcome:'positive'}})
+    canonicalAssessmentId:plan.canonicalAssessmentId,objectAssessmentId:plan.objectAssessmentId,effectKind:plan.effectKind,ackFamily:'APERAK',outcome:'positive'}})
   ids.push(ack.id)
  }
  return ids

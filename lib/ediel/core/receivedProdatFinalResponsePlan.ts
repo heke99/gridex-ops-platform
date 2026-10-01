@@ -6,7 +6,7 @@ import {evidenceHash,isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/d
 
 export type ReceivedProdatFinalResponsePlan=Readonly<{
  outcome:'positive';objectLineIndices:readonly number[];acknowledgedReferences:readonly string[];
- canonicalAssessmentId:string;objectAssessmentId:string;effectAppliedAt:string;
+ canonicalAssessmentId:string;objectAssessmentId:string;effectAppliedAt:string;effectKind:'structural'|'customer_version';
 }>
 const owners=new WeakMap<ReceivedProdatFinalResponsePlan,{companyId:string;environment:string;sourceMessageId:string;sourceHash:string}>()
 
@@ -30,12 +30,12 @@ export async function readReceivedProdatFinalResponsePlan(input:{companyId:strin
  const plans:ReceivedProdatFinalResponsePlan[]=[]
  for(const effect of effectScopes){
   if(!isEvidenceRecord(effect)||!Number.isSafeInteger(effect.lineIndex)||!isEvidenceUuid(effect.canonicalAssessmentId)||!isEvidenceUuid(effect.objectAssessmentId)
-   ||typeof effect.appliedAt!=='string'||!Number.isFinite(Date.parse(effect.appliedAt))||plans.some(plan=>plan.objectLineIndices[0]===effect.lineIndex))return null
+   ||typeof effect.appliedAt!=='string'||!Number.isFinite(Date.parse(effect.appliedAt))||effect.effectKind!==undefined&&effect.effectKind!=='structural'&&effect.effectKind!=='customer_version'||plans.some(plan=>plan.objectLineIndices[0]===effect.lineIndex))return null
   const own=facet.objects.find(object=>object.lineIndex===effect.lineIndex),responses=facet.responses.filter(response=>response.lineIndex===effect.lineIndex)
   if(!own||own.outcome!=='positive'||!own.li||responses.length!==1||responses[0].scope!=='object'||responses[0].ercCode!=='100'
    ||responses[0].id!==own.id||responses[0].li!==own.li||responses[0].fieldCode!==null)return null
   const plan:ReceivedProdatFinalResponsePlan=Object.freeze({outcome:'positive',objectLineIndices:Object.freeze([own.lineIndex]),acknowledgedReferences:Object.freeze([own.li]),
-   canonicalAssessmentId:effect.canonicalAssessmentId,objectAssessmentId:effect.objectAssessmentId,effectAppliedAt:effect.appliedAt})
+   canonicalAssessmentId:effect.canonicalAssessmentId,objectAssessmentId:effect.objectAssessmentId,effectAppliedAt:effect.appliedAt,effectKind:effect.effectKind==='customer_version'?'customer_version':'structural'})
   owners.set(plan,{companyId:input.companyId,environment:source.environment,sourceMessageId:source.id,sourceHash:evidenceHash(input.rawPayload)})
   plans.push(plan)
  }
