@@ -34,11 +34,12 @@ function values(wire: Wire, tag: string, element: number, qualifier?: string): s
 function references(wire: Wire, qualifier: string) { return values(wire, 'RFF', 1, qualifier) }
 function one(values: string[]) { return values.length === 1 && values[0] ? values[0] : null }
 function exact(a: readonly string[], b: readonly string[]) { return JSON.stringify(a) === JSON.stringify(b) }
-function readWire(message: AckCorrelationMessage): Wire {
+function readWire(message: AckCorrelationMessage, allowTechnicalWithoutApplication = false): Wire {
   if (!message.raw_payload || !validateEdifactEnvelope(message.raw_payload).ok) throw Error('ack_correlation_envelope_invalid')
   const wire = EdifactEnvelopeCodec.decode(message.raw_payload)
   if (wire.segments.filter(segment => segment.tag === 'UNB').length !== 1 || wire.segments.filter(segment => segment.tag === 'UNH').length !== 1
-    || !wire.sender || !wire.receiver || !wire.applicationReference || wire.environment !== message.environment) throw Error('ack_correlation_wire_context_invalid')
+    || !wire.sender || !wire.receiver || (!wire.applicationReference && !(allowTechnicalWithoutApplication && component(wire, first(wire,'UNH'),2)==='CONTRL'))
+    || wire.environment !== message.environment) throw Error('ack_correlation_wire_context_invalid')
   return wire
 }
 function classify(wire: Wire): InboundAckSourceCorrelation['classification'] {
@@ -54,7 +55,12 @@ function classify(wire: Wire): InboundAckSourceCorrelation['classification'] {
 }
 export function readInboundAckSourceCorrelation(message: AckCorrelationMessage): InboundAckSourceCorrelation {
   if (message.direction !== 'inbound') throw Error('ack_correlation_not_inbound')
-  const wire = readWire(message), classification = classify(wire)
+  return readPhysicalAckSourceCorrelation(message)
+}
+/** Physical projection shared by inbound correlation and a protected outbound
+ * original read. Direction and original authority remain each caller's gate. */
+export function readPhysicalAckSourceCorrelation(message: AckCorrelationMessage): InboundAckSourceCorrelation {
+  const wire = readWire(message,true), classification = classify(wire)
   if (classification.outcome !== 'positive' && classification.outcome !== 'negative') throw Error(classification.reason ?? 'ack_correlation_outcome_invalid')
   if (message.message_family && message.message_family !== classification.family) throw Error('ack_correlation_stored_family_mismatch')
   let scope: InboundAckSourceCorrelation['scope'], acknowledgedReferences: string[], lookupReferences: AckSourceLookupReference[]
@@ -94,7 +100,7 @@ function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrela
       && values(ack, 'UCM', 1).every(reference => reference === component(source, first(source, 'UNH'), 1))
   }
   if (correlation.classification.family === 'UTILTS_ERR' || correlation.classification.profile === 'UTILTS_25_A') {
-    if (sourceType !== 'UTILTS' || component(source, first(source, 'BGM'), 1) === 'ERR') return false
+    if (sourceType !== 'UTILTS' || (component(source, first(source, 'BGM'), 1) === 'ERR' && correlation.classification.family === 'UTILTS_ERR')) return false
     const sourceIde = values(source, 'IDE', 2)
     if (!correlation.acknowledgedReferences.every(reference => sourceIde.includes(reference))) return false
     if (correlation.classification.family === 'APERAK') {

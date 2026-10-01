@@ -12,6 +12,13 @@ const source = (raw = wire('UTILTS:D:02B:UN:E5SE5A', ['BGM+E66::260+SOURCE-D+9+A
 const ack = (segments = ['BGM+312+ACK-D+9','DOC+E66:SVK:260+SOURCE-D','NAD+MS+B:SVK:260','NAD+MR+A:SVK:260','ERC+100::260','FTX+AAO+++OK','RFF+DM+ACK-T','RFF+ACW:Own?+A?:Q'], alternate = false): AckCorrelationMessage => ({id:'ack',company_id:'tenant-a',environment:'test',direction:'inbound',message_family:'APERAK',raw_payload:wire('APERAK:D:04A:UN:E5SE5A',segments,true,alternate)})
 
 describe('ACK-06 / TEN-13 physical original qualification',()=>{
+  it('permits the source-required APERAK for an actual UTILTS ERR without creating an ERR loop',()=>{
+    const original=source();original.raw_payload=original.raw_payload!.replace('BGM+E66::260','BGM+ERR::260');original.message_family='UTILTS_ERR'
+    const message=ack();message.raw_payload=message.raw_payload!.replace('DOC+E66:SVK:260','DOC+ERR:SVK:260')
+    expect(qualifyInboundAckSourceCandidates({ackMessage:message,candidates:[original]}).status).toBe('unique')
+    message.message_family='UTILTS_ERR';message.raw_payload=wire('UTILTS:D:02B:UN:E5SE5A',['BGM+ERR::260+ACK-D+9+AB','NAD+MS+B:SVK:260','NAD+MR+A:SVK:260','IDE+24+ERR-T','STS+E01::260+41+E51::260','RFF+TN:Own?+A?:Q','RFF+ERR:SOURCE-D'],true)
+    expect(qualifyInboundAckSourceCandidates({ackMessage:message,candidates:[original]}).status).toBe('unresolved')
+  })
   it.each([false,true])('binds exact released own IDE and reversed physical identities for alternateUNA=%s',alternate=>{
     const result=qualifyInboundAckSourceCandidates({ackMessage:ack(undefined,alternate),candidates:[source()]})
     expect(result).toMatchObject({status:'unique',sourceMessage:{id:'source'},correlation:{scope:'transaction',acknowledgedReferences:['Own+A:Q'],classification:{outcome:'positive'}}})
