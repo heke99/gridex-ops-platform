@@ -38,6 +38,13 @@ describe('AI dated supply/source projection',()=>{
     expect(projectAiListHistory(scope,[ended],data).details[0].tillDatum).toBe('20261025')
     expect(()=>projectAiListHistory(scope,[ended],readset())).toThrow('dated_supply_end_owner_missing')
   })
+  it('uses confirmed actual delivery boundaries ahead of scheduled dates and still proves the original source',()=>{
+    const actual={...period,start_date:'2026-09-30',end_date:'2026-10-20',actual_start_date:'2026-10-01',actual_end_date:'2026-10-25'}
+    const data=readset();data.versions[0].coverage!.validTo=at('20261025')
+    expect(projectAiListHistory(scope,[actual],data).details[0]).toMatchObject({franDatum:null,tillDatum:'20261025'})
+    expect(()=>projectAiListHistory(scope,[{...actual,actual_start_date:'2026-10-02'}],data)).toThrow('ai_list_history_unavailable')
+    expect(()=>projectAiListHistory(scope,[actual],readset())).toThrow('dated_supply_end_owner_missing')
+  })
   it('does not manufacture pre-ledger, unqualified customer, foreign tenant or date-only histories',()=>{
     const before=readset();before.timeline.ledgerStartedAt=at('20261002')
     expect(()=>projectAiListHistory(scope,[period],before)).toThrow('ai_list_history_unavailable')

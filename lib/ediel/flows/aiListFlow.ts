@@ -71,7 +71,7 @@ export async function prepareAndQueueAiList(params: {
   if(!tenant.identity.roleCodes.includes('electricity_supplier')||tenant.identity.legalEdielId!==routeContext.senderEdielId||params.supplierEdielId&&params.supplierEdielId!==tenant.identity.legalEdielId||!gridOwner?.ediel_id||gridOwner.ediel_id!==routeContext.receiverEdielId||params.receiverEdielId!==routeContext.receiverEdielId)throw new Error('ai_list_verified_supplier_network_context_required')
   // Complete all-status supply history; an active-only query would omit ended
   // periods. This is a scope index, never authority for historical field values.
-  let periodsQuery=supabase.from('customer_supply_periods').select('id,company_id,customer_id,metering_point_id,start_date,end_date',{count:'exact'}).eq('company_id',params.companyId).eq('customer_id',params.customerId)
+  let periodsQuery=supabase.from('customer_supply_periods').select('id,company_id,customer_id,metering_point_id,start_date,end_date,actual_start_date,actual_end_date',{count:'exact'}).eq('company_id',params.companyId).eq('customer_id',params.customerId)
   if(params.meteringPointId)periodsQuery=periodsQuery.eq('metering_point_id',params.meteringPointId)
   const {data:periods,error:periodError,count:periodCount}=await periodsQuery.limit(1001).abortSignal(AbortSignal.timeout(2000))
   if(periodError||periodCount===null||periodCount>1000||periods?.length!==periodCount)throw new Error('ai_list_supply_history_read_incomplete')
