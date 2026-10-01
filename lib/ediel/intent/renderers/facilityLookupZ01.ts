@@ -1,4 +1,5 @@
-import {requireZ01LegalSender} from '@/lib/ediel/prodat/z01LegalParties'
+import type {Z01WireReferences} from '@/lib/ediel/prodat/z01WireReferences'
+import {requireZ01LegalSender,requireZ01LegalReceiver} from '@/lib/ediel/prodat/z01LegalParties'
 import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
 import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 // lib/ediel/intent/renderers/facilityLookupZ01.ts
@@ -45,23 +46,9 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function sanitize(value: unknown): string {
-  return String(value ?? '')
-    .replace(/[\r\n'+]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 function date102(value?: string | null): string | null {
   const digits = String(value ?? '').replace(/\D/g, '')
   return digits.length >= 8 ? digits.slice(0, 8) : null
-}
-
-function compactReference(value: string | null | undefined, fallbackPrefix: string, maxLength: number): string {
-  const cleaned = sanitize(value).toUpperCase().replace(/[^A-Z0-9_.\/-]/g, '')
-  if (cleaned) return cleaned.slice(0, maxLength)
-  const stamp = new Date().toISOString().replace(/\D/g, '').slice(2, 12)
-  return `${fallbackPrefix}${stamp}`.slice(0, maxLength)
 }
 
 export type FacilityLookupZ01Draft = {
@@ -73,6 +60,7 @@ export type FacilityLookupZ01Draft = {
 
 export async function buildFacilityLookupZ01Draft(input: {
   companyId: string
+  wireReferences: Z01WireReferences
   actorUserId: string
   request: FacilityLookupZ01RenderRequest
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
@@ -97,14 +85,15 @@ export async function buildFacilityLookupZ01Draft(input: {
   })
   const companyId = requireContextCompanyId(context, 'Bygg facility lookup PRODAT Z01')
   const legalSenderId=requireZ01LegalSender(input.routeContext,companyId)
+  const legalReceiver=await requireZ01LegalReceiver(input.routeContext,companyId,FACILITY_LOOKUP_APPLICATION_REFERENCE)
   if (companyId !== input.companyId) throw new Error('facility_lookup_tenant_mismatch')
   const customer = (context.customer ?? null) as unknown as JsonRecord | null
   const site = (context.site ?? null) as unknown as JsonRecord | null
   const endUser = resolveSwedishProdatEndUserExport({customer, customerLifeEvent: context.customerLifeEvent, customerMasterdata: context.customerMasterdata})
   const identity = endUser.identity
   if (!identity.id || !identity.qualifier || !identity.name) throw new Error('facility_lookup_verified_customer_identity_required')
-  const externalReference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
-  const transactionReference = compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25)
+  const externalReference = input.wireReferences.documentReference
+  const transactionReference = input.wireReferences.transactionReference
   const canonicalProfile = canonicalProdatProfileForMessage('Z01')
   if (!canonicalProfile) throw new Error('facility_lookup_z01_canonical_profile_missing')
   const messageVersion = await resolveCanonicalOutboundVersion({
@@ -129,6 +118,8 @@ export async function buildFacilityLookupZ01Draft(input: {
     context: {
       code: 'Z01',
       legalSenderId,
+      legalReceiverId:legalReceiver.legalEdielId,
+      legalReceiverCountry:legalReceiver.countryCode,
       bgmReference: externalReference,
       transactionReference,
       senderEdielId: input.routeContext.senderEdielId,
@@ -157,6 +148,8 @@ export async function buildFacilityLookupZ01Draft(input: {
   const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
 
   const envelope = buildEdifactEnvelope({
+    interchangeReference: input.wireReferences.interchangeReference,
+    messageReference: input.wireReferences.messageReference,
     acknowledgementRequest: ack.requiresContrl,
     senderEdielId: input.routeContext.senderEdielId,
     senderSubAddress: input.routeContext.senderSubAddress,
@@ -174,6 +167,7 @@ export async function buildFacilityLookupZ01Draft(input: {
     actorUserId: input.actorUserId,
     companyId,
     intentId: input.intentId,
+    sourceOperationId: input.operationId,
     direction: 'outbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
