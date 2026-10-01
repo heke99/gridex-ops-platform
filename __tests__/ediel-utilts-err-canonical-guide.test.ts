@@ -14,7 +14,7 @@ describe('same-source UTILTS ERR guide, original and own physical transactions',
   const prior=resolveCanonicalEdielPolicy({family:'UTILTS_ERR',messageCode:'ERR',direction:'outbound',referenceDate:'2026-09-30',associationAssignedCode:'E5SE5A',applicationReference:'23-DDQ-E66-T'})
   const wire=tokenizeEdifact(err('E19'))
   expect(validateCanonicalAckGuide({policy:prior,rawSegments:wire.segments.map(t=>t.raw),una:wire.una,sourceRawPayload:original()})).toEqual([])
-  expect(guide(err('E19')).map(issue=>issue.code)).toContain('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID')
+  expect(guide(err('E19')).map(issue=>issue.code)).toContain('ACK_UTILTS_ERR_ORIGINAL_REASON_SCOPE_REQUIRED')
   expect(CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS.allowedReasons).not.toContain('E19')
   expect(canonicalUtiltsErrReasonsForPolicy({...prior,guide:{...prior.guide,guideRevision:'future'}})).toBeNull()
  })
