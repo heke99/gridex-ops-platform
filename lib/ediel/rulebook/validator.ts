@@ -58,7 +58,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   parsedPayload?: Record<string, unknown> | null
 }
 
-export type RulebookValidationResult = LegacyRulebookValidationResult
+export type RulebookValidationResult = LegacyRulebookValidationResult & { canonicalPolicy?: CanonicalEdielPolicy }
 
 type ActiveCanonicalFamily = 'PRODAT' | 'UTILTS' | 'UTILTS_ERR' | 'APERAK' | 'CONTRL'
 type BusinessRulePackFamily = 'PRODAT' | 'UTILTS'
@@ -418,6 +418,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
       code: policy.code,
       processGroup: policy.processGroup ?? 'unknown',
       expectedApplicationReference: policy.applicationReference,
+      canonicalPolicy: policy,
       parsed,
       issues,
       fieldRuleSource: 'static',
@@ -524,7 +525,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   }
 
   try {
-    const policy = policyForValidation({ ...input, parsed }, parsed)
+    const policy = result.canonicalPolicy ?? policyForValidation({ ...input, parsed }, parsed)
     const evidence = await resolveCanonicalRulePack({
       family: familyValue,
       messageCode: policy.code,
