@@ -12,6 +12,11 @@ import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
 import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent';
+import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition';
+import {projectSupplyEndFollowup} from '@/lib/ediel/flows/supplyEndFollowup';
+import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition';
+import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit';
+import {createReceivedProdatCommittedEffectAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks';
 // lib/ediel/flows/inboundProcessing.ts
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
@@ -52,6 +57,7 @@ import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import {
   resolveCanonicalRuntimeDecisionWithRegistry,
   hasReceivedCanonicalProdatPartialOwner,
+  readReceivedCanonicalProdatApplicationObjects,
   type CanonicalRuntimeDecision,
   type CanonicalResponsePlanItem,
 } from "@/lib/ediel/core/runtimeDecision";
@@ -312,7 +318,7 @@ async function applyCanonicalRuntimeDecision(params: {
   message: EdielMessageRow;
   originalMessage: EdielMessageRow;
   resolvedCompanyId: string;
-}): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision; sourceOwnerSession: SourceOwnerSession | null; lifeEventSourceReadFailure:string|null; authorizedPartialOwner:boolean }> {
+}): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision; sourceOwnerSession: SourceOwnerSession | null; lifeEventSourceReadFailure:string|null; authorizedPartialOwner:boolean; domainObjectCount:number }> {
   const syntax=params.message.message_standard==='edifact'
     ? validateEdifactSyntax({...params.message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}) : null;
   let deathStatusContext:Awaited<ReturnType<typeof loadCustomerLifeEventValidationContext>>;
@@ -325,6 +331,15 @@ async function applyCanonicalRuntimeDecision(params: {
   // Only the opaque result of this exact rule invocation may keep independent
   // good own scopes moving past a sibling's internal hold. Public JSON cannot.
   const authorizedPartialOwner=hasReceivedCanonicalProdatPartialOwner(decision,params.message);
+  // This exact invocation's complete own APP is only a continuation signal.
+  // The native domain owner still checks global FUNCTION and actual business
+  // originals/relations for every own object before any effect or receipt.
+  const ownApplication=readReceivedCanonicalProdatApplicationObjects(decision,params.message);
+  const domainObjectCount=params.message.message_family==='PRODAT'&&['Z04','Z05','Z14','Z15'].includes(params.message.message_code)
+    &&decision.syntaxDecision==='accepted'&&decision.functionalDecision==='accepted'
+    &&ownApplication?.headerDecision==='accepted'
+    &&ownApplication.objects.some(object=>object.applicationDecision==='accepted'&&object.reasonCodes.length===0)
+      ?ownApplication.objects.length:0;
   const sourceValidationEvidence = await recordReceivedSourceValidation({
     original: params.originalMessage, validated: params.message, resolvedCompanyId: params.resolvedCompanyId, decision,
   });
@@ -418,7 +433,7 @@ async function applyCanonicalRuntimeDecision(params: {
     },
   });
 
-  return { message: updated, decision, sourceOwnerSession,lifeEventSourceReadFailure,authorizedPartialOwner };
+  return { message: updated, decision, sourceOwnerSession,lifeEventSourceReadFailure,authorizedPartialOwner,domainObjectCount };
 }
 
 
@@ -452,6 +467,7 @@ async function recordBackendAutomationPipelineTrace(params: {
 async function createAutomaticPositiveAcks(params: {
   actorUserId: string;
   sourceMessage: EdielMessageRow;
+  deferProdatPositive?:boolean;
 }) {
   const createdIds: string[] = [];
   const policy = await getAutomaticAckPolicy(params.sourceMessage);
@@ -533,11 +549,13 @@ async function createAutomaticPositiveAcks(params: {
         params.sourceMessage.message_family === "UTILTS"),
   );
   const internalReview = prodatInternalReview(params.sourceMessage);
-  const applicationErrors = internalReview
+  const deferPositive=params.deferProdatPositive===true||params.sourceMessage.message_family==='PRODAT'
+    &&['Z04','Z05','Z14','Z15'].includes(params.sourceMessage.message_code);
+  const applicationErrors = internalReview||deferPositive
     ? aperakPlan?.applicationErrors?.filter(isQualifiedProdatApplicationError)
     : aperakPlan?.applicationErrors;
   if ((policy.shouldSendPositiveAperak || shouldSendAperakFromPlan) &&
-      (!internalReview || aperakPlan?.outcome === "negative" && Boolean(applicationErrors?.length))) {
+      (!(internalReview||deferPositive) || aperakPlan?.outcome === "negative" && Boolean(applicationErrors?.length))) {
     try {
       const aperak = await createAckIfMissing({
         actorUserId: params.actorUserId,
@@ -563,6 +581,18 @@ async function createAutomaticPositiveAcks(params: {
   }
 
   return createdIds;
+}
+
+/** A final positive response is projected only from the real committed own
+ * domain receipt. A held response cannot reinterpret a completed business TX. */
+async function createCommittedDomainAcks(actorUserId:string,message:EdielMessageRow):Promise<string[]>{
+  if(!message.company_id)return[];
+  try{return await createReceivedProdatCommittedEffectAcks({actorUserId,companyId:message.company_id,sourceMessageId:message.id})}
+  catch(error){
+    await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'APERAK',
+      reason:formatErrorMessage(error,'Egna positiva svar inväntar beständiga skrivkvitton.')});
+    return[];
+  }
 }
 
 async function linkInboundProdatMessageCanonically(params: {
@@ -945,7 +975,7 @@ export async function processInboundEdielMessage(params: {
     return runtimeMessage;
   }
 
-  if (prodatInternalReview(runtimeMessage) && !canonicalRuntime.authorizedPartialOwner) {
+  if (prodatInternalReview(runtimeMessage) && !canonicalRuntime.authorizedPartialOwner && !canonicalRuntime.domainObjectCount) {
     await canonicalRuntime.sourceOwnerSession?.finish();
     await createAutomaticPositiveAcks({actorUserId, sourceMessage: runtimeMessage});
     return runtimeMessage;
@@ -1023,7 +1053,7 @@ export async function processInboundEdielMessage(params: {
       // A source-independent negative must survive an unavailable customer
       // effect port. Positive own responses still require its committed receipt.
       const hasOwnNegative=canonicalRuntime.decision.responsePlan.some(plan=>plan.family==='APERAK'&&plan.outcome==='negative'&&Boolean(plan.applicationErrors?.length));
-      const earlyAckIds=hasOwnNegative?await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage}):[];
+      const earlyAckIds=hasOwnNegative?await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage,deferProdatPositive:true}):[];
       if(runtimeMessage.message_code==='Z06'&&!canonicalRuntime.lifeEventSourceReadFailure){
         try{await applyInboundCustomerLifeEvent({message:runtimeMessage,actorUserId,
           onCustomerLifeEventCommitted:canonicalRuntime.sourceOwnerSession?.onCustomerLifeEventCommitted})}
@@ -1043,6 +1073,47 @@ export async function processInboundEdielMessage(params: {
           payload:{inboundCaseId:inboundCase?.id??null,createdAckMessageIds:ackIds,reviewRequired:true,
             objectScopes:canonicalRuntime.decision.prodatApplicationValidation?.objects.map(object=>({objectId:object.objectId,
               identityAgency:object.identityAgency,lineIndex:object.registers[0]?.segmentIndex,applicationDecision:object.applicationDecision}))??[]}});
+        return runtimeMessage;
+      }
+      if(canonicalRuntime.domainObjectCount>0){
+        // One complete source enters the native object partition. Neither a
+        // first parsed point nor a rendered subset may select its effects.
+        const initialAckIds=hasOwnNegative?earlyAckIds
+          :await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage,deferProdatPositive:true});
+        const supply=['Z04','Z05'].includes(runtimeMessage.message_code)
+          ?await applySupplyMarketSource({actorUserId,message:runtimeMessage}):null;
+        const permission=supply===null?await applyPermissionMarketSource({actorUserId,message:runtimeMessage}):null;
+        if(supply){
+          for(const scope of supply.commits)await publishSourceSwitchCommit(canonicalRuntime.sourceOwnerSession?.onSwitchCommitted,{
+            message:{...runtimeMessage,customer_id:scope.customerId,metering_point_id:scope.meteringPointId,site_id:scope.siteId},
+            switchRequestId:scope.switchRequestId,supplyPeriodId:scope.supplyPeriodId});
+          for(const effectReceiptId of supply.effectReceiptIds){
+            try{await projectSupplyEndFollowup({actorUserId,companyId:runtimeMessage.company_id!,effectReceiptId})}
+            catch(error){await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'manual_note',eventStatus:'warning',
+              message:'Slutmätvärdesuppgiften inväntar sin beständiga effektkoppling. Leveransutfallet är redan fastställt.',
+              payload:{effectReceiptId,supplyEndFollowup:'held',reason:formatErrorMessage(error,'Operativ uppgift kunde inte projiceras.')}})}
+          }
+        }
+        await canonicalRuntime.sourceOwnerSession?.finish();
+        const applied=supply?.applied??permission?.applied??false;
+        const fullyApplied=supply?.fullyApplied??permission?.fullyApplied??false;
+        const reviewRequired=supply?.reviewRequired??permission?.reviewRequired??!fullyApplied;
+        const ownAckIds=applied?await createCommittedDomainAcks(actorUserId,runtimeMessage):[];
+        // Preserve the established single-supply projections through an exact
+        // native replay only after every scope is committed. Multipart and
+        // permission responses never select a first parsed target here.
+        if(supply?.fullyApplied&&canonicalRuntime.domainObjectCount===1){
+          try{await processInboundProdatMessage({actorUserId,message:runtimeMessage})}
+          catch(error){await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'manual_note',eventStatus:'warning',
+            message:'Leveransutfallet och dess kvitto är fastställda; övriga projektioner inväntar granskning.',
+            payload:{supplyAncillaryProjection:'held',reason:formatErrorMessage(error,'Operativ projektion kunde inte slutföras.')}})}
+        }
+        const inboundCase=await createOrUpdateInboundProdatCase({actorUserId,message:runtimeMessage});
+        await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'validated',eventStatus:reviewRequired?'warning':'success',
+          message:reviewRequired?'Egna objekt har behandlats där källunderlaget räcker; övriga objekt inväntar granskning.':'Egna objekt och deras slutliga svar följer beständiga skrivkvitton.',
+          payload:{inboundCaseId:inboundCase?.id??null,createdAckMessageIds:[...initialAckIds,...ownAckIds],reviewRequired,fullyApplied,
+            sourceObjectPartition:supply?.partition??permission?.manifest??null,committedEffectReceiptIds:supply?.effectReceiptIds??[],
+            permissionResults:permission?.permissionResults??null,applied,idempotent:supply?.idempotent??permission?.idempotent??false}});
         return runtimeMessage;
       }
       // Other object failures still receive their prescribed negative response
