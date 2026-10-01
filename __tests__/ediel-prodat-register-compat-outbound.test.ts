@@ -23,7 +23,7 @@ const input=():Input=>({actorUserId:'actor',senderEdielId:'12345',receiverEdielI
  meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'},
 // Synthetic partial database rows: fields unused by this adapter are omitted.
 } as unknown as Input)
-beforeEach(()=>{vi.clearAllMocks();io.assertEdielTenantActor.mockResolvedValue(undefined);io.readContractRequestedMethodSource.mockResolvedValue({status:'authorized',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',legalActorId:'legal',requestedMethod:'Z04'});io.prepareQualifiedBrpSource.mockResolvedValue({status:'authorized',sourceKind:'signed_contract_brp_declaration',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',legalActorId:'legal',brpEdielId:'11111'});const p=input();io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null})})
+beforeEach(()=>{vi.clearAllMocks();io.assertEdielTenantActor.mockResolvedValue(undefined);io.readContractRequestedMethodSource.mockResolvedValue({status:'authorized',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',legalActorId:'legal',requestedMethod:'Z04'});io.prepareQualifiedBrpSource.mockResolvedValue({status:'authorized',sourceKind:'signed_contract_brp_declaration',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',legalActorId:'legal',brpEdielId:'11111'});const p=input();io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null,customerLifeEvent:{status:'authorized',companyId:'company',customerId:'customer',sourceMessageId:'source',customerVersion:1,effectiveVersionCount:1,customerFields:{},endUserMasterdata:{street:['Street'],postCode:'12345',city:'Town',country:'SE'}}})})
 
 // Saved switch context is a distinct real caller of the shared renderer. Only
 // external database access is disabled; engine, envelope and preflight are real.
@@ -57,6 +57,12 @@ describe('saved switch compatibility respects operational direction',()=>{
   const draft=await buildProdatZ03FromSwitch(p)
   expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Source:Legal Customer+End-user street::Box 12+Owned Town++45678+FI')
   expect(draft.rawPayload).not.toContain('Source:Legal Customer+Street')
+ })
+ it('holds absent own UD source despite complete installation and saved customer previews',async()=>{
+  const p=input();p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity'}}}
+  io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null,customerLifeEvent:null})
+  await expect(buildProdatZ03FromSwitch(p)).rejects.toThrow('prodat_render_blocked:Z03')
+  expect(io.from).not.toHaveBeenCalled()
  })
  it('holds missing new-agreement declaration even when portal and prior DSO method look usable',async()=>{
   io.readContractRequestedMethodSource.mockResolvedValue({status:'held',missing:['unique_authentic_new_agreement_requested_method_declaration']})

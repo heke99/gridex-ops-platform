@@ -33,7 +33,7 @@ import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistr
 import { renderProdat, renderProdat26A } from '@/lib/ediel/prodatEngine'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import { getCustomerExportContext, requireContextCompanyId, type CustomerExportContext } from '@/lib/cis/db-shared'
-import { resolveSwedishProdatCustomerIdentity, prodatAddressFactsFromExportContext } from '@/lib/ediel/prodat/customerIdentity'
+import { resolveSwedishProdatEndUserExport, prodatAddressFactsFromExportContext } from '@/lib/ediel/prodat/customerIdentity'
 import { isProdatCodeSendable } from '@/lib/ediel/prodat/prodatMessageSupportRegistry'
 import {
   PRODAT_CANONICAL_PROFILES,
@@ -475,19 +475,16 @@ function renderProdatSegments(params: {
   const savedPortalData = portalSnapshot(params.switchRequest)
   const sourceContext=params.sourceContext
   const companyId=requireContextCompanyId(sourceContext,'Bygg PRODAT från vald kund/anläggning')
-  const customer=resolveSwedishProdatCustomerIdentity(sourceContext.customer as unknown as Record<string,unknown>|null)
+  const endUser=resolveSwedishProdatEndUserExport({customer:sourceContext.customer as unknown as Record<string,unknown>|null,customerLifeEvent:sourceContext.customerLifeEvent})
+  const customer=endUser.identity
   if(!customer.id||!customer.qualifier||!customer.name)throw new Error('prodat_customer_legal_identity_required')
   const meterPointId=params.requestedMethodSource?.pointId??inferMeterPointIdentifier(sourceContext.meteringPoint!)
   if(!/^\d{18}$/.test(meterPointId))throw new Error('prodat_source_object_identity_required')
-  const protectedEndUser=sourceContext.customerLifeEvent&&sourceContext.customerLifeEvent.effectiveVersionCount>0?sourceContext.customerLifeEvent.endUserMasterdata:undefined
-  const addressLines=protectedEndUser?[...(protectedEndUser.street??[])]:[sourceContext.site?.street?.trim()??'']
-  const postalCode=protectedEndUser?protectedEndUser.postCode??null:sourceContext.site?.postal_code??null
-  const city=protectedEndUser?protectedEndUser.city??null:sourceContext.site?.city??null
-  const country=protectedEndUser?protectedEndUser.country??'':sourceContext.site?.country??null
+  const {addressLines,postalCode,city,country}=endUser
   const endUserAddressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${params.switchRequest.customer_id}/${params.switchRequest.site_id}/${params.switchRequest.metering_point_id}`,meterPointId,identityAgency:params.requestedMethodSource?.identityAgency??'9',customer,addressLines})
   // A saved protocol preview cannot replace the selected server-owned legal
   // customer, object, address or its dependent-condition source.
-  const portalData={...(savedPortalData??{}),customerId:customer.id,customerIdCodeListQualifier:customer.qualifier,customerIdAgency:'260',customerName:customer.name,customerNameLines:protectedEndUser?.name,
+  const portalData={...(savedPortalData??{}),customerId:customer.id,customerIdCodeListQualifier:customer.qualifier,customerIdAgency:'260',customerName:customer.name,customerNameLines:endUser.nameLines,
     customerAddress:addressLines[0],customerAddressLines:addressLines,customerPostalCode:postalCode,customerCity:city,customerCountry:country,
     facilityId:meterPointId,facilityIdAgency:'9',siteAddress:sourceContext.site?.street??null,sitePostalCode:sourceContext.site?.postal_code??null,siteCity:sourceContext.site?.city??null,siteCountry:sourceContext.site?.country??null,
     dependentConditionFacts:{...(objectValue(savedPortalData?.dependentConditionFacts)??{}),endUserAddressObjects},
