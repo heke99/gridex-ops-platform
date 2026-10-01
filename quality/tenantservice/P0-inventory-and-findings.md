@@ -55,7 +55,7 @@
 | F5 (S5) | Medium | **Fixed (T, unit)** | `customer-portal/sync` upsert can repoint or null `customer_id`/`auth_user_id` on an existing identity | `route.ts:216` | P1b: `lib/customer-portal/identityTransition.ts` → 409 |
 | F6 (S7) | Medium | **Fixed (T)** | Admin profile `status` has no allowlist, so the archive flow can be bypassed | `part-1.ts:231,290` | P2 |
 | F7 (S8/S9) | Medium | **Fixed (T, unit + static adapter)** | Primary contact sync is destructive in OPS and missing in the API, so data drifts; the contact change is not audited | `part-1.ts:309-356` | P2: shared contact command |
-| F8 (S10) | Medium | Open (S) | Invoice email silently falls back to `customer.email` | `billingReadiness.ts:198` | P3 |
+| F8 (S10) | Medium | **Fixed (T)** | Invoice email silently falls back to `customer.email` | `billingReadiness.ts:198` | P3 |
 | F9 (S11) | Medium | Open (S) | Case idempotency is check-then-insert with no unique constraint; the admin key is optional | `support.ts:124` | P4 |
 | F10 (S12) | Medium | **Fixed (T, static)** | Portal profile change writes no `audit_logs` row with before/after values | `profile-update/route.ts` | P2 |
 | F11 | Info | Open (S) | `customer_cases`/events lack channel, interaction and visibility fields; there is no `/api/v1/customer/support` | migrations 20260520_batch_5 | P4 |
@@ -106,3 +106,26 @@
 - A unique outbox intent.
 - Legal identity fields (personal number / org number) in the ordinary OPS profile should move to a separate high-risk flow. **Open, F12.**
 - `profile-update` triggers `enqueueCustomerDataRequestAutomation` as fire-and-forget. **Open, F13.**
+
+## P3 (billing consistency)
+**Verified extra divergence (F14, fixed):**
+- Readiness inherited `customer.invoice_email`, falling back to `customer.email`.
+- Invoice review (`invoiceReviewPrepare.ts:242`) and export (`exportCenter.ts:181`) read only the contract.
+- Result: an underlay could count as ready while the invoice got no email, and a customer billing-profile change never reached invoices.
+- Readiness could also combine street and city from different sources.
+
+**Done:**
+- `lib/billing/effectiveInvoiceDelivery.ts` is used by readiness, review and export.
+- Contract exceptions and the inherited customer profile are kept apart.
+- The address is taken as a whole unit from one source.
+- There is no fallback to the contact email.
+- Source evidence is added to readiness.
+- The partner payload is unchanged (no new fields in `invoice_address_snapshot`).
+- Snapshot locking: the export/review item stores the effective address at decision time. Issued items are not rewritten.
+
+**Behaviour change (requires backfill/decision in P8):** customers with only a contact email and no invoice email or postal address are now blocked with `invoice_distribution_missing` instead of being invoiced to the contact email. The test `billing-readiness.test.ts` was updated to the new rule deliberately; it was not exempted.
+
+**Remaining:**
+- Versioned billing profile with revision id on the item. Needs a migration.
+- Show the impact in the UI (P5).
+- Resend to a new address as a separate delivery decision.

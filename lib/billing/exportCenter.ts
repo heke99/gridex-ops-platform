@@ -1,3 +1,8 @@
+import {
+  resolveEffectiveInvoiceDelivery,
+  type InvoiceDeliveryContract,
+  type InvoiceDeliveryCustomer,
+} from "@/lib/billing/effectiveInvoiceDelivery";
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
@@ -175,15 +180,21 @@ function contractBooleanField(
 function buildInvoiceSnapshot(params: {
   underlay: BillingUnderlayRow;
   contract: CustomerContractRow | null;
+  customer?: InvoiceDeliveryCustomer | null;
 }) {
+  // Same effective recipient/delivery as billing readiness and invoice review.
+  const delivery = resolveEffectiveInvoiceDelivery({
+    contract: params.contract as unknown as InvoiceDeliveryContract | null,
+    customer: params.customer ?? null,
+  });
   const invoiceAddress = {
-    recipient: contractTextField(params.contract, "invoice_recipient"),
-    email: contractTextField(params.contract, "invoice_email"),
-    reference: contractTextField(params.contract, "invoice_reference"),
-    street: contractTextField(params.contract, "billing_street"),
-    postalCode: contractTextField(params.contract, "billing_postal_code"),
-    city: contractTextField(params.contract, "billing_city"),
-    country: contractTextField(params.contract, "billing_country") ?? "SE",
+    recipient: delivery.recipient,
+    email: delivery.email,
+    reference: delivery.reference,
+    street: delivery.postalAddress?.street ?? null,
+    postalCode: delivery.postalAddress?.postalCode ?? null,
+    city: delivery.postalAddress?.city ?? null,
+    country: delivery.postalAddress?.country ?? contractTextField(params.contract, "billing_country") ?? "SE",
   };
 
   const siteAddress = {
@@ -285,6 +296,27 @@ async function createBlockedBillingCasesForItems(params: {
   }
 }
 
+async function loadInvoiceDeliveryCustomers(
+  companyId: string,
+  customerIds: Array<string | null | undefined>,
+): Promise<Map<string, InvoiceDeliveryCustomer>> {
+  const ids = [...new Set(customerIds.filter((id): id is string => Boolean(id)))];
+  const byId = new Map<string, InvoiceDeliveryCustomer>();
+  // query-loop-budget: chunked-in-filter max=ceil(customers/200)
+  for (let index = 0; index < ids.length; index += 200) {
+    const { data, error } = await supabaseService
+      .from("customers")
+      .select("id,full_name,company_name,invoice_email,billing_street,billing_postal_code,billing_city")
+      .eq("company_id", companyId)
+      .in("id", ids.slice(index, index + 200));
+    if (error) throw error;
+    for (const row of (data ?? []) as Array<InvoiceDeliveryCustomer & { id: string }>) {
+      byId.set(row.id, row);
+    }
+  }
+  return byId;
+}
+
 export async function createBillingExportRun(input: {
   companyId: string;
   actorUserId: string | null;
@@ -319,6 +351,11 @@ export async function createBillingExportRun(input: {
     companyId: input.companyId,
     underlays: periodUnderlays,
   });
+
+  const customersById = await loadInvoiceDeliveryCustomers(
+    input.companyId,
+    periodUnderlays.map((underlay) => underlay.customer_id),
+  );
 
   const items = [];
   for (const underlay of periodUnderlays) {
@@ -404,7 +441,11 @@ export async function createBillingExportRun(input: {
       ...pricingBlockers,
       ...missingContractIssue,
     ];
-    const invoiceSnapshot = buildInvoiceSnapshot({ underlay, contract });
+    const invoiceSnapshot = buildInvoiceSnapshot({
+      underlay,
+      contract,
+      customer: customersById.get(String(underlay.customer_id ?? "")) ?? null,
+    });
     const itemIdempotencySeed = `billing:${input.companyId}:${underlay.id}:${input.periodMonth}`;
 
     items.push({
