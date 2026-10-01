@@ -34,6 +34,7 @@
     "20260922205926_ediel_reviewed_structural_source.sql": "e6dfc01baba1cc5c848818c5503253e7ac42917d5d29d58cb4f69988e1ab3fb7",
     "20260923231731_ediel_correction_concern_capture.sql": "3d8e2e154c4cf95355a6d81724400af6dd687bd80c26a5f1509ae3f0a91794b1",
     "20260924001447_ediel_correction_capture_canonical_permission.sql": "1da1232dd18209471ca41d9143c450effc84cdc6bb61560ee104d5d8e0fee071",
-    "20261001200000_support_case_idempotency_unique.sql": "24908b47be1243935ddc36b640116681b1daf68fdc1bcca1be59f462a31bc934"
+    "20261001200000_support_case_idempotency_unique.sql": "24908b47be1243935ddc36b640116681b1daf68fdc1bcca1be59f462a31bc934",
+    "20261001210000_customer_contact_change_transaction.sql": "a0bc282a04b9a5a78256383402e1e72b40afcb23ef17714cec2f3b2ae2f84d5c"
   }
 }
