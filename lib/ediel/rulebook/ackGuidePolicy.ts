@@ -5,6 +5,7 @@ import type {EdielRulebookIssue} from './rulebook'
 import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS,prodatAperakFieldWireLabel} from '@/lib/ediel/prodat/prodatAperakText'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 
+import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 type Wire=ReturnType<typeof tokenizeEdifact>
 const equal=(a:readonly string[],b:readonly string[])=>JSON.stringify(a)===JSON.stringify(b)
 function value(wire:Wire,segment:EdifactTokenizedSegment | undefined,index:number){return segmentComposite(segment,index,wire.una)[0] ?? ''}
@@ -21,7 +22,7 @@ function dateTime(value:string){
  * authority. Full UNSM structure remains a separate source/evidence requirement.
  * Optional original bytes qualify conditional references; a parsed JSON marker
  * or a sibling ERC can never supply an own-object/transaction reference. */
-export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;rawSegments?:readonly string[]|null;una?:EdifactServiceStringAdvice;sourceRawPayload?:string|null}):EdielRulebookIssue[]{
+export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;rawSegments?:readonly string[]|null;una?:EdifactServiceStringAdvice;sourceRawPayload?:string|null;technicalOriginal?:TechnicalSyntaxAckEvidence}):EdielRulebookIssue[]{
  if(!['CONTRL','APERAK','UTILTS_ERR'].includes(input.policy.family))return []
  const una=input.una??parseUna(null),wire=tokenizeEdifact(`${una.raw}${(input.rawSegments??[]).join(una.segmentTerminator)}${una.segmentTerminator}`),issues:EdielRulebookIssue[]=[]
  const add=(code:string,description:string,fieldPath?:string)=>issues.push({code,severity:'error',blocking:true,title:'Nationell kvittensanvisning',description,fieldPath})
@@ -37,6 +38,16 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   if(input.policy.family==='UTILTS_ERR'&&value(source,source.segments.find(t=>t.tag==='UNH'),2)!=='UTILTS')add('ACK_SOURCE_FAMILY_MISMATCH','UTILTS-ERR måste tillhöra ett verkligt UTILTS-ursprung.','UNH')
  }
  if(input.policy.family==='UTILTS_ERR')return issues // ERR guide fields remain in the one UTILTS owner.
+ if(input.technicalOriginal){
+  const original=input.technicalOriginal.originalUNB,unb=all('UNB'),uci=all('UCI')
+  if(input.policy.family!=='CONTRL'||unb.length!==1||uci.length!==1
+    ||!equal(segmentComposite(unb[0],2,wire.una),original.receiver)||!equal(segmentComposite(unb[0],3,wire.una),original.sender)
+    ||value(wire,unb[0],7)!==original.applicationReference||value(wire,unb[0],11)!==original.testIndicator
+    ||!equal(segmentComposite(uci[0],2,wire.una),original.sender)||!equal(segmentComposite(uci[0],3,wire.una),original.receiver)
+    ||value(wire,uci[0],1)!==original.uciReference||value(wire,uci[0],4)!==(input.technicalOriginal.syntaxDecision==='accepted'?'1':'4')) {
+      add('ACK_CONTRL_PROTECTED_SOURCE_SCOPE_MISMATCH','CONTRL ska spegla det skyddade originalets tekniska kuvert och fastställda syntaxutfall.','UNB/UCI')
+    }
+ }
  if(input.policy.family==='CONTRL'){
   if(!equal(type.slice(0,4),['CONTRL','2','2','UN'])||(type[4]&&type[4]!=='EDIEL2')||type.slice(5).some(Boolean))add('ACK_CONTRL_PROFILE_INVALID','CONTRL ska använda den svenska tekniska profilen.','UNH/S009')
   for(const tag of ['BGM','DOC','ERC','FTX','RFF','NAD'])if(all(tag).length)add('ACK_CONTRL_NATIONAL_SEGMENT_FORBIDDEN',`CONTRL får inte innehålla ${tag} från applikationskvittensen.`,tag)
@@ -46,7 +57,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   for(const index of [2,3])if(!segmentComposite(uci[0],index,wire.una)[0])add('ACK_CONTRL_ORIGINAL_PARTY_MISSING','UCI ska innehålla originalets tekniska parter.','UCI')
   if(input.sourceRawPayload){
    const source=tokenizeEdifact(input.sourceRawPayload),original=source.segments.find(t=>t.tag==='UNB')
-   if(source.segments.some(t=>t.tag==='UNH'&&value(source,t,2)==='CONTRL')||value(wire,uci[0],1)!==value(source,original,5)
+   if(source.segments.some(t=>t.tag==='UNH'&&value(source,t,2)==='CONTRL')||value(wire,uci[0],1)!==value(source,original,5).slice(0,14)
      ||!equal(segmentComposite(uci[0],2,wire.una),segmentComposite(original,2,source.una))||!equal(segmentComposite(uci[0],3,wire.una),segmentComposite(original,3,source.una)))add('ACK_CONTRL_ORIGINAL_SCOPE_MISMATCH','UCI ska kopiera det faktiska originalets överföring och tekniska parter.','UCI')
   }
   return issues

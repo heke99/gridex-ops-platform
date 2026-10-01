@@ -21,8 +21,14 @@ describe('CONTRL physical original envelope across rendering and draft adapter',
     expect(segmentComposite(uci,3,wire.una)).toEqual([receiver,'ZZ',"DEST?'"])
     expect(segmentComposite(uci,4,wire.una)).toEqual(['4'])
   })
-  it.each(['',"UNH+M+PRODAT:D:97A:UN:E2SE6A'",raw()+"UNB+UNOC:3+S+R+260930:1200+I'",raw().replace('I?+Ä???\'1','REFERENCE-LONGER-THAN14')])('holds an unqualified original instead of inventing/truncating correlation %s', payload => {
+  it.each(['',"UNH+M+PRODAT:D:97A:UN:E2SE6A'",raw()+"UNB+UNOC:3+S+R+260930:1200+I'"])('holds an unqualified original instead of inventing/truncating correlation %s', payload => {
     expect(()=>contrlSourceEnvelope(payload)).toThrow(/CONTRL kräver/)
+  })
+  it('uses only the source-prescribed first14 UCI projection and retains the full original',()=>{
+    const payload=raw().replace("I?+Ä???'1","REFERENCE-LONGER-THAN14")
+    const result=renderContrl2Ediel2({source:{rawPayload:payload},outcome:'negative'})
+    expect(result.diagnostics.originalInterchangeReference).toBe('REFERENCE-LONGER-THAN14')
+    expect(segmentComposite(tokenizeEdifact(result.segments[0]+"'").segments[0],1,tokenizeEdifact(result.segments[0]+"'").una)).toEqual(['REFERENCE-LONG'])
   })
   it('keeps a parseable negative count response attached to the original technical interchange', () => {
     expect(renderContrl2Ediel2({source:{rawPayload:raw(true).replace('UNT;3;M','UNT;99;M')},outcome:'negative'}).diagnostics.originalInterchangeReference).toBe(ref)

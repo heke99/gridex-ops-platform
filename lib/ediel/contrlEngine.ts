@@ -17,6 +17,8 @@ export type ContrlEngineSource = {
 }
 export type ContrlSourceEnvelope = {
   interchangeReference: string
+  /** Source T§2.1 table2: first14 only when the original exceeds14. */
+  uciReference: string
   senderComponents: string[]
   receiverComponents: string[]
 }
@@ -35,7 +37,8 @@ export type ContrlEngineResult = {
 /** A malformed business message can still have a usable technical envelope.
  * This bounded observation makes no claim that its complete syntax passed.
  * Missing, ambiguous or unrepresentable original identity cannot be repaired
- * from row metadata or a shortened reference merely to manufacture a CONTRL. */
+ * from row metadata. The source-prescribed UCI projection retains the full
+ * original in diagnostics; persistent authority separately fences ambiguity. */
 export function contrlSourceEnvelope(rawPayload: string | null | undefined): ContrlSourceEnvelope {
   const held = (): never => { throw new EdielExecutionFailure({ kind: 'internal_failure', code: 'EDIEL_CONTRL_SOURCE_ENVELOPE_UNQUALIFIED' }, 'CONTRL kräver ett entydigt ursprungligt UNB-kuvert med återgivningsbara tekniska referenser.') }
   let wire: ReturnType<typeof tokenizeEdifact>
@@ -44,10 +47,10 @@ export function contrlSourceEnvelope(rawPayload: string | null | undefined): Con
   if (unbs.length !== 1 || unbs[0].index !== 0) return held()
   const reference = segmentComposite(unbs[0], 5, wire.una)
   const senderComponents = segmentComposite(unbs[0], 2, wire.una), receiverComponents = segmentComposite(unbs[0], 3, wire.una)
-  if (reference.length !== 1 || !reference[0] || Array.from(reference[0]).length > 14
+  if (reference.length !== 1 || !reference[0] || Array.from(reference[0]).length > 512
     || [senderComponents, receiverComponents].some(parts => !parts[0] || parts.length > 3 || parts.some(part => Array.from(part).length > 35))) return held()
   try { assertEdifactLatin1Representable([reference[0], ...senderComponents, ...receiverComponents].join('')) } catch { return held() }
-  return { interchangeReference: reference[0], senderComponents, receiverComponents }
+  return { interchangeReference: reference[0], uciReference: reference[0].slice(0,14), senderComponents, receiverComponents }
 }
 export function renderContrl2Ediel2(params: {
   source: ContrlEngineSource
@@ -60,7 +63,7 @@ export function renderContrl2Ediel2(params: {
   const originalReceiverComposite = original.receiverComponents.map(value => escapeEdifactData(value)).join(':')
   const syntaxActionCode = params.outcome === 'positive' ? '1' : '4'
   return {
-    segments: [`UCI+${escapeEdifactData(original.interchangeReference)}+${originalSenderComposite}+${originalReceiverComposite}+${syntaxActionCode}`],
+    segments: [`UCI+${escapeEdifactData(original.uciReference)}+${originalSenderComposite}+${originalReceiverComposite}+${syntaxActionCode}`],
     diagnostics: { engine: 'contrl', renderer: 'contrlEngine.renderContrl2Ediel2', originalInterchangeReference: original.interchangeReference,
       originalSenderComposite, originalReceiverComposite, syntaxActionCode },
   }

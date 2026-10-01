@@ -1,3 +1,5 @@
+import {technicalSyntaxAckQualification,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
 import {readSourceBoundAckRulePackEvidence,readPersistedOutboundAckRulePackEvidence,sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
@@ -51,6 +53,8 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   messageRow?: EdielMessageRow
   /** Protected actual-original port for a pre-persistence reverse ACK draft. */
   ackSourceQualification?:SourceQualifiedOutboundAck
+  /** Protected syntax-only endpoint authority; never a business rule pack. */
+  technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence
   /** Explicit pure receiver knowledge, never incoming parsed metadata. */
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
@@ -63,7 +67,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   parsedPayload?: Record<string, unknown> | null
 }
 
-export type RulebookValidationResult = LegacyRulebookValidationResult & { canonicalPolicy?: CanonicalEdielPolicy }
+export type RulebookValidationResult = Omit<LegacyRulebookValidationResult,'fieldRuleSource'> & { canonicalPolicy?: CanonicalEdielPolicy; fieldRuleSource:'static'|'registry'|'technical_source';technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence }
 
 type ActiveCanonicalFamily = 'PRODAT' | 'UTILTS' | 'UTILTS_ERR' | 'APERAK' | 'CONTRL'
 type BusinessRulePackFamily = 'PRODAT' | 'UTILTS'
@@ -451,6 +455,21 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
   }
 }
 
+/** One shared guide path for safely prescribed technical responses. This
+ * authority grants only the protected syntax reply; legal/business approval
+ * and a business pack are deliberately absent. Native provider-entry repeats
+ * the exact immutable original/global-correlation/current-endpoint checks. */
+function qualifyTechnicalContrl(input:RulebookValidationInput,result:RulebookValidationResult):RulebookValidationResult {
+  const evidence=technicalSyntaxAckQualification({evidence:input.technicalSyntaxAckEvidence,companyId:input.companyId ?? '',environment:input.environment==='production'?'production':'test'})
+  const unavailable=()=>({...result,ok:false,blocking:true,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:'CONTRL kräver den faktiska oföränderliga syntaxauktoriteten för samma företag och miljö.'})],rulePackSnapshot:null})
+  if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='CONTRL'||!result.canonicalPolicy||!input.rawPayload||!result.parsed)return unavailable()
+  const envelope=validateEdifactEnvelope(input.rawPayload)
+  const syntaxIssues=envelope.issues.map(entry=>issue({severity:entry.severity,code:entry.code,title:'EDIFACT-kuvert',description:entry.message}))
+  const own=validateCanonicalAckGuide({policy:result.canonicalPolicy,rawSegments:result.parsed.rawSegments,una:result.parsed.una,technicalOriginal:evidence})
+  const issues=[...result.issues,...syntaxIssues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+  return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'technical_source',rulePackSnapshot:null,technicalSyntaxAckEvidence:evidence}
+}
+
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
   input = captureAdmission(input)
   const freeText = input.mode === 'send' && input.direction !== 'inbound' ? prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }) : []
@@ -465,7 +484,8 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
   const parsed = parse(input)
   const family = normalize(input.family ?? parsed?.family)
   if (!isActiveCanonicalFamily(family)) return protect(validateLegacyRulebookMessage(input))
-  return protect(canonicalValidation({ ...input, parsed }))
+  const result=canonicalValidation({ ...input, parsed })
+  return protect(input.technicalSyntaxAckEvidence ? qualifyTechnicalContrl(input,result) : result)
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
@@ -484,6 +504,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   if (!isActiveCanonicalFamily(familyValue)) return validateLegacyRulebookMessageWithRegistry(input)
 
   const result = canonicalValidation({ ...input, parsed })
+  if(input.technicalSyntaxAckEvidence)return qualifyTechnicalContrl(input,result)
   if (!parsed || result.blocking) return result
   const dir = direction(input)
   if (!dir) return { ...result, ok: false, blocking: true, issues: [...result.issues, issue({ severity: 'error', code: 'CANONICAL_EVIDENCE_DIRECTION_REQUIRED', title: 'Riktning saknas', description: 'Rule-pack evidence kräver explicit inbound/outbound-riktning.' })] }
