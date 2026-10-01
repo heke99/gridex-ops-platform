@@ -329,6 +329,42 @@ mustContain(agreementDocumentRoute, "agreement.document_path !== documentPath");
 mustContain(agreementDocumentRoute, "createSignedUrl(parsed.path, 60)");
 mustContain(agreementDocumentRoute, "unstable_rethrow(error)");
 
+// Reviewed 2026-10-01: agreement writes have a canonical global actor/session
+// and an explicit company UUID or NULL global owner. The SQL command checks
+// that same binding; the worker only removes a currently sealed leased key.
+// These source gates retain the reviewed owners. They do not certify live
+// Auth, Storage, RLS, all callers or an aggregate service-role count.
+const agreementAction = "app/admin/agreements/grid-owners/actions.ts";
+mustContain(agreementAction, "const admin = await requirePlatformAdminActionAccess()");
+mustContain(agreementAction, "const actor = await currentSupportSession('ops', admin.userId)");
+mustContain(agreementAction, "current.company_id !== companyId");
+mustContain(agreementAction, "const expectedRevision = current?.revision ?? 0");
+mustContain(agreementAction, "await prepareAgreementDocumentUpload(command, bucket)");
+mustContain(agreementAction, "await executeAgreementCommand(command, intent)");
+mustContain(agreementAction, "await reconcileAgreementUpload(command, intent)");
+mustContain(agreementAction, "companyId: current.company_id, expectedRevision: current.revision");
+
+const agreementCommand = "lib/routes/gridOwnerAgreements.ts";
+mustContain(agreementCommand, "actorUserId: input.actor.userId, sessionId: input.actor.sessionId, companyId: input.companyId ?? null");
+mustContain(agreementCommand, "supabaseService.rpc('gridex_grid_owner_agreement_command_v1', { p_command: command })");
+mustContain(agreementCommand, "parsed.data.agreement.company_id !== command.companyId");
+
+const agreementCleanupRoute = "app/api/internal/grid-owner-agreements/cleanup/route.ts";
+mustContain(agreementCleanupRoute, "process.env.GRIDEX_AGREEMENT_CLEANUP_SECRET");
+mustContain(agreementCleanupRoute, "timingSafeEqual(supplied, configured)");
+mustContain(agreementCleanupRoute, "agreementCleanupInput.safeParse(await boundedBody(request))");
+mustContain(agreementCleanupRoute, "await processAgreementCleanup(input.data)");
+
+const agreementCleanup = "lib/routes/gridOwnerAgreementCleanup.ts";
+mustContain(agreementCleanup, "companyId: z.string().uuid().nullable()");
+mustContain(agreementCleanup, "p_company_id: parsed.data.companyId, p_claim_token: token, p_limit: parsed.data.limit");
+mustContain(agreementCleanup, "receipt.companyId !== parsed.data.companyId || receipt.claimToken !== token");
+mustContain(agreementCleanup, "receipt.bucket === 'customer-support-quarantine'");
+mustContain(agreementCleanup, "rpc('gridex_validate_agreement_cleanup_v1', { p_receipt: receipt })");
+mustContain(agreementCleanup, "if (current.data !== true) { result.stale++; continue }");
+mustContain(agreementCleanup, "storage.from(receipt.bucket).remove([receipt.path])");
+mustContain(agreementCleanup, "rpc('gridex_finish_agreement_cleanup_v1', { p_receipt: receipt, p_outcome: outcome })");
+
 const redeliveryPage = "app/admin/billing/invoices/[id]/redelivery/page.tsx";
 mustContain(redeliveryPage, "requireAdminPageKeyAccess('billing.workspace')");
 mustContain(redeliveryPage, "getOperationalCompanyScope(guard.userId)");

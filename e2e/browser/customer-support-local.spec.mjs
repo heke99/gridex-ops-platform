@@ -95,7 +95,7 @@ test('actual support HTTP creates, retries, continues with OPS and exposes only 
     const response = await get(request, a1, messagesPath, `?limit=1${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`)
     expect(response.status()).toBe(200)
     const body = await response.json()
-    for (const row of body.data) expect(Object.keys(row).sort()).toEqual(['message_reference', 'body', 'author_kind', 'channel', 'revision', 'created_at'].sort())
+    for (const row of body.data) expect(Object.keys(row).sort()).toEqual(['message_reference', 'body', 'author_kind', 'author_reference', 'channel', 'revision', 'created_at'].sort())
     messages.push(...body.data)
     cursor = body.page.next_cursor
     if (cursor) cursors.push(cursor)
@@ -103,6 +103,8 @@ test('actual support HTTP creates, retries, continues with OPS and exposes only 
   } while (cursor)
   expect(messages.map(row => row.body)).toEqual(['Staff answer on same case', 'Customer continuation A1', 'Customer initial A1'])
   expect(messages[0]).toMatchObject({ author_kind: 'staff', channel: 'ops', revision: 4 })
+  expect(messages[0].author_reference).toMatch(/^support_staff_[A-Za-z0-9_-]{32}$/)
+  expect(messages.slice(1).map(row => row.author_reference)).toEqual([null, null])
   expect(JSON.stringify(messages)).not.toMatch(/INTERNAL SECRET|actor_user_id|api_client_id|customer_id|company_id|metadata/)
   const reread = await get(request, a1, path)
   expect(reread.status()).toBe(200)

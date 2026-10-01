@@ -306,6 +306,12 @@ export async function requireCompanyScopedActionAccess(
     return base
   }
 
+  // These permissions belong to the canonical current-company receipt.
+  // Membership in another company does not transfer that receipt's grants.
+  if (base.companyId !== companyId) {
+    throw new Error('Forbidden')
+  }
+
   const memberships = await listOperationalCompaniesForUser(base.userId)
   const allowed = memberships.some(
     (membership) =>

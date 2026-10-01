@@ -8,6 +8,7 @@ import {
 } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['integration_context.read'])
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson({ error: { code: auth.errorCode, message: auth.error, request_id: requestId } }, { status: auth.status })
   }
 
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     const context = projectPublicExternalTenantContext(
       await loadExternalTenantContext(auth.client),
     )
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId } })
+    await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId } })
     return customerPortalJson({ data: context, request_id: requestId }, {
       status: 200,
       headers: {
@@ -35,16 +36,17 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     const classified = classifyPublicContractsError(error)
+    const diagnostic = technicalErrorDiagnostic(error)
     console.error('[integration-context] failed', {
       requestId,
       companyId: auth.context.companyId,
       apiClientId: auth.client.id,
       endpoint: '/api/v1/integration/context',
       errorCode: classified.code,
-      databaseCode: classified.databaseCode,
-      error,
+      databaseCode: diagnostic.code,
+      error: diagnostic,
     })
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: classified.status, startedAt, errorCode: classified.code, metadata: { request_id: requestId, database_code: classified.databaseCode } })
+    await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client, request, statusCode: classified.status, startedAt, errorCode: classified.code, metadata: { request_id: requestId, database_code: diagnostic.code } })
     return customerPortalJson({ error: { code: classified.code, message: classified.message, request_id: requestId } }, { status: classified.status })
   }
 }

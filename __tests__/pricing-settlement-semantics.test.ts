@@ -13,7 +13,7 @@ describe('public pricing and settlement semantics', () => {
     const developerLayout = read('app/developers/customer-portal-api/layout.tsx')
     const developerTemplate = read('app/developers/customer-portal-api/template.tsx')
 
-    expect(contract).toContain("WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-09-30.3'")
+    expect(contract).toContain("WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-01.1'")
     expect(apiTypes).toContain('valid_until: string')
     expect(apiTypes).toContain('valid_to: string | null')
     expect(projector).toContain('valid_until: validUntil')

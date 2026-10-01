@@ -151,6 +151,13 @@ jobs:
           npx vitest run --config scripts/ediel-resume-tenant-progress-20261001-native.config.ts --reporter=verbose
           npx vitest run --config scripts/contract-authority-continuation-native.config.ts
           npx vitest run --config scripts/customer-operation-lifecycle-atomic-20260930.native.config.ts
+          # Actual existing case producer, source-bound decision and persisted
+          # duplicate recovery; preserve the legacy withdrawal decision=1 gate.
+          npx vitest run --config scripts/customer-lifecycle-source-binding-20261001.native.config.ts --reporter=verbose
+          # Independent owned transaction fixtures, with exact private current
+          # agreement/upload/CAS behavior on the reconstructed schema.
+          npx vitest run --config scripts/grid-owner-agreement-atomic-20261001.native.config.ts --reporter=verbose
+          npx vitest run --config scripts/grid-owner-agreement-cleanup-20261001.native.config.ts --reporter=verbose
           npx vitest run --config scripts/ediel-source-owner-native.config.ts
           # Atomic notifier command faults/concurrency use independent fixtures.
           npx vitest run --config scripts/customer-notification-read-native.config.ts
@@ -252,6 +259,18 @@ jobs:
           GRIDEX_OPS_EFFECT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ops-effect-browser-native.config.ts
           rm -f "$GRIDEX_OPS_EFFECT_FIXTURE_PATH"
           unset GRIDEX_OPS_EFFECT_LOCAL_E2E GRIDEX_OPS_EFFECT_FIXTURE_PATH GRIDEX_OPS_EFFECT_PASSWORD
+          # Current company-scoped controls and the actual compatible loaders;
+          # this proof owns separate GoTrue users, rows and whole-graph digests.
+          export GRIDEX_WEBHOOK_UI_LOCAL_E2E=1
+          export GRIDEX_WEBHOOK_UI_FIXTURE_PATH="$RUNNER_TEMP/webhook-readonly-controls-20261001.json"
+          export GRIDEX_WEBHOOK_UI_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          GRIDEX_WEBHOOK_UI_FIXTURE_PHASE=seed npx vitest run --config scripts/webhook-readonly-controls-20261001-native.config.ts
+          [[ -s "$GRIDEX_WEBHOOK_UI_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/webhook-readonly-controls-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_WEBHOOK_UI_FIXTURE_PHASE=post-browser npx vitest run --config scripts/webhook-readonly-controls-20261001-native.config.ts
+          GRIDEX_WEBHOOK_UI_FIXTURE_PHASE=cleanup npx vitest run --config scripts/webhook-readonly-controls-20261001-native.config.ts
+          rm -f "$GRIDEX_WEBHOOK_UI_FIXTURE_PATH"
+          unset GRIDEX_WEBHOOK_UI_LOCAL_E2E GRIDEX_WEBHOOK_UI_FIXTURE_PATH GRIDEX_WEBHOOK_UI_PASSWORD
           # The real billing forms own a fresh local fixture. Readiness,
           # immutable invoices and both sender paths are separately tested above.
           export GRIDEX_BILLING_RECIPIENT_LOCAL_E2E=1
@@ -286,6 +305,9 @@ jobs:
           export GRIDEX_REDELIVERY_NAVIGATION_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
           GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-seed npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
           [[ -s "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH" ]] || exit 1
+          # Traverse genuine Next history against the fresh zero-decision fixture
+          # before the existing journey deliberately saves its single decision.
+          GRIDEX_REDELIVERY_HISTORY_LOCAL_E2E=1 npx playwright test e2e/browser/invoice-redelivery-history-traversal-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
           GRIDEX_REDELIVERY_NAVIGATION_LOCAL_E2E=1 npx playwright test e2e/browser/invoice-redelivery-unsaved-navigation-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
           GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-postcheck npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
           rm -f "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH"

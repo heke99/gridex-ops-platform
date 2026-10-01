@@ -20,6 +20,7 @@ import {
 } from '@/lib/pricing/publicWebsiteQuote'
 import { WebsiteQuoteValidationError } from '@/lib/pricing/websiteQuotes'
 import { canonicalApiError } from '@/lib/api/apiError'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   INVOICE_DELIVERY_METHODS,
   type InvoiceDeliveryMethod,
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
   ])
   if (!auth.ok) {
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client ?? null,
       request,
       statusCode: auth.status,
@@ -126,6 +128,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.ok) {
       const status = parsed.code === 'payload_too_large' ? 413 : 400
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: status,
@@ -241,6 +244,7 @@ export async function POST(request: NextRequest) {
         requestId,
       )
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: claim.statusCode,
@@ -292,6 +296,7 @@ export async function POST(request: NextRequest) {
     })
 
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client,
       request,
       statusCode: 201,
@@ -333,6 +338,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof IntegrationWriteIdempotencyError) {
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: error.status,
@@ -369,6 +375,7 @@ export async function POST(request: NextRequest) {
         responseBody,
       })
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: error.status,
@@ -403,6 +410,7 @@ export async function POST(request: NextRequest) {
         responseBody,
       })
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: error.status,
@@ -425,8 +433,9 @@ export async function POST(request: NextRequest) {
       companyId: auth.context.companyId,
       errorCode: 'website_quote_failed',
     })
-    console.error('[website-quote] failed', { requestId, error })
+    console.error('[website-quote] failed', { requestId, error: technicalErrorDiagnostic(error) })
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client,
       request,
       statusCode: 500,

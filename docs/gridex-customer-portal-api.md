@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-09-30.3** (release candidate on the API draft branch)
+Current contract: **2026-10-01.1** (release candidate on the API draft branch)
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 
@@ -96,6 +96,16 @@ Non-address facility, document and legal intake remain separately staged. See
 `scripts/tenantservice/customer-api-reference.mjs` for a runnable synthetic
 contact journey using an isolated in-memory issuer and customer.
 
+## Compatibility from 2026-09-30.3
+
+The 2026-10-01.1 paired release adds the required nullable `author_reference` to
+the closed customer support message response. Clients that enforce the prior
+closed schema must update their response model. Existing request shapes,
+resource paths, stored message revisions and opaque reference formats remain.
+The website document advances as the paired release without introducing a
+support request or changing checkout semantics. Every prior immutable release
+remains available at its existing versioned URL.
+
 ## Customer support cases
 
 The exported `runCustomerSupportReference` in
@@ -121,7 +131,13 @@ maximum 100) and a customer/resource-bound `cursor`.
 
 The public case projection is limited to reference, title, status, revision
 and timestamps. The message projection is limited to reference, body, author
-kind, channel, revision and creation time. Staff notes and internal case text
+kind, nullable `author_reference`, channel, revision and creation time.
+`author_reference` is always present: the saved staff author is an opaque
+`support_staff_` reference with exactly32 characters after the prefix; customer
+messages and historical staff messages without a saved author return null.
+Do not use the reading customer or a generated person label as the author.
+The reference client exports `readSupportMessageAuthorReference` and validates
+this field on initial read and readback. Staff notes and internal case text
 are separate records and never become public messages. Staff and portal
 continuations use the same protected command under their actual current
 session. A portal account with read-only rights cannot write or replay writes.

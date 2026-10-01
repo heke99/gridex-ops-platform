@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
@@ -72,21 +73,6 @@ function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
   return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
-}
-
-function serializePortalSyncError(error: unknown): Record<string, unknown> {
-  if (!error || typeof error !== 'object') {
-    return { message: String(error ?? 'Okänt fel') }
-  }
-
-  const record = error as Record<string, unknown>
-  return {
-    name: error instanceof Error ? error.name : undefined,
-    message: error instanceof Error ? error.message : record.message,
-    code: record.code,
-    details: record.details,
-    hint: record.hint,
-  }
 }
 
 function revokedPortalIdentity(error: unknown): boolean {
@@ -443,7 +429,7 @@ export async function POST(request: NextRequest) {
     const status = controlled ? error.status : 500
     const errorCode = controlled ? error.code : 'portal_sync_failed'
     const clientMessage = controlled ? error.message : 'Kundlänkning kunde inte behandlas.'
-    const errorMetadata = serializePortalSyncError(error)
+    const diagnostic = technicalErrorDiagnostic(error)
     if (idempotencyRecordId) {
       await failPortalWriteIdempotency({
         recordId: idempotencyRecordId,
@@ -457,7 +443,7 @@ export async function POST(request: NextRequest) {
       statusCode: status,
       startedAt,
       errorCode,
-      metadata: { portal_sync_error: errorMetadata },
+      metadata: { database_code: diagnostic.code },
     })
     return customerPortalJson({
       error: clientMessage,

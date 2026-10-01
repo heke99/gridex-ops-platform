@@ -123,6 +123,7 @@ cat > "$TENANTSERVICE_TEMP/old-schema-proof.sql" <<'OLD_SCHEMA_PROOF'
 \set ON_ERROR_STOP on
 \set QUIET on
 begin;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_SHAPE
 do $old_shape$
 begin
  if exists(select 1 from information_schema.columns where table_schema='public'
@@ -139,6 +140,7 @@ select set_config('request.jwt.claims',jsonb_build_object('role','authenticated'
  'sub','e4954930-0000-4000-8000-000000000011',
  'session_id','e4954930-0000-4000-8000-000000000021')::text,true) as jwt_claims \gset
 set local role authenticated;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED
 do $old_authenticated$
 declare denied boolean:=false;
 begin
@@ -159,6 +161,7 @@ $old_authenticated$;
 reset role;
 select set_config('request.jwt.claims','{"role":"anon"}',true) as jwt_claims \gset
 set local role anon;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_ANONYMOUS
 do $old_anonymous$
 declare denied boolean:=false;
 begin
@@ -180,6 +183,7 @@ $old_anonymous$;
 reset role;
 select set_config('request.jwt.claims','{}',true) as jwt_claims \gset
 set local role service_role;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_COMMAND
 do $old_command$
 declare command jsonb:=jsonb_build_object('companyId','e4954930-0000-4000-8000-000000000001',
  'customerId','e4954930-0000-4000-8000-000000000031',
@@ -220,6 +224,7 @@ reset role;
 update public.user_permissions set effect='deny' where user_id='e4954930-0000-4000-8000-000000000011'
  and company_id='e4954930-0000-4000-8000-000000000001' and permission_key='masterdata.write';
 set local role service_role;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_REVOCATION
 do $old_revocation$
 declare denied boolean:=false;
 begin
@@ -246,8 +251,31 @@ OLD_SCHEMA_PROOF
   echo 'TENANTSERVICE_BASELINE_ROLLBACK_PINNED_PRE_FORWARD_REPLAY_PASS'
   tenantservice_baseline_sql(){
     local database="$1" input="$2" log="$TENANTSERVICE_TEMP/$(basename "$2").log"
-    if ! psql "$database" -X -q -v ON_ERROR_STOP=1 -f "$input" > "$log" 2>&1; then
-      echo 'TENANTSERVICE_BASELINE_ROLLBACK_SQL_FAILED_PRIVATE_CONTEXT' >&2; return 1;
+    if ! psql "$database" -X -q -v ON_ERROR_STOP=1 -v VERBOSITY=sqlstate -f "$input" > "$log" 2>&1; then
+      echo 'TENANTSERVICE_BASELINE_ROLLBACK_SQL_FAILED_PRIVATE_CONTEXT' >&2
+      # libpq may fall back to primary error text when no SQLSTATE exists.
+      # Never print that text, filename, context or a guessed source cause.
+      python3 - "$log" "$(basename "$input")" <<'PRIVATE_SQL_DIAGNOSTIC'
+import pathlib,re,sys
+proof={'old-schema-proof.sql':'old_schema',
+       'tenantservice-upgrade-fixture.sql':'old_fixture'}.get(sys.argv[2],'unknown')
+try: rows=pathlib.Path(sys.argv[1]).read_text(errors='replace').splitlines()
+except OSError: rows=[]
+allowed={'OLD_SHAPE':'old_shape','OLD_AUTHENTICATED':'old_authenticated',
+         'OLD_ANONYMOUS':'old_anonymous','OLD_COMMAND':'old_command',
+         'OLD_REVOCATION':'old_revocation'}
+stage='start'; states=[]
+for row in rows:
+    prefix='TENANTSERVICE_BASELINE_ROLLBACK_STAGE_'
+    if row.startswith(prefix) and row[len(prefix):] in allowed:
+        stage=allowed[row[len(prefix):]]
+    match=re.fullmatch(r'(?:psql:.*?:\d+: )?(?:ERROR|FATAL|PANIC):\s+([0-9A-Z]{5})\s*',row)
+    if match and match[1]!='00000': states.append(match[1])
+state=states[0] if len(states)==1 else 'unknown'
+print('TENANTSERVICE_BASELINE_ROLLBACK_SQL_DIAGNOSTIC proof='+proof+
+      ' stage='+stage+' sqlstate='+state,file=sys.stderr)
+PRIVATE_SQL_DIAGNOSTIC
+      return 1
     fi
     awk '/^TENANTSERVICE_(UPGRADE|BASELINE_ROLLBACK)_[A-Z0-9_]+_PASS$/' "$log"
   }

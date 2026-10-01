@@ -14,6 +14,7 @@ import { publicWebsiteCustomerApplicationData } from '@/lib/website/publicCustom
 import { canonicalApiError } from '@/lib/api/apiError'
 import { bindPayloadToTenant, TenantContextError } from '@/lib/tenant/context'
 import { loadTenantWebsiteFlowReadiness } from '@/lib/integrations/tenantWebsiteReadiness'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireIntegrationApiAccess(request, ['website_applications.write'])
 
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     return customerPortalJson(
       buildErrorBody({ error: auth.error, code: auth.errorCode, error_stage: 'authorization' }, requestId),
       { status: auth.status },
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest) {
         checkout_blocker_codes: checkoutBlockers.map((blocker) => blocker.code),
       })
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: readinessStatus,
@@ -190,7 +192,7 @@ export async function POST(request: NextRequest) {
     const parsed = await readJsonWithLimit(request)
     if (!parsed.ok) {
       const status = parsed.code === 'payload_too_large' ? 413 : 400
-      await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: parsed.code })
+      await logIntegrationApiRequest({ serverRequestId: requestId, client: auth.client, request, statusCode: status, startedAt, errorCode: parsed.code })
       return customerPortalJson(
         buildErrorBody({
           error: parsed.code === 'payload_too_large'
@@ -225,11 +227,12 @@ export async function POST(request: NextRequest) {
     }
 
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client,
       request,
       statusCode: result.status,
       startedAt,
-      errorCode: result.ok ? null : String(result.body.error ?? 'website_application_error'),
+      errorCode: result.ok ? null : readStringField(result.body, 'code') ?? 'website_application_error',
       metadata: applicationMetadata,
     })
     await scheduleUsageEvent({
@@ -261,6 +264,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof TenantContextError) {
       await logIntegrationApiRequest({
+        serverRequestId: requestId,
         client: auth.client,
         request,
         statusCode: error.status,
@@ -278,8 +282,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.error('[website-customer-application] failed', { requestId, error })
+    console.error('[website-customer-application] failed', { requestId, error: technicalErrorDiagnostic(error) })
     await logIntegrationApiRequest({
+      serverRequestId: requestId,
       client: auth.client,
       request,
       statusCode: 500,

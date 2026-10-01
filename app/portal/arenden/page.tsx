@@ -1,7 +1,5 @@
-import {
-  getCustomerPortalContext,
-  listPortalCases,
-} from "@/lib/customer-portal/db";
+import { getCustomerPortalContext } from "@/lib/customer-portal/db";
+import type { CustomerPortalCaseRow } from '@/lib/customer-portal/types'
 import { formatDate } from "@/lib/customer-portal/format";
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -10,6 +8,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { currentSupportSession } from '@/lib/customer-operations/supportSession'
 import { readCustomerSupportPage, type CustomerSupportCase, type CustomerSupportMessage } from '@/lib/customer-cases/customerRead'
 import { publicReference } from '@/lib/integrations/publicReferences'
+import { readPortalCasePublicationsPage } from '@/lib/customer-cases/portalCasePublicationsPage'
 import SupportActionForm from '@/lib/customer-cases/SupportActionForm'
 import { readSupportAttachments } from '@/lib/customer-cases/attachments'
 import { createPortalSupportCaseAction, createPortalSupportCaseFallbackAction, replyPortalSupportCaseAction, replyPortalSupportCaseFallbackAction, uploadPortalSupportAttachmentAction, uploadPortalSupportAttachmentFallbackAction } from './actions'
@@ -29,22 +28,22 @@ export default async function PortalCasesPage({ searchParams }: { searchParams?:
   const params = await searchParams
   if (params?.customer && !context.customerIds.includes(params.customer)) notFound()
   const customerId = params?.customer || context.customerIds[0]
-  const selectedContext = customerId ? { ...context, customerIds: [customerId], customers: context.customers.filter(customer => customer.id === customerId) } : context
   const actor = context.companyId && customerId ? await currentSupportSession('portal') : null
   const readContext = context.companyId && customerId && actor ? { companyId: context.companyId, customerId, actor } : null
-  const [cases, supportPage, account] = await Promise.all([
-    listPortalCases(selectedContext),
+  const [supportPage, account, conversation] = await Promise.all([
     readContext ? readCustomerSupportPage(readContext, { limit: 25, cursor: params?.cursor }) : null,
     readContext && actor ? supabaseService.from('customer_portal_accounts').select('role').eq('company_id', readContext.companyId).eq('customer_id', customerId).eq('user_id', actor.userId).eq('status', 'active').eq('is_active', true).maybeSingle() : null,
+    readContext && params?.case_reference
+      ? readCustomerSupportPage(readContext, { reference: params.case_reference, limit: 25, cursor: params.messages_cursor }) : null,
   ])
   if (account?.error) throw account.error
   const canWrite = account?.data?.role === 'owner'
   const supportCases = (supportPage?.items ?? []) as CustomerSupportCase[]
-  const publishedReferences = new Set(cases.map(item => publicReference('case', context.companyId ?? '', item.customer_case_id)))
-  const newCases = supportCases.filter(item => !publishedReferences.has(item.case_reference))
-  const conversation = readContext && params?.case_reference
-    ? await readCustomerSupportPage(readContext, { reference: params.case_reference, limit: 25, cursor: params.messages_cursor }) : null
   const conversationCaseReference = conversation?.case?.case_reference
+  const publications = readContext ? await readPortalCasePublicationsPage(readContext, [
+    ...supportCases.map(item => item.case_reference), ...(conversationCaseReference ? [conversationCaseReference] : []),
+  ]) : new Map<string, CustomerPortalCaseRow>()
+  const conversationPublication = conversationCaseReference ? publications.get(conversationCaseReference) : undefined
   const attachments = readContext && params?.case_reference
     ? await readSupportAttachments(readContext, { reference: params.case_reference, limit: 25, cursor: params.attachments_cursor }) : null
   function href(extra: Record<string, string> = {}) { return `/portal/arenden?${new URLSearchParams({ ...(customerId ? { customer: customerId } : {}), ...extra })}` }
@@ -74,8 +73,8 @@ export default async function PortalCasesPage({ searchParams }: { searchParams?:
 
       {conversation?.case ? <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold">{conversation.case.title}</h2><p className="text-sm text-slate-600">Revision {conversation.case.revision} · {conversation.case.status}</p>
-        {cases.filter(item => publicReference('case', context.companyId ?? '', item.customer_case_id) === conversationCaseReference).map(item => <p key={item.id} className="text-xs text-slate-600">Aktuell kundsynlig sammanfattning: {item.channel === 'phone' ? 'Telefonsammanfattning' : 'Handläggning i OPS'} · Författarreferens {publicReference('support_staff', context.companyId ?? '', item.author_user_id)}</p>)}
-        {(conversation.items as CustomerSupportMessage[]).map(message => <article key={message.message_reference} className="rounded-xl border border-slate-200 p-4"><p className="text-xs font-semibold text-slate-600">{message.author_kind === 'staff' ? 'Kundservice' : 'Du'} · {message.channel === 'phone' ? 'Telefonsammanfattning' : message.channel} · {formatDate(message.created_at)}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.body}</p></article>)}
+        {conversationPublication ? <p className="text-xs text-slate-600">Aktuell kundsynlig sammanfattning: {conversationPublication.channel === 'phone' ? 'Telefonsammanfattning' : 'Handläggning i OPS'} · Författarreferens {publicReference('support_staff', context.companyId ?? '', conversationPublication.author_user_id)}</p> : null}
+        {(conversation.items as CustomerSupportMessage[]).map(message => <article key={message.message_reference} className="rounded-xl border border-slate-200 p-4"><p className="text-xs font-semibold text-slate-600">{message.author_kind === 'staff' ? <>Kundservice{message.author_reference ? <> · Författarreferens {message.author_reference}</> : null}</> : 'Du'} · {message.channel === 'phone' ? 'Telefonsammanfattning' : message.channel} · {formatDate(message.created_at)}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6">{message.body}</p></article>)}
         {!conversation.items.length ? <p className="text-sm text-slate-600">Inga meddelanden på denna sida.</p> : null}
         {conversation.page.next_cursor ? <Link className="text-sm font-semibold underline" href={href({ case_reference: params!.case_reference!, messages_cursor: conversation.page.next_cursor })}>Äldre meddelanden</Link> : null}
         {params?.messages_cursor ? <Link className="text-sm font-semibold underline" href={href({ case_reference: params.case_reference! })}>Senaste meddelanden</Link> : null}
@@ -90,7 +89,9 @@ export default async function PortalCasesPage({ searchParams }: { searchParams?:
       </section> : null}
 
       <section className="space-y-4">
-        {cases.filter(item => publicReference('case', context.companyId ?? '', item.customer_case_id) !== params?.case_reference).map((item) => (
+        {supportCases.filter(item => item.case_reference !== conversationCaseReference).map(supportCase => {
+          const item = publications.get(supportCase.case_reference)
+          return item ? (
           <article
             key={item.id}
             className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
@@ -111,15 +112,14 @@ export default async function PortalCasesPage({ searchParams }: { searchParams?:
               </span>
             </div>
             <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{item.public_body}</p>
-            {supportCases.some(supportCase => supportCase.case_reference === publicReference('case', context.companyId ?? '', item.customer_case_id)) ? <p className="mt-3"><Link className="text-sm font-semibold underline" href={href({ case_reference: publicReference('case', context.companyId ?? '', item.customer_case_id)! })}>Fortsätt samma ärende</Link></p> : null}
+            <p className="mt-3"><Link className="text-sm font-semibold underline" href={href({ case_reference: supportCase.case_reference })}>Fortsätt samma ärende</Link></p>
           </article>
-        ))}
-
-        {newCases.map(item => <article key={item.case_reference} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-semibold">{item.title}</h2><p className="mt-2 text-sm text-slate-600">Revision {item.revision} · {item.status} · {formatDate(item.created_at)}</p><p className="mt-3"><Link className="text-sm font-semibold underline" href={href({ case_reference: item.case_reference })}>Läs och fortsätt ärendet</Link></p></article>)}
+          ) : <article key={supportCase.case_reference} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-lg font-semibold">{supportCase.title}</h2><p className="mt-2 text-sm text-slate-600">Revision {supportCase.revision} · {supportCase.status} · {formatDate(supportCase.created_at)}</p><p className="mt-3"><Link className="text-sm font-semibold underline" href={href({ case_reference: supportCase.case_reference })}>Läs och fortsätt ärendet</Link></p></article>
+        })}
         {supportPage?.page.next_cursor ? <Link className="text-sm font-semibold underline" href={href({ cursor: supportPage.page.next_cursor })}>Fler ärenden</Link> : null}
         {params?.cursor ? <Link className="text-sm font-semibold underline" href={href()}>Senaste ärenden</Link> : null}
 
-        {cases.length === 0 && supportCases.length === 0 ? (
+        {supportCases.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
             Du har inga ärenden på denna sida.
           </div>

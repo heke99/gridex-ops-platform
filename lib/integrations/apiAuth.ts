@@ -6,6 +6,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { ipAllowedByRules, trustedClientIp } from '@/lib/integrations/ipPolicy'
 import { tenantContextForIntegration, type TenantContext } from '@/lib/tenant/context'
 import { publicRouteCost } from '@/lib/api/publicRouteRegistry'
+import { integrationRequestTelemetryProjection } from '@/lib/integrations/integrationRequestTelemetry'
 
 export type IntegrationApiClient = {
   id: string
@@ -447,6 +448,9 @@ export async function logIntegrationApiRequest(input: {
   statusCode: number
   startedAt: number
   errorCode?: string | null
+  // Supply only an ID genuinely generated for this request by reviewed server
+  // code. Metadata/header values never establish this correlation binding.
+  serverRequestId?: string | null
   metadata?: Record<string, unknown>
 }) {
   // Anonymous 401 traffic has no tenant-safe persistence target. Skipping the
@@ -454,10 +458,11 @@ export async function logIntegrationApiRequest(input: {
   // integration-database outage into a slow public endpoint.
   if (!input.client && input.statusCode === 401) return
 
+  const diagnostic = integrationRequestTelemetryProjection(input)
   const payload = {
     company_id: input.client?.company_id ?? null,
     api_client_id: input.client?.id ?? null,
-    request_id: input.request.headers.get('x-request-id'),
+    request_id: diagnostic.requestId,
     method: input.request.method,
     route: input.request.nextUrl.pathname,
     status_code: input.statusCode,
@@ -466,7 +471,7 @@ export async function logIntegrationApiRequest(input: {
     user_agent: input.request.headers.get('user-agent'),
     idempotency_key: input.request.headers.get('idempotency-key'),
     error_code: input.errorCode ?? null,
-    metadata: input.metadata ?? {},
+    metadata: diagnostic.metadata,
   }
 
   const persist = async () => {

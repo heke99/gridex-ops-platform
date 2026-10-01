@@ -24,6 +24,7 @@ import { mapContractPublicationToPublicDto } from '@/lib/external-contracts/publ
 import { supabaseService } from '@/lib/supabase/service'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
     : ['website_contracts.read']
   const auth = await requireIntegrationApiAccess(request, requiredScopes)
   if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
+    await logIntegrationApiRequest({ serverRequestId: currentRequestId, client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     const headers = new Headers({
       'X-Gridex-Contract-Version': PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
       'X-Request-ID': currentRequestId,
@@ -103,6 +104,7 @@ export async function GET(request: NextRequest) {
     })
     if (!query.diagnostics && ifNoneMatchMatches(request, fingerprintEtag)) {
       await logIntegrationApiRequest({
+        serverRequestId: currentRequestId,
         client: auth.client,
         request,
         statusCode: 304,
@@ -274,6 +276,7 @@ export async function GET(request: NextRequest) {
 
     if (!query.diagnostics && ifNoneMatchMatches(request, responseEtag)) {
       await logIntegrationApiRequest({
+        serverRequestId: currentRequestId,
         client: auth.client,
         request,
         statusCode: 304,
@@ -288,6 +291,7 @@ export async function GET(request: NextRequest) {
     }
 
     await logIntegrationApiRequest({
+      serverRequestId: currentRequestId,
       client: auth.client,
       request,
       statusCode: 200,
@@ -326,6 +330,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const traceId = randomUUID()
     const classified = classifyPublicContractsError(error)
+    const diagnostic = technicalErrorDiagnostic(error)
     console.error('[public-contracts] failed', {
       traceId,
       requestId: currentRequestId,
@@ -334,16 +339,14 @@ export async function GET(request: NextRequest) {
       endpoint: '/api/v1/website/public-contracts',
       channel: 'website',
       errorCode: classified.code,
-      errorPath: classified.path,
-      databaseCode: classified.databaseCode,
+      errorPath: null,
+      databaseCode: diagnostic.code,
       contractVersion: PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
       schema: 'website-integration-v1.json',
-      errorName:
-        error && typeof error === 'object' && 'name' in error
-          ? String((error as { name?: unknown }).name ?? '')
-          : null,
+      errorName: diagnostic.message,
     })
     await logIntegrationApiRequest({
+      serverRequestId: currentRequestId,
       client: auth.client,
       request,
       statusCode: classified.status,
@@ -353,8 +356,8 @@ export async function GET(request: NextRequest) {
         trace_id: traceId,
         request_id: currentRequestId,
         channel: 'website',
-        database_code: classified.databaseCode,
-        error_path: classified.path,
+        database_code: diagnostic.code,
+        error_path: null,
       },
     })
     return customerPortalJson(

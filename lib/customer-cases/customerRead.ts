@@ -4,11 +4,12 @@ import { supabaseService } from '@/lib/supabase/service'
 import { decodePortalCursor, encodePortalCursor } from '@/lib/customer-portal/keysetPagination'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { SupportCommandError, type SupportActor } from '@/lib/customer-operations/supportCommand'
+import { publicSupportStaffReference } from './supportStaffAttribution'
 
 const caseSchema = z.object({ id: z.string().uuid(), case_reference: z.string().regex(/^case_[A-Za-z0-9_-]{32}$/), title: z.string().min(1).max(180), status: z.enum(['open', 'waiting_for_customer', 'resolved', 'closed']), revision: z.number().int().nonnegative().safe(), created_at: z.string(), updated_at: z.string() }).strict()
-const messageSchema = z.object({ id: z.string().uuid(), body: z.string().min(1).max(8000), author_kind: z.enum(['customer', 'staff']), channel: z.enum(['ops', 'phone', 'portal', 'api']), revision: z.number().int().positive().safe(), created_at: z.string() }).strict()
+const messageSchema = z.object({ id: z.string().uuid(), body: z.string().min(1).max(8000), author_kind: z.enum(['customer', 'staff']), actor_user_id: z.string().uuid().nullable().optional(), channel: z.enum(['ops', 'phone', 'portal', 'api']), revision: z.number().int().positive().safe(), created_at: z.string() }).strict()
 export type CustomerSupportCase = Omit<z.infer<typeof caseSchema>, 'id'>
-export type CustomerSupportMessage = Omit<z.infer<typeof messageSchema>, 'id'> & { message_reference: string }
+export type CustomerSupportMessage = Omit<z.infer<typeof messageSchema>, 'id' | 'actor_user_id'> & { message_reference: string; author_reference: string | null }
 export type SupportPage = { limit: number; returned: number; has_more: boolean; next_cursor: string | null }
 export type SupportReadContext = { companyId: string; customerId: string; actor: SupportActor }
 function publicCase(row: z.infer<typeof caseSchema>): CustomerSupportCase {
@@ -57,7 +58,8 @@ export async function readCustomerSupportPage(context: SupportReadContext, input
     if (input.reference) {
       const message = row as z.infer<typeof messageSchema>
       return { message_reference: publicReference('case_message', context.companyId, message.id)!, body: message.body,
-        author_kind: message.author_kind, channel: message.channel, revision: message.revision, created_at: message.created_at }
+        author_kind: message.author_kind, author_reference: publicSupportStaffReference(context.companyId, message.author_kind, message.actor_user_id),
+        channel: message.channel, revision: message.revision, created_at: message.created_at }
     }
     const supportCase = row as z.infer<typeof caseSchema>
     if (supportCase.case_reference !== publicReference('case', context.companyId, supportCase.id)) throw new SupportCommandError('support_result_invalid', 503)

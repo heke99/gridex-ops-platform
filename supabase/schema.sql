@@ -2313,6 +2313,100 @@ CREATE TABLE public.customer_addresses (
 );
 
 --
+-- Name: ediel_message_intents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ediel_message_intents (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text DEFAULT 'test'::text NOT NULL,
+    market text DEFAULT 'electricity'::text NOT NULL,
+    message_family text NOT NULL,
+    message_code text NOT NULL,
+    business_process text NOT NULL,
+    direction text DEFAULT 'outbound'::text NOT NULL,
+    sender_ediel_id text NOT NULL,
+    sender_subaddress text,
+    receiver_ediel_id text NOT NULL,
+    receiver_subaddress text,
+    application_reference text NOT NULL,
+    route_profile_id uuid,
+    communication_route_id uuid,
+    certificate_profile_id uuid,
+    customer_id uuid,
+    customer_site_id uuid,
+    grid_owner_information_request_id uuid,
+    supplier_switch_request_id uuid,
+    customer_info_request_id uuid,
+    operation_id uuid,
+    facility_id text,
+    metering_point_id text,
+    grid_area_code text,
+    requested_effective_date date,
+    send_not_before timestamp with time zone,
+    send_window_opens_at timestamp with time zone,
+    send_window_closes_at timestamp with time zone,
+    interchange_reference text NOT NULL,
+    message_reference text NOT NULL,
+    transaction_reference text,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    validation_result jsonb DEFAULT '{}'::jsonb NOT NULL,
+    blocking_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
+    idempotency_key text NOT NULL,
+    expected_rule_version text,
+    expected_field_matrix_version text,
+    ediel_message_id uuid,
+    outbound_request_id uuid,
+    validation_status text DEFAULT 'draft'::text NOT NULL,
+    render_status text DEFAULT 'not_rendered'::text NOT NULL,
+    outbox_status text DEFAULT 'not_queued'::text NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ediel_message_intents_direction_chk CHECK ((direction = ANY (ARRAY['outbound'::text, 'inbound_response'::text]))),
+    CONSTRAINT ediel_message_intents_outbox_status_chk CHECK ((outbox_status = ANY (ARRAY['not_queued'::text, 'queued'::text, 'sent'::text, 'failed'::text]))),
+    CONSTRAINT ediel_message_intents_render_status_chk CHECK ((render_status = ANY (ARRAY['not_rendered'::text, 'rendered'::text, 'failed'::text]))),
+    CONSTRAINT ediel_message_intents_validation_status_chk CHECK ((validation_status = ANY (ARRAY['draft'::text, 'blocked'::text, 'validated'::text])))
+);
+
+--
+-- Name: TABLE ediel_message_intents; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.ediel_message_intents IS 'Mandatory pre-render object for outbound Ediel. Business processes create intents only; RenderGateway validates and renders.';
+
+--
+-- Name: COLUMN ediel_message_intents.application_reference; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_message_intents.application_reference IS 'Policy-driven Application Reference. Route profile may declare an expected value but must not override policy.';
+
+--
+-- Name: COLUMN ediel_message_intents.blocking_reasons; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_message_intents.blocking_reasons IS 'Structured list of blocking reason codes/messages that prevented validation/render/queue.';
+
+--
+-- Name: COLUMN ediel_message_intents.idempotency_key; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_message_intents.idempotency_key IS 'Deterministic key; unique per (company_id, environment) to prevent duplicate intents/outbox.';
+
+--
+-- Name: COLUMN ediel_message_intents.created_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_message_intents.created_by IS 'Optional real user UUID. Null means the intent was created by an automated system process; system provenance belongs in payload/validation metadata.';
+
+--
+-- Name: COLUMN ediel_message_intents.updated_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.ediel_message_intents.updated_by IS 'Optional real user UUID. Null means the latest transition was performed by an automated system process; never store text sentinels in this UUID column.';
+
+--
 -- Name: customer_case_publications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -12644,6 +12738,17 @@ $$;
 COMMENT ON FUNCTION public.gridex_apply_exact_z02_core(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid, p_actor_user_id uuid) IS 'Atomic market-verified Z02 core apply: exact site, metering point, request, grid-owner-data request and inbound message linkage commit together.';
 
 --
+-- Name: gridex_apply_inbound_switch_lifecycle_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_apply_inbound_switch_lifecycle_v1(p_source_message_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid) RETURNS jsonb
+    LANGUAGE sql
+    SET search_path TO 'pg_catalog'
+    AS $$
+  select private.gridex_apply_inbound_switch_lifecycle_v1(p_source_message_id,p_actor_user_id);
+$$;
+
+--
 -- Name: gridex_apply_invoice_provider_event_v1(uuid, uuid, uuid, text, jsonb, text, text, numeric, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13773,6 +13878,55 @@ begin
   end if;
 
   return new;
+end;
+$$;
+
+--
+-- Name: gridex_assess_support_attachment_scan_v1(jsonb, uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assess_support_attachment_scan_v1(p_context jsonb, p_attachment_id uuid, p_trust jsonb, p_witness jsonb DEFAULT NULL::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare lineage jsonb;root private.support_attachment_scanner_roots%rowtype;r private.support_attachment_scan_receipts%rowtype;
+  a public.customer_support_attachments%rowtype;c public.customer_cases%rowtype;selector jsonb;v_reference text;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  if jsonb_typeof(p_context) is distinct from 'object' or exists(select 1 from jsonb_object_keys(p_context) k
+    where k not in ('companyId','customerId','mode','actorUserId','sessionId','clientId','subject')) then
+    raise exception 'invalid_support_scan' using errcode='22023'; end if;
+  if not private.gridex_support_actor_v1(p_context,false) then raise exception 'support_actor_forbidden' using errcode='42501'; end if;
+  select * into a from public.customer_support_attachments where id=p_attachment_id and company_id=(p_context->>'companyId')::uuid
+    and customer_id=(p_context->>'customerId')::uuid and (p_context->>'mode'='ops' or visibility='customer');
+  if not found then raise exception 'support_scan_resource_unavailable' using errcode='P0002'; end if;
+  if p_context->>'mode'='ops' then selector:=jsonb_build_object('caseId',a.customer_case_id);
+  else
+    select public_reference into v_reference from public.customer_support_threads where id=a.customer_case_id
+      and company_id=a.company_id and customer_id=a.customer_id;
+    selector:=jsonb_build_object('caseReference',v_reference);
+  end if;
+  c:=private.gridex_support_attachment_case_v1(p_context,selector,p_context->>'mode'<>'ops');
+  lineage:=private.gridex_support_scan_lineage_v1(a.company_id,a.id);
+  perform 1 from public.customer_support_attachments where id=p_attachment_id and company_id=(p_context->>'companyId')::uuid
+    and customer_id=(p_context->>'customerId')::uuid and customer_case_id=c.id
+    and (p_context->>'mode'='ops' or visibility='customer') for share;
+  if not found or lineage->>'caseId' is distinct from c.id::text then
+    raise exception 'support_scan_resource_unavailable' using errcode='P0002'; end if;
+  root:=private.gridex_support_scanner_root_v1(a.company_id,p_trust);
+  if p_witness is not null and p_witness is distinct from jsonb_build_object('objectId',lineage->'objectId',
+    'objectVersion',lineage->'objectVersion','objectUpdatedAt',lineage->'objectUpdatedAt','sha256',lineage->'sha256','byteSize',lineage->'byteSize') then
+    raise exception 'support_scan_object_changed' using errcode='23503'; end if;
+  select * into r from private.support_attachment_scan_receipts where company_id=a.company_id and attachment_id=a.id
+    and binding-array['nonceId','issuedAt','expiresAt','issuerHash','subjectHash','keyHash']=lineage
+    and binding->>'issuerHash'=root.issuer_hash and binding->>'subjectHash'=root.subject_hash and binding->>'keyHash'=root.key_hash
+    order by recorded_at desc,nonce_id limit 1;
+  if not private.gridex_support_clock_active_v1(p_context)
+    or (root.valid_until is not null and root.valid_until<=clock_timestamp()) then
+    raise exception 'support_actor_forbidden' using errcode='42501'; end if;
+  return jsonb_build_object('binding',lineage,'verdict',r.verdict,'releaseAllowed',false,'quarantine','quarantined',
+    'physicalHashVerified',p_witness is not null,'outcome',case when r.nonce_id is null then 'blocked_unscanned'
+      when r.verdict<>'clean' then 'blocked_scan_verdict' else 'blocked_provider_qualification' end);
 end;
 $$;
 
@@ -15496,6 +15650,31 @@ end;
 $$;
 
 --
+-- Name: gridex_bind_support_attachment_scan_claim_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_bind_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_nonce_id uuid) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare j private.support_attachment_scan_jobs%rowtype;ch private.support_attachment_scan_challenges%rowtype;lineage jsonb;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  select * into j from private.support_attachment_scan_jobs where scan_intent_id=p_intent_id;
+  if not found then raise exception 'support_scan_claim_unavailable' using errcode='42501'; end if;
+  lineage:=private.gridex_support_scan_job_source_v1(j.scan_intent_id,j.company_id,j.attachment_id,j.source_binding);
+  select * into ch from private.support_attachment_scan_challenges where nonce_id=p_nonce_id and company_id=j.company_id and attachment_id=j.attachment_id for share;
+  if not found or ch.consumed_at is not null or ch.expires_at<=floor(extract(epoch from clock_timestamp()))::bigint
+    or ch.binding-array['nonceId','issuedAt','expiresAt','issuerHash','subjectHash','keyHash'] is distinct from lineage then
+    raise exception 'support_scan_nonce_unavailable' using errcode='42501'; end if;
+  update private.support_attachment_scan_jobs set scan_nonce_id=p_nonce_id,updated_at=clock_timestamp()
+    where scan_intent_id=p_intent_id and status='processing' and claim_token=p_claim_token and claim_expires_at>clock_timestamp()
+      and (scan_nonce_id is null or scan_nonce_id=p_nonce_id);
+  if not found then raise exception 'support_scan_claim_unavailable' using errcode='42501'; end if;
+  return true;
+end;$$;
+
+--
 -- Name: gridex_block_contract_price_snapshot_mutation(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -17104,6 +17283,27 @@ end;
 $_$;
 
 --
+-- Name: gridex_check_ediel_resume_claim_v1(uuid, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_check_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'private'
+    AS $$
+declare v_intent public.ediel_message_intents%rowtype;v_lease private.ediel_resume_claims%rowtype;
+begin
+ if current_user<>'service_role' then raise exception 'ediel_resume_service_required' using errcode='42501';end if;
+ perform 1 from public.companies c where c.id=p_company_id and c.status in('active','onboarding')for share;
+ if not found then return false;end if;
+ select * into v_intent from public.ediel_message_intents i where i.id=p_intent_id and i.company_id=p_company_id for update;
+ if not found or not private.gridex_ediel_resume_phase_eligible_v1(v_intent,p_phase) then return false;end if;
+ select * into v_lease from private.ediel_resume_claims l where l.intent_id=p_intent_id and l.company_id=p_company_id for update;
+ if not found then return false;end if;
+ return coalesce(v_lease.phase=p_phase and v_lease.claim_token=p_claim_token and v_lease.finished_at is null
+  and v_lease.expires_at>=clock_timestamp() and v_lease.intent_updated_at=v_intent.updated_at,false);
+end;$$;
+
+--
 -- Name: gridex_claim_approved_invoice_retries_fair_v1(uuid, integer, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -17305,6 +17505,62 @@ end;
 $$;
 
 --
+-- Name: gridex_claim_ediel_resume_intents_fair_v1(text, uuid, integer, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_claim_ediel_resume_intents_fair_v1(p_phase text, p_company_id uuid, p_limit integer, p_claim_token uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'private'
+    AS $$
+declare v_now timestamptz:=clock_timestamp();v_limit integer:=greatest(1,least(coalesce(p_limit,10),100));v_result jsonb;
+begin
+ if current_user<>'service_role' then raise exception 'ediel_resume_service_required' using errcode='42501';end if;
+ if p_phase not in('validated','draft') or p_phase is null or p_claim_token is null then raise exception 'ediel_resume_claim_invalid' using errcode='22023';end if;
+ with due as materialized(
+  select i.company_id,min(i.updated_at) as oldest_due from public.ediel_message_intents i join public.companies c on c.id=i.company_id
+  where c.status in('active','onboarding') and(p_company_id is null or i.company_id=p_company_id)
+   and private.gridex_ediel_resume_phase_eligible_v1(i,p_phase)
+   and not exists(select 1 from private.ediel_resume_claims l where l.intent_id=i.id and l.finished_at is null and l.expires_at>=v_now)
+  group by i.company_id
+ ), tenants as materialized(
+  select d.*,t.last_claimed_at from due d join public.companies c on c.id=d.company_id
+  left join private.ediel_resume_tenant_turns t on t.company_id=d.company_id and t.phase=p_phase
+  where c.status in('active','onboarding') order by t.last_claimed_at nulls first,d.oldest_due,d.company_id
+  limit v_limit for share of c skip locked
+ ), candidates as materialized(
+  select i.id,tenants.company_id,tenants.oldest_due,tenants.last_claimed_at,i.updated_at,
+   row_number()over(partition by tenants.company_id order by i.updated_at,i.id) as tenant_rank
+  from tenants cross join lateral(
+   select i.id,i.updated_at from public.ediel_message_intents i where i.company_id=tenants.company_id
+    and private.gridex_ediel_resume_phase_eligible_v1(i,p_phase)
+    and not exists(select 1 from private.ediel_resume_claims l where l.intent_id=i.id and l.finished_at is null and l.expires_at>=v_now)
+   order by i.updated_at,i.id limit least(v_limit,5) for update of i skip locked
+  )i
+ ), chosen as materialized(
+  select * from candidates order by tenant_rank,last_claimed_at nulls first,oldest_due,company_id,updated_at,id limit v_limit
+ ), leases as(
+  insert into private.ediel_resume_claims(intent_id,company_id,phase,claim_token,claimed_at,expires_at,intent_updated_at)
+   select id,company_id,p_phase,p_claim_token,v_now,v_now+interval '10 minutes',updated_at from chosen
+  on conflict(intent_id)do update set phase=excluded.phase,claim_token=excluded.claim_token,claimed_at=excluded.claimed_at,
+   expires_at=excluded.expires_at,intent_updated_at=excluded.intent_updated_at,finished_at=null,outcome=null,failure_reason=null
+   where ediel_resume_claims.company_id=excluded.company_id
+    and(ediel_resume_claims.finished_at is not null or ediel_resume_claims.expires_at<v_now)
+  returning intent_id,company_id,claim_token,expires_at
+ ), turns as(
+  insert into private.ediel_resume_tenant_turns(phase,company_id,last_claimed_at)
+   select distinct p_phase,l.company_id,v_now from leases l order by l.company_id
+  on conflict(phase,company_id)do update set last_claimed_at=greatest(ediel_resume_tenant_turns.last_claimed_at,excluded.last_claimed_at)
+  returning company_id
+ )
+ select coalesce(jsonb_agg(jsonb_build_object('intent',to_jsonb(i),'phase',p_phase,'claimToken',l.claim_token,'expiresAt',l.expires_at)
+  order by ch.tenant_rank,ch.last_claimed_at nulls first,ch.oldest_due,ch.company_id,ch.updated_at,ch.id),'[]'::jsonb)
+ into v_result from leases l join chosen ch on ch.id=l.intent_id and ch.company_id=l.company_id
+ join public.ediel_message_intents i on i.id=l.intent_id and i.company_id=l.company_id cross join(select count(*)from turns)persisted;
+ if clock_timestamp()>=v_now+interval '10 minutes' then raise exception 'ediel_resume_claim_expired' using errcode='42501';end if;
+ return v_result;
+end;$$;
+
+--
 -- Name: invoice_provider_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -17411,6 +17667,56 @@ begin
   return query select v_job.id,true,v_job.status,v_job.attempt_count,v_job.correlation_id;
 end;
 $$;
+
+--
+-- Name: gridex_claim_support_attachment_scans_v1(uuid, integer, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_claim_support_attachment_scans_v1(p_company_id uuid, p_limit integer, p_claim_token uuid) RETURNS SETOF jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare v_now timestamptz:=clock_timestamp();
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  if p_limit is null or p_limit not between 1 and 20 or p_claim_token is null then raise exception 'invalid_support_scan' using errcode='22023'; end if;
+  -- One namespace mutex also serializes first seed/turn updates across workers.
+  perform pg_advisory_xact_lock(hashtextextended('support_attachment_scan_consumer_v1',0));
+  with stale as (select scan_intent_id from private.support_attachment_scan_jobs
+    where status='processing' and claim_expires_at<=v_now and (p_company_id is null or company_id=p_company_id)
+    order by claim_expires_at,scan_intent_id limit 20 for update skip locked)
+  update private.support_attachment_scan_jobs j set status='needs_review',claim_token=null,claimed_at=null,claim_expires_at=null,
+    last_reason='scan_claim_expired_no_automatic_redispatch',updated_at=v_now from stale where j.scan_intent_id=stale.scan_intent_id;
+  with intents as (
+    select o.*,row_number()over(partition by o.company_id order by o.created_at,o.id) as tenant_rank,t.last_claimed_at
+    from public.canonical_event_outbox o join public.customer_support_attachments a on a.company_id=o.company_id
+      and a.id::text=o.payload->>'attachmentId' and a.customer_id::text=o.payload->>'customerId' and a.customer_case_id::text=o.payload->>'caseId'
+    join public.companies c on c.id=o.company_id and c.is_active and c.status='active'
+    left join private.support_attachment_scan_turns t on t.company_id=o.company_id
+    where o.topic='customer.support.attachment.scan_requested' and o.available_at<=v_now and a.uploaded_at is not null
+      and (p_company_id is null or o.company_id=p_company_id)
+      and not exists(select 1 from private.support_attachment_scan_jobs j where j.scan_intent_id=o.id)
+  ), chosen as(select * from intents where tenant_rank<=5 order by tenant_rank,last_claimed_at nulls first,created_at,id limit 100)
+  insert into private.support_attachment_scan_jobs(scan_intent_id,company_id,attachment_id,source_binding,available_at)
+    select id,company_id,(payload->>'attachmentId')::uuid,jsonb_build_object('companyId',company_id,'domainEventId',domain_event_id,
+      'topic',topic,'idempotencyKey',idempotency_key,'payload',payload),available_at from chosen on conflict(scan_intent_id)do nothing;
+  return query with ranked as(
+    select j.scan_intent_id,row_number()over(partition by j.company_id order by j.available_at,j.scan_intent_id) as tenant_rank,t.last_claimed_at
+    from private.support_attachment_scan_jobs j join public.companies c on c.id=j.company_id and c.is_active and c.status='active'
+    left join private.support_attachment_scan_turns t on t.company_id=j.company_id
+    where j.status in ('queued','blocked_scanner_qualification') and j.available_at<=v_now and j.claim_count<1000000
+      and (p_company_id is null or j.company_id=p_company_id)
+  ),chosen as(select j.scan_intent_id from private.support_attachment_scan_jobs j join ranked r using(scan_intent_id)
+    where r.tenant_rank<=5 order by r.tenant_rank,r.last_claimed_at nulls first,j.available_at,j.scan_intent_id
+    limit p_limit for update of j skip locked),applied as(
+    update private.support_attachment_scan_jobs j set status='processing',claim_token=p_claim_token,claimed_at=v_now,
+      claim_expires_at=v_now+interval '5 minutes',claim_count=claim_count+1,last_reason=null,updated_at=v_now
+    from chosen where j.scan_intent_id=chosen.scan_intent_id and j.status in ('queued','blocked_scanner_qualification') returning j.*
+  ),turns as(insert into private.support_attachment_scan_turns(company_id,last_claimed_at)
+    select distinct company_id,v_now from applied on conflict(company_id)do update set last_claimed_at=excluded.last_claimed_at returning company_id)
+  select jsonb_build_object('scanIntentId',a.scan_intent_id,'companyId',a.company_id,'attachmentId',a.attachment_id,'claimToken',a.claim_token)
+    from applied a join turns using(company_id) order by a.available_at,a.scan_intent_id;
+end;$$;
 
 --
 -- Name: tenant_email_outbox; Type: TABLE; Schema: public; Owner: -
@@ -18441,6 +18747,40 @@ begin
       'claimed_price_area_code',p_metadata->>'claimed_price_area_code','derived_context_invalidated',v_address_changed));
 end;
 $$;
+
+--
+-- Name: gridex_commit_support_attachment_scan_callback_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_commit_support_attachment_scan_callback_v1(p_nonce_id uuid, p_claim_token uuid, p_proof jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare j private.support_attachment_scan_jobs%rowtype;r jsonb;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  select * into j from private.support_attachment_scan_jobs where scan_nonce_id=p_nonce_id;
+  if not found or j.status not in ('processing','evidence_recorded')
+    or (j.status='processing' and (j.claim_token is distinct from p_claim_token or j.claim_expires_at<=clock_timestamp()))
+    or (j.status='evidence_recorded' and p_claim_token is not null) then
+    raise exception 'support_scan_claim_unavailable' using errcode='42501'; end if;
+  -- Existing owner reacquires lineage/root/nonce and enforces exact proof/replay.
+  -- Its receipt and this completion share the same outer transaction.
+  perform private.gridex_support_scan_job_source_v1(j.scan_intent_id,j.company_id,j.attachment_id,j.source_binding);
+  r:=public.gridex_record_support_attachment_scan_v1(p_nonce_id,p_proof);
+  select * into j from private.support_attachment_scan_jobs where scan_nonce_id=p_nonce_id for update;
+  if j.status='processing' then
+    perform public.gridex_finish_support_attachment_scan_claim_v1(j.scan_intent_id,p_claim_token,'evidence_recorded');
+  elsif j.status<>'evidence_recorded' or r->>'replayed' is distinct from 'true' then
+    raise exception 'support_scan_claim_unavailable' using errcode='42501';
+  end if;
+  -- A later job lock/trigger wait belongs to this transaction too. Recheck the
+  -- current root, exact nonce/lineage and signed expiry after its final write.
+  perform public.gridex_get_support_attachment_scan_callback_v1(p_nonce_id);
+  if (p_proof->>'expiresAt')::bigint<=floor(extract(epoch from clock_timestamp()))::bigint then
+    raise exception 'support_scan_proof_expired' using errcode='42501'; end if;
+  return r||jsonb_build_object('outcome','blocked_scanner_qualification','releaseAllowed',false);
+end;$$;
 
 --
 -- Name: gridex_commit_website_portal_identity(); Type: FUNCTION; Schema: public; Owner: -
@@ -28037,6 +28377,86 @@ end
 $$;
 
 --
+-- Name: gridex_finish_ediel_resume_claim_v1(uuid, uuid, text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finish_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid, p_outcome text, p_reason text DEFAULT NULL::text) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'private'
+    AS $_$
+declare v_lease private.ediel_resume_claims%rowtype;v_now timestamptz;
+begin
+ if current_user<>'service_role' then raise exception 'ediel_resume_service_required' using errcode='42501';end if;
+ if p_outcome is null or p_outcome not in('processed','failed','skipped') or(p_reason is not null and p_reason!~'^[a-z0-9_]{1,80}$')
+  then raise exception 'ediel_resume_completion_invalid' using errcode='22023';end if;
+ perform 1 from public.companies c where c.id=p_company_id and c.status in('active','onboarding')for share;
+ if not found then return false;end if;
+ perform 1 from public.ediel_message_intents i where i.id=p_intent_id and i.company_id=p_company_id for update;
+ if not found then return false;end if;
+ select * into v_lease from private.ediel_resume_claims l where l.intent_id=p_intent_id and l.company_id=p_company_id for update;
+ v_now:=clock_timestamp();
+ if not found or v_lease.phase is distinct from p_phase or v_lease.claim_token is distinct from p_claim_token
+  or v_lease.finished_at is not null or v_lease.expires_at<v_now then return false;end if;
+ update private.ediel_resume_claims set finished_at=v_now,outcome=p_outcome,failure_reason=p_reason where intent_id=p_intent_id;
+ if clock_timestamp()>v_lease.expires_at then raise exception 'ediel_resume_claim_expired' using errcode='42501';end if;
+ return true;
+end;$_$;
+
+--
+-- Name: gridex_finish_support_attachment_read_v1(jsonb, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finish_support_attachment_read_v1(p_context jsonb, p_nonce_id uuid, p_witness jsonb DEFAULT NULL::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare n private.support_attachment_read_nonces%rowtype;lineage jsonb;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  select * into n from private.support_attachment_read_nonces where nonce_id=p_nonce_id;
+  if not found or n.actor_context is distinct from p_context then raise exception 'support_attachment_read_nonce_unavailable' using errcode='42501'; end if;
+  lineage:=private.gridex_support_attachment_read_owner_v1(p_context,n.attachment_id);
+  select * into n from private.support_attachment_read_nonces where nonce_id=p_nonce_id for update;
+  if n.actor_context is distinct from p_context or n.binding is distinct from lineage or n.consumed_at is not null
+    or n.expires_at<=floor(extract(epoch from clock_timestamp()))::bigint then
+    raise exception 'support_attachment_read_nonce_unavailable' using errcode='42501'; end if;
+  if p_witness is not null and p_witness is distinct from jsonb_build_object('objectId',lineage->'objectId',
+    'objectVersion',lineage->'objectVersion','objectUpdatedAt',lineage->'objectUpdatedAt','sha256',lineage->'sha256','byteSize',lineage->'byteSize') then
+    raise exception 'support_scan_object_changed' using errcode='23503'; end if;
+  update private.support_attachment_read_nonces set consumed_at=clock_timestamp() where nonce_id=p_nonce_id;
+  if not private.gridex_support_clock_active_v1(p_context) or n.expires_at<=floor(extract(epoch from clock_timestamp()))::bigint then
+    raise exception 'support_attachment_read_nonce_unavailable' using errcode='42501'; end if;
+  return jsonb_build_object('releaseAllowed',false,'outcome','blocked_scanner_qualification','physicalHashVerified',p_witness is not null);
+end;$$;
+
+--
+-- Name: gridex_finish_support_attachment_scan_claim_v1(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finish_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_outcome text) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare j private.support_attachment_scan_jobs%rowtype;lineage jsonb;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  if p_outcome is null or p_outcome not in ('blocked_scanner_qualification','evidence_recorded','needs_review') then
+    raise exception 'invalid_support_scan' using errcode='22023'; end if;
+  select * into j from private.support_attachment_scan_jobs where scan_intent_id=p_intent_id;
+  if not found then raise exception 'support_scan_claim_unavailable' using errcode='42501'; end if;
+  lineage:=private.gridex_support_scan_job_source_v1(j.scan_intent_id,j.company_id,j.attachment_id,j.source_binding);
+  if p_outcome='evidence_recorded' and not exists(select 1 from private.support_attachment_scan_receipts
+    where nonce_id=j.scan_nonce_id and company_id=j.company_id and attachment_id=j.attachment_id
+      and binding-array['nonceId','issuedAt','expiresAt','issuerHash','subjectHash','keyHash']=lineage) then
+    raise exception 'support_scan_receipt_required' using errcode='42501'; end if;
+  update private.support_attachment_scan_jobs set status=p_outcome,claim_token=null,claimed_at=null,claim_expires_at=null,
+    available_at=clock_timestamp()+interval '5 minutes',last_reason=p_outcome,updated_at=clock_timestamp()
+    where scan_intent_id=p_intent_id and status='processing' and claim_token=p_claim_token and claim_expires_at>clock_timestamp();
+  if not found then raise exception 'support_scan_claim_unavailable' using errcode='42501'; end if;
+  return true;
+end;$$;
+
+--
 -- Name: gridex_fk_reference_blockers(regclass, uuid[], text[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -29491,6 +29911,52 @@ CREATE FUNCTION public.gridex_get_facility_work_queue(p_company_id uuid, p_limit
     created_at desc nulls last
   limit greatest(1, least(coalesce(p_limit, 200), 500))
 $$;
+
+--
+-- Name: gridex_get_support_attachment_read_nonce_v1(jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_get_support_attachment_read_nonce_v1(p_context jsonb, p_nonce_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare n private.support_attachment_read_nonces%rowtype;lineage jsonb;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  select * into n from private.support_attachment_read_nonces where nonce_id=p_nonce_id;
+  if not found or n.actor_context is distinct from p_context then raise exception 'support_attachment_read_nonce_unavailable' using errcode='42501'; end if;
+  lineage:=private.gridex_support_attachment_read_owner_v1(p_context,n.attachment_id);
+  select * into n from private.support_attachment_read_nonces where nonce_id=p_nonce_id for share;
+  if n.actor_context is distinct from p_context or n.binding is distinct from lineage or n.consumed_at is not null
+    or n.expires_at<=floor(extract(epoch from clock_timestamp()))::bigint then
+    raise exception 'support_attachment_read_nonce_unavailable' using errcode='42501'; end if;
+  return jsonb_build_object('nonceId',n.nonce_id,'issuedAt',n.issued_at,'expiresAt',n.expires_at,'binding',lineage,'releaseAllowed',false);
+end;$$;
+
+--
+-- Name: gridex_get_support_attachment_scan_callback_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_get_support_attachment_scan_callback_v1(p_nonce_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare j private.support_attachment_scan_jobs%rowtype;ch private.support_attachment_scan_challenges%rowtype;lineage jsonb;r private.support_attachment_scanner_roots%rowtype;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  select * into j from private.support_attachment_scan_jobs where scan_nonce_id=p_nonce_id;
+  if not found or j.status not in ('processing','evidence_recorded') or (j.status='processing' and j.claim_expires_at<=clock_timestamp()) then
+    raise exception 'support_scan_claim_unavailable' using errcode='42501'; end if;
+  lineage:=private.gridex_support_scan_job_source_v1(j.scan_intent_id,j.company_id,j.attachment_id,j.source_binding);
+  select * into ch from private.support_attachment_scan_challenges where nonce_id=p_nonce_id for share;
+  if not found or ch.expires_at<=floor(extract(epoch from clock_timestamp()))::bigint
+    or ch.binding-array['nonceId','issuedAt','expiresAt','issuerHash','subjectHash','keyHash'] is distinct from lineage then
+    raise exception 'support_scan_nonce_unavailable' using errcode='42501'; end if;
+  r:=private.gridex_support_scanner_root_v1(j.company_id,jsonb_build_object('issuerHash',ch.binding->>'issuerHash',
+    'subjectHash',ch.binding->>'subjectHash','keyHash',ch.binding->>'keyHash'));
+  if r.valid_until is not null and r.valid_until<=clock_timestamp() then raise exception 'support_scanner_unavailable' using errcode='42501'; end if;
+  return jsonb_build_object('challenge',ch.binding,'scanIntentId',j.scan_intent_id,'claimToken',j.claim_token,'status',j.status);
+end;$$;
 
 --
 -- Name: gridex_get_user_permissions(uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -37631,6 +38097,31 @@ begin
 end $$;
 
 --
+-- Name: gridex_prepare_support_attachment_read_v1(jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_prepare_support_attachment_read_v1(p_context jsonb, p_attachment_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare lineage jsonb;v_now bigint;v_nonce uuid:=gen_random_uuid();
+begin
+  lineage:=private.gridex_support_attachment_read_owner_v1(p_context,p_attachment_id);
+  perform pg_advisory_xact_lock(hashtextextended((p_context->>'companyId')||':support-attachment-read',0));
+  v_now:=floor(extract(epoch from clock_timestamp()))::bigint;
+  if (select count(*) from private.support_attachment_read_nonces where company_id=(p_context->>'companyId')::uuid
+    and expires_at>v_now and consumed_at is null)>=1000
+    or (select count(*) from private.support_attachment_read_nonces where company_id=(p_context->>'companyId')::uuid
+      and actor_context-array['customerId','sessionId']=p_context-array['customerId','sessionId'] and issued_at>v_now-60)>=20 then
+    raise exception 'support_attachment_read_limit' using errcode='54000'; end if;
+  insert into private.support_attachment_read_nonces(nonce_id,company_id,attachment_id,actor_context,binding,issued_at,expires_at)
+    values(v_nonce,(p_context->>'companyId')::uuid,p_attachment_id,p_context,lineage,v_now,v_now+60);
+  if not private.gridex_support_clock_active_v1(p_context) or v_now+60<=floor(extract(epoch from clock_timestamp()))::bigint then
+    raise exception 'support_actor_forbidden' using errcode='42501'; end if;
+  return jsonb_build_object('nonceId',v_nonce,'issuedAt',v_now,'expiresAt',v_now+60,'binding',lineage,'releaseAllowed',false);
+end;$$;
+
+--
 -- Name: gridex_prevent_locked_portfolio_price_mutation(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -41754,6 +42245,70 @@ BEGIN
 END $$;
 
 --
+-- Name: gridex_record_support_attachment_scan_v1(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_support_attachment_scan_v1(p_nonce_id uuid, p_proof jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+declare ch private.support_attachment_scan_challenges%rowtype;r private.support_attachment_scan_receipts%rowtype;
+  root private.support_attachment_scanner_roots%rowtype;lineage jsonb;proof_hash text;v_now bigint;
+begin
+  if current_user<>'service_role' then raise exception 'support_scan_service_required' using errcode='42501'; end if;
+  if jsonb_typeof(p_proof) is distinct from 'object' or (select count(*) from jsonb_object_keys(p_proof))<>11
+    or exists(select 1 from jsonb_object_keys(p_proof) k where k not in
+      ('issuerHash','subjectHash','keyHash','nonceHash','issuedAt','expiresAt','bindingJson','requestHash','verdict','physicalSha256','physicalByteSize'))
+    or coalesce(p_proof->>'verdict','') not in ('clean','malicious','unknown')
+    or coalesce(p_proof->>'requestHash','')!~'^[0-9a-f]{64}$'
+    or coalesce(p_proof->>'nonceHash','')!~'^[0-9a-f]{64}$'
+    or jsonb_typeof(p_proof->'issuedAt') is distinct from 'number' or coalesce(p_proof->>'issuedAt','')!~'^[0-9]{1,12}$'
+    or jsonb_typeof(p_proof->'expiresAt') is distinct from 'number' or coalesce(p_proof->>'expiresAt','')!~'^[0-9]{1,12}$'
+    or jsonb_typeof(p_proof->'physicalByteSize') is distinct from 'number'
+    or coalesce(p_proof->>'physicalByteSize','')!~'^[1-9][0-9]{0,6}$'
+    or p_proof->>'bindingJson' is null or length(p_proof->>'bindingJson')>8192 then
+    raise exception 'invalid_support_scan' using errcode='22023'; end if;
+  select * into ch from private.support_attachment_scan_challenges where nonce_id=p_nonce_id;
+  if not found then raise exception 'support_scan_nonce_unavailable' using errcode='42501'; end if;
+  -- Consistent lock order: current lineage -> current root -> challenge.
+  lineage:=private.gridex_support_scan_lineage_v1(ch.company_id,ch.attachment_id);
+  root:=private.gridex_support_scanner_root_v1(ch.company_id,jsonb_build_object('issuerHash',p_proof->>'issuerHash',
+    'subjectHash',p_proof->>'subjectHash','keyHash',p_proof->>'keyHash'));
+  select * into ch from private.support_attachment_scan_challenges where nonce_id=p_nonce_id for update;
+  if ch.binding-array['nonceId','issuedAt','expiresAt','issuerHash','subjectHash','keyHash'] is distinct from lineage
+    or ch.binding->>'issuerHash' is distinct from root.issuer_hash or ch.binding->>'subjectHash' is distinct from root.subject_hash
+    or ch.binding->>'keyHash' is distinct from root.key_hash or (p_proof->>'bindingJson')::jsonb is distinct from ch.binding
+    or encode(extensions.digest(p_proof->>'bindingJson','sha256'),'hex') is distinct from p_proof->>'requestHash'
+    or encode(extensions.digest(ch.nonce_id::text,'sha256'),'hex') is distinct from p_proof->>'nonceHash'
+    or p_proof->>'physicalSha256' is distinct from lineage->>'sha256'
+    or p_proof->>'physicalByteSize' is distinct from lineage->>'byteSize' then
+    raise exception 'support_scan_binding_conflict' using errcode='23505'; end if;
+  v_now:=floor(extract(epoch from clock_timestamp()))::bigint;
+  if (p_proof->>'issuedAt')::bigint<ch.issued_at or (p_proof->>'issuedAt')::bigint>v_now
+    or (p_proof->>'expiresAt')::bigint>ch.expires_at or (p_proof->>'expiresAt')::bigint<=(p_proof->>'issuedAt')::bigint
+    or (p_proof->>'expiresAt')::bigint<=v_now or ch.expires_at<=v_now
+    or (root.valid_until is not null and root.valid_until<=clock_timestamp()) then
+    raise exception 'support_scan_proof_expired' using errcode='42501'; end if;
+  proof_hash:=public.canonical_json_sha256(p_proof);
+  select * into r from private.support_attachment_scan_receipts where nonce_id=p_nonce_id;
+  if found then
+    if r.proof_hash is distinct from proof_hash then raise exception 'support_scan_binding_conflict' using errcode='23505'; end if;
+    return jsonb_build_object('nonceId',p_nonce_id,'attachmentId',ch.attachment_id,'verdict',r.verdict,
+      'outcome','blocked_provider_qualification','releaseAllowed',false,'replayed',true);
+  end if;
+  if ch.consumed_at is not null then raise exception 'support_scan_nonce_unavailable' using errcode='42501'; end if;
+  insert into private.support_attachment_scan_receipts(nonce_id,attachment_id,company_id,verdict,proof_hash,proof,binding)
+    values(p_nonce_id,ch.attachment_id,ch.company_id,p_proof->>'verdict',proof_hash,p_proof,ch.binding);
+  update private.support_attachment_scan_challenges set consumed_at=clock_timestamp() where nonce_id=p_nonce_id;
+  if (p_proof->>'expiresAt')::bigint<=floor(extract(epoch from clock_timestamp()))::bigint
+    or (root.valid_until is not null and root.valid_until<=clock_timestamp()) then
+    raise exception 'support_scan_proof_expired' using errcode='42501'; end if;
+  return jsonb_build_object('nonceId',p_nonce_id,'attachmentId',ch.attachment_id,'verdict',p_proof->>'verdict',
+    'outcome','blocked_provider_qualification','releaseAllowed',false,'replayed',false);
+end;
+$_$;
+
+--
 -- Name: gridex_refresh_actor_certificate_statuses(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -43590,6 +44145,42 @@ begin
   select array_agg(distinct x order by x) into v_modules from unnest(v_modules) x;
   return coalesce(v_modules,array[]::text[]);
 end $$;
+
+--
+-- Name: gridex_reserve_support_attachment_scan_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_reserve_support_attachment_scan_v1(p_company_id uuid, p_attachment_id uuid, p_trust jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare v_lineage jsonb;v_root private.support_attachment_scanner_roots%rowtype;
+  v_challenge private.support_attachment_scan_challenges%rowtype;v_nonce uuid:=gen_random_uuid();v_now bigint;
+begin
+  v_lineage:=private.gridex_support_scan_lineage_v1(p_company_id,p_attachment_id);
+  v_root:=private.gridex_support_scanner_root_v1(p_company_id,p_trust);
+  perform pg_advisory_xact_lock(hashtextextended(p_company_id::text||':scan:'||p_attachment_id::text,0));
+  v_now:=floor(extract(epoch from clock_timestamp()))::bigint;
+  select * into v_challenge from private.support_attachment_scan_challenges where company_id=p_company_id
+    and attachment_id=p_attachment_id and consumed_at is null and expires_at>v_now
+    and binding-array['nonceId','issuedAt','expiresAt','issuerHash','subjectHash','keyHash']=v_lineage
+    and binding->>'issuerHash'=v_root.issuer_hash and binding->>'subjectHash'=v_root.subject_hash and binding->>'keyHash'=v_root.key_hash
+    order by issued_at desc,nonce_id limit 1 for update;
+  v_now:=floor(extract(epoch from clock_timestamp()))::bigint;
+  if v_root.valid_until is not null and v_root.valid_until<=clock_timestamp() then
+    raise exception 'support_scanner_unavailable' using errcode='42501'; end if;
+  if found and v_challenge.expires_at>v_now then return v_challenge.binding; end if;
+  v_lineage:=v_lineage||jsonb_build_object('nonceId',v_nonce,'issuedAt',v_now,'expiresAt',v_now+300,
+    'issuerHash',v_root.issuer_hash,'subjectHash',v_root.subject_hash,'keyHash',v_root.key_hash);
+  insert into private.support_attachment_scan_challenges(nonce_id,attachment_id,company_id,binding,issued_at,expires_at)
+    values(v_nonce,p_attachment_id,p_company_id,v_lineage,v_now,v_now+300);
+  if v_root.valid_until is not null and v_root.valid_until<=clock_timestamp() then
+    raise exception 'support_scanner_unavailable' using errcode='42501'; end if;
+  if v_now+300<=floor(extract(epoch from clock_timestamp()))::bigint then
+    raise exception 'support_scan_proof_expired' using errcode='42501'; end if;
+  return v_lineage;
+end;
+$$;
 
 --
 -- Name: gridex_resolve_contract_lifecycle_graph(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -62656,100 +63247,6 @@ CREATE TABLE public.ediel_message_events (
 );
 
 --
--- Name: ediel_message_intents; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.ediel_message_intents (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    environment text DEFAULT 'test'::text NOT NULL,
-    market text DEFAULT 'electricity'::text NOT NULL,
-    message_family text NOT NULL,
-    message_code text NOT NULL,
-    business_process text NOT NULL,
-    direction text DEFAULT 'outbound'::text NOT NULL,
-    sender_ediel_id text NOT NULL,
-    sender_subaddress text,
-    receiver_ediel_id text NOT NULL,
-    receiver_subaddress text,
-    application_reference text NOT NULL,
-    route_profile_id uuid,
-    communication_route_id uuid,
-    certificate_profile_id uuid,
-    customer_id uuid,
-    customer_site_id uuid,
-    grid_owner_information_request_id uuid,
-    supplier_switch_request_id uuid,
-    customer_info_request_id uuid,
-    operation_id uuid,
-    facility_id text,
-    metering_point_id text,
-    grid_area_code text,
-    requested_effective_date date,
-    send_not_before timestamp with time zone,
-    send_window_opens_at timestamp with time zone,
-    send_window_closes_at timestamp with time zone,
-    interchange_reference text NOT NULL,
-    message_reference text NOT NULL,
-    transaction_reference text,
-    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    validation_result jsonb DEFAULT '{}'::jsonb NOT NULL,
-    blocking_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    idempotency_key text NOT NULL,
-    expected_rule_version text,
-    expected_field_matrix_version text,
-    ediel_message_id uuid,
-    outbound_request_id uuid,
-    validation_status text DEFAULT 'draft'::text NOT NULL,
-    render_status text DEFAULT 'not_rendered'::text NOT NULL,
-    outbox_status text DEFAULT 'not_queued'::text NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT ediel_message_intents_direction_chk CHECK ((direction = ANY (ARRAY['outbound'::text, 'inbound_response'::text]))),
-    CONSTRAINT ediel_message_intents_outbox_status_chk CHECK ((outbox_status = ANY (ARRAY['not_queued'::text, 'queued'::text, 'sent'::text, 'failed'::text]))),
-    CONSTRAINT ediel_message_intents_render_status_chk CHECK ((render_status = ANY (ARRAY['not_rendered'::text, 'rendered'::text, 'failed'::text]))),
-    CONSTRAINT ediel_message_intents_validation_status_chk CHECK ((validation_status = ANY (ARRAY['draft'::text, 'blocked'::text, 'validated'::text])))
-);
-
---
--- Name: TABLE ediel_message_intents; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.ediel_message_intents IS 'Mandatory pre-render object for outbound Ediel. Business processes create intents only; RenderGateway validates and renders.';
-
---
--- Name: COLUMN ediel_message_intents.application_reference; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_message_intents.application_reference IS 'Policy-driven Application Reference. Route profile may declare an expected value but must not override policy.';
-
---
--- Name: COLUMN ediel_message_intents.blocking_reasons; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_message_intents.blocking_reasons IS 'Structured list of blocking reason codes/messages that prevented validation/render/queue.';
-
---
--- Name: COLUMN ediel_message_intents.idempotency_key; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_message_intents.idempotency_key IS 'Deterministic key; unique per (company_id, environment) to prevent duplicate intents/outbox.';
-
---
--- Name: COLUMN ediel_message_intents.created_by; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_message_intents.created_by IS 'Optional real user UUID. Null means the intent was created by an automated system process; system provenance belongs in payload/validation metadata.';
-
---
--- Name: COLUMN ediel_message_intents.updated_by; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.ediel_message_intents.updated_by IS 'Optional real user UUID. Null means the latest transition was performed by an automated system process; never store text sentinels in this UUID column.';
-
---
 -- Name: ediel_message_payloads; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -80731,6 +81228,18 @@ CREATE INDEX ediel_production_state_state_idx ON public.ediel_production_state U
 CREATE INDEX ediel_repair_issues_company_status_idx ON public.ediel_repair_issues USING btree (company_id, status, severity, created_at DESC);
 
 --
+-- Name: ediel_resume_draft_tenant_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ediel_resume_draft_tenant_due_idx ON public.ediel_message_intents USING btree (company_id, updated_at, id) WHERE ((validation_status = 'draft'::text) AND (direction = 'outbound'::text) AND (ediel_message_id IS NULL) AND (outbox_status = 'not_queued'::text));
+
+--
+-- Name: ediel_resume_validated_tenant_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ediel_resume_validated_tenant_due_idx ON public.ediel_message_intents USING btree (company_id, updated_at, id) WHERE ((validation_status = 'validated'::text) AND (render_status = ANY (ARRAY['not_rendered'::text, 'failed'::text])) AND (outbox_status = 'not_queued'::text));
+
+--
 -- Name: ediel_retest_invalidations_company_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -89266,6 +89775,18 @@ CREATE TRIGGER ediel_test_runs_bind_active_configuration BEFORE INSERT OR UPDATE
 --
 
 CREATE TRIGGER gridex_apply_contract_offer_standard_fees_trg BEFORE INSERT OR UPDATE OF contract_offer_id, source_type ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_apply_contract_offer_standard_fees();
+
+--
+-- Name: ediel_messages gridex_capture_inbound_switch_dispatch_v1; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_capture_inbound_switch_dispatch_v1 AFTER UPDATE OF status, message_sent_at ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION private.gridex_capture_inbound_switch_dispatch_v1();
+
+--
+-- Name: ediel_messages gridex_capture_inbound_switch_received_v1; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_capture_inbound_switch_received_v1 AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION private.gridex_capture_inbound_switch_received_v1();
 
 --
 -- Name: ediel_messages gridex_capture_received_prodat_source; Type: TRIGGER; Schema: public; Owner: -
@@ -116182,6 +116703,14 @@ GRANT SELECT,MAINTAIN ON TABLE public.customer_addresses TO authenticated;
 GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,MAINTAIN,UPDATE ON TABLE public.customer_addresses TO service_role;
 
 --
+-- Name: TABLE ediel_message_intents; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.ediel_message_intents TO anon;
+GRANT ALL ON TABLE public.ediel_message_intents TO authenticated;
+GRANT ALL ON TABLE public.ediel_message_intents TO service_role;
+
+--
 -- Name: TABLE customer_case_publications; Type: ACL; Schema: public; Owner: -
 --
 
@@ -117001,6 +117530,13 @@ REVOKE ALL ON FUNCTION public.gridex_apply_exact_z02_core(p_company_id uuid, p_c
 GRANT ALL ON FUNCTION public.gridex_apply_exact_z02_core(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_apply_inbound_switch_lifecycle_v1(p_source_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_apply_inbound_switch_lifecycle_v1(p_source_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_apply_inbound_switch_lifecycle_v1(p_source_message_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_apply_invoice_provider_event_v1(p_company_id uuid, p_event_id uuid, p_processing_token uuid, p_event_type text, p_payload jsonb, p_state text, p_finance_status text, p_amount numeric, p_currency text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -117149,6 +117685,13 @@ GRANT ALL ON FUNCTION public.gridex_assert_utilts_transaction_coverage(p_source_
 GRANT ALL ON FUNCTION public.gridex_assert_verified_site_owner_for_manual_outbox() TO service_role;
 
 --
+-- Name: FUNCTION gridex_assess_support_attachment_scan_v1(p_context jsonb, p_attachment_id uuid, p_trust jsonb, p_witness jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assess_support_attachment_scan_v1(p_context jsonb, p_attachment_id uuid, p_trust jsonb, p_witness jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assess_support_attachment_scan_v1(p_context jsonb, p_attachment_id uuid, p_trust jsonb, p_witness jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_assign_customer_contract_identity_v1(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -117275,6 +117818,13 @@ GRANT ALL ON FUNCTION public.gridex_bind_locked_portfolio_settlement_to_underlay
 --
 
 GRANT ALL ON FUNCTION public.gridex_bind_poa_authorization_document() TO service_role;
+
+--
+-- Name: FUNCTION gridex_bind_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_nonce_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_bind_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_nonce_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_bind_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_nonce_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_block_contract_price_snapshot_mutation(); Type: ACL; Schema: public; Owner: -
@@ -117447,6 +117997,13 @@ REVOKE ALL ON FUNCTION public.gridex_change_customer_profile_preferences_v1(p_co
 GRANT ALL ON FUNCTION public.gridex_change_customer_profile_preferences_v1(p_command jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_check_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_check_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_check_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_claim_approved_invoice_retries_fair_v1(p_company_id uuid, p_limit integer, p_claim_token uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -117481,6 +118038,13 @@ REVOKE ALL ON FUNCTION public.gridex_claim_customer_operation_jobs(p_worker_id t
 GRANT ALL ON FUNCTION public.gridex_claim_customer_operation_jobs(p_worker_id text, p_limit integer) TO service_role;
 
 --
+-- Name: FUNCTION gridex_claim_ediel_resume_intents_fair_v1(p_phase text, p_company_id uuid, p_limit integer, p_claim_token uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_claim_ediel_resume_intents_fair_v1(p_phase text, p_company_id uuid, p_limit integer, p_claim_token uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_claim_ediel_resume_intents_fair_v1(p_phase text, p_company_id uuid, p_limit integer, p_claim_token uuid) TO service_role;
+
+--
 -- Name: TABLE invoice_provider_events; Type: ACL; Schema: public; Owner: -
 --
 
@@ -117499,6 +118063,13 @@ GRANT ALL ON FUNCTION public.gridex_claim_invoice_provider_events(p_company_id u
 
 REVOKE ALL ON FUNCTION public.gridex_claim_spot_price_import_job(p_provider text, p_price_area text, p_calendar_date date, p_company_id uuid, p_stale_after interval, p_force boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_claim_spot_price_import_job(p_provider text, p_price_area text, p_calendar_date date, p_company_id uuid, p_stale_after interval, p_force boolean) TO service_role;
+
+--
+-- Name: FUNCTION gridex_claim_support_attachment_scans_v1(p_company_id uuid, p_limit integer, p_claim_token uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_claim_support_attachment_scans_v1(p_company_id uuid, p_limit integer, p_claim_token uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_claim_support_attachment_scans_v1(p_company_id uuid, p_limit integer, p_claim_token uuid) TO service_role;
 
 --
 -- Name: TABLE tenant_email_outbox; Type: ACL; Schema: public; Owner: -
@@ -117562,6 +118133,13 @@ GRANT ALL ON FUNCTION public.gridex_commit_customer_application_provisioning(p_c
 
 REVOKE ALL ON FUNCTION public.gridex_commit_customer_site_address(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_street text, p_postal_code text, p_city text, p_country text, p_care_of text, p_apartment_number text, p_address_normalized text, p_address_hash text, p_source text, p_source_reference text, p_metadata jsonb, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_commit_customer_site_address(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_street text, p_postal_code text, p_city text, p_country text, p_care_of text, p_apartment_number text, p_address_normalized text, p_address_hash text, p_source text, p_source_reference text, p_metadata jsonb, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_commit_support_attachment_scan_callback_v1(p_nonce_id uuid, p_claim_token uuid, p_proof jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_commit_support_attachment_scan_callback_v1(p_nonce_id uuid, p_claim_token uuid, p_proof jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_commit_support_attachment_scan_callback_v1(p_nonce_id uuid, p_claim_token uuid, p_proof jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_commit_website_portal_identity(); Type: ACL; Schema: public; Owner: -
@@ -118379,6 +118957,27 @@ REVOKE ALL ON FUNCTION public.gridex_finalize_website_contract_signature(p_compa
 GRANT ALL ON FUNCTION public.gridex_finalize_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_acceptance_evidence jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_finish_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid, p_outcome text, p_reason text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finish_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid, p_outcome text, p_reason text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finish_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid, p_outcome text, p_reason text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_finish_support_attachment_read_v1(p_context jsonb, p_nonce_id uuid, p_witness jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finish_support_attachment_read_v1(p_context jsonb, p_nonce_id uuid, p_witness jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finish_support_attachment_read_v1(p_context jsonb, p_nonce_id uuid, p_witness jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_finish_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_outcome text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finish_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_outcome text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finish_support_attachment_scan_claim_v1(p_intent_id uuid, p_claim_token uuid, p_outcome text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_fk_reference_blockers(p_target regclass, p_target_ids uuid[], p_ignored_relations text[]); Type: ACL; Schema: public; Owner: -
 --
 
@@ -118477,6 +119076,20 @@ GRANT ALL ON TABLE public.gridex_facility_work_queue_v TO service_role;
 GRANT ALL ON FUNCTION public.gridex_get_facility_work_queue(p_company_id uuid, p_limit integer) TO anon;
 GRANT ALL ON FUNCTION public.gridex_get_facility_work_queue(p_company_id uuid, p_limit integer) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_get_facility_work_queue(p_company_id uuid, p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION gridex_get_support_attachment_read_nonce_v1(p_context jsonb, p_nonce_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_get_support_attachment_read_nonce_v1(p_context jsonb, p_nonce_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_get_support_attachment_read_nonce_v1(p_context jsonb, p_nonce_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_get_support_attachment_scan_callback_v1(p_nonce_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_get_support_attachment_scan_callback_v1(p_nonce_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_get_support_attachment_scan_callback_v1(p_nonce_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_get_user_permissions(p_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -119357,6 +119970,13 @@ REVOKE ALL ON FUNCTION public.gridex_prepare_manual_contract_binding(p_company_i
 GRANT ALL ON FUNCTION public.gridex_prepare_manual_contract_binding(p_company_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_prepare_support_attachment_read_v1(p_context jsonb, p_attachment_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_prepare_support_attachment_read_v1(p_context jsonb, p_attachment_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_prepare_support_attachment_read_v1(p_context jsonb, p_attachment_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_prevent_locked_portfolio_price_mutation(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -119750,6 +120370,13 @@ REVOKE ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uu
 GRANT ALL ON FUNCTION public.gridex_record_source_validation_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_record_support_attachment_scan_v1(p_nonce_id uuid, p_proof jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_support_attachment_scan_v1(p_nonce_id uuid, p_proof jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_support_attachment_scan_v1(p_nonce_id uuid, p_proof jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_refresh_actor_certificate_statuses(p_run_type text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -120022,6 +120649,13 @@ GRANT ALL ON FUNCTION public.gridex_required_legal_modules(p_customer_type text,
 REVOKE ALL ON FUNCTION public.gridex_required_legal_modules(p_customer_type text, p_contract_type text, p_channel text, p_automatic_renewal boolean, p_requires_power_of_attorney boolean, p_production_enabled boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_required_legal_modules(p_customer_type text, p_contract_type text, p_channel text, p_automatic_renewal boolean, p_requires_power_of_attorney boolean, p_production_enabled boolean) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_required_legal_modules(p_customer_type text, p_contract_type text, p_channel text, p_automatic_renewal boolean, p_requires_power_of_attorney boolean, p_production_enabled boolean) TO service_role;
+
+--
+-- Name: FUNCTION gridex_reserve_support_attachment_scan_v1(p_company_id uuid, p_attachment_id uuid, p_trust jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_reserve_support_attachment_scan_v1(p_company_id uuid, p_attachment_id uuid, p_trust jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_reserve_support_attachment_scan_v1(p_company_id uuid, p_attachment_id uuid, p_trust jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_resolve_contract_lifecycle_graph(p_company_id uuid, p_offer_id uuid); Type: ACL; Schema: public; Owner: -
@@ -122759,14 +123393,6 @@ GRANT ALL ON TABLE public.ediel_message_correlations TO service_role;
 
 GRANT ALL ON TABLE public.ediel_message_events TO authenticated;
 GRANT ALL ON TABLE public.ediel_message_events TO service_role;
-
---
--- Name: TABLE ediel_message_intents; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.ediel_message_intents TO anon;
-GRANT ALL ON TABLE public.ediel_message_intents TO authenticated;
-GRANT ALL ON TABLE public.ediel_message_intents TO service_role;
 
 --
 -- Name: TABLE ediel_message_payloads; Type: ACL; Schema: public; Owner: -

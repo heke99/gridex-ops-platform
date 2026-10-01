@@ -273,7 +273,7 @@ async function buildBundleResponse(input: {
         events: events.length,
         partial_bundle: warnings.length > 0,
         customer_status: customerStatus.code,
-        data_quality_issues: customerStatus.issues,
+        data_quality_issues: customerStatus.issues.length,
         failed_sections: warnings.map((warning) => warning.section),
         section_errors: warnings,
         summary_mode: options.summary,

@@ -1,3 +1,6 @@
+import 'server-only'
+import { z } from 'zod'
+import { isGridOwnerAgreementBucket, parseGridOwnerAgreementDocumentKey } from './gridOwnerAgreementDocumentKey'
 import { supabaseService } from '@/lib/supabase/service'
 import type { RouteScope } from '@/lib/routes/routeDecisionTypes'
 
@@ -33,6 +36,7 @@ export type GridOwnerAccessAgreementRow = {
   updated_by: string | null
   created_at: string
   updated_at: string
+  revision: number
 }
 
 export type GridOwnerAccessAgreementInput = {
@@ -61,7 +65,11 @@ export type GridOwnerAccessAgreementInput = {
   preferredRouteId?: string | null
   referenceRequirements?: Record<string, unknown>
   metadata?: Record<string, unknown>
-  actorUserId?: string | null
+  actor: { userId: string; sessionId: string }
+  expectedRevision: number
+  idempotencyKey: string
+  newGridOwner?: { name: string; orgNumber: string | null; edielId: string | null; email: string | null; phone: string | null }
+  documentFile?: { bucket: string; name: string; sha256: string; size: number; contentType: string }
 }
 
 function todayDateOnly(): string {
@@ -151,67 +159,89 @@ export async function findActiveGridOwnerAccessAgreement(options: {
   return { status: 'single', agreement: active[0], matches: active }
 }
 
-export async function saveGridOwnerAccessAgreement(
-  input: GridOwnerAccessAgreementInput
-): Promise<GridOwnerAccessAgreementRow> {
+export class GridOwnerAgreementCommandError extends Error {
+  constructor(public readonly code: string, public readonly status: number) { super(code); this.name = 'GridOwnerAgreementCommandError' }
+}
+export type GridOwnerAgreementCommand = {
+  operation: 'save' | 'archive'; actorUserId: string; sessionId: string; companyId: string | null;
+  id?: string | null; expectedRevision: number; idempotencyKey: string; payload: Record<string, unknown>;
+}
+export type AgreementUploadIntent = { id: string; token: string; bucket: string; path: string }
+export type GridOwnerAgreementResult = { agreement: GridOwnerAccessAgreementRow; changed: boolean; replayed: boolean; gridOwnerCreated: boolean }
+const receiptSchema = z.object({
+  agreement: z.object({ id: z.string().uuid(), company_id: z.string().uuid().nullable(), revision: z.number().int().nonnegative().safe() }).passthrough(),
+  changed: z.boolean(), replayed: z.boolean(), gridOwnerCreated: z.boolean(),
+}).passthrough()
+const intentSchema = z.object({ id: z.string().uuid(), token: z.string().uuid(), bucket: z.string(), path: z.string() }).strict()
+
+export function agreementSaveCommand(input: GridOwnerAccessAgreementInput): GridOwnerAgreementCommand {
   const payload = {
-    company_id: input.companyId ?? null,
-    grid_owner_id: input.gridOwnerId ?? null,
-    agreement_type: input.agreementType,
-    agreement_scope: input.agreementScope,
-    status: input.status,
-    agreement_reference: normalizeText(input.agreementReference),
-    external_agreement_number: normalizeText(input.externalAgreementNumber),
-    valid_from: normalizeText(input.validFrom),
-    valid_to: normalizeText(input.validTo),
-    signed_at: normalizeText(input.signedAt),
-    document_id: normalizeText(input.documentId),
-    document_path: normalizeText(input.documentPath),
-    requires_customer_authorization: input.requiresCustomerAuthorization ?? true,
-    requires_metering_point_id: input.requiresMeteringPointId ?? true,
-    requires_facility_id: input.requiresFacilityId ?? false,
-    requires_customer_personal_number: input.requiresCustomerPersonalNumber ?? false,
-    requires_report_period: input.requiresReportPeriod ?? false,
-    preferred_application_reference: normalizeText(input.preferredApplicationReference),
-    preferred_message_version: normalizeText(input.preferredMessageVersion),
-    preferred_receiver_ediel_id: normalizeText(input.preferredReceiverEdielId),
-    preferred_receiver_sub_address: normalizeText(input.preferredReceiverSubAddress),
-    preferred_route_id: normalizeText(input.preferredRouteId),
-    reference_requirements: input.referenceRequirements ?? {},
-    metadata: input.metadata ?? {},
-    updated_by: input.actorUserId ?? null,
+    gridOwnerId: input.gridOwnerId ?? null, agreementType: input.agreementType, agreementScope: input.agreementScope, status: input.status,
+    agreementReference: normalizeText(input.agreementReference), externalAgreementNumber: normalizeText(input.externalAgreementNumber),
+    validFrom: normalizeText(input.validFrom), validTo: normalizeText(input.validTo), signedAt: normalizeText(input.signedAt),
+    documentId: normalizeText(input.documentId), documentPath: normalizeText(input.documentPath),
+    requiresCustomerAuthorization: input.requiresCustomerAuthorization ?? true, requiresMeteringPointId: input.requiresMeteringPointId ?? true,
+    requiresFacilityId: input.requiresFacilityId ?? false, requiresCustomerPersonalNumber: input.requiresCustomerPersonalNumber ?? false,
+    requiresReportPeriod: input.requiresReportPeriod ?? false, preferredApplicationReference: normalizeText(input.preferredApplicationReference),
+    preferredMessageVersion: normalizeText(input.preferredMessageVersion), preferredReceiverEdielId: normalizeText(input.preferredReceiverEdielId),
+    preferredReceiverSubAddress: normalizeText(input.preferredReceiverSubAddress), preferredRouteId: normalizeText(input.preferredRouteId),
+    referenceRequirements: input.referenceRequirements ?? {}, metadata: input.metadata ?? {},
+    ...(input.newGridOwner ? { newGridOwner: input.newGridOwner } : {}), ...(input.documentFile ? { documentFile: input.documentFile } : {}),
   }
-
-  if (input.id) {
-    const { data, error } = await supabaseService
-      .from('grid_owner_access_agreements')
-      .update(payload)
-      .eq('id', input.id)
-      .select('*')
-      .single()
-
-    if (error) throw error
-    return data as GridOwnerAccessAgreementRow
-  }
-
-  const { data, error } = await supabaseService
-    .from('grid_owner_access_agreements')
-    .insert({ ...payload, created_by: input.actorUserId ?? null })
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as GridOwnerAccessAgreementRow
+  return { operation: 'save', actorUserId: input.actor.userId, sessionId: input.actor.sessionId, companyId: input.companyId ?? null,
+    id: input.id ?? null, expectedRevision: input.expectedRevision, idempotencyKey: input.idempotencyKey, payload }
 }
 
+async function callAgreementCommand(command: Record<string, unknown>) {
+  const { data, error } = await supabaseService.rpc('gridex_grid_owner_agreement_command_v1', { p_command: command })
+  if (error) {
+    if (['42883','42P01','42703','PGRST202','PGRST204','PGRST205'].includes(error.code)) throw new GridOwnerAgreementCommandError('agreement_schema_unavailable', 503)
+    if (error.code === '42501') throw new GridOwnerAgreementCommandError('agreement_actor_forbidden', 403)
+    if (error.code === 'PT409') throw new GridOwnerAgreementCommandError('agreement_command_conflict', 409)
+    if (error.code === 'PT404') throw new GridOwnerAgreementCommandError('agreement_resource_unavailable', 404)
+    if (['22023','22P02','22007','22008','23502','23514'].includes(error.code)) throw new GridOwnerAgreementCommandError('invalid_agreement_command', 422)
+    throw new GridOwnerAgreementCommandError('agreement_unavailable', 503)
+  }
+  return data
+}
+function verifiedResult(data: unknown, command: GridOwnerAgreementCommand): GridOwnerAgreementResult {
+  const parsed = receiptSchema.safeParse(data)
+  if (!parsed.success || parsed.data.agreement.company_id !== command.companyId ||
+    (command.id && parsed.data.agreement.id !== command.id)) throw new GridOwnerAgreementCommandError('agreement_invalid_receipt', 503)
+  return parsed.data as GridOwnerAgreementResult
+}
+function verifiedIntent(data: unknown, bucket: string): AgreementUploadIntent {
+  const parsed = intentSchema.safeParse(data)
+  if (!parsed.success || parsed.data.bucket !== bucket || !isGridOwnerAgreementBucket(bucket) || bucket === 'customer-support-quarantine' ||
+    !parseGridOwnerAgreementDocumentKey(parsed.data.path, bucket)) throw new GridOwnerAgreementCommandError('agreement_invalid_receipt', 503)
+  return parsed.data
+}
+export async function prepareAgreementDocumentUpload(command: GridOwnerAgreementCommand, bucket: string): Promise<{ intent?: AgreementUploadIntent; committed?: GridOwnerAgreementResult }> {
+  const data = await callAgreementCommand({ ...command, operation: 'prepare_upload' }) as { intent?: unknown; committed?: unknown }
+  if (data?.committed) return { committed: verifiedResult(data.committed, command) }
+  return { intent: verifiedIntent(data?.intent, bucket) }
+}
+export async function executeAgreementCommand(command: GridOwnerAgreementCommand, intent?: AgreementUploadIntent): Promise<GridOwnerAgreementResult> {
+  const data = await callAgreementCommand({ ...command, ...(intent ? { uploadIntentId: intent.id, cleanupToken: intent.token } : {}) })
+  return verifiedResult(data, command)
+}
+export async function reconcileAgreementUpload(command: GridOwnerAgreementCommand, intent: AgreementUploadIntent) {
+  const data = await callAgreementCommand({ ...command, operation: 'abort_upload', uploadIntentId: intent.id, cleanupToken: intent.token }) as { committed?: unknown; cleanup?: unknown }
+  const committed = data?.committed ? verifiedResult(data.committed, command) : undefined
+  const cleanup = data?.cleanup ? verifiedIntent(data.cleanup, intent.bucket) : undefined
+  if (cleanup && (cleanup.id !== intent.id || cleanup.token !== intent.token || cleanup.path !== intent.path)) throw new GridOwnerAgreementCommandError('agreement_invalid_receipt', 503)
+  return { committed, cleanup }
+}
+export async function completeAgreementUploadCleanup(command: GridOwnerAgreementCommand, intent: AgreementUploadIntent) {
+  const data = await callAgreementCommand({ ...command, operation: 'cleanup_complete', uploadIntentId: intent.id, cleanupToken: intent.token }) as { cleaned?: unknown }
+  if (data?.cleaned !== true) throw new GridOwnerAgreementCommandError('agreement_invalid_receipt', 503)
+}
+export async function saveGridOwnerAccessAgreement(input: GridOwnerAccessAgreementInput): Promise<GridOwnerAccessAgreementRow> {
+  return (await executeAgreementCommand(agreementSaveCommand(input))).agreement
+}
 export async function archiveGridOwnerAccessAgreement(input: {
-  id: string
-  actorUserId?: string | null
+  id: string; companyId: string | null; actor: { userId: string; sessionId: string }; expectedRevision: number; idempotencyKey: string;
 }): Promise<void> {
-  const { error } = await supabaseService
-    .from('grid_owner_access_agreements')
-    .update({ status: 'archived', updated_by: input.actorUserId ?? null })
-    .eq('id', input.id)
-
-  if (error) throw error
+  await executeAgreementCommand({ operation: 'archive', actorUserId: input.actor.userId, sessionId: input.actor.sessionId,
+    companyId: input.companyId, id: input.id, expectedRevision: input.expectedRevision, idempotencyKey: input.idempotencyKey, payload: {} })
 }

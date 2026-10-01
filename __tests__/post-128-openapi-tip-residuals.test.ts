@@ -30,8 +30,8 @@ describe('post-#128 OpenAPI tip residuals', () => {
   })
 
   it('uses one fixed manifest instant for the current contract candidate', () => {
-    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-09-30.3')
-    expect(OPENAPI_RELEASED_AT).toBe('2026-09-30T22:08:00.000Z')
+    expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-10-01.1')
+    expect(OPENAPI_RELEASED_AT).toBe('2026-10-01T03:25:51.302Z')
     const source = readFileSync('lib/integrations/openApiReleaseManifest.ts', 'utf8')
     expect(source).not.toContain("OPENAPI_RELEASED_AT = '2026-08-10T")
   })

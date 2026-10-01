@@ -1,10 +1,41 @@
 import Link from 'next/link'
-import { requireAdminPageAccess, isPlatformAdminContext } from '@/lib/admin/guards'
+import { requireAdminPageAccess, isPlatformAdminContext, requireCompanyScopedActionAccess, type GuardResult } from '@/lib/admin/guards'
+import { unstable_rethrow } from 'next/navigation'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listWebhookDeliveries, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { markWebhookDeliveryIgnoredAction, resendWebhookDeliveryAction, sendWebhookTestEventAction } from '../actions'
+import WebhookActionButton from './WebhookActionButton'
 
 export const dynamic = 'force-dynamic'
+
+const READ_ONLY_OUTCOMES = new Set([
+  'Forbidden', 'Unauthorized',
+  'Bolaget är pausat eller inte operativt. Ändringar är blockerade tills bolaget återaktiveras.',
+  'Du saknar aktiv ändringsbehörighet för valt bolag.',
+])
+type WriteCapability = { canWrite: boolean; disabledMessage: string | null }
+
+async function readWriteCapability(access: GuardResult, companyId: string): Promise<WriteCapability> {
+  try {
+    // This is the same read-only authorization preflight used by all three
+    // actions. Membership/lifecycle policy remains in that existing guard.
+    const writer = await requireCompanyScopedActionAccess(companyId, { anyOf: ['integrations.write'] })
+    if (writer.userId !== access.userId || writer.companyId !== access.companyId ||
+      writer.isPlatformAdmin !== access.isPlatformAdmin || (!writer.isPlatformAdmin && writer.companyId !== companyId)) {
+      return { canWrite: false, disabledMessage: 'Aktuell användare eller bolagskontext har ändrats. Läs in sidan igen.' }
+    }
+    return { canWrite: true, disabledMessage: null }
+  } catch (error) {
+    unstable_rethrow(error)
+    if (error instanceof Error && READ_ONLY_OUTCOMES.has(error.message)) {
+      return { canWrite: false, disabledMessage: 'Läsläge – aktuell skrivbehörighet för bolaget saknas eller ändringar är blockerade.' }
+    }
+    if (error instanceof Error && error.message === 'Behörighetskontrollen kunde inte verifieras.') {
+      return { canWrite: false, disabledMessage: 'Åtgärdsbehörigheten kunde inte bekräftas. Läs in sidan igen innan du försöker.' }
+    }
+    throw error
+  }
+}
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -38,6 +69,12 @@ export default async function WebhookDeliveriesPage({ searchParams }: { searchPa
     listWebhookDeliveries({ companyId, status, limit: 150 }),
     listWebhookSubscriptions({ companyId, limit: 100 }),
   ])
+  const displayedSubscriptions = subscriptions.slice(0, 12)
+  const resourceCompanyIds = [...new Set([...displayedSubscriptions, ...deliveries].map((row) => row.company_id))]
+  const capabilities = new Map(await Promise.all(resourceCompanyIds.map(async (resourceCompanyId) =>
+    [resourceCompanyId, await readWriteCapability(access, resourceCompanyId)] as const)))
+  const capabilityFor = (resourceCompanyId: string): WriteCapability => capabilities.get(resourceCompanyId)
+    ?? { canWrite: false, disabledMessage: 'Åtgärdsbehörigheten kunde inte bekräftas. Läs in sidan igen.' }
   const isPlatformAdmin = isPlatformAdminContext(access)
   const sent = deliveries.filter((item) => item.status === 'sent').length
   const failed = deliveries.filter((item) => ['failed', 'dead_letter'].includes(item.status)).length
@@ -79,13 +116,13 @@ export default async function WebhookDeliveriesPage({ searchParams }: { searchPa
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {subscriptions.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-600">Inga webhook subscriptions finns ännu.</div> : null}
-          {subscriptions.slice(0, 12).map((subscription) => (
+          {displayedSubscriptions.map((subscription) => (
             <article key={subscription.id} className="rounded-2xl border border-slate-200 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-semibold text-slate-950">{subscription.name}</div>
                   <div className="mt-1 break-all text-xs text-slate-600">{subscription.endpoint_url}</div>
-                  <div className="mt-2 text-xs text-slate-500">{isPlatformAdmin ? subscription.companies?.name ?? subscription.company_id : 'Ditt bolag'} · {subscription.integration_api_clients?.name ?? 'API-client saknas'}</div>
+                  <div className="mt-2 text-xs text-slate-500">{isPlatformAdmin ? subscription.companies?.name ?? subscription.company_id : 'Ditt bolag'} · {subscription.api_client_binding_available === false ? 'API-koppling ej bekräftad' : subscription.integration_api_clients?.name ?? 'API-client saknas'}</div>
                 </div>
                 <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(subscription.status)}`}>{subscription.status}</span>
               </div>
@@ -93,7 +130,8 @@ export default async function WebhookDeliveriesPage({ searchParams }: { searchPa
               <form action={sendWebhookTestEventAction} className="mt-4">
                 <input type="hidden" name="company_id" value={subscription.company_id} />
                 <input type="hidden" name="subscription_id" value={subscription.id} />
-                <button className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Skicka testevent</button>
+                <WebhookActionButton {...capabilityFor(subscription.company_id)} label="Skicka testevent" pendingLabel="Köar testevent…"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100" />
               </form>
             </article>
           ))}
@@ -122,13 +160,15 @@ export default async function WebhookDeliveriesPage({ searchParams }: { searchPa
                       <form action={resendWebhookDeliveryAction}>
                         <input type="hidden" name="company_id" value={delivery.company_id} />
                         <input type="hidden" name="delivery_id" value={delivery.id} />
-                        <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Resend</button>
+                        <WebhookActionButton {...capabilityFor(delivery.company_id)} label="Resend" pendingLabel="Köar om…"
+                          className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" />
                       </form>
                       <form action={markWebhookDeliveryIgnoredAction}>
                         <input type="hidden" name="company_id" value={delivery.company_id} />
                         <input type="hidden" name="delivery_id" value={delivery.id} />
                         <input type="hidden" name="note" value="Manuellt hanterad från delivery UI" />
-                        <button className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Ignorera</button>
+                        <WebhookActionButton {...capabilityFor(delivery.company_id)} label="Ignorera" pendingLabel="Markerar…"
+                          className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" />
                       </form>
                       <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
                         <summary className="cursor-pointer">Payload</summary>

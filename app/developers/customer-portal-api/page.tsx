@@ -442,6 +442,9 @@ export default function CustomerPortalApiDocumentationPage() {
             <p className="leading-7 text-slate-700">
               Events use <code>customer_events.read</code> and powers of attorney use <code>customer_power_of_attorney.read</code>. Each signed GET returns an allowlisted <code>data</code> array and a customer-bound <code>page.next_cursor</code>. A foreign or malformed cursor returns 400 <code>invalid_cursor</code>. The event page does not expose payloads; <code>event_version</code> is null when the current read model cannot project the stored version. Authority rows expose nullable public contract and facility references and do not grant a write scope. The synthetic client follows two pages of both resources.
             </p>
+            <p className="leading-7 text-slate-700">
+              Support cases use <code>customer_cases.read</code> and <code>customer_cases.write</code>. Read customer-visible messages with <code>GET /api/v1/customer/cases/{'{reference}'}/messages</code>. Every message includes <code>author_reference</code>: the saved staff author as an opaque <code>support_staff_</code> reference, or JSON null for customer messages and historical staff messages without a saved author. Keep unknown authors unknown. The field is required in the closed response schema from2026-10-01.1; strict2026-09-30.3 response clients must update their model. The runnable reference client exports <code>readSupportMessageAuthorReference</code> and validates this field on readback.
+            </p>
             <EndpointTable rows={customerPortalRows} />
           </Section>
 

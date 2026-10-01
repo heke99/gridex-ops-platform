@@ -1,6 +1,9 @@
 import fs from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { defineConfig } from 'vitest/config'
+
+const require = createRequire(import.meta.url)
 
 const coverageBaseline = JSON.parse(
   fs.readFileSync(new URL('./config/coverage-baseline.json', import.meta.url), 'utf8'),
@@ -14,6 +17,10 @@ const coverageBaseline = JSON.parse(
 export default defineConfig({
   resolve: {
     alias: [
+      {
+        find: /^server-only$/,
+        replacement: require.resolve('next/dist/compiled/server-only/empty.js'),
+      },
       {
         find: '@',
         replacement: path.resolve(__dirname, '.'),

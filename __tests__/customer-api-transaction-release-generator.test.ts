@@ -135,7 +135,11 @@ describe('next release generator without rewriting immutable or current artifact
     expect(Object.keys(portal.components.schemas.CustomerSupportCase.properties).sort())
       .toEqual(['case_reference', 'title', 'status', 'revision', 'created_at', 'updated_at'].sort())
     expect(Object.keys(portal.components.schemas.CustomerSupportMessage.properties).sort())
-      .toEqual(['message_reference', 'body', 'author_kind', 'channel', 'revision', 'created_at'].sort())
+      .toEqual(['message_reference', 'body', 'author_kind', 'author_reference', 'channel', 'revision', 'created_at'].sort())
+    expect(portal.components.schemas.CustomerSupportMessage.required.sort())
+      .toEqual(['message_reference', 'body', 'author_kind', 'author_reference', 'channel', 'revision', 'created_at'].sort())
+    expect(portal.components.schemas.CustomerSupportMessage.properties.author_reference)
+      .toMatchObject({ type: ['string', 'null'], pattern: '^support_staff_[A-Za-z0-9_-]{32}$' })
     for (const path of ['/api/v1/customer/cases', '/api/v1/customer/cases/{reference}/messages']) {
       expect(portal.paths[path].post.responses['201']).toBeDefined()
       expect(portal.paths[path].post.responses['200']).toBeUndefined()

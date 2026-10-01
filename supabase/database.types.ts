@@ -88834,6 +88834,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_apply_inbound_switch_lifecycle_v1: {
+        Args: { p_actor_user_id?: string; p_source_message_id: string }
+        Returns: Json
+      }
       gridex_apply_invoice_provider_event_v1: {
         Args: {
           p_amount: number
@@ -88949,6 +88953,15 @@ export type Database = {
         Args: { p_source_message_id: string }
         Returns: undefined
       }
+      gridex_assess_support_attachment_scan_v1: {
+        Args: {
+          p_attachment_id: string
+          p_context: Json
+          p_trust: Json
+          p_witness?: Json
+        }
+        Returns: Json
+      }
       gridex_attach_portfolio_settlement_to_invoice: {
         Args: {
           p_actor_user_id: string
@@ -88991,6 +89004,10 @@ export type Database = {
           p_portfolio_monthly_settlement_id: string
         }
         Returns: Json
+      }
+      gridex_bind_support_attachment_scan_claim_v1: {
+        Args: { p_claim_token: string; p_intent_id: string; p_nonce_id: string }
+        Returns: boolean
       }
       gridex_build_canonical_address: {
         Args: {
@@ -89071,6 +89088,15 @@ export type Database = {
       gridex_change_customer_profile_preferences_v1: {
         Args: { p_command: Json }
         Returns: Json
+      }
+      gridex_check_ediel_resume_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_intent_id: string
+          p_phase: string
+        }
+        Returns: boolean
       }
       gridex_claim_approved_invoice_retries_fair_v1: {
         Args: { p_claim_token: string; p_company_id: string; p_limit: number }
@@ -89154,6 +89180,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_claim_ediel_resume_intents_fair_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_limit: number
+          p_phase: string
+        }
+        Returns: Json
+      }
       gridex_claim_invoice_provider_events: {
         Args: {
           p_company_id: string
@@ -89205,6 +89240,10 @@ export type Database = {
           id: string
           status: string
         }[]
+      }
+      gridex_claim_support_attachment_scans_v1: {
+        Args: { p_claim_token: string; p_company_id: string; p_limit: number }
+        Returns: Json[]
       }
       gridex_claim_tenant_email_outbox_fair_v1: {
         Args: { p_claim_token: string; p_company_id: string; p_limit: number }
@@ -89363,6 +89402,10 @@ export type Database = {
           p_street: string
         }
         Returns: undefined
+      }
+      gridex_commit_support_attachment_scan_callback_v1: {
+        Args: { p_claim_token: string; p_nonce_id: string; p_proof: Json }
+        Returns: Json
       }
       gridex_company_go_live_readiness: {
         Args: { p_company_id: string }
@@ -90167,6 +90210,25 @@ export type Database = {
             }
             Returns: Json
           }
+      gridex_finish_ediel_resume_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_intent_id: string
+          p_outcome: string
+          p_phase: string
+          p_reason?: string
+        }
+        Returns: boolean
+      }
+      gridex_finish_support_attachment_read_v1: {
+        Args: { p_context: Json; p_nonce_id: string; p_witness?: Json }
+        Returns: Json
+      }
+      gridex_finish_support_attachment_scan_claim_v1: {
+        Args: { p_claim_token: string; p_intent_id: string; p_outcome: string }
+        Returns: boolean
+      }
       gridex_fk_reference_blockers: {
         Args: {
           p_ignored_relations?: string[]
@@ -90229,6 +90291,14 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      gridex_get_support_attachment_read_nonce_v1: {
+        Args: { p_context: Json; p_nonce_id: string }
+        Returns: Json
+      }
+      gridex_get_support_attachment_scan_callback_v1: {
+        Args: { p_nonce_id: string }
+        Returns: Json
       }
       gridex_get_user_permissions: {
         Args: { p_user_id: string }
@@ -90867,6 +90937,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_prepare_support_attachment_read_v1: {
+        Args: { p_attachment_id: string; p_context: Json }
+        Returns: Json
+      }
       gridex_preview_delete_unused_contract: {
         Args: { p_company_id: string; p_offer_id: string }
         Returns: Json
@@ -91217,6 +91291,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_record_support_attachment_scan_v1: {
+        Args: { p_nonce_id: string; p_proof: Json }
+        Returns: Json
+      }
       gridex_refresh_actor_certificate_statuses: {
         Args: { p_run_type?: string }
         Returns: Json
@@ -91384,6 +91462,10 @@ export type Database = {
             }
             Returns: string[]
           }
+      gridex_reserve_support_attachment_scan_v1: {
+        Args: { p_attachment_id: string; p_company_id: string; p_trust: Json }
+        Returns: Json
+      }
       gridex_resolve_contract_lifecycle_graph: {
         Args: { p_company_id: string; p_offer_id: string }
         Returns: Json

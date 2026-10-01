@@ -250,6 +250,51 @@ function proofSql() {
   assert.ok(sql,'actual old proof missing')
   return sql
 }
+
+// Run the actual SQL wrapper with only the external psql process controlled.
+// This proves diagnostic projection and exit/privacy, not SQL or a restore.
+function runSqlDiagnostic(privateOutput, status=1, filename='old-schema-proof.sql') {
+ const temporary=mkdtempSync(join(tmpdir(),'rollback-sql-diagnostic.'))
+ try {
+  const source=readFileSync(script,'utf8')
+  const helper=source.match(/  tenantservice_baseline_sql\(\)\{[\s\S]*?^  \}/m)?.[0]
+  assert.ok(helper,'actual SQL wrapper missing')
+  const payload=join(temporary,'private-input.log')
+  writeFileSync(payload,privateOutput)
+  const result=spawnSync('bash',['-c',`set -euo pipefail
+TENANTSERVICE_TEMP="$1"; PRIVATE_PAYLOAD="$2"; SYNTHETIC_STATUS="$3"
+psql(){
+ printf '%s\\n' "$*" > "$TENANTSERVICE_TEMP/arguments.log"
+ cat "$PRIVATE_PAYLOAD"; return "$SYNTHETIC_STATUS"
+}
+${helper}
+tenantservice_baseline_sql postgresql://private.invalid/database "$4"
+`,'sql-diagnostic',temporary,payload,String(status),filename],{encoding:'utf8',timeout:5000})
+  assert.equal(result.status,status===0?0:1)
+  assert.doesNotMatch(result.stdout+result.stderr,/PRIVATE_CANARY|private\.invalid|private-input/)
+  const args=readFileSync(join(temporary,'arguments.log'),'utf8')
+  return {...result,args}
+ } finally {rmSync(temporary,{recursive:true,force:true})}
+}
+test('failed actual SQL wrapper emits only fixed proof/stage and a strict SQLSTATE, retaining fail-closed exit',()=>{
+ const result=runSqlDiagnostic('TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED\npsql:/PRIVATE_CANARY:47: ERROR:  23514\nCONTEXT: PRIVATE_CANARY\n')
+ assert.match(result.args,/-v VERBOSITY=sqlstate/)
+ assert.match(result.stderr,/SQL_FAILED_PRIVATE_CONTEXT/)
+ assert.match(result.stderr,/proof=old_schema stage=old_authenticated sqlstate=23514/)
+ assert.equal(result.stdout,'')
+})
+for(const value of ['','psql:/PRIVATE_CANARY:47: ERROR:  PRIVATE_CANARY\n',
+ 'TENANTSERVICE_BASELINE_ROLLBACK_STAGE_PRIVATE_CANARY\nERROR:  00000\n',
+ 'ERROR:  23514 PRIVATE_CANARY\n','ERROR:  23514\nERROR:  42703\n'])
+ test('failed SQL wrapper with unknown/ambiguous private context returns only fixed unknown labels '+sha(value).slice(0,8),()=>{
+  const result=runSqlDiagnostic(value,9,'unknown-PRIVATE_CANARY.sql')
+  assert.match(result.stderr,/proof=unknown stage=start sqlstate=unknown/)
+ })
+test('successful actual SQL wrapper prints only original fixed PASS markers and no failed diagnosis',()=>{
+ const result=runSqlDiagnostic('TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_COMMAND\nPRIVATE_CANARY\nTENANTSERVICE_BASELINE_ROLLBACK_OLD_RLS_LOW_ROLE_DENIAL_PASS\n',0)
+ assert.equal(result.stderr,'')
+ assert.equal(result.stdout,'TENANTSERVICE_BASELINE_ROLLBACK_OLD_RLS_LOW_ROLE_DENIAL_PASS\n')
+})
 function commandCorridor() {
   const source=proofSql()
   const shape=source.match(/do \$old_shape\$[\s\S]*?\$old_shape\$;/)?.[0]

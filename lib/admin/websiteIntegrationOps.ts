@@ -112,6 +112,8 @@ export type WebhookSubscriptionAdminRow = {
   id: string;
   company_id: string;
   api_client_id: string | null;
+  /** False means the optional binding projection was unavailable, not absent. */
+  api_client_binding_available?: boolean;
   name: string;
   endpoint_url: string;
   event_types: string[] | null;
@@ -539,25 +541,60 @@ export async function getWebsiteApplicationAdminRow(
   return null;
 }
 
+function missingOptionalWebhookProjection(
+  error: unknown,
+  columns: ReadonlySet<string>,
+  allowApiClientRelationship = false,
+): boolean {
+  if (!error || typeof error !== "object") return false;
+  const { code, message } = error as { code?: unknown; message?: unknown };
+  if (typeof message !== "string") return false;
+  if (code === "42703") {
+    const column = /^column (?:public\.)?"?webhook_subscriptions(?:_\d+)?"?\."?(api_client_id|last_success_at|last_failure_at)"? does not exist$/i.exec(message)?.[1];
+    return Boolean(column && columns.has(column.toLowerCase()));
+  }
+  if (code === "PGRST204") {
+    const column = /^Could not find the '(api_client_id|last_success_at|last_failure_at)' column of 'webhook_subscriptions' in the schema cache$/i.exec(message)?.[1];
+    return Boolean(column && columns.has(column.toLowerCase()));
+  }
+  return allowApiClientRelationship && code === "PGRST200" &&
+    /^Could not find a relationship between 'webhook_subscriptions' and 'integration_api_clients' in the schema cache$/i.test(message);
+}
+
 export async function listWebhookSubscriptions(
   input: { companyId?: string | null; limit?: number } = {},
 ): QueryResult<WebhookSubscriptionAdminRow> {
-  let query = supabaseService
-    .from("webhook_subscriptions")
-    .select(
-      "id, company_id, api_client_id, name, endpoint_url, event_types, status, signing_secret_ref, last_success_at, last_failure_at, failure_count, created_at, updated_at, companies(name), integration_api_clients(name,key_prefix)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
+  const load = async (projection: string) => {
+    let query = supabaseService
+      .from("webhook_subscriptions")
+      .select(projection)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
+    if (input.companyId) query = query.eq("company_id", input.companyId);
+    return await query;
+  };
 
-  if (input.companyId) query = query.eq("company_id", input.companyId);
-
-  const { data, error } = await query;
-  if (error) {
-    if (missingSchema(error)) return [];
-    throw error;
+  let result = await load(
+    "id, company_id, api_client_id, name, endpoint_url, event_types, status, signing_secret_ref, last_success_at, last_failure_at, failure_count, created_at, updated_at, companies(name), integration_api_clients(name,key_prefix)",
+  );
+  let bindingAvailable = true;
+  if (result.error && missingOptionalWebhookProjection(result.error,
+    new Set(["api_client_id", "last_success_at", "last_failure_at"]), true)) {
+    bindingAvailable = false;
+    result = await load(
+      "id, company_id, name, endpoint_url, event_types, status, signing_secret_ref, failure_count, created_at, updated_at, companies(name)",
+    );
   }
-  return (data ?? []) as WebhookSubscriptionAdminRow[];
+
+  if (result.error) throw result.error;
+  return ((result.data ?? []) as unknown as WebhookSubscriptionAdminRow[]).map(row => ({
+    ...row,
+    ...(!bindingAvailable ? {
+      api_client_id: null, integration_api_clients: null,
+      last_success_at: null, last_failure_at: null,
+    } : {}),
+    api_client_binding_available: bindingAvailable,
+  }));
 }
 
 export async function listWebhookDeliveries(
@@ -567,23 +604,28 @@ export async function listWebhookDeliveries(
     limit?: number;
   } = {},
 ): QueryResult<WebhookDeliveryAdminRow> {
-  let query = supabaseService
-    .from("webhook_deliveries")
-    .select(
-      "id, company_id, webhook_subscription_id, domain_event_id, event_type, status, attempts, max_attempts, next_attempt_at, last_attempt_at, delivered_at, failed_at, response_status, response_body, failure_reason, payload, target_url, locked_at, locked_by, created_at, webhook_subscriptions(name,endpoint_url,api_client_id)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
+  const load = async (projection: string) => {
+    let query = supabaseService
+      .from("webhook_deliveries")
+      .select(projection)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
+    if (input.companyId) query = query.eq("company_id", input.companyId);
+    if (input.status) query = query.eq("status", input.status);
+    return await query;
+  };
 
-  if (input.companyId) query = query.eq("company_id", input.companyId);
-  if (input.status) query = query.eq("status", input.status);
-
-  const { data, error } = await query;
-  if (error) {
-    if (missingSchema(error)) return [];
-    throw error;
+  let result = await load(
+    "id, company_id, webhook_subscription_id, domain_event_id, event_type, status, attempts, max_attempts, next_attempt_at, last_attempt_at, delivered_at, failed_at, response_status, response_body, failure_reason, payload, target_url, locked_at, locked_by, created_at, webhook_subscriptions(name,endpoint_url,api_client_id)",
+  );
+  if (result.error && missingOptionalWebhookProjection(result.error, new Set(["api_client_id"]))) {
+    result = await load(
+      "id, company_id, webhook_subscription_id, domain_event_id, event_type, status, attempts, max_attempts, next_attempt_at, last_attempt_at, delivered_at, failed_at, response_status, response_body, failure_reason, payload, target_url, locked_at, locked_by, created_at, webhook_subscriptions(name,endpoint_url)",
+    );
   }
-  return (data ?? []) as WebhookDeliveryAdminRow[];
+
+  if (result.error) throw result.error;
+  return (result.data ?? []) as unknown as WebhookDeliveryAdminRow[];
 }
 
 export async function listBillingPartnerCustomersForCustomer(

@@ -208,7 +208,7 @@ async function syntheticServer(publicKey) {
       support.revision += 1
       support.title ??= body.title
       const messageReference = `case_message_${String(support.revision).repeat(32)}`
-      support.messages.push({ message_reference: messageReference, body: body.body, author_kind: 'customer', channel: 'api', revision: support.revision, created_at: '2026-09-29T00:00:00Z' })
+      support.messages.push({ message_reference: messageReference, body: body.body, author_kind: 'customer', author_reference: null, channel: 'api', revision: support.revision, created_at: '2026-09-29T00:00:00Z' })
       const data = { case_reference: supportReference, ...(messagesPath ? { message_reference: messageReference } : {}), revision: support.revision, status: 'open', replayed: false }
       support.claims.set(`${url.pathname}:${key}`, { hash, data })
       reply(201, { data }); return
@@ -492,6 +492,19 @@ async function syntheticServer(publicKey) {
 /** Server-to-server reference. The real tenant backend supplies its enrolled
  * assertion signer and keeps both credentials outside the browser. This
  * function sends customer-origin text only; staff/internal fields are absent. */
+/** Saved opaque staff attribution only. Null means a customer message or
+ * unknown historical staff author; never derive a name from the reader. */
+export function readSupportMessageAuthorReference(message) {
+  if (!message || typeof message !== 'object' || !['staff', 'customer'].includes(message.author_kind)
+    || !Object.hasOwn(message, 'author_reference')
+    || (message.author_reference !== null && (typeof message.author_reference !== 'string'
+      || !/^support_staff_[A-Za-z0-9_-]{32}$/.test(message.author_reference)))
+    || (message.author_kind === 'customer' && message.author_reference !== null)) {
+    throw new Error('support_reference_author_invalid')
+  }
+  return message.author_reference
+}
+
 export async function runCustomerSupportReference({ baseUrl, apiKey: backendApiKey, customerNumber: linkedCustomerNumber,
   signAssertion, title, body, continuation, createKey, replyKey }) {
   const call = (method, path, payload, key) => delegatedRequest({ baseUrl, apiKey: backendApiKey,
@@ -505,10 +518,12 @@ export async function runCustomerSupportReference({ baseUrl, apiKey: backendApiK
   if (listed.status !== 200 || !listed.body.data.some(item => item.case_reference === reference)) throw new Error('support_reference_list_failed')
   const firstRead = await call('GET', path)
   if (firstRead.status !== 200 || !firstRead.body.data.some(item => item.body === body)) throw new Error('support_reference_initial_read_failed')
+  firstRead.body.data.forEach(readSupportMessageAuthorReference)
   const reply = await call('POST', path, { body: continuation, expected_revision: created.body.data.revision }, replyKey)
   if (reply.status !== 201) throw new Error(`support_reference_reply_failed:${reply.status}`)
   const readBack = await call('GET', path)
   if (readBack.status !== 200 || !readBack.body.data.some(item => item.body === continuation && item.message_reference === reply.body.data.message_reference)) throw new Error('support_reference_persistence_read_failed')
+  readBack.body.data.forEach(readSupportMessageAuthorReference)
   const replayReply = await call('POST', path, { body: continuation, expected_revision: created.body.data.revision }, replyKey)
   if (replayReply.status !== 201 || replayReply.body.data.message_reference !== reply.body.data.message_reference || replayReply.body.data.replayed !== true) throw new Error('support_reference_reply_replay_failed')
   return { caseReference: reference, revision: reply.body.data.revision, messages: readBack.body.data.length }
