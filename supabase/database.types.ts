@@ -59740,11 +59740,16 @@ export type Database = {
       }
       outbound_requests: {
         Row: {
+          ack_policy: Json
           acknowledged_at: string | null
+          agreement_id: string | null
+          application_reference: string | null
           attempts_count: number
           authorization_document_id: string | null
           automation_key: string | null
           automation_origin: string | null
+          blocking_reasons: Json
+          business_process: string | null
           channel_type: string
           communication_route_id: string | null
           company_id: string | null
@@ -59754,12 +59759,18 @@ export type Database = {
           customer_id: string | null
           customer_site_id: string | null
           dispatch_batch_key: string | null
+          ediel_route_profile_id: string | null
           external_reference: string | null
           failed_at: string | null
           failure_reason: string | null
+          grid_owner_access_agreement_id: string | null
           grid_owner_id: string | null
           grid_owner_information_request_id: string | null
           id: string
+          message_code: string | null
+          message_family: string | null
+          message_intent: string | null
+          message_version: string | null
           metadata: Json | null
           metering_point_id: string | null
           operation_id: string | null
@@ -59768,8 +59779,14 @@ export type Database = {
           period_start: string | null
           prepared_at: string | null
           queued_at: string
+          receiver_ediel_id: string | null
+          receiver_sub_address: string | null
           request_type: string
+          required_admin_actions: Json
           response_payload: Json
+          route_decision_payload: Json
+          sender_ediel_id: string | null
+          sender_sub_address: string | null
           sent_at: string | null
           site_id: string | null
           source_id: string | null
@@ -59779,11 +59796,16 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          ack_policy?: Json
           acknowledged_at?: string | null
+          agreement_id?: string | null
+          application_reference?: string | null
           attempts_count?: number
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
+          blocking_reasons?: Json
+          business_process?: string | null
           channel_type?: string
           communication_route_id?: string | null
           company_id?: string | null
@@ -59793,12 +59815,18 @@ export type Database = {
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
+          ediel_route_profile_id?: string | null
           external_reference?: string | null
           failed_at?: string | null
           failure_reason?: string | null
+          grid_owner_access_agreement_id?: string | null
           grid_owner_id?: string | null
           grid_owner_information_request_id?: string | null
           id?: string
+          message_code?: string | null
+          message_family?: string | null
+          message_intent?: string | null
+          message_version?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
           operation_id?: string | null
@@ -59807,8 +59835,14 @@ export type Database = {
           period_start?: string | null
           prepared_at?: string | null
           queued_at?: string
+          receiver_ediel_id?: string | null
+          receiver_sub_address?: string | null
           request_type: string
+          required_admin_actions?: Json
           response_payload?: Json
+          route_decision_payload?: Json
+          sender_ediel_id?: string | null
+          sender_sub_address?: string | null
           sent_at?: string | null
           site_id?: string | null
           source_id?: string | null
@@ -59818,11 +59852,16 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          ack_policy?: Json
           acknowledged_at?: string | null
+          agreement_id?: string | null
+          application_reference?: string | null
           attempts_count?: number
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
+          blocking_reasons?: Json
+          business_process?: string | null
           channel_type?: string
           communication_route_id?: string | null
           company_id?: string | null
@@ -59832,12 +59871,18 @@ export type Database = {
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
+          ediel_route_profile_id?: string | null
           external_reference?: string | null
           failed_at?: string | null
           failure_reason?: string | null
+          grid_owner_access_agreement_id?: string | null
           grid_owner_id?: string | null
           grid_owner_information_request_id?: string | null
           id?: string
+          message_code?: string | null
+          message_family?: string | null
+          message_intent?: string | null
+          message_version?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
           operation_id?: string | null
@@ -59846,8 +59891,14 @@ export type Database = {
           period_start?: string | null
           prepared_at?: string | null
           queued_at?: string
+          receiver_ediel_id?: string | null
+          receiver_sub_address?: string | null
           request_type?: string
+          required_admin_actions?: Json
           response_payload?: Json
+          route_decision_payload?: Json
+          sender_ediel_id?: string | null
+          sender_sub_address?: string | null
           sent_at?: string | null
           site_id?: string | null
           source_id?: string | null
