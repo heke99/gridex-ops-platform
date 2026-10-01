@@ -4,6 +4,7 @@ import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
 import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
 import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {isValidUtiltsTransactionReference} from '@/lib/ediel/utilts/physicalReference'
 import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
@@ -33,7 +34,7 @@ import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { misplacedProdatEnergyProducts, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { tokenizeEdifact, segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/core/messageBuilder/payloadPreflight.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -667,7 +668,19 @@ function validateEdifactPayload(params: {
     if (tag === 'NAD' && canonical.family === 'PRODAT') continue
     const indices = tag === 'NAD' ? [2] : segment.elements.slice(1).map((_, index) => index + 1)
     for (const index of indices) {
-      const candidate = segmentComposite(segment, index, una)[0] ?? null
+      const parts=segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},index,una)
+      // Only the national own IDE / copied TN / copied ACW reference positions
+      // have U505's source an..35 identity semantics. Keep UNB/P/actor policy.
+      const physicalUtiltsId=tag==='IDE' && index===2 && ['UTILTS','UTILTS_ERR'].includes(canonical.family)
+      const copiedUtiltsId=tag==='RFF' && index===1 && ((canonical.family==='UTILTS_ERR' && parts[0]==='TN') ||
+        (canonical.family==='APERAK' && canonical.version==='E5SE5A' && parts[0]==='ACW'))
+      if(physicalUtiltsId || copiedUtiltsId) {
+        const reference=parts[physicalUtiltsId?0:1]
+        if(!isValidUtiltsTransactionReference(reference)) issues.push(issue({severity:'error',code:'UTILTS_PHYSICAL_TRANSACTION_REFERENCE_INVALID',
+          title:'Ogiltig fysisk UTILTS-transaktionsreferens',description:'Fält505 och dess egna TN/ACW-kopior ska behålla an..35 utan avslutande blanksteg eller styrtecken.',segment}))
+        continue
+      }
+      const candidate = parts[0] ?? null
       if (candidate && /^[A-Za-z0-9ÅÄÖåäö _.-]{4,}$/.test(candidate)) {
         checkIdentifierCharacters({ issues, value: candidate, segment, label: `${tag} identifierare` })
       }

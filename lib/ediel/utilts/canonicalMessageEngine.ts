@@ -2,6 +2,8 @@ import type { UtiltsCanonicalMessageCode, UtiltsCanonicalProfile } from '@/lib/e
 import { canonicalUtiltsObservationRequirements, resolveCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 import {getUtiltsFieldRequirement} from '@/lib/ediel/rulebook/utiltsFieldMatrix'
 import {expectedObservationCountForResolution,normalizeEdifactResolution} from './resolution'
+import {physicalUtiltsReference,isValidUtiltsTransactionReference} from './physicalReference'
+import {escapeEdifactValue} from '@/lib/ediel/core/edifactSerializer'
 
 export type UtiltsPhase = 'planning' | 'metering' | 'settlement'
 
@@ -166,8 +168,9 @@ export function validateUtiltsMessage(input: {
   const transactionIds = new Set<string>()
   const packageDimensions = new Set<string>()
   for (const transaction of input.message.transactions) {
-    const id = clean(transaction.transactionId)
+    const id = physicalUtiltsReference(transaction.transactionId)
     if (!id) issues.push(issue('UTILTS_TRANSACTION_ID_REQUIRED', 'Transaktions-id saknas.'))
+    else if(!isValidUtiltsTransactionReference(id)) issues.push(issue('UTILTS_TRANSACTION_ID_INVALID','Transaktions-id uppfyller inte källfält505 an..35.',id))
     if (id && transactionIds.has(id)) issues.push(issue('UTILTS_TRANSACTION_ID_DUPLICATE', `Dubblett transaktions-id ${id}.`, id))
     if (id) transactionIds.add(id)
     if (profile.requiresMeteringPoint && !clean(transaction.meteringPointId)) issues.push(issue('UTILTS_METERING_POINT_REQUIRED', 'Mätpunkt saknas.', id || null))
@@ -237,10 +240,11 @@ export function renderCanonicalUtiltsBody(input: {
     `DTM+137:${dtm203(input.generatedAt)}:203`,
   ]
   for (const transaction of input.message.transactions) {
-    segments.push(`IDE+24+${token(transaction.transactionId)}`)
+    if(!isValidUtiltsTransactionReference(transaction.transactionId)) throw new Error('utilts_transaction_reference_invalid')
+    segments.push(`IDE+24+${escapeEdifactValue(transaction.transactionId)}`)
     if (transaction.meteringPointId) segments.push(`LOC+172+${token(transaction.meteringPointId)}::9`)
     if (transaction.gridAreaId) segments.push(`LOC+239+${token(transaction.gridAreaId)}:SVK:260`)
-    segments.push(`RFF+TN:${token(transaction.transactionId)}`)
+    segments.push(`RFF+TN:${escapeEdifactValue(transaction.transactionId)}`)
     segments.push(`RFF+ZTS:${token(transaction.timeSeriesProduct)}`)
     if (transaction.deliveryPeriod.start && transaction.deliveryPeriod.end) {
       segments.push(`DTM+324:${dtm203(transaction.deliveryPeriod.start)}${dtm203(transaction.deliveryPeriod.end)}:719`)

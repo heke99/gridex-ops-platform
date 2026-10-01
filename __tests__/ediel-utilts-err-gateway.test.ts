@@ -189,6 +189,23 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
   return { source, runtime, actor, finalize, acks, reservations }
 }
 
+it('keeps a leading own-ID functional ERR separate from its trimmed positive sibling through the actual ACK gateway',async()=>{
+ const f=seed([{reference:' OWN A',outcome:'processability_rejected'},{reference:'OWN A',outcome:'accepted'}])
+ expect(f.runtime.transactionDispositions.map(d=>[d.transactionId,d.disposition])).toEqual([[' OWN A','processability_rejected'],['OWN A','accepted']])
+ await f.finalize()
+ const err=f.acks().find(row=>row.message_family==='UTILTS_ERR')!,ap=f.acks().find(row=>row.message_family==='APERAK')!
+ const refs=(row:Row,qualifier:string)=>{
+  const wire=EdifactEnvelopeCodec.decode(String(row.raw_payload))
+  return wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]===qualifier).map(c=>c[1])
+ }
+ expect(refs(err,'TN')).toEqual([' OWN A'])
+ expect(err.raw_payload).toContain('E87')
+ expect(refs(ap,'ACW')).toEqual(['OWN A'])
+ expect(f.acks().filter(row=>row.message_family==='UTILTS_ERR')).toHaveLength(1)
+ expect(f.acks().filter(row=>row.message_family==='APERAK')).toHaveLength(1)
+ expect(f.acks().filter(row=>row.message_family==='CONTRL')).toHaveLength(1)
+})
+
 it('SC-045 finalizes one header-negative APERAK without inventing an original IDE reference', async () => {
   const f = seed([
     { reference: 'HEADER-OK', outcome: 'accepted' },

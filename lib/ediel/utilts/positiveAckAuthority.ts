@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
-import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
+import {isValidUtiltsTransactionReference} from './physicalReference'
 
 const STORAGE_REQUIRED = 'utilts_positive_ack_storage_unavailable'
 
@@ -14,9 +15,9 @@ function positiveUtiltsWire(raw: string | null | undefined, required = false): {
   const unhs = segments.filter(s => s.tag === 'UNH')
   const type = unhs.length === 1 ? segmentComposite(unhs[0], 2, una) : []
   if (bgms.length !== 1 || type[0] !== 'APERAK' || type[2] !== '04A' || type[4] !== 'E5SE5A') throw new Error(STORAGE_REQUIRED)
-  const acw = segments.filter(s => s.tag === 'RFF').map(s => segmentComposite(s, 1, una)).filter(c => c[0] === 'ACW')
+  const acw = segments.filter(s => s.tag === 'RFF').map(s => segmentComposite({...s,raw:segmentUntrimmedRaw(s)}, 1, una)).filter(c => c[0] === 'ACW')
   const ids = acw.map(c => c[1])
-  if (!ids.length || ids.some(id => !id || id !== id.trim()) || new Set(ids).size !== ids.length) throw new Error(STORAGE_REQUIRED)
+  if (!ids.length || ids.some(id => !isValidUtiltsTransactionReference(id)) || new Set(ids).size !== ids.length) throw new Error(STORAGE_REQUIRED)
   return { transactionIds: ids }
 }
 

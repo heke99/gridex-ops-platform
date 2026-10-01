@@ -31,6 +31,16 @@ function source(reference:string,alternate=false,precisionFailure=true) {
  return message
 }
 describe('UTILTS actual runtime preserves physical own-reference scope',()=>{
+ it.each([false,true])('retains source-permitted leading/embedded an spaces across the actual owner and V2 preparation, alternate=%s',async alternate=>{
+  const reference=' OWN A+B:C?D',message=source(reference,alternate,false)
+  const policy=resolveCanonicalMessagePolicy(message,undefined,{admissionAt:'2026-10-01'})!
+  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy})
+  expect(runtime.transactionDispositions).toMatchObject([{transactionId:reference,disposition:'accepted'}])
+  expect(buildReceivedUtiltsTransactionValidation({source:message,transactions:runtime.transactionDispositions})?.transactions[0].transactionId).toBe(reference)
+  const contracts=await prepareUtiltsConsumptionContracts({message,runtime,policy,matches:[],dataRequest:null,
+   fallback:{customerId:'customer',siteId:'site',meteringPointId:'point',gridOwnerId:'owner'},allowConsumption:true})
+  expect(contracts[0]).toMatchObject({version:2,transactionId:reference,observations:[{quantity:'500'}]})
+ })
  it.each([false,true])('keeps released own-ID bytes through facts and real canonical owner sidecars with alternate=%s',alternate=>{
   const reference='OWN:A+B?C',message=source(reference,alternate),facts=parseUtiltsRuntimeFacts(message.raw_payload!)
   expect(facts.transactionId).toBe(reference)

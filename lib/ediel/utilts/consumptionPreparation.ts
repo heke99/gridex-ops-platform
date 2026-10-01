@@ -9,6 +9,7 @@ import { matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint 
 import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
 import { addNormalizedResolution, normalizeEdifactResolution } from './resolution'
 import { resolveUtiltsTransactionId } from './transactionIdentity'
+import {physicalUtiltsReference} from './physicalReference'
 import { utiltsSeriesKind } from './transactionPersistence'
 import { canonicalAbsoluteInstant, consumptionConflict, validateUtiltsConsumptionContract, type UtiltsConsumptionAttribution, type UtiltsConsumptionContract, type UtiltsBillingContext } from './consumptionContract'
 import {utiltsRuntimeSegments,type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
@@ -39,7 +40,7 @@ export async function prepareUtiltsConsumptionContracts(input: {
   const sourceTransactions = Array.isArray(runtime.normalizedPayload.transactions) ? runtime.normalizedPayload.transactions : []
   const projected = sourceTransactions.flatMap((value, index) => {
     const tx = value as Record<string, unknown>
-    if (!input.allowConsumption || !acceptedIds.has(resolveUtiltsTransactionId(stringOrNull(tx.transactionId), index))) return []
+    if (!input.allowConsumption || !acceptedIds.has(resolveUtiltsTransactionId(physicalUtiltsReference(tx.transactionId), index))) return []
     if (policy.code === 'E30' || policy.code === 'E66') {
       const resolution = normalizeEdifactResolution({ value: stringOrNull(tx.resolution), format: stringOrNull(tx.resolutionFormat) })
       const quantities = Array.isArray(tx.quantities) ? tx.quantities.filter(quantity => (quantity as Record<string,unknown>).qualifier === '136') : []
