@@ -20,7 +20,7 @@ export async function renderAndQueueAiList(input:{companyId:string;actorUserId:s
  if(statusError||!status)throw new Error('ai_list_original_status_unconfirmed')
  let message=status.status==='bound'?await getEdielMessageById(String(status.messageId)):null
  if(status.status==='bound'&&!message)throw new Error('ai_list_bound_original_unavailable')
- if(message&&(message.company_id!==input.companyId||message.intent_id!==intent.id||message.immutable_payload_hash!==status.payloadHash))throw new Error('ai_list_existing_original_scope_mismatch')
+ if(message&&(message.company_id!==input.companyId||message.intent_id!==intent.id||(message as typeof message&{immutable_payload_hash?:unknown}).immutable_payload_hash!==status.payloadHash))throw new Error('ai_list_existing_original_scope_mismatch')
  if(!message){
   let draft:CreateEdielMessageInput
   if(status.status==='original'){
@@ -36,7 +36,7 @@ export async function renderAndQueueAiList(input:{companyId:string;actorUserId:s
   message=await finalizeOutboundDraft({actorUserId:input.actorUserId,requestType:'meter_values',routeContext:route,draft,duplicateCheck:{sourceType:'manual',sourceId:intent.id,receiverEdielId:route.receiverEdielId,messageFamily:'AI_LIST',messageCode:'AI',messageVersion:AI_LIST_FORMAT_VERSION}})
   await updateIntentLifecycle(intent.id,{renderStatus:'rendered',edielMessageId:message.id,actorUserId:input.actorUserId})
  }
- if(message.status==='sent'||message.status==='sending'||message.status==='queued')return message
+ if(['sent','dispatching','provider_accepted','delivered','acknowledged','queued'].includes(message.status))return message
  await queuePreparedEdielMessage({actorUserId:input.actorUserId,messageId:message.id,intentId:intent.id,externalReference:message.external_reference})
  await updateIntentLifecycle(intent.id,{outboxStatus:'queued',actorUserId:input.actorUserId})
  return message
