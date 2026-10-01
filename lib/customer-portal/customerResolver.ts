@@ -27,8 +27,22 @@ export type ResolvedPortalCustomer = {
   customer: Record<string, unknown>
 }
 
+/**
+ * How the resolved customer is bound to the caller.
+ * - `portal_account`: an already linked, active portal account/identity for the presented user id.
+ * - `identifier_match`: matched only on tenant-supplied identifiers (customer number, email, external id).
+ *   Identifier matches are never proof that an end customer is authenticated.
+ */
+export type PortalCustomerBinding = 'portal_account' | 'identifier_match'
+
+/**
+ * `read` (default) never writes: no account/identity upsert, no re-verification, no reactivation.
+ * `link` is the explicit, separately scoped link operation.
+ */
+export type PortalResolveMode = 'read' | 'link'
+
 export type PortalCustomerResolution =
-  | { ok: true; customer: ResolvedPortalCustomer }
+  | { ok: true; customer: ResolvedPortalCustomer; binding: PortalCustomerBinding }
   | { ok: false; status: number; error: string; code: string; identifiers: CustomerPortalIdentifiers }
 
 const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
@@ -697,7 +711,9 @@ export async function resolvePortalCustomer(input: {
   client: IntegrationApiClient
   request?: NextRequest
   identifiers?: Partial<CustomerPortalIdentifiers>
+  mode?: PortalResolveMode
 }): Promise<PortalCustomerResolution> {
+  const mode: PortalResolveMode = input.mode ?? 'read'
   const identifiers: CustomerPortalIdentifiers = {
     externalCustomerId: input.identifiers?.externalCustomerId ?? (input.request ? portalIdentifiersFromRequest(input.request).externalCustomerId : null),
     customerNumber: input.identifiers?.customerNumber ?? (input.request ? portalIdentifiersFromRequest(input.request).customerNumber : null),
@@ -712,8 +728,22 @@ export async function resolvePortalCustomer(input: {
 
   try {
     const userId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
+    const linkedAccount = userId ? await linkedByAccount(input.client.company_id, userId) : null
+    if (linkedAccount) return { ok: true, customer: linkedAccount, binding: 'portal_account' }
+
+    if (userId && mode === 'read') {
+      // A presented portal user that is not (or no longer) actively linked must not fall back to
+      // identifier matching, and reads must never create, re-verify or reactivate a link.
+      return {
+        ok: false,
+        status: 403,
+        code: 'customer_portal_link_required',
+        error: 'Portalanvändaren är inte aktivt kopplad till en kund. Koppling sker via separat kontrollerad länkning.',
+        identifiers,
+      }
+    }
+
     const resolved =
-      (userId ? await linkedByAccount(input.client.company_id, userId) : null) ??
       await canonicalIdentityCandidate(input.client.company_id, identifiers) ??
       (identifiers.externalCustomerId ? await linkedByExternal(input.client.company_id, identifiers.externalCustomerId) : null) ??
       (identifiers.customerNumber ? await customerByField(input.client.company_id, 'customer_number', identifiers.customerNumber, 'customers.customer_number') : null) ??
@@ -762,10 +792,11 @@ export async function resolvePortalCustomer(input: {
           match_method: linked.matchMethod,
           provider: resolved.provider ?? 'customer_portal_accounts',
         },
+        binding: 'portal_account',
       }
     }
 
-    return { ok: true, customer: resolved }
+    return { ok: true, customer: resolved, binding: 'identifier_match' }
   } catch (error) {
     if (isMissingPortalSchemaError(error)) {
       return { ok: false, status: 503, code: 'customer_portal_schema_missing', error: 'Kundportalens datamodell är inte färdig i OPS.', identifiers }
