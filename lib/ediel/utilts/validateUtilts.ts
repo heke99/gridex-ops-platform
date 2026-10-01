@@ -1,13 +1,17 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage, type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
+import {inferEdielFamilyAndCodeFromRawPayload} from '@/lib/ediel/classify'
 
-export function validateUtilts(rawPayload: string): UtiltsRuntimeResult['validation'] {
+/** Observational validation at the evaluation clock, without a stored ingress
+ * receipt. DTM137 remains the original business time and cannot admit a guide. */
+export function validateUtilts(rawPayload: string,options:{evaluationAt?:string|Date}={}): UtiltsRuntimeResult['validation'] {
+  const physical=inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const runtime = runUtiltsRuntimeForMessage({
     id: 'utilts-validation',
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: 'UTILTS',
-    message_code: 'E66',
+    message_code: physical.messageFamily==='UTILTS' ? physical.messageCode : null,
     message_version: null,
     process_type: null,
     environment: 'test',
@@ -69,7 +73,7 @@ export function validateUtilts(rawPayload: string): UtiltsRuntimeResult['validat
     updated_at: new Date().toISOString(),
     created_by: null,
     updated_by: null,
-  } satisfies EdielMessageRow).validation
+  } satisfies EdielMessageRow,{referenceDate:options.evaluationAt ?? new Date()}).validation
 
   return runtime
 }
