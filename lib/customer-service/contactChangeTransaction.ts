@@ -1,5 +1,8 @@
 import { supabaseService } from '@/lib/supabase/service'
-import type { Json } from '@/supabase/database.types'
+import type { Database, Json } from '@/supabase/database.types'
+
+// Generated Args mark every parameter non-null; the SQL function accepts null for the optional ones.
+type ContactChangeArgs = Database['public']['Functions']['gridex_customer_contact_change_v1']['Args']
 
 /**
  * Tenantservice P2b: the single write path for a customer contact/profile change.
@@ -75,7 +78,7 @@ export async function applyCustomerContactChange(input: {
     p_customer_patch: input.customerPatch as Json,
     p_contact_patch: input.contactPatch as Json,
     p_idempotency_key: input.idempotencyKey ?? null,
-  } as never)
+  } as unknown as ContactChangeArgs)
   if (error) throw mapError(error)
   const result = (data ?? {}) as Record<string, unknown>
   return {

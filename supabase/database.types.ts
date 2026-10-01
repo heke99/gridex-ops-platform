@@ -27976,6 +27976,7 @@ export type Database = {
           intake_quality_score: number | null
           intake_status: string | null
           intake_warnings: string[]
+          invoice_email: string | null
           is_test_data: boolean
           last_name: string | null
           latest_customer_action: string | null
@@ -28038,6 +28039,7 @@ export type Database = {
           intake_quality_score?: number | null
           intake_status?: string | null
           intake_warnings?: string[]
+          invoice_email?: string | null
           is_test_data?: boolean
           last_name?: string | null
           latest_customer_action?: string | null
@@ -28100,6 +28102,7 @@ export type Database = {
           intake_quality_score?: number | null
           intake_status?: string | null
           intake_warnings?: string[]
+          invoice_email?: string | null
           is_test_data?: boolean
           last_name?: string | null
           latest_customer_action?: string | null
@@ -89127,6 +89130,22 @@ export type Database = {
       gridex_customer_cleanup_external_ref: {
         Args: { p_customer_id: string }
         Returns: string
+      }
+      gridex_customer_contact_change_v1: {
+        Args: {
+          p_actor_kind: string
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_channel: string
+          p_company_id: string
+          p_contact_patch: Json
+          p_customer_id: string
+          p_customer_patch: Json
+          p_expected_updated_at: string
+          p_idempotency_key: string
+          p_portal_identity_id: string
+        }
+        Returns: Json
       }
       gridex_customer_intake_queue: {
         Args: { p_company_id: string; p_limit?: number }

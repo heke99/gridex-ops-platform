@@ -43,10 +43,10 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 | F9 unique idempotency migration | `19b9251` |
 | P7/P8 docs | `d2e45b9` |
 | P2b migration `20261001210000_customer_contact_change_transaction.sql` (RPC `gridex_customer_contact_change_v1`; repairs `customers.invoice_email` replay drift; staff authorized via `gridex_actor_has_company_permission(...,'masterdata.write')`) | `19b8c7f`, `5a708ce`, `71c56c7` |
-| P2b adapters: OPS `profile-actions.part-1.ts` + API `profile-update/route.ts` call `lib/customer-service/contactChangeTransaction.ts` (uncommitted until types regenerate) | pending |
+| P2b adapters: OPS `profile-actions.part-1.ts` + API `profile-update/route.ts` call `lib/customer-service/contactChangeTransaction.ts` | `fc1e60e` + types commit |
 
 ## Next actions (in order)
-1. Wait for `clean-migration-replay` on `71c56c7`. It will fail `db:types` (function + column added). Download artifact `rem002-database.types.ts` from that run, copy to `supabase/database.types.ts`, update sha256 in `scripts/supabase-types-manifest.json`, then remove `as never` in `contactChangeTransaction.ts`, typecheck, commit adapters + types, push.
+1. Types regenerated from clean replay artifact (sha f256db9b…) and committed with adapters. Wait for #425 CI fully green.
 2. Behaviour note: OPS profile save now requires `masterdata.write` in the DB (before: only operate-company; UI already hid the edit for others). Audit rows now hold only changed fields.
 3. **P1c:** needs a user decision (tenant identity provider). Open item.
 4. When everything is green: mark #425 ready, squash-merge, verify the Vercel production deploy of the merge SHA.
