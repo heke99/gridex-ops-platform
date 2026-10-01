@@ -23,16 +23,20 @@ import type {EdielAperakApplicationError} from '@/lib/ediel/ack'
 beforeEach(()=>{state.effects=[];state.drafts=[];state.events=[];state.registryFailure=false})
 const run=(message:EdielMessageRow)=>{state.message={...message,message_received_at:'2026-09-20T00:00:00Z',status:'received',company_id:'tenant',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow;return processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:message.id})}
 
-import {changeRaw,changeBody,changeFields} from './fixtures/prodat-meter-change'
-import {deathRaw,deathBody} from './fixtures/prodat-death-status'
+import {changeBody,changeFields} from './fixtures/prodat-meter-change'
+import {deathBody} from './fixtures/prodat-death-status'
 import {payload} from './fixtures/prodat-gas'
-import {source} from './fixtures/prodat-identity'
+import {source,head} from './fixtures/prodat-identity'
+import {raw} from './fixtures/prodat-register'
 for(const a of alphabets)for(const cell of ['321','323','254','242','Z05-310','Z06-310','Z09-310','Z04-320','Z06-320'])it(`selected persist/reload final renderer ${cell}/${a.join('')}`,async()=>{
  const field=cell.slice(-3),code=cell.includes('-')?cell.slice(0,3):['321','323'].includes(field)?'Z14':'Z10'
  let m:EdielMessageRow=message('Z14','S18','A74',null,a)
  if(code==='Z14')m.raw_payload=m.raw_payload!.replace(field==='321'?'202611010000':'B72',field==='321'?'202602300000':'BAD')
- else if(code==='Z10')m=source(changeRaw(changeBody(changeFields(field==='254'?'BAD':'Z32',field==='242'?'BAD':'L639Q')),a),code)
- else if(field==='310')m=source(deathRaw(code,deathBody(code==='Z05'?'Z23':'E34',characteristic('Z17','BAD')),a),code)
+ // ACK qualification needs the original own legal NAD identity and country.
+ // These explicit synthetic source headers preserve the independently chosen
+ // invalid own field and service alphabet; row metadata is not ACK authority.
+ else if(code==='Z10')m=source(raw([...head(),...changeBody(changeFields(field==='254'?'BAD':'Z32',field==='242'?'BAD':'L639Q'))],code,a),code)
+ else if(field==='310')m=source(raw([...head(),...deathBody(code==='Z05'?'Z23':'E34',characteristic('Z17','BAD'))],code,a),code)
  else m=source(payload(code,code==='Z04'?'Z22':'E32',[], 'gas',a),code)
  if(field==='320'){await expect(run(m)).rejects.toThrow('ediel_guide_resolution_missing:PRODAT:2026-09-20:E2SE6B');expect(state.drafts).toEqual([]);return}
  await run(m)
