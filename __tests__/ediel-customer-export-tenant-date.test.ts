@@ -1,14 +1,15 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-const io = vi.hoisted(() => ({ from: vi.fn(), actor: vi.fn(), life: vi.fn(), structure: vi.fn(), queries: [] as Array<{ table: string; filters: Array<[string, unknown]> }> }))
+const io = vi.hoisted(() => ({ from: vi.fn(), actor: vi.fn(), life: vi.fn(), structure: vi.fn(), masterdata:vi.fn(), queries: [] as Array<{ table: string; filters: Array<[string, unknown]> }> }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }))
+vi.mock('@/lib/ediel/production/customerMasterdataSource',()=>({prepareCustomerMasterdataSource:io.masterdata}))
 vi.mock('@/lib/ediel/services/authorization', () => ({ assertEdielTenantActor: io.actor }))
 vi.mock('@/lib/ediel/production/customerLifeEventExport', () => ({ readCustomerLifeEventExportProjection: io.life }))
 vi.mock('@/lib/ediel/sources/qualifiedCustomerStructure', () => ({ readQualifiedCustomerStructure: io.structure }))
 import { getCustomerExportContext } from '@/lib/cis/db-shared'
 const company = 'company-A', actor = 'actor-A'
-const input = { companyId: company, actorUserId: actor, customerId: 'customer-A', siteId: 'site-A', meteringPointId: 'point-A' }
+const input = { companyId: company, actorUserId: actor, customerId: 'customer-A', siteId: 'site-A', meteringPointId: 'point-A',requireCustomerMasterdata:true }
 beforeEach(() => {
-  vi.clearAllMocks(); io.queries.length = 0; io.actor.mockResolvedValue(undefined); io.life.mockResolvedValue(null); io.structure.mockResolvedValue({ qualified: true })
+  vi.clearAllMocks(); io.queries.length = 0; io.actor.mockResolvedValue(undefined); io.life.mockResolvedValue(null);io.masterdata.mockResolvedValue(null); io.structure.mockResolvedValue({ qualified: true })
   io.from.mockImplementation((table: string) => {
     // Scoped reads begin only after the actual tenant actor was authorized.
     expect(io.actor).toHaveBeenCalledTimes(1)
@@ -29,6 +30,7 @@ it('reads the first agreement within its authenticated tenant without requiring 
   for (const query of io.queries) expect(query.filters).toContainEqual(['company_id', company])
   expect(io.structure).not.toHaveBeenCalled()
   expect(io.life).toHaveBeenCalledWith({ companyId: company, customerId: input.customerId, actorUserId: actor, asOf: undefined })
+  expect(io.masterdata).toHaveBeenCalledWith({companyId:company,customerId:input.customerId,actorUserId:actor,asOf:undefined,environment:undefined})
 })
 it('keeps the dated structural source and uses that same date for literal customer masterdata', async () => {
   const edielStructure = { companyId: company, actorUserId: actor, environment: 'test' as const, periodStart: '2026-09-30T11:00:00Z', periodEnd: '2026-10-01T11:00:00Z' }
@@ -49,3 +51,5 @@ it('holds explicit tenant lookup without an actor and preserves an authorization
   await expect(getCustomerExportContext(input)).rejects.toBe(error)
   expect(io.from).not.toHaveBeenCalled()
 })
+
+it('does not require UD source for scoped consumers that do not request end-user masterdata',async()=>{await getCustomerExportContext({...input,requireCustomerMasterdata:false});expect(io.masterdata).not.toHaveBeenCalled()})

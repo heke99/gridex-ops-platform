@@ -9,6 +9,7 @@ import { getContractLifecycleSummary } from '@/lib/customer-contracts/lifecycle'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { CustomerContactRow, CustomerRow } from '@/types/customers'
+import {prepareCustomerMasterdataSource,type SourceQualifiedCustomerMasterdataProjection} from '@/lib/ediel/production/customerMasterdataSource'
 import { readCustomerLifeEventExportProjection, type CustomerLifeEventExportProjection } from '@/lib/ediel/production/customerLifeEventExport'
 
 export function normalizeQuery(value?: string | null): string {
@@ -90,6 +91,7 @@ export type CustomerExportContext = {
   contract: CustomerContractRow | null
   qualifiedStructure?:QualifiedCustomerStructure
   customerLifeEvent?: CustomerLifeEventExportProjection | null
+  customerMasterdata?:SourceQualifiedCustomerMasterdataProjection|null
 }
 
 function preferPrimaryContact(contacts: CustomerContactRow[]): CustomerContactRow | null {
@@ -213,6 +215,8 @@ export async function getCustomerExportContext(params: {
   meteringPointId?: string | null
   actorUserId?: string | null
   asOf?: string
+  environment?:'test'|'production'
+  requireCustomerMasterdata?:boolean
 }): Promise<CustomerExportContext> {
   const explicitCompanyId = normalizeCompanyId(params.companyId)
   const explicitActorUserId = normalizeCompanyId(params.actorUserId)
@@ -253,11 +257,14 @@ export async function getCustomerExportContext(params: {
     const {readQualifiedCustomerStructure}=await import('@/lib/ediel/sources/qualifiedCustomerStructure')
     qualifiedStructure=await readQualifiedCustomerStructure({...params.edielStructure,customerId:params.customerId,siteId:site.id,meteringPointId:meteringPoint.id})
   }
+  if(params.environment&&params.edielStructure&&params.environment!==params.edielStructure.environment)throw Error('customer_export_environment_scope_conflict')
   const customerLifeEvent = tenant.companyId && customer && tenant.tenantIssues.length === 0
     ? await readCustomerLifeEventExportProjection({ companyId: tenant.companyId, customerId: customer.id, actorUserId: scopedActorUserId, asOf: params.asOf ?? params.edielStructure?.periodStart })
     : null
 
+  const customerMasterdata=params.requireCustomerMasterdata&&scopedCompanyId&&scopedActorUserId&&customer?await prepareCustomerMasterdataSource({companyId:scopedCompanyId,customerId:customer.id,actorUserId:scopedActorUserId,asOf:params.asOf??params.edielStructure?.periodStart,environment:params.environment??params.edielStructure?.environment}):undefined
   return {
+    ...(customerMasterdata?{customerMasterdata}:{}),
     ...(qualifiedStructure?{qualifiedStructure}:{}),
     companyId: tenant.companyId,
     tenantIssues: tenant.tenantIssues,
