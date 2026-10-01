@@ -67,7 +67,7 @@ export async function loadCustomerLifeEventValidationContext(message:EdielMessag
  if(error)throw error
  if(!data)return undefined
  if(data.certification===true){
-  if(data.intentId!==message.intent_id||message.environment!=='test'||!message.intent_id||!message.communication_route_id||!message.raw_payload)throw new Error('customer_event_certification_message_basis_invalid')
+  if(data.intentId!==message.intent_id||message.environment!=='test'||!message.communication_route_id||!message.raw_payload)throw new Error('customer_event_certification_message_basis_invalid')
   return certificationCustomerLifeEventContext({basis:data.basis,companyId:message.company_id,rawPayload:message.raw_payload,intentId:message.intent_id,routeId:message.communication_route_id})
  }
  if(data.status==='held')throw new Error('customer_life_event_current_source_held')
