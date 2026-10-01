@@ -219,6 +219,7 @@
     "20260930220632_ediel_native_utilts_err_explicit_own_response_scope.sql": "e1fba364805e7bcb90ba2f77aeab7744f48b00fa4eb4fc31b31976e1bba5b818",
     "20260930220942_ediel_ai_prospective_original_authority.sql": "3c650bde5c0e44612e4fb931b5f5438b4ce43f8d6fbada8f08db85bb44db07bb",
     "20260930221133_ediel_test_original_preparer_scope.sql": "e1768b7a118f664f65b1f040fd6c79642dc6e4bcb6236e4ed21d2da951c764e0",
-    "20260930221910_ediel_complete_technical_header_observation.sql": "2a10f2e4dbb707537b056046936ff3e16c27c0ab5d1be9ec36d9cf3016229dc8"
+    "20260930221910_ediel_complete_technical_header_observation.sql": "2a10f2e4dbb707537b056046936ff3e16c27c0ab5d1be9ec36d9cf3016229dc8",
+    "20260930214933_ediel_switch_cancellation_source_origination.sql": "633c87d3109963fd1535b7b1e371303e5d65f764c2ad59ed81febc461ab91163"
   }
 }
