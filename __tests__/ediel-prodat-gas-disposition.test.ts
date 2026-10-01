@@ -15,7 +15,14 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from,rpc:io.rpc}
 vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:io.provider}))
 vi.mock('@/lib/ediel/db',()=>({getEdielRouteProfileByCommunicationRouteId:io.route,createEdielMessageEvent:io.event,updateEdielMessageStatus:io.update}))
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
-beforeEach(()=>{vi.clearAllMocks();io.rpc.mockImplementation(async(name:string)=>{expect(name).toBe('gridex_ediel_accepted_transport_projection_v1');return{data:null,error:null}})})
+beforeEach(()=>{vi.clearAllMocks();io.rpc.mockImplementation(async(name:string,args:unknown)=>{
+ if(name==='gridex_ediel_accepted_transport_projection_v1'){
+  expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000003',p_message_id:'00000000-0000-4000-8000-000000000001'})
+ }else if(name==='ediel_customer_masterdata_message_basis_v1'){
+  expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_message_id:'00000000-0000-4000-8000-000000000001',p_actor_user_id:'00000000-0000-4000-8000-000000000003'})
+ }else throw new Error(`UNEXPECTED_RPC_BOUNDARY:${name}`)
+ return{data:null,error:null}
+})})
 const expectNoTransportWork=()=>{for(const mock of [io.from,io.provider,io.route,io.event,io.update])expect(mock).not.toHaveBeenCalled()}
 const row=(wire:string,direction:'inbound'|'outbound'='inbound')=>({id:'00000000-0000-4000-8000-000000000001',company_id:'00000000-0000-4000-8000-000000000002',direction,environment:'test',message_family:'PRODAT',message_code:'Z04',message_standard:'edifact',raw_payload:wire,parsed_payload:{rulebookAllowInvalidSend:true},application_reference:'23-DDQ-PRODAT'} as unknown as EdielMessageRow)
 function source(){
@@ -56,10 +63,18 @@ it('actual SMTP holds GAS before route/storage/provider work',async()=>{
  await expect(sendEdielMessageViaSmtp({...row(payload('Z04','Z70',[],'gas'),'outbound'),communication_route_id:'route'},{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
  expectNoTransportWork()
 })
-it('actual loaded route mismatch holds coherent EL before provider/storage work',async()=>{
+it('a full97A EL original cannot bypass canonical current-source qualification or reach route/provider/storage',async()=>{
  io.route.mockResolvedValue({application_reference:'27-DDQ-PRODAT'})
- // Complete independent EL source, so an unrelated national field failure
- // cannot prevent this route-source mismatch from reaching its real owner.
+ const readMissingSource=io.rpc.getMockImplementation()!
+ io.rpc.mockImplementation(async(name:string,args:unknown)=>{
+  if(name==='gridex_ediel_negative_fixture_read_v1'){
+   expect(args).toEqual({p_context:{companyId:OWNER.company,messageId:OWNER.source,actorUserId:'00000000-0000-4000-8000-000000000003'}})
+   return{data:null,error:null}
+  }
+  return readMissingSource(name,args)
+ })
+ // Complete physical EL source. Physical validity and caller register facts
+ // cannot grant persisted canonical source qualification for this send.
  // Keep required field242 (first7110) and omit forbidden field506
  // (second7110); the historical inbound owner fixture intentionally has both.
  const source=ownerSource();source.raw_payload=source.raw_payload!.replace('L917:8716867000030','L917')
@@ -69,8 +84,22 @@ it('actual loaded route mismatch holds coherent EL before provider/storage work'
   endUserAddressObjects:[selectedAddressFact(OWNER.external,OWNER.company,'9','CUSTOMER-1',['Street'])],
   invoiceeObjects:[selectedInvoiceeFact(OWNER.external,OWNER.company,'9','CUSTOMER-1',['Street'],'','12345','City')],
  }})
- await expect(sendEdielMessageViaSmtp({...source,direction:'outbound',parsed_payload:{prodatEngine:{registerEvidence}},receiver_email:'synthetic@example.test',communication_route_id:'route'},{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
- expect(io.route).toHaveBeenCalledOnce();for(const mock of [io.from,io.provider,io.event,io.update])expect(mock).not.toHaveBeenCalled()
+ await expect(sendEdielMessageViaSmtp({...source,direction:'outbound',parsed_payload:{prodatEngine:{registerEvidence}},receiver_email:'synthetic@example.test',communication_route_id:'route'},{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')
+ expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','ediel_customer_masterdata_message_basis_v1','gridex_ediel_negative_fixture_read_v1'])
+ expectNoTransportWork()
+})
+it('a current masterdata source refusal holds unchanged GAS bytes after saved-acceptance lookup and before every external effect',async()=>{
+ const message=row(payload('Z04','Z70',[],'gas'),'outbound'),original=message.raw_payload
+ const missing=io.rpc.getMockImplementation()!
+ io.rpc.mockImplementation(async(name:string,args:unknown)=>{
+  const result=await missing(name,args)
+  return name==='ediel_customer_masterdata_message_basis_v1'
+   ? {data:null,error:new Error('customer_masterdata_source_current_refused')} : result
+ })
+ await expect(sendEdielMessageViaSmtp(message,{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('customer_masterdata_source_current_refused')
+ expect(message.raw_payload).toBe(original)
+ expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','ediel_customer_masterdata_message_basis_v1'])
+ expectNoTransportWork()
 })
 for(const alphabet of alphabets)it(`direct SMTP enforces each EL Z04 exclusion before all external work ${alphabet}`,async()=>{
  for(const [qualifier,field] of [['Z08','320'],['Z06','240']]){

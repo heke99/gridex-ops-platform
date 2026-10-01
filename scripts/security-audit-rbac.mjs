@@ -180,6 +180,7 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/customers/[id]/business-actions.ts",
   "app/admin/ediel/auto-readiness/actions.ts",
   "app/admin/ediel/auto-readiness/page.tsx",
+  "app/admin/ediel/bilateral-prodat-sources/page.tsx",
   "app/admin/facility-requests/actions.ts",
   "app/admin/manual-mailboxes/actions.ts",
   "app/admin/manual-mailboxes/page.tsx",

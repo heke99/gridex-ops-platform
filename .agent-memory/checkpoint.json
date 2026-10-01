@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-01",
+  "updated_at": "2026-10-01T08:49:34.540678+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-master-v2-integration-20261001",
@@ -1351,5 +1351,19 @@
       "real customer communication",
       "Ediel/counterparty/TGT/AGT traffic"
     ]
+  },
+  "current_subtask": "Integrate recreated unpublished owners, repair mixed Z04 and collect new authentic native feedback",
+  "restoration_20261001": {
+    "public_source_head": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+    "lost_unpublished_work": true,
+    "new_owner_integrations": [
+      "006938d2",
+      "97ea47d2",
+      "09b5d921"
+    ],
+    "historical_receipts_not_promoted": true,
+    "ed3_import_only_not_reapplied": true,
+    "whole352_final_approved": 0,
+    "next_action": "Publish owned coherent root/runtime corrections and inspect actual clean/upgrade/native/browser results while remaining owner packets complete."
   }
 }

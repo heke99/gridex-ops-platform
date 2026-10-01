@@ -27,7 +27,8 @@ beforeEach(()=>{
   vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-01T12:20:00Z'))
   io.permissions=['communication.read','cases.write','customers.write','communication.send'];io.requestStatus='waiting_for_z02';io.watchStatus='pending';io.readDenied=false;io.active=true;io.requestSentAt='2026-10-01T12:00:00Z';io.rpc.mockReset()
   io.rpc.mockImplementation(async(name,args)=>{
-    expect(name).toBe('gridex_ediel_business_expectations_v1');expect(args.p_input).toMatchObject({companyId:'own',actorUserId:'actor',messageId:'own-source',action:'read'})
+    expect(['gridex_ediel_business_expectations_v1','gridex_ediel_metering_method_expectations_v1']).toContain(name);expect(args.p_input).toMatchObject({companyId:'own',actorUserId:'actor',messageId:'own-source',action:'read'})
+    if(name==='gridex_ediel_metering_method_expectations_v1')return {error:null,data:[]}
     return io.readDenied?{error:Error('ediel_expectation_actor_not_authorized'),data:null}:{error:null,data:args.p_input.environment==='test'?[{
       id:'own-watch',source_message_id:'own-source',expected_code:'Z02',due_at:'2026-10-01T12:30:00Z',status:io.watchStatus,metadata:{anchorType:'actual_accepted_smtp_observed_at',anchorAt:'2026-10-01T12:00:00Z',timerKind:'internal_sender_watch',remoteReceiptKnown:false},
     }]:[]}
@@ -38,7 +39,7 @@ describe('OPS02 actual customer-info server view',()=>{
   it('renders independently qualified business wait after CONTRL and suppresses repeated Z01 preparation',async()=>{
     const html=renderToStaticMarkup(await Page())
     expect(html).toContain('Nästa processåtgärd');expect(html).toContain('Z02 eller negativ APERAK');expect(html).toContain('Ansvar');expect(html).toContain('Tidsgrund');expect(html).toContain('Blockerare');expect(html).toContain('Tillåtna åtgärder')
-    expect(html).not.toContain('Kontrollera fullmakt och förbered Z01');expect(io.rpc).toHaveBeenCalledTimes(2)
+    expect(html).not.toContain('Kontrollera fullmakt och förbered Z01');expect(io.rpc).toHaveBeenCalledTimes(4)
   })
   it('actual fulfilled/rejected outcome changes displayed next action without following the old waiting status',async()=>{
     io.watchStatus='fulfilled';let html=renderToStaticMarkup(await Page());expect(html).toContain('Affärssvaret är kvalificerat.')

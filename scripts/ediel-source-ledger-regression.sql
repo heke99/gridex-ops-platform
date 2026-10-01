@@ -46,7 +46,7 @@ $$;
 DO $$
 DECLARE c uuid; env text; row_id uuid; saved jsonb; snap jsonb; receipt jsonb; first_assessment jsonb; second_assessment jsonb;
  a constant uuid:='00000000-0000-4000-8000-00000000e001'; b constant uuid:='00000000-0000-4000-8000-00000000e002';
- source_id uuid; source_hash text; inv jsonb; altered jsonb; mode text; blocked boolean; previous uuid;
+ source_id uuid; null_source_id uuid; utilts_source_id uuid; source_hash text; inv jsonb; altered jsonb; mode text; blocked boolean; previous uuid;
 BEGIN
  FOREACH c IN ARRAY ARRAY[a,b] LOOP FOREACH env IN ARRAY ARRAY['test','production'] LOOP
   row_id:=pg_temp.ledger_row(c,env);
@@ -70,10 +70,17 @@ BEGIN
  PERFORM pg_temp.ledger_check('operational-delete-retains-history',(SELECT to_jsonb(s)=saved FROM gridex_received_sources.sources s WHERE source_message_id=source_id));
  blocked:=false; BEGIN PERFORM pg_temp.ledger_row(a,'test','replacement','2026-06-20T10:00:00Z','{}','PRODAT','edifact',source_id); EXCEPTION WHEN unique_violation THEN blocked:=true; END;
  PERFORM pg_temp.ledger_check('deleted-source-uuid-cannot-be-reused',blocked AND NOT EXISTS(SELECT FROM public.ediel_messages WHERE public.ediel_messages.id=source_id));
- row_id:=pg_temp.ledger_row(a,'test',null,null);PERFORM pg_temp.ledger_check('null-source-retained',EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=row_id AND payload_hash IS NULL AND source_received_at IS NULL AND received_context IS NULL));
- row_id:=pg_temp.ledger_row(a,'test','utilts',clock_timestamp(),'{}','UTILTS');PERFORM pg_temp.ledger_check('non-prodat-not-captured',NOT EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=row_id));
+ null_source_id:=pg_temp.ledger_row(a,'test',null,null);PERFORM pg_temp.ledger_check('null-source-retained',EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=null_source_id AND payload_hash IS NULL AND source_received_at IS NULL AND received_context IS NULL));
+ utilts_source_id:=pg_temp.ledger_row(a,'test','utilts',clock_timestamp(),'{}','UTILTS');
+ PERFORM pg_temp.ledger_check('utilts-source-captured-with-own-context',EXISTS(SELECT FROM gridex_received_sources.sources s JOIN public.ediel_messages m ON m.id=s.source_message_id
+   WHERE s.source_message_id=utilts_source_id AND s.company_id=a AND s.environment='test' AND s.raw_payload='utilts'
+   AND s.payload_hash=encode(sha256(convert_to('utilts','UTF8')),'hex') AND s.received_context=m.execution_context_snapshot->'receivedUtiltsContext'));
  EXECUTE 'SET LOCAL ROLE service_role'; snap:=public.gridex_received_source_snapshot_v1(a,'test',clock_timestamp()); EXECUTE 'RESET ROLE';
- PERFORM pg_temp.ledger_check('deleted-and-unknown-receipt-discoverable',snap->>'sourceCount'='2');
+ PERFORM pg_temp.ledger_check('deleted-utilts-and-unknown-receipt-discoverable',snap->>'sourceCount'='3'
+   AND (SELECT count(*) FROM jsonb_array_elements(snap->'sources'))=3
+   AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=source_id::text AND v->>'payloadHash'=source_hash)
+   AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=utilts_source_id::text AND v->>'payloadHash'=encode(sha256(convert_to('utilts','UTF8')),'hex'))
+   AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=null_source_id::text AND v->>'payloadHash' IS NULL AND v->>'sourceReceivedAt' IS NULL));
  inv:=pg_temp.ledger_inventory(snap);
  EXECUTE 'SET LOCAL ROLE service_role'; receipt:=public.gridex_record_source_discovery_v1(a,'test',(snap->>'snapshotId')::uuid,snap->>'snapshotHash','physical-lin-inventory-v1',inv::text); EXECUTE 'RESET ROLE';
  PERFORM pg_temp.ledger_check('discovery-exact-serialized-evidence',receipt->>'inventoryHash'=encode(sha256(convert_to(inv::text,'UTF8')),'hex')

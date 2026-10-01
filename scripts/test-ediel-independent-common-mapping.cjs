@@ -52,7 +52,8 @@ function input() {
     applicationReference: '23-DDQ-PRODAT', acknowledgementRequest: false, environment: 'test',
     timeZone: 'UTC', createdAt: new Date('2026-09-20T12:00:00.000Z'), messages: [{
       messageReference: 'INDEPENDENT-M', messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A',
-      businessSegments: ['BGM+Z03+INDEPENDENT-D+9+AB'] }] }
+      businessSegments: ['BGM+Z03+INDEPENDENT-D+9+AB',
+        'DTM+137:202609201200:203', 'LIN+1++735123456789012345:::9'] }] }
 }
 function literalUnb(wire) {
   // This bounded lexical oracle uses only the fixed default alphabet and
@@ -78,6 +79,17 @@ function ownChecks(api, wire) {
   assert.equal(syntax.ok, true, JSON.stringify(syntax.issues))
 }
 after(() => assertNoSourceBoundaryAttempts())
+test('SC-072 a correct independent UNB cannot qualify a BGM-only body against full 97A grammar', async () => {
+  const api = await loadRuntime()
+  const fixture = input()
+  fixture.messages[0].businessSegments = ['BGM+Z03+INDEPENDENT-D+9+AB']
+  const wire = api.EdifactEnvelopeCodec.encode(fixture)
+  independentSourceOracle(wire)
+  const syntax = api.validateEdifactSyntax({ raw_payload: wire, message_family: 'PRODAT',
+    message_code: 'Z03', syntax_check_status: 'ok', status: 'received' })
+  assert.equal(syntax.ok, false)
+  assert(syntax.issues.some(issue => issue.code === 'UNSM_MESSAGE_STRUCTURE_INVALID'))
+})
 test('SC-072 normal authentic codec passes own checks and the independent revision-correct literal oracle', async () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root,'docs/ediel/masterplan-v2/registers/source_manifest.json'),'utf8'))
   assert.equal(manifest.find(source => source.id === authority.document).sha256, authority.originalSha256)

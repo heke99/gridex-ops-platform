@@ -11,8 +11,11 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 import {payload,input,selection,alphabets} from './fixtures/prodat-gas'
 import {identity} from './fixtures/prodat-gas-identity'
 const io=vi.hoisted(()=>({rpc:vi.fn(async(name:string,args:unknown)=>{
- if(name!=='gridex_ediel_accepted_transport_projection_v1')throw new Error('UNEXPECTED_RPC_BOUNDARY')
- expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000003',p_message_id:'00000000-0000-4000-8000-000000000001'})
+ if(name==='gridex_ediel_accepted_transport_projection_v1'){
+  expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000003',p_message_id:'00000000-0000-4000-8000-000000000001'})
+ }else if(name==='ediel_customer_masterdata_message_basis_v1'){
+  expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_message_id:'00000000-0000-4000-8000-000000000001',p_actor_user_id:'00000000-0000-4000-8000-000000000003'})
+ }else throw new Error('UNEXPECTED_RPC_BOUNDARY')
  return {data:null,error:null}
 }),from:vi.fn(()=>{throw new Error('UNEXPECTED_DB')}),provider:vi.fn(()=>{throw new Error('UNEXPECTED_PROVIDER')}),route:vi.fn(),event:vi.fn(),update:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from,rpc:io.rpc}}))
@@ -57,6 +60,8 @@ for(const [code,reason] of [['Z04','Z22'],['Z06','E64'],['Z10','E58']])it(`seria
  expect(()=>assertRulebookAllowsSend(message)).toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
  expect(()=>assertEdielSendLock(message)).toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
  await expect(sendEdielMessageViaSmtp(message,{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_GAS_SOURCE_UNQUALIFIED')
- expect(io.rpc).toHaveBeenCalledExactlyOnceWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:message.company_id,p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000003',p_message_id:message.id})
+ expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(code==='Z10'
+  ? ['gridex_ediel_accepted_transport_projection_v1']
+  : ['gridex_ediel_accepted_transport_projection_v1','ediel_customer_masterdata_message_basis_v1'])
  for(const [name,mock] of Object.entries(io))if(name!=='rpc')expect(mock).not.toHaveBeenCalled()
 })

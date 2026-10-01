@@ -1,3 +1,13 @@
+## Active restored integration — 2026-10-01
+
+Continue the user-authorized whole F0–F7 and all352 original IDs on isolated draft #424. Public source snapshot0373d6d05dfad1e3eefd5121171dc5a22d58821c remains the authentic CI baseline; clean/upgrade/independent-clean generated types, full public/gridex_ schemas and fingerprints byte-match, but three mandatory workflows fail and no final whole-ID approval is inferred. Actual receipts and the disjoint352 reference index are in quality/audits/ediel-masterplan-v2/integration-20261001/.
+
+The execution backend reconnected after its409 environment_offline outage. Unpublished local integration/owner objects and files were absent after reconnection. Root cloned public0373 into gridex-integration and recreated six isolated owner worktrees. Old unpublished hashes or test receipts are not current proof. New coherent recreations integrated: private source alias catalog paths006938d2, customer owner bridges97ea47d2 and F/G process watches09b5d921. Mixed-Z04 entry routing, strict UTILTS source-ledger oracles, full97A SC072 controls, current finite gas-source boundaries and independent native failure collectors are root-owned corrections awaiting new publication/native qualification.
+
+Never reapply ed3f5159: all15 portable parts and the bundle were hash-verified and imported only into a read-only ref for source comparison. Frozen specification bytes remain unchanged; the fresh29-check integrity result is additive. All remaining source-owned producer/retention/ACK packets continue in parallel; exact final head native/HTTP/browser/build/generated artifacts and all five mandatory CI workflows remain pending. Preserve #421/#423, separate tenantservice#418/#422 and paused#310. No force-push, main merge, production migration, real customer communication or Ediel/counterparty/TGT/AGT traffic.
+
+Earlier current sections below are historical and superseded for the next action.
+
 ## Active integration owner — 2026-10-01
 
 User-authorized whole F0–F7/352-ID implementation continues on isolated draft #424. Root alone owns this integration ref/index, common kernel/schema/workflows and final artifact publication. Preserve #421/#423, separate #418/#422 and paused #310; no main merge, force-push, production migration, real communication or Ediel/counterparty/TGT/AGT traffic.

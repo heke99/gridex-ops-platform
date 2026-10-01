@@ -992,18 +992,6 @@ export async function processInboundEdielMessage(params: {
       const negative = canonicalRuntime.decision.responsePlan.some(item =>
         item.family === "APERAK" && item.outcome === "negative" && Boolean(item.applicationErrors?.length));
       if (negative) {
-        if (!(header202?.defect || header204?.defect || header313?.defect || header205?.defect || header206?.defect)
-          && headerPlan?.applicationErrors?.length && runtimeMessage.message_code === "Z04") {
-          const completeOutcomes = await processMixedProdatObjects({actorUserId,message:runtimeMessage,
-            negativeErrors:headerPlan.applicationErrors,onSourceSwitchCommitted:canonicalRuntime.sourceOwnerSession?.onSwitchCommitted});
-          if (completeOutcomes) {
-            const responsePlan=canonicalRuntime.decision.responsePlan.map(plan=>plan===headerPlan?{...plan,applicationErrors:completeOutcomes}:plan);
-            const mixedMessage={...runtimeMessage,validation_report:{...runtimeMessage.validation_report,responsePlan}} as EdielMessageRow;
-            const acknowledgementIds=await createAutomaticPositiveAcks({actorUserId,sourceMessage:mixedMessage});
-            await consumeMixedProdatReply({actorUserId,message:runtimeMessage,acknowledgementIds});
-            return runtimeMessage;
-          }
-        }
         await createAutomaticPositiveAcks({actorUserId, sourceMessage: runtimeMessage});
       } else {
         await createAckIfMissing({actorUserId, sourceMessage: runtimeMessage, ackFamily: "CONTRL", outcome: "positive"});
@@ -1053,7 +1041,22 @@ export async function processInboundEdielMessage(params: {
     try {
       // A source-independent negative must survive an unavailable customer
       // effect port. Positive own responses still require its committed receipt.
-      const hasOwnNegative=canonicalRuntime.decision.responsePlan.some(plan=>plan.family==='APERAK'&&plan.outcome==='negative'&&Boolean(plan.applicationErrors?.length));
+      const ownNegativePlan=canonicalRuntime.decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative'&&Boolean(plan.applicationErrors?.length));
+      const hasOwnNegative=Boolean(ownNegativePlan);
+      // Whole-header rejection has already returned. Qualify and commit exact
+      // accepted own Z04 scopes before either ERC 100 or the final mixed reply.
+      // An unavailable/incomplete native receipt keeps the existing held path.
+      if(runtimeMessage.message_code==='Z04'&&ownNegativePlan?.applicationErrors?.length){
+        const completeOutcomes=await processMixedProdatObjects({actorUserId,message:runtimeMessage,
+          negativeErrors:ownNegativePlan.applicationErrors,onSourceSwitchCommitted:canonicalRuntime.sourceOwnerSession?.onSwitchCommitted});
+        if(completeOutcomes){
+          const responsePlan=canonicalRuntime.decision.responsePlan.map(plan=>plan===ownNegativePlan?{...plan,applicationErrors:completeOutcomes}:plan);
+          const mixedMessage={...runtimeMessage,validation_report:{...runtimeMessage.validation_report,responsePlan}} as EdielMessageRow;
+          const acknowledgementIds=await createAutomaticPositiveAcks({actorUserId,sourceMessage:mixedMessage});
+          await consumeMixedProdatReply({actorUserId,message:runtimeMessage,acknowledgementIds});
+          return runtimeMessage;
+        }
+      }
       const earlyAckIds=hasOwnNegative?await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage}):[];
       if(runtimeMessage.message_code==='Z06'&&!canonicalRuntime.lifeEventSourceReadFailure){
         try{await applyInboundCustomerLifeEvent({message:runtimeMessage,actorUserId,
