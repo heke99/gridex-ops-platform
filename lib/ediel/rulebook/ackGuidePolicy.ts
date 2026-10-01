@@ -10,10 +10,10 @@ import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAu
  * reads these same constants; generators must preserve its source references
  * and edition and must not interpret this table as approval of original data. */
 export const CANONICAL_ACK_GUIDE_CONSTRAINTS=Object.freeze({
- version:1,
- PRODAT:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','96A','UN','E2SE6A']),allowedErc:Object.freeze(['100','40','41','42']),agency:'260',textQualifier:'AAO',textMax:70,fieldReferenceMax:3,fieldLabels:Object.freeze(Object.fromEntries(Object.keys(PRODAT_APERAK_FIELD_NAMES).map(key=>[key,prodatAperakFieldWireLabel(key)]))),applicationTexts:PRODAT_APERAK_APPLICATION_TEXTS,source:Object.freeze({id:'P',sections:Object.freeze(['3.3','3.4','3.5']),pages:Object.freeze([89,105]),availableBasis:'authenticated_original_page_excerpt'})}),
- UTILTS:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','04A','UN','E5SE5A']),allowedErc:Object.freeze(['100','41','42']),agency:'260',textQualifier:'AAO',textMax:512,fieldReferenceMax:17,ownDmMax:70,originalAcwMax:70,missingText:'MANDATORY FIELD MISSING',invalidTextPattern:'^INCORRECT DATA .+$',source:Object.freeze({id:'U',sections:Object.freeze(['5.3','5.4','5.5']),pages:Object.freeze([108,119]),availableBasis:'authentic_original'})}),
- CONTRL:Object.freeze({technicalProfile:Object.freeze(['CONTRL','2','2','UN']),optionalAssociation:'EDIEL2',allowedActions:Object.freeze(['1','4']),originalUciMax:14,source:Object.freeze({id:'T',section:'2.1',availableBasis:'frozen_authenticated_contract'})}),
+ version:1,common:Object.freeze({documentDate:Object.freeze({qualifier:'137',format:'203',pattern:'^[0-9]{12}$'}),positiveText:'OK'}),
+ PRODAT:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','96A','UN','E2SE6A']),allowedErc:Object.freeze(['100','40','41','42']),allowedFunctions:Object.freeze(['27','34']),legalAgency:'SVK',legalQualifier:'160',countryPattern:'^[A-Z]{2}$',missingSuffix:' saknas',missingCustomerPrefix:' saknas, kundid',invalidPrefix:'Felaktigt ',agency:'260',textQualifier:'AAO',textMax:70,fieldReferenceMax:3,fieldLabels:Object.freeze(Object.fromEntries(Object.keys(PRODAT_APERAK_FIELD_NAMES).map(key=>[key,prodatAperakFieldWireLabel(key)]))),applicationTexts:PRODAT_APERAK_APPLICATION_TEXTS,source:Object.freeze({id:'P',sections:Object.freeze(['3.3','3.4','3.5']),pages:Object.freeze([89,105]),availableBasis:'authenticated_original_page_excerpt'})}),
+ UTILTS:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','04A','UN','E5SE5A']),allowedErc:Object.freeze(['100','41','42']),allowedDocumentStatuses:Object.freeze(['312','313']),messageFunction:'9',documentIdMax:35,fixedOffset:Object.freeze(['735','+0100','406']),legalAgencies:Object.freeze(['260','9','305']),svkAgency:'260',svkQualifier:'SVK',agency:'260',textQualifier:'AAO',textMax:512,fieldReferenceMax:17,ownDmMax:70,originalAcwMax:70,missingText:'MANDATORY FIELD MISSING',invalidTextPattern:'^INCORRECT DATA .+$',source:Object.freeze({id:'U',sections:Object.freeze(['5.3','5.4','5.5']),pages:Object.freeze([108,119]),availableBasis:'authentic_original'})}),
+ CONTRL:Object.freeze({technicalProfile:Object.freeze(['CONTRL','2','2','UN']),optionalAssociation:'EDIEL2',allowedActions:Object.freeze(['1','4']),forbiddenSegments:Object.freeze(['BGM','DOC','ERC','FTX','RFF','NAD']),originalUciMax:14,source:Object.freeze({id:'T',section:'2.1',availableBasis:'frozen_authenticated_contract'})}),
 })
 type Wire=ReturnType<typeof tokenizeEdifact>
 const equal=(a:readonly string[],b:readonly string[])=>JSON.stringify(a)===JSON.stringify(b)
@@ -59,7 +59,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
  }
  if(input.policy.family==='CONTRL'){
   if(!equal(type.slice(0,4),CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.technicalProfile)||(type[4]&&type[4]!==CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.optionalAssociation)||type.slice(5).some(Boolean))add('ACK_CONTRL_PROFILE_INVALID','CONTRL ska använda den svenska tekniska profilen.','UNH/S009')
-  for(const tag of ['BGM','DOC','ERC','FTX','RFF','NAD'])if(all(tag).length)add('ACK_CONTRL_NATIONAL_SEGMENT_FORBIDDEN',`CONTRL får inte innehålla ${tag} från applikationskvittensen.`,tag)
+  for(const tag of CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.forbiddenSegments)if(all(tag).length)add('ACK_CONTRL_NATIONAL_SEGMENT_FORBIDDEN',`CONTRL får inte innehålla ${tag} från applikationskvittensen.`,tag)
   const uci=all('UCI'),control=segmentComposite(uci[0],1,wire.una)
   if(uci.length!==1||control.length!==1||!control[0]||control[0].length>CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.originalUciMax)add('ACK_CONTRL_ORIGINAL_REFERENCE_INVALID','UCI ska kopiera ett entydigt ursprungligt överföringsnummer.','UCI/0020')
   if(!CANONICAL_ACK_GUIDE_CONSTRAINTS.CONTRL.allowedActions.includes(value(wire,uci[0],4)))add('ACK_CONTRL_ACTION_INVALID','UCI/0083 ska vara 1 eller 4.','UCI/0083')
@@ -77,18 +77,18 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
  const bgms=all('BGM'),bgm=bgms[0]
  if(bgms.length!==1)add('ACK_APERAK_BGM_CARDINALITY','APERAK ska ha ett BGM.','BGM')
  if(utilts){
-  if(!['312','313'].includes(value(wire,bgm,1))||segmentComposite(bgm,1,wire.una).slice(1).some(Boolean))add('ACK_UTILTS_BGM_STATUS_INVALID','UTILTS-APERAK BGM ska vara 312 eller 313.','BGM/A202')
+  if(!CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.allowedDocumentStatuses.includes(value(wire,bgm,1))||segmentComposite(bgm,1,wire.una).slice(1).some(Boolean))add('ACK_UTILTS_BGM_STATUS_INVALID','UTILTS-APERAK BGM ska vara 312 eller 313.','BGM/A202')
   const id=segmentComposite(bgm,2,wire.una)
-  if(!id[0]||id[0].length>35||id.slice(1).some(Boolean))add('ACK_UTILTS_DOCUMENT_ID_INVALID','APERAK ska ha sitt eget oförändrade meddelande-id.','BGM/A203')
-  if(value(wire,bgm,3)!=='9'||segmentComposite(bgm,4,wire.una).some(Boolean))add('ACK_UTILTS_MESSAGE_FUNCTION_INVALID','UTILTS-APERAK meddelandefunktion ska vara 9 och kvittensbegäran ska utelämnas.','BGM/A204')
- }else if(!['27','34'].includes(value(wire,bgm,3)))add('ACK_PRODAT_MESSAGE_FUNCTION_INVALID','PRODAT-APERAK meddelandefunktion ska vara 27 eller 34.','BGM/A204')
- const dates=all('DTM').filter(t=>value(wire,t,1)==='137')
- if(dates.length!==1||segmentComposite(dates[0],1,wire.una)[2]!=='203'||!dateTime(segmentComposite(dates[0],1,wire.una)[1]??''))add('ACK_APERAK_DOCUMENT_DATE_INVALID','APERAK ska innehålla ett giltigt eget meddelandedatum.','DTM/A205')
- if(utilts){const offsets=all('DTM').filter(t=>value(wire,t,1)==='735');if(offsets.length!==1||!equal(segmentComposite(offsets[0],1,wire.una),['735','+0100','406']))add('ACK_UTILTS_TIME_OFFSET_INVALID','UTILTS-APERAK ska ange den svenska fasta tidszonen.','DTM/A206')}
+  if(!id[0]||id[0].length>CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.documentIdMax||id.slice(1).some(Boolean))add('ACK_UTILTS_DOCUMENT_ID_INVALID','APERAK ska ha sitt eget oförändrade meddelande-id.','BGM/A203')
+  if(value(wire,bgm,3)!==CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.messageFunction||segmentComposite(bgm,4,wire.una).some(Boolean))add('ACK_UTILTS_MESSAGE_FUNCTION_INVALID','UTILTS-APERAK meddelandefunktion ska vara 9 och kvittensbegäran ska utelämnas.','BGM/A204')
+ }else if(!CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.allowedFunctions.includes(value(wire,bgm,3)))add('ACK_PRODAT_MESSAGE_FUNCTION_INVALID','PRODAT-APERAK meddelandefunktion ska vara 27 eller 34.','BGM/A204')
+ const dates=all('DTM').filter(t=>value(wire,t,1)===CANONICAL_ACK_GUIDE_CONSTRAINTS.common.documentDate.qualifier)
+ if(dates.length!==1||segmentComposite(dates[0],1,wire.una)[2]!==CANONICAL_ACK_GUIDE_CONSTRAINTS.common.documentDate.format||!dateTime(segmentComposite(dates[0],1,wire.una)[1]??''))add('ACK_APERAK_DOCUMENT_DATE_INVALID','APERAK ska innehålla ett giltigt eget meddelandedatum.','DTM/A205')
+ if(utilts){const offsets=all('DTM').filter(t=>value(wire,t,1)==='735');if(offsets.length!==1||!equal(segmentComposite(offsets[0],1,wire.una),CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.fixedOffset))add('ACK_UTILTS_TIME_OFFSET_INVALID','UTILTS-APERAK ska ange den svenska fasta tidszonen.','DTM/A206')}
  const firstError=segments.findIndex(t=>t.tag==='ERC'),header=firstError<0?segments:segments.slice(0,firstError)
  for(const qualifier of utilts?['MS','MR']:['FR','DO']){
   const parties=header.filter(t=>t.tag==='NAD'&&value(wire,t,1)===qualifier),party=segmentComposite(parties[0],2,wire.una)
-  const qualifiersValid=utilts?['260','9','305'].includes(party[2]??'')&&(party[2]!=='260'||party[1]==='SVK'):party[1]==='160'&&party[2]==='SVK'&&/^[A-Z]{2}$/.test(value(wire,parties[0],9))
+  const qualifiersValid=utilts?CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.legalAgencies.includes(party[2]??'')&&(party[2]!==CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.svkAgency||party[1]===CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.svkQualifier):party[1]===CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.legalQualifier&&party[2]===CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.legalAgency&&new RegExp(CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.countryPattern).test(value(wire,parties[0],9))
   if(parties.length!==1||!party[0]||party[0].length>35||!qualifiersValid)add('ACK_APERAK_LEGAL_PARTY_INVALID','Kvittensen ska identifiera sin juridiska avsändare och mottagare separat från transporten.','NAD/A207/A208')
  }
  const groups=segments.flatMap((t,index)=>t.tag==='ERC'?[segments.slice(index,segments.findIndex((next,nextIndex)=>nextIndex>index&&['ERC','UNT','UNZ'].includes(next.tag))<0?segments.length:segments.findIndex((next,nextIndex)=>nextIndex>index&&['ERC','UNT','UNZ'].includes(next.tag)))]:[])
@@ -101,14 +101,14 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   if(!utilts&&functionCode==='27'&&positive)add('ACK_PRODAT_WHOLE_REJECTION_ACCEPTANCE_CONFLICT','Ett helt avvisat PRODAT får inte innehålla ERC100.','BGM/ERC')
   const texts=group.filter(t=>t.tag==='FTX'),ftx=texts[0],literal=segmentComposite(ftx,4,wire.una),ref=segmentComposite(ftx,3,wire.una)
   if(texts.length!==1||group[1]?.tag!=='FTX'||value(wire,ftx,1)!==constraints.textQualifier||segmentComposite(ftx,2,wire.una).some(Boolean)||!literal[0]||Array.from(literal[0]).length>constraints.textMax||literal.slice(1).some(Boolean)||[5,6].some(index=>segmentComposite(ftx,index,wire.una).some(Boolean)))add('ACK_APERAK_OWN_TEXT_INVALID','Varje ERC ska följas av en egen tillåten FTX-text utan språk eller extra textkomponenter.','FTX/A905')
-  if(positive){if(literal[0]!=='OK'||ref.some(Boolean))add('ACK_APERAK_POSITIVE_TEXT_INVALID','ERC100 ska ha exakt OK utan felreferens.','FTX/A905')}
+  if(positive){if(literal[0]!==CANONICAL_ACK_GUIDE_CONSTRAINTS.common.positiveText||ref.some(Boolean))add('ACK_APERAK_POSITIVE_TEXT_INVALID','ERC100 ska ha exakt OK utan felreferens.','FTX/A905')}
   else {
    if(!ref[0]||ref[0].length>constraints.fieldReferenceMax||ref[1]||ref[2]!=='260'||ref.slice(3).some(Boolean))add('ACK_APERAK_FIELD_REFERENCE_INVALID','Negativ ERC ska peka på sin egen source-kvalificerade felreferens.','FTX/A903/A904')
    if(!utilts&&['41','42'].includes(code)&&!CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.fieldLabels[ref[0]??''])add('ACK_PRODAT_FIELD_REFERENCE_UNKNOWN','A904 ska referera ett PRODAT-fältnummer.','FTX/A904')
    if(!utilts&&code==='40'&&(!CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.applicationTexts[ref[0]??'']||literal[0]!==CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.applicationTexts[ref[0]??'']))add('ACK_PRODAT_APPLICATION_TEXT_INVALID','A903/A905 ska ange det föreskrivna PRODAT-applikationsfelet.','FTX/A903/A905')
    const label=prodatAperakFieldWireLabel(ref[0]??'')
-   if(!utilts&&code==='41'&&label&&literal[0]!==`${label} saknas`&&!literal[0]?.startsWith(`${label} saknas, kundid`))add('ACK_PRODAT_MISSING_TEXT_INVALID','ERC41 ska använda det svenska fältnamnet och föreskriven beskrivning.','FTX/A905')
-   if(!utilts&&code==='42'&&label&&(!literal[0]?.startsWith(`Felaktigt ${label} `)||literal[0].length<=`Felaktigt ${label} `.length))add('ACK_PRODAT_INVALID_TEXT_INVALID','ERC42 ska använda det svenska fältnamnet och felaktigt mottaget innehåll.','FTX/A905')
+   if(!utilts&&code==='41'&&label&&literal[0]!==`${label}${CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.missingSuffix}`&&!literal[0]?.startsWith(`${label}${CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.missingCustomerPrefix}`))add('ACK_PRODAT_MISSING_TEXT_INVALID','ERC41 ska använda det svenska fältnamnet och föreskriven beskrivning.','FTX/A905')
+   if(!utilts&&code==='42'&&label&&(!literal[0]?.startsWith(`${CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.invalidPrefix}${label} `)||literal[0].length<=`${CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.invalidPrefix}${label} `.length))add('ACK_PRODAT_INVALID_TEXT_INVALID','ERC42 ska använda det svenska fältnamnet och felaktigt mottaget innehåll.','FTX/A905')
    if(utilts&&code==='41'&&literal[0]!==CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.missingText)add('ACK_UTILTS_MISSING_TEXT_INVALID','ERC41 ska ange den föreskrivna beskrivningen.','FTX/A905')
    if(utilts&&code==='42'&&!new RegExp(CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.invalidTextPattern).test(literal[0]??''))add('ACK_UTILTS_INVALID_TEXT_INVALID','ERC42 ska beskriva det felaktiga mottagna innehållet.','FTX/A905')
   }
