@@ -9,6 +9,7 @@
 import { getGridOwnerById, getMeteringPointById, getCustomerSiteById } from '@/lib/masterdata/db'
 import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/operations/db'
 import { allocateProdatSwitchWireReferences } from '@/lib/ediel/prodat'
+import { prepareAndQueueSwitchCancellation } from '@/lib/ediel/flows/prodatSwitchCancellation'
 import { renderAndQueueNormalSwitch } from '@/lib/ediel/intent/switchRenderGateway'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from '@/lib/legal/authorizationChain'
@@ -112,6 +113,9 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   const companyId = switchRequest.company_id ?? site.company_id ?? null
   if (!companyId) throw new Error('PRODAT Z03 stoppades: switchärendet och anläggningen saknar company_id.')
 
+  const subtype = normalizeSwitchSubtype(switchRequest)
+  if(subtype==='C')return prepareAndQueueSwitchCancellation({companyId,switchRequestId:switchRequest.id,actorUserId,preferredRouteId:params.communicationRouteId,environment:params.environment})
+
   const contractId =
     switchRequest.customer_contract_id
     ?? switchRequest.contract_id
@@ -126,7 +130,6 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     throw new Error(`PRODAT Z03 stoppades av canonical switch-gate: ${switchGate.error.message}`)
   }
 
-  const subtype = normalizeSwitchSubtype(switchRequest)
   const reasonForTransaction = reasonForSubtype(subtype)
   const canonicalRule = await resolveCanonicalRulePack({
     family: 'PRODAT',
