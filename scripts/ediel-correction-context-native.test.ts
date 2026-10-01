@@ -1606,8 +1606,8 @@ it('the actual support case and operation enqueue writers capture linked case, e
   FROM gridex_correction_process.facts WHERE table_name IN ('customer_cases','customer_case_events')
    AND (row_id=${literal(caseId)} OR new_fact->>'customer_case_id'=${literal(caseId)})`))
  .toEqual([{table:'customer_cases',operation:'INSERT',company:f.companyId,customer:customerId,eventType:null},
-   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'created'},
-   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'operational_stop_applied'}])
+   {table:'customer_case_events',operation:'INSERT',company:f.companyId,customer:customerId,eventType:'created'}])
+ expect(sql(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)).toBe('open') // no operational stop (#428)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='cases.write'`)).toBe(1)
  const initialStatus=sql<string>(`SELECT to_jsonb(status) FROM public.customer_cases WHERE id=${literal(caseId)}`)
  await expect(updateCustomerCaseStatus({caseId,companyId:f.companyId,status:'action_required',actorUserId:f.actorUserId}))
