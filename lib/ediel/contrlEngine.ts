@@ -1,4 +1,4 @@
-import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, tokenizeEdifact, observeCompletedEdifactSegments, segmentSourceSpan } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactData } from '@/lib/ediel/core/una'
 import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
 import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
@@ -21,6 +21,8 @@ export type ContrlSourceEnvelope = {
   uciReference: string
   senderComponents: string[]
   receiverComponents: string[]
+  applicationReference:string
+  testIndicator:''|'1'
 }
 export type ContrlEngineResult = {
   segments: string[]
@@ -42,15 +44,19 @@ export type ContrlEngineResult = {
 export function contrlSourceEnvelope(rawPayload: string | null | undefined): ContrlSourceEnvelope {
   const held = (): never => { throw new EdielExecutionFailure({ kind: 'internal_failure', code: 'EDIEL_CONTRL_SOURCE_ENVELOPE_UNQUALIFIED' }, 'CONTRL kräver ett entydigt ursprungligt UNB-kuvert med återgivningsbara tekniska referenser.') }
   let wire: ReturnType<typeof tokenizeEdifact>
-  try { wire = tokenizeEdifact(rawPayload) } catch { return held() }
+  try { wire = observeCompletedEdifactSegments(rawPayload) } catch { return held() }
   const unbs = wire.segments.filter(segment => segment.tag === 'UNB')
-  if (unbs.length !== 1 || unbs[0].index !== 0) return held()
+  const last=wire.segments.at(-1),span=last?segmentSourceSpan(last):null
+  if(span&&String(rawPayload??'').slice(span.endOffset+1).trimStart().startsWith('UNB'+wire.una.dataElementSeparator))return held()
+  if (unbs.length !== 1 || unbs[0].index !== 0 || wire.segments.some(segment=>segment.tag==='UNH'&&segmentComposite(segment,2,wire.una)[0]==='CONTRL')) return held()
+  const application=segmentComposite(unbs[0],7,wire.una),indicator=segmentComposite(unbs[0],11,wire.una)
+  if(application.length!==1||indicator.length!==1||!['','1'].includes(indicator[0]))return held()
   const reference = segmentComposite(unbs[0], 5, wire.una)
   const senderComponents = segmentComposite(unbs[0], 2, wire.una), receiverComponents = segmentComposite(unbs[0], 3, wire.una)
   if (reference.length !== 1 || !reference[0] || Array.from(reference[0]).length > 512
     || [senderComponents, receiverComponents].some(parts => !parts[0] || parts.length > 3 || parts.some(part => Array.from(part).length > 35))) return held()
   try { assertEdifactLatin1Representable([reference[0], ...senderComponents, ...receiverComponents].join('')) } catch { return held() }
-  return { interchangeReference: reference[0], uciReference: reference[0].slice(0,14), senderComponents, receiverComponents }
+  return { interchangeReference: reference[0], uciReference: reference[0].slice(0,14), senderComponents, receiverComponents,applicationReference:application[0],testIndicator:indicator[0] as ''|'1' }
 }
 export function renderContrl2Ediel2(params: {
   source: ContrlEngineSource
@@ -58,6 +64,7 @@ export function renderContrl2Ediel2(params: {
   /** Deprecated: no parsed/local override may replace the physical original. */
   parsedInterchangeReference?: string | null
 }): ContrlEngineResult {
+  if(params.outcome==='positive'){try{tokenizeEdifact(params.source.rawPayload)}catch{throw new EdielExecutionFailure({kind:'internal_failure',code:'EDIEL_CONTRL_POSITIVE_SOURCE_SYNTAX_UNQUALIFIED'},'EDIEL_CONTRL_POSITIVE_SOURCE_SYNTAX_UNQUALIFIED: positiv CONTRL kräver att originalets hela syntax kan prövas.')}}
   const original = contrlSourceEnvelope(params.source.rawPayload)
   const originalSenderComposite = original.senderComponents.map(value => escapeEdifactData(value)).join(':')
   const originalReceiverComposite = original.receiverComponents.map(value => escapeEdifactData(value)).join(':')

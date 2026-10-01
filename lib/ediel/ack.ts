@@ -26,7 +26,7 @@ import {
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
-import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact, observeCompletedEdifactSegments } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {utiltsDefaultAlphabetSegment,utiltsErrOriginalCopySegments} from '@/lib/ediel/utilts/errSourceCopy'
@@ -869,7 +869,7 @@ function buildAckDraft(params: {
   parties.receiverEdielId = originalEnvelope.senderComponents[0]
   parties.receiverSubAddress = originalEnvelope.senderComponents[2] || null
 
-  const sourceWire = tokenizeEdifact(params.sourceMessage.raw_payload)
+  const sourceWire = params.ackFamily==='CONTRL'?observeCompletedEdifactSegments(params.sourceMessage.raw_payload):tokenizeEdifact(params.sourceMessage.raw_payload)
   const originalApplication = segmentComposite(sourceWire.segments.find(segment => segment.tag === 'UNB'), 7, sourceWire.una)
   if (originalApplication.length !== 1) throw new Error('ack_original_application_reference_ambiguous')
   const applicationReference = originalApplication[0] || null
@@ -923,7 +923,7 @@ function buildAckDraft(params: {
 
   const envelope = buildEdifactEnvelope({
     acknowledgementRequest: ackStatuses.requiresContrl,
-    testFlag: params.sourceMessage.test_flag,
+    testFlag: originalEnvelope.testIndicator==='1'?1:0,
     senderEdielId: parties.senderEdielId,
     senderQualifier: originalEnvelope.receiverComponents[1],
     receiverEdielId: parties.receiverEdielId,
@@ -986,7 +986,7 @@ function buildAckDraft(params: {
           : 'E5SE5A',
     processType,
     environment: params.sourceMessage.environment,
-    testFlag: params.sourceMessage.test_flag,
+    testFlag: originalEnvelope.testIndicator==='1'?1:0,
     status: 'draft',
     transportType: 'smtp',
     mailbox: parties.mailbox,

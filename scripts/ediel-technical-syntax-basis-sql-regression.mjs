@@ -43,6 +43,8 @@ try {
  const insert=async(id,raw,{company=1,direction='inbound',family='UTILTS',code='E66',related=null}={})=>db.query('insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at,related_message_id,immutable_payload_hash,immutable_rendered_at) values($1,$2,\'test\',$3,$4,$5,$6,now(),$7,encode(sha256(convert_to($6,\'UTF8\')),\'hex\'),now())',[uid(id),company===null?null:uid(company),direction,family,code,raw,related?uid(related):null])
  await insert(9,source('OLD')) // Preserved original predates prospective capture.
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql',import.meta.url),'utf8'));checks++
+ const oldBroken=source('OLD-BROKEN').split("BGM+")[0]+"BGM+BAD?";await insert(80,oldBroken);
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930221910_ediel_complete_technical_header_observation.sql',import.meta.url),'utf8'));checks++
  const hash=raw=>(db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[raw])).then(r=>r.rows[0].h)
  const syntax=async(id,decision='rejected')=>db.query('select gridex_ediel_technical_ack.record_syntax_v1($1,$2,$3,$4) result',[uid(1),uid(id),await hash(sourceRaw.get(id)),JSON.stringify({version:1,owner:'canonical-runtime-syntax-v1',syntaxDecision:decision,reasonCodes:decision==='rejected'?['SYNTAX_INVALID']:[]})])
  const capture=async(id,company=1)=>(await db.query('select gridex_ediel_technical_ack.capture_reply_v1($1,$2) evidence',[uid(company),uid(id)])).rows[0].evidence
@@ -84,5 +86,15 @@ try {
  await db.query("insert into gridex_received_sources.validation_assessments values($1,$2,$3,'test',$4,null,'canonical-runtime-with-registry-v1',$5,encode(sha256(convert_to($5,'UTF8')),'hex'))",[uid(61),uid(60),uid(1),await hash(sourceRaw.get(60)),text])
  const captured=(await db.query('select gridex_ediel_source_rules.capture_v1($1,$2) e',[uid(1),uid(60)])).rows[0].e;assert.equal(captured.version,'actual-selected-version');assert.equal(captured.messageProfileId,uid(101));assert.equal(captured.snapshot.originalMessageSnapshot,null);checks++
  await add(62,'BUSINESS-DRIFT',{app:'23-DDQ-E66-T'});await db.query('insert into gridex_ediel_inbound_context.receipts values($1,$2)',[uid(62),{basisKind:'observed_source_persistence',family:'UTILTS',code:'E66',subtype:null}]);await db.query("insert into gridex_received_sources.validation_assessments values($1,$2,$3,'test',$4,null,'canonical-runtime-with-registry-v1',$5,encode(sha256(convert_to($5,'UTF8')),'hex'))",[uid(63),uid(62),uid(1),await hash(sourceRaw.get(62)),text]);await db.exec("update ediel_message_profiles set profile='{}'");await assert.rejects(db.query('select gridex_ediel_source_rules.capture_v1($1,$2)',[uid(1),uid(62)]),/ediel_historical_rule_pack_basis_unavailable/);checks++
+ // The prospective shared-header observer qualifies no business grammar/data.
+ await assert.rejects(capture(80),/ediel_technical_ack_basis_required/);checks++ // immutable old held source is not retrofitted
+ const broken=source('NEW-BROKEN').split("BGM+")[0]+"BGM+BAD?";sourceRaw.set(81,broken);await insert(81,broken);await syntax(81);const brokenBasis=await capture(81);assert.equal(brokenBasis.syntaxDecision,'rejected');assert.equal(brokenBasis.originalUNB.interchangeReference,'NEW-BROKEN');checks++
+ await insert(82,ack('NEW-BROKEN'),{direction:'outbound',family:'CONTRL',code:'CONTRL',related:81});assert.deepEqual(await guarded(82),brokenBasis);checks++
+ await insert(83,ack('NEW-BROKEN',{action:'1'}),{direction:'outbound',family:'CONTRL',code:'CONTRL',related:81});await assert.rejects(guarded(83),/ediel_technical_ack_basis_required/);checks++
+ const observe=async(raw)=>(await db.query('select gridex_ediel_technical_ack.envelope($1) e',[raw])).rows[0].e
+ for(const malformed of ["UNB+UNOC:3+S+LOCAL+260930:1200+I?",source('DUP')+"UNB+UNOC:3+S+LOCAL+260930:1200+OTHER'BGM+BAD?",source('DUP')+"UNB+UNOC:3+S+LOCAL+260930:1200+OTHER?",source('LOOP').replace('UTILTS:D:04A:UN:E5SE5A','CONTRL:2:2:UN')+"FTX+BAD?", "BGM+BAD'"+source('ORDER'),source('REF:COMPOSITE')]){assert.equal(await observe(malformed),null);checks++}
+ const alternate="UNA*;.! ~UNB;UNOC*3;REMOTE*14*R;LOCAL*14*L;260930*1200;ALT!;REF++~UNH;M;UTILTS*D*02B*UN*E5SE5A~FTX;BROKEN!"
+ const alt=await observe(alternate);assert.equal(alt.interchangeReference,'ALT;REF++');assert.deepEqual(alt.receiver,['LOCAL','14','L']);assert.equal(alt.applicationReference,'');checks++
+ assert.equal((await observe(source('BAD-TAG').split("BGM+")[0]+"INVALID+COMPLETE'FTX+BAD?")).interchangeReference,'BAD-TAG');checks++
  console.log(`Focused PostgreSQL technical syntax-only source/endpoint/CONTRL scope/native binding/immutable original named witness checks: ${checks} PASS`)
 } catch(e){console.error(e.message,e.where??'');process.exitCode=1} finally{await db.close()}

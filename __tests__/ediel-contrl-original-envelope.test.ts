@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { contrlSourceEnvelope, renderContrl2Ediel2 } from '@/lib/ediel/contrlEngine'
-import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite,observeCompletedEdifactSegments } from '@/lib/ediel/core/edifactTokenizer'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { buildContrlDraft } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -43,4 +43,23 @@ describe('CONTRL physical original envelope across rendering and draft adapter',
     expect(segmentComposite(uci,1,envelope.una)).toEqual([ref])
     expect(draft.senderEdielId).toBe(receiver);expect(draft.receiverEdielId).toBe(sender)
   })
+})
+
+describe('complete technical header survives a rejected incomplete body',()=>{
+ it.each([false,true])('actual negative draft survives dangling release with alternative UNA=%s',alternate=>{
+  const valid=raw(alternate),wire=tokenizeEdifact(valid),head=valid.slice(0,valid.indexOf(alternate?'BGM;':'BGM+')),broken=head+(alternate?'BGM;BAD!':'BGM+BAD?')
+  expect(()=>tokenizeEdifact(broken)).toThrow('edifact_dangling_release_character')
+  const observed=observeCompletedEdifactSegments(broken)
+  expect(observed.segments.map(s=>s.tag)).toEqual(['UNB','UNH'])
+  const source={id:'source',company_id:null,direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z01',raw_payload:broken,environment:'test',test_flag:0} as unknown as EdielMessageRow
+  const draft=buildContrlDraft({sourceMessage:source,outcome:'negative'})
+  const result=EdifactEnvelopeCodec.decode(draft.rawPayload),uci=result.segments.find(s=>s.tag==='UCI')!
+  expect(segmentComposite(uci,1,result.una)).toEqual([ref]);expect(segmentComposite(uci,4,result.una)).toEqual(['4'])
+  expect(result.applicationReference).toBe('23-DDQ-PRODAT');expect(result.environment).toBe('test');expect(draft.testFlag).toBe(1)
+  expect(()=>renderContrl2Ediel2({source:{rawPayload:broken},outcome:'positive'})).toThrow('EDIEL_CONTRL_POSITIVE_SOURCE_SYNTAX_UNQUALIFIED')
+  expect(wire.segments[0].tag).toBe('UNB')
+ })
+ it('does not accept an unterminated or ambiguous original header or ACK loop',()=>{
+  for(const payload of ["UNB+UNOC:3+S+R+260930:1200+I?",raw()+"UNB+UNOC:3+S+R+260930:1200+I'FTX+BAD?",raw()+"UNB+UNOC:3+S+R+260930:1200+I?",raw().replace('PRODAT:D:97A:UN:E2SE6A','CONTRL:2:2:UN')+"FTX+BAD?"]){expect(()=>contrlSourceEnvelope(payload)).toThrow(/CONTRL kräver/)}
+ })
 })
