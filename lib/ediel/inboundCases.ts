@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto'
+import {isDeepStrictEqual} from 'node:util'
+import {bindReceivedProdatApplicationObjects} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
+import {isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 import { parseProdatMessage, parsedProdatObjects } from '@/lib/ediel/prodat/parser'
 import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -964,15 +968,13 @@ function objectApplication(row:EdielInboundCaseRow):ObjectApplication|null {
 
 async function compareAndSetObjectCase(row:EdielInboundCaseRow, patch:JsonRecord):Promise<EdielInboundCaseRow|null> {
   const plan=objectApplication(row)
-  let query=(tenantDb(row.company_id).from('ediel_inbound_cases').update(patch) as ScopedUpdate)
-    .eq('id',row.id).eq('updated_at',row.updated_at).eq('status',row.status)
-  // A small explicit revision prevents lost updates even if timestamps collide;
-  // do not place a whole command/receipt JSON document in a URL filter.
-  query=plan ? query.eq('review_decision->objectApplication->>fingerprint',plan.fingerprint)
-    .eq('review_decision->objectApplication->>revision',String(plan.revision))
-    : query.is('review_decision->objectApplication',null)
-  const {data,error}=await query.select('*').maybeSingle()
+  const {data,error}=await supabaseService.rpc('ediel_compare_and_set_prodat_object_case_v1',{
+    p_company_id:row.company_id,p_case_id:row.id,p_source_message_id:row.ediel_message_id,
+    p_actor_user_id:patch.updated_by,p_expected_updated_at:row.updated_at,p_expected_status:row.status,
+    p_expected_fingerprint:plan?.fingerprint??null,p_expected_revision:plan?.revision??null,p_patch:patch,
+  })
   if (error) throw error
+  if(data!==null&&(!isEvidenceRecord(data)||data.id!==row.id||data.company_id!==row.company_id||data.ediel_message_id!==row.ediel_message_id))throw new Error('PRODAT_OBJECT_APPLICATION_CASE_RECEIPT_INVALID')
   return data as EdielInboundCaseRow|null
 }
 
@@ -1069,7 +1071,26 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
     }
     return result
   })
+  const savedPlan=objectApplication(params.inboundCase)
+  if(savedPlan&&savedPlan.originalActorId!==params.actorUserId)throw new Error('PRODAT_OBJECT_APPLICATION_ACTOR_MISMATCH')
+  // The native read owns current actor, immutable INSERT original/clock,
+  // captured legal role and every complete canonical facet. Public status or
+  // parsed-payload flags cannot supply an application decision. The same gate
+  // runs again under locks at each native first effect and conditional save.
+  const {data:protectedSource,error:sourceError}=await supabaseService.rpc('ediel_read_prodat_object_batch_source_v1',{
+    p_company_id:params.companyId,p_source_message_id:message.id,p_actor_user_id:params.actorUserId,
+  })
+  if(sourceError)throw sourceError
+  const source=isEvidenceRecord(protectedSource)&&isEvidenceRecord(protectedSource.sourceMessage)?protectedSource.sourceMessage:null
+  const context=source&&isEvidenceRecord(source.execution_context_snapshot)?source.execution_context_snapshot.receivedProdatContext:null
   const sourceHash=createHash('sha256').update(message.raw_payload).digest('hex')
+  const application=source&&typeof source.raw_payload==='string'?bindReceivedProdatApplicationObjects(protectedSource.applicationValidation,source.raw_payload):null
+  if(!source||source.id!==message.id||source.company_id!==params.companyId||source.environment!==message.environment||source.direction!=='inbound'||source.message_standard!=='edifact'||source.message_family!=='PRODAT'||source.message_code!==message.message_code
+    ||source.raw_payload!==message.raw_payload||protectedSource.version!==1||protectedSource.sourcePayloadHash!==sourceHash||!isEvidenceUuid(protectedSource.assessmentId)
+    ||!isEvidenceRecord(context)||context.contextOrigin!=='database_insert'||context.sourceMessageId!==message.id||context.companyId!==params.companyId||context.environment!==message.environment||context.messageCode!==message.message_code||context.payloadHash!==sourceHash
+    ||parseSourceReceiptInstant(source.message_received_at)===null||parseSourceReceiptInstant(source.message_received_at)!==parseSourceReceiptInstant(context.sourceReceivedAt)
+    ||!application||application.headerDecision!=='accepted'||application.objects.length!==objects.length||application.objects.some(object=>object.applicationDecision!=='accepted')
+    ||!isDeepStrictEqual(application.objects.map(object=>[object.objectId,object.identityAgency]),objects.map(object=>[object.meteringPointId,object.identityAgency])))throw new Error('PRODAT_OBJECT_APPLICATION_CURRENT_SOURCE_REQUIRED')
   const fingerprint=digestObject([params.companyId,params.caseId,message.id,sourceHash,decisions])
   let current=params.inboundCase
   let plan=objectApplication(current)
@@ -1128,13 +1149,8 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
     const completed=objectApplication(current)
     if (!completed || completed.fingerprint!==fingerprint || completed.receipts.length!==completed.commands.length) throw new Error('PRODAT_OBJECT_APPLICATION_INCOMPLETE')
     if (current.status==='applied') return current
-    const results={objectCount:completed.commands.length,receipts:completed.receipts,fingerprint,sourceHash}
-    // Audit/event failure keeps the durable per-object receipts and allows
-    // retry. No singleton message link misattributes B's data to customer A.
-    await insertAuditLog({actorUserId:params.actorUserId,companyId:params.companyId,entityType:'ediel_inbound_case',entityId:params.caseId,
-      action:'ediel_inbound_objects_applied',newValues:results,metadata:{edielMessageId:message.id,fingerprint}})
-    await createEdielMessageEvent({actorUserId:params.actorUserId,edielMessageId:message.id,eventType:'validated',eventStatus:'success',
-      message:'Samtliga PRODAT-objekt har egna kanoniska kundtransaktioner och sparade kvitton.',payload:results})
+    // The final native CAS binds real graph receipts and commits the case,
+    // audit and event together. Failure retains previous per-object receipts.
     return await mutateObjectPlan(mutation,()=>({status:'applied',customer_id:null,site_id:null,metering_point_id:null,
       failure_reason:null,applied_at:new Date().toISOString()}))
   } catch (error) {
