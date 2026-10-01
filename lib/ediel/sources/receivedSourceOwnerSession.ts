@@ -1,3 +1,5 @@
+import {ownProdatSourceFunctionAccepted} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
+import {ownProdatSourceFunctionAccepted} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
 import {qualifyReceivedProdatApplicationObject} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {takeReceivedSourceOwnerSeed, type ReceivedSourceValidationReceipt} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
@@ -80,7 +82,8 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
       pending=pending.then(async()=>{
         for(let index=0;index<entries.length;index++){
           const entry=entries[index]
-          if(register.objects[index].disposition!=='accepted'||!qualifyReceivedProdatApplicationObject(application,entry.object))continue
+          if(register.objects[index].disposition!=='accepted'||!qualifyReceivedProdatApplicationObject(application,entry.object)
+            ||seed.evidence.prodatSourceFunctionValidation&&!ownProdatSourceFunctionAccepted(seed.evidence.prodatSourceFunctionValidation,entry.object))continue
           try{const owners=await committedCustomerLifeEventOwners(seed,commit,entry.object);if(owners)entries[index]={...entry,...owners,disposition:'accepted',reasons:[]}}catch{/* Preserve explicit unavailable scopes. */}
         }
       })

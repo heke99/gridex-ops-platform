@@ -9,12 +9,14 @@ import {prodatCharacteristicValues} from '@/lib/ediel/prodat/prodatCharacteristi
 import {findProdatSubtypeRule} from './prodatSubtypeRegistry'
 import type {ProdatDependentConditionFacts,ProdatDependentConditionStatus} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import type {EdielRulebookIssue} from './rulebook'
+export type ProdatDeathObjectCondition={messageReference:string|null;objectId:string|null;identityAgency:string|null;firstLineIndex:number;sourceDecision:'accepted'|'held'|'not_applicable'}
 export type DeathPolicyInput={code:string;rawSegments:readonly string[];una?:EdifactServiceStringAdvice;facts?:ProdatDependentConditionFacts|null;direction?:'inbound'|'outbound'}
 export type DeathIssue=EdielRulebookIssue&{meteringPointId?:string|null;lineItemReference?:string|null}
 /** Split actual messages before selecting own first-register common information. */
 function messages(tokens:Token[]):Token[][]{const out:Token[][]=[];let current:Token[]=[];for(const t of tokens){if(t.tag==='UNH'&&current.length){out.push(current);current=[]}current.push(t);if(t.tag==='UNT'){out.push(current);current=[]}}if(current.length)out.push(current);return out}
 export function evaluateProdatDeathStatus(input:DeathPolicyInput){
  const una=input.una??parseUna(null),tokens=prodatRegisterTokens(input.rawSegments,una),outbound=input.direction!=='inbound'
+ const objectConditions:ProdatDeathObjectCondition[]=[]
  const issues:DeathIssue[]=[],statuses=new Map<string,ProdatDependentConditionStatus>();let objects:DeathEventObject[]=[]
  let diagnosticScope:string[]=[];let diagnosticInput=input
  const fail=(suffix:string,detail:string,occurrence?:{meteringPointId:string|null;lineItemReference:string|null},blocking=outbound,kind:'missing'|'invalid'|'local_evidence'='local_evidence',failureEvidence?:ProdatFailureEvidence)=>issues.push({prodatDiagnostic:kind==='local_evidence'?prodatLocalDiagnostic(kind,'PRODAT26A:death-status',detail):prodatFieldDiagnostic('310',kind,diagnosticInput,diagnosticScope,'PRODAT26A:P71/112/119/122',undefined,undefined,failureEvidence),...occurrence,scope:'prodat_dependent',severity:blocking?'error':'warning',blocking,code:`PRODAT_DEATH_STATUS_${suffix}`,title:'PRODAT kundstatus',description:`Fält310, P26.A s.71/112/119/122: ${detail}`,fieldPath:'CCI++Z17/CAV'})
@@ -49,6 +51,8 @@ export function evaluateProdatDeathStatus(input:DeathPolicyInput){
     }
    }
    const condition=scope?deathCondition(code,subtype,fact?.assessment):null
+   objectConditions.push({messageReference:unh?segmentComposite(unh,1,una)[0]??null:null,objectId:group.itemId,identityAgency:group.identityAgency,firstLineIndex:group.segments[0].index,
+    sourceDecision:code==='Z06'&&reason==='E34'?scope&&fact?.assessment.kind==='known'&&condition!==null?'accepted':'held':'not_applicable'})
    aggregate=aggregate===null||condition===null?null:aggregate||condition
    if(!outbound&&condition===false)continue // p119 whole-field precedence, including qualifiers.
    if(!scope){fail('SCOPE_INVALID','egen funktion/orsak/objekt kan inte avgöras',occurrence);continue}
@@ -67,7 +71,7 @@ export function evaluateProdatDeathStatus(input:DeathPolicyInput){
   }
  }
  if(seenObject||['Z05','Z06','Z09'].includes(input.code))statuses.set('310',!seenObject||aggregate===null?'undetermined':aggregate?'required':'not_required')
- return {issues,statuses}
+ return {issues,statuses,objectConditions}
 }
 export function validateProdatDeathStatus(input:DeathPolicyInput){return evaluateProdatDeathStatus(input).issues}
 /** Shared source mapping, retaining exact occurrence attribution. */

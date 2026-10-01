@@ -31,22 +31,24 @@ export async function recordReceivedSourceValidation(input: {
     const evidence = buildReceivedSourceValidationEvidence({...input, original: capturedOriginal})
     if (!evidence) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
     const utilts=capturedOriginal.message_family==='UTILTS',prodat=capturedOriginal.message_family==='PRODAT'
+    const sourceFunctionFactsHash=evidence.prodatSourceFunctionValidation?evidenceHash(JSON.stringify(evidence.prodatSourceFunctionValidation)):null
     const applicationFactsHash=evidence.prodatApplicationValidation?evidenceHash(JSON.stringify(evidence.prodatApplicationValidation)):null
     const responseFactsHash=evidence.prodatResponseValidation?evidenceHash(JSON.stringify(evidence.prodatResponseValidation)):null
     const ignoredFactsHash=evidence.prodatIgnoredFields?evidenceHash(JSON.stringify(evidence.prodatIgnoredFields)):null
     const transactionFactsHash=evidence.utiltsTransactionValidation ? evidenceHash(JSON.stringify(evidence.utiltsTransactionValidation)) : null
     const headerFactsHash=evidence.utiltsHeaderValidation ? evidenceHash(JSON.stringify(evidence.utiltsHeaderValidation)) : null
     const functionalFactsHash=evidence.utiltsFunctionalValidation ? evidenceHash(JSON.stringify(evidence.utiltsFunctionalValidation)) : null
-    const { data, error } = await supabaseService.rpc(utilts ? 'gridex_record_utilts_source_validation_v4' : prodat?'gridex_record_prodat_source_validation_v4':'gridex_record_source_validation_v1', {
+    const { data, error } = await supabaseService.rpc(utilts ? 'gridex_record_utilts_source_validation_v4' : prodat?(evidence.prodatSourceFunctionValidation?'gridex_record_prodat_source_validation_v5':'gridex_record_prodat_source_validation_v4'):'gridex_record_source_validation_v1', {
       p_company_id: evidence.companyId, p_environment: evidence.environment, p_source_message_id: evidence.sourceMessageId,
       p_source_payload_hash: evidence.sourcePayloadHash, p_facts_text: evidence.factsText,
+      ...(prodat&&evidence.prodatSourceFunctionValidation?{p_source_function_facts_text:JSON.stringify(evidence.prodatSourceFunctionValidation)}:{}),
       ...(prodat?{p_application_facts_text:evidence.prodatApplicationValidation?JSON.stringify(evidence.prodatApplicationValidation):null,p_ignored_fields_text:evidence.prodatIgnoredFields?JSON.stringify(evidence.prodatIgnoredFields):null,p_response_facts_text:evidence.prodatResponseValidation?JSON.stringify(evidence.prodatResponseValidation):null}:{}),
       ...(utilts ? {p_transaction_facts_text:evidence.utiltsTransactionValidation ? JSON.stringify(evidence.utiltsTransactionValidation) : null,p_header_facts_text:evidence.utiltsHeaderValidation ? JSON.stringify(evidence.utiltsHeaderValidation) : null,p_functional_facts_text:evidence.utiltsFunctionalValidation ? JSON.stringify(evidence.utiltsFunctionalValidation) : null} : {}),
     }).abortSignal(AbortSignal.timeout(2000))
     const factsHash = evidenceHash(evidence.factsText)
-    if (error || !isEvidenceRecord(data) || data.version !== (utilts ? 4 : prodat?4:1) || data.companyId !== evidence.companyId || data.environment !== evidence.environment
+    if (error || !isEvidenceRecord(data) || data.version !== (utilts ? 4 : prodat?(evidence.prodatSourceFunctionValidation?5:4):1) || data.companyId !== evidence.companyId || data.environment !== evidence.environment
       || data.sourceMessageId !== evidence.sourceMessageId || data.sourcePayloadHash !== evidence.sourcePayloadHash || data.factsHash !== factsHash
-      || (prodat&&(data.ignoredFieldsHash!==ignoredFactsHash||data.responseFactsHash!==responseFactsHash||data.applicationFactsHash!==applicationFactsHash)) || data.sourceDisposition !== 'not_established' || !isEvidenceUuid(data.assessmentId) || (utilts && (data.transactionFactsHash!==transactionFactsHash || data.headerFactsHash!==headerFactsHash || data.functionalFactsHash!==functionalFactsHash))) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
+      || (prodat&&(data.ignoredFieldsHash!==ignoredFactsHash||data.responseFactsHash!==responseFactsHash||data.applicationFactsHash!==applicationFactsHash||(evidence.prodatSourceFunctionValidation&&data.sourceFunctionFactsHash!==sourceFunctionFactsHash))) || data.sourceDisposition !== 'not_established' || !isEvidenceUuid(data.assessmentId) || (utilts && (data.transactionFactsHash!==transactionFactsHash || data.headerFactsHash!==headerFactsHash || data.functionalFactsHash!==functionalFactsHash))) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
     const receipt: ReceivedSourceValidationReceipt = { status: 'recorded', sourceDisposition: 'not_established', assessmentId: data.assessmentId, factsHash }
     if (capturedOriginal.message_family === 'PRODAT') freshOwnerSeeds.set(receipt, {original: capturedOriginal, evidence, assessmentId: data.assessmentId})
     return receipt
