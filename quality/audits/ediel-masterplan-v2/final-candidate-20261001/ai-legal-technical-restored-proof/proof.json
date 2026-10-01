@@ -1,0 +1,73 @@
+{
+  "observed_at": "2026-10-01T09:57:45.111397+00:00",
+  "owner": "root",
+  "base_head": "971df5955937745d3b50db64d61e29cefd9f0dc0",
+  "protected_421_source": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "incoming_source_migration": "20261001061000_ediel_ai_legal_technical_party_scope.sql reviewed; not blindly applied",
+  "new_forward": "20261001092522_ediel_ai_legal_technical_party_composition.sql",
+  "checks": {
+    "unit": {
+      "sha256": "1ff6a724a20b98ce3d5a004ec25e3013581a65945e9c7f91a2991d997c06486f",
+      "bytes": 236,
+      "result": "PASS 26/26"
+    },
+    "bounded": {
+      "sha256": "5d3c66e215f4b4e94ad0bf28bcc446667c98b6e9a7b085ab0458a5590774b910",
+      "bytes": 832,
+      "result": "PASS 84 mechanical assertions"
+    },
+    "red": {
+      "sha256": "5102c2f3c26e0fbf671a4e6f94d1ea93a47d39bfee8ca62d93b1fd3cde19b182",
+      "bytes": 28534,
+      "result": "EXPECTED_FAIL actual older composed history rejects legal CSV scope with a different technical receiver"
+    },
+    "app_tsc": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "result": "PASS"
+    },
+    "scripts_tsc": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "result": "PASS"
+    },
+    "eslint": {
+      "sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8",
+      "bytes": 174,
+      "result": "PASS no lint errors (Node proxy experimental notice only)"
+    }
+  },
+  "preserved": [
+    "033 confirmed customer history and life-event patches",
+    "45349 five-key full-customer/delta/structural whole-row composition",
+    "20550 actual purpose/environment/current-decision producer and send gates",
+    "63426 current graph entry lock prefix",
+    "actual pg_proc OID/owner/ACL/config/security/volatility assertions",
+    "non-AI ACK matrix rows and readiness body"
+  ],
+  "changes": [
+    "qualified legal CSV supplier/network names and IDs distinct from technical intent/message sender/receiver",
+    "AI_LIST AI explicit ACK-none only",
+    "native immutable-original current-read replay before current new-export decisions or requeue",
+    "actual GoTrue current actor/company/membership and ban/native-clock check before personal original disclosure",
+    "catalog communication.send for fresh prepare; native phase/current read authority remains separate"
+  ],
+  "dependencies": [
+    "092425 current scoped permission/actor helpers",
+    "missing current primary R source chain allocated to requirements owner; must integrate before frozen native verification"
+  ],
+  "not_run": [
+    "authentic native replay",
+    "native/HTTP positive and adversarial AI chain on final head",
+    "interactive browser on final head",
+    "new generated schema/types/fingerprint",
+    "whole build and exact-head CI"
+  ],
+  "whole_criterion_accepted": false,
+  "limitations": [
+    "Bounded fixture registry/purpose/actor inputs explicitly synthetic; these do not qualify any real issuer, mandate or registry source",
+    "Third-party supplier-wide transport mandate remains held without authenticated source producer/fact; no approval seed",
+    "033 artifact identities are historical evidence, not new candidate schema",
+    "Native prepared original-reader probe added to actual archive/review/import/queue fixture, still unrun"
+  ]
+}

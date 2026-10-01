@@ -22,6 +22,11 @@ describe('actual AI intent/render/original/finalize/outbox chain',()=>{
   expect(mocks.rpc).toHaveBeenCalledWith('gridex_ai_record_outbound_original_v1',expect.objectContaining({p_company_id:company,p_intent_id:intentId,p_snapshot_id:'snapshot',p_readset_hash:'b'.repeat(64),p_raw_payload:'fresh-source-owned-CSV'}))
   expect(mocks.finalize).toHaveBeenCalledTimes(1);expect(mocks.queue).toHaveBeenCalledWith(expect.objectContaining({messageId:'message',intentId}))
  })
+ it('allows send capability to prepare with no separate READ grant',async()=>{
+  mocks.authorize.mockImplementation(async input=>{if(!(input.permission==='communication.send'||input.permissionAnyOf?.includes('communication.send')))throw Error('send permission absent')})
+  await renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})
+  expect(mocks.render).toHaveBeenCalledTimes(1);expect(mocks.finalize).toHaveBeenCalledTimes(1)
+ })
  it('does not persist or queue when the own original receipt is unconfirmed',async()=>{
   mocks.rpc.mockImplementation(async name=>({data:name==='gridex_ai_outbound_origin_status_v1'?{status:'new'}:null,error:null}))
   await expect(renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})).rejects.toThrow('ai_list_original_receipt_unconfirmed')
@@ -31,6 +36,23 @@ describe('actual AI intent/render/original/finalize/outbox chain',()=>{
   mocks.rpc.mockResolvedValue({data:{status:'bound',messageId:'message',payloadHash:'a'.repeat(64)},error:null});mocks.message.mockResolvedValue({...message,status:'sent'})
   await renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})
   expect(mocks.render).not.toHaveBeenCalled();expect(mocks.finalize).not.toHaveBeenCalled();expect(mocks.queue).not.toHaveBeenCalled()
+ })
+ it('returns the bound original before today route/write/render checks without status reset',async()=>{
+  mocks.rpc.mockResolvedValue({data:{status:'bound',messageId:'message',payloadHash:'a'.repeat(64)},error:null});mocks.message.mockResolvedValue(message)
+  mocks.authorize.mockImplementation(async input=>{if(!input.permissionAnyOf.includes('communication.read'))throw Error('current writer revoked')})
+  const changedRoute={...route,senderEdielId:'TODAY-OTHER',receiverEdielId:'TODAY-REMOVED'}
+  expect(await renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:changedRoute})).toBe(message)
+  expect(mocks.render).not.toHaveBeenCalled();expect(mocks.finalize).not.toHaveBeenCalled();expect(mocks.queue).not.toHaveBeenCalled();expect(mocks.lifecycle).not.toHaveBeenCalled()
+ })
+ it('does not disclose a foreign or mismatched frozen original',async()=>{
+  mocks.rpc.mockResolvedValue({data:{status:'bound',messageId:'message',payloadHash:'a'.repeat(64)},error:null});mocks.message.mockResolvedValue({...message,company_id:'foreign'})
+  await expect(renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})).rejects.toThrow('ai_list_existing_original_scope_mismatch')
+  expect(mocks.queue).not.toHaveBeenCalled()
+ })
+ it('uses the protected tenant/intent port before reading shared intent data',async()=>{
+  mocks.rpc.mockResolvedValue({data:null,error:Error('foreign intent')})
+  await expect(renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})).rejects.toThrow('ai_list_original_status_unconfirmed')
+  expect(mocks.intent).not.toHaveBeenCalled();expect(mocks.render).not.toHaveBeenCalled();expect(mocks.finalize).not.toHaveBeenCalled()
  })
  it('keeps current actor and exact tenant/intent/route scope before any source read or writer',async()=>{
   mocks.authorize.mockRejectedValue(new Error('ediel_tenant_actor_forbidden'))

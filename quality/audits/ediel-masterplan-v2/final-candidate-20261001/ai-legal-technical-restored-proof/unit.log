@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 /workspace/scratch/29079c3a4297/gridex-integration
+
+
+ Test Files  4 passed (4)
+      Tests  26 passed (26)
+   Start at  11:40:07
+   Duration  3.81s (transform 1.97s, setup 55ms, import 2.88s, tests 69ms, environment 0ms)
+

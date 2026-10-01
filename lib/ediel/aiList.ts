@@ -1,3 +1,4 @@
+import {requireAiListPartyBasis,type AiListPartyBasis} from '@/lib/ediel/aiListPartyBasis'
 import {aiListCell,aiListDate,assertAiListOutboundType,AI_LIST_FORMAT_VERSION,parseAiBiTechnicalFile} from '@/lib/ediel/aiListFormat'
 import {resolveSwedishProdatCustomerIdentity} from '@/lib/ediel/prodat/customerIdentity'
 import type { CreateEdielMessageInput, EdielEnvironment } from '@/lib/ediel/types'
@@ -8,7 +9,6 @@ import type {
   MeteringPointRow,
 } from '@/lib/masterdata/types'
 import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'
-import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { deriveEdielAckDefaults } from '@/lib/ediel/core/ackPolicy'
 
 export const AI_LIST_VERSION = AI_LIST_FORMAT_VERSION
@@ -282,6 +282,7 @@ export function buildAiListDetailFromSite(params: {
 }
 
 export async function buildAiListOutboundDraft(input: {
+  headerParties: AiListPartyBasis
   actorUserId?: string | null
   companyId?: string | null
   listType: AiListType
@@ -306,6 +307,7 @@ export async function buildAiListOutboundDraft(input: {
   validityDate?: string | null
   environment?: EdielEnvironment
 }): Promise<CreateEdielMessageInput> {
+  const header=requireAiListPartyBasis(input.headerParties,{companyId:input.companyId,environment:input.environment,sender:input.senderEdielId,receiver:input.receiverEdielId,communicationRouteId:input.communicationRouteId})
   assertAiListOutboundType(input.listType)
   const refs = buildCanonicalOutboundReferences({
     family: 'AI_LIST',
@@ -316,24 +318,18 @@ export async function buildAiListOutboundDraft(input: {
     correlationReference: input.correlationReference ?? null,
   })
 
-  const version =
-    (await resolveCanonicalOutboundVersion({
-      family: 'AI_LIST',
-      code: input.listType,
-      standard: 'ai_list',
-      routeDefaultMessageVersion: input.routeDefaultMessageVersion ?? null,
-      environment: input.environment ?? 'test',
-    }))
-  if(version!==AI_LIST_VERSION)throw new Error('ai_list_canonical_version_unavailable')
+  // The same source-owned AI technical profile supplies its revision.
+  // Registry/route records are evidence, not a second version selector.
+  const version = AI_LIST_VERSION
 
   const createdAt = new Date()
   const canonicalDetails = canonicalizeDetails(input.details)
   const csvPayload = buildAiListCsv({
     listType: input.listType,
-    senderEdielId: input.senderEdielId,
-    senderName: input.senderName ?? null,
-    receiverEdielId: input.receiverEdielId,
-    receiverName: input.receiverName ?? null,
+    senderEdielId: header.legalSupplier,
+    senderName: header.legalSupplierName,
+    receiverEdielId: header.legalNetwork,
+    receiverName: header.legalNetworkName,
     fromDate: input.fromDate,
     toDate: input.toDate,
     validityDate: input.validityDate ?? null,
@@ -378,8 +374,8 @@ export async function buildAiListOutboundDraft(input: {
     fileName:
       buildAiListFileName({
         listType: input.listType,
-        senderEdielId: input.senderEdielId,
-        receiverEdielId: input.receiverEdielId,
+        senderEdielId: header.legalSupplier,
+        receiverEdielId: header.legalNetwork,
         fromDate: input.fromDate,
         toDate: input.toDate,
         validityDate: input.validityDate ?? null,

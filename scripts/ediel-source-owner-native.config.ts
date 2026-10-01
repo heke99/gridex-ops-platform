@@ -50,5 +50,7 @@ export default defineConfig({
     'scripts/ediel-z06f-reading-followup-native.test.ts',
     'scripts/ediel-decision-original-retention-native.test.ts',
     'scripts/ediel-inbound-reception-actual-columns-native.test.ts',
+    'scripts/ediel-retention-grant-native-clock-native.test.ts',
+    'scripts/ediel-prodat-object-batch-current-source-native.test.ts',
   ],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })
