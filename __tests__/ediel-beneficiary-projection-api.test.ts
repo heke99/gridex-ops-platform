@@ -39,6 +39,11 @@ describe('beneficiary series API', () => {
     expect(response.status).toBe(403)
     expect(JSON.stringify(await response.json())).not.toContain('secret')
   })
+  it.each(['2026-02-29T00:00:00Z', '2026-09-31T00:00:00Z', '2026-09-01T24:00:00Z', '2026-09-01T00:00:60Z'])('rejects a normalized invalid calendar timestamp (%s) before reading any source', async value => {
+    const values = query(); values.set('start', value)
+    expect((await GET(req(values), ctx)).status).toBe(400)
+    expect(mocks.project).not.toHaveBeenCalled()
+  })
   it('binds cursor position to tenant, user, series, grant version, purpose, fields and window', () => {
     const input = parseEdielProjectionRequest({ query: query(), seriesId, companyId, actorUserId })
     const cursor = createEdielProjectionCursor(input, { readingAt: '2026-09-15T00:00:00Z', valueId: grantId })!
