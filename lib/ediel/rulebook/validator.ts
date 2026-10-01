@@ -1,7 +1,7 @@
 import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {commonHeaderOriginalSource,prodatCommonHeaderRejectionQualification,readPersistedProdatCommonHeaderNegativeAckBasis,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
-import {readSourceBoundAckRulePackEvidence,readPersistedOutboundAckRulePackEvidence,sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import {readSourceBoundAckRulePackEvidence,readPersistedOutboundAckRulePackEvidence,sourceQualifiedOutboundAck,sourceBoundAckCanonicalPolicy,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
@@ -562,13 +562,13 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     // business message. Inbound parsing is fully source-controlled and does not
     // require a mutable DB row to define protocol meaning.
     if (input.mode !== 'send') {
-      if (!input.messageRow || familyValue === 'UTILTS_ERR') return result
+      if (!input.messageRow) return result
       try {
-        const {sourceMessage,evidence}=await readSourceBoundAckRulePackEvidence(input.messageRow)
-        const policy=result.canonicalPolicy!
+        const qualification=await readSourceBoundAckRulePackEvidence(input.messageRow),{sourceMessage,evidence}=qualification
+        const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
         const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
         const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
-        return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+        return {...result,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
       }catch(error){
         const issues=[...result.issues,issue({severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description:error instanceof Error?error.message:String(error)})]
         return {...result,ok:false,blocking:true,issues,fieldRuleSource:'static',rulePackSnapshot:null}
@@ -580,9 +580,10 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
         : sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
       if(!qualification)throw new Error('ack_source_qualification_required')
       const {sourceMessage,evidence}=qualification
-      const own=validateCanonicalAckGuide({policy:result.canonicalPolicy!,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+      const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
+      const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
       const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
-      return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+      return {...result,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
     }catch(error){
       const issues = [...result.issues, issue({
         severity: 'error',
