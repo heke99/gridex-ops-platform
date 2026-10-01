@@ -32,6 +32,7 @@ import { getEdielTgtTestCaseByCode } from "@/lib/ediel/testing/tgtRegistry"
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact"
 import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority'
+import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
 import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
 import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from "@/lib/ediel/testing/tgtTestDataStore"
 
@@ -897,7 +898,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createCanonicalOutboundMessage(draft.messageInput);
+  const message = await createCanonicalOutboundMessage({actorUserId:context.userId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput});
 
   if (testRunId) {
     await attachEdielMessageToTestRun({

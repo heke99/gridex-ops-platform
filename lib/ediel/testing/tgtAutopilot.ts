@@ -13,6 +13,7 @@ import {
   listEdielTestRunMessages,
   listEdielTestRuns,
 } from "@/lib/ediel/db";
+import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
 import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel';
 import {
   evaluateEdielTgtRun,
@@ -457,7 +458,7 @@ async function createDraftForStep(params: {
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createCanonicalOutboundMessage(draft.messageInput);
+  const message = await createCanonicalOutboundMessage({actorUserId:params.actorUserId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput});
   await attachEdielMessageToTestRun({
     companyId: params.evaluation.testRun.company_id,
     testRunId: params.evaluation.testRun.id,
