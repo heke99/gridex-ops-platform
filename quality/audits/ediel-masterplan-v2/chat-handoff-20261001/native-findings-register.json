@@ -202,6 +202,12 @@
   ],
   "open": [
     {
+      "id": "TENANT-OPEN-01",
+      "severity": "critical-until-disproven",
+      "cause": "CI clean-migration-replay on 0f61f08f: tenant-isolation-invariants after the native/browser runs report F-3 outbound_dispatch_events 178 rows without company_id, F-3 user_permission_overrides 2 rows without company_id, F-8/F-10 unique index ai_list_imports_source_ediel_message_id_key not scoped by company_id.",
+      "fix": "Investigate first: which writers create NULL-company rows (product path vs native fixture), whether the index allows cross-tenant collision/oracle; forward fix with tests. Browser-native record/blob/finance-copy retention also fail."
+    },
+    {
       "id": "NATIVE-OPEN-01",
       "tests": "ediel-utilts-consumption-native (~120), utilts-err-gateway, utilts-s02",
       "error": "ediel_inbound_legal_context_required / ediel_source_rule_pack_basis_required",
