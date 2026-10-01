@@ -1324,7 +1324,9 @@ export async function CustomerAdminDetailPage({
           title="Anteckningar"
           description="Intern drift- och kundhistorik."
         >
-          <NotesSection customerId={id} notes={notes} />
+          <NotesSection customerId={id} notes={notes} canWrite={isPlatformAdmin || (
+            access.companyId === customerCompanyId && access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE)
+          )} />
         </SectionAnchor>
       ) : null}
 

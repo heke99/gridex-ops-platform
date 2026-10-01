@@ -365,6 +365,27 @@ mustContain(agreementCleanup, "if (current.data !== true) { result.stale++; cont
 mustContain(agreementCleanup, "storage.from(receipt.bucket).remove([receipt.path])");
 mustContain(agreementCleanup, "rpc('gridex_finish_agreement_cleanup_v1', { p_receipt: receipt, p_outcome: outcome })");
 
+// Reviewed 2026-10-01: this scheduled global worker claims only a bounded
+// tenant-fair SQL receipt and repeats current policy/payload checks before
+// transport. Completion and recovery retain exact company/item/worker/token
+// bindings. These source gates do not qualify native workers or delivery.
+const manualEmailWorker = "lib/email/manualEmailOutbox.ts";
+mustContain(manualEmailWorker, "const limit = manualEmailClaimLimit(input?.limit)");
+mustContain(manualEmailWorker, "await recoverStaleManualSendingRows(companyFilter, limit)");
+mustContain(manualEmailWorker, "await claimManualEmailRows(companyFilter, limit, workerId)");
+mustContain(manualEmailWorker, "const transportDecision = await getTenantOperationDecision(companyId, 'email.send')");
+mustContain(manualEmailWorker, "if (!await recheckManualEmailClaim(row))");
+mustContain(manualEmailWorker, "providerAccepted = true");
+mustContain(manualEmailWorker, "if (providerAccepted && !deliveryPersisted)");
+mustContain(manualEmailWorker, "await finishManualEmailClaim(row, {");
+
+const manualEmailClaim = "lib/email/manualEmailFairClaim.ts";
+mustContain(manualEmailClaim, "p_company_id: companyId, p_limit: limit, p_worker_id: workerId, p_claim_token: token");
+mustContain(manualEmailClaim, "(companyId && row.company_id !== companyId)");
+mustContain(manualEmailClaim, "payloadFields.some(key => !isDeepStrictEqual(data[0][key], row[key]))");
+mustContain(manualEmailClaim, "p_company_id: row.company_id, p_item_id: row.id, p_worker_id: row.locked_by, p_claim_token: row.claim_token");
+mustContain(manualEmailClaim, "if (data !== true) throw new Error('manual_email_live_completion_not_saved')");
+
 const redeliveryPage = "app/admin/billing/invoices/[id]/redelivery/page.tsx";
 mustContain(redeliveryPage, "requireAdminPageKeyAccess('billing.workspace')");
 mustContain(redeliveryPage, "getOperationalCompanyScope(guard.userId)");

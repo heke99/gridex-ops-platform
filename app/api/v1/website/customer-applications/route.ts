@@ -218,8 +218,6 @@ export async function POST(request: NextRequest) {
 
     const applicationMetadata = {
       result_count: result.ok ? 1 : 0,
-      external_customer_id: typeof body?.external_customer_id === 'string' ? body.external_customer_id : body?.customer_external_id,
-      customer_number: readStringField(result.ok ? result.body.data : null, 'customer_number'),
       application_id: readStringField(result.ok ? result.body.data : null, 'application_id'),
       error_stage: result.ok ? null : readStringField(result.body, 'error_stage'),
       error_code: result.ok ? null : readStringField(result.body, 'code'),

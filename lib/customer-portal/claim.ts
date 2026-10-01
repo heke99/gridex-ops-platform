@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { insertNativePortalAccountPreservingExisting } from '@/lib/customer-portal/accountLinkPreservation'
 
 type CustomerCandidate = {
   id: string
@@ -528,16 +529,13 @@ export async function claimPortalCustomerAction(
     const { customer, matchSnapshot, installationMatch } = fullMatches[0]
     const now = new Date().toISOString()
 
-    const { error: accountError } = await supabaseService
-      .from('customer_portal_accounts')
-      .upsert(
-        {
-          company_id: customer.company_id,
-          user_id: user.id,
+    if (!customer.company_id) return { ok: false, message: DEFAULT_ERROR }
+    const link = await insertNativePortalAccountPreservingExisting({
+      companyId: customer.company_id,
+      customerId: customer.id,
+      userId: user.id,
+      newAccount: {
           user_email: authEmail,
-          customer_id: customer.id,
-          role: 'owner',
-          is_active: true,
           activated_at: now,
           verified_at: now,
           match_method: 'self_claim_strict_identity',
@@ -549,11 +547,18 @@ export async function claimPortalCustomerAction(
             inputInstallationId: installationId,
           },
           updated_at: now,
-        },
-        { onConflict: 'user_id,customer_id' }
-      )
+      },
+    })
 
-    if (accountError) throw accountError
+    // The relationship is already established. A repeated claim is neither a
+    // new verification nor a role decision, so retain all saved evidence.
+    if (!link.created) {
+      revalidatePath('/portal')
+      revalidatePath('/portal/fakturor')
+      revalidatePath('/portal/forbrukning')
+      revalidatePath('/portal/anlaggningar')
+      redirect('/portal?kopplad=1')
+    }
 
     await insertClaim({
       userId: user.id,

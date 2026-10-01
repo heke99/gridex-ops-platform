@@ -148,6 +148,8 @@ export async function GET(request: NextRequest) {
           }),
         )
       } catch (mappingError) {
+        const mappingDiagnostic = technicalErrorDiagnostic(mappingError)
+        const mappingClassification = classifyPublicContractsError(mappingError)
         const mapping = mappingError as {
           name?: unknown
           code?: unknown
@@ -170,13 +172,13 @@ export async function GET(request: NextRequest) {
           organizationReference,
           apiClientId: auth.client.id,
           channel: 'website',
-          offerReference,
           publicationVersionId: offer.contract_publication_version_id ?? null,
           contractVersion: PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
           schema: 'website-integration-v1.json',
-          errorName: typeof mapping.name === 'string' ? mapping.name : null,
-          errorCode: typeof mapping.code === 'string' ? mapping.code : null,
-          errorPath: typeof mapping.path === 'string' ? mapping.path : null,
+          errorName: mappingDiagnostic.message,
+          errorCode: mappingClassification.code,
+          databaseCode: mappingDiagnostic.code,
+          errorPath: null,
         })
       }
     }

@@ -150,26 +150,20 @@ export async function GET(request: NextRequest) {
       } catch (mappingError) {
         rejectedContracts += 1
         firstMappingError ??= mappingError
-        const mapping = mappingError as {
-          name?: unknown
-          code?: unknown
-          path?: unknown
-        }
+        const mappingDiagnostic = technicalErrorDiagnostic(mappingError)
+        const mappingClassification = classifyPublicContractsError(mappingError)
         console.error('[api-contracts] rejected malformed publication', {
           requestId,
           companyId: auth.context.companyId,
           tenantReference: tenant.tenant_reference,
           apiClientId: auth.client.id,
           channel: 'api',
-          offerReference:
-            publication && typeof publication.offer_reference === 'string'
-              ? publication.offer_reference
-              : null,
           contractVersion: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
           schema: 'website-integration-v1.json',
-          errorName: typeof mapping.name === 'string' ? mapping.name : null,
-          errorCode: typeof mapping.code === 'string' ? mapping.code : null,
-          errorPath: typeof mapping.path === 'string' ? mapping.path : null,
+          errorName: mappingDiagnostic.message,
+          errorCode: mappingClassification.code,
+          databaseCode: mappingDiagnostic.code,
+          errorPath: null,
         })
       }
     }

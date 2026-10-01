@@ -31,6 +31,7 @@ import { emitCustomerOperationEvent } from "@/lib/customers/customerOperationEve
 
 import { reconcileSupplierSwitchAfterCustomerDataChange } from "@/lib/customer-operations/supplierSwitchOrchestration"
 import { normalizeUuidOrNull } from "@/lib/validation/uuid"
+import { technicalErrorDiagnostic } from "@/lib/logging/technicalError"
 
 
 import { requireCustomerMutationContext } from './actions.part-4'
@@ -907,9 +908,39 @@ export async function saveMeteringPointAction(
   revalidatePath("/admin/operations/tasks");
 }
 
-export async function createCustomerInternalNoteAction(
+export type CustomerInternalNoteReceipt = {
+  noteId: string;
+  customerId: string;
+  companyId: string;
+  actorUserId: string;
+};
+
+function customerInternalNoteReceipt(
+  row: unknown,
+  expected: Omit<CustomerInternalNoteReceipt, "noteId"> & { noteId?: string },
+): CustomerInternalNoteReceipt {
+  const stored = row && typeof row === "object"
+    ? row as Record<string, unknown>
+    : null;
+  let noteId: string | null;
+  try {
+    noteId = normalizeUuidOrNull(stored?.id);
+  } catch {
+    throw new Error("Anteckningens sparade resultat kunde inte verifieras.");
+  }
+  if (!noteId || stored?.customer_id !== expected.customerId ||
+      stored.company_id !== expected.companyId ||
+      stored.created_by !== expected.actorUserId ||
+      (expected.noteId && noteId !== expected.noteId)) {
+    throw new Error("Anteckningens sparade resultat kunde inte verifieras.");
+  }
+  return { noteId, customerId: expected.customerId,
+    companyId: expected.companyId, actorUserId: expected.actorUserId };
+}
+
+async function createGuardedCustomerInternalNote(
   formData: FormData,
-): Promise<void> {
+): Promise<CustomerInternalNoteReceipt> {
   const guard = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE]);
   const actor = { id: guard.userId };
   const customerId = formValue(formData, "customer_id") ?? "";
@@ -920,6 +951,11 @@ export async function createCustomerInternalNoteAction(
   }
 
   const { companyId } = await requireCustomerMutationContext(customerId, guard);
+  // masterdata.write belongs to the current canonical company receipt. Keep
+  // legitimate non-owner operators and the authoritative global path intact.
+  if (guard.isPlatformAdmin !== true && guard.companyId !== companyId) {
+    throw new Error("Forbidden");
+  }
 
   const { data, error } = await supabaseService
     .from("customer_internal_notes")
@@ -934,11 +970,14 @@ export async function createCustomerInternalNoteAction(
     .single();
 
   if (error) throw error;
+  const receipt = customerInternalNoteReceipt(data, {
+    customerId, companyId, actorUserId: actor.id,
+  });
 
   await insertAuditLog({
     actorUserId: actor.id,
     entityType: "customer_internal_note",
-    entityId: data.id,
+    entityId: receipt.noteId,
     action: "customer_internal_note_created",
     newValues: data,
     metadata: {
@@ -947,7 +986,42 @@ export async function createCustomerInternalNoteAction(
     },
   });
 
-  revalidatePath(`/admin/customers/${customerId}`);
+  return receipt;
+}
+
+export async function createCustomerInternalNoteAction(
+  formData: FormData,
+): Promise<void> {
+  const receipt = await createGuardedCustomerInternalNote(formData);
+  revalidatePath(`/admin/customers/${receipt.customerId}`);
+}
+
+export async function createCustomerInternalNoteReceiptAction(
+  formData: FormData,
+): Promise<CustomerInternalNoteReceipt> {
+  const receipt = await createGuardedCustomerInternalNote(formData);
+  const { data, error } = await supabaseService
+    .from("customer_internal_notes")
+    .select("id, customer_id, company_id, created_by")
+    .eq("id", receipt.noteId)
+    .eq("customer_id", receipt.customerId)
+    .eq("company_id", receipt.companyId)
+    .eq("created_by", receipt.actorUserId)
+    .maybeSingle();
+  if (error) throw error;
+  const confirmed = customerInternalNoteReceipt(data, receipt);
+
+  // The note and required audit have already persisted and the exact stored
+  // tuple was read again. A cache fault does not undo that qualified receipt.
+  try {
+    revalidatePath(`/admin/customers/${receipt.customerId}`);
+  } catch (error) {
+    unstable_rethrow(error);
+    console.warn("[customer-internal-note] Cache refresh unavailable", {
+      code: technicalErrorDiagnostic(error).code,
+    });
+  }
+  return confirmed;
 }
 
 export async function createPowerOfAttorneyAction(

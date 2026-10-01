@@ -11,21 +11,22 @@ import { exportJWK, generateKeyPair, SignJWT } from 'jose'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateIntegrationApiToken } from '@/lib/integrations/apiClientSecrets'
 import { encodePortalCursor } from '@/lib/customer-portal/keysetPagination'
+import { customerProofSqlFailure, type CustomerProofSqlStage } from './helpers/customer-proof-sqlstate-diagnostic-20261001'
 
 const API = 'http://127.0.0.1:54321'
 const DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 export const quote = (value: string) => `'${value.replaceAll("'", "''")}'`
-export function proofSql<T>(command: string): T {
+export function proofSql<T>(command: string, stage: CustomerProofSqlStage = 'customer_sql'): T {
   if (process.env.CI !== 'true' || process.env.NEXT_PUBLIC_SUPABASE_URL !== API) throw new Error('disposable_local_only')
   try {
-    const output = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], {
+    const output = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=sqlstate'], {
       input: command, encoding: 'utf8', timeout: 30_000, stdio: ['pipe', 'pipe', 'pipe'],
     }).trim()
     return JSON.parse(output) as T
-  } catch {
+  } catch (error) {
     // psql errors can include seeded credentials or complete assertions. Keep
     // the original details inside the disposable runner, never its test log.
-    throw new Error('customer_api_proof_database_failed')
+    throw new Error(customerProofSqlFailure(error, stage))
   }
 }
 export function fixturePath(env: string): string {

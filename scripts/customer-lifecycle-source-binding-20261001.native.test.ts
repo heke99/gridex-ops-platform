@@ -34,12 +34,12 @@ afterEach(() => {
   expect(quietGraph()).toEqual(quietBefore)
   proofSql(`DROP TRIGGER IF EXISTS ${f.fault} ON public.customer_lifecycle_decisions;
     DROP FUNCTION IF EXISTS private.${f.fault}();
-    DELETE FROM public.customer_lifecycle_decisions WHERE company_id IN (${quote(f.company)},${quote(f.quiet)});
-    DELETE FROM public.customer_cases WHERE company_id IN (${quote(f.company)},${quote(f.quiet)});
-    DELETE FROM public.customer_contracts WHERE id IN (${quote(f.contract)},${quote(f.quietContract)});
-    DELETE FROM public.customers WHERE id IN (${quote(f.customer)},${quote(f.quietCustomer)});
-    DELETE FROM public.companies WHERE id IN (${quote(f.company)},${quote(f.quiet)});
-    SELECT to_jsonb(true);`)
+    SELECT to_jsonb(true);`, 'lifecycle_cleanup_fault')
+  proofSql(`DELETE FROM public.customer_lifecycle_decisions WHERE company_id IN (${quote(f.company)},${quote(f.quiet)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_decisions')
+  proofSql(`DELETE FROM public.customer_cases WHERE company_id IN (${quote(f.company)},${quote(f.quiet)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_cases')
+  proofSql(`DELETE FROM public.customer_contracts WHERE id IN (${quote(f.contract)},${quote(f.quietContract)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_contracts')
+  proofSql(`DELETE FROM public.customers WHERE id IN (${quote(f.customer)},${quote(f.quietCustomer)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_customers')
+  proofSql(`DELETE FROM public.companies WHERE id IN (${quote(f.company)},${quote(f.quiet)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_companies')
 })
 
 it('actual PostgREST exported producer creates one durable withdrawal and replays after title edit', async () => {

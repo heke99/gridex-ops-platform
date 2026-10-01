@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { normalizeCapwayFinanceStatus, normalizeCapwayInvoiceStatus } from '@/lib/integrations/billing/capway/statusMapper'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 type JsonRecord = Record<string, unknown>
 
@@ -134,12 +135,18 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
     ...(typeof result.reason === 'string' ? { reason: result.reason } : {}) }
 }
 
+const INTERNAL_PROVIDER_FAILURE_REASONS = new Set([
+  'provider_event_identity_incomplete', 'provider_event_atomic_result_invalid',
+])
+
 function providerFailureReason(error: unknown): string {
   const details = object(error)
-  const code = text(details.code)
-  if (code && /^[0-9A-Z]{5}$/.test(code)) return `provider_event_database_${code}`
+  const diagnostic = technicalErrorDiagnostic({ code: details.code })
+  if (diagnostic.message === 'database_error' && diagnostic.code?.length === 5) {
+    return `provider_event_database_${diagnostic.code}`
+  }
   const message = error instanceof Error ? error.message : text(details.message)
-  if (message && /^provider_[a-z0-9_]{1,120}$/.test(message)) return message
+  if (message && INTERNAL_PROVIDER_FAILURE_REASONS.has(message)) return message
   // Supabase returns plain error objects. Preserve a safe actionable failure
   // category rather than losing every such failure as unknown_error.
   return 'provider_event_persistence_failed'

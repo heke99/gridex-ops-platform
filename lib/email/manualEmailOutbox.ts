@@ -5,10 +5,10 @@ import { isEdielReservedSender } from '@/lib/email/manualOperationsMailbox'
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { supabaseService } from '@/lib/supabase/service'
+import { claimManualEmailRows, finishManualEmailClaim, manualEmailClaimLimit, recheckManualEmailClaim, recoverStaleManualEmailRows } from '@/lib/email/manualEmailFairClaim'
 
 type JsonRecord = Record<string, unknown>
 const MAX_ATTEMPTS = 5
-const STALE_SENDING_MINUTES = 15
 
 export type ProcessManualEmailOutboxResult = {
   scanned: number
@@ -33,23 +33,6 @@ function toAttachments(value: unknown): EmailAttachment[] {
     if (!filename || !content) return []
     return [{ filename, content, contentType: clean(row.contentType) ?? clean(row.content_type) ?? null } as EmailAttachment]
   })
-}
-
-function fairRows(rows: JsonRecord[], limit: number): JsonRecord[] {
-  const byCompany = new Map<string, JsonRecord[]>()
-  for (const row of rows) {
-    const companyId = clean(row.company_id) ?? 'missing-company'
-    byCompany.set(companyId, [...(byCompany.get(companyId) ?? []), row])
-  }
-  const result: JsonRecord[] = []
-  while (result.length < limit && Array.from(byCompany.values()).some((queue) => queue.length > 0)) {
-    for (const queue of byCompany.values()) {
-      const next = queue.shift()
-      if (next) result.push(next)
-      if (result.length >= limit) break
-    }
-  }
-  return result
 }
 
 function retryAt(attempts: number): string {
@@ -152,34 +135,20 @@ async function markLinkedRequestFailed(input: {
   if (result.error) throw result.error
 }
 
-async function recoverStaleManualSendingRows(companyId: string | null): Promise<void> {
-  const now = new Date().toISOString()
-  const cutoff = new Date(Date.now() - STALE_SENDING_MINUTES * 60_000).toISOString()
-  let query = supabaseService
-    .from('manual_email_outbox')
-    .update({
-      status: 'delivery_uncertain',
-      delivery_status: 'delivery_uncertain',
-      last_error: 'Providerleveransen måste kontrolleras innan nytt försök.',
-      last_error_code: 'delivery_uncertain',
-      delivery_uncertain_at: now,
-      locked_at: null,
-      locked_by: null,
-      updated_at: now,
-    })
-    .eq('status', 'sending')
-    .lt('locked_at', cutoff)
-  if (companyId) query = query.eq('company_id', companyId)
-  const { data, error } = await query.select('id,company_id,request_id')
-  if (error) throw error
-  for (const row of (data ?? []) as JsonRecord[]) {
+async function recoverStaleManualSendingRows(companyId: string | null, limit: number): Promise<string[]> {
+  const errors: string[] = []
+  const rows = await recoverStaleManualEmailRows(companyId, limit)
+  for (const row of rows) {
     await markLinkedRequestFailed({
-      companyId: String(row.company_id),
-      requestId: clean(row.request_id),
+      companyId: row.company_id,
+      requestId: row.request_id,
       errorCode: 'delivery_uncertain',
       message: 'Det är oklart om e-postmeddelandet skickades. Kontrollera providerstatus före återköning.',
+    }).catch(error => {
+      errors.push(`stale-linked-request ${row.id}: ${error instanceof Error ? error.message : String(error)}`)
     })
   }
+  return errors
 }
 
 export async function requeueUncertainManualEmail(input: {
@@ -217,33 +186,29 @@ export async function processManualEmailOutbox(input?: {
 }): Promise<ProcessManualEmailOutboxResult> {
   await assertPlatformSchemaReady()
   const companyFilter = clean(input?.companyId)
-  const limit = Math.min(Math.max(Number(input?.limit ?? 25) || 25, 1), 100)
+  const limit = manualEmailClaimLimit(input?.limit)
   const result: ProcessManualEmailOutboxResult = { scanned: 0, claimed: 0, sent: 0, failed: 0, deliveryUncertain: 0, skipped: 0, errors: [] }
   const workerId = `manual-email:${randomUUID()}`
-  await recoverStaleManualSendingRows(companyFilter)
-
-  let query = supabaseService
-    .from('manual_email_outbox')
-    .select('*')
-    .eq('status', 'queued')
-    .eq('external_delivery', true)
-    .lte('next_attempt_at', new Date().toISOString())
-    .order('queued_at', { ascending: true })
-    .limit(companyFilter ? limit : Math.min(limit * 10, 1000))
-  if (companyFilter) query = query.eq('company_id', companyFilter)
-  const { data, error } = await query
-  if (error) throw error
-  const rows = companyFilter ? (data ?? []) as JsonRecord[] : fairRows((data ?? []) as JsonRecord[], limit)
+  result.errors.push(...await recoverStaleManualSendingRows(companyFilter, limit))
+  const rows = await claimManualEmailRows(companyFilter, limit, workerId)
   result.scanned = rows.length
+  result.claimed = rows.length
   if (!rows.length) return result
   const provider = getEmailProvider()
 
   for (const row of rows) {
-    const id = String(row.id)
-    const companyId = clean(row.company_id)
-    if (!companyId) {
+    const id = row.id
+    const companyId = row.company_id
+    // A failed read must not become a failure write against an unverified claim.
+    try {
+      if (!await recheckManualEmailClaim(row)) {
+        result.skipped += 1
+        result.errors.push(`claim ${id}: live_claim_or_payload_changed`)
+        continue
+      }
+    } catch (error) {
       result.skipped += 1
-      result.errors.push(`claim ${id}: company_id saknas`)
+      result.errors.push(`claim-recheck ${id}: ${error instanceof Error ? error.message : String(error)}`)
       continue
     }
     let providerAccepted = false
@@ -251,28 +216,20 @@ export async function processManualEmailOutbox(input?: {
     let providerMessageId: string | null = null
     try {
       const claimDecision = await getTenantOperationDecision(companyId, 'email.send')
+      const blockByTenant = async (decision: typeof claimDecision) => {
+        await finishManualEmailClaim(row, {
+          status: 'blocked_tenant_state', delivery_status: 'blocked_tenant_state',
+          last_error: decision.reason_code, last_error_code: 'blocked_tenant_state',
+          blocked_reason: decision.reason_code, company_status_snapshot: decision.company_status,
+          operation_decision_snapshot: decision,
+        })
+        result.skipped += 1
+        result.errors.push(`transport ${id}: ${decision.reason_code}`)
+      }
       if (!claimDecision.allowed) {
-        result.skipped += 1
-        result.errors.push(`claim ${id}: ${claimDecision.reason_code}`)
+        await blockByTenant(claimDecision)
         continue
       }
-
-      const claim = await supabaseService
-        .from('manual_email_outbox')
-        .update({ status: 'sending', locked_at: new Date().toISOString(), locked_by: workerId, updated_at: new Date().toISOString() })
-        .eq('company_id', companyId)
-        .eq('id', id)
-        .eq('status', 'queued')
-        .eq('external_delivery', true)
-        .select('id')
-        .maybeSingle()
-      if (claim.error) throw claim.error
-      if (!claim.data) {
-        result.skipped += 1
-        continue
-      }
-      result.claimed += 1
-
       const toEmail = clean(row.to_email)
       const actualRecipient = clean(row.actual_recipient_email)
       const fromEmail = clean(row.from_email)
@@ -280,150 +237,85 @@ export async function processManualEmailOutbox(input?: {
         throw new Error('Mottagare/avsändare är inte verifierad för extern leverans.')
       }
       if (await isEdielReservedSender(fromEmail)) throw new Error('Manuell e-post får inte skickas från Ediel-brevlådan.')
-
       const transportDecision = await getTenantOperationDecision(companyId, 'email.send')
       if (!transportDecision.allowed) {
-        const blocked = await supabaseService
-          .from('manual_email_outbox')
-          .update({
-            status: 'blocked_tenant_state',
-            delivery_status: 'blocked_tenant_state',
-            last_error: transportDecision.reason_code,
-            last_error_code: 'blocked_tenant_state',
-            blocked_reason: transportDecision.reason_code,
-            blocked_at: new Date().toISOString(),
-            company_status_snapshot: transportDecision.company_status,
-            operation_decision_snapshot: transportDecision,
-            locked_at: null,
-            locked_by: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('company_id', companyId)
-          .eq('id', id)
-          .eq('status', 'sending')
-          .eq('locked_by', workerId)
-          .select('id')
-          .maybeSingle()
-        if (blocked.error) throw blocked.error
-        if (!blocked.data) throw new Error('manual_email_claim_lost_before_tenant_block')
-        result.skipped += 1
-        result.errors.push(`transport ${id}: ${transportDecision.reason_code}`)
+        await blockByTenant(transportDecision)
         continue
       }
-
+      // Repeat after asynchronous sender/policy checks, using the original lease
+      // and immutable payload. No caller-supplied or newly changed body is sent.
+      try {
+        if (!await recheckManualEmailClaim(row)) {
+          result.skipped += 1
+          result.errors.push(`transport ${id}: live_claim_or_payload_changed`)
+          continue
+        }
+      } catch (error) {
+        result.skipped += 1
+        result.errors.push(`transport-recheck ${id}: ${error instanceof Error ? error.message : String(error)}`)
+        continue
+      }
       const sent = await provider.sendEmail({
-        from: fromEmail,
-        to: toEmail,
-        replyTo: clean(row.reply_to) ?? undefined,
-        subject: String(row.subject ?? ''),
-        html: String(row.body_html ?? ''),
-        text: clean(row.body_text) ?? undefined,
+        from: fromEmail, to: toEmail, replyTo: clean(row.reply_to) ?? undefined,
+        subject: String(row.subject ?? ''), html: String(row.body_html ?? ''), text: clean(row.body_text) ?? undefined,
         attachments: toAttachments(row.attachments),
         idempotencyKey: clean(row.provider_idempotency_key) ?? clean(row.idempotency_key) ?? undefined,
       })
+      // A fulfilled provider call has crossed the acceptance boundary even when
+      // its returned receipt is incomplete; absence of an ID cannot justify a retry.
+      providerAccepted = true
       providerMessageId = clean(sent.providerMessageId)
       if (!providerMessageId) throw new Error('E-postprovidern returnerade inget meddelande-ID.')
-      providerAccepted = true
-
-      const sentUpdate = await supabaseService
-        .from('manual_email_outbox')
-        .update({
-          status: 'sent', delivery_status: 'sent', provider_message_id: providerMessageId,
-          sent_at: new Date().toISOString(), attempts: Number(row.attempts ?? 0) + 1,
-          last_error: null, last_error_code: null, delivery_uncertain_at: null,
-          locked_at: null, locked_by: null, updated_at: new Date().toISOString(),
-        })
-        .eq('company_id', companyId)
-        .eq('id', id)
-        .eq('status', 'sending')
-        .eq('locked_by', workerId)
-        .select('id')
-      if (sentUpdate.error) throw sentUpdate.error
-      if (!sentUpdate.data?.length) throw new Error('Skickad e-post kunde inte slutmarkeras atomiskt.')
+      await finishManualEmailClaim(row, {
+        status: 'sent', delivery_status: 'sent', provider_message_id: providerMessageId,
+        attempts: row.attempts + 1, last_error: null, last_error_code: null, delivery_uncertain_at: null,
+      })
       deliveryPersisted = true
-
       try {
         await advanceLinkedRequest({ companyId, requestId: clean(row.request_id), outboxId: id, providerMessageId })
       } catch (linkedError) {
         const linkedMessage = linkedError instanceof Error ? linkedError.message : String(linkedError)
         result.errors.push(`linked-request-after-send ${id}: ${linkedMessage}`)
         await markLinkedRequestFailed({
-          companyId,
-          requestId: clean(row.request_id),
-          errorCode: 'post_send_projection_failed',
+          companyId, requestId: clean(row.request_id), errorCode: 'post_send_projection_failed',
           message: `E-postmeddelandet skickades men det länkade ärendet kunde inte uppdateras: ${linkedMessage}`,
-        }).catch((error) => {
-          result.errors.push(`linked-request-recovery ${id}: ${error instanceof Error ? error.message : String(error)}`)
-        })
+        }).catch(error => { result.errors.push(`linked-request-recovery ${id}: ${error instanceof Error ? error.message : String(error)}`) })
       }
       result.sent += 1
     } catch (sendError) {
-      const attempts = Number(row.attempts ?? 0) + 1
+      const attempts = row.attempts + 1
       const message = sendError instanceof Error ? sendError.message : String(sendError)
-
       if (providerAccepted && !deliveryPersisted) {
-        const uncertainUpdate = await supabaseService
-          .from('manual_email_outbox')
-          .update({
-            status: 'delivery_uncertain',
-            delivery_status: 'delivery_uncertain',
-            provider_message_id: providerMessageId,
-            attempts,
-            last_error: `delivery_uncertain_after_provider_acceptance: ${message}`.slice(0, 500),
-            last_error_code: 'delivery_uncertain',
-            delivery_uncertain_at: new Date().toISOString(),
-            next_attempt_at: null,
-            locked_at: null,
-            locked_by: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('company_id', companyId)
-          .eq('id', id)
-          .eq('status', 'sending')
-          .eq('locked_by', workerId)
-          .select('id')
-          .maybeSingle()
-        if (uncertainUpdate.error) {
-          result.errors.push(`delivery-uncertain-update ${id}: ${uncertainUpdate.error.message}`)
-        } else if (!uncertainUpdate.data) {
-          result.errors.push(`delivery-uncertain-update ${id}: claim_lost_before_uncertain_persistence`)
-        }
-        await markLinkedRequestFailed({
-          companyId,
-          requestId: clean(row.request_id),
-          errorCode: 'delivery_uncertain',
-          message: 'E-postprovidern accepterade utskicket men lokal slutstatus kunde inte bekräftas. Kontrollera providerstatus före återköning.',
-        }).catch((error) => {
-          result.errors.push(`linked-request ${id}: ${error instanceof Error ? error.message : String(error)}`)
+        let uncertainSaved = false
+        await finishManualEmailClaim(row, {
+          status: 'delivery_uncertain', delivery_status: 'delivery_uncertain', provider_message_id: providerMessageId,
+          attempts, last_error: `delivery_uncertain_after_provider_acceptance: ${message}`.slice(0, 500),
+          last_error_code: 'delivery_uncertain', next_attempt_at: null,
+        }).then(() => { uncertainSaved = true }).catch(error => {
+          result.errors.push(`delivery-uncertain-update ${id}: ${error instanceof Error ? error.message : String(error)}`)
         })
+        if (uncertainSaved) await markLinkedRequestFailed({
+          companyId, requestId: clean(row.request_id), errorCode: 'delivery_uncertain',
+          message: 'E-postprovidern accepterade utskicket men lokal slutstatus kunde inte bekräftas. Kontrollera providerstatus före återköning.',
+        }).catch(error => { result.errors.push(`linked-request ${id}: ${error instanceof Error ? error.message : String(error)}`) })
         result.deliveryUncertain += 1
         result.errors.push(`send ${id}: delivery_uncertain: ${message}`)
         continue
       }
-
       const permanentlyFailed = attempts >= MAX_ATTEMPTS || /inte verifierad|Ediel-brevlådan|fryst/i.test(message)
-      const failureUpdate = await supabaseService
-        .from('manual_email_outbox')
-        .update({
-          status: permanentlyFailed ? 'failed' : 'queued',
-          delivery_status: permanentlyFailed ? 'failed' : 'queued',
-          attempts,
-          last_error: message.slice(0, 500),
-          last_error_code: permanentlyFailed ? 'send_failed' : 'send_retry',
-          next_attempt_at: permanentlyFailed ? null : retryAt(attempts),
-          locked_at: null,
-          locked_by: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('company_id', companyId)
-        .eq('id', id)
-      if (failureUpdate.error) result.errors.push(`failure-update ${id}: ${failureUpdate.error.message}`)
-      if (permanentlyFailed) {
-        await markLinkedRequestFailed({ companyId, requestId: clean(row.request_id), errorCode: 'send_failed', message }).catch((error) => {
-          result.errors.push(`linked-request ${id}: ${error instanceof Error ? error.message : String(error)}`)
-        })
-      }
-      result.failed += 1
+      let failureSaved = false
+      await finishManualEmailClaim(row, {
+        status: permanentlyFailed ? 'failed' : 'queued', delivery_status: permanentlyFailed ? 'failed' : 'queued',
+        attempts, last_error: message.slice(0, 500), last_error_code: permanentlyFailed ? 'send_failed' : 'send_retry',
+        next_attempt_at: permanentlyFailed ? null : retryAt(attempts),
+      }).then(() => { failureSaved = true }).catch(error => {
+        result.errors.push(`failure-update ${id}: ${error instanceof Error ? error.message : String(error)}`)
+      })
+      if (failureSaved && permanentlyFailed) await markLinkedRequestFailed({
+        companyId, requestId: clean(row.request_id), errorCode: 'send_failed', message,
+      }).catch(error => { result.errors.push(`linked-request ${id}: ${error instanceof Error ? error.message : String(error)}`) })
+      if (failureSaved) result.failed += 1
+      else result.skipped += 1
       result.errors.push(`send ${id}: ${message}`)
     }
   }

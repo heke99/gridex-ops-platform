@@ -38,7 +38,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
         if (operation === 'read') {
           const initial = f.writes.find(write => write.table === table && write.operation === 'insert')!
           return { data: { id: '00000000-0000-4000-8000-000000000087', status: 'completed', request_hash: initial.row.request_hash,
-            response_status: 200, response_body: { data: { status: 'linked', access_granted: true } } }, error: null }
+            response_status: 200, response_body: { data: { status: 'linked', access_granted: true, portal_role: 'owner' } } }, error: null }
         }
         return { data: { id: '00000000-0000-4000-8000-000000000087' }, error: f.failUpdate && row.status === 'failed' ? f.fault : null }
       }
@@ -48,11 +48,13 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
           : { data: { id: '00000000-0000-4000-8000-000000000088', status: 'rejected', customer_id: null }, error: null }
         expect(predicates).toMatchObject({ provider: 'gridex_website', external_customer_id: 'SYNTHETIC-EXT', auth_user_id: '00000000-0000-4000-8000-000000000086' })
         return f.stage === 'subject' ? { data: null, error: f.fault }
-          : { data: f.stage === 'replay' ? { status: 'active' } : null, error: null }
+          : { data: f.stage === 'replay' ? { status: 'active', customer_id: '00000000-0000-4000-8000-000000000089' } : null, error: null }
       }
       expect(table).toBe('customer_portal_accounts'); expect(operation).toBe('read')
       expect(predicates.or).toBe('portal_user_id.eq.00000000-0000-4000-8000-000000000086,user_id.eq.00000000-0000-4000-8000-000000000086')
-      return { data: [], error: null }
+      return { data: f.stage === 'replay' ? [{ id: '00000000-0000-4000-8000-000000000090', company_id: '00000000-0000-4000-8000-000000000083',
+        customer_id: '00000000-0000-4000-8000-000000000089', user_id: '00000000-0000-4000-8000-000000000086',
+        portal_user_id: '00000000-0000-4000-8000-000000000086', status: 'active', is_active: true, role: 'owner' }] : [], error: null }
     }
     const q = {
       insert: (value: Row) => { operation = 'insert'; row = value; return q },
@@ -140,9 +142,13 @@ describe('actual portal sync producer and closed diagnostic sink', () => {
   it('preserves completed linked replay, subject revalidation and zero identity/completion rewrites', async () => {
     f.stage = 'replay'
     const response = await POST(request()), body = await response.json()
-    expect(response.status).toBe(200); expect(body.data).toEqual({ status: 'linked', access_granted: true })
+    expect(response.status).toBe(200); expect(body.data).toEqual({ status: 'linked', access_granted: true, portal_role: 'owner' })
     expect(response.headers.get('Idempotency-Replayed')).toBe('true')
-    expect(idempotencyWrites()).toHaveLength(1); expect(identityWrites()).toEqual([]); expect(f.reads).toHaveLength(3); expect(f.rows).toEqual([])
+    expect(idempotencyWrites()).toHaveLength(1); expect(identityWrites()).toEqual([]); expect(f.reads).toHaveLength(4); expect(f.rows).toEqual([])
+    expect(f.reads[3]).toMatchObject({ table: 'customer_portal_accounts', operation: 'read', predicates: {
+      company_id: companyId, customer_id: '00000000-0000-4000-8000-000000000089',
+      or: `portal_user_id.eq.${subject},user_id.eq.${subject}`,
+    } })
   })
 
   it('preserves the genuine rejected result and matched completed idempotency row after insufficient identity factors', async () => {

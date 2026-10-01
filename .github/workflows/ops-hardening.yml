@@ -66,6 +66,7 @@ jobs:
       - run: npm run typecheck:tests
       - run: bash quality/mechanical/verify.sh
       - run: npx vitest run --config quality/vitest.config.ts
+      - run: npx vitest run --config scripts/customer-account-role-preservation-20261001.config.ts --reporter=verbose
       - run: npm test
       - run: npm run api:docs
       - run: npm run api:compatibility
@@ -78,7 +79,9 @@ jobs:
 
   clean-migration-replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The private agreement proof retains genuine 15m/2m/1h TTL fallback if
+    # owned scheduling changes are refused. No assertion or guard is relaxed.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -142,6 +145,9 @@ jobs:
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
+          # This proof requires an empty eligible manual queue before every
+          # owned producer. It never deletes or reclassifies pre-existing work.
+          npx vitest run --config scripts/manual-email-fair-claim-20261001-native.config.ts --reporter=verbose
           # Fairness owns an initially empty due queue and cleans its own rows.
           npx vitest run --config scripts/webhook-fair-claim-continuation-native.config.ts
           npx vitest run --config scripts/residual-tenant-queues-20260930-native.config.ts
@@ -158,6 +164,37 @@ jobs:
           # agreement/upload/CAS behavior on the reconstructed schema.
           npx vitest run --config scripts/grid-owner-agreement-atomic-20261001.native.config.ts --reporter=verbose
           npx vitest run --config scripts/grid-owner-agreement-cleanup-20261001.native.config.ts --reporter=verbose
+          # Private owned GoTrue/Storage/Next agreement fixture. The secret is
+          # local and ephemeral, and is exported before this fresh Next server.
+          export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
+          [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
+          export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
+          [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
+          unset GRIDEX_E2E_BROWSER_BASE_URL
+          export GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH="$RUNNER_TEMP/grid-owner-agreement-runtime-20261001.json"
+          export GRIDEX_AGREEMENT_RUNTIME_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          export GRIDEX_AGREEMENT_CLEANUP_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64url"))')"
+          npx playwright install --with-deps chromium
+          agreement_runtime_result=0
+          GRIDEX_AGREEMENT_RUNTIME_PHASE=seed npx vitest run --config scripts/grid-owner-agreement-runtime-20261001.native.config.ts --reporter=verbose || agreement_runtime_result=$?
+          if [[ "$agreement_runtime_result" -eq 0 ]]; then
+            GRIDEX_AGREEMENT_RUNTIME_LOCAL_E2E=1 npx playwright test e2e/browser/grid-owner-agreement-runtime-20261001.spec.mjs --config=playwright.config.mjs --project=chromium || agreement_runtime_result=$?
+          fi
+          if [[ "$agreement_runtime_result" -eq 0 ]]; then
+            GRIDEX_AGREEMENT_RUNTIME_PHASE=post-browser npx vitest run --config scripts/grid-owner-agreement-runtime-20261001.native.config.ts --reporter=verbose || agreement_runtime_result=$?
+          fi
+          if [[ -s "$GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH" ]]; then
+            agreement_cleanup_result=0
+            GRIDEX_AGREEMENT_RUNTIME_PHASE=cleanup npx vitest run --config scripts/grid-owner-agreement-runtime-20261001.native.config.ts --reporter=verbose || agreement_cleanup_result=$?
+            if [[ "$agreement_cleanup_result" -eq 0 ]]; then
+              rm -f "$GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH"
+            elif [[ "$agreement_runtime_result" -eq 0 ]]; then
+              agreement_runtime_result="$agreement_cleanup_result"
+            fi
+          fi
+          unset GRIDEX_AGREEMENT_RUNTIME_FIXTURE_PATH GRIDEX_AGREEMENT_RUNTIME_PASSWORD GRIDEX_AGREEMENT_CLEANUP_SECRET
+          [[ "$agreement_runtime_result" -eq 0 ]] || exit "$agreement_runtime_result"
           npx vitest run --config scripts/ediel-source-owner-native.config.ts
           # Atomic notifier command faults/concurrency use independent fixtures.
           npx vitest run --config scripts/customer-notification-read-native.config.ts
@@ -305,11 +342,17 @@ jobs:
           export GRIDEX_REDELIVERY_NAVIGATION_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
           GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-seed npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
           [[ -s "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_NOTE_UNSAVED_SNAPSHOT_PATH="$RUNNER_TEMP/customer-internal-note-unsaved-20261001.json"
+          GRIDEX_NOTE_UNSAVED_PHASE=baseline npx vitest run --config scripts/customer-internal-note-unsaved-20261001-native.config.ts --reporter=verbose
           # Traverse genuine Next history against the fresh zero-decision fixture
           # before the existing journey deliberately saves its single decision.
           GRIDEX_REDELIVERY_HISTORY_LOCAL_E2E=1 npx playwright test e2e/browser/invoice-redelivery-history-traversal-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
           GRIDEX_REDELIVERY_NAVIGATION_LOCAL_E2E=1 npx playwright test e2e/browser/invoice-redelivery-unsaved-navigation-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
           GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-postcheck npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
+          GRIDEX_NOTE_UNSAVED_LOCAL_E2E=1 npx playwright test e2e/browser/customer-internal-note-unsaved-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_NOTE_UNSAVED_PHASE=post-browser npx vitest run --config scripts/customer-internal-note-unsaved-20261001-native.config.ts --reporter=verbose
+          rm -f "$GRIDEX_NOTE_UNSAVED_SNAPSHOT_PATH"
+          unset GRIDEX_NOTE_UNSAVED_SNAPSHOT_PATH
           rm -f "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH"
           unset GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH GRIDEX_REDELIVERY_NAVIGATION_PASSWORD
           # Actual customer events HTTP -> v2 RPC on this same disposable stack.

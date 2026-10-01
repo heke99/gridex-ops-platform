@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-01T05:12:10.645026+00:00",
+  "updated_at": "2026-10-01T06:55:55.210583+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/api-masterplan-continuation-20260930",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Finish minimal current legacy native source-owner fixture and actual lifecycle-decision schema owner; integrate reviewed agreement/cleanup/U09 selection+loader/API release/pagination/staff/server correlation with original work preserved; publish next reviewed source non-force to existing422; capture genuine new generated tail; continue full retained native/HTTP/OPS/restore/old rollback/backfill and every75/P0-P8 precise terminal outcome.",
+  "next_action": "Publish final qualified ninth exact tree non-force to draft422, inspect genuine native/HTTP/browser/restore failures and authentic31-forward generation; continue concurrent bounded next10 and all75 original terminal outcomes.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -983,10 +983,10 @@
     "upgrade_restore_job": 110091164679
   },
   "api_masterplan_continuation": {
-    "status": "EIGHTH_FROZEN_LOCAL_GATES_PASS_NEW_NATIVE_AND_AUTHENTIC_GENERATION_PENDING",
+    "status": "NINTH_FINAL_LOCAL_GATES_PASS_PRIVATE_FAILURE_GUARD_NEW_PUBLICATION_PENDING",
     "sole_publisher": "root",
     "ownership_comment": 5919901521,
-    "last_checked_api_head": "57534afc4621e084251a6a878f23b67a2d4ac62e",
+    "last_checked_api_head": "c4ab486a9c83d629a9dbd26f8b974f9186e860f6",
     "last_checked_ops_head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
     "last_checked_main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
     "original_worktree_preserved": true,
@@ -997,30 +997,27 @@
     "requirements_count": 75,
     "full_acceptance": false,
     "secret_scan": "BLOCKED_AUTH",
-    "last_published_api_head": "57534afc4621e084251a6a878f23b67a2d4ac62e",
-    "last_published_tree": "77daf9438873480823ea012a74d278831428726f",
-    "local_source_commit_same_tree": "37c59016b2f10f306a95a7e4180124d02356c105",
+    "last_published_api_head": "c4ab486a9c83d629a9dbd26f8b974f9186e860f6",
+    "last_published_tree": "077bcab05ab7ae4015908114f04ad5937daa81bf",
+    "local_source_commit_same_tree": "567f58cde80874b24c5a713be49fb5e43960cac6",
     "startup_redaction_local": "PASS_2_EXTRACTED_BASH_TESTS_NODE22",
     "last_actual_ops": {
-      "run": 36809457517,
-      "checkout": "8e1a20a461493852b9af22a364d4a11b57b0d10c",
-      "tree": "77daf9438873480823ea012a74d278831428726f",
-      "verify": "FAIL_AUTHENTIC_GENERATED_TAIL_BARRIER",
-      "quality": "SUCCESS_7176_500_TYPES_LINT_BUILD_BUNDLE",
-      "clean": "FAIR6_RESIDUAL14_PARTNER10_RESUME7_CONTRACT1_LIFECYCLE5_PASS_LEGACY334PASS43FAIL377_LATER_NOT_REACHED",
-      "upgrade": "COMPLETE_FULL_CURRENT_RESTORE_CATALOG_CURRENT_COMMAND_REPLAY_SESSION_ISSUED_GUARDS_PASS_THEN_TRACKED_SCHEMA_BYTE_CMP_FAIL",
-      "rollback": "FRESH_PINNED_OLD_ARCHIVE_DATA_OWNER_ACL_COMPLETE_CATALOG_PASS_THEN_PRIVATE_SQL_FAILURE_CAUSE_NOT_AVAILABLE",
-      "backfill": "ACTUAL_FRESH_OLD_1_TEST_8_WITNESSES_PASS",
-      "artifact": 11139382345,
-      "generated_artifact_members": 4,
-      "actual_generated_members": 3,
+      "run": 36819509793,
+      "head": "c4ab486a9c83d629a9dbd26f8b974f9186e860f6",
+      "checkout": "f2f5cf878b0af4c6815505700015edd0d5726ff7",
+      "tree": "077bcab05ab7ae4015908114f04ad5937daa81bf",
+      "quality": "PASS_7461_513",
+      "clean": "29FORWARD_GENERATION_THEN_LIFECYCLE3_AFTEREACH_FAIL_LATER_NOT_REACHED",
+      "verify": "FAIL_GENERATED_TAIL",
+      "restore": "CURRENT_FULLCATALOG_COMMANDS_PASS_THEN_OLDER_SCHEMA_CMP_FAIL",
+      "old_rollback": "CATALOG_PASS_THEN_OLD_AUTHENTICATED_P0001_FAIL_FINECAUSE_NOT_AVAILABLE",
+      "fresh_backfill": "PASS_1_TEST_8_WITNESSES",
+      "artifact": 11142174393,
       "generated_members_adopted_byte_identical": true,
-      "generated_members_adoption_origin": "actual575_11139382345_byte_exact_no_manual_generation",
-      "restore_artifact": 11138543286,
-      "evidence": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ci-candidate57534afc.md"
+      "evidence": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ci-candidate-c4ab486a.md"
     },
     "baseline_sql_byte_comparison": "PASS_653_UNCHANGED",
-    "next_work": "Publish frozen eighth tree non-force to existing422 after final remote ownership recheck; require actual new merge/head CI, genuine29-forward generation and safe old rollback SQLSTATE; continue full source-owner/canonical delegated builder, saved-account role preservation, manual worker fairness, notes receipt/browser, telemetry minimization, agreement Storage runtime and all75/P0-P8 exact terminal outcomes.",
+    "next_work": "Publish final qualified ninth exact tree non-force to draft422, inspect genuine native/HTTP/browser/restore failures and authentic31-forward generation; continue concurrent bounded next10 and all75 original terminal outcomes.",
     "local_integrated_checks": "SEVENTH_FROZEN123_UNIT7176_500_PASS_TYPES118_APP_TESTS_SCRIPTS_PLUS123_TESTS_PASS_LINT0ERROR101WARN_SCOPED_ADAPTER0_MECHANICAL_API3_INTEGRITY678_582_RBAC24_0_RATCHET2371_LE2402_BUDGET1800_PERFORMANCE_CONTRACT_PASS_GENERATED_NEWTAIL_PENDING",
     "public_contract_release": "2026-10-01.1_FROZEN_LOCAL_RUNTIME_HTTP_PASS_NEW_NATIVE_PENDING",
     "public_contract_http_local": "PASS_4_ACTUAL_NEXT_HTTP_CASES_52_IMMUTABLE_ROUTES_50_OLDER_UNCHANGED",
@@ -1077,6 +1074,36 @@
       "lifecycle_pg_business_cases": 15,
       "new_native_executed": false,
       "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/integration-pass8-20261001.md"
+    },
+    "original_requirements_open": 75,
+    "ninth_local_gates": {
+      "source_tree": "6bcb8f79ae952ed0e17717f3ed85ea1f35648abc",
+      "unit_tests": 7613,
+      "unit_files": 526,
+      "typechecks": [
+        "app",
+        "tests",
+        "scripts"
+      ],
+      "lint_errors": 0,
+      "lint_warnings": 101,
+      "quality_cases": 45,
+      "account_cases": 14,
+      "legal_business_pg_cases": 9,
+      "manual_business_pg_cases": 14,
+      "baseline_wrapper_core_cases": 37,
+      "migration_files": 684,
+      "version_groups": 588,
+      "generated_tail": "EXPECTED_FAIL_NEW31_REQUIRES_AUTHENTIC_CAPTURE_OLD29_ADOPTED",
+      "native_browser_executed": false,
+      "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/integration-pass9-20261001.md",
+      "new_private_request_cases": 19,
+      "final_test_types": "PASS_AFTER_HARNESS_NODE_ENV_FIX",
+      "app_scripts_qualified_identical_source_tree": "7b491b10a73098c75ba82f985d56a1a613b7c998",
+      "private_helper_lint": "PASS_0_ERRORS_0_WARNINGS",
+      "privacy_packet_manifest_sha256": "c0436c9f3b5b479af3857328c378d98f1b9242c8522f6af7a75c5d1722f0f2d7",
+      "privacy_runtime_manifest_sha256": "c00c9a32c16206c3bc672287e039ef3b9ab228aeb787ba1708df80b0b9f83f71",
+      "initial_privacy_types_failure": "TS2769_ENV_MISSING_NODE_ENV_SOURCE7ECC_PRIVATE_HARNESS_ONLY"
     }
   }
 }

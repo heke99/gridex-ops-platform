@@ -1,5 +1,6 @@
 import { after } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export type AdminActionLogInput = {
   companyId?: string | null
@@ -53,23 +54,7 @@ function databaseError(error: unknown): {
   code: string | null
   message: string
 } {
-  if (error && typeof error === 'object') {
-    const value = error as { code?: unknown; message?: unknown }
-    return {
-      code: typeof value.code === 'string' ? value.code : null,
-      message:
-        typeof value.message === 'string' && value.message.trim()
-          ? value.message
-          : 'unknown_usage_event_error',
-    }
-  }
-  return {
-    code: null,
-    message:
-      error instanceof Error && error.message
-        ? error.message
-        : String(error ?? 'unknown_usage_event_error'),
-  }
+  return technicalErrorDiagnostic(error)
 }
 
 const UUID_PATTERN =

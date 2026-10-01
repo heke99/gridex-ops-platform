@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
+import { readSavedPortalAccount } from '@/lib/customer-portal/accountLinkPreservation'
 import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   logIntegrationApiRequest,
@@ -84,7 +85,7 @@ function revokedPortalIdentity(error: unknown): boolean {
 async function assertPortalSubjectNotRevoked(companyId: string, externalCustomerId: string, authUserId: string, requireActiveIdentity = false) {
   const portal = tenantDb(companyId)
   const [identity, account] = await Promise.all([
-    (portal.from('customer_portal_identities').select('status') as PortalScopedQuery<{ status: string }>)
+    (portal.from('customer_portal_identities').select('status,customer_id') as PortalScopedQuery<{ status: string; customer_id: string | null }>)
       .eq('provider', 'gridex_website')
       .eq('external_customer_id', externalCustomerId)
       .eq('auth_user_id', authUserId)
@@ -103,6 +104,7 @@ async function assertPortalSubjectNotRevoked(companyId: string, externalCustomer
       (account.data ?? []).some((row) => row.status !== 'active' || row.is_active !== true)) {
     throw new ApiInputError('Portalåtkomsten har spärrats.', 'portal_identity_revoked', 409)
   }
+  return identity.data
 }
 
 function strongMatch(input: {
@@ -305,8 +307,19 @@ export async function POST(request: NextRequest) {
       payload: body,
     })
     if (claim.replay) {
-      const granted = (claim.responseBody as { data?: { access_granted?: boolean } } | null)?.data?.access_granted === true
-      await assertPortalSubjectNotRevoked(auth.context.companyId, externalCustomerId, body.auth_user_id, granted)
+      const savedResult = (claim.responseBody as { data?: { access_granted?: boolean; portal_role?: string } } | null)?.data
+      const granted = savedResult?.access_granted === true
+      const currentIdentity = await assertPortalSubjectNotRevoked(auth.context.companyId, externalCustomerId, body.auth_user_id, granted)
+      if (granted) {
+        const currentAccount = currentIdentity?.customer_id
+          ? await readSavedPortalAccount({ companyId: auth.context.companyId, customerId: currentIdentity.customer_id, userId: body.auth_user_id })
+          : null
+        if (!currentAccount || currentAccount.role !== savedResult?.portal_role) {
+          // Retain the immutable completed result, but do not replay an owner
+          // label that the current saved relationship no longer supports.
+          throw new ApiInputError('Portalkopplingen kräver manuell kontroll.', 'portal_account_ambiguous', 409)
+        }
+      }
       return customerPortalJson(claim.responseBody, {
         status: claim.statusCode ?? 200,
         headers: { 'Idempotency-Replayed': 'true' },
@@ -368,6 +381,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (best?.isStrong) {
+      const account = await readSavedPortalAccount({
+        companyId: auth.context.companyId,
+        customerId: best.customer.id,
+        userId: body.auth_user_id,
+      })
       const identity = await upsertIdentity({
         companyId: auth.context.companyId,
         customerId: best.customer.id,
@@ -393,9 +411,9 @@ export async function POST(request: NextRequest) {
         external_customer_id: externalCustomerId,
         customer_portal_user_id: body.customer_portal_user_id,
         auth_user_id: body.auth_user_id,
-        portal_role: 'owner',
+        ...(account ? { portal_role: account.role } : {}),
         created: false,
-        access_granted: true,
+        access_granted: account !== null,
       } }
       await completePortalWriteIdempotency({ recordId: claim.recordId, companyId: auth.context.companyId, statusCode: 200, responseBody })
       return customerPortalJson(responseBody, { headers: { 'Idempotency-Replayed': 'false' } })

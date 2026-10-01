@@ -158,6 +158,7 @@ export type SupplierSwitchRequestStatus =
 
 export type SupplierSwitchRequestRow = {
   id: string;
+  operation_id?: string | null;
   company_id?: string | null;
   customer_id: string;
   site_id: string;

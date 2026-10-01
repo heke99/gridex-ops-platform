@@ -141,23 +141,46 @@ select set_config('request.jwt.claims',jsonb_build_object('role','authenticated'
  'session_id','e4954930-0000-4000-8000-000000000021')::text,true) as jwt_claims \gset
 set local role authenticated;
 \echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED
-do $old_authenticated$
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED_IDENTITY
+do $old_authenticated_identity$
+begin
+ if auth.uid() is distinct from 'e4954930-0000-4000-8000-000000000011'::uuid then
+  raise exception 'baseline_rollback_old_tenant_read_rls_failed'; end if;
+end;
+$old_authenticated_identity$;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED_OWN_READ
+do $old_authenticated_own_read$
+begin
+ if (select count(*) from public.customers where id='e4954930-0000-4000-8000-000000000031')<>1 then
+  raise exception 'baseline_rollback_old_tenant_read_rls_failed'; end if;
+end;
+$old_authenticated_own_read$;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED_FOREIGN_READ
+do $old_authenticated_foreign_read$
+begin
+ if exists(select 1 from public.customers where company_id='e4954930-0000-4000-8000-000000000002') then
+  raise exception 'baseline_rollback_old_tenant_read_rls_failed'; end if;
+end;
+$old_authenticated_foreign_read$;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED_RAW_WRITE_DENIAL
+do $old_authenticated_raw_write_denial$
 declare denied boolean:=false;
 begin
- if auth.uid() is distinct from 'e4954930-0000-4000-8000-000000000011'::uuid
-  or (select count(*) from public.customers where id='e4954930-0000-4000-8000-000000000031')<>1
-  or exists(select 1 from public.customers where company_id='e4954930-0000-4000-8000-000000000002') then
-  raise exception 'baseline_rollback_old_tenant_read_rls_failed'; end if;
  begin update public.customers set email='denied-raw@example.invalid'
   where id='e4954930-0000-4000-8000-000000000031';
  exception when insufficient_privilege then denied:=true; end;
  if not denied then raise exception 'baseline_rollback_authenticated_raw_write_not_denied'; end if;
- denied:=false;
+end;
+$old_authenticated_raw_write_denial$;
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED_COMMAND_DENIAL
+do $old_authenticated_command_denial$
+declare denied boolean:=false;
+begin
  begin perform public.gridex_change_customer_contact_v1('{}');
  exception when insufficient_privilege then denied:=true; end;
  if not denied then raise exception 'baseline_rollback_authenticated_command_not_denied'; end if;
 end;
-$old_authenticated$;
+$old_authenticated_command_denial$;
 reset role;
 select set_config('request.jwt.claims','{"role":"anon"}',true) as jwt_claims \gset
 set local role anon;
@@ -262,6 +285,11 @@ proof={'old-schema-proof.sql':'old_schema',
 try: rows=pathlib.Path(sys.argv[1]).read_text(errors='replace').splitlines()
 except OSError: rows=[]
 allowed={'OLD_SHAPE':'old_shape','OLD_AUTHENTICATED':'old_authenticated',
+         'OLD_AUTHENTICATED_IDENTITY':'old_authenticated_identity',
+         'OLD_AUTHENTICATED_OWN_READ':'old_authenticated_own_read',
+         'OLD_AUTHENTICATED_FOREIGN_READ':'old_authenticated_foreign_read',
+         'OLD_AUTHENTICATED_RAW_WRITE_DENIAL':'old_authenticated_raw_write_denial',
+         'OLD_AUTHENTICATED_COMMAND_DENIAL':'old_authenticated_command_denial',
          'OLD_ANONYMOUS':'old_anonymous','OLD_COMMAND':'old_command',
          'OLD_REVOCATION':'old_revocation'}
 stage='start'; states=[]

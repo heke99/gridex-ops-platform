@@ -1,3 +1,7 @@
+## Current full tenantservice masterplan blockers — 2026-10-01
+
+Ninth source local gates passed but publication/newnative/current31-forward authentic generation remain internal pending. Actual8 lifecycle3 cleanup FAIL/rawcause NOT_AVAILABLE; pinned-old authenticated P0001 FAIL/finecause unavailable; strict older schema cmp stops later checks. New diagnostics retain exact failures/assertions. Native agreement/notes/legacy/source-owner/scanner/support/billing/HTTP/browser prepared or NOT_REACHED cannot be called PASS or externally blanket blocked. All75 rows OPEN. Specific GitGuardian AUTH and prior generalPRODAT auto-review exercise remain blocked; precise external qualification keys and internally implementable steps are retained in original75-next-priorities. See integration-pass9-20261001.md.
+
 ## API next package — confirmed scope, 2026-09-30
 
 Notification atomicity/indexed-reference/legacy-claim compatibility, real legal/metering HTTP/native qualification and missing legal/metering503 documentation remain open. The parallel execution plan is prepared; no remediation or new native acceptance is claimed. Read-proof fixtures need actual legal parent chains, valid customer_portal source, metering composite parents/non-null quantity and post-seed snapshots; legacy schema fallback stays separate. Root owns integration and generated artifacts.
@@ -624,3 +628,7 @@ UG-123-2/3 NAD agency/qualifier accepted bounded, not market activated. SVK five
 The local environment has no `psql` or Supabase CLI; newly added native stored ACK/outbox/tenant/no-business/retry cases must run in OPS clean replay on the published head. `9d76377a` is green only for the preceding 206 criterion. Historical 203/IDE505 issuer scope, positive LOC+175 owner/mandate/sink, E035 history/retention, full grammar and formal per-capability market gates remain open. #310 paused.
 ## 2026-09-27 — PR #416 final-head native pending after review fix
 `63244be9` is superseded for merge by the locally verified lowercase-313 correction. Three added native variants require new-head OPS clean replay and schema/type parity; no local DB CLI. Formal 121/231 acceptance and all market gates remain open. PR #310 paused.
+
+## 2026-10-01 final ninth private-request qualification
+
+Actual source6bcb8f79 full7613/526units + fresh fulltestTypesPASS, oldidentical app/scripts/RBAC/API/integrity gates retained. Privateactual19 controls/CLI nonzero/no raw cause or capabilities PASS; initial ProcessEnv env{} TS2769 fixed onlycontrolled NODE_ENV=test. Browser/native0; published c4ab unchanged pending9. All75OPEN. See integration-pass9-20261001.md.

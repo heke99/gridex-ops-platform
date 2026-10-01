@@ -21,7 +21,7 @@ vi.mock('@/lib/api/strictRequest', async (importOriginal) => ({
       replay: fixture.replay,
       recordId: 'claim-a',
       statusCode: 200,
-      responseBody: { data: { status: 'linked', access_granted: true } },
+      responseBody: { data: { status: 'linked', access_granted: true, portal_role: 'owner' } },
     }
   },
   failPortalWriteIdempotency: fixture.failed,
@@ -65,9 +65,9 @@ vi.mock('@/lib/supabase/service', () => ({
       }
       function rows(): Record<string, unknown>[] {
         const source: Record<string, unknown>[] = table === 'customer_portal_identities'
-          ? [{ status: fixture.identityStatus, company_id: '00000000-0000-4000-8000-00000000a001', provider: 'gridex_website', external_customer_id: 'EXT-1', auth_user_id: '00000000-0000-4000-8000-00000000a301' }]
+          ? [{ status: fixture.identityStatus, customer_id: 'customer-a', company_id: '00000000-0000-4000-8000-00000000a001', provider: 'gridex_website', external_customer_id: 'EXT-1', auth_user_id: '00000000-0000-4000-8000-00000000a301' }]
           : table === 'customer_portal_accounts'
-            ? [{ status: fixture.accountStatus, is_active: fixture.accountActive, company_id: '00000000-0000-4000-8000-00000000a001' }]
+            ? [{ id: 'account-a', customer_id: 'customer-a', user_id: '00000000-0000-4000-8000-00000000a301', portal_user_id: '00000000-0000-4000-8000-00000000a301', role: 'owner', status: fixture.accountStatus, is_active: fixture.accountActive, company_id: '00000000-0000-4000-8000-00000000a001' }]
             : table === 'customers'
               ? [{ id: 'customer-a', company_id: '00000000-0000-4000-8000-00000000a001', customer_number: 'C-1', email: 'customer@example.test', personal_number: null, org_number: null }]
               : []

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { runMonthlyBillingAutomation } from '@/lib/billing/monthlyAutomation'
 import { authorizeScheduledRequest } from '@/lib/automation/scheduledAuth'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,7 +32,7 @@ async function run(request: NextRequest) {
     return NextResponse.json({ ...result, mode: 'prepare_only', approval_required: true })
   } catch (error) {
     const traceId = randomUUID()
-    console.error('[billing-monthly-cron] failed', { traceId, error })
+    console.error('[billing-monthly-cron] failed', { traceId, error: technicalErrorDiagnostic(error) })
     return NextResponse.json(
       { ok: false, error: 'Månatlig fakturaförberedelse kunde inte köras just nu.', code: 'billing_monthly_automation_failed', trace_id: traceId },
       { status: 500 },

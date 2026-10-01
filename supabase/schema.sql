@@ -17304,6 +17304,20 @@ begin
 end;$$;
 
 --
+-- Name: gridex_claim_agreement_cleanup_v1(uuid, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_claim_agreement_cleanup_v1(p_company_id uuid, p_claim_token uuid, p_limit integer) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+begin
+  if current_user<>'service_role' then raise exception 'agreement_service_required' using errcode='42501'; end if;
+  return private.gridex_claim_agreement_cleanup_v1(p_company_id,p_claim_token,p_limit);
+end;
+$$;
+
+--
 -- Name: gridex_claim_approved_invoice_retries_fair_v1(uuid, integer, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -28377,6 +28391,20 @@ end
 $$;
 
 --
+-- Name: gridex_finish_agreement_cleanup_v1(jsonb, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finish_agreement_cleanup_v1(p_receipt jsonb, p_outcome text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+begin
+  if current_user<>'service_role' then raise exception 'agreement_service_required' using errcode='42501'; end if;
+  return private.gridex_finish_agreement_cleanup_v1(p_receipt,p_outcome);
+end;
+$$;
+
+--
 -- Name: gridex_finish_ediel_resume_claim_v1(uuid, uuid, text, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -30333,6 +30361,20 @@ begin
   end loop;
   return v_ids;
 end $$;
+
+--
+-- Name: gridex_grid_owner_agreement_command_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_grid_owner_agreement_command_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+begin
+  if current_user<>'service_role' then raise exception 'agreement_service_required' using errcode='42501'; end if;
+  return private.gridex_agreement_command_v1(p_command);
+end;
+$$;
 
 --
 -- Name: gridex_grid_owner_name_key(text); Type: FUNCTION; Schema: public; Owner: -
@@ -47858,7 +47900,7 @@ begin
     left join public.customer_case_publications p on p.customer_case_id=t.id and p.company_id=t.company_id and p.customer_id=t.customer_id and p.revoked_at is null
     where t.id=v_case and t.company_id=v_company and t.customer_id=v_customer;
     select coalesce(jsonb_agg(to_jsonb(r) order by r.created_at desc,r.id desc),'[]'::jsonb) into v_rows from (
-      select m.id,m.body,m.author_kind,m.channel,m.revision,m.created_at from public.customer_support_messages m
+      select m.id,m.body,m.author_kind,case when m.author_kind='staff' then m.actor_user_id else null::uuid end as actor_user_id,m.channel,m.revision,m.created_at from public.customer_support_messages m
       where m.company_id=v_company and m.customer_id=v_customer and m.customer_case_id=v_case and m.visibility='customer'
       and (m.publication_id is null or exists(select 1 from public.customer_case_publications p where p.id=m.publication_id
         and p.company_id=m.company_id and p.customer_id=m.customer_id and p.customer_case_id=m.customer_case_id and p.revoked_at is null))
@@ -50886,6 +50928,20 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_user_is_platform_admin() IS 'Global platform-admin helper. user_roles grants are global only when company_id IS NULL and the Auth/profile identity is functioning.';
+
+--
+-- Name: gridex_validate_agreement_cleanup_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_validate_agreement_cleanup_v1(p_receipt jsonb) RETURNS boolean
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+begin
+  if current_user<>'service_role' then raise exception 'agreement_service_required' using errcode='42501'; end if;
+  return private.gridex_validate_agreement_cleanup_v1(p_receipt);
+end;
+$$;
 
 --
 -- Name: gridex_validate_commercial_model_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -60491,7 +60547,11 @@ CREATE TABLE public.customer_lifecycle_decisions (
     billing_blocked boolean DEFAULT true NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT customer_lifecycle_decisions_decision_type_check CHECK ((decision_type = ANY (ARRAY['withdrawal'::text, 'rejected'::text]))),
+    source_customer_case_id uuid,
+    received_at timestamp with time zone,
+    received_channel text,
+    notes text,
+    CONSTRAINT customer_lifecycle_decisions_decision_type_check CHECK ((decision_type = ANY (ARRAY['withdrawal'::text, 'cancelled'::text, 'rejected'::text]))),
     CONSTRAINT customer_lifecycle_decisions_scope_type_check CHECK ((scope_type = ANY (ARRAY['customer'::text, 'contract'::text, 'site'::text, 'metering_point'::text])))
 );
 
@@ -65048,6 +65108,44 @@ CREATE TABLE public.grid_area_mappings (
     valid_to date,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
+);
+
+--
+-- Name: grid_owner_access_agreements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.grid_owner_access_agreements (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    grid_owner_id uuid,
+    agreement_type text DEFAULT 'metering_access'::text NOT NULL,
+    agreement_scope text DEFAULT 'metering_access'::text NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    agreement_reference text,
+    external_agreement_number text,
+    valid_from date,
+    valid_to date,
+    signed_at timestamp with time zone,
+    document_id uuid,
+    document_path text,
+    requires_customer_authorization boolean DEFAULT true NOT NULL,
+    requires_metering_point_id boolean DEFAULT true NOT NULL,
+    requires_facility_id boolean DEFAULT false NOT NULL,
+    requires_customer_personal_number boolean DEFAULT false NOT NULL,
+    requires_report_period boolean DEFAULT false NOT NULL,
+    preferred_application_reference text,
+    preferred_message_version text,
+    preferred_receiver_ediel_id text,
+    preferred_receiver_sub_address text,
+    preferred_route_id uuid,
+    reference_requirements jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    revision bigint DEFAULT 0 NOT NULL,
+    CONSTRAINT grid_owner_access_agreements_revision_check CHECK ((revision >= 0))
 );
 
 --
@@ -76641,6 +76739,13 @@ ALTER TABLE ONLY public.grid_area_mappings
     ADD CONSTRAINT grid_area_mappings_pkey PRIMARY KEY (id);
 
 --
+-- Name: grid_owner_access_agreements grid_owner_access_agreements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.grid_owner_access_agreements
+    ADD CONSTRAINT grid_owner_access_agreements_pkey PRIMARY KEY (id);
+
+--
 -- Name: grid_owner_contact_channels grid_owner_contact_channels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -79734,6 +79839,12 @@ CREATE UNIQUE INDEX customer_legal_acceptances_exact_evidence_uidx ON public.cus
 CREATE INDEX customer_legal_acceptances_portal_keyset_idx ON public.customer_legal_acceptances USING btree (company_id, customer_id, accepted_at DESC, id DESC);
 
 --
+-- Name: customer_lifecycle_decisions_case_type_unique_v1; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_lifecycle_decisions_case_type_unique_v1 ON public.customer_lifecycle_decisions USING btree (source_customer_case_id, decision_type) WHERE (source_customer_case_id IS NOT NULL);
+
+--
 -- Name: customer_lifecycle_decisions_company_customer_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -81658,6 +81769,12 @@ CREATE INDEX facility_data_quality_issues_company_idx ON public.facility_data_qu
 --
 
 CREATE INDEX facility_data_quality_issues_facility_idx ON public.facility_data_quality_issues USING btree (company_id, facility_id) WHERE (facility_id IS NOT NULL);
+
+--
+-- Name: grid_owner_access_agreements_document_path_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX grid_owner_access_agreements_document_path_idx ON public.grid_owner_access_agreements USING btree (document_path) WHERE (document_path IS NOT NULL);
 
 --
 -- Name: grid_owner_contact_channels_company_owner_type_idx; Type: INDEX; Schema: public; Owner: -
@@ -86046,6 +86163,18 @@ CREATE INDEX idx_grid_area_mappings_grid_owner ON public.grid_area_mappings USIN
 CREATE INDEX idx_grid_area_mappings_postal_code ON public.grid_area_mappings USING btree (postal_code);
 
 --
+-- Name: idx_grid_owner_access_agreements_active_metering; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grid_owner_access_agreements_active_metering ON public.grid_owner_access_agreements USING btree (company_id, grid_owner_id, agreement_type, status, valid_from, valid_to);
+
+--
+-- Name: idx_grid_owner_access_agreements_company_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grid_owner_access_agreements_company_scope ON public.grid_owner_access_agreements USING btree (company_id, grid_owner_id, agreement_scope, status);
+
+--
 -- Name: idx_grid_owner_monthly_metrics_company_month; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -89865,6 +89994,12 @@ CREATE TRIGGER gridex_ediel_route_profile_history_trg AFTER INSERT OR UPDATE ON 
 --
 
 CREATE TRIGGER gridex_invoice_export_items_sent_guard_tg BEFORE DELETE OR UPDATE ON public.invoice_export_items FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_sent_invoice_export_items();
+
+--
+-- Name: customer_lifecycle_decisions gridex_lifecycle_case_binding_v1; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_lifecycle_case_binding_v1 BEFORE INSERT OR UPDATE ON public.customer_lifecycle_decisions FOR EACH ROW EXECUTE FUNCTION private.gridex_lifecycle_case_binding_v1();
 
 --
 -- Name: pricing_runs gridex_pricing_runs_locked_guard_tg; Type: TRIGGER; Schema: public; Owner: -
@@ -95441,6 +95576,13 @@ ALTER TABLE ONLY public.grid_area_mappings
 
 ALTER TABLE ONLY public.grid_area_mappings
     ADD CONSTRAINT grid_area_mappings_grid_owner_id_fkey FOREIGN KEY (grid_owner_id) REFERENCES public.grid_owners(id);
+
+--
+-- Name: grid_owner_access_agreements grid_owner_access_agreements_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.grid_owner_access_agreements
+    ADD CONSTRAINT grid_owner_access_agreements_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: grid_owner_contact_channels grid_owner_contact_channels_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -101681,6 +101823,12 @@ ALTER TABLE public.forecast_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.grid_area_mappings ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: grid_owner_access_agreements; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.grid_owner_access_agreements ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: grid_owner_contact_channels; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -101931,6 +102079,12 @@ CREATE POLICY gridcore_ediel_saas_update_ediel_unresolved_items ON public.ediel_
 --
 
 CREATE POLICY gridcore_ediel_saas_update_metering_permissions ON public.metering_permissions FOR UPDATE TO authenticated USING ((( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND public.gridex_can_read_company(company_id)))) WITH CHECK ((( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND public.gridex_can_write_company(company_id))));
+
+--
+-- Name: grid_owner_access_agreements gridex_agreement_service_read_v1; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY gridex_agreement_service_read_v1 ON public.grid_owner_access_agreements FOR SELECT TO service_role USING (true);
 
 --
 -- Name: bidding_zone_monthly_metrics gridex_analytics_bidding_zone_monthly_metrics_insert; Type: POLICY; Schema: public; Owner: -
@@ -118004,6 +118158,13 @@ REVOKE ALL ON FUNCTION public.gridex_check_ediel_resume_claim_v1(p_company_id uu
 GRANT ALL ON FUNCTION public.gridex_check_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_claim_agreement_cleanup_v1(p_company_id uuid, p_claim_token uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_claim_agreement_cleanup_v1(p_company_id uuid, p_claim_token uuid, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_claim_agreement_cleanup_v1(p_company_id uuid, p_claim_token uuid, p_limit integer) TO service_role;
+
+--
 -- Name: FUNCTION gridex_claim_approved_invoice_retries_fair_v1(p_company_id uuid, p_limit integer, p_claim_token uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -118957,6 +119118,13 @@ REVOKE ALL ON FUNCTION public.gridex_finalize_website_contract_signature(p_compa
 GRANT ALL ON FUNCTION public.gridex_finalize_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_acceptance_evidence jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_finish_agreement_cleanup_v1(p_receipt jsonb, p_outcome text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finish_agreement_cleanup_v1(p_receipt jsonb, p_outcome text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finish_agreement_cleanup_v1(p_receipt jsonb, p_outcome text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_finish_ediel_resume_claim_v1(p_company_id uuid, p_intent_id uuid, p_phase text, p_claim_token uuid, p_outcome text, p_reason text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -119140,6 +119308,13 @@ GRANT ALL ON FUNCTION public.gridex_grant_portfolio_settlement_permission(p_acto
 
 REVOKE ALL ON FUNCTION public.gridex_grant_portfolio_settlement_role(p_actor_user_id uuid, p_user_id uuid, p_role_key text, p_company_id uuid, p_portfolio_id uuid, p_expires_at timestamp with time zone, p_reason text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_grant_portfolio_settlement_role(p_actor_user_id uuid, p_user_id uuid, p_role_key text, p_company_id uuid, p_portfolio_id uuid, p_expires_at timestamp with time zone, p_reason text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_grid_owner_agreement_command_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_grid_owner_agreement_command_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_grid_owner_agreement_command_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_grid_owner_name_key(p_name text); Type: ACL; Schema: public; Owner: -
@@ -121237,6 +121412,13 @@ GRANT ALL ON FUNCTION public.gridex_user_has_role_key(p_role_key text) TO authen
 REVOKE ALL ON FUNCTION public.gridex_user_is_platform_admin() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_user_is_platform_admin() TO service_role;
 GRANT ALL ON FUNCTION public.gridex_user_is_platform_admin() TO authenticated;
+
+--
+-- Name: FUNCTION gridex_validate_agreement_cleanup_v1(p_receipt jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_validate_agreement_cleanup_v1(p_receipt jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_validate_agreement_cleanup_v1(p_receipt jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_validate_commercial_model_v1(p_company_id uuid, p_contract_product_version_id uuid); Type: ACL; Schema: public; Owner: -
@@ -123898,6 +124080,12 @@ GRANT ALL ON TABLE public.forecast_run_items TO service_role;
 
 GRANT ALL ON TABLE public.grid_area_mappings TO authenticated;
 GRANT ALL ON TABLE public.grid_area_mappings TO service_role;
+
+--
+-- Name: TABLE grid_owner_access_agreements; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.grid_owner_access_agreements TO service_role;
 
 --
 -- Name: TABLE grid_owner_contact_channels; Type: ACL; Schema: public; Owner: -
