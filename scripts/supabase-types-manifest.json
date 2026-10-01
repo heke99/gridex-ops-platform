@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-local-claude-session-head-8771f779",
   "generated_types": "supabase/database.types.ts",
   "sha256": "8d346f9a51b2310749a053dba61afd8b5e69dfcb78a5e04e032d901b34dabe40",
-  "latest_migration": "20261001142550_ediel_supply_wrapper_chain_union_order.sql",
-  "latest_migration_schema_effect": "Authentic local CLI clean replay of 8771f779 (schema fingerprint c70fa2f0 verified) incl. composed bridges and 142500-142540; types regenerated with nullability overrides. Not a CI artifact. 142550 is a no-op on the canonical timestamp replay (it recognizes canonical inner-call order and returns; it creates no objects), so the generated types are unchanged; the CI clean replay independently regenerates and compares them."
+  "latest_migration": "20261001142560_ediel_rule_pack_effective_date_and_inbound_grace.sql",
+  "latest_migration_schema_effect": "Authentic local CLI clean replay of 8771f779 (schema fingerprint c70fa2f0 verified) incl. composed bridges and 142500-142540; types regenerated with nullability overrides. Not a CI artifact. 142550 is a no-op on the canonical timestamp replay (it recognizes canonical inner-call order and returns; it creates no objects), so the generated types are unchanged; the CI clean replay independently regenerates and compares them. 142560 rewrites four private/plpgsql bodies and adds a private-schema helper (gridex_ediel_source_rules, not in the generated public types); public types unchanged."
 }
