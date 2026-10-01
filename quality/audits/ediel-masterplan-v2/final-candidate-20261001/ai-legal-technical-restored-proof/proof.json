@@ -7,34 +7,52 @@
   "new_forward": "20261001092522_ediel_ai_legal_technical_party_composition.sql",
   "checks": {
     "unit": {
-      "sha256": "1ff6a724a20b98ce3d5a004ec25e3013581a65945e9c7f91a2991d997c06486f",
-      "bytes": 236,
-      "result": "PASS 26/26"
+      "result": "PASS 26/26",
+      "raw_stdout_sha256": "1ff6a724a20b98ce3d5a004ec25e3013581a65945e9c7f91a2991d997c06486f",
+      "raw_stdout_bytes": 236,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/unit.log",
+      "artifact_sha256": "812ae51d32d8b00ff8f832c74e975d966c3fca4d76d81e74e0c94993a1ec2356",
+      "artifact_bytes": 235
     },
     "bounded": {
-      "sha256": "5d3c66e215f4b4e94ad0bf28bcc446667c98b6e9a7b085ab0458a5590774b910",
-      "bytes": 832,
-      "result": "PASS 84 mechanical assertions"
+      "result": "PASS 84 mechanical assertions",
+      "raw_stdout_sha256": "5d3c66e215f4b4e94ad0bf28bcc446667c98b6e9a7b085ab0458a5590774b910",
+      "raw_stdout_bytes": 832,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/bounded.log",
+      "artifact_sha256": "8cd74ae0a0c948384760412f22987cec4100531670a6dc13960dcc39666c9255",
+      "artifact_bytes": 376
     },
     "red": {
-      "sha256": "5102c2f3c26e0fbf671a4e6f94d1ea93a47d39bfee8ca62d93b1fd3cde19b182",
-      "bytes": 28534,
-      "result": "EXPECTED_FAIL actual older composed history rejects legal CSV scope with a different technical receiver"
+      "result": "EXPECTED_FAIL actual older composed history rejects legal CSV scope with a different technical receiver",
+      "raw_stdout_sha256": "5102c2f3c26e0fbf671a4e6f94d1ea93a47d39bfee8ca62d93b1fd3cde19b182",
+      "raw_stdout_bytes": 28534,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/red.log",
+      "artifact_sha256": "702c4afb9542fa238cc983319db54c5925a027a5bd8c08e2e741294486b9c459",
+      "artifact_bytes": 215
     },
     "app_tsc": {
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0,
-      "result": "PASS"
+      "result": "PASS",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 0,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/app_tsc.log",
+      "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifact_bytes": 0
     },
     "scripts_tsc": {
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0,
-      "result": "PASS"
+      "result": "PASS",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 0,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/scripts_tsc.log",
+      "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifact_bytes": 0
     },
     "eslint": {
-      "sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8",
-      "bytes": 174,
-      "result": "PASS no lint errors (Node proxy experimental notice only)"
+      "result": "PASS no lint errors (Node proxy experimental notice only)",
+      "raw_stdout_sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8",
+      "raw_stdout_bytes": 174,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/eslint.log",
+      "artifact_sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8",
+      "artifact_bytes": 174
     }
   },
   "preserved": [
