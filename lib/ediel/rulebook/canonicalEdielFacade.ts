@@ -235,3 +235,4 @@ export function canonicalProdatMethodChangeTuple(subtype:'F'|'G'){
  if(!method||!reason)throw new Error('canonical_method_change_tuple_missing')
  return Object.freeze({subtype,reason,method})
 }
+export { EDIFACT_UNUSED_HEADER_CONSTRAINTS as canonicalEdifactUnusedHeaderConstraints } from '@/lib/ediel/core/edifactHeaderConstraints'

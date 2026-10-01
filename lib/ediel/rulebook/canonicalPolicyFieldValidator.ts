@@ -2,6 +2,7 @@ import {projectProdatSourceFunctionObjects,type ReceivedProdatSourceFunctionVali
 import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
+import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
@@ -64,6 +65,7 @@ export function validateCanonicalPolicyFields(input: {
   reportingContext?: ExpectedContext
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
+  rawPayload?: string | null
   scope?: 'all' | 'dependent_only'
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
@@ -112,6 +114,9 @@ export function validateCanonicalPolicyFields(input: {
       ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
+  if (input.scope !== 'dependent_only') issues.push(...validateEdifactHeaderGuide({
+    direction: input.policy.direction as 'inbound' | 'outbound', rawPayload: input.rawPayload, rawSegments: input.rawSegments, una: input.una,
+  }))
   if(input.policy.family==='UTILTS' && input.scope!=='dependent_only' && input.rawSegments?.length) {
     const una=input.una ?? DEFAULT_UNA
     const wire=tokenizeEdifact(serializeUna(una)+input.rawSegments.join(una.segmentTerminator)+una.segmentTerminator)
