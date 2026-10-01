@@ -224,6 +224,25 @@
     "20260930223846_ediel_cancellation_request_environment_scope.sql": "84dc62edefd084d1746d99006158caec20ba9c0a9939731821dd81129bbec2c2",
     "20260930223407_ediel_atomic_accepted_source_projection.sql": "008772e5270b73edd157ec4b139ebc37fbf06b19960c11b82250dff3a18a0720",
     "20260930230653_ediel_source_producer_physical_site_scope.sql": "0230fa19b390ef5ea188512ba6e23a20509406ed1bffdee202ec376bac7fd00e",
-    "20260930231633_ediel_service_permission_authentic_agreement_reference.sql": "f769f77de088b02f6484133ea5afa1df2fa6fbbc3b0f26adb280e504ac8b1b50"
+    "20260930231633_ediel_service_permission_authentic_agreement_reference.sql": "f769f77de088b02f6484133ea5afa1df2fa6fbbc3b0f26adb280e504ac8b1b50",
+    "20260930213949_ediel_switch_intent_original_source_binding.sql": "f19b6a295147dd47d7a7ababa704d1f7aab19309831dcceb7e03769e3f9c3629",
+    "20260930215244_ediel_prodat_ignored_field_source_projection.sql": "bafa7e2a4266bdcac6e5d7ea0b0216b59c90e5494c11973dcc0c796bb9163e72",
+    "20260930221158_ediel_source_qualified_switch_correction_binding.sql": "0446d3ed10cd2c53fd31abf972b6ea605282c3c3d0a6f62233b22fdf1f360d56",
+    "20260930222834_ediel_registered_original_native_response_guides.sql": "194760c1786d34f8a611374fbec627661ac3e2e11bde600a177ef2da77449311",
+    "20260930223930_ediel_outbound_ack_original_read_authority.sql": "8ccda299e12afd562a333a3856e9f266a26520c3e170262d57c9055c890e44d9",
+    "20260930224737_ediel_ai_environment_qualified_origination_permissions.sql": "816fb18d4ee528229c96382bcfb3ea83272b495854920a355adf7b5d9c07c607",
+    "20260930225411_ediel_source_generated_technical_expectation_plan.sql": "381dd097aeedbd27aff8bbef2fd1dcd401dcc293b82e8f89cb14577dcb4c893c",
+    "20260930225504_ediel_customer_agreed_metering_method_origination.sql": "70139987a5c6c76dfb06a97b6f0daff594f9f1cd1e37075701d706529e6e46fc",
+    "20260930225819_ediel_original_response_scope_opaque_version.sql": "988b5486ed91426a0f574801dd19b3dc3460ff2d05488f5e00d9b9809286a25d",
+    "20260930230944_ediel_source_bound_metering_method_expectations_v1.sql": "c7c0371630a273a8bfb01b2db1da1e343835102722028b91e0a8d8abb1c36999",
+    "20260930230957_ediel_dated_structure_protected_point_read.sql": "e191f92dc0eb70bb0b2d859f615c4d4e14e99c38315663946ec8b4b242de0271",
+    "20260930231447_ediel_regulated_supply_internal_site_projection.sql": "79d3e26e5abf8fe0ef95f29b4e91cf5d6059ef6bf06308a9ff351aae46c5458e",
+    "20260930231746_ediel_native_prodat_ack_immutable_scope.sql": "77e6426361c4fa95351f876fa9463128ea79905257e784014b1555bab9563bf7",
+    "20260930232155_ediel_production_contract_source_owned_site.sql": "54af276ca3626cd8e2163cef35888c0c401315d3fd12ca0bdcafba74bebda9c8",
+    "20260930232522_ediel_canonical_logical_ack_native_identity.sql": "6b87f77d6c9f9e99cc5dea7e16e76076627d1f16217398d84d53a6f664795984",
+    "20260930232802_ediel_metering_method_complete_source_scope.sql": "3baf0dcd72926511d1b9dd26c318001ff4f3a2f75c5bd54d8e7b02b3da98683d",
+    "20260930233300_ediel_signed_agreement_requested_method_source.sql": "892835287fb0b86f58fcfd302a999e21d491c012b8fc02432b10ac7c7646956b",
+    "20260930233357_ediel_atomic_accepted_message_and_source_repair.sql": "cddb82b411005d3a5cb7a94245ad519127fe94d073f4cd42fd4eb71eba539196",
+    "20260930233558_ediel_method_expectation_actor_scope_v1.sql": "ed7aaf6d32b36a5a204e44da5260ea2aeba3ddc0bdc1347d4f0b39dc1c30bef7"
   }
 }
