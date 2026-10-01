@@ -1,4 +1,5 @@
 import {copyProdatEndUserAddressObjects,type ProdatEndUserAddressObject} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import type { CustomerLifeEventExportProjection } from '@/lib/ediel/production/customerLifeEventExport'
 export type SwedishProdatEndUserQualifier = 'SE1' | 'SE2'
 
 export type SwedishProdatCustomerIdentity = {
@@ -51,6 +52,36 @@ export function resolveSwedishProdatCustomerIdentity(
     ''
 
   return { id, qualifier, name }
+}
+
+/** Preserve the end user's literal source components. Installation and billing
+ * addresses describe other objects and cannot complete a missing NAD+UD value.
+ * A future-only life-event projection has not changed the current customer. */
+export function resolveSwedishProdatEndUserExport(input: {
+  customer: CustomerIdentitySource
+  customerLifeEvent?: CustomerLifeEventExportProjection | null
+}): {
+  identity: SwedishProdatCustomerIdentity
+  nameLines: string[] | undefined
+  addressLines: string[]
+  postalCode: string | null
+  city: string | null
+  country: string
+} {
+  const identity = resolveSwedishProdatCustomerIdentity(input.customer)
+  const source = input.customerLifeEvent && input.customerLifeEvent.effectiveVersionCount > 0
+    ? input.customerLifeEvent.endUserMasterdata : undefined
+  const nameLines = source?.name?.map(sanitize)
+  return {
+    identity: { ...identity, name: nameLines ? nameLines.join(' ').trim() : identity.name },
+    nameLines,
+    addressLines: source ? (source.street ?? []).map(sanitize) : [],
+    postalCode: source ? sanitize(source.postCode) || null : null,
+    city: source ? sanitize(source.city) || null : null,
+    // Empty is deliberate: the serializer must not manufacture a Swedish
+    // country from the legal-id qualifier or the installation's country.
+    country: source ? sanitize(source.country) : '',
+  }
 }
 
 /** A selected server export context is protocol input, not a market mandate.

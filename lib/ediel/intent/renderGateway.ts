@@ -242,6 +242,7 @@ export async function renderAndQueueFacilityLookupZ01(params: {
 
   try {
     const { draft } = await buildFacilityLookupZ01Draft({
+      companyId: gate.intent.companyId,
       actorUserId: params.actorUserId,
       request: params.request,
       routeContext: params.routeContext,
