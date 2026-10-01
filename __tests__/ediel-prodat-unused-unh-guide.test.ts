@@ -20,8 +20,9 @@ function encoded(type = profile) {
   return EdifactEnvelopeCodec.encode({ sender: 'GRID', receiver: 'SUPPLIER', interchangeReference: 'OWN-P-ACK', environment: 'test',
     applicationReference: 'PRODAT', acknowledgementRequest: false,
     messages: [{ messageReference: 'OWN-AP', messageTypeToken: type, businessSegments: [
-      'BGM+++27', 'DTM+137:202609301200:203', 'NAD+FR+52100:160:SVK+++++++SE', 'NAD+DO+52101:160:SVK+++++++SE',
-      'RFF+ACW:ORIGINAL-P', 'ERC+41::260', 'FTX+AAO++209::260+Anläggnings-id saknas',
+      // D.96A order: SG1 RFF precedes SG2 NAD.
+      'BGM+++27', 'DTM+137:202609301200:203', 'RFF+ACW:ORIGINAL-P', 'NAD+FR+52100:160:SVK+++++++SE', 'NAD+DO+52101:160:SVK+++++++SE',
+      'ERC+41::260', 'FTX+AAO++209::260+Anläggnings-id saknas',
     ] }] })
 }
 function changed(type = profile, extra = '+COMMON+1:1') { return encoded(type).replace(`UNH+OWN-AP+${type}'`, `UNH+OWN-AP+${type}${extra}'`) }
