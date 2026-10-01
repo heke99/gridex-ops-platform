@@ -48,4 +48,19 @@ describe('actual typed registry market/source dispatch contract',()=>{
   await expect(verifyElRegistryActor({actorUserId:id(9),actorId:id(5),routeId:id(4)})).resolves.toMatchObject({routeIds:[id(4)],autoSendAllowed:false})
   expect(rpc.mock.calls[0][1]).toEqual({p_actor_user_id:id(9),p_actor_id:id(5),p_route_id:id(4)})
  })
+ it('qualifies the explicit AI_LIST alias without conflating legal and transport parties',async()=>{
+  const ai={...source(),legalName:'Immutable legal network',wire:{...source().wire,family:'AI',applicationReference:null}}
+  const selected={...scope,messageFamily:'AI_LIST',applicationReference:null}
+  rpc.mockImplementation(async(name:string)=>({data:name==='ediel_registry_dispatch_source_v1'?{...ai,...selected,canonicalFamily:'AI',selectedApplicationReference:null}:ai,error:null}))
+  expect(await requireRegistryDispatchSource(selected)).toMatchObject({canonicalFamily:'AI',legalName:'Immutable legal network',legalEdielId:'LEGAL-ACTOR',wire:{family:'AI',interchangePartyId:'TECHNICAL-AGENT'}})
+ })
+ it('does not pass an AI EDIFACT application to the native source owner',async()=>{
+  await expect(requireRegistryDispatchSource({...scope,messageFamily:'AI_LIST'})).rejects.toThrow('ai_list_application_forbidden');expect(rpc).not.toHaveBeenCalled()
+ })
+ it.each(['canonicalFamily','legalName'])('holds missing actual AI source field %s',async(key)=>{
+  const ai={...source(),legalName:'Immutable legal network',wire:{...source().wire,family:'AI',applicationReference:null}}
+  const selected={...scope,messageFamily:'AI_LIST',applicationReference:null}
+  rpc.mockImplementation(async(name:string)=>({data:name==='ediel_registry_dispatch_source_v1'?{...ai,...selected,canonicalFamily:'AI',selectedApplicationReference:null,[key]:undefined}:ai,error:null}))
+  await expect(requireRegistryDispatchSource(selected)).rejects.toThrow('dispatch_result_invalid')
+ })
 })

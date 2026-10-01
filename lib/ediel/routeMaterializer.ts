@@ -11,6 +11,8 @@ import {
 } from "@/lib/ediel/senderSettingsResolver";
 import { projectCanonicalAckMode } from "@/lib/ediel/ack/routeAckModeProjection";
 import { validateRouteDeclaredApplicationReference } from "@/lib/ediel/core/applicationReferenceResolver";
+import { validateApplicationReferencePolicy } from "@/lib/ediel/intent/applicationReferencePolicy";
+import { canonicalAiListProfile } from "@/lib/ediel/rulebook/canonicalEdielFacade";
 import {
   routeScopeForProcess,
   targetSystemForEnvironment,
@@ -124,7 +126,12 @@ function metadata(value: unknown): JsonRecord {
 
 function defaultMessageCode(messageFamily: string): string | null {
   if (upper(messageFamily) === "PRODAT") return "Z01";
+  if (upper(messageFamily) === "AI_LIST") return canonicalAiListProfile().supplierOutboundType;
   return null;
+}
+
+function materializedFamily(sourceFamily: string): string {
+  return upper(sourceFamily) === "AI" ? "AI_LIST" : upper(sourceFamily);
 }
 
 function roleMatches(row: ActorSettingRow, messageFamily: string): boolean {
@@ -288,7 +295,9 @@ async function upsertRouteProfile(params: {
     text(params.senderSettings.ediel_id) ??
     text(params.senderSettings.actor_ediel_id);
   const senderSubaddress =
-    params.messageFamily === "PRODAT"
+    params.messageFamily === "AI_LIST"
+      ? (text(params.senderSettings.sender_subaddress) ?? text(params.senderSettings.sender_sub_address))
+      : params.messageFamily === "PRODAT"
       ? (text(params.senderSettings.sender_subaddress_prodat) ??
         text(params.senderSettings.sender_subaddress) ??
         text(params.senderSettings.sender_sub_address))
@@ -297,23 +306,26 @@ async function upsertRouteProfile(params: {
         text(params.senderSettings.sender_sub_address));
   const receiverEdielId = text(params.route.interchange_party_id);
   if (!receiverEdielId) throw new Error("ediel_registry_technical_receiver_required");
-  const configuredApplicationReference =
+  const isAiList = params.messageFamily === "AI_LIST";
+  const configuredApplicationReference = isAiList ? text(params.route.application_reference) :
     text(params.route.application_reference) ??
     text(params.senderSettings.application_reference) ??
     text(params.senderSettings.default_application_reference);
-  const applicationReferenceCheck = validateRouteDeclaredApplicationReference({
+  const aiApplication = isAiList ? validateApplicationReferencePolicy({ messageFamily: "AI_LIST", applicationReference: configuredApplicationReference }) : null;
+  if (aiApplication && !aiApplication.ok) throw new Error("ediel_registry_ai_list_application_forbidden");
+  const applicationReferenceCheck = isAiList ? null : validateRouteDeclaredApplicationReference({
     messageFamily: params.messageFamily,
     businessCode: params.messageCode,
     routeProfile: configuredApplicationReference
       ? { applicationReference: configuredApplicationReference }
       : null,
   });
-  if (!applicationReferenceCheck.ok) {
+  if (applicationReferenceCheck && !applicationReferenceCheck.ok) {
     throw new Error(
       `ediel_application_reference_route_mismatch:${applicationReferenceCheck.routeDeclaredApplicationReference ?? 'missing'}:${applicationReferenceCheck.policyApplicationReference}`,
     );
   }
-  const applicationReference = applicationReferenceCheck.policyApplicationReference;
+  const applicationReference = applicationReferenceCheck?.policyApplicationReference ?? null;
   const ackMode = projectCanonicalAckMode({
     messageFamily: params.messageFamily,
     messageCode: params.messageCode,
@@ -353,8 +365,8 @@ async function upsertRouteProfile(params: {
     environment: params.route.environment,
     route_name: `${params.gridOwner.name ?? "Nätägare"} ${params.messageFamily}`,
     route_type: "email",
-    payload_format: "edifact",
-    message_standard: "edifact",
+    payload_format: isAiList ? "raw" : "edifact",
+    message_standard: isAiList ? "ai_list" : "edifact",
     ack_mode: ackMode,
     default_test_flag: params.route.environment === "production" ? 0 : 1,
     default_timezone: 1,
@@ -372,7 +384,7 @@ async function upsertRouteProfile(params: {
     application_reference: applicationReference,
     message_family: params.messageFamily,
     message_code: params.messageCode,
-    default_message_version: params.messageFamily === "PRODAT" ? "26A" : null,
+    default_message_version: isAiList ? canonicalAiListProfile().technicalVersion : params.messageFamily === "PRODAT" ? "26A" : null,
     mailbox: null,
     encryption_mode: params.messageFamily === "PRODAT" ? "smime" : "none",
     transport_type: "smtp",
@@ -505,7 +517,7 @@ export async function materializeCompanyGridOwnerRoute(params: {
   actorUserId?: string | null;
 }): Promise<RouteMaterializationResult> {
   const route = await getPlatformActorRoute(params.platformActorRouteId);
-  const messageFamily = upper(params.messageFamily ?? route?.message_family ?? "PRODAT");
+  const messageFamily = materializedFamily(params.messageFamily ?? route?.message_family ?? "PRODAT");
   const messageCode = text(params.messageCode) ?? (route ? text(metadata(route.metadata).message_code) : null) ?? defaultMessageCode(messageFamily);
   const environment = (params.environment === "test" || params.environment === "production")
     ? params.environment
@@ -526,7 +538,9 @@ export async function materializeCompanyGridOwnerRoute(params: {
   }
 
   const source = await requireElRegistryRouteSource(route.id);
-  if (source.actorId !== route.actor_id || source.wire.family !== messageFamily || source.wire.environment !== route.environment) throw new Error("ediel_registry_materialization_scope_mismatch");
+  if (source.actorId !== route.actor_id || source.wire.family !== (messageFamily === "AI_LIST" ? "AI" : messageFamily) || source.wire.environment !== route.environment
+    || messageFamily === "AI_LIST" && source.wire.applicationReference !== null) throw new Error("ediel_registry_materialization_scope_mismatch");
+  if (messageFamily === "AI_LIST" && messageCode !== canonicalAiListProfile().supplierOutboundType) throw new Error("ediel_registry_ai_list_message_code_required");
 
   const gridOwner = await getGridOwnerForCompanyMaterialization(params.gridOwnerId);
   if (!gridOwner) {
@@ -780,11 +794,14 @@ export async function materializePlatformActorRoute(params: {
 }): Promise<RouteMaterializationResult[]> {
   const route = await getPlatformActorRoute(params.platformActorRouteId);
   if (!route) return [];
-  await requireElRegistryRouteSource(route.id);
-  const messageFamily = upper(route.message_family);
+  const source = await requireElRegistryRouteSource(route.id);
+  const messageFamily = materializedFamily(route.message_family);
   const messageCode =
     text(metadata(route.metadata).message_code) ??
     defaultMessageCode(messageFamily);
+  if (source.actorId !== route.actor_id || source.wire.family !== (messageFamily === "AI_LIST" ? "AI" : messageFamily) || source.wire.environment !== route.environment
+    || messageFamily === "AI_LIST" && source.wire.applicationReference !== null) throw new Error("ediel_registry_materialization_scope_mismatch");
+  if (messageFamily === "AI_LIST" && messageCode !== canonicalAiListProfile().supplierOutboundType) throw new Error("ediel_registry_ai_list_message_code_required");
   if (
     route.status !== "active" ||
     route.is_verified !== true ||

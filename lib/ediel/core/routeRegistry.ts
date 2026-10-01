@@ -14,6 +14,7 @@ import {
 } from '@/lib/ediel/config'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
+import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
 
 export type CanonicalRouteRequestType =
   | 'supplier_switch'
@@ -183,7 +184,16 @@ export async function resolveCanonicalRouteContext(params: {
   }
 
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
-  const applicationReference =
+  const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'
+  const isAiList = messageStandard === 'ai_list'
+  if (isAiList && (routeRuntime?.message_standard !== 'ai_list' || routeRuntime?.message_family !== 'AI_LIST' || routeRuntime?.is_enabled !== true)) {
+    throw new Error('ai_list_actual_route_profile_required')
+  }
+  if (isAiList && (!validateApplicationReferencePolicy({messageFamily:'AI_LIST',applicationReference:params.applicationReference}).ok
+    || !validateApplicationReferencePolicy({messageFamily:'AI_LIST',applicationReference:routeRuntime?.application_reference}).ok)) {
+    throw new Error('ai_list_application_reference_forbidden')
+  }
+  const applicationReference = isAiList ? null :
     trimOrNull(params.applicationReference) ??
     trimOrNull(routeRuntime?.application_reference) ??
     actor.defaultApplicationReference
@@ -193,7 +203,7 @@ export async function resolveCanonicalRouteContext(params: {
   }
 
   if (environment === 'production') {
-    if (!applicationReference) {
+    if (!isAiList && !applicationReference) {
       throw new Error(`production_application_reference_required:${route.id}`)
     }
     const normalizedApplicationReference = String(applicationReference).toUpperCase()
@@ -214,7 +224,6 @@ export async function resolveCanonicalRouteContext(params: {
 
   const defaultMessageVersion = trimOrNull(routeRuntime?.default_message_version)
   const ackMode = routeRuntime?.ack_mode ?? 'default'
-  const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'
 
   const routeKey = [
     params.requestType,
@@ -263,7 +272,7 @@ export async function resolveCanonicalRouteContext(params: {
  * Fresh mapped business routes use the same private source/dispatch authority;
  * technical/common ACK routes are qualified by their separate opaque owners. */
 export async function assertFreshBusinessRegistryRouteSource(context:CanonicalRouteContext,messageFamily:string):Promise<void>{
-  if(!['PRODAT','UTILTS','AI'].includes(messageFamily))return
+  if(!['PRODAT','UTILTS','AI','AI_LIST'].includes(messageFamily))return
   const {readRegistryDispatchSource}=await import('@/lib/actor-registry/registryMarketSource')
   const profileId=context.routeRuntime?.route_profile_id
   if(!context.companyId||!profileId)throw new Error('ediel_registry_owned_route_profile_required')

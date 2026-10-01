@@ -193,6 +193,7 @@ try{
  for(const table of ['normalized_batches','market_records','route_market_sources']){await assert.rejects(db.exec(`DELETE FROM gridex_registry_import.${table}`),/batch_immutable/);checks++}
  assert.equal((await db.query(`SELECT has_table_privilege('service_role','gridex_registry_import.market_current','UPDATE') ok`)).rows[0].ok,false);checks++
  assert.equal((await db.query(`SELECT has_function_privilege('authenticated','public.ediel_registry_route_source_v1(uuid)','EXECUTE') ok`)).rows[0].ok,false);checks++
+ if(process.env.EDIEL_REGISTRY_PROBE_MODULE){const{default:probe}=await import(pathToFileURL(process.env.EDIEL_REGISTRY_PROBE_MODULE).href);await probe({db,uid,sqlText,apply,actor,company,profile,communication,mid,mutate})}
  console.log(`PASS ${checks} targeted market-source PostgreSQL checks; declared external registry/readiness/transport authorization ports, not native/authentic evidence`)
 
 }finally{await db.close()}
