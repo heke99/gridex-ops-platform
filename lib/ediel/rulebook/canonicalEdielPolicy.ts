@@ -2,6 +2,7 @@ import { assertEdielFutureCapabilityHeld, type EdielRequestedCapability } from '
 import type { EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
 import {INVOICEE_CODES,INVOICEE_FIELDS} from '@/lib/ediel/prodat/prodatInvoicee'
 import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
+import {isProdatDateEventField} from '@/lib/ediel/prodat/prodatDateEvents'
 import {copyGasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {copyDeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import { resolveCanonicalAckMatrixRule, type CanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
@@ -84,13 +85,14 @@ export type CanonicalEdielPolicy = {
   sourceTrace: readonly CanonicalEdielSourceTrace[]
 }
 
-/** These source-defined D families require the selected physical UD/IV tuple.
+/** These source-defined D families require the selected physical UD/IV/event tuple.
  * Admission keeps their unresolved state visible. Every actual candidate must
  * pass validateCanonicalPolicyFields against its own wire before persistence or
  * dispatch; absence of qualified own-object facts still blocks that phase. */
 export function isCanonicalProdatOwnWireDependentCondition(condition:ProdatDependentConditionEvaluation):boolean {
   return condition.fieldNumber==='229' && END_USER_ADDRESS_CODES.includes(condition.messageCode)
     || INVOICEE_CODES.includes(condition.messageCode) && INVOICEE_FIELDS.includes(condition.fieldNumber)
+    || isProdatDateEventField(condition.messageCode,condition.fieldNumber)
 }
 
 export type ResolveCanonicalEdielPolicyInput = {
