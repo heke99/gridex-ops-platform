@@ -35,6 +35,8 @@
     "20260923231731_ediel_correction_concern_capture.sql": "3d8e2e154c4cf95355a6d81724400af6dd687bd80c26a5f1509ae3f0a91794b1",
     "20260924001447_ediel_correction_capture_canonical_permission.sql": "1da1232dd18209471ca41d9143c450effc84cdc6bb61560ee104d5d8e0fee071",
     "20260928101000_portal_revocation_write_guard.sql": "cdd280527eae8f1b99bc18d82b98c320d26419e20885675870bfdf66f86aa622",
-    "20260928113000_customer_case_publication_boundary.sql": "b2b9bb7152b78a847f63c9fd7c613acc65f0ab2a7bfab0e54d454fd47c4f9d04"
+    "20260928113000_customer_case_publication_boundary.sql": "b2b9bb7152b78a847f63c9fd7c613acc65f0ab2a7bfab0e54d454fd47c4f9d04",
+    "20261001094820_customer_account_completion_reconstructed.sql": "2f229b292c1a1827b2ca3c21892b4298d6ca3ea388eca325733ac4147fe44c34",
+    "20261001094830_manual_purchase_intent_reconstructed.sql": "7b5aca028938ce508bd5600b2cbcaa99dc8f197ed3b39e8efbca016ec64416c2"
   }
 }

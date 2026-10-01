@@ -1,3 +1,11 @@
+## Final reconstructed33 source qualification
+
+Finalordinary7721/532/fulltests-scripts-appTSC/build4GiB/lint0/101/newscopedlint0/roles14/core28+29/ratchet2355/integrity686-590/API6PASS. RootSSR17relocatedbodyidentical/unconditionalisolatedrunner17PASS; diagnostic26+retained19=45peerPASS. Workflow4jobs56BashpeerPASS; honesttypes-tail31→33 capturepending/newnative4+15=0/all75OPEN. SeparateU07owner-peer38/core12PASS preservedoutside33. See next10-reconstructed-integration-20261001.md.
+
+## 2026-10-01 actual9e continuation
+
+Root integrated30 reconstructed exactmanifest paths over9e; additive2checksums preservedold36 and integrity686/590PASS. Wired core28/29/company2 +native4/15 beforebrowser; reservedminimalclosedbrowserdiagnostics. U07 fullcorpus8RED evidence and rootGO localreadonlyserviceRPC, CLIrejectionrecorded/noCLIretry. Finalcurrent diagnostics qualification, freeze/nonforce422, actualnative/authentic33 adoption thenremainingwholemasterplan continue.
+
 ## 2026-10-01 — Next authorized priority qualified
 
 Minimal agreement protocol correction is locally qualified: unchanged strict proofSql parses all stdout as one JSON receipt; two seed SELECT set_config calls and third preparation SELECT caused extra rows. Only these two regions become DO/PERFORM; original joins already compile to LF and remain unchanged (literal-backslash hypothesis FALSE_POSITIVE). Native first two whole it statements remain byte-identical; third business checks/argument/authority unchanged. Actual source-generated protocol tests14PASS owner/root/independent peer, with8 protected numeric/bigint mutation checks and quiet-owner mutation still fatal. Protocol command function is explicitly a stub, full native/Auth/business/provider0 until new CI.

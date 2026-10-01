@@ -13,13 +13,15 @@ const memory = vi.hoisted(() => ({
   user: '83000000-0000-4000-8000-000000000001',
   site: '84000000-0000-4000-8000-000000000001',
   client: '85000000-0000-4000-8000-000000000001',
+  session: '89000000-0000-4000-8000-000000000001',
 }))
 
 // The positive outer Auth/SQL adapters are memory-only. Actual application
 // authentication, readiness, matching, idempotency, tenantDb, projection and
 // both exported entrypoints run unchanged. No network/credentials/JWT exercise.
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({
-  auth: { getUser: async () => ({ data: { user: { id: memory.user, email: 'account@example.invalid' } }, error: null }) },
+  auth: { getUser: async () => ({ data: { user: { id: memory.user, email: 'account@example.invalid' } }, error: null }),
+    getClaims: async () => ({ data: { claims: { sub: memory.user, session_id: memory.session } }, error: null }) },
 }) }))
 vi.mock('next/cache', () => ({ revalidatePath: (path: string) => memory.revalidated.push(path) }))
 vi.mock('@/lib/supabase/service', () => {
@@ -85,6 +87,35 @@ vi.mock('@/lib/supabase/service', () => {
   }
   return { supabaseService: { from, rpc: async (name: string, args: Row) => {
     memory.rpcCalls.push({ name, args })
+    // Controlled transport for the reconstructed atomic command. Current SQL
+    // role/alias/rollback behavior is separately exercised by its real PG core;
+    // this fixture makes no native Auth or database-atomicity claim.
+    if(name==='gridex_complete_customer_portal_account_v1'){
+      const command=args.p_command as Row
+      if(command.companyId!==memory.company||command.customerId!==memory.customer||command.userId!==memory.user||command.sessionId!==memory.session)throw new Error('unexpected_current_completion_binding')
+      const rows=memory.rows.customer_portal_accounts??(memory.rows.customer_portal_accounts=[])
+      let current=rows.filter(row=>row.company_id===memory.company&&row.customer_id===memory.customer&&(row.user_id===memory.user||row.portal_user_id===memory.user))
+      if(!current.length&&memory.insertCollision){
+        if(memory.insertCollision!=='missing'){
+          const saved:Row={id:'87000000-0000-4000-8000-000000000002',company_id:memory.company,customer_id:memory.customer,user_id:memory.user,role:'viewer',status:'active',is_active:true,
+            verified_at:'2025-02-01T00:00:00Z',verified_identity_snapshot:{competitor:true}}
+          if(memory.insertCollision==='disabled'){saved.status='disabled';saved.is_active=false}
+          rows.push(saved);current=[saved]
+        }
+        if(memory.insertCollision!=='active')return{data:null,error:{code:'PT409'}}
+      }
+      if(current.length>1||current.length===1&&(current[0].user_id!==memory.user||current[0].status!=='active'||current[0].is_active!==true||!['owner','billing','viewer'].includes(String(current[0].role))))return{data:null,error:{code:'PT409'}}
+      let created=false
+      if(!current.length){
+        const row:Row={id:'86000000-0000-4000-8000-000000000001',company_id:memory.company,customer_id:memory.customer,user_id:memory.user,portal_user_id:null,
+          role:'owner',status:'active',is_active:true,match_method:'self_claim_strict_identity'}
+        rows.push(row);current=[row];created=true
+        memory.rows.customer_portal_claims=[{id:'91000000-0000-4000-8000-000000000001',status:'approved',customer_id:memory.customer}]
+        memory.rows.customer_portal_events=[{id:'92000000-0000-4000-8000-000000000001',event_type:'portal_account_verified'}]
+      }
+      return{error:null,data:{status:created?'created':'existing',companyId:memory.company,customerId:memory.customer,userId:memory.user,accountId:current[0].id,role:current[0].role,
+        receiptId:created?'93000000-0000-4000-8000-000000000001':null,claimId:created?'91000000-0000-4000-8000-000000000001':null,eventId:created?'92000000-0000-4000-8000-000000000001':null}}
+    }
     if (name !== 'authenticate_integration_request_v1') throw new Error('unexpected_positive_memory_rpc')
     return { error: null, data: [{ auth_outcome: 'allowed', client_id: memory.client, company_id: memory.company,
       client_name: 'Synthetic account role preservation', client_status: 'active', scopes: ['customer_sync.write'],
@@ -112,8 +143,8 @@ beforeEach(() => {
     companies: [{ id: memory.company, slug: 'synthetic-account-role' }],
     customers: [{ id: memory.customer, company_id: memory.company, customer_number: 'SYN-ROLE-1',
       customer_type: 'private', email: 'account@example.invalid', personal_number: '199001011234',
-      first_name: 'Synthetic', last_name: 'Customer', full_name: 'Synthetic Customer' }],
-    customer_sites: [{ id: memory.site, company_id: memory.company, customer_id: memory.customer, facility_id: '735999000000001' }],
+      first_name: 'Synthetic', last_name: 'Customer', full_name: 'Synthetic Customer',profile_revision:2,contact_revision:3 }],
+    customer_sites: [{ id: memory.site, company_id: memory.company, customer_id: memory.customer, facility_id: '735999000000001',site_revision:4,address_revision:5 }],
     customer_portal_identities: [{ id: '88000000-0000-4000-8000-000000000001', company_id: memory.company,
       customer_id: memory.customer, external_customer_id: 'SYN-EXT-ROLE', provider: 'gridex_website',
       auth_user_id: memory.user, customer_portal_user_id: memory.user, status: 'active' }],
@@ -135,6 +166,7 @@ function claimForm() {
     full_name: 'Synthetic Customer', installation_id: '735999000000001', company_slug: 'synthetic-account-role' })) form.set(key, value)
   return form
 }
+const genericClaimDenial={ok:false,message:'Kundkopplingen kunde inte verifieras. Kontrollera uppgifterna eller kontakta kundansvarig.'}
 async function runClaim() {
   await expect(claimPortalCustomerAction({ ok: false, message: '' }, claimForm())).rejects.toMatchObject({
     digest: expect.stringContaining('NEXT_REDIRECT'),
@@ -200,9 +232,7 @@ it('repeated self-claim retains existing owner verification bytes and creates no
 it('self-claim cannot create a second owner beside a saved same-subject portal-only viewer relationship', async () => {
   memory.rows.customer_portal_accounts = [{ ...account('viewer'), user_id: null }]
   const before = structuredClone(memory.rows.customer_portal_accounts)
-  await expect(claimPortalCustomerAction({ ok: false, message: '' }, claimForm())).rejects.toMatchObject({
-    code: 'portal_account_ambiguous', status: 409,
-  })
+  await expect(claimPortalCustomerAction({ ok: false, message: '' }, claimForm())).resolves.toEqual(genericClaimDenial)
   expect(memory.rows.customer_portal_accounts).toEqual(before)
   expect(memory.rows.customer_portal_claims ?? []).toEqual([])
   expect(memory.rows.customer_portal_events ?? []).toEqual([])
@@ -220,9 +250,7 @@ it('self-claim current-row readback after an INSERT 23505 retains a competing sa
 
 it.each(['disabled', 'missing'] as const)('self-claim cannot accept %s current relation after INSERT 23505', async collision => {
   memory.rows.customer_portal_accounts = []; memory.insertCollision = collision
-  await expect(claimPortalCustomerAction({ ok: false, message: '' }, claimForm())).rejects.toMatchObject({
-    code: collision === 'disabled' ? 'portal_identity_revoked' : 'portal_account_ambiguous',
-  })
+  await expect(claimPortalCustomerAction({ ok: false, message: '' }, claimForm())).resolves.toEqual(genericClaimDenial)
   expect(memory.rows.customer_portal_claims ?? []).toEqual([])
   expect(memory.rows.customer_portal_events ?? []).toEqual([])
   expect(memory.revalidated).toEqual([])

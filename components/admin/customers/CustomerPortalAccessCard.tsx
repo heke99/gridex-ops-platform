@@ -24,7 +24,8 @@ function statusTone(value: string | null | undefined): string {
  return 'bg-amber-100 text-amber-700'
 }
 
-function boolLabel(value: boolean): string {
+function boolLabel(value: boolean | null): string {
+ if (value === null) return 'Okänt'
  return value ? 'Ja' : 'Nej'
 }
 
@@ -75,7 +76,7 @@ export default function CustomerPortalAccessCard({
  </div>
  </div>
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Totala claims</div>
+ <div className="text-slate-700 ">Visade verifieringsförsök</div>
  <div className="mt-1 text-2xl font-semibold text-slate-950 ">
  {claims.length}
  </div>
@@ -112,7 +113,7 @@ export default function CustomerPortalAccessCard({
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div>
  <div className="font-semibold text-slate-950 ">
- {account.user_email ?? account.user_id}
+ {account.user_email ?? account.user_id ?? 'Okänd användare'}
  </div>
  <div className="mt-1 text-xs text-slate-700 ">
  Roll: {account.role} · Metod: {account.match_method ?? '—'}
@@ -162,10 +163,10 @@ export default function CustomerPortalAccessCard({
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div>
  <div className="font-semibold text-slate-950 ">
- {claim.user_email ?? claim.user_id}
+ {claim.user_email ?? claim.user_id ?? 'Okänd användare'}
  </div>
  <div className="mt-1 text-xs text-slate-700 ">
- {formatDateTime(claim.created_at)} · {claim.match_method}
+ {formatDateTime(claim.created_at)} · {claim.match_method ?? '—'}
  </div>
  </div>
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(claim.status)}`}>

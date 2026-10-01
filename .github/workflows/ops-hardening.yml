@@ -75,6 +75,14 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/agreement-protocol-deps" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.5.8
           NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/agreement-cleanup-native-protocol-20261001.test.cjs
+      - name: Reconstructed account and purchase PostgreSQL core controls
+        run: |
+          NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/customer-account-completion-reconstructed-20261001.postgres.test.cjs
+          NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/manual-purchase-intent-reconstructed-20261001.postgres.test.cjs
+      - name: Agreement company INSERT projection controls
+        run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/grid-owner-agreement-runtime-company-projection-20261001.postgres.test.cjs
+      - name: Agreement Page and guard company rendering controls
+        run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" npx vitest run --config scripts/grid-owner-agreement-runtime-company-render-20261001.config.ts --reporter=verbose
       - run: npm test
       - run: npm run api:docs
       - run: npm run api:compatibility
@@ -172,6 +180,11 @@ jobs:
           # agreement/upload/CAS behavior on the reconstructed schema.
           npx vitest run --config scripts/grid-owner-agreement-atomic-20261001.native.config.ts --reporter=verbose
           npx vitest run --config scripts/grid-owner-agreement-cleanup-20261001.native.config.ts --reporter=verbose
+          # Disposable GoTrue/PostgREST command proofs precede the independent
+          # browser fixture. Provider/producer boundaries remain explicit in
+          # their reports; no physical provider transport is invoked here.
+          npx vitest run --config scripts/customer-account-completion-reconstructed-20261001-native.config.ts --reporter=verbose
+          npx vitest run --config scripts/manual-purchase-intent-reconstructed-20261001-native.config.ts --reporter=verbose
           # Private owned GoTrue/Storage/Next agreement fixture. The secret is
           # local and ephemeral, and is exported before this fresh Next server.
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
@@ -489,6 +502,7 @@ jobs:
             e2e-artifacts/playwright-results/**/support-interactive-*.png
             e2e-artifacts/playwright-results/**/webhook-readonly-controls-*.png
             e2e-artifacts/playwright-results/**/ops-effect-*.png
+            e2e-artifacts/playwright-results/**/sanitized-agreement-runtime-precondition.json
           if-no-files-found: error
 
   upgrade-backup-restore:

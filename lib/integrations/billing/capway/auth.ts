@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { createHash } from 'node:crypto'
 import type {
   CapwayAuthMode,
   CapwayConnectionConfig,
@@ -55,6 +56,8 @@ export async function resolveCapwayConnectionConfig(input: {
   companyId: string
   environment?: CapwayEnvironment
   allowIncompleteStatus?: boolean
+  /** Server-only observation of the same canonical row used below. No decrypted secrets. */
+  onConnectionResolved?: (connection: Record<string, unknown> | null) => void
 }): Promise<CapwayConnectionConfig> {
   const environment = input.environment ?? 'test'
   let settings: Record<string, unknown> = {}
@@ -137,6 +140,12 @@ export async function resolveCapwayConnectionConfig(input: {
     )
   }
 
+  const row = data as Record<string, unknown> | null
+  input.onConnectionResolved?.(row ? {
+    id: row.id, company_id: row.company_id, provider: row.provider, environment: row.environment,
+    status: row.status, settings: structuredClone(settings), secret_reference: structuredClone(secretReference),
+  } : null)
+
   return {
     companyId: input.companyId,
     environment,
@@ -175,7 +184,15 @@ export async function getCapwayAccessToken(
     )
   }
 
-  const cacheKey = `${config.companyId}:${config.environment}`
+  // Scope tokens to the exact provider realm, credential and effective grant.
+  // This fingerprint lives only in this process; secrets never become a log,
+  // persisted receipt or plaintext cache key. Company-wide invalidation remains.
+  const identity = createHash('sha256').update(JSON.stringify([
+    config.provider, config.baseUrl, config.authMode, config.tokenUrl,
+    config.clientId, config.clientSecret, String(config.rawSettings?.grant_type ?? 'client_credentials'),
+    stringValue(config.rawSettings?.scope), stringValue(config.rawSettings?.audience),
+  ])).digest('hex')
+  const cacheKey = `${config.companyId}:${config.environment}:${identity}`
   const cached = tokenCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now() + 60_000) return cached.accessToken
 

@@ -1,3 +1,11 @@
+## Final33 candidate boundary
+
+LocalfullsourcegatesPASS; honestgenerated31→33 typesgateFAIL untilauthenticcapture. Newnative4/15=0, actual9e browserfailureCAUSE_UNKNOWN withlaterNOT_REACHED. Sanitizeddiagnostic45PASS alone doesnotclosebrowser. U07local38/core12PASS separate, remaininginternalchainsOPEN. Original75/P0–P8OPEN; no blanketexternalblock.
+
+## Current boundaries — actual9e first browser failure and next33 qualification
+
+Agreementcleanup3 genuinePASS. Actual browser1 fails selectOption10000, cause NOT_AVAILABLE_IN_CAPTURE; later native/HTTP/browser NOT_REACHED. Diagnostics pending, no guessed seed/guard fix. Reconstructed source local qualification does not close native4/15, mounted forms, provider/producer or whole requirements. Real types-manifest31→33 failure requires authentic CI artifact adoption, not a gate change. U07 corpus/latest-state8RED is internal actionable work; no blanket external blocker. CLI followup auto-review rejected; no retry/telemetry path, local existingforward implementation authorized by original explicit masterplan mandate. All75/P0–P8 remain OPEN.
+
 ## Current agreement boundary — local protocol qualified, native pending
 
 Published6c cleanup3 remains terminalFAIL/customer_sqlUNKNOWN, primary text unavailable. Independently actual-generator/PG-row-output/strict-parser extra-stdout defect is corrected and local14PASS, but new genuine native/Auth/business/provider0. Later native/browser were NOT_REACHED, not externally blocked. Isolated reconstructed account/purchase/admin and U07 register implementation continue. All75/P0–P8OPEN.

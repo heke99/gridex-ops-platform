@@ -44,6 +44,50 @@ async function cleanupHttp(request, expectedClaimed) {
     expect(await response.json()).toEqual({ result: { claimed: expectedClaimed, removed: expectedClaimed, retried: 0, stale: 0, errors: 0 } })
   })
 }
+const agreementPreconditionSnapshots = []
+async function agreementCompanySelectionPrecondition(page, form, response, testInfo, phase) {
+  if (!['before_action', 'after_selection_failure'].includes(phase) || agreementPreconditionSnapshots.length >= 2) {
+    throw new Error('agreement_runtime_precondition_failed:diagnostic_phase')
+  }
+  const snapshot = { phase, status: null, expectedLoopbackRoute: false,
+    headingCount: null, formCount: null, companySelectCount: null, fixtureOptionCount: null, observationStage: null }
+  const count = value => Number.isSafeInteger(value) && value >= 0 && value <= 100_000 ? value : null
+  let captureStage = 'http_status'
+  let captureFailed = false
+  try {
+    const status = response?.status()
+    snapshot.status = Number.isInteger(status) && status >= 100 && status <= 599 ? status : null
+    captureStage = 'expected_route'
+    const url = new URL(page.url())
+    snapshot.expectedLoopbackRoute = url.origin === 'http://127.0.0.1:3000' && url.pathname === routePath && !url.search && !url.hash && !url.username && !url.password
+    captureStage = 'heading'
+    snapshot.headingCount = count(await page.getByRole('heading', { name: 'Nätägaravtal', exact: true }).count())
+    captureStage = 'form'
+    snapshot.formCount = count(await form.count())
+    captureStage = 'company_select'
+    const select = form.locator('select[name="company_id"]')
+    snapshot.companySelectCount = count(await select.count())
+    captureStage = 'fixture_option'
+    snapshot.fixtureOptionCount = count(await select.locator('option').evaluateAll((options, company) => options.filter(option => option.value === company).length, f.company))
+  } catch { snapshot.observationStage = captureStage; captureFailed = true }
+  if (!snapshot.observationStage) snapshot.observationStage = snapshot.status !== 200 ? 'http_status' : !snapshot.expectedLoopbackRoute ? 'expected_route'
+    : snapshot.headingCount !== 1 ? 'heading' : snapshot.formCount !== 1 ? 'form' : snapshot.companySelectCount !== 1 ? 'company_select'
+      : snapshot.fixtureOptionCount !== 1 ? 'fixture_option' : null
+  agreementPreconditionSnapshots.push(snapshot)
+  const receipt = { stage: 'agreement_company_selection_precondition', snapshots: agreementPreconditionSnapshots }
+  // Initial missing counts are observations, not a readiness gate. Preserve
+  // the exact original selection auto-wait. A real failure gets a second snapshot.
+  // Raw page/URL/body/Auth/errors never enter the root-whitelisted safe file.
+  console.log('AGREEMENT_RUNTIME_BROWSER_PRECONDITION ' + JSON.stringify(receipt))
+  let output
+  try {
+    output = testInfo.outputPath('sanitized-agreement-runtime-precondition.json')
+    writeFileSync(output, JSON.stringify(receipt) + '\n', { mode: 0o600 })
+  } catch { throw new Error('agreement_runtime_precondition_failed:receipt_write') }
+  try { await testInfo.attach('sanitized-agreement-runtime-precondition', { path: output, contentType: 'application/json' }) }
+  catch { throw new Error('agreement_runtime_precondition_failed:receipt_attach') }
+  if (captureFailed) throw new Error('agreement_runtime_precondition_failed:capture_' + captureStage)
+}
 test('actual mounted upload, protected local bytes and archive remain saved while durable crash cleanup settles only unattached keys', async ({ page, context }, testInfo) => {
   await context.route('**/*', async route => {
     const url = new URL(route.request().url())
@@ -56,9 +100,15 @@ test('actual mounted upload, protected local bytes and archive remain saved whil
   await page.getByRole('button', { name: 'Logga in', exact: true }).click()
   await page.waitForURL(url => !url.pathname.startsWith('/login'))
   await context.addCookies([{ name: 'gridex_admin_selected_company_id', value: f.company, url: 'http://127.0.0.1:3000', sameSite: 'Lax' }])
-  await page.goto(routePath)
+  const agreementPageResponse = await page.goto(routePath)
   const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Spara nätägaravtal', exact: true }) })
-  await form.locator('select[name="company_id"]').selectOption(f.company)
+  await agreementCompanySelectionPrecondition(page, form, agreementPageResponse, testInfo, 'before_action')
+  try {
+    await form.locator('select[name="company_id"]').selectOption(f.company)
+  } catch (selectionError) {
+    await agreementCompanySelectionPrecondition(page, form, agreementPageResponse, testInfo, 'after_selection_failure')
+    throw selectionError
+  }
   await form.locator('select[name="grid_owner_id"]').selectOption(f.owner)
   await form.locator('input[name="agreement_reference"]').fill(f.tag)
   await form.locator('input[name="document_file"]').setInputFiles({ name: 'owned.pdf', mimeType: 'application/pdf', buffer: pdf })

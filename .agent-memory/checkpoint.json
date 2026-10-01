@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-01T11:05:47.427515+00:00",
+  "updated_at": "2026-10-01T12:29:08.845138+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/tenantservice-api-structure-20260929",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Freeze exact reviewed agreement protocol tree over published6c, fresh ownership/ref/base checks, sole non-force publish to draft422, verify actual same-tree head/merge and genuine CI first failure; continue separately reconstructed account/purchase/admin integration, native preparation/authentic33 capture, U07 register coverage and every original75/P0–P8 effect chain.",
+  "next_action": "Freeze reviewed reconstructed account/purchase/admin + sanitized agreement-browser diagnostic over actual9e; sole non-force publish existing422, verify exacthead/merge/tree; collect genuine native4/15 and authentic33-generated artifacts, adopt byte-exact output and requalify samecandidate. Continue separate full-corpus U07 and every original75/P0-P8 chain.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -1202,12 +1202,12 @@
     "original75": "OPEN"
   },
   "agreement_cleanup_protocol_correction": {
-    "status": "IMPLEMENTED_NOT_VERIFIED_FULL_NATIVE",
+    "status": "VERIFIED_BOUNDED_PROTOCOL_AND_NATIVE3",
     "base_head": "6c5cca0edc1e58e90e979a45d3efc093ae91ca33",
     "genuine_baseline": "8controlsPASS/2RED_extra_stdout_actualcompiledfixture_and_sharedparser",
     "newline_hypothesis": "FALSE_POSITIVE_ACTUAL_AST_LF_AND_SQL_PARSE",
     "minimal_scope": "DO_PERFORM_ONLY_NO_PARSER_OR_BUSINESS_GUARD_CHANGE",
-    "native_current": 0,
+    "native_current": 3,
     "sole_publisher": "root",
     "local_qualified": {
       "actual_generator_protocol_tests": 14,
@@ -1226,6 +1226,106 @@
     "test_sha256": "b25f7c0194ec516bcdba9f641902b2529c3683a00aafe782358e1bcdcba7892e",
     "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/agreement-protocol-integration-20261001.md",
     "ordinary_tests_not_repeated": "CURRENT6C_7624/527_GENUINE_PASS_PRODUCT_UNCHANGED",
-    "original75": "OPEN"
+    "original75": "OPEN",
+    "actual_native_ci": "9e/36853593776/110340717390_TERMINAL3_PASS_2026-10-01T11:13:58.0816485Z"
+  },
+  "ci_continuation_9e": {
+    "status": "PARTIAL",
+    "head": "9e59b013d3f7ad4f445d6ed9805705f168c2ec14",
+    "tree": "9875bb5a3b499426fae675c9a3e15062609ae82b",
+    "checkout": "389c743135eda1af02f4d5feac52faced7ecade5",
+    "checkout_same_tree": true,
+    "ops_run": 36853593776,
+    "verify": "PASS",
+    "quality": "7624/527_PASS_SOURCE35_PROTOCOL14_BUILD_PASS",
+    "upgrade_restore": "STRICT_CURRENT_PINNED_OLD_ROLLBACK_AND_FRESH_OLD8_PASS",
+    "actual_native_terminal_cases": 62,
+    "count_includes_runtime_seed_and_teardown": true,
+    "agreement_cleanup_native": "3/3_TERMINAL_PASS",
+    "first_failure": {
+      "kind": "Playwright selectOption timeout10000",
+      "at": "2026-10-01T11:14:49.8797897Z",
+      "cause": "NOT_AVAILABLE_IN_CAPTURE",
+      "business_post_browser": "NOT_REACHED",
+      "always_teardown": "PASS"
+    },
+    "generated31": "AUTHENTIC3_BYTEIDENTICAL_TRACKED_AND_ACTUAL_HEAD_GIT_BLOBS",
+    "safe_receipt_sha256": "c3ed9c62f2e753a692da5465bc01aacf967bfad2551bfd8baad496786c67277b",
+    "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ci-first-failures-9e-outcome-20261001.md",
+    "original75": "ALL_OPEN"
+  },
+  "next10_reconstructed_integration": {
+    "status": "IMPLEMENTED_NOT_VERIFIED_FULL_NATIVE",
+    "base_head": "9e59b013d3f7ad4f445d6ed9805705f168c2ec14",
+    "root_sole_integrator": true,
+    "packets": [
+      "account10",
+      "purchase11",
+      "admin5",
+      "purchase_native4"
+    ],
+    "provenance": "RECONSTRUCTED_FRESH_BYTES_NOT_RECOVERED_UNPUBLISHED_OR_HISTORICAL_PASS",
+    "root_local": {
+      "ordinary_before_new_diagnostics": "7695/531_PASS_HISTORICAL",
+      "app_types": "PASS",
+      "test_types_before_new_diagnostics": "PASS",
+      "scripts_types": "PASS",
+      "whole_lint": "0_ERRORS_101_HISTORICAL_WARNINGS",
+      "account_core": "28/28_PASS_INCLUDES_ONE_OLD42703_CHARACTERIZATION",
+      "purchase_core": "29/29_PASS",
+      "role_preservation": "14/14_PASS",
+      "API_RBAC_BUDGET_PERFORMANCE": "6_GATES_PASS",
+      "migration_integrity": "686_FILES_590_VERSIONGROUPS_PASS_ONLY_NEW2_CHECKSUMS_ADDED_OLD36_PRESERVED",
+      "types_manifest_and_golden": "FAIL_ONLY_REAL_MIGRATION_TAIL31_TO33_AUTHENTIC_GENERATION_PENDING",
+      "ordinary_final": "7721/532_PASS_CURRENT_DIAGNOSTIC26",
+      "test_types_final": "PASS_3072_CURRENT_DIAGNOSTIC26",
+      "scripts_types_final": "PASS_1536_RELOCATED_SSR17_CONFIG_NATIVE15",
+      "production_build": "PASS4096_AFTER_LOCAL_WORKER2048_OOM_SETUP",
+      "relocated_SSR17": "ROOT17_PASS_BODYBYTEIDENTICAL_UNCONDITIONAL_ISOLATED_QUALITY",
+      "ordinary_initial_failure": "7721_PASS_17FILE_PGLITE_DEPENDENCY_LOADFAIL_RESOLVED_RELOCATION_ALL17_RETAINED",
+      "workflow_final": "4JOBS_56BASH_STEPS_PEER_PASS",
+      "service_role_ratchet": "2355_PASS_BASELINE2402_UNCHANGED"
+    },
+    "native_account": {
+      "prepared": 4,
+      "executed": 0
+    },
+    "native_purchase": {
+      "prepared": 15,
+      "executed": 0
+    },
+    "agreement_render": {
+      "root_source_peer_and_independentSSR": 17,
+      "actual_insert_trigger_core": 2,
+      "native_browser": 0,
+      "cause": "UNKNOWN_NO_SEED_FIX"
+    },
+    "generated_source_policy": "NO_MANUAL_SCHEMA_TYPE_OR_FINGERPRINT_EDITS_AUTHENTIC33_CAPTURE_REQUIRED",
+    "full_original75": "OPEN",
+    "diagnostic": {
+      "new": 26,
+      "retained_private": 19,
+      "owner_independent": "45/45_PASS",
+      "manifest_sha256": "3cbeed906df2d4a57de3e75d40369f7ea1f99f6b4f05461a10cd75c1ddc7b3f2",
+      "genuine_browser": 0,
+      "initial_counts": "OBSERVATION_ONLY",
+      "terminal_selection_error": "IDENTITY_AND_ORIGINAL10000_WAIT_RETAINED"
+    },
+    "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/next10-reconstructed-integration-20261001.md"
+  },
+  "u07_full_corpus_continuation": {
+    "status": "IN_PROGRESS",
+    "worktree": "gridex-next10-customer-registry-20261001",
+    "actual_phase1": "24_EXPORTED_READER_CASES_8_CAUSAL_RED_16_PASS",
+    "four_customer_facts": "ABSENT_CANONICAL_NULL_NOT_INVENTED",
+    "root_go": "FULL_MASTERPLAN_LOCAL_IMPLEMENTATION_READONLY_SERVICE_INVOKER_RPC_COMPLETE_CORPUS_AND_RELATIONS_BEFORE_PAGE",
+    "allocated_forward": "20261001114832_customer_registry_full_corpus_u07.sql",
+    "native_sql_auth_browser": "NOT_EXECUTED_FULL_NATIVE_ONLY_BOUNDED_CORE12_PASS",
+    "whole_U07": "OPEN",
+    "CLI_auto_review": "STATUS_FOLLOWUP_REJECTED_PENDING_SCOPE_AND_POSTHOG_TELEMETRY_NO_RETRY_NO_MORE_CLI_EXISTING0B_PATH_ONLY_LOCAL_GO_AFTER_EXPLICIT_USERPROMPT_LINES3_60_82_103_VERIFIED",
+    "local_qualified": "32NEW_PLUS6_RETAINED38_PASS_OWNER_AND_INDEPENDENT",
+    "actual_postgres_core": "12/12_OWNER_AND_INDEPENDENT_PASS",
+    "frozen_manifest_sha256": "1aa50a6057d94f5ea99b53b4589b8a6b5004f3151c82fb6ea9bfb75d3f5ee3ac",
+    "integration": "SEPARATE_NOT_IN33"
   }
 }
