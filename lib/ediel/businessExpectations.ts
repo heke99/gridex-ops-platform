@@ -4,6 +4,7 @@ import { canonicalDeadlineForMessage, canonicalProdatSubtypeForMessage, canonica
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+export {EDIEL_TECHNICAL_ACK_EXPECTATION_CONSTRAINTS,prepareEdielTechnicalExpectationPlan,type EdielTechnicalExpectationPlan} from '@/lib/ediel/technicalExpectations'
 
 export type EdielBusinessExpectationPlan = Readonly<{
   version: 1; sourceCode: 'Z01' | 'Z13' | 'Z18'; expectedFamily: 'PRODAT'; expectedCode: string;

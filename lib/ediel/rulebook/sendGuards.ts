@@ -4,7 +4,7 @@ import {assertMeterChangeSendBoundary} from '@/lib/ediel/prodat/prodatMeterChang
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import type {ProdatDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { type RulebookValidationResult, validateEdielMessageRowWithRulebook } from '@/lib/ediel/rulebook/validator'
+import { type RulebookValidationResult, validateEdielMessageRowWithRulebook, validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { sourceQualifiedNegativeFixtureMatchesMessage, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 
 export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,negativeFixture?:SourceQualifiedNegativeFixture | null): RulebookValidationResult | null {
@@ -13,6 +13,24 @@ export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventConte
   if(!gasApplicabilitySendIssue(message))assertMeterChangeSendBoundary(message)
 
   const validation = validateEdielMessageRowWithRulebook(message, 'send',dateEventContext,reportingContext)
+  return enforceQualifiedSendValidation(message, validation, negativeFixture)
+}
+
+/** Actual persisted sends consume the same canonical registry/original ports.
+ * In particular ACKs cannot gain original authority from detached row JSON. */
+export async function assertRegistryRulebookAllowsSend(message: EdielMessageRow, dateEventContext?: ProdatDateEventValidationContext,
+  reportingContext?: ExpectedContext, negativeFixture?: SourceQualifiedNegativeFixture | null): Promise<RulebookValidationResult | null> {
+  if (message.direction !== 'outbound') return null
+  assertProdatFreeTextSendBoundary(message)
+  if (!gasApplicabilitySendIssue(message)) assertMeterChangeSendBoundary(message)
+  const validation = await validateRulebookMessageWithRegistry({family: message.message_family, code: message.message_code,
+    processGroup: message.process_type, applicationReference: message.application_reference, rawPayload: message.raw_payload,
+    parsedPayload: message.parsed_payload, mode: 'send', direction: message.direction, environment: message.environment,
+    companyId: message.company_id, messageRow: message, dateEventRow: message, dateEventContext, reportingContext})
+  return enforceQualifiedSendValidation(message, validation, negativeFixture)
+}
+
+function enforceQualifiedSendValidation(message: EdielMessageRow, validation: RulebookValidationResult, negativeFixture?: SourceQualifiedNegativeFixture | null): RulebookValidationResult {
   const errors = validation.issues.filter((issue) => issue.severity === 'error' || issue.blocking)
   const registerErrors = errors.filter(issue => issue.scope === 'prodat_register')
   const dependentErrors = errors.filter(issue => issue.scope === 'prodat_dependent')
