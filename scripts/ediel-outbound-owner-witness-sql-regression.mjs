@@ -40,7 +40,7 @@ try {
  await db.exec(inherited.slice(inherited.indexOf('CREATE FUNCTION gridex_utilts_binding.wire_tokens_v1'),inherited.indexOf('REVOKE ALL ON FUNCTION gridex_utilts_binding.wire_tokens_v1')))
  await db.exec(`alter table ediel_messages add column execution_context_snapshot jsonb;
  create function gridex_ediel_inbound_context.derive(m public.ediel_messages,t timestamptz) returns jsonb language plpgsql as $$begin
- if m.company_id is null or m.raw_payload not like '%NAD+MS+LOCAL::9%' then raise exception 'ediel_inbound_legal_context_required';end if;
+ if m.company_id is null or (m.raw_payload not like '%NAD+MS+LOCAL::9%' and m.raw_payload not like '%NAD+MS+52101:SVK:260%') then raise exception 'ediel_inbound_legal_context_required';end if;
  if m.message_family IN('APERAK','UTILTS_ERR') then return jsonb_build_object('basisKind','prescribed_outbound_ack','originalSourceMessageId',m.related_message_id);end if;
  return jsonb_build_object('basisKind','observed_source_persistence','family',m.message_family,'code',m.message_code,'subtype',null);end$$;
  create schema gridex_outbound_dispatch;
@@ -197,5 +197,35 @@ try {
  await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','UTILTS','E66',$3,now())",[uid(90),uid(1),originalRaw]);await legal(90)
  const facts=JSON.stringify({owner:'canonical-runtime-with-registry-v1',rulePackEvidence:{...original,snapshot:midnightSnapshot}});await db.query("insert into gridex_received_sources.validation_assessments values($1,$2,$3,'test',encode(sha256(convert_to($4,'UTF8')),'hex'),null,'canonical-runtime-with-registry-v1',$5,encode(sha256(convert_to($5,'UTF8')),'hex'))",[uid(91),uid(90),uid(1),originalRaw,facts])
  assert.equal((await capture(90)).version,'25.A:r3');checks++
+ // Full native guide source-knowledge is generated from the same TS owner.
+ // Existing binding rows stay immutable; only exact original hashes and old
+ // P/U/T constraint equality permit the additive knowledge extension.
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930222834_ediel_registered_original_native_response_guides.sql',import.meta.url),'utf8'));checks++
+ const projection=(await db.query("select projection from gridex_ediel_ack_guide.editions where projection ? 'utiltsErr' order by installed_at desc limit1".replace('limit1','limit 1'))).rows[0].projection
+ const counted=async wire=>{const tokens=(await db.query('select gridex_utilts_binding.wire_tokens_v1($1) t',[wire])).rows[0].t;const count=tokens.find(t=>t.tag==='UNT').index-tokens.find(t=>t.tag==='UNH').index+1;return wire.replace(/UNT\+[0-9]+\+/,`UNT+${count}+`)}
+ const sourceCopies="LOC+172+731000000000000001::9'LOC+239+AAA:SVK:260'NAD+DDK+52102:SVK:260'NAD+DDQ+52101:SVK:260'PIA+1+V1:PT:SVK:260'DTM+324:202609290000202609300000:719'STS+7++E03::260'"
+ const qualifiedErrSource=await counted(functionalSource.replace('UTILTS:D:04A','UTILTS:D:02B').replace("NAD+MS+REMOTE::9", "MKS+23+E02::260'NAD+MS+52100:SVK:260").replace('NAD+MR+LOCAL::9','NAD+MR+52101:SVK:260').replace("IDE+24+FUNC'",`NAD+DDQ'IDE+24+FUNC'${sourceCopies}`))
+ const qualifiedErr=await counted(errRaw().replace('UTILTS:D:04A','UTILTS:D:02B').replace('NAD+MS+LOCAL::9',"MKS+23+E02::260'NAD+MS+52101:SVK:260").replace('NAD+MR+REMOTE::9','NAD+MR+52100:SVK:260').replace("IDE+24+OWN-ERR-T'LOC+172+731000000000000001::9'",`NAD+DDQ'IDE+24+OWN-ERR-T'${sourceCopies}`))
+ const guideCheck=async(wire=qualifiedErr,source=qualifiedErrSource)=>(await db.query('select gridex_ediel_ack_guide.validate_utilts_err_v1($1,$2,$3) ok',[await counted(wire),source,projection])).rows[0].ok
+ assert.equal(await guideCheck(),true);checks++
+ for(const wire of [qualifiedErr.replace('E51::260','E999::260'),qualifiedErr.replace('STS+E01::260+41','STS+E01::260+39'),qualifiedErr.replace('LOC+239+AAA','LOC+239+BBB'),qualifiedErr.replace("PIA+1+V1:PT:SVK:260'",''),qualifiedErr.replace('RFF+TN:FUNC','RFF+TN:SIBLING'),qualifiedErr.replace('RFF+E66:D','RFF+E66:OTHER'),qualifiedErr.replace('MKS+23+E02','MKS+23+E03'),qualifiedErr.replace("NAD+DDQ'","NAD+DDK'"),qualifiedErr.replace('NAD+MR+52100','NAD+MR+WRONG'),qualifiedErr.replace('202609301200','202602301200'),qualifiedErr.replace('735:?+0100:406','735:?+0200:406'),qualifiedErr.replace('RFF+TN:FUNC',"SEQ+1'QTY+136:1'RFF+TN:FUNC")]){assert.equal(await guideCheck(wire),false,wire);checks++}
+ assert.equal(await guideCheck(qualifiedErr.replace('OWN-ERR-D+9+AB','OWN-ERR-D+5+NA')),true);checks++
+ const altSource='UNA:*.! ~'+qualifiedErrSource.replaceAll('+','*').replaceAll('?','!').replaceAll("'",'~');assert.equal(await guideCheck(qualifiedErr,altSource),true);checks++
+ await db.exec("update ediel_rule_packs set guide_version='25-A-3'")
+ const registeredSnapshot=(await db.query("select jsonb_build_object('rulePack',(select to_jsonb(p) from ediel_rule_packs p),'messageProfile',(select to_jsonb(p) from ediel_message_profiles p),'guideSources',(select jsonb_agg(to_jsonb(s) order by id) from ediel_rule_pack_sources s)) s")).rows[0].s
+ const registeredEvidence={...w.evidence,version:'25-A-3:r3',snapshot:{...w.evidence.snapshot,version:'25-A-3:r3',...registeredSnapshot}}
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','UTILTS','E66',$3,now())",[uid(98),uid(1),qualifiedErrSource]);await legal(98)
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(98),uid(1),qualifiedErrSource,registeredEvidence])
+ await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(98),registeredEvidence]);await db.exec(`insert into ediel_ack_transaction_results values('${uid(1)}','test','${uid(98)}','FUNC','processability_rejected','utilts_err','not_applicable',null,null,null,null)`);await setFunctionalFixture(globalError)
+ const prepareQualifiedErr=async(raw=qualifiedErr)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:raw,relatedMessageId:uid(98),rulePackEvidence:registeredEvidence}])).rows[0].r
+ assert.equal((await prepareQualifiedErr()).evidence.version,'25-A-3:r3');checks++
+ await assert.rejects(prepareQualifiedErr(qualifiedErr.replace('LOC+239+AAA','LOC+239+BBB')),/ediel_native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareQualifiedErr(qualifiedErr.replace('202609301200','209909301200')),/ediel_native_err_document_date_future/);checks++
+ await assert.rejects(db.query("select gridex_ediel_ack_guide.require_registered_basis_v1(m,'national',$2,$3) from ediel_messages m where id=$1",[uid(98),{...registeredEvidence,version:'999:r1',snapshot:{...registeredEvidence.snapshot,rulePack:{...registeredSnapshot.rulePack,guide_version:'999',guide_revision:'1'}}},projection]),/ediel_registered_original_guide_unavailable/);checks++
+ await assert.rejects(db.exec("update gridex_ediel_ack_guide.edition_extensions set extended_source_version=original_source_version"),/received_source_evidence_is_append_only/);checks++
+ const scopeAcl=(await db.query("select has_table_privilege('service_role','gridex_ediel_ack_guide.edition_extensions','insert') mutate_extension,has_function_privilege('service_role','gridex_ediel_ack_guide.projection_for_original_v1(text)','execute') read_private")).rows[0];assert.deepEqual(scopeAcl,{mutate_extension:false,read_private:false});checks++
+ // A new stricter original-guide qualifier cannot reopen or deny established
+ // provider entry whose immutable wrapper already returns proceed=false.
+ assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[{...positiveInput,action:'enter'}])).rows[0].r.proceed,false);checks++
  console.log(`Focused PostgreSQL outbound original owner seal/one-use atomic insertion/named version/raw scope/ACL/native Z08 binding checks: ${checks} PASS`)
 } catch(e){console.error(e.stack,e.where??'',e.position??'',e.routine??'');process.exitCode=1} finally{await db.close()}
