@@ -18,12 +18,14 @@ function load(file){
 const port=load(path.join(root,'lib/ediel/technicalExpectations.ts'))
 const constraints=port.EDIEL_TECHNICAL_ACK_EXPECTATION_CONSTRAINTS
 const ackMatrix=load(path.join(root,'lib/ediel/ack/canonicalAckEngine.ts')).listCanonicalAckMatrix()
-const scopes=load(path.join(root,'lib/ediel/rulebook/canonicalEdielFacade.ts')).canonicalRegisteredEdielGuideScopes()
+const facade=load(path.join(root,'lib/ediel/rulebook/canonicalEdielFacade.ts'))
+const scopes=facade.canonicalRegisteredEdielGuideScopes()
+const logicalCodes=facade.canonicalLogicalMessageCodeProjection()
 const profiles=[...load(path.join(root,'lib/ediel/rulebook/prodatRulebook.ts')).PRODAT_CANONICAL_PROFILES.map(p=>({family:'PRODAT',code:p.messageCode,profileKey:p.profileKey})),...load(path.join(root,'lib/ediel/rulebook/utiltsRulebook.ts')).UTILTS_CANONICAL_PROFILES.map(p=>({family:p.messageCode==='ERR'?'UTILTS_ERR':'UTILTS',code:p.messageCode,profileKey:p.profileKey})),{family:'APERAK',code:'APERAK',profileKey:null}]
 if(constraints?.version!==1||!Number.isSafeInteger(constraints.offset)||constraints.offset<=0||constraints.anchor!=='actual_accepted_smtp_observed_at'||!Array.isArray(ackMatrix))throw Error('Actual technical watch source port unavailable')
 for(const name of ['lib/ediel/businessExpectations.ts','docs/ediel/masterplan-v2/registers/source_manifest.json'])inputs[name]=hash(fs.readFileSync(path.join(root,name),'utf8'))
 inputs['scripts/generate-ediel-native-technical-expectation-projection.cjs']=hash(fs.readFileSync(__filename,'utf8'))
-const inputManifest=Object.fromEntries(Object.entries(inputs).sort(([a],[b])=>a.localeCompare(b))),projection={constraints,ackMatrix,scopes,profiles},edition={sourceVersion:hash(JSON.stringify({inputManifest,projection})),inputManifest,projection}
+const inputManifest=Object.fromEntries(Object.entries(inputs).sort(([a],[b])=>a.localeCompare(b))),projection={constraints,ackMatrix,scopes,profiles,logicalCodes},edition={sourceVersion:hash(JSON.stringify({inputManifest,projection})),inputManifest,projection}
 const literal=JSON.stringify(edition).replaceAll("'","''"),block=`-- BEGIN CANONICAL TECHNICAL EXPECTATION PROJECTION
 INSERT INTO gridex_ediel_transport.technical_expectation_editions(source_version,input_manifest,projection)
 SELECT value->>'sourceVersion',value->'inputManifest',value->'projection' FROM (SELECT '${literal}'::jsonb value) edition;
