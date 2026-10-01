@@ -1,3 +1,5 @@
+import {type PeriodicReasonAuthority} from '@/lib/ediel/utilts/periodicReasonAuthority'
+import {applyPeriodicReasonGuide} from '@/lib/ediel/utilts/periodicReasonGuide'
 import {utiltsIssuerIdentityFacts,type UtiltsIssuerIdentityAuthority,type UtiltsIssuerIdentityFacts} from '@/lib/ediel/utilts/issuerIdentityAuthority'
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
@@ -46,23 +48,23 @@ export type UtiltsRuntimeReferenceOptions = {
   canonicalPolicy?: CanonicalEdielPolicy
   /** Internal whole-guide candidate selection; never authorizes effects/ACKs. */
   guideOnly?: boolean
-  issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority
+  issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority
 }
 
 const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
 
-const runtimeOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority}>()
+const runtimeOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority}>()
 export function utiltsRuntimeOwnerFingerprint(message:EdielMessageRow,runtime:UtiltsRuntimeResult):{sourceHash:string;resultHash:string} {
   return {sourceHash:evidenceHash(JSON.stringify(message)),resultHash:evidenceHash(JSON.stringify(runtime))}
 }
 /** One-use actual engine/structural-owner handoff. A copied or mutated runtime,
  * a different source context/policy, or a guide-only candidate has no owner. */
-export function takeUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy,issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority):UtiltsRuntimeResult|null {
+export function takeUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy,issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority,periodicReasonAuthority?:PeriodicReasonAuthority):UtiltsRuntimeResult|null {
   const owner=runtimeOwners.get(runtime)
   runtimeOwners.delete(runtime)
-  if(!owner) return takeQualifiedUtiltsRuntimeOwner(runtime,message,policy,issuerIdentityAuthority)
+  if(!owner) return takeQualifiedUtiltsRuntimeOwner(runtime,message,policy,issuerIdentityAuthority,periodicReasonAuthority)
   const scope=utiltsRuntimeOwnerFingerprint(message,runtime)
-  return owner.policy===policy && owner.issuerIdentityAuthority===issuerIdentityAuthority && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
+  return owner.policy===policy && owner.issuerIdentityAuthority===issuerIdentityAuthority && owner.periodicReasonAuthority===periodicReasonAuthority && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
 }
 
 function runtimeValidationMessage(message: EdielMessageRow): EdielMessageRow {
@@ -934,6 +936,7 @@ function runUtiltsRuntimeForMessageCore(
   const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
   let guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered, sourceGuideIssues))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   if (options?.guideOnly) return guided
+  if(canonicalPolicy)guided=applyPeriodicReasonGuide({message,policy:canonicalPolicy,result:guided,authority:options?.periodicReasonAuthority,rebuild:rebuildUtiltsRuntimeResult})
   if(options?.issuerIdentityAuthority){
     if(!canonicalPolicy)throw new Error('ediel_utilts_issuer_identity_policy_required')
     guided=applyUtiltsIssuerIdentityGuide(message,guided,utiltsIssuerIdentityFacts({authority:options.issuerIdentityAuthority,message,policy:canonicalPolicy}))
@@ -941,7 +944,11 @@ function runUtiltsRuntimeForMessageCore(
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
-  if (eligible.size === 0) return applyCanonicalE66PersistencePayload(guided)
+  if (eligible.size === 0) {
+    const retained=applyCanonicalE66PersistencePayload(guided)
+    if(options?.canonicalPolicy)runtimeOwners.set(retained,{...utiltsRuntimeOwnerFingerprint(message,retained),policy:options.canonicalPolicy,issuerIdentityAuthority:options.issuerIdentityAuthority,periodicReasonAuthority:options.periodicReasonAuthority})
+    return retained
+  }
 
   const functionalBase = runLegacyUtiltsRuntimeForMessage(validationMessage, { functionalEligible: eligible })
   const functionalCorrected = applyCanonicalE66QuantityPolicyToRuntimeResult({
@@ -960,6 +967,6 @@ export function runUtiltsRuntimeForMessage(message:EdielMessageRow,options?:Util
   const runtime=runUtiltsRuntimeForMessageCore(message,options)
   // Final effect paths always provide their retained policy. Guide candidates
   // and diagnostic calls with no source-qualified retained policy cannot seal.
-  if(options?.canonicalPolicy && !options.guideOnly) runtimeOwners.set(runtime,{...utiltsRuntimeOwnerFingerprint(message,runtime),policy:options.canonicalPolicy,issuerIdentityAuthority:options.issuerIdentityAuthority})
+  if(options?.canonicalPolicy && !options.guideOnly) runtimeOwners.set(runtime,{...utiltsRuntimeOwnerFingerprint(message,runtime),policy:options.canonicalPolicy,issuerIdentityAuthority:options.issuerIdentityAuthority,periodicReasonAuthority:options.periodicReasonAuthority})
   return runtime
 }

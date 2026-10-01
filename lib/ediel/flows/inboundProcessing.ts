@@ -5,7 +5,7 @@ import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceV
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence';
 import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry';
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator';
-import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,recordEdielTechnicalSyntaxDecision} from '@/lib/ediel/ack/technicalSyntaxAuthority';
+import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,recordEdielTechnicalSyntaxDecision,technicalSyntaxAckQualification} from '@/lib/ediel/ack/technicalSyntaxAuthority';
 import {createHash} from 'node:crypto';
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
@@ -70,7 +70,6 @@ import { processAiBiInboundReconciliation } from "@/lib/ediel/aiBiInboundReconci
 
 function shouldProcessInboundMessage(message: EdielMessageRow): boolean {
   return (
-    isActiveEdielMessageFamily(message.message_family) &&
     message.direction === "inbound" &&
     message.message_standard === "edifact" &&
     message.status !== "cancelled"
@@ -807,22 +806,6 @@ export async function processInboundEdielMessage(params: {
     return message;
   }
 
-  if (!isActiveEdielMessageFamily(message.message_family)) {
-    await createEdielMessageEvent({
-      actorUserId,
-      edielMessageId: message.id,
-      eventType: "manual_note",
-      eventStatus: "warning",
-      message:
-        "Batch 6 hoppade över meddelandet eftersom familjen ligger utanför aktiv release.",
-      payload: {
-        messageFamily: message.message_family,
-        activeFamilies: ACTIVE_EDIEL_MESSAGE_FAMILIES,
-      },
-    });
-    return message;
-  }
-
   if (!shouldProcessInboundMessage(message)) {
     await createEdielMessageEvent({
       actorUserId,
@@ -851,6 +834,7 @@ export async function processInboundEdielMessage(params: {
 
   // Syntax belongs to the actual wire and transport endpoint. It precedes
   // legal tenant routing and grants no business attribution or guide approval.
+  let acceptedTechnicalAcknowledgementCompanyId: string | null = null;
   if(message.message_family!=='CONTRL') {
     try {
       const endpoint=await readEdielTechnicalSourceEndpoint(message.id);
@@ -860,13 +844,40 @@ export async function processInboundEdielMessage(params: {
         const syntax=selectedSyntax;
         await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
           syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code)});
-        await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id);
-        await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative'});
+        const capturedSyntax=await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id);
+        const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative'});
+        const qualifiedSyntax=technicalSyntaxAckQualification({evidence:capturedSyntax,companyId:endpoint.companyId,
+          environment:endpoint.environment,sourceMessageId:message.id});
+        // Automatic test communication needs both the protected syntax owner
+        // and the actual freshly persisted or protected retained CONTRL. This
+        // local result never authorizes the separate business-source owner.
+        if(syntax.ok && qualifiedSyntax?.syntaxDecision==='accepted' && qualifiedSyntax.sourceHash===endpoint.sourceHash
+          && technicalAck.company_id===endpoint.companyId && technicalAck.environment===endpoint.environment
+          && technicalAck.direction==='outbound' && technicalAck.message_family==='CONTRL'
+          && technicalAck.related_message_id===message.id && typeof technicalAck.raw_payload==='string' && technicalAck.raw_payload.length>0) {
+          acceptedTechnicalAcknowledgementCompanyId=endpoint.companyId;
+        }
       }
     } catch(error) {
       await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'CONTRL',
         reason:formatErrorMessage(error,'Teknisk kvittens kunde inte kvalificeras.')});
     }
+  }
+
+  if (!isActiveEdielMessageFamily(message.message_family)) {
+    await createEdielMessageEvent({
+      actorUserId,
+      edielMessageId: message.id,
+      eventType: "manual_note",
+      eventStatus: "warning",
+      message:
+        "Batch 6 hoppade över meddelandet eftersom familjen ligger utanför aktiv release.",
+      payload: {
+        messageFamily: message.message_family,
+        activeFamilies: ACTIVE_EDIEL_MESSAGE_FAMILIES,
+      },
+    });
+    return message;
   }
 
   const tenantResolution = await resolveInboundTenantForMessage({
@@ -1004,8 +1015,8 @@ export async function processInboundEdielMessage(params: {
   }
 
   if (
-    runtimeMessage.message_family === "PRODAT" ||
-    runtimeMessage.message_family === "UTILTS"
+    (runtimeMessage.message_family === "PRODAT" || runtimeMessage.message_family === "UTILTS")
+    && acceptedTechnicalAcknowledgementCompanyId === runtimeMessage.company_id
   ) {
     const handledByActorTesting = await syncActorTestingGlobally({
       actorUserId,

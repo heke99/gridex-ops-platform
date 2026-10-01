@@ -406,11 +406,16 @@ export function buildInboundUtiltsMessageInput(
 
 function renderUtiltsSegments(input: {
   code: 'E66' | 'E73'
+  applicationReference: string
   bgmReference: string
   transactionReference: string
   payload: Record<string, unknown>
 }): string[] {
   const payload = input.payload
+  // This is a canonical wire candidate. The real outbound admission/witness
+  // independently qualifies current legal sender/receiver and business scope.
+  // Payload flags never assert an E88 bilateral exception.
+  const periodicDgi = input.code === 'E66' && /^23-DGI-E66-(S|T)$/.test(input.applicationReference)
   const meterPointId = sanitize(getPayloadString(payload, 'meterPointId', 'meteringPointId'))
   const gridAreaId = sanitize(getPayloadString(payload, 'gridAreaId', 'gridOwnerEdielId'))
   const periodStart = getPayloadString(payload, 'periodStart', 'requestedPeriodStart')
@@ -443,8 +448,9 @@ function renderUtiltsSegments(input: {
   segments.push(`DTM+735:?+0100:406`)
   segments.push(`MKS+23+E02::260`)
   segments.push(`RFF+TN:${sanitize(input.transactionReference)}`)
-  segments.push(`NAD+MS+${legalSender}::260`)
-  segments.push(`NAD+MR+${legalReceiver}::260`)
+  segments.push(`NAD+MS+${legalSender}:SVK:260`)
+  segments.push(`NAD+MR+${legalReceiver}:SVK:260`)
+  if (periodicDgi) segments.push(`NAD+DGI`)
 
   if (meterPointId) {
     segments.push(`IDE+24+${sanitize(input.transactionReference)}`)
@@ -467,7 +473,7 @@ function renderUtiltsSegments(input: {
 
   if (input.code === 'E66') {
     segments.push(`DTM+354:${resolution}:802`)
-    segments.push(`STS+7++E88::260`)
+    segments.push(`STS+7++${periodicDgi ? 'E23' : 'E88'}::260`)
     segments.push(`MEA+AAZ++${unit}`)
     // D02B SG5 FTX precedes SG6/SG7 and all SG8 observations.
     if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
@@ -554,6 +560,7 @@ export async function buildUtiltsOutboundDraft(
     messageTypeToken: `UTILTS:D:02B:UN:${messageVersion}`,
     segments: renderUtiltsSegments({
       code: input.code,
+      applicationReference,
       bgmReference: externalReference,
       transactionReference,
       payload: parsedPayload,

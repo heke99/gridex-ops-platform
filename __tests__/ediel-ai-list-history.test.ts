@@ -21,6 +21,10 @@ function readset(versions=[source('baseline','20261001')]):StructuralReadset{ret
   sources:versions.map(version=>({sourceMessageId:version.sourceMessageId,payloadHash:version.payloadHash,asOf:null,assessments:[],rawPayload:`UNB+UNOC:3+54321:14+12345:14+261001:1200+I+23-DDQ-PRODAT'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+${version.wire.messageCode}+${version.sourceMessageId}+9'LIN+1++735123456789012345:::9'RFF+Z05:NET'RFF+MG:${version.wire.meterNumber}'NAD+UD+199001011234:SE2:260++Dated Person'NAD+IT+SITE+++Street ${version.sourceMessageId}+City++12345+SE'NAD+Z02+BRP:160:SVK'UNT+10+M'UNZ+1+I'`,
     objects:[{object,disposition:'accepted',reasons:[],party:null,business:{companyId:'company',environment:'test',customerId:'customer',meteringPointId:'point',siteId:'site'}}]}))}}
 function patch(day='20261010',overrides:Partial<CustomerLifeEventPatch>={}):CustomerLifeEventPatch{return {effectiveAt:at(day),sourceMessageId:'customer',sourcePayloadHash:'a'.repeat(64),customerVersion:1,primaryAssessmentId:'primary',primaryFactsHash:'b'.repeat(64),appliedAt:at('20261001'),availableAt:at('20261001'),customerFields:{personal_number:'199001011235',full_name:'Changed Person'},endUserMasterdata:{name:['Changed Person']},...overrides}}
+function patchReadset(patches:readonly CustomerLifeEventPatch[]):StructuralReadset{
+ const versions=patches.map(patch=>{const version=source(patch.sourceMessageId,'20261010','Z06');version.wire.businessCase='customer_only';version.coverage=null;version.payloadHash=patch.sourcePayloadHash;version.wire.effectiveFrom={fieldNumber:'216',marketMinute:patch.effectiveAt===at('20261005')?'202610050000':'202610100000',utc:patch.effectiveAt};return version})
+ return readset([source('baseline','20261001'),...versions])
+}
 describe('AI dated supply/source projection',()=>{
   it('preserves source two-line names and three-line addresses without inventing CSV whitespace',()=>{
     const raw=readset().sources[0].rawPayload.replace('++Dated Person','++ Dated Person : Second Name ').replace('+++Street baseline','+++ First Street : : Third Street ')
@@ -75,7 +79,7 @@ describe('AI dated supply/source projection',()=>{
     expect(result.details[2].anlaggningsAdress).toBe('Street baseline')
   })
   it('uses the applicable genuine customer patch before the search head without portal customer fallback',()=>{
-    const result=projectAiListHistory({...scope,fromDate:'20261020'},[period],readset(),[patch()])
+    const result=projectAiListHistory({...scope,fromDate:'20261020'},[period],patchReadset([patch()]),[patch()])
     expect(result.details).toMatchObject([{franDatum:null,tillDatum:null,elanvandarId:'199001011235',elanvandarNamn:'Changed Person'}])
   })
   it('keeps end-user address patches out of the installation address columns',()=>{
@@ -84,23 +88,23 @@ describe('AI dated supply/source projection',()=>{
     expect(result.details[0].anlaggningsAdress).toBe('Street baseline')
   })
   it.each(['2026-10-10T11:00:00Z','2026-10-09T23:00:00.000001Z'])('holds a source customer boundary unrepresentable in date-only AI (%s)',effectiveAt=>{
-    expect(()=>projectAiListHistory(scope,[period],readset(),[patch('20261010',{effectiveAt})])).toThrow('date_only_customer_boundary_unrepresentable')
+    expect(()=>projectAiListHistory(scope,[period],patchReadset([patch('20261010',{effectiveAt})]),[patch('20261010',{effectiveAt})])).toThrow('date_only_customer_boundary_unrepresentable')
   })
   it('retains source literal name parts instead of inventing CSV whitespace',()=>{
-    const result=projectAiListHistory(scope,[period],readset(),[patch('20261010',{endUserMasterdata:{name:['First','Second']}})])
+    const result=projectAiListHistory(scope,[period],patchReadset([patch('20261010',{endUserMasterdata:{name:['First','Second']}})]),[patch('20261010',{endUserMasterdata:{name:['First','Second']}})])
     expect(result.details[1].elanvandarNamn).toBe('First\nSecond')
     expect(()=>aiListCell(result.details[1].elanvandarNamn)).toThrow('ai_list_cell_separator_invalid')
   })
   it('orders genuine effective dates independently of receipt version and preserves NAD normalization',()=>{
     const earlier=patch('20261005',{sourceMessageId:'later-received',customerVersion:2,endUserMasterdata:{name:[' Earlier Name ','']}})
     const later=patch('20261010',{sourceMessageId:'earlier-received',customerVersion:1,endUserMasterdata:{name:[' Later Name ',' Second ']}})
-    const result=projectAiListHistory(scope,[period],readset(),[earlier,later])
+    const result=projectAiListHistory(scope,[period],patchReadset([earlier,later]),[earlier,later])
     expect(result.details.map(row=>row.elanvandarNamn)).toEqual(['Dated Person','Earlier Name','Later Name\nSecond'])
-    expect(()=>projectAiListHistory(scope,[period],readset(),[patch('20261010',{availableAt:'2026-11-02T12:00:00.000001Z'})])).toThrow('customer_epoch_source_unqualified')
+    expect(()=>projectAiListHistory(scope,[period],patchReadset([patch('20261010',{availableAt:'2026-11-02T12:00:00.000001Z'})]),[patch('20261010',{availableAt:'2026-11-02T12:00:00.000001Z'})])).toThrow('customer_epoch_source_unqualified')
   })
   it('holds unknown/cross-profile identity and post-cutoff customer facts',()=>{
-    expect(()=>projectAiListHistory(scope,[period],readset(),[patch('20261010',{customerFields:{org_number:'ORG',personal_number:'PERSON'}})])).toThrow('customer_identity_patch_ambiguous')
-    expect(()=>projectAiListHistory(scope,[period],readset(),[patch('20261010',{customerFields:{personal_number:null}})])).toThrow('customer_identity_patch_invalid')
-    expect(()=>projectAiListHistory(scope,[period],readset(),[patch('20261010',{availableAt:'2026-11-03T00:00:00Z'})])).toThrow('customer_epoch_source_unqualified')
+    expect(()=>projectAiListHistory(scope,[period],patchReadset([patch('20261010',{customerFields:{org_number:'ORG',personal_number:'PERSON'}})]),[patch('20261010',{customerFields:{org_number:'ORG',personal_number:'PERSON'}})])).toThrow('customer_identity_patch_ambiguous')
+    expect(()=>projectAiListHistory(scope,[period],patchReadset([patch('20261010',{customerFields:{personal_number:null}})]),[patch('20261010',{customerFields:{personal_number:null}})])).toThrow('customer_identity_patch_invalid')
+    expect(()=>projectAiListHistory(scope,[period],patchReadset([patch('20261010',{availableAt:'2026-11-03T00:00:00Z'})]),[patch('20261010',{availableAt:'2026-11-03T00:00:00Z'})])).toThrow('customer_epoch_source_unqualified')
   })
 })

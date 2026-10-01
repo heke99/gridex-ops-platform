@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-01T05:32:33.416288+00:00",
+  "baseHead": "a94137a11048389be874cbfe1f1c7785c20c4334",
+  "criteria": [
+    "DB-05",
+    "AT-DB-05",
+    "SC-070"
+  ],
+  "authorRole": "Implementation author; not independent whole-criterion approval",
+  "scope": "Five retention decision-original namespaces, actual current own-class authority and independently reviewed exact signed deadline; physical byte erasure after original policy revocation, immutable hash tombstones and completed historical replay",
+  "files": {
+    "supabase/migrations/20261001064500_ediel_retention_decision_original_class_workflows.sql": "729a18797fe6ce6f6c7320850da373c91199ee1223fc576f75e8338322229d6d",
+    "lib/ediel/retention/decisionEvidenceRetention.ts": "452823e46edc3863e9089118630160e7f8845c41b381689811b68c476b5c7904",
+    "__tests__/ediel-decision-evidence-retention-port.test.ts": "455e7b2336d497e53304587e7fce10fdab3c13448e558c4418d5435bec47456c",
+    "scripts/ediel-decision-evidence-sql-regression.mjs": "815d3fb91db7875581704a8d38948d4956ccb94a9e9aaedac9fde92eee9e8289"
+  },
+  "unitReceipt": "decision-original-core-unit-green.json",
+  "unitRedReceipt": "decision-original-core-unit-red.json",
+  "unit": {
+    "passed": 13,
+    "failed": 0,
+    "boundary": "Finite current GoTrue/named RPC mechanics; not native authority"
+  },
+  "sql": {
+    "expectedChecks": 72,
+    "receipt": "decision-original-core-sql-receipt.json",
+    "boundary": "Actual new SQL and published predecessor immutable/receipt/RBAC bodies; synthetic minimal schema, synthetic auth bridge and issuer, unapproved synthetic predecessor decision rows. NOT actual Supabase replay or legal competence"
+  },
+  "types": "Scoped tsc PASS",
+  "lint": "Scoped ESLint PASS",
+  "native": {
+    "status": "NOT_RUN",
+    "reason": "No local native PostgreSQL/Supabase/Docker; root exact candidate replay must execute all published DDL"
+  },
+  "browser": {
+    "status": "NOT_RUN",
+    "reason": "New consumer UI/probes still being implemented separately"
+  },
+  "external": [
+    "Actual competent legal issuer and lawful per-class source-bound deadline/purpose originals are not present; absent/malformed receipt remains held"
+  ],
+  "internalRemaining": [
+    "Finance decision-original sixth class after 070000",
+    "Actual authenticated API/UI and native/browser consumer evidence",
+    "Final same-head whole DB-05/67 review"
+  ],
+  "wholeCriterionApproved": false
+}

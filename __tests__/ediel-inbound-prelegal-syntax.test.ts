@@ -8,14 +8,14 @@ const io=vi.hoisted(()=>({message:null as import('@/lib/ediel/types').EdielMessa
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{}}))
 vi.mock('@/lib/ediel/db',()=>({getEdielMessageById:async()=>io.message,createEdielMessageEvent:io.event}))
 vi.mock('@/lib/ediel/ack/technicalSyntaxAuthority',()=>({readEdielTechnicalSourceEndpoint:io.endpoint,
-  recordEdielTechnicalSyntaxDecision:io.record,captureEdielTechnicalSyntaxAckEvidence:io.capture}))
+  recordEdielTechnicalSyntaxDecision:io.record,captureEdielTechnicalSyntaxAckEvidence:io.capture,technicalSyntaxAckQualification:()=>null}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.actor}))
 vi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:io.tenant}))
 vi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:io.ack}))
 vi.mock('@/lib/ediel/ack/prepareSourceAckDraft',()=>({prepareSourceAckDraft:async()=>({kind:'draft',draft:{messageFamily:'CONTRL'}})}))
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:vi.fn()}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-const wire="UNB+UNOC:3+12345:ZZ+54321:ZZ+260930:1200+I'UNH+M+UNKNOWN:D:97A:UN:E2SE6A'BGM+Z01+D+9'UNT+99+M'UNZ+1+I'"
+const wire="UNB+UNOC:3+12345:ZZ+54321:ZZ+260930:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+D+9'UNT+99+M'UNZ+1+I'"
 beforeEach(()=>{
   vi.clearAllMocks();io.message={...source(wire),message_family:'OTHER'}
   io.endpoint.mockResolvedValue({companyId:'technical-tenant',environment:'test',sourceHash:createHash('sha256').update(wire,'utf8').digest('hex')})
@@ -41,4 +41,9 @@ it('requires the actual technical tenant actor before recording a syntax result'
 })
 it('does not enter the technical receiver for an outbound row',async()=>{
   io.message={...io.message!,direction:'outbound'};await run();expect(io.endpoint).not.toHaveBeenCalled();expect(io.ack).not.toHaveBeenCalled()
+})
+
+it('holds an unavailable PRODAT edition before technical capture and tenant routing',async()=>{
+  io.message={...io.message!,raw_payload:wire.replace('PRODAT:D:97A','PRODAT:D:98A')}
+  await run();expect(io.endpoint).not.toHaveBeenCalled();expect(io.actor).not.toHaveBeenCalled();expect(io.record).not.toHaveBeenCalled();expect(io.capture).not.toHaveBeenCalled();expect(io.ack).not.toHaveBeenCalled();expect(io.tenant).not.toHaveBeenCalled()
 })

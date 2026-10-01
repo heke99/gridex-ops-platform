@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "criterion": "AT-Z06F-SUPPLIER",
+  "status": "IMPLEMENTED_BOUNDED_WRAPPER_PROOF",
+  "candidateBase": "8fa1f7c64e90379258775e1dd6768805630b1c7b",
+  "dependencyCommits": [
+    "6556e009",
+    "52040420"
+  ],
+  "dependencies": [
+    "20261001042609_ediel_source_owned_z06f_reading_followup.sql",
+    "20261001044958_ediel_reading_followup_observation_lock_order.sql"
+  ],
+  "consumer": {
+    "path": "supabase/migrations/20261001051410_ediel_utilts_persist_reading_followup_owner.sql",
+    "sha256": "f3abf3c97b9db9432130fdd83094d0c9e5432f476e0f5d4dc1fd85f5b7237a80",
+    "retainedPublicOwnerHash": "ba8c69c6cae273c265ef71454c0a3b4ac6ce423046076c18418ac09cbcbdb382",
+    "change": "Same-OID/ACL complete latest03807 public persist delegates full current private source/scope/contract/precision/history owner first. Capture its actual return, call private source-owned observation after persistence, return original native result.",
+    "privateRead": "Observer independently reads each actual accepted private binding membership + stored_contract_v1, including legitimate reused original series. No caller fulfillment, approval or parsed assignment controls observation.",
+    "locks": "Caller retains storage prefix then sourceFORUPDATE. Observer preserves44958 advisory serialization and same-source lock; other busy sources are skipped and later authorized read reconsiders. No late global graph acquisition after native writes."
+  },
+  "local": {
+    "status": "PASS_BOUNDED",
+    "tests": 11,
+    "receipts": [
+      {
+        "path": "quality/audits/ediel-masterplan-v2/integration-20261001/z06f-reading-followup/persist-owner-red.log",
+        "sha256": "f8b8480c102642f93d9ff94622d27741fbcd76aea7e3a2551789de7e7a160ee9"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/integration-20261001/z06f-reading-followup/persist-owner-green.log",
+        "sha256": "8ef519ced8225b7d1caa3b3e1fc9d6f0bd4efcb0ace6e9fa3bb7500c82a8deb0"
+      }
+    ],
+    "limits": [
+      "Actual forward function and callback order/source/current-owner/precision/rollback/OIDACL fences executed in PGlite. Prior native owner and observer I/O are finite declared boundaries; this runner does not seed or qualify a genuine native accepted reading.",
+      "Original exact03807 consumer is RED because it never invokes observer, new same-OID forward is GREEN.",
+      "Producer42609/44958 supplies separate real physical register/period/method/current source comparison, tested separately with declared accepted boundaries; this wrapper does not replace those checks."
+    ]
+  },
+  "native": {
+    "status": "PENDING_GENUINE_SOURCE_CHAIN",
+    "path": "scripts/ediel-z06f-reading-followup-native.test.ts",
+    "owner": "recovery_integration",
+    "receipts": []
+  },
+  "browser": {
+    "status": "NOT_EXECUTED",
+    "receipts": []
+  },
+  "exactHeadCi": {
+    "status": "NOT_EXECUTED",
+    "receipts": []
+  },
+  "wholeCriterion": {
+    "status": "NOT_APPROVED",
+    "missing": [
+      "Same frozen native Fapply→actual accepted UTILTS with own AES/MG/QTY220/DTM597 membership/period/source version and prohibition probes",
+      "Authentic replay/generated artifacts/HTTP/browser/build/exact-head CI",
+      "Whole literal AT-Z06F interpretation and actual subsequent values limits separately reviewed"
+    ]
+  }
+}

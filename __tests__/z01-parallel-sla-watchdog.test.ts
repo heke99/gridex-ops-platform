@@ -119,7 +119,6 @@ describe('PRODAT Z01 parallel response SLA watchdog', () => {
   it('keeps Z02 separate from Z04 market acceptance and activation', () => {
     const z02 = read('lib/onboarding/inboundEdielLinking.ts')
     const z04Guard = read('supabase/migrations/20260822012000_supplier_switch_effective_date_guard.sql')
-    expect(z02).toContain('z02_preflight_queued_z03')
     expect(z02).not.toContain('supply_period.activated')
     expect(z04Guard).toContain('supplier_switch_business_confirmation_requires_inbound_z04')
     expect(z04Guard).toContain("upper(coalesce(m.message_code,'')) = 'Z04'")

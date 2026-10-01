@@ -1,3 +1,4 @@
+import type {PeriodicReasonAuthority} from './periodicReasonAuthority'
 import type {UtiltsIssuerIdentityAuthority} from './issuerIdentityAuthority'
 import {supportedUtiltsConsumptionIdentity} from './consumptionIdentity'
 import {supabaseService} from '@/lib/supabase/service'
@@ -140,21 +141,21 @@ async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow
   return result
 }
 
-const qualifiedOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority}>()
-export function takeQualifiedUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy,issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority):UtiltsRuntimeResult|null {
+const qualifiedOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority}>()
+export function takeQualifiedUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy,issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority,periodicReasonAuthority?:PeriodicReasonAuthority):UtiltsRuntimeResult|null {
   const owner=qualifiedOwners.get(runtime)
   qualifiedOwners.delete(runtime)
   if(!owner) return null
   const scope=utiltsRuntimeOwnerFingerprint(message,runtime)
-  return owner.policy===policy && owner.issuerIdentityAuthority===issuerIdentityAuthority && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
+  return owner.policy===policy && owner.issuerIdentityAuthority===issuerIdentityAuthority && owner.periodicReasonAuthority===periodicReasonAuthority && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
 }
 /** This seal is minted only after this module obtained its own immutable
  * structural readset and restricted the actual engine invocation. */
-export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority}):Promise<ReceivedStructureQualification>{
+export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority}):Promise<ReceivedStructureQualification>{
   const before=utiltsRuntimeOwnerFingerprint(input.message,input.runtime)
-  const owner=takeUtiltsRuntimeOwner(input.runtime,input.message,input.canonicalPolicy,input.issuerIdentityAuthority)
+  const owner=takeUtiltsRuntimeOwner(input.runtime,input.message,input.canonicalPolicy,input.issuerIdentityAuthority,input.periodicReasonAuthority)
   const result=await qualifyReceivedUtiltsStructureCore(input)
   const after=utiltsRuntimeOwnerFingerprint(input.message,input.runtime)
-  if(owner && before.sourceHash===after.sourceHash && before.resultHash===after.resultHash) qualifiedOwners.set(result.runtime,{...utiltsRuntimeOwnerFingerprint(input.message,result.runtime),policy:input.canonicalPolicy,issuerIdentityAuthority:input.issuerIdentityAuthority})
+  if(owner && before.sourceHash===after.sourceHash && before.resultHash===after.resultHash) qualifiedOwners.set(result.runtime,{...utiltsRuntimeOwnerFingerprint(input.message,result.runtime),policy:input.canonicalPolicy,issuerIdentityAuthority:input.issuerIdentityAuthority,periodicReasonAuthority:input.periodicReasonAuthority})
   return result
 }

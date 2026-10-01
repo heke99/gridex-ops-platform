@@ -53,9 +53,18 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
     const sameFacet=readset.versions.filter(version=>version.wire.object.objectId===object.objectId&&version.wire.object.identityAgency===object.identityAgency
       &&version.wire.legalSender===scope.legalNetwork&&version.wire.legalReceiver===scope.legalSupplier&&version.wire.businessCase==='customer_only'
       &&version.disposition!=='rejected'&&(version.wire.functionCode==='5'||version.wire.effectiveFrom.utc>=first.coverage!.validFrom&&version.wire.effectiveFrom.utc<endUtc))
+    // A customer-wide delta is not authority for another point/period. Its
+    // own physical source version, hash, legal parties and event time must be
+    // present in this SAME immutable readset before it can split this facet.
+    const objectPatches=patches.filter(patch=>sameFacet.some(version=>version.sourceMessageId===patch.sourceMessageId&&version.payloadHash===patch.sourcePayloadHash
+      &&version.wire.functionCode==='9'&&Date.parse(version.wire.effectiveFrom.utc)===Date.parse(patch.effectiveAt)
+      &&readset.sources.some(source=>source.sourceMessageId===patch.sourceMessageId&&source.payloadHash===patch.sourcePayloadHash)))
+    const independentPatches=objectPatches.filter(patch=>!customerFacets.some(facet=>facet.sourceMessageId===patch.sourceMessageId&&Date.parse(facet.effectiveAt)===Date.parse(patch.effectiveAt)))
+    const customerBoundaryTimes=[...customerFacets.map(facet=>Date.parse(facet.effectiveAt)),...independentPatches.filter(patch=>Object.hasOwn(patch.customerFields,'org_number')||Object.hasOwn(patch.customerFields,'personal_number')||Object.hasOwn(patch.endUserMasterdata,'name')).map(patch=>Date.parse(patch.effectiveAt))]
+    if(new Set(customerBoundaryTimes).size!==customerBoundaryTimes.length)hold('customer_epoch_ambiguous')
     for(const version of sameFacet){
       if(version.wire.functionCode!=='9'||customerFacets.filter(row=>row.sourceMessageId===version.sourceMessageId&&row.payloadHash===version.payloadHash&&row.marketMinute===version.wire.effectiveFrom.marketMinute&&Date.parse(row.effectiveAt)===Date.parse(version.wire.effectiveFrom.utc)).length!==1
-       &&patches.filter(patch=>patch.sourceMessageId===version.sourceMessageId&&patch.sourcePayloadHash===version.payloadHash&&Date.parse(patch.effectiveAt)===Date.parse(version.wire.effectiveFrom.utc)).length!==1)hold('dated_customer_change_owner_missing')
+       &&objectPatches.filter(patch=>patch.sourceMessageId===version.sourceMessageId&&patch.sourcePayloadHash===version.payloadHash&&Date.parse(patch.effectiveAt)===Date.parse(version.wire.effectiveFrom.utc)).length!==1)hold('dated_customer_change_owner_missing')
     }
     if(customerFacets.some(row=>!sameFacet.some(version=>version.sourceMessageId===row.sourceMessageId)&&row.marketMinute>=minuteForDay(periodFrom)&&row.marketMinute<minuteForDay(end)))hold('dated_customer_facet_source_missing')
     if(customerFacets.some(row=>row.marketMinute.slice(8)!=='0000')||new Set(customerFacets.map(row=>row.marketMinute)).size!==customerFacets.length)hold('date_only_customer_boundary_unrepresentable')
@@ -95,7 +104,7 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
        // over its actual identity/name. Earlier deltas cannot overwrite a later
        // confirmed/bilateral full facet. Both producer paths retain their own
        // final native whole-row checks; this pure projection grants no authority.
-       const epochPatches=facet?patches.filter(patch=>Date.parse(patch.effectiveAt)>Date.parse(facet.effectiveAt)):patches
+       const epochPatches=facet?independentPatches.filter(patch=>Date.parse(patch.effectiveAt)>Date.parse(facet.effectiveAt)):independentPatches
        const epochs=composeAiListCustomerEpochs({baselineId:facet?.party.id??customer.endUserId,baselineName:facet?.party.name??customer.endUserName,
         baselineFrom:facet?.marketMinute.slice(0,8)??periodFrom,from:rowStart,to:rowEnd,cutoff:scope.cutoffAt,patches:epochPatches})
        for(const epoch of epochs){

@@ -1,8 +1,26 @@
 import {beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-const io=vi.hoisted(()=>({writes:[] as {table:string;row:Record<string,unknown>}[],failSupply:false,failCase:false,supplyRows:[] as Record<string,unknown>[]}))
+import {closureFixture} from './helpers/closureWireFixtures'
+import {createHash} from 'node:crypto'
+const io=vi.hoisted(()=>({writes:[] as {table:string;row:Record<string,unknown>}[],failSupply:false,failCase:false,supplyRows:[] as Record<string,unknown>[],
+ source:null as EdielMessageRow|null,nativeCalls:[] as Record<string,unknown>[],committed:false}))
 const validCaseTypes=new Set(['withdrawal','rejected_customer','onboarding_aborted','supplier_switch_aborted','sales_misunderstanding','dual_invoice_concern','binding_period_too_long','incorrect_identity','incorrect_site_data','missing_authorization','credit_risk','technical_blocker','business_rejection','technical_rejection','metering_values_error','supplier_switch_review','other'])
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>{
+ // Finite external native-result transport for the final-work case consumer.
+ // It cannot prove native source qualification, RLS or market persistence.
+ expect(name).toBe('ediel_apply_supply_source_v1')
+ expect(io.source).not.toBeNull()
+ expect(args).toEqual({p_company_id:io.source!.company_id,p_source_message_id:io.source!.id,p_actor_user_id:'actor'})
+ expect(Object.keys(args)).toHaveLength(3)
+ io.nativeCalls.push({...args})
+ if(io.failSupply)return {data:null,error:Error('supply unavailable')}
+ // No cancellation original or immutable C reversal exists in this fixture.
+ if(io.source!.parsed_payload?.subtype==='C')return {data:{applied:false,reason:'supply_original_unavailable',idempotent:false,periods:[],commits:[]},error:null}
+ expect(io.source!.raw_payload).toEqual(closureFixture({reason:io.source!.parsed_payload?.subtype==='LK'?'Z23':'Z22',minute:'202610150000'}).wire)
+ expect(createHash('sha256').update(io.source!.raw_payload!).digest('hex')).toHaveLength(64)
+ io.committed=true
+ return {data:{applied:true,idempotent:false,periods:[{id:'supply',status:'ended'}],commits:[]},error:null}
+},from:(table:string)=>{
  let values:Record<string,unknown>|null=null
  const q={select:()=>q,eq:()=>q,is:()=>q,order:()=>q,limit:()=>q,
   update:(row:Record<string,unknown>)=>{values=row;io.writes.push({table,row});return q},
@@ -18,30 +36,40 @@ vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
-function message(subtype='L'){return {id:'source',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'point',message_family:'PRODAT',message_code:'Z05',direction:'inbound',raw_payload:null,parsed_payload:{subtype,end_date:'2026-10-15'}} as unknown as EdielMessageRow}
-beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[]})
-it.each(['L','LK'])('completes %s closure and retains a schema-valid tenant/point-linked final-work case',async subtype=>{
+function message(subtype='L'){const row={id:'source',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'point',message_family:'PRODAT',message_code:'Z05',direction:'inbound',raw_payload:closureFixture({reason:subtype==='LK'?'Z23':subtype==='C'?'Z24':'Z22',minute:'202610150000'}).wire,parsed_payload:{subtype,end_date:'2026-10-15'}} as unknown as EdielMessageRow;io.source=structuredClone(row);return row}
+beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[];io.source=null;io.nativeCalls=[];io.committed=false})
+it.each(['L','LK'])('consumes declared native %s closure result into a schema-valid own final-work case',async subtype=>{
  const result=await applyInboundBusinessStateMachine({message:message(subtype),actorUserId:'actor'})
  expect(result).toMatchObject({outcome:'supply_terminated',updated:['customer_supply_periods','customer_cases']})
- expect(io.writes[0]).toMatchObject({table:'customer_supply_periods',row:{status:'ended',source_message_id:'source',end_date:'2026-10-15'}})
- expect(io.writes[1]).toMatchObject({table:'customer_cases',row:{company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'point',
+ expect(io.nativeCalls).toHaveLength(1)
+ expect(io.committed).toBe(true)
+ expect(io.writes).toHaveLength(1)
+ expect(io.writes[0]).toMatchObject({table:'customer_cases',row:{company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'point',
   case_type:'other',status:'open',reason_category:'final_metering_and_billing',source:'ediel_inbound_state_machine',
-  title:'Leveransen upphör – slutför mätvärden och fakturering',next_action:'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
+  title:'Leveransen upphör – slutför mätvärden och fakturering',next_action:'Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.',
   metadata:{source_ediel_message_id:'source',review_intent:'final_metering_and_billing'}}})
- expect(io.writes[1].row).not.toHaveProperty('customer_site_id')
+ expect(io.writes[0].row).not.toHaveProperty('customer_site_id')
 })
 it('still propagates a failed supply write before creating a review case',async()=>{
  io.failSupply=true
  await expect(applyInboundBusinessStateMachine({message:message(),actorUserId:'actor'})).rejects.toThrow('supply unavailable')
- expect(io.writes.map(item=>item.table)).toEqual(['customer_supply_periods'])
+ expect(io.writes).toEqual([])
+ expect(io.committed).toBe(false)
 })
 it('does not hide a failed case write after the persisted legacy end',async()=>{
  io.failCase=true
  await expect(applyInboundBusinessStateMachine({message:message(),actorUserId:'actor'})).rejects.toThrow('case unavailable')
- expect(io.writes.map(item=>item.table)).toEqual(['customer_supply_periods','customer_cases'])
+ expect(io.writes.map(item=>item.table)).toEqual(['customer_cases'])
+ expect(io.committed).toBe(true)
+})
+it('holds C continuation when the native owner has no own cancellation original',async()=>{
+ const result=await applyInboundBusinessStateMachine({message:message('C'),actorUserId:'actor'})
+ expect(result).toMatchObject({outcome:'manual_review_required',reviewRequired:true,updated:[]})
+ expect(io.nativeCalls).toHaveLength(1)
+ expect(io.writes).toEqual([])
+ expect(io.committed).toBe(false)
 })
 it.each([
- ['C','Z05','supply_continuation_confirmed','supply_continuation_review','Leveransen ska fortsätta – kontroll krävs','Verifiera leveransperioden och återställ den endast om Z05C refererar till samma avslut.'],
  ['E64','Z06','masterdata_update_received','masterdata_update_review','Masterdataändring mottagen – granska säker uppdatering','Granska Ediel safe-apply-förslaget innan masterdata ändras.'],
  ['M','Z10','meter_change_received','meter_change_review','Mätarbyte mottaget – granska säker uppdatering','Granska Ediel safe-apply-förslaget innan masterdata ändras.'],
  ['H','Z08','unexpected_direction_review','ediel_unexpected_direction','Ediel-meddelande med oväntad marknadsriktning','Verifiera avsändarroll, meddelandekod, subtype och route innan någon affärseffekt tillåts.'],

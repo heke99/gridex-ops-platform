@@ -5,7 +5,7 @@ import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPol
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import {readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
 import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
@@ -386,8 +386,9 @@ export async function processInboundUtiltsMessage(params: {
   if (!canonicalPolicy || canonicalPolicy.family !== 'UTILTS' || canonicalPolicy.code !== message.message_code || canonicalPolicy.direction !== 'inbound') {
     throw new Error(`utilts_inbound_policy_context_mismatch:${message.id}`)
   }
+  const periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initialDecision,message})??undefined
   const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initialDecision,message})??undefined
-  const provisionalRuntime = runUtiltsRuntimeForMessage(message, { canonicalPolicy,issuerIdentityAuthority })
+  const provisionalRuntime = runUtiltsRuntimeForMessage(message, { canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority })
   const transactionMatches = await matchUtiltsTransactionsForTenant({
     message,
     facts: provisionalRuntime.facts,
@@ -435,8 +436,8 @@ export async function processInboundUtiltsMessage(params: {
   }
 
   const structuralQualification = await qualifyReceivedUtiltsStructure({
-    message: runtimeSourceMessage, canonicalPolicy,issuerIdentityAuthority,
-    runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy,issuerIdentityAuthority }),
+    message: runtimeSourceMessage, canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority,
+    runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority }),
   })
   const runtime = structuralQualification.runtime
   await recordFinalCanonicalUtiltsDecision({original:message,validated:runtimeSourceMessage,initialDecision,runtime})

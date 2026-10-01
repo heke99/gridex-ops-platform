@@ -26,3 +26,19 @@ it('unowned, copied and mutated JSON cannot remove the dated customer hold',asyn
 it('holds an actual missing/current revoked facet rather than exporting the old customer',async()=>{const sources=fixture(),proof=await read({...receipt(),versions:[]},sources);expect(()=>projectAiListHistory(scope,[period],sources,proof)).toThrow('dated_customer_change_owner_missing')})
 it('rejects foreign/native snapshot scope before the projection',async()=>{await expect(read({...receipt(),siteId:'foreign'})).rejects.toThrow('history_unconfirmed');await expect(read({...receipt(),versions:[{...receipt().versions[0],payloadHash:'b'.repeat(64)}]})).rejects.toThrow('facet_invalid')})
 it('retains minute/date representability and original identity fences',async()=>{const sources=fixture(),r=receipt();r.versions[0].marketMinute='202610101200';r.versions[0].effectiveAt=prodatMarketMinuteToUtc('202610101200')!;sources.versions[1].wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610101200',utc:r.versions[0].effectiveAt};const proof=await read(r,sources);expect(()=>projectAiListHistory(scope,[period],sources,proof)).toThrow('date_only_customer_boundary_unrepresentable')})
+it('composes a later source-own delta over the protected full customer facet and keeps its fifth reference',async()=>{
+ const sources=fixture(),later={...sources.versions[1],sourceMessageId:'later',assessmentId:'later-assessment',wire:{...sources.versions[1].wire,documentReference:'later',effectiveFrom:{fieldNumber:'216',marketMinute:'202610200000',utc:at('20261020')}}};sources.versions.push(later)
+ sources.sources.push({...sources.sources[1],sourceMessageId:'later',rawPayload:sources.sources[1].rawPayload.replace('customer','later')})
+ const proof=await read(receipt(),sources),patch={effectiveAt:at('20261020'),sourceMessageId:'later',sourcePayloadHash:'a'.repeat(64),customerVersion:2,primaryAssessmentId:'later-assessment',primaryFactsHash:'b'.repeat(64),appliedAt:at('20261021'),availableAt:at('20261021'),customerFields:{},endUserMasterdata:{name:['Later Name']}}
+ const result=projectAiListHistory(scope,[period],sources,proof,[patch])
+ expect(result.details.map(row=>[row.elanvandarNamn,row.franDatum,row.tillDatum])).toEqual([['Original Person',null,'20261010'],['Person Estate','20261010','20261020'],['Later Name','20261020',null]])
+ expect(result.evidence.rowSources.map(row=>row.customerSourceMessageId)).toEqual([undefined,'customer','customer'])
+ expect(result.evidence.sourceMessageIds).toContain('later')
+})
+it('does not project a foreign point or mismatched source-hash customer delta into this supply period',async()=>{
+ const sources=fixture(),proof=await read(receipt(),sources),patch={effectiveAt:at('20261020'),sourceMessageId:'foreign',sourcePayloadHash:'a'.repeat(64),customerVersion:2,primaryAssessmentId:'foreign-assessment',primaryFactsHash:'b'.repeat(64),appliedAt:at('20261021'),availableAt:at('20261021'),customerFields:{},endUserMasterdata:{name:['Foreign Name']}}
+ sources.versions.push({...sources.versions[1],sourceMessageId:'foreign',wire:{...sources.versions[1].wire,object:{...object,objectId:'735123456789012346'},effectiveFrom:{fieldNumber:'216',marketMinute:'202610200000',utc:at('20261020')}}})
+ sources.sources.push({...sources.sources[1],sourceMessageId:'foreign',rawPayload:sources.sources[1].rawPayload.replace(object.objectId,'735123456789012346')})
+ expect(projectAiListHistory(scope,[period],sources,proof,[patch]).details.at(-1)?.elanvandarNamn).toBe('Person Estate')
+ expect(projectAiListHistory(scope,[period],sources,proof,[{...patch,sourceMessageId:'customer',sourcePayloadHash:'f'.repeat(64)}]).details.at(-1)?.elanvandarNamn).toBe('Person Estate')
+})

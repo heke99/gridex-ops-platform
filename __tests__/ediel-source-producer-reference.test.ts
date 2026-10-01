@@ -14,7 +14,7 @@ vi.mock('@/lib/ediel/production/brpChangeSource', async () => ({ ...await vi.imp
 vi.mock('@/lib/ediel/production/switchCancellationSource', async () => ({ ...await vi.importActual<typeof import('@/lib/ediel/production/switchCancellationSource')>('@/lib/ediel/production/switchCancellationSource'), readSwitchCancellationSource: ports.readCancellation }))
 vi.mock('@/lib/ediel/services/permissionOrigin', () => ({ readServicePermissionOrigin: ports.readService }))
 vi.mock('@/lib/ediel/services/authorization', () => ({ assertEdielTenantActor: vi.fn() }))
-vi.mock('@/lib/ediel/services/commands', () => ({ coordinateEdielServicePermission: vi.fn() }))
+vi.mock('@/lib/ediel/services/commands', () => ({ coordinateEdielServicePermission: vi.fn(),resolveEdielServicePermissionCommand: async(input:{providerCompanyId:string;assignmentId:string;actorUserId:string;expectedVersion:number;permissionId:string})=>{expect(input).toEqual({providerCompanyId:id(1),assignmentId:id(21),actorUserId:id(20),expectedVersion:1,permissionId:id(9)});return {status:'permission_required',permissionId:id(9)}} }))
 import { prepareAndQueueBrpChangeZ09 } from '@/lib/ediel/flows/prodatBrpChange'
 import { prepareAndQueueSwitchCancellation } from '@/lib/ediel/flows/prodatSwitchCancellation'
 import { prepareAndQueueServicePermissionZ13, prepareAndQueueServicePermissionZ18 } from '@/lib/ediel/flows/prodatServicePermission'

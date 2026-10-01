@@ -14,7 +14,7 @@ import {
 } from '@/lib/ediel/db'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import {
-  CanonicalRouteRequestType,
+  type CanonicalRouteRequestType,
   resolveCanonicalRouteContext,
 } from '@/lib/ediel/core/routeRegistry'
 import {

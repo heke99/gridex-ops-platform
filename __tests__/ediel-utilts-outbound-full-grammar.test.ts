@@ -24,7 +24,7 @@ describe('actual UTILTS outbound producer full selected 02B grammar', () => {
     expect(raw.indexOf('FTX+ZZZ')).toBeLessThan(raw.indexOf('CCI+'))
     expect(raw.indexOf('FTX+ZZZ')).toBeLessThan(raw.indexOf('SEQ++1'))
     expect(raw).toContain("SEQ++1'QTY+136:5'")
-    expect(raw).toContain("NAD+MS+33333::260'NAD+MR+44444::260'")
+    expect(raw).toContain("NAD+MS+33333:SVK:260'NAD+MR+44444:SVK:260'")
     expect(raw).not.toContain('NAD+MS+11111')
     expect(preflightEdielPayload({ rawPayload: raw, messageStandard: 'edifact', mode: 'send' }).issues
       .some(issue => issue.code.startsWith('UNSM_'))).toBe(false)

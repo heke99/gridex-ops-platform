@@ -3,10 +3,11 @@ import {beforeEach,it,expect,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 const state=vi.hoisted(()=>({message:{} as EdielMessageRow, effects:[] as string[], drafts:[] as Record<string,unknown>[], events:[] as Record<string,unknown>[], inject:false,registryFailure:false,sourceReceiptFailure:false}))
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async importOriginal=>({...await importOriginal<Record<string,unknown>>(),resolveCanonicalRulePack:async()=>{if(state.registryFailure)throw Error('Injected registry failure');return (await import('./helpers/prodatInboundSourceFixture')).prodatFixtureRegistryResolution}}))
-vi.mock('@/lib/supabase/service',async()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')},rpc:(name:string,args:Record<string,unknown>)=>{
+vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'fixture@example.invalid',host:'smtp.example.invalid',port:465})}))
+vi.mock('@/lib/supabase/service',async()=>({supabaseService:{from:(await import('./helpers/prodatInboundSourceFixture')).prodatFixtureSourceDatabase.from,rpc:(name:string,args:Record<string,unknown>)=>{
  // Declared prospective external owner transport only. Actual producers and
  // branded receipt checks run; this model is no native qualification proof.
- if(name==='gridex_record_prodat_source_validation_v3'){
+ if(name==='gridex_record_prodat_source_validation_v6'){
   expect(args).toMatchObject({p_company_id:state.message.company_id,p_environment:state.message.environment,p_source_message_id:state.message.id,
    p_source_payload_hash:createHash('sha256').update(state.message.raw_payload!).digest('hex')})
   if(state.sourceReceiptFailure){const r=Promise.resolve({data:null,error:{message:'declared_current_source_receipt_failure'}});return Object.assign(r,{abortSignal:()=>r})}
@@ -15,7 +16,7 @@ vi.mock('@/lib/supabase/service',async()=>({supabaseService:{from:()=>{throw Err
 }}}))
 vi.mock('@/lib/ediel/db',()=>({getEdielMessageById:async()=>state.message,createEdielMessageEvent:async(p:Record<string,unknown>)=>{state.events.push(p)},updateEdielMessageStatus:async(p:{status:string;parsedPayload?:Record<string,unknown>;validationReport?:Record<string,unknown>})=>{state.message={...state.message,status:p.status,parsed_payload:p.parsedPayload??state.message.parsed_payload,validation_report:p.validationReport?JSON.parse(JSON.stringify(p.validationReport)):state.message.validation_report} as EdielMessageRow;return state.message},linkEdielMessage:async()=>{state.effects.push('link')},listAckMessagesForSource:async()=>[],getEdielRouteProfileByCommunicationRouteId:async()=>null,listEdielMessagesByIds:async()=>[]}))
 vi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:async()=>({status:'tenant_resolved',companyId:state.message.company_id,message:state.message,evidence:{companyId:state.message.company_id}})}))
-vi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:async(p:{ackFamily:string;draft:Record<string,unknown>})=>{state.drafts.push(p.draft);return {id:p.ackFamily,status:'sent'}}}))
+vi.mock('@/lib/ediel/core/kernel',()=>({createCanonicalAckMessage:async(p:{ackFamily:string;sourceMessage:EdielMessageRow;draft:Record<string,unknown>})=>{state.drafts.push(p.draft);return (await import('./helpers/prodatInboundSourceFixture')).prodatFixtureAckResult(p)}}))
 vi.mock('@/lib/ediel/actorTestingEngine',()=>({syncActorTestingForMessage:async()=>{state.effects.push('actor-auto');return null}}))
 vi.mock('@/lib/ediel/inbound/inboundFacilityRecognition',()=>({recognizeInboundFacilityData:async()=>{state.effects.push('facility');return null}}))
 vi.mock('@/lib/ediel/matching',()=>({matchMeteringPointForEdielMessage:async()=>null,matchSiteAndCustomerForMeteringPoint:async()=>null,findMatchingSupplierSwitchRequest:async()=>null}))
@@ -64,8 +65,11 @@ it('oversize status is rejected by actual directory before application ACK and b
  expect(JSON.stringify(state.message.validation_report)).toContain('UNSM_ELEMENT_LENGTH_INVALID')
 })
 
-it('missing prospective current source receipt denies before ACK or business',async()=>{
+it('missing prospective canonical receipt denies application ACK and business while retaining separate syntax ACK',async()=>{
  state.sourceReceiptFailure=true
  await expect(run(message('Z14','Z96','A76',null))).rejects.toThrow('prodat_canonical_source_validation_unconfirmed')
- expect(state.drafts).toEqual([]);expect(state.effects).toEqual([])
+ expect(state.drafts).toHaveLength(1)
+ expect(state.drafts[0]).toMatchObject({messageFamily:'CONTRL'})
+ expect(state.drafts[0].rawPayload).not.toContain('ERC+')
+ expect(state.effects).toEqual([])
 })

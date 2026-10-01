@@ -64,6 +64,8 @@
     "20261001000700_ediel_message_content_and_mime_retention.sql": "3bd194eff1595b35b79478b7a1875bb0c042691956baae1e192c729f9af307e2",
     "20261001000710_ediel_archived_tenant_retention_class_authority.sql": "f959f8fa359b3eee07fa6530580bf06e477cb1f6423be891cd9938f6f114e461",
     "20261001000926_ediel_service_evidence_archive_review.sql": "43cee9e2fa33c3710b4d15291e4f384433c4b45ecfcb30fdff1955b2be24645f",
+    "20261001002413_ediel_inherited_err_mixed_predecessor_bridge.sql": "aa02406be8a91d75130816b671e398f410c3d39fcee34e5aac8e03fc4710b0f8",
+    "20261001002415_ediel_inherited_err_mixed_consumer_restore.sql": "34f9656332f46421ded0e4afc1841cd758a54b661eb1ba07b525fde284cb2484",
     "20261001002600_ediel_confirmed_customer_source_versions.sql": "e0134dfa00239bb30d1ff1619cb6a29192726dbb412f7e739ef46c3cc1590e87",
     "20261001003642_ediel_ai_confirmed_customer_facet_history.sql": "240edea2e1d41f1128af81a4f2dc33a607f7f65ada050db9205fc8c4d1373052",
     "20261001003807_ediel_utilts_esco_pre_storage_scope.sql": "8c3eee67916b213ce3d73a728d5839bf64c990bd37caa987dc595ebeffe5c1cb",
@@ -94,6 +96,13 @@
     "20261001033759_ediel_customer_primary_response_commit_fence.sql": "96b6d316c5b33d832a816f33fbb41d7d677f4cd02e40463ea3fe3b4ab7222209",
     "20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
     "20261001040236_ediel_prodat_combined_primary_v6_facets.sql": "faab4633c4d9591343b5f52e2baee7b0323d62504b83d16ef6eabeb4d412b2da",
-    "20261001040446_ediel_current_registry_txt_source_parity.sql": "b4bc0cc1747c38f6ca9a801aac0521857073aa2093ea4d2f7e4bf2a1fe0cb4a0"
+    "20261001040446_ediel_current_registry_txt_source_parity.sql": "b4bc0cc1747c38f6ca9a801aac0521857073aa2093ea4d2f7e4bf2a1fe0cb4a0",
+    "20261001041152_ediel_periodic_dgi_reason_source_review.sql": "23e5e5d36f5cac428c799356f6080ef902fcd1d67cacbdebba982d95c01cc896",
+    "20261001043917_ediel_service_source_network_period_timing.sql": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece",
+    "20261001045349_ediel_ai_composed_customer_history_owners.sql": "238af606b0436133a9477c143dd3f98bb392f935521010fced11bbca179046e8",
+    "20261001051410_ediel_utilts_persist_reading_followup_owner.sql": "f3abf3c97b9db9432130fdd83094d0c9e5432f476e0f5d4dc1fd85f5b7237a80",
+    "20261001064500_ediel_retention_decision_original_class_workflows.sql": "729a18797fe6ce6f6c7320850da373c91199ee1223fc576f75e8338322229d6d",
+    "20261001070000_ediel_finance_copy_class_retention.sql": "2b6fd7f40c9be3065bd99715888ec3e3130beff9e48a87d385f94515e3e557ee",
+    "20261001070700_ediel_finance_retention_decision_original_class.sql": "518e191d24343bef7e7e0eaf7a8a02ec4a72b5b8c632e974ea29decf69bf8d5e"
   }
 }

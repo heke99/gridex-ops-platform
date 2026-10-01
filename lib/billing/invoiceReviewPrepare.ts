@@ -1,3 +1,4 @@
+import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
@@ -219,6 +220,7 @@ async function createDraft(input: {
   if (!underlayId || !customerId || !contractId || contractId !== text(input.contract.id)) {
     throw new Error('Faktureringsunderlagets kund-/avtalsidentitet är ofullständig.')
   }
+  await requireInvoiceSourceCopiesAvailable({ companyId: input.companyId, underlayId })
   const pricing = await ensureLockedPricing({
     companyId: input.companyId,
     billingUnderlayId: underlayId,

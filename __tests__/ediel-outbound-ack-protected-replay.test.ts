@@ -1,6 +1,8 @@
 // Mechanical gateway tests. Native private receipt/wire tests are a separate gate.
 import {createHash} from 'node:crypto'
 import {beforeEach,describe,expect,it,vi} from 'vitest'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {utiltsErrGatewayFixture} from './helpers/utiltsErrGatewayFixture'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
 const io=vi.hoisted(()=>({rpc:vi.fn(),validation:vi.fn(),actor:vi.fn(),oldDuplicate:vi.fn(),oldSequence:vi.fn(),create:vi.fn(),conflict:vi.fn(),route:vi.fn(),technical:vi.fn(),endpoint:vi.fn(),source:vi.fn()}))
 vi.mock('@/lib/ediel/rulebook/validator',()=>({validateRulebookMessageWithRegistry:io.validation}))
@@ -17,10 +19,17 @@ vi.mock('@/lib/ediel/ack/technicalSyntaxRoute',()=>({readTechnicalSyntaxAckRoute
 vi.mock('@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute',()=>({readProdatCommonHeaderNegativeAckRoute:io.route}))
 import {createCanonicalAckMessage} from '@/lib/ediel/core/kernel'
 const company='10000000-0000-4000-8000-000000000001',actor='10000000-0000-4000-8000-000000000002',sourceId='10000000-0000-4000-8000-000000000003',ackId='10000000-0000-4000-8000-000000000004'
-// Only fields read by this gateway/port are declared; these rows are mechanical.
-const source=()=>({id:sourceId,company_id:company,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'UTILTS',message_code:'E66',raw_payload:'physical original',parsed_payload:{}} as unknown as EdielMessageRow)
-const ack=(family:'APERAK'|'CONTRL'|'UTILTS_ERR'='APERAK',patch:Partial<EdielMessageRow>={})=>({id:ackId,company_id:company,environment:'test',direction:'outbound',message_standard:'edifact',message_family:family,message_code:family,related_message_id:sourceId,raw_payload:'sealed response',status:'sent',ack_outcome:'negative',parsed_payload:{},...patch} as unknown as EdielMessageRow)
-const draft=(family:'APERAK'|'CONTRL'|'UTILTS_ERR'='APERAK'):CreateEdielMessageInput=>({actorUserId:actor,companyId:company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:family,messageCode:family,rawPayload:'new draft'})
+// Physical source and retained responses are independently installed finite
+// synthetic read fixtures. No first caller's draft is echoed or qualified.
+const physical=utiltsErrGatewayFixture({company,transactions:[{reference:'FULL-IDE',outcome:'processability_rejected'}]})
+const source=()=>({...physical,id:sourceId,company_id:company,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'UTILTS',message_code:'E66',parsed_payload:{}} as EdielMessageRow)
+function responseRaw(family:'APERAK'|'CONTRL'|'UTILTS_ERR'){
+ const type=family==='CONTRL'?'CONTRL:2:2:UN:EDIEL2':family==='APERAK'?'APERAK:D:04A:UN:E5SE5A':'UTILTS:D:02B:UN:E5SE5A'
+ const segments=family==='CONTRL'?['UCI+260831181101+91100:ZZ+21660:ZZ+4']:family==='APERAK'?['BGM+313+ACK-D+9','DOC+E66:SVK:260+GRIDEX2607E66MSG001','NAD+MS+21660:SVK:260','NAD+MR+91100:SVK:260','ERC+42::260']:['BGM+ERR::260+ACK-D+9','NAD+MS+21660:SVK:260','NAD+MR+91100:SVK:260','STS+E01::260+41+E87::260','RFF+E66:GRIDEX2607E66MSG001','RFF+TN:FULL-IDE']
+ return EdifactEnvelopeCodec.encode({sender:'21660',receiver:'91100',applicationReference:'23-DDQ-E66-T',environment:'test',interchangeReference:'OWN-ACK-I',acknowledgementRequest:false,messages:[{messageReference:'OWN-ACK-M',messageTypeToken:type,businessSegments:segments}]})
+}
+const ack=(family:'APERAK'|'CONTRL'|'UTILTS_ERR'='APERAK',patch:Partial<EdielMessageRow>={})=>({...source(),id:ackId,company_id:company,environment:'test',direction:'outbound',message_standard:'edifact',message_family:family,message_code:family,related_message_id:sourceId,raw_payload:responseRaw(family),status:'sent',ack_outcome:'negative',parsed_payload:family==='UTILTS_ERR'?{relatedTransactionReference:'FULL-IDE'}:{},...patch} as EdielMessageRow)
+const draft=(family:'APERAK'|'CONTRL'|'UTILTS_ERR'='APERAK'):CreateEdielMessageInput=>({actorUserId:actor,companyId:company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:family,messageCode:family,rawPayload:responseRaw(family)})
 function protectedRow(actual=source(),response=ack()){io.rpc.mockResolvedValue({data:{version:1,sourceMessage:actual,ackMessage:response},error:null});return response}
 function noEffects(){for(const fn of [io.oldDuplicate,io.oldSequence,io.create,io.conflict,io.route,io.technical,io.source])expect(fn).not.toHaveBeenCalled()}
 beforeEach(()=>{vi.resetAllMocks();io.actor.mockResolvedValue(undefined);io.conflict.mockResolvedValue(undefined);io.oldDuplicate.mockImplementation(async input=>ack(input.ackFamily));io.oldSequence.mockImplementation(async input=>ack(input.ackFamily));io.endpoint.mockResolvedValue({companyId:company})})
@@ -28,7 +37,7 @@ describe('outbound ACK replay consumes protected actual source and own ACK',()=>
  it.each(['APERAK','CONTRL','UTILTS_ERR'] as const)('reads %s once with current actor and exact scope without new effects',async family=>{
   const prior=protectedRow(source(),ack(family))
   expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:source(),ackFamily:family,outcome:'negative',draft:draft(family)})).toEqual(prior)
-  expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_read_outbound_ack_replay_v1',{p_company_id:company,p_environment:'test',p_source_message_id:sourceId,p_actor_user_id:actor,p_ack_family:family,p_sequence_field:null,p_sequence_value:null});noEffects()
+  expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_read_outbound_ack_replay_v1',{p_company_id:company,p_environment:'test',p_source_message_id:sourceId,p_actor_user_id:actor,p_ack_family:family,p_sequence_field:family==='UTILTS_ERR'?'relatedTransactionReference':null,p_sequence_value:family==='UTILTS_ERR'?'FULL-IDE':null});noEffects()
  })
  it('compares caller raw and physical family/code to actual source before duplicate return',async()=>{
   protectedRow()

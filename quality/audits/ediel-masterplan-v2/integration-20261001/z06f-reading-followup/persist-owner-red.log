@@ -1,0 +1,45 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  [
+    'lock_storage',
+    'current_scope',
+    'preserve_committed',
+    'actual_own_facet',
+...
+    'native_persist',
+-   'after_persist_observer'
+  ]
+
+    at file:///workspace/scratch/29079c3a4297/gridex-dgi-reason-scope/scripts/ediel-utilts-reading-followup-persist-sql-regression.mjs:39:113 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: [
+    'lock_storage',
+    'current_scope',
+    'preserve_committed',
+    'actual_own_facet',
+    'original_context',
+    'source_rule_pack',
+    'native_persist'
+  ],
+  expected: [
+    'lock_storage',
+    'current_scope',
+    'preserve_committed',
+    'actual_own_facet',
+    'original_context',
+    'source_rule_pack',
+    'native_persist',
+    'after_persist_observer'
+  ],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

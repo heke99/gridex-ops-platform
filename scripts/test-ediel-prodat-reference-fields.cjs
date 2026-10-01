@@ -56,10 +56,10 @@ async function runtime() {
     for(const name of names) this.setExport(name,()=>{throw new Error(`Unexpected mutation/context call: ${specifier}/${name}`)})
   })]))
   await entry.link((specifier, parent) => {
+    if (specifier === '@/lib/supabase/service') return service
     const sourceBoundary=sourceRuntimeBoundary(specifier,modules,parent)
     if(sourceBoundary)return sourceBoundary
     if (specifier === 'crypto' || specifier === 'node:crypto') return crypto
-    if (specifier === '@/lib/supabase/service') return service
     if (unreachable.has(specifier)) return unreachable.get(specifier)
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)

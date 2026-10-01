@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import {assertCapturedServiceRequestTiming,type CapturedServiceRequestTiming} from './requestTiming'
 
 export type ServicePermissionOriginInput = {
   providerCompanyId: string; assignmentId: string; actorUserId: string;
@@ -9,6 +10,7 @@ export type ServicePermissionOriginBasis = {
   permissionId: string; permissionStateVersion: number; code: 'Z13' | 'Z18'; environment: 'test' | 'production';
   providerActorId: string; dsoActorId: string; legalSenderId: string; legalReceiverId: string;
   customerId: string; customer: Record<string, unknown>; mode: 'V' | 'VH';
+  requestTiming?: CapturedServiceRequestTiming;
   agreementReference?: string | null; requestedMethod?: string | null; purposeCode: string | null; frequency: string | null; terminationReason: string | null;
   evidenceId: string; evidenceSha256: string; evidenceVersion: string; li: string | null;
   reportingTerm: 'bounded' | 'indefinite' | null; customerClassification: 'private' | 'nonprivate' | null;
@@ -26,6 +28,7 @@ export async function readServicePermissionOrigin(input: ServicePermissionOrigin
   const { data, error } = await supabaseService.rpc('ediel_service_permission_origin_v1', args(input))
   if (error) throw error
   if (!data || !['authorized', 'held'].includes(data.status)) throw new Error('ediel_permission_origin_result_invalid')
+  if(data.status==='authorized')assertCapturedServiceRequestTiming(data)
   return data
 }
 export async function reserveServicePermissionOrigin(input: ServicePermissionOriginInput & { intentId: string }): Promise<{ status: 'reserved'; messageId: string | null } | HeldPermissionOrigin> {

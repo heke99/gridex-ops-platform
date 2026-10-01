@@ -3,6 +3,7 @@
 import {createHash} from 'node:crypto'
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 const io=vi.hoisted(()=>({actor:vi.fn(),replay:vi.fn(),duplicate:vi.fn(),ackDuplicate:vi.fn(),validation:vi.fn(),witness:vi.fn(),legacyCreate:vi.fn(),create:vi.fn(),conflict:vi.fn(),endpoint:vi.fn(),technical:vi.fn(),technicalRoute:vi.fn(),sourcePack:vi.fn(),route:vi.fn(),positiveRead:vi.fn(),positiveMatch:vi.fn(),positivePrepare:vi.fn(),negativeRead:vi.fn(),negativeMatch:vi.fn(),negativePrepare:vi.fn(),commonRead:vi.fn(),commonPrepare:vi.fn(),commonRoute:vi.fn(),aiOriginal:vi.fn(),version:vi.fn(),references:vi.fn(),ackReferences:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.replay}}))
@@ -66,31 +67,35 @@ describe('canonical source-owner and technical gateway consumers',()=>{
    interchangeReference:'OWNACK',acknowledgementRequest:false,messages:[{messageReference:'OWNACKMSG',messageTypeToken:'APERAK:D:96A:UN:E2SE6A',
     businessSegments:['BGM+12+OWNACKDOC+34','NAD+FR+LOCAL:160:SVK','NAD+DO+REMOTE:160:SVK','RFF+ACW:SOURCE',
      ...results.flatMap(own=>[`ERC+${own.positive?'100':'42'}::260`,`RFF+LI:${own.reference}`])]}]})})
+ // These test cases install their own complete physical source before the
+ // subject call. A draft/parsed caller cache never supplies source authority.
+ function objectSource(results:{reference:string;positive:boolean}[]){return message({raw_payload:EdifactEnvelopeCodec.encode({sender:'REMOTE',receiver:'LOCAL',applicationReference:'APP',environment:'test',interchangeReference:'ACTUAL',acknowledgementRequest:false,messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:['BGM+Z04+SOURCE+9+AB','NAD+FR+REMOTE:160:SVK','NAD+DO+LOCAL:160:SVK',...results.flatMap((r,i)=>[`LIN+${i+1}++POINT${i}:::9`,`RFF+LI:${r.reference}`])]}]})})}
  function oldObjectAck(ownDraft:CreateEdielMessageInput,outcome:'positive'|'negative'){
   return message({id:'protected-own-object-ack',direction:'outbound',related_message_id:sourceId,message_family:'APERAK',message_code:'12',
    raw_payload:ownDraft.rawPayload!,status:'failed',ack_outcome:outcome})
  }
  function protectedObjectReceipt(own:CreateEdielMessageInput,old:EdielMessageRow,results:{reference:string;positive:boolean}[]){
-  const scopes=results.map((r,index)=>({scope:'object',reference:String(index+7),physicalReference:{li:r.reference,lineIndex:index+7,id:'actual own point '+index},outcome:r.positive?'positive':'negative'}))
-  return {data:{version:2,sourceMessage:message(),ackMessage:old,requestedPayloadHash:createHash('sha256').update(own.rawPayload!).digest('hex'),requestedScopes:scopes,ackScopes:scopes},error:null}
+  const source=objectSource(results),lines=tokenizeEdifact(source.raw_payload!).segments.filter(s=>s.tag==='LIN')
+  const scopes=results.map((r,index)=>({scope:'object',reference:String(lines[index].index),physicalReference:{li:r.reference,lineIndex:lines[index].index,id:'POINT'+index},outcome:r.positive?'positive':'negative'}))
+  return {data:{version:2,sourceMessage:source,ackMessage:old,requestedPayloadHash:createHash('sha256').update(own.rawPayload!).digest('hex'),requestedScopes:scopes,ackScopes:scopes},error:null}
  }
  it('uses the protected raw-scope source receipt before today\'s guide despite changed caller sequence caches',async()=>{
   const results=[{reference:'OWN-LI',positive:true}],own=objectDraft(results),old=oldObjectAck(own,'positive')
   io.replay.mockResolvedValue(protectedObjectReceipt(own,old,results))
-  expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'positive',draft:own})).toBe(old)
+  expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:objectSource(results),ackFamily:'APERAK',outcome:'positive',draft:own})).toBe(old)
   expect(io.replay).toHaveBeenCalledExactlyOnceWith('ediel_read_outbound_ack_scope_replay_v2',expect.objectContaining({p_company_id:company,p_source_message_id:sourceId,p_actor_user_id:actor,p_ack_raw_payload:own.rawPayload}))
   expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })
  it('preserves a protected exact mixed original without reinterpreting all objects as negative',async()=>{
   const results=[{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}],own=objectDraft(results),old=oldObjectAck(own,'negative')
   io.replay.mockResolvedValue(protectedObjectReceipt(own,old,results))
-  expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'negative',draft:own})).toBe(old)
+  expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:objectSource(results),ackFamily:'APERAK',outcome:'negative',draft:own})).toBe(old)
   expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })
  it('holds changed own group outcomes even when whole mixed classification agrees, with zero conflict events',async()=>{
-  const desired=objectDraft([{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}])
+  const results=[{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}],desired=objectDraft(results)
   io.replay.mockResolvedValue({data:null,error:Error('ediel_prodat_ack_scope_conflicting_outcome')})
-  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'negative',draft:desired})).rejects.toThrow('scope_conflicting_outcome')
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:objectSource(results),ackFamily:'APERAK',outcome:'negative',draft:desired})).rejects.toThrow('scope_conflicting_outcome')
   expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled();expect(io.conflict).not.toHaveBeenCalled()
  })
  it('recovers a concurrent technical INSERT only from the same protected original actor/source scope',async()=>{
@@ -174,7 +179,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   const transport={interchangeReference:'ACTUAL',senderComponents:['REMOTE','ZZ','REMOTE-SUB'],receiverComponents:['LOCAL','ZZ','LOCAL-SUB']}
   const e={kind:'prodat_common_header_rejection',companyId:company,environment:'test',sourceMessageId:sourceId,sourceHash,syntaxAssessmentId:'protected-syntax-assessment',identities:{transport,applicationReference:'APP'}}
   const syntax={...evidence(),sourceHash,syntaxAssessmentId:e.syntaxAssessmentId,syntaxDecision:'accepted',originalUNB:{interchangeReference:'ACTUAL',applicationReference:'APP',sender:transport.senderComponents,receiver:transport.receiverComponents}}
-  io.commonRead.mockResolvedValue({sourceMessage:source,evidence:e});io.technical.mockResolvedValue(syntax);io.commonRoute.mockResolvedValue({route:{id:'actual-ap27-route'},routeRuntime:{route_profile_id:'actual-ap27-profile'},senderEdielId:'LOCAL',senderSubAddress:'LOCAL-SUB',receiverEdielId:'REMOTE',receiverSubAddress:'REMOTE-SUB',senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',applicationReference:'APP',smtpHost:'smtp.example.invalid',smtpPort:587});io.commonPrepare.mockResolvedValue({witnessId:'one-use-common-header-token',evidence:e});io.validation.mockResolvedValue({fieldRuleSource:'common_header_source',blocking:false,prodatCommonHeaderRejectionEvidence:e});return {e,syntax}
+  io.commonRead.mockResolvedValue({sourceMessage:source,evidence:e});io.technical.mockResolvedValue(syntax);io.commonRoute.mockResolvedValue({route:{id:'actual-ap27-route'},routeRuntime:{route_profile_id:'actual-ap27-profile'},senderEdielId:'LOCAL',senderSubAddress:'LOCAL-SUB',receiverEdielId:'REMOTE',receiverSubAddress:'REMOTE-SUB',senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',applicationReference:'APP',smtpHost:'smtp.example.invalid',smtpPort:587});io.commonPrepare.mockResolvedValue({witnessId:'one-use-common-header-token',evidence:e});io.validation.mockResolvedValue({fieldRuleSource:'common_header_source',blocking:false,prodatCommonHeaderRejectionEvidence:e});io.create.mockResolvedValue(message({id:'new-common-ack',direction:'outbound',message_family:'APERAK',message_code:'12',related_message_id:sourceId,raw_payload:commonDraft().rawPayload,ack_outcome:'negative'}));return {e,syntax}
  }
  it('routes an unattributed physical P202 rejection through its protected common AP27 route and one-use witness',async()=>{
   const source=unknownSource(),{e}=commonPorts(source)
@@ -189,7 +194,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   for(const source of [message({company_id:null}),unknownSource()]){
    await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'positive',draft:commonDraft()})).rejects.toThrow('source_scope_mismatch')
   }
-  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:unknownSource(),ackFamily:'APERAK',outcome:'negative',draft:{...commonDraft(),rawPayload:commonDraft().rawPayload!.replace('BGM+12+ACK-D+27', 'BGM+12+ACK-D+34').replace("UNT+7+1'","RFF+LI:TX'UNT+8+1'"),parsedPayload:{ackScope:'transaction',relatedTransactionReference:'TX'}}})).rejects.toThrow('common_header_negative_only')
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:unknownSource(),ackFamily:'APERAK',outcome:'negative',draft:{...commonDraft(),rawPayload:commonDraft().rawPayload!.replace('BGM+12+ACK-D+27', 'BGM+12+ACK-D+34').replace("UNT+7+1'","RFF+LI:TX'UNT+8+1'"),parsedPayload:{ackScope:'transaction',relatedTransactionReference:'TX'}}})).rejects.toThrow('ack_prodat_original_object_scope_mismatch')
   await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:{...unknownSource(),company_id:'foreign-company'},ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})).rejects.toThrow('source_scope_mismatch')
   expect(io.commonRoute).not.toHaveBeenCalled();expect(io.commonPrepare).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })

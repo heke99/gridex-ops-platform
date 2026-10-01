@@ -1,5 +1,6 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
-import {qty,raw as rawFixture} from './fixtures/prodat-register'
+import {qty} from './fixtures/prodat-register'
+import {guideOrderedFixtureRaw as rawFixture} from './helpers/prodatGuideOrderedFixture'
 import {source} from './fixtures/prodat-identity'
 import {mixedZ04Parts} from './helpers/mixedZ04Fixture'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -8,6 +9,7 @@ import {contrlSourceEnvelope} from '@/lib/ediel/contrlEngine'
 import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
 import {withProdatFixtureInsertContext,prodatFixtureSourceRpc} from './helpers/prodatInboundSourceFixture'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
+import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 
 // The persisted test lane declares test_flag=1. Its physical UNB must carry
 // that same indicator, requested technical ACK and explicit transport agency;
@@ -33,7 +35,10 @@ const fixtureCompany='00000000-0000-4000-8000-000000000002'
 const fixtureActor='00000000-0000-4000-8000-000000000009'
 const payloadHash=(value:string)=>createHash('sha256').update(value,'utf8').digest('hex')
 function storedOriginal():EdielMessageRow {
- if(!state.original){state.source=withProdatFixtureInsertContext(state.source!);state.original=structuredClone(state.source)}
+ if(!state.original){state.source=withProdatFixtureInsertContext(state.source!);state.original=structuredClone(state.source)
+  const witness=originalRuleWitnessFixture({profileKey:String(state.original.rule_profile_key),messageProfileId:String(state.original.rule_profile_version_id),rulePackId:String(state.original.canonical_rule_pack_id),sourceHash:String(state.original.rule_pack_checksum)})
+  state.original.rule_pack_snapshot={...witness.snapshot,...state.original.rule_pack_snapshot,rulePack:{...witness.snapshot.rulePack,family:'PRODAT'}}
+ }
  return state.original
 }
 function sourcePack(message:EdielMessageRow){return {
@@ -51,6 +56,26 @@ function syntaxBasis(){
   originalUNB:{sender:[...envelope.senderComponents],receiver:[...envelope.receiverComponents],interchangeReference:envelope.interchangeReference,
    uciReference:envelope.uciReference,applicationReference:original.application_reference,testIndicator:envelope.testIndicator}}
 }
+/** Finite native transport shape derived from actual immutable source and ACK
+ * bytes by the real physical correlation reader. No parsed alias selects scope;
+ * this model does not prove the native owner, legal facts, locks or RLS. */
+function physicalAckScopes(ack:Record<string,unknown>){
+ const source=storedOriginal(),result=readPhysicalAckSourceCorrelation(ack as never,source)
+ if(result.wholeSourceOutcome){
+  const wire=tokenizeEdifact(source.raw_payload),bgm=wire.segments.find(s=>s.tag==='BGM')
+  const documentId=segmentComposite(bgm,2,wire.una)[0]
+  if(!documentId)throw Error('declared_physical_source_document_required')
+  return [{scope:'message',reference:documentId,physicalReference:{documentId},outcome:result.wholeSourceOutcome}]
+ }
+ if(!result.prodatObjectOutcomes?.length)throw Error('declared_physical_source_object_required')
+ return result.prodatObjectOutcomes.map(own=>({scope:'object',reference:String(own.firstLineIndex),
+  physicalReference:{lineIndex:own.firstLineIndex,id:own.objectId,li:own.lineItemReference},outcome:own.outcome}))
+}
+function physicalReceipt(requested:string,ack:Record<string,unknown>){
+ const requestedScopes=physicalAckScopes({...ack,raw_payload:requested}),ackScopes=physicalAckScopes(ack)
+ return {version:2,requestedPayloadHash:payloadHash(requested),requestedScopes,ackScopes,
+  requestedScopesHash:payloadHash(JSON.stringify(requestedScopes)),ackScopesHash:payloadHash(JSON.stringify(ackScopes))}
+}
 vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'configured@example.invalid',host:'smtp.example.invalid',port:465})}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>{
  state.authorityCalls.push({name,args:structuredClone(args)})
@@ -59,7 +84,11 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
   return {data:state.actorActive&&['communication.write','communication.read','ediel_testing.write'].includes(String(args.p_permission)),error:null}
  }
  const message=storedOriginal()
- if(['gridex_record_prodat_source_validation_v3','gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'].includes(name))return prodatFixtureSourceRpc(name,args)
+ if(name==='ediel_require_source_bytes_available_v1'){
+  expect(args).toEqual({p_company_id:fixtureCompany,p_source_message_id:message.id})
+  return {data:null,error:state.protectedSourceAvailable&&message.raw_payload?null:new Error('ediel_source_original_bytes_unavailable')}
+ }
+ if(['gridex_record_prodat_source_validation_v6','gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'].includes(name))return prodatFixtureSourceRpc(name,args)
  if(name==='ediel_probe_source_rule_pack_capture_v1'){
   expect(args).toEqual({p_company_id:fixtureCompany,p_message_id:message.id})
   return state.protectedSourceAvailable?{data:{status:'captured',evidence:sourcePack(message)},error:null}:{data:null,error:new Error('protected original unavailable')}
@@ -70,9 +99,11 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
   // this held fixture. It must not manufacture ERC100 for the sibling.
   return {data:null,error:null}
  }
- if(name==='ediel_create_outbound_ack_atomic_v1'){
+ if(name==='ediel_create_outbound_ack_atomic_v1'||name==='ediel_create_outbound_ack_scope_atomic_v2'){
   const draft=args.p_draft as Record<string,unknown>,family=String(args.p_ack_family)
-  expect(args).toMatchObject({p_company_id:fixtureCompany,p_environment:message.environment,p_source_message_id:message.id,p_source_payload_hash:payloadHash(message.raw_payload!),p_actor_user_id:fixtureActor,p_sequence_field:null,p_sequence_value:null})
+  expect(args).toMatchObject({p_company_id:fixtureCompany,p_environment:message.environment,p_source_message_id:message.id,p_source_payload_hash:payloadHash(message.raw_payload!),p_actor_user_id:fixtureActor})
+  if(name==='ediel_create_outbound_ack_atomic_v1')expect(args).toMatchObject({p_sequence_field:null,p_sequence_value:null})
+  else{expect(family).toBe('APERAK');expect(args).not.toHaveProperty('p_sequence_field');expect(args).not.toHaveProperty('p_sequence_value')}
   expect(typeof draft.rawPayload).toBe('string')
   for(const key of ['companyId','environment','actorUserId','relatedMessageId','sourceOperationId','canonicalRulePackId','rulePackSnapshot','executionContextSnapshot','customerId','siteId','meteringPointId'])expect(draft).not.toHaveProperty(key)
   if(!state.actorActive||!state.protectedSourceAvailable)return {data:null,error:new Error('protected atomic original unavailable')}
@@ -91,16 +122,23 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
    rule_profile_version:family==='CONTRL'?null:message.rule_profile_version,
    rule_pack_checksum:family==='CONTRL'?null:message.rule_pack_checksum,
    rule_pack_snapshot:family==='CONTRL'?null:structuredClone(message.rule_pack_snapshot)})
+  const receipt=name==='ediel_create_outbound_ack_scope_atomic_v2'?physicalReceipt(String(draft.rawPayload),ack):{version:1}
   state.messages.push(ack)
-  return {data:{version:1,sourceMessage:structuredClone(message),ackMessage:structuredClone(ack),replayed:false},error:null}
+  return {data:{...receipt,sourceMessage:structuredClone(message),ackMessage:structuredClone(ack),replayed:false},error:null}
  }
- if(name==='ediel_read_outbound_ack_replay_v1'){
+ if(name==='gridex_read_outbound_acks_for_source_v1'){
+  expect(args.p_source_message_id).toBe(message.id)
+  return {data:{version:1,sourceMessageId:message.id,companyId:message.company_id,environment:message.environment,
+   sourcePayloadHash:payloadHash(message.raw_payload!),originals:state.messages.filter(ack=>ack.message_family===args.p_ack_family).map(ack=>({status:state.actorActive&&state.protectedSourceAvailable?'qualified':'held',message:structuredClone(ack),payloadHash:payloadHash(String(ack.raw_payload))}))},error:null}
+ }
+ if(name==='ediel_read_outbound_ack_replay_v1'||name==='ediel_read_outbound_ack_scope_replay_v2'){
   expect(args).toMatchObject({p_company_id:fixtureCompany,p_environment:message.environment,p_source_message_id:message.id,p_actor_user_id:fixtureActor})
   if(!state.actorActive||!state.protectedSourceAvailable)return {data:null,error:new Error('protected original unavailable')}
   const ack=state.messages.find(row=>row.company_id===fixtureCompany&&row.environment===message.environment&&row.direction==='outbound'&&row.related_message_id===message.id&&row.message_family===args.p_ack_family)
   if(!ack)return {data:null,error:null}
   if(args.p_ack_family==='CONTRL'&&!state.syntaxFacetAvailable)return {data:null,error:new Error('ediel_historical_technical_ack_basis_unavailable')}
-  return {data:{version:1,sourceMessage:structuredClone(message),ackMessage:structuredClone(ack)},error:null}
+  const receipt=name==='ediel_read_outbound_ack_scope_replay_v2'?physicalReceipt(String(args.p_ack_raw_payload),ack):{version:1}
+  return {data:{...receipt,sourceMessage:structuredClone(message),ackMessage:structuredClone(ack)},error:null}
  }
  if(name==='ediel_read_prodat_common_header_rejection_v1'){
   expect(args).toEqual({p_company_id:fixtureCompany,p_environment:message.environment,p_source_message_id:message.id})
@@ -175,7 +213,7 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Re
  if(table==='ediel_message_events')return {insert(row:Record<string,unknown>){return {select(){return {single:async()=>{state.events.push(row);return {data:row,error:null}}}}}}}
  if(table==='ediel_outbox')return {
    upsert(row:Record<string,unknown>,options:{ignoreDuplicates?:boolean}){return {select(){return {maybeSingle:async()=>{const old=state.outbox.find(item=>item.lock_key===row.lock_key);if(old&&options.ignoreDuplicates)return {data:null,error:null};const saved={...row,id:`00000000-0000-4000-8000-${String(state.outbox.length+200).padStart(12,'0')}`};state.outbox.push(saved);return {data:saved,error:null}}}}}},
-   select(){const conditions:Record<string,unknown>={};return {eq(k:string,v:unknown){conditions[k]=v;return this},maybeSingle:async()=>({data:state.outbox.find(item=>Object.entries(conditions).every(([k,v])=>item[k]===v))??null,error:null})}},
+   select(){const conditions:Record<string,unknown>={};const matches=(item:Record<string,unknown>)=>Object.entries(conditions).every(([k,v])=>item[k]===v);return {eq(k:string,v:unknown){conditions[k]=v;return this},limit:async(count:number)=>({data:state.outbox.filter(matches).slice(0,count),error:null}),maybeSingle:async()=>({data:state.outbox.find(matches)??null,error:null})}},
    update(patch:Record<string,unknown>){const conditions:Record<string,unknown>={};let allowed:string[]=[];return {eq(k:string,v:unknown){conditions[k]=v;return this},in(_k:string,v:string[]){allowed=v;return this},select(){return {maybeSingle:async()=>{const old=state.outbox.find(item=>Object.entries(conditions).every(([k,v])=>item[k]===v)&&allowed.includes(String(item.status)));if(!old)return {data:null,error:null};Object.assign(old,patch);return {data:old,error:null}}}}}},
  }
  throw Error(`unexpected external table ${table}`)
@@ -214,7 +252,7 @@ import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {classifyCanonicalInboundAck} from '@/lib/ediel/ack/inboundAckOutcome'
-import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRejection'
 
 beforeEach(()=>{state.original=null;state.actorActive=true;state.protectedSourceAvailable=true;state.syntaxFacetAvailable=true;state.authorityCalls=[];state.ownerWitnesses.clear();state.messages=[];state.outbox=[];state.events=[];state.effects=[];state.messageReads=[];state.sourceReads=[];state.routeAvailable=true;state.source={...source(raw(mixedZ04Parts(),'Z04'),'Z04'),company_id:'00000000-0000-4000-8000-000000000002',status:'received',
@@ -297,7 +335,7 @@ it.each([
  expect(contrl).not.toContain('ERC+')
  expect(state.outbox).toEqual([expect.objectContaining({company_id:fixtureCompany,environment:state.source!.environment,
   ediel_message_id:state.messages[0].id,source_message_id:state.source!.id,message_family:'CONTRL',ack_outcome:'positive',status:'queued',
-  lock_key:`${fixtureCompany}:${state.source!.environment}:${state.source!.id}:CONTRL:positive`})])
+  lock_key:`${fixtureCompany}:${state.source!.environment}:ack:${state.messages[0].id}`})])
  expect(state.ownerWitnesses.size).toBe(0)
  expect(state.events).toEqual(expect.arrayContaining([
   expect.objectContaining({payload:expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'})}),
@@ -324,39 +362,25 @@ it('holds an unresolved field 202 source without a tenant-qualified ACK route',a
  ]))
 })
 
-it('rejects supplied forbidden C002 metadata in field 202 as a whole-message ACK before business effects',async()=>{
+it('holds forbidden C002 syntax before application authority or business effects',async()=>{
  const parts=mixedZ04Parts()
  const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
  parts.splice(second+1,0,qty('20'))
  state.source={...state.source!,raw_payload:raw(parts,'Z04').replace('BGM+Z04+D+9+AB','BGM+Z04:BOGUS+D+9+AB')} as EdielMessageRow
  const decision=resolveCanonicalRuntimeDecision(state.source)
- expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
- const plan=decision.responsePlan.find(row=>row.family==='APERAK')!
- expect(plan).toMatchObject({outcome:'negative',applicationErrors:expect.arrayContaining([
-  expect.objectContaining({fieldCode:'202',ercCode:'42',prodatOccurrence:expect.objectContaining({scope:'header'})}),
- ])})
- expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'positive'})).toThrow('aperak_prodat_header_202_response_unqualified')
- expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'202',text:'invented'}]}))
-  .toThrow('aperak_prodat_header_202_response_unqualified')
- const other={...state.source!,raw_payload:state.source!.raw_payload!.replace('UNH+M+','UNH+OTHER+').replace('+M\'UNZ','+OTHER\'UNZ')} as EdielMessageRow
- const foreign=resolveCanonicalRuntimeDecision(other).responsePlan.find(row=>row.family==='APERAK')!.applicationErrors!
- expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:foreign})).toThrow('aperak_prodat_header_202_response_unqualified')
- const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id}
+ expect(decision).toMatchObject({syntaxDecision:'rejected',applicationDecision:'not_applicable'})
+ expect(decision.issues).toContainEqual(expect.objectContaining({code:'UNSM_ELEMENT_LENGTH_INVALID'}))
+ // The bounded field rule still detects its physical defect. The refused
+ // full wire cannot mint an application response from that bounded fact.
+ expect(prodatHeaderFieldRejection({field:'202',sourceWire:tokenizeEdifact(state.source.raw_payload),errors:[]})).toMatchObject({defect:'invalid',qualified:false})
+ const input={actorUserId:fixtureActor,edielMessageId:state.source.id}
  await processInboundEdielMessage(input)
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','negative']])
+ expect(state.outbox).toHaveLength(1)
  expect(state.effects).toEqual([])
- expect(state.messages.map(row=>[row.message_family,row.ack_outcome]),JSON.stringify(state.events)).toEqual([['CONTRL','positive'],['APERAK','negative']])
- expect(state.messages.every(row=>row.company_id===state.source!.company_id&&row.related_message_id===state.source!.id&&row.communication_route_id==='00000000-0000-4000-8000-000000000030')).toBe(true)
- const aperak=String(state.messages[1].raw_payload)
- expect(aperak).toContain('BGM+++27')
- expect(aperak).toContain('ERC+42::260')
- expect(aperak).toContain('FTX+AAO++202::260')
- expect(aperak).toContain('RFF+ACW:D')
- expect(aperak).not.toContain('RFF+Z07:')
- expect(state.outbox).toHaveLength(2)
- expect(state.outbox.every(row=>row.company_id===state.source!.company_id)).toBe(true)
- const before={ids:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}
+ const retained=structuredClone({messages:state.messages,outbox:state.outbox})
  await processInboundEdielMessage(input)
- expect({ids:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}).toEqual(before)
+ expect({messages:state.messages,outbox:state.outbox}).toEqual(retained)
  expect(state.effects).toEqual([])
 })
 
@@ -368,7 +392,7 @@ it('accepts an ordinary field 202 code and holds a malformed header when the ten
  const ordinary={...state.source!,raw_payload:wire} as EdielMessageRow
  expect(prodatHeaderFieldRejection({field:'202',sourceWire:tokenizeEdifact(wire),errors:[]})).toMatchObject({defect:null,qualified:false})
  expect(resolveCanonicalRuntimeDecision(ordinary).applicationDecision).toBe('accepted')
- expect(buildAperakDraft({sourceMessage:ordinary,outcome:'positive'}).rawPayload).toContain('BGM+++34')
+ expect(()=>buildAperakDraft({sourceMessage:ordinary,outcome:'positive'})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
  state.source={...state.source!,raw_payload:wire.replace('BGM+Z04+D+9+AB','BGM+Z04:BOGUS+D+9+AB')} as EdielMessageRow
  state.routeAvailable=false
  await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id})
@@ -421,7 +445,7 @@ it('keeps optional missing 204 and documented 9/5 outside header rejection, and 
   expect(prodatHeaderFieldRejection({field:'204',sourceWire:tokenizeEdifact(candidate),errors:[]})).toMatchObject({defect:null,qualified:false})
   const message={...state.source!,raw_payload:candidate} as EdielMessageRow
   expect(resolveCanonicalRuntimeDecision(message).applicationDecision).toBe('accepted')
-  expect(buildAperakDraft({sourceMessage:message,outcome:'positive'}).rawPayload).toContain('BGM+++34')
+  expect(()=>buildAperakDraft({sourceMessage:message,outcome:'positive'})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
  }
  state.source={...state.source!,raw_payload:wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+7+AB')} as EdielMessageRow
  state.routeAvailable=false
@@ -459,70 +483,47 @@ it('holds an incomplete two-object BGM34 response without inventing a sibling ou
   receiver_ediel_id:original.receiver_ediel_id,canonical_rule_pack_id:original.canonical_rule_pack_id,
   rule_profile_version_id:original.rule_profile_version_id,rule_pack_checksum:original.rule_pack_checksum,
   rule_pack_snapshot:original.rule_pack_snapshot})
- expect(state.effects).toEqual([])
+ expect(state.effects).toEqual(['actor','actor'])
 })
 
-it('persists a one-object two-register 213 rejection and reuses both ACKs and their unique outbox locks on retry',async()=>{
- const parts=mixedZ04Parts()
- const sibling=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='3')
- // Keep both registers of A; remove B rather than inventing a successful
- // sibling result. Only A register 2 lacks its own prescribed QTY+31.
+it('retains own two-register 213 diagnosis while full APERAK grammar holds the reply',async()=>{
+ const parts=mixedZ04Parts(),sibling=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='3')
  state.source={...state.source!,raw_payload:raw(parts.slice(0,sibling),'Z04')} as EdielMessageRow
  const decision=resolveCanonicalRuntimeDecision(state.source!)
  expect(decision).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected'})
- expect(decision.responsePlan.find(item=>item.family==='APERAK')!.applicationErrors)
-  .toEqual([expect.objectContaining({ercCode:'41',fieldCode:'213',
-   prodatOccurrence:expect.objectContaining({objectId:'735123456789012345',registerPosition:2})})])
- const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source!.id}
+ const errors=decision.responsePlan.find(item=>item.family==='APERAK')!.applicationErrors
+ expect(errors).toEqual([expect.objectContaining({ercCode:'41',fieldCode:'213',
+  prodatOccurrence:expect.objectContaining({objectId:'735123456789012345',registerPosition:2,lineItemReference:'CASE-735123456789012345'})})])
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:errors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ const input={actorUserId:fixtureActor,edielMessageId:state.source!.id}
  await processInboundEdielMessage(input)
- expect(state.messages.map(row=>[row.message_family,row.ack_outcome]),JSON.stringify(state.events)).toEqual([['CONTRL','positive'],['APERAK','negative']])
- expect(state.messages.every(row=>row.company_id===state.source!.company_id&&row.communication_route_id==='00000000-0000-4000-8000-000000000030'&&row.route_profile_id==='00000000-0000-4000-8000-000000000031'&&row.related_message_id===state.source!.id)).toBe(true)
- const wire=String(state.messages[1].raw_payload)
- expect(wire).toContain('BGM+++34')
- expect(wire).toContain('FTX+AAO++213::260')
- expect(wire).toContain('RFF+Z07:735123456789012345')
- expect(wire).toContain('RFF+LI:CASE-735123456789012345')
- expect(wire.match(/ERC\+41::260/g)).toHaveLength(1)
- expect(wire).not.toContain('RFF+Z07:735123456789012352')
- expect(wire).not.toContain('ERC+40::260')
- expect(state.outbox.map(row=>row.status)).toEqual(['queued','queued'])
- expect(state.outbox.every(row=>row.company_id===state.source!.company_id&&row.environment==='test'&&row.source_message_id===state.source!.id)).toBe(true)
- const ids=state.messages.map(row=>row.id),locks=state.outbox.map(row=>row.lock_key)
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive']])
+ expect(state.outbox).toHaveLength(1)
+ expect(state.events).toContainEqual(expect.objectContaining({message:expect.stringContaining('UNSM_MESSAGE_STRUCTURE_INVALID')}))
+ const retained=structuredClone({messages:state.messages,outbox:state.outbox})
  await processInboundEdielMessage(input)
- expect(state.messages.map(row=>row.id)).toEqual(ids)
- expect(state.outbox.map(row=>row.lock_key)).toEqual(locks)
- expect(state.outbox).toHaveLength(2)
- expect(state.effects).toEqual([])
+ expect({messages:state.messages,outbox:state.outbox}).toEqual(retained)
+ expect(state.effects).toEqual(['actor','actor'])
 })
 
-it('persists whole-message P-17 rejection as BGM27, with original correlation and no case effect',async()=>{
- const all=mixedZ04Parts()
- const sibling=all.findIndex(part=>part[0]==='LIN'&&part[1]==='3')
- const parts=all.slice(0,sibling)
+it('retains whole-message P-17 diagnosis while strict APERAK grammar holds its own-reference reply',async()=>{
+ const all=mixedZ04Parts(),sibling=all.findIndex(part=>part[0]==='LIN'&&part[1]==='3'),parts=all.slice(0,sibling)
  const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
  parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
- // A malformed sequence cannot inherit references through a valid register
- // chain. Carry the same object's own physical references on the faulty LIN.
- parts.splice(second+1,0,qty('20'),['RFF',['LI','CASE-735123456789012345']],
-  ['NAD','Z02',['54321','160','SVK'],'','','','','','','SE'])
+ parts.splice(second+1,0,qty('20'),['RFF',['LI','CASE-735123456789012345']],['NAD','Z02',['54321','160','SVK'],'','','','','','','SE'])
  state.source={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
- const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id}
- const decision=resolveCanonicalRuntimeDecision(state.source)
- expect(decision.responsePlan.find(item=>item.family==='APERAK')).toMatchObject({outcome:'negative',applicationErrors:expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:'314'})])})
+ const plan=resolveCanonicalRuntimeDecision(state.source).responsePlan.find(item=>item.family==='APERAK')!
+ expect(plan).toMatchObject({outcome:'negative',applicationErrors:expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:'314'})])})
+ expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:plan.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ const input={actorUserId:fixtureActor,edielMessageId:state.source.id}
  await processInboundEdielMessage(input)
- expect(state.messages.map(row=>[row.message_family,row.ack_outcome]),JSON.stringify(state.events)).toEqual([['CONTRL','positive'],['APERAK','negative']])
- const wire=String(state.messages[1].raw_payload)
- expect(wire).toContain('BGM+++27')
- expect(wire).toContain('RFF+ACW:D')
- expect(wire).toContain('FTX+AAO++314::260')
- expect(wire).not.toContain('BGM+++34')
- expect(classifyCanonicalInboundAck(parseEdifactPayload(wire))).toMatchObject({profile:'PRODAT_16_B',outcome:'negative'})
- expect(state.messages.every(row=>row.company_id===state.source!.company_id&&row.related_message_id===state.source!.id)).toBe(true)
- expect(state.outbox).toHaveLength(2)
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive']])
+ expect(state.messages.map(row=>row.raw_payload).join('')).not.toContain('ERC+100')
+ expect(state.outbox).toHaveLength(1)
  expect(state.effects).toEqual([])
- const before={messages:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}
+ const retained=structuredClone({messages:state.messages,outbox:state.outbox})
  await processInboundEdielMessage(input)
- expect({messages:state.messages.map(row=>row.id),locks:state.outbox.map(row=>row.lock_key)}).toEqual(before)
+ expect({messages:state.messages,outbox:state.outbox}).toEqual(retained)
  expect(state.effects).toEqual([])
 })
 
@@ -531,23 +532,23 @@ it('holds both ACKs when the tenant has no qualified outbound route',async()=>{
  await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source!.id})
  expect(state.messages).toEqual([])
  expect(state.outbox).toEqual([])
- expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload),JSON.stringify(state.events)).toEqual([
+ expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload),JSON.stringify(state.events)).toEqual(expect.arrayContaining([
   expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'}),
- ])
+ ]))
  expect(state.effects).toEqual([])
 })
 
-it.each(['first LIN 2','duplicate LIN 1'] as const)('rejects %s as one whole message, retaining the 314 error',defect=>{
+it.each(['first LIN 2','duplicate LIN 1'] as const)('retains physical %s diagnosis with the actual full-response gate',defect=>{
  const parts=mixedZ04Parts()
- const index=defect==='first LIN 2' ? parts.findIndex(part=>part[0]==='LIN') : parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ const index=defect==='first LIN 2'?parts.findIndex(part=>part[0]==='LIN'):parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
  parts[index]=[...parts[index].slice(0,1),defect==='first LIN 2'?'2':'1',...parts[index].slice(2)]
  const sourceMessage={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
  const plan=resolveCanonicalRuntimeDecision(sourceMessage).responsePlan.find(item=>item.family==='APERAK')!
- const draft=buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors})
- expect(draft.rawPayload).toContain('BGM+++27')
- expect(draft.rawPayload).toContain('FTX+AAO++314::260')
+ expect(plan.applicationErrors).toContainEqual(expect.objectContaining({fieldCode:'314',ercCode:'42'}))
+ if(defect==='first LIN 2')expect(()=>buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ else{const draft=buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors});expect(draft.rawPayload).toContain('BGM+++27');expect(draft.rawPayload).toContain('FTX+AAO++314::260')}
 })
 
 it('holds a sequence rejection without a source-qualified 314 finding, including a positive shortcut',()=>{
@@ -782,8 +783,9 @@ it('holds a header rejection without a qualified tenant ACK route and never ente
 
 
 it('rechecks current tenant membership before any retained ACK/outbox replay effect',async()=>{
- const parts=mixedZ04Parts(),sibling=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='3')
- state.source={...state.source!,raw_payload:raw(parts.slice(0,sibling),'Z04')} as EdielMessageRow
+ const parts=mixedZ04Parts(),second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
+ parts.splice(second+1,0,qty('20'))
+ state.source={...state.source!,raw_payload:raw(parts,'Z04').replace('BGM+Z04+D+9+AB','BGM+Z04+D+7+AB')} as EdielMessageRow
  const input={actorUserId:fixtureActor,edielMessageId:state.source.id}
  await processInboundEdielMessage(input)
  expect(state.messages.map(row=>row.message_family)).toEqual(['CONTRL','APERAK'])
