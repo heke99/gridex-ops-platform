@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { s02PlanningFixture, s02PlanningPair, s02PlanningSecondSequence, type S02PlanningDefect } from '../__tests__/helpers/utiltsS02PlanningFixture'
-import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
+import { utiltsNativeSourceFixture, utiltsTestEnvironmentWire } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
@@ -56,7 +56,7 @@ async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: b
       VALUES(${lit(ids.profile)},${lit(ids.company)},${lit(ids.route)},'Native S02 ACK profile','test','edifact',${lit(actorEdielId)},'91100','23-DDQ-S02-S',true);`)
   const fixture = s02PlanningFixture({ company: ids.company, receiver: actorEdielId, transactions: s02PlanningPair(defect, ownFirst) })
   const sourceId = randomUUID()
-  const { id, raw, parsed } = utiltsNativeSourceFixture(transform(fixture.raw_payload!).replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
+  const { id, raw, parsed } = utiltsNativeSourceFixture(utiltsTestEnvironmentWire(transform(fixture.raw_payload!)).replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
   // No prefilled profile/rule-pack authority: the actual family/date capture
   // trigger must qualify this source. No individual customer graph is needed.
   sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)

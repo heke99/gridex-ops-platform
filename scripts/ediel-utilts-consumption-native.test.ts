@@ -4,8 +4,11 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
 import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointRequest'
-import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
+import { utiltsNativeSourceFixture, utiltsTestEnvironmentWire } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { initialCanonicalUtiltsDecision, recordFinalCanonicalUtiltsDecision } from '@/lib/ediel/flows/utiltsCanonicalValidation'
+import { readCanonicalPeriodicReasonAuthority, readCanonicalUtiltsIssuerIdentityAuthority } from '@/lib/ediel/core/runtimeDecision'
+import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { buildUtiltsTransactionPersistencePayload, finalizeUtiltsTransactionAck, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
@@ -53,9 +56,32 @@ function sql<T = unknown>(input: string, maxBuffer = 2000000): T {
   return result ? JSON.parse(result) as T : undefined as T
 }
 async function seed() {
-  const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID() }
+  const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
+  // The receiver is this company's own registered supplier identity. Inbound
+  // legal attribution requires it to be globally unique in the environment.
+  const ediel = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_receiver',0));
+   SELECT to_jsonb(min(n)::text) FROM generate_series(70000,79999) n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text);
+   COMMIT;`)
+  // The grid-owner issuer is likewise unique per fixture and carries its own
+  // synthetic approved issuer/transport-mandate registry version, so issuer
+  // namespaces and document-reference histories never collide across tests.
+  const issuer = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_issuer',0));
+   SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999) n WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||n::text);
+   COMMIT;`)
+  sql(`BEGIN;
+   WITH ns AS (INSERT INTO gridex_utilts_issuer.namespaces(id,environment,registry_actor_key,created_at) VALUES(gen_random_uuid(),'test','SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)},clock_timestamp()-interval '1 day') RETURNING id),
+   iv AS (INSERT INTO gridex_utilts_issuer.issuer_versions(id,namespace_id,legal_identity,registry_version,registry_original_uri,registry_original_bytes,registry_sha256,legal_decision_ref,legal_decision_version,legal_decision_bytes,legal_decision_sha256,valid_from,approved_at,approved_by)
+    SELECT gen_random_uuid(),ns.id,jsonb_build_array(${lit(issuer)},'SVK','260'),'SYNTHETIC-1','synthetic://native/issuer/'||${lit(issuer)},convert_to('SYNTHETIC native issuer '||${lit(issuer)},'UTF8'),encode(sha256(convert_to('SYNTHETIC native issuer '||${lit(issuer)},'UTF8')),'hex'),
+     'SYNTHETIC-DECISION','1',convert_to('SYNTHETIC native decision','UTF8'),encode(sha256(convert_to('SYNTHETIC native decision','UTF8')),'hex'),clock_timestamp()-interval '1 day',clock_timestamp()-interval '1 day',${lit(ids.actor)} FROM ns RETURNING id)
+   INSERT INTO gridex_utilts_issuer.transport_mandate_versions(id,issuer_version_id,transport_sender,mandate_ref,mandate_version,mandate_original_uri,mandate_original_bytes,mandate_sha256,valid_from,approved_at,approved_by)
+    SELECT gen_random_uuid(),iv.id,jsonb_build_array(${lit(issuer)},'ZZ'),'SYNTHETIC-MANDATE','1','synthetic://native/mandate/'||${lit(issuer)},convert_to('SYNTHETIC native mandate','UTF8'),encode(sha256(convert_to('SYNTHETIC native mandate','UTF8')),'hex'),clock_timestamp()-interval '1 day',clock_timestamp()-interval '1 day',${lit(ids.actor)} FROM iv;
+   COMMIT;`)
   const message = energyHandoffMessage('2026-10-01', ids.company)
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
+    .replace('+21660:ZZ+', `+${ediel}:ZZ+`).replace('NAD+MR+21660:SVK:260', `NAD+MR+${ediel}:SVK:260`)
+    .replace('+91100:ZZ+', `+${issuer}:ZZ+`).replace('NAD+MS+91100:SVK:260', `NAD+MS+${issuer}:SVK:260`)
+  if (message.raw_payload.includes('21660') || message.raw_payload.includes('91100')) throw new Error('native_consumption_parties_unbound')
+  ids.ediel = ediel; ids.issuer = issuer
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(ids.company)},'E035 bound consumption synthetic','active');
    INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
    VALUES(${lit(ids.actor)},'authenticated','authenticated',${lit(`e035-retry-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
@@ -68,26 +94,55 @@ async function seed() {
    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
     SELECT ${lit(ids.actor)},${lit(ids.company)},id,key FROM public.permissions
     WHERE key IN('metering.write','communication.read','communication.write','communication.send');
+   INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) VALUES(${lit(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');
+   INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES(${lit(ids.company)},'test',${lit(ids.actor)},'EdielId',${lit(ediel)},clock_timestamp()-interval '1 day');
+   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) VALUES(${lit(ids.company)},'test',${lit(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day');
    INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${lit(ids.customer)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','private');
-   INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${lit(ids.grid)},${lit(ids.company)},${lit(ids.grid)},'91100','test',true,'active');
+   INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${lit(ids.grid)},${lit(ids.company)},${lit(ids.grid)},${lit(ids.issuer)},'test',true,'active');
    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id) VALUES(${lit(ids.point)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},'735999260731000007','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');`)
   const insertSource = async (raw: string, code = 'E66', environment = 'test') => {
-    const fixture = utiltsNativeSourceFixture(raw, randomUUID())
+    const fixture = utiltsNativeSourceFixture(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw, randomUUID())
     const { id, parsed } = fixture
     raw = fixture.raw
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-     SELECT ${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},${lit(ids.request)},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},'91100','21660',${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+     SELECT ${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},${lit(ids.request)},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.message_code=${lit(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
+    // Synthetic reviewed history-coverage ground for this fresh issuer: no prior
+    // issued originals exist in its namespace. Bound to the actual admission.
+    sql(`INSERT INTO gridex_utilts_issuer.source_absence_grounds(source_message_id,source_payload_hash,namespace_id,issuer_version_id,mandate_version_id,namespace_epoch,scope,identifiers_scope,
+      registry_version,registry_original_uri,registry_original_bytes,registry_sha256,deletion_history_version,deletion_history_original_uri,deletion_history_bytes,deletion_history_sha256,
+      retention_decision_ref,retention_decision_version,retention_decision_bytes,retention_decision_sha256,normalized_issued_identifiers,approval_ref,approval_version,approval_bytes,approval_sha256,approved_at,approved_by)
+     SELECT a.source_message_id,a.source_payload_hash,a.namespace_id,a.issuer_version_id,a.mandate_version_id,a.namespace_epoch,'over_time_all_issuer_applications','other_prior_issued_originals',
+      'SYNTHETIC-1','synthetic://native/registry',convert_to('SYNTHETIC registry','UTF8'),encode(sha256(convert_to('SYNTHETIC registry','UTF8')),'hex'),
+      'SYNTHETIC-1','synthetic://native/deletions',convert_to('SYNTHETIC deletions','UTF8'),encode(sha256(convert_to('SYNTHETIC deletions','UTF8')),'hex'),
+      'SYNTHETIC-RETENTION','1',convert_to('SYNTHETIC retention','UTF8'),encode(sha256(convert_to('SYNTHETIC retention','UTF8')),'hex'),'[]'::jsonb,
+      'SYNTHETIC-APPROVAL','1',convert_to('SYNTHETIC approval','UTF8'),encode(sha256(convert_to('SYNTHETIC approval','UTF8')),'hex'),clock_timestamp(),${lit(ids.actor)}
+     FROM gridex_utilts_issuer.source_admissions a WHERE a.source_message_id=${lit(id)} AND a.namespace_id IS NOT NULL
+      AND NOT EXISTS(SELECT FROM gridex_utilts_issuer.source_admissions prior WHERE prior.namespace_id=a.namespace_id AND prior.source_message_id<>a.source_message_id);`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     return data as unknown as EdielMessageRow
   }
   const original = await insertSource(message.raw_payload!)
   const dataRequest = { id: ids.request, company_id: ids.company, customer_id: ids.customer, site_id: ids.site, metering_point_id: ids.point, grid_owner_id: ids.grid, request_scope: 'billing_underlay', response_payload: {} } as GridOwnerDataRequestRow
+  const recorded = new Map<string, Awaited<ReturnType<typeof qualifyReceivedUtiltsStructure>>['runtime']>()
   const prepare = async (source = original, held = false, allowConsumption = true): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {
-    const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
+    const policy = resolveCanonicalMessagePolicy(source)!
+    // Production order (utiltsDataRequest.part-2): the structurally qualified
+    // runtime is recorded as the canonical final decision once per source, and
+    // the same runtime drives every persistence payload for that source.
+    if (!recorded.has(source.id)) {
+      const initialDecision = await initialCanonicalUtiltsDecision(source), canonicalPolicy = initialDecision.policy
+      const periodicReasonAuthority = readCanonicalPeriodicReasonAuthority({ decision: initialDecision, message: source }) ?? undefined
+      const issuerIdentityAuthority = readCanonicalUtiltsIssuerIdentityAuthority({ decision: initialDecision, message: source }) ?? undefined
+      const structural = await qualifyReceivedUtiltsStructure({ message: source, canonicalPolicy, issuerIdentityAuthority, periodicReasonAuthority,
+        runtime: runUtiltsRuntimeForMessage(source, { canonicalPolicy, issuerIdentityAuthority, periodicReasonAuthority }) })
+      await recordFinalCanonicalUtiltsDecision({ original: source, validated: source, initialDecision, runtime: structural.runtime })
+      recorded.set(source.id, structural.runtime)
+    }
+    const runtime = { ...recorded.get(source.id)! }
     expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
     if (held) runtime.transactionDispositions = runtime.transactionDispositions.map(d => ({ ...d, disposition: 'internal_review', responseType: 'none', issueCodes: ['UTILTS_STRUCTURE_UNAVAILABLE'] }))
     const matches = runtime.facts.transactions.map(t => ({ transactionReference: t.transactionId, meteringPointId: ids.point, customerId: ids.customer, siteId: ids.site, gridOwnerId: ids.grid, externalMeteringPointId: t.meterPointId, externalGridAreaId: t.gridAreaId, matchStatus: 'matched' as const }))
@@ -839,7 +894,7 @@ it.each(['direction', 'company_id', 'environment', 'message_code', 'sender_ediel
   const { error } = await supabaseService.from('ediel_messages').update({ [field]: changed }).eq('id', f.original.id)
   expect(error).not.toBeNull()
   const { data } = await supabaseService.from('ediel_messages').select('company_id,environment,direction,message_code,sender_ediel_id').eq('id', f.original.id).single()
-  expect(data).toMatchObject({ company_id: f.ids.company, environment: 'test', direction: 'inbound', message_code: 'E66', sender_ediel_id: '91100' })
+  expect(data).toMatchObject({ company_id: f.ids.company, environment: 'test', direction: 'inbound', message_code: 'E66', sender_ediel_id: f.ids.issuer })
 })
 it('concurrent identical retries serialize to one contract/series and unchanged reserved ACK', async () => {
   const f = await seed(), input = await f.prepare()
@@ -1196,7 +1251,7 @@ it.each(['energy', 'readings', 'E30-energy', 'E30-readings', 'S07-policy'] as co
 })
 it('native inbound stores NAD receiver agency 208 guide rejection and no consumable series', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace('NAD+MR+21660:SVK:260', 'NAD+MR+21660:SVK:999'))
+  const source = await f.insertSource(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, `NAD+MR+${f.ids.ediel}:SVK:999`))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1650,7 +1705,7 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
 })
 it('native inbound stores six-digit SVK receiver field208 rejection and no consumable series', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace('NAD+MR+21660:SVK:260', 'NAD+MR+216600:SVK:260'))
+  const source = await f.insertSource(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, `NAD+MR+${f.ids.ediel}0:SVK:260`))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1664,7 +1719,7 @@ it('native inbound stores six-digit SVK receiver field208 rejection and no consu
 })
 it('native inbound stores agency-305 GLN check-digit rejection at 208 without consumption', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace('NAD+MR+21660:SVK:260', 'NAD+MR+7359990000014::305'))
+  const source = await f.insertSource(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, 'NAD+MR+7359990000014::305'))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
