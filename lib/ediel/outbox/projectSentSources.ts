@@ -1,7 +1,7 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
-import { canonicalZ01BusinessResponseDeadlineMinutesProjection } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { tenantDb } from '@/lib/supabase/tenantDb'
+import { registerEdielBusinessExpectations, type EdielBusinessExpectation } from '@/lib/ediel/businessExpectations'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -54,15 +54,16 @@ async function projectSentMessageDeadlines(params: {
   companyId: string
   sentAt: string
   actorUserId: string
+  businessExpectations: EdielBusinessExpectation[]
 }): Promise<void> {
   const db = tenantDb(params.companyId)
   const technicalDueAt = params.message.requires_contrl === true && params.message.contrl_status !== 'received'
     ? addMinutes(params.sentAt, EDIEL_ACK_DEADLINE_MINUTES)
     : null
   const isZ01 = upper(params.message.message_family) === 'PRODAT' && upper(params.message.message_code) === 'Z01'
-  const businessResponseDueAt = isZ01
-    ? addMinutes(params.sentAt, canonicalZ01BusinessResponseDeadlineMinutesProjection())
-    : null
+  const frozenZ02 = params.businessExpectations.filter(value => value.source_message_id === params.message.id && value.expected_code === 'Z02')
+  if (isZ01 && (frozenZ02.length !== 1 || !frozenZ02[0].due_at)) throw new Error('ediel_post_send_frozen_business_expectation_required')
+  const businessResponseDueAt = isZ01 ? frozenZ02[0].due_at : null
 
   const updateQuery = asFilterQuery<{ id: string }>(
     db.from('ediel_messages').update({
@@ -251,14 +252,27 @@ export async function projectSentEdielSourceState(params: {
 }): Promise<void> {
   const companyId = clean(params.message.company_id)
   if (!companyId) throw new Error('ediel_post_send_company_scope_required')
-  const sentAt = clean(params.sentAt) ?? clean(params.message.message_sent_at)
+  let sentAt = clean(params.sentAt) ?? clean(params.message.message_sent_at)
   if (!sentAt) throw new Error('ediel_post_send_timestamp_required')
+  let businessExpectations: EdielBusinessExpectation[] = []
+
+  if (params.message.direction === 'outbound' && params.message.message_standard === 'edifact' && upper(params.message.message_family) === 'PRODAT'
+      && ['Z01', 'Z13', 'Z18'].includes(upper(params.message.message_code) ?? '')) {
+    // Repair reads the already accepted private journal and its prepared policy;
+    // a mutable sentAt projection never supplies timer authority.
+    businessExpectations = await registerEdielBusinessExpectations({ companyId, environment: params.message.environment,
+      messageId: params.message.id, actorUserId: params.actorUserId })
+    const anchors = [...new Set(businessExpectations.map(value => clean(value.metadata.anchorAt)))]
+    if (anchors.length !== 1 || !anchors[0] || !Number.isFinite(Date.parse(anchors[0]))) throw new Error('ediel_post_send_frozen_dispatch_anchor_required')
+    sentAt = anchors[0]
+  }
 
   await projectSentMessageDeadlines({
     message: params.message,
     companyId,
     sentAt,
     actorUserId: params.actorUserId,
+    businessExpectations,
   })
 
   const outboundRequestId = clean(params.message.outbound_request_id)
