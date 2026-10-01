@@ -1,4 +1,4 @@
-import {readSourceBoundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import {readSourceBoundAckRulePackEvidence,readPersistedOutboundAckRulePackEvidence,sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy, resolveEdielMessageTimeAnchors } from '@/lib/ediel/core/messagePolicy'
@@ -49,6 +49,8 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit local assessment time; sender DTM137 never admits a guide. */
   admissionAt?: string | Date
   messageRow?: EdielMessageRow
+  /** Protected actual-original port for a pre-persistence reverse ACK draft. */
+  ackSourceQualification?:SourceQualifiedOutboundAck
   /** Explicit pure receiver knowledge, never incoming parsed metadata. */
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
@@ -288,21 +290,6 @@ function assertAckFamilyRuntimeVersion(input: {
   }
 }
 
-function inheritedSourceRulePackSnapshot(input: RulebookValidationInput): RegistryRulePackSnapshot | null {
-  const payload = record(input.parsedPayload)
-  const snapshot = record(payload?.canonicalSourceRulePackSnapshot)
-  if (!snapshot) return null
-
-  const profileKey = String(snapshot.profileKey ?? '').trim()
-  const profileVersionId = String(snapshot.profileVersionId ?? '').trim()
-  const version = String(snapshot.version ?? '').trim()
-  const checksum = String(snapshot.checksum ?? '').trim()
-  const inherited = snapshot.inheritedFromSourceMessage === true
-  const sourceMessageId = String(snapshot.sourceMessageId ?? '').trim()
-  if (!profileKey || !profileVersionId || !version || !checksum || !inherited || !sourceMessageId) return null
-  return { profileKey, profileVersionId, version, checksum }
-}
-
 function policyForValidation(input: RulebookValidationInput, parsed: ParsedRulebookMessage): CanonicalEdielPolicy {
   const familyValue = normalize(input.family ?? parsed.family)
   if (!isActiveCanonicalFamily(familyValue)) {
@@ -519,17 +506,24 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
         return {...result,ok:false,blocking:true,issues,fieldRuleSource:'static',rulePackSnapshot:null}
       }
     }
-    const inherited = inheritedSourceRulePackSnapshot(input)
-    if (!inherited) {
+    try {
+      const qualification=input.messageRow
+        ? await readPersistedOutboundAckRulePackEvidence(input.messageRow)
+        : sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
+      if(!qualification)throw new Error('ack_source_qualification_required')
+      const {sourceMessage,evidence}=qualification
+      const own=validateCanonicalAckGuide({policy:result.canonicalPolicy!,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+      const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+      return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+    }catch(error){
       const issues = [...result.issues, issue({
         severity: 'error',
         code: 'CANONICAL_ACK_SOURCE_RULE_PACK_EVIDENCE_REQUIRED',
         title: 'Källmeddelandets canonical rule-pack saknas',
-        description: `${familyValue} ska ärva exakt rule-pack evidence från meddelandet som kvitteras; ett separat ACK-regelpaket får inte väljas.`,
+        description: error instanceof Error?error.message:String(error),
       })]
       return { ...result, ok: false, blocking: true, issues, fieldRuleSource: 'static', rulePackSnapshot: null }
     }
-    return { ...result, fieldRuleSource: 'registry', rulePackSnapshot: inherited }
   }
 
   if (!isBusinessRulePackFamily(familyValue)) {

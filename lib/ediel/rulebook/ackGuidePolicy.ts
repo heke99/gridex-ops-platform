@@ -22,11 +22,21 @@ function dateTime(value:string){
  * Optional original bytes qualify conditional references; a parsed JSON marker
  * or a sibling ERC can never supply an own-object/transaction reference. */
 export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;rawSegments?:readonly string[]|null;una?:EdifactServiceStringAdvice;sourceRawPayload?:string|null}):EdielRulebookIssue[]{
- if(input.policy.family!=='CONTRL'&&input.policy.family!=='APERAK')return []
+ if(!['CONTRL','APERAK','UTILTS_ERR'].includes(input.policy.family))return []
  const una=input.una??parseUna(null),wire=tokenizeEdifact(`${una.raw}${(input.rawSegments??[]).join(una.segmentTerminator)}${una.segmentTerminator}`),issues:EdielRulebookIssue[]=[]
  const add=(code:string,description:string,fieldPath?:string)=>issues.push({code,severity:'error',blocking:true,title:'Nationell kvittensanvisning',description,fieldPath})
  const segments=wire.segments,all=(tag:string)=>segments.filter(t=>t.tag===tag),type=segmentComposite(all('UNH')[0],2,wire.una)
  if(all('UNH').length!==1)add('ACK_GUIDE_ONE_MESSAGE_REQUIRED','Kvittensen ska avse ett eget fysiskt meddelande.','UNH')
+ if(input.sourceRawPayload){
+  const source=tokenizeEdifact(input.sourceRawPayload),originals=source.segments.filter(t=>t.tag==='UNB'),original=originals[0],outgoing=all('UNB')[0]
+  if(originals.length!==1||all('UNB').length!==1
+   ||!equal(segmentComposite(outgoing,2,wire.una),segmentComposite(original,3,source.una))
+   ||!equal(segmentComposite(outgoing,3,wire.una),segmentComposite(original,2,source.una))
+   ||!equal(segmentComposite(outgoing,7,wire.una),segmentComposite(original,7,source.una))
+   ||!equal(segmentComposite(outgoing,11,wire.una),segmentComposite(original,11,source.una)))add('ACK_ORIGINAL_TECHNICAL_ROUTE_MISMATCH','Kvittensens tekniska UNB-parter, application reference och miljö ska spegla det faktiska originalet.','UNB')
+  if(input.policy.family==='UTILTS_ERR'&&value(source,source.segments.find(t=>t.tag==='UNH'),2)!=='UTILTS')add('ACK_SOURCE_FAMILY_MISMATCH','UTILTS-ERR måste tillhöra ett verkligt UTILTS-ursprung.','UNH')
+ }
+ if(input.policy.family==='UTILTS_ERR')return issues // ERR guide fields remain in the one UTILTS owner.
  if(input.policy.family==='CONTRL'){
   if(!equal(type.slice(0,4),['CONTRL','2','2','UN'])||(type[4]&&type[4]!=='EDIEL2')||type.slice(5).some(Boolean))add('ACK_CONTRL_PROFILE_INVALID','CONTRL ska använda den svenska tekniska profilen.','UNH/S009')
   for(const tag of ['BGM','DOC','ERC','FTX','RFF','NAD'])if(all(tag).length)add('ACK_CONTRL_NATIONAL_SEGMENT_FORBIDDEN',`CONTRL får inte innehålla ${tag} från applikationskvittensen.`,tag)
