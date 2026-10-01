@@ -148,7 +148,7 @@ export type EdielAperakApplicationError = {
   lineItemReference?: string | null
 }
 
-export type EdielAckScope = 'message' | 'transaction'
+export type EdielAckScope = 'interchange' | 'message' | 'transaction' | 'object'
 
 export type UtiltsAckTransactionTarget = {
   reference: string

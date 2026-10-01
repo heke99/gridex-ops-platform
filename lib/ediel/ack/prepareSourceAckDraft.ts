@@ -2,6 +2,8 @@ import {buildAckDraftForSource,getUtiltsAckTransactionTargets} from '@/lib/ediel
 import {readExistingAckBeforeDraft} from '@/lib/ediel/core/ackDraftSource'
 import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {prodatAckObjectReferences,resolveProdatAckMessageFunction} from '@/lib/ediel/prodat/prodatAckMessageFunction'
 
 /** Operational construction follows protected replay first, then the actual
  * immutable source capability. The public synchronous builder remains a pure
@@ -9,14 +11,36 @@ import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
 export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraftForSource>[0]&{actorUserId:string}):Promise<
  {kind:'existing';message:EdielMessageRow}|{kind:'draft';draft:CreateEdielMessageInput}
 >{
- const references=input.ackFamily==='CONTRL'||input.utiltsHeaderRejected?[]:input.relatedTransactionReference?[input.relatedTransactionReference]
-  :getUtiltsAckTransactionTargets(input.sourceMessage).map(target=>target.reference)
- const existing=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:input.ackFamily,outcome:input.outcome,
-  ackScope:input.ackFamily==='CONTRL'?'interchange':references.length?'transaction':input.ackScope??'message',acknowledgedReferences:references})
- if(existing)return {kind:'existing',message:existing}
+ let references:string[],scope:'interchange'|'message'|'transaction'|'object'
+ const sourceWire=input.ackFamily==='APERAK'&&input.sourceMessage.raw_payload?tokenizeEdifact(input.sourceMessage.raw_payload):null
+ const sourceUnh=sourceWire?.segments.find(token=>token.tag==='UNH')
+ const isProdat=input.ackFamily==='APERAK'&&sourceWire&&sourceUnh&&segmentComposite(sourceUnh,2,sourceWire.una)[0]==='PRODAT'
+ if(isProdat){
+  // True P27/header originals cover the whole source and are read before any
+  // fresh error qualification. A P34 original never satisfies this read.
+  const whole=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'message'})
+  if(whole)return {kind:'existing',message:whole}
+  let referenceError:unknown
+  try{references=prodatAckObjectReferences({sourceWire,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors,relatedTransactionReference:input.relatedTransactionReference})}
+  catch(error){referenceError=error;references=[]}
+  if(references.length){
+   const original=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'object',acknowledgedReferences:references})
+   if(original)return {kind:'existing',message:original}
+  }
+  const fn=resolveProdatAckMessageFunction({sourceWire,hasProdatWire:true,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors})
+  if(fn==='34'&&referenceError)throw referenceError
+  if(fn==='34'&&!references.length)throw new Error('aperak_prodat_requested_scope_unqualified')
+  scope=fn==='27'?'message':'object'
+ }else{
+  references=input.ackFamily==='CONTRL'||input.utiltsHeaderRejected?[]:input.relatedTransactionReference?[input.relatedTransactionReference]
+   :getUtiltsAckTransactionTargets(input.sourceMessage).map(target=>target.reference)
+  scope=input.ackFamily==='CONTRL'?'interchange':references.length?'transaction':input.ackScope??'message'
+  const existing=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:input.ackFamily,outcome:input.outcome,ackScope:scope,acknowledgedReferences:references})
+  if(existing)return {kind:'existing',message:existing}
+ }
  const needsOriginal=input.ackFamily==='UTILTS_ERR'||input.ackFamily==='APERAK'&&input.sourceMessage.message_family==='UTILTS_ERR'
  const companyId=input.sourceMessage.company_id
  if(needsOriginal&&!companyId)throw new Error('canonical_ack_source_scope_mismatch')
  const ackSourceQualification=needsOriginal?await readSourceBoundOutboundAckRulePackEvidence({companyId:companyId!,environment:input.sourceMessage.environment,sourceMessageId:input.sourceMessage.id}):input.ackSourceQualification
- return {kind:'draft',draft:buildAckDraftForSource({...input,ackSourceQualification})}
+ return {kind:'draft',draft:buildAckDraftForSource({...input,ackScope:scope,ackSourceQualification})}
 }
