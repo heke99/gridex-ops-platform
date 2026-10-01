@@ -13,6 +13,7 @@ import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
 import {isUtiltsAperakSourceText} from '@/lib/ediel/utilts/aperakSourceText'
+import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/dates'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -337,7 +338,8 @@ export function renderAperakEdiel(params: {
   const segments = isUtiltsSource
     ? [
         `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
-        `DTM+137:${swedishDateTime()}:203`,
+        // U p114: +0100 is the offset for every date/time in this APERAK.
+        `DTM+137:${standardTimeMinute()}:203`,
         'DTM+735:?+0100:406',
         `DOC+${sanitizeEdifactToken(sourceWireCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
         originalAckLegalNadSegment('MS', utiltsParties!.legalReceiver),

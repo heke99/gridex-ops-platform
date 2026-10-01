@@ -30,6 +30,7 @@ import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact, observeComplete
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {utiltsDefaultAlphabetSegment,utiltsErrOriginalCopySegments} from '@/lib/ediel/utilts/errSourceCopy'
+import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/dates'
 
 export type {
   AckFamily,
@@ -74,21 +75,6 @@ function sanitizeEdifactToken(value?: string | null, maxLength = 35): string | n
 function escapeEdifactText(value?: string | null, maxLength = 70): string {
   const text = sanitizeSegmentText(value).slice(0, maxLength)
   return text.replace(/\?/g, '??').replace(/:/g, '?:')
-}
-
-function swedishDateTime(date = new Date()): string {
-  const parts = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Europe/Stockholm',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-
-  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-  return `${map.year}${map.month}${map.day}${map.hour}${map.minute}`
 }
 
 
@@ -758,8 +744,10 @@ function buildUtiltsErrSegments(params: {
   const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: 'UTILTS' })
 
   const segments: Array<string | null> = [
-    `BGM+ERR:SVK:260+${buildUtiltsErrDocumentReference()}+9+AB`,
-    `DTM+137:${swedishDateTime()}:203`,
+    // U p72: the S01–S07 code-list condition does not apply to ERR.
+    `BGM+ERR::260+${buildUtiltsErrDocumentReference()}+9+AB`,
+    // U §3.6.1–2: message date uses Swedish standard time all year.
+    `DTM+137:${standardTimeMinute()}:203`,
     'DTM+735:?+0100:406',
     copiedUtiltsSegment(sourceMks, 'MKS+'),
     originalAckLegalNadSegment('MS', originalParties.legalReceiver),

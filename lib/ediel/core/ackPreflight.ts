@@ -44,6 +44,13 @@ function hasComposite(raw: string, tag: string, element: number, expected: reado
   })())
 }
 
+function hasUtiltsErrDocument(raw: string): boolean {
+  // U p72 requires SVK only for S01–S07; a present valid optional code-list
+  // remains accepted for ERR, while the original ERR::260 example is valid.
+  return hasComposite(raw, 'BGM', 1, ['ERR', '', '260'])
+    || hasComposite(raw, 'BGM', 1, ['ERR', 'SVK', '260'])
+}
+
 function sourceLooksLikeE66QuarterOrHourly(sourceMessage: EdielMessageRow): boolean {
   if (sourceMessage.message_family !== 'UTILTS') return false
   if (String(sourceMessage.message_code ?? '').toUpperCase() !== 'E66') return false
@@ -77,7 +84,7 @@ function sourceHasMissingOrInvalidRegistrationTime(sourceMessage: EdielMessageRo
 function isUtiltsS03Err(raw: string, sourceMessage: EdielMessageRow): boolean {
   return sourceMessage.message_family === 'UTILTS'
     && String(sourceMessage.message_code ?? '').toUpperCase() === 'S03'
-    && hasComposite(raw, 'BGM', 1, ['ERR', 'SVK', '260'])
+    && hasUtiltsErrDocument(raw)
 }
 
 function firstSegment(raw: string, tag: string) {
@@ -320,8 +327,8 @@ function validateUtiltsErrPreflight(params: {
     issues.push(issue('error', 'utilts_err_wrong_unh', 'UTILTS-ERR ska använda UNH+1+UTILTS:D:02B:UN:E5SE5A.'))
   }
 
-  if (!hasComposite(rawPayload, 'BGM', 1, ['ERR', 'SVK', '260'])) {
-    issues.push(issue('error', 'utilts_err_wrong_bgm', 'UTILTS-ERR ska använda BGM+ERR:SVK:260.'))
+  if (!hasUtiltsErrDocument(rawPayload)) {
+    issues.push(issue('error', 'utilts_err_wrong_bgm', 'UTILTS-ERR ska använda dokumentkod ERR och kodlisteansvarig 260.'))
   }
 
   if (!(() => {
