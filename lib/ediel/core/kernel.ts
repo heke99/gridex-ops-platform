@@ -305,7 +305,7 @@ export async function createCanonicalAckMessage(params: {
   // Missing LI has no string substitute. Its real object/agency/first-LIN
   // tuple provides the operation namespace, independently of the outcome.
   const objectScopes=correlation.prodatObjectOutcomes?.map(scope=>({lineItemReference:scope.lineItemReference,
-    meteringPointId:scope.meteringPointId,identityAgency:scope.identityAgency,firstLineIndex:scope.firstLineIndex}))
+    objectId:scope.objectId,identityAgency:scope.identityAgency,firstLineIndex:scope.firstLineIndex}))
     .sort((a,b)=>a.firstLineIndex-b.firstLineIndex)
   const sequenceToken=objectScopes?.some(scope=>scope.lineItemReference===null)
     ? `object:${createHash('sha256').update(JSON.stringify(objectScopes),'utf8').digest('hex')}`
