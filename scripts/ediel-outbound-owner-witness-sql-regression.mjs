@@ -292,6 +292,16 @@ try {
  }
  // Published source knowledge does not rewrite a previously consumed original.
  assert.deepEqual((await db.query('select gridex_ediel_outbound_owner.require_v1($1,$2) r',[uid(1),uid(119)])).rows[0].r,oldUnusedSeal.evidence);checks++
+ // Explicit old frozen identity/source-receipt boundary; the real owner seal
+ // and journal/source-wrapper chain above remain in use. Prior to41455, this
+ // old consumed malformed original could enter its first native attempt.
+ await legal(119);await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','outbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(119),uid(1),oldUnusedWire,oldUnusedSeal.evidence])
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql',import.meta.url),'utf8'));checks++
+ const oldFirstEntryInput={action:'prepare',companyId:uid(1),environment:'test',messageId:uid(119),attemptId:uid(190),actorUserId:uid(7),binding:{originalHash:(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[oldUnusedWire])).rows[0].h,sourceRulePackEvidence:oldUnusedSeal.evidence}}
+ for(const lane of ['gridex_ediel_transport','gridex_outbound_dispatch']){
+  await assert.rejects(db.query(`select ${lane}.mutate_v1($1) r`,[oldFirstEntryInput]),/ediel_prodat_aperak_unused_document_element/)
+  assert.equal((await db.query(`select count(*)::int n from ${lane}.attempts where message_id=$1`,[uid(119)])).rows[0].n,0);checks++
+ }
  const mixedRaw=await pAck('MIXED');const mixedSeal=await prepareP(mixedRaw);assert.equal((await db.query('select code from gridex_ediel_outbound_owner.witnesses where id=$1',[mixedSeal.witnessId])).rows[0].code,'APERAK');checks++
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930231746_ediel_native_prodat_ack_immutable_scope.sql',import.meta.url),'utf8'));checks++
  const ownPScopes=(await db.query('select gridex_ediel_ack_guide.prodat_outcomes_v1($1,$2) r',[mixedRaw,pSource])).rows[0].r;assert.deepEqual(ownPScopes.map(s=>s.outcome),['positive','negative']);checks++

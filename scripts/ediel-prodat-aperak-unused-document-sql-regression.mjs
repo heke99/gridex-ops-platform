@@ -65,5 +65,32 @@ try{
  await assert.rejects(db.query('select gridex_ack_authority.apply_v1($1,$2,$3,$4,$5)',[uid(1),'test',uid(20),uid(99),uid(7)]),/fixture_immutable_original_conflict/);checks++
  const acl=(await db.query("select has_function_privilege('authenticated','gridex_ack_authority.apply_v1(uuid,text,uuid,uuid,uuid)','execute') public_apply,has_function_privilege('service_role','gridex_ediel_ack_guide.require_prodat_unused_document_v1(text)','execute') private_predicate,has_function_privilege('service_role','gridex_ack_authority.apply_before_prodat_unused_document_v1(uuid,text,uuid,uuid,uuid)','execute') delegate_bypass,has_function_privilege('service_role','gridex_ack_authority.apply_v1(uuid,text,uuid,uuid,uuid)','execute') service_apply")).rows[0]
  assert.deepEqual(acl,{public_apply:false,private_predicate:false,delegate_bypass:false,service_apply:true});checks++
+ // Fresh transport-specific correction: complete earlier journal behavior is
+ // an explicit boundary fixture here, with its immutable-result precedence.
+ // Real source/owner/journal-wrapper composition is also exercised separately.
+ await db.exec(`create schema gridex_ediel_transport;create schema gridex_outbound_dispatch;
+ create table public.fixture_attempts(lane text,message_id uuid,state text,primary key(lane,message_id));
+ create function public.fixture_journal(i jsonb,fixture_lane text) returns jsonb language plpgsql as $$declare prior text;mid uuid:=(i->>'messageId')::uuid;begin
+ select state into prior from public.fixture_attempts where message_id=mid and fixture_attempts.lane=$2;
+ if(i->>'action'='prepare' and prior is not null and prior<>'released') or(i->>'action'='enter' and prior in('entered','observed')) then return jsonb_build_object('proceed',false,'scoped',true,'frozen',prior);end if;
+ if i->>'action' in('prepare','enter') then insert into public.fixture_attempts values(fixture_lane,mid,case when i->>'action'='enter' then 'entered' else 'prepared' end) on conflict(lane,message_id) do update set state=excluded.state;end if;
+ return jsonb_build_object('proceed',true,'scoped',coalesce(i->>'scoped','true')='true');end$$;
+ create function gridex_ediel_transport.mutate_v1(i jsonb) returns jsonb language sql as $$select public.fixture_journal(i,'generic')$$;
+ create function gridex_outbound_dispatch.mutate_v1(i jsonb) returns jsonb language sql as $$select public.fixture_journal(i,'h')$$;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql',import.meta.url),'utf8'))
+ const journal=async(lane,action,mid=10,extra={})=>db.query(`select ${lane==='generic'?'gridex_ediel_transport':'gridex_outbound_dispatch'}.mutate_v1($1) r`,[{action,companyId:uid(1),environment:'test',messageId:uid(mid),...extra}])
+ for(const lane of ['generic','h']){
+  await assert.rejects(journal(lane,'prepare'),/ediel_prodat_aperak_unused_document_element/)
+  assert.equal((await db.query('select count(*)::int n from public.fixture_attempts where lane=$1',[lane])).rows[0].n,0);checks++
+  await db.query("insert into public.fixture_attempts values($1,$2,'prepared')",[lane,uid(10)])
+  assert.deepEqual((await journal(lane,'prepare')).rows[0].r,{proceed:false,scoped:true,frozen:'prepared'});checks++
+  await assert.rejects(journal(lane,'enter'),/ediel_prodat_aperak_unused_document_element/)
+  assert.equal((await db.query('select state from public.fixture_attempts where lane=$1 and message_id=$2',[lane,uid(10)])).rows[0].state,'prepared');checks++
+  await db.query("update public.fixture_attempts set state='observed' where lane=$1 and message_id=$2",[lane,uid(10)])
+  assert.deepEqual((await journal(lane,'enter')).rows[0].r,{proceed:false,scoped:true,frozen:'observed'});checks++
+  assert.equal((await journal(lane,'prepare',30)).rows[0].r.proceed,true);checks++
+ }
+ const journalAcl=(await db.query("select has_function_privilege('service_role','gridex_ediel_transport.mutate_before_prodat_unused_document_v1(jsonb)','execute') generic_bypass,has_function_privilege('service_role','gridex_outbound_dispatch.mutate_before_prodat_unused_document_v1(jsonb)','execute') h_bypass,has_function_privilege('authenticated','gridex_ediel_transport.mutate_v1(jsonb)','execute') public_entry")).rows[0]
+ assert.deepEqual(journalAcl,{generic_bypass:false,h_bypass:false,public_entry:false});checks++
  console.log(`PRODAT APERAK unused-document native guard: ${checks} declared mechanical checks passed; no full native/replay claim`)
 }finally{await db.close()}
