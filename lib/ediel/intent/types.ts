@@ -189,5 +189,7 @@ export type CreateAiListMessageIntentInput = Omit<CreateEdielMessageIntentInput,
   'messageFamily'|'messageCode'|'businessProcess'|'applicationReference'|'interchangeReference'|'messageReference'|'transactionReference'|'operationId'|'payload'> & {
   messageFamily:'AI_LIST';messageCode:'AI';businessProcess:'reconciliation';operationId:string;
   applicationReference:'';interchangeReference:'';messageReference:'';transactionReference?:null;
-  payload:{owner:'ai-list-export-request-v1';fromDate:string;toDate:string;sourceSha256:string;technicalVersion:string;requestId:string}
+  payload:{owner:'ai-list-export-request-v1';fromDate:string;toDate:string;sourceSha256:string;technicalVersion:string;requestId:string;
+    /** Caller expectations constrain the separately qualified native parties. */
+    expectedLegalSupplier?:string;expectedLegalNetwork?:string;expectedBalanceResponsibleEdielId?:string}
 }
