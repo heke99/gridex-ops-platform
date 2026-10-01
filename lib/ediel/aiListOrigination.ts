@@ -9,7 +9,7 @@ import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 
 export type AiListOriginRequest={companyId:string;actorUserId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;fromDate:string;toDate:string}
 export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>){
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
  const {data:decision,error:decisionError}=await supabaseService.rpc('gridex_ai_export_decision_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId}).abortSignal(AbortSignal.timeout(2000))
  if(decisionError||decision?.status!=='authorized'||decision?.decision?.purpose!=='ediel_list_export')throw new Error('ai_list_export_decision_required')
  const {data:siteData,error:siteError}=await supabaseService.from('customer_sites').select('*').eq('id',input.siteId).eq('company_id',input.companyId).eq('customer_id',input.customerId).abortSignal(AbortSignal.timeout(2000)).maybeSingle()

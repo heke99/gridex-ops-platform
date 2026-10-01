@@ -17,7 +17,7 @@ CREATE TABLE public.ediel_message_intents(market text DEFAULT 'electricity',oper
 CREATE TABLE public.customer_supply_periods(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,metering_point_id uuid,start_date date,end_date date,actual_start_date date,actual_end_date date);
 CREATE TABLE gridex_received_sources.object_selection_snapshots(id uuid PRIMARY KEY,company_id uuid,environment text,cutoff_at timestamptz,captured_at timestamptz,readset_text text,readset_hash text);`)
 const decoder=readFileSync(new URL('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql',import.meta.url),'utf8');await db.exec(decoder.slice(0,decoder.indexOf('CREATE FUNCTION gridex_received_sources.permission_wire_v1'))+'\nCOMMIT;')
-for(const file of ['20260930165219_ediel_ai_processing_decision_consumer.sql','20260930174145_ediel_ai_source_atomic_reconciliation.sql','20260930181141_ediel_ai_personal_mail_storage_guards.sql','20260930190501_ediel_ai_message_personal_scope_guard.sql','20260930201813_ediel_ai_outbound_source_authority.sql','20260930203354_ediel_ai_intent_source_origination.sql','20260930220942_ediel_ai_prospective_original_authority.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'))
+for(const file of ['20260930165219_ediel_ai_processing_decision_consumer.sql','20260930174145_ediel_ai_source_atomic_reconciliation.sql','20260930181141_ediel_ai_personal_mail_storage_guards.sql','20260930190501_ediel_ai_message_personal_scope_guard.sql','20260930201813_ediel_ai_outbound_source_authority.sql','20260930203354_ediel_ai_intent_source_origination.sql','20260930220942_ediel_ai_prospective_original_authority.sql','20260930224737_ediel_ai_environment_qualified_origination_permissions.sql'])await db.exec(readFileSync(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'))
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,company=id(1),actor=id(2),source=id(3),decision=id(4),intent=id(5),site=id(6),customer=id(7),snapshot=id(8),route=id(9),profileId=id(10)
 const csv='AI;54321;Network;12345;Supplier;202610011200;;20261001;20261101;Ver20140401\nNET;735123456789012345;9;;;;;Street;12345;Town;12345;;;;;;;199001011234;Person;;;'
 await db.query('INSERT INTO public.companies VALUES($1)',[company])
@@ -47,8 +47,8 @@ await assert.rejects(()=>record(),/ai_bi_processing_decision_missing/)
 await db.exec('RESET ROLE;')
 assert.equal((await db.query('SELECT count(*)::int AS n FROM gridex_ai_processing.outbound_origins')).rows[0].n,0)
 await db.query("INSERT INTO gridex_ai_processing.decisions(id,company_id,list_type,purpose,revision,gdpr_basis,retention_days,valid_from,valid_until,source_reference,source_sha256,decision_owner_registry_id,decision_owner_registry_version) VALUES($1,$2,'AI','ediel_list_export',1,'SYNTHETIC_UNQUALIFIED',30,now()-interval '1 hour',now()+interval '1 hour','synthetic-only',repeat('a',64),$3,'synthetic-only')",[decision,company,id(90)])
-let migration=readFileSync(new URL('../supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql',import.meta.url),'utf8')
-let owner=migration.slice(migration.indexOf('CREATE FUNCTION gridex_ai_processing.current_purpose_decision_for_phase_v1'),migration.indexOf('REVOKE ALL ON FUNCTION gridex_ai_processing.current_purpose_decision_for_phase_v1'))
+let migration=readFileSync(new URL('../supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql',import.meta.url),'utf8')
+let owner=migration.slice(migration.indexOf('CREATE FUNCTION gridex_ai_processing.purpose_decision_after_actor_v1'),migration.indexOf('REVOKE ALL ON FUNCTION gridex_ai_processing.purpose_decision_after_actor_v1'))
 owner=owner.replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION').replace("RETURN jsonb_build_object('status','held','blocker','ai_bi_processing_decision_owner_registry_unqualified');","RETURN jsonb_build_object('status','authorized','decision',jsonb_build_object('id',d.id,'companyId',c,'listType',list_type,'purpose',purpose,'syntheticUnqualified',true));")
 await db.exec(owner)
 await db.exec(`CREATE FUNCTION gridex_received_sources.permission_time_v1(value text) RETURNS timestamptz LANGUAGE sql AS $$SELECT CASE WHEN value IS NULL THEN NULL ELSE (substring(value,1,4)||'-'||substring(value,5,2)||'-'||substring(value,7,2)||'T'||substring(value,9,2)||':'||substring(value,11,2)||':00+01:00')::timestamptz END$$;
@@ -120,12 +120,22 @@ const gate=(await db.query('SELECT gridex_ai_processing.require_ai_outbound_sour
 assert.equal(gate.origin.intentId,intent);assert.equal(gate.origin.snapshotId,snapshot);assert.equal(gate.origin.readsetHash,hash)
 // Sender-only capabilities can send the already source-bound original, but
 // cannot originate/register/disclose a new personal export request.
-await db.exec("CREATE OR REPLACE FUNCTION public.gridex_actor_has_company_permission(uuid,uuid,text) RETURNS boolean LANGUAGE sql AS $$SELECT CASE current_setting('gridex.synthetic_permissions',true) WHEN 'send' THEN $3 IN('ediel.send','communication.send') WHEN 'write' THEN $3 IN('communication.write','ediel_testing.write') ELSE true END$$;SET gridex.synthetic_permissions='send';")
+await db.exec("CREATE OR REPLACE FUNCTION public.gridex_actor_has_company_permission(uuid,uuid,text) RETURNS boolean LANGUAGE sql AS $$SELECT CASE current_setting('gridex.synthetic_permissions',true) WHEN 'send' THEN $3 IN('ediel.send','communication.send') WHEN 'write' THEN $3='communication.write' WHEN 'testing' THEN $3='ediel_testing.write' ELSE true END$$;SET gridex.synthetic_permissions='send';")
 assert.equal((await db.query('SELECT gridex_ai_processing.require_ai_outbound_source_v1($1,$2,$3) AS result',[company,source,actor])).rows[0].result.origin.intentId,intent)
 await db.exec('SET ROLE service_role;')
 await assert.rejects(()=>prospective(),/ediel_tenant_actor_forbidden/)
 await db.exec("RESET ROLE;SET gridex.synthetic_permissions='write';")
 await assert.rejects(()=>db.query('SELECT gridex_ai_processing.require_ai_outbound_source_v1($1,$2,$3)',[company,source,actor]),/ediel_tenant_actor_forbidden/)
+// A TEST-only actor cannot use the environment-less personal-history API.
+await db.exec("SET gridex.synthetic_permissions='testing';SET ROLE service_role;")
+await assert.rejects(()=>db.query('SELECT public.gridex_ai_export_decision_v1($1,$2)',[company,actor]),/ediel_tenant_actor_forbidden/)
+assert.equal((await prospective()).rows[0].result.owner,'ai-list-private-original-v1')
+await db.exec('RESET ROLE;')
+await db.query("UPDATE public.ediel_message_intents SET environment='production' WHERE id=$1",[intent])
+await db.exec('SET ROLE service_role;')
+await assert.rejects(()=>prospective(),/ediel_tenant_actor_forbidden/)
+await db.exec('RESET ROLE;')
+await db.query("UPDATE public.ediel_message_intents SET environment='test' WHERE id=$1",[intent])
 await db.exec("SET gridex.synthetic_permissions='all';")
 
 await db.exec('SET ROLE service_role;')
