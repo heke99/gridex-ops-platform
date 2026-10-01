@@ -1,5 +1,4 @@
 import {ownProdatSourceFunctionAccepted} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
-import {ownProdatSourceFunctionAccepted} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
 import {qualifyReceivedProdatApplicationObject} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {takeReceivedSourceOwnerSeed, type ReceivedSourceValidationReceipt} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
