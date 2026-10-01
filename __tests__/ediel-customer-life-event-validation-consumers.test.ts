@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {bindDeathStatusSourceContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {bindDeathStatusSourceContext,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
 import {preflightEdielMessageRow,preflightEdielPayload} from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
@@ -15,9 +15,10 @@ function example(direction:'inbound'|'outbound'='outbound'){
  const basis={kind:'customer_life_event' as const,companyId:'company-A',environment:'test' as const,rawPayload,
   sourceEventId:'event-A',sourceRevision:'2',sourceDigest:'a'.repeat(64),businessContext:'death' as const,
   bilateralCapabilityVerified:false,selection:deathSelection('death',code)}
+ const inbound: Extract<DeathStatusValidationContext,{direction:'inbound'}>={...basis,direction:'inbound',code:'Z06',sourceMessageId:'source-A',sourceContextReceiptId:'00000000-0000-4000-8000-000000000001',sourceContextFactsHash:'b'.repeat(64)}
  const context=bindDeathStatusSourceContext(direction==='outbound'
   ? {...basis,direction:'outbound',code:'Z09',intentId:'intent-A',routeId:'route-A'}
-  : {...basis,direction:'inbound',code:'Z06',sourceMessageId:'source-A'})
+  : inbound)
  return {row,context}
 }
 describe('same independent life-event context reaches actual validation consumers',()=>{

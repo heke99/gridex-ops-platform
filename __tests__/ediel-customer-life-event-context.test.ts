@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { bindDeathStatusSourceContext, deathStatusSendIssue, isQualifiedDeathStatusContext } from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import { bindDeathStatusSourceContext, deathStatusSendIssue, isQualifiedDeathStatusContext, type DeathStatusValidationContext } from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import { deathBody, deathRaw, deathSelection } from './fixtures/prodat-death-status'
 import { characteristic } from './fixtures/prodat-register'
 
@@ -30,9 +30,10 @@ it('cannot classify bankruptcy as death without its own bilateral ground', () =>
 })
 
 it('binds an inbound classification to its prospective native receipt and never a restored copy', () => {
-  const context = bindDeathStatusSourceContext({ kind: 'customer_life_event', direction: 'inbound', code: 'Z06', companyId: 'company-A', environment: 'test', rawPayload: deathRaw('Z06'), sourceEventId: 'source-A', sourceRevision: '2', sourceDigest: 'a'.repeat(64), businessContext: 'death', bilateralCapabilityVerified: false, sourceMessageId: 'source-A', sourceContextReceiptId: '00000000-0000-4000-8000-000000000001', sourceContextFactsHash: 'b'.repeat(64), selection: deathSelection('death', 'Z06') })
+  const basis: Extract<DeathStatusValidationContext, { direction: 'inbound' }> = { kind: 'customer_life_event', direction: 'inbound', code: 'Z06', companyId: 'company-A', environment: 'test', rawPayload: deathRaw('Z06'), sourceEventId: 'source-A', sourceRevision: '2', sourceDigest: 'a'.repeat(64), businessContext: 'death', bilateralCapabilityVerified: false, sourceMessageId: 'source-A', sourceContextReceiptId: '00000000-0000-4000-8000-000000000001', sourceContextFactsHash: 'b'.repeat(64), selection: deathSelection('death', 'Z06') }
+  const context = bindDeathStatusSourceContext(basis)
   expect(isQualifiedDeathStatusContext(context)).toBe(true)
   expect(isQualifiedDeathStatusContext({ ...context })).toBe(false)
-  expect(() => bindDeathStatusSourceContext({ ...context, sourceContextReceiptId: '' })).toThrow('source_context_invalid')
-  expect(() => bindDeathStatusSourceContext({ ...context, sourceContextFactsHash: '' })).toThrow('source_context_invalid')
+  expect(() => bindDeathStatusSourceContext({ ...basis, sourceContextReceiptId: '' })).toThrow('source_context_invalid')
+  expect(() => bindDeathStatusSourceContext({ ...basis, sourceContextFactsHash: '' })).toThrow('source_context_invalid')
 })

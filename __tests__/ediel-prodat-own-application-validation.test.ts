@@ -1,4 +1,4 @@
-import {bindDeathStatusSourceContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {bindDeathStatusSourceContext,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {deathRaw,deathSelection} from './fixtures/prodat-death-status'
 import {source as prodatSource} from './fixtures/prodat-identity'
 import {describe,it,expect,vi} from 'vitest'
@@ -86,8 +86,9 @@ it('actual complete invocation accepts the good object while rejecting a sibling
 
 it('qualified death context enters the same full field invocation; copies and serialized facts cannot choose it',()=>{
   const message={...prodatSource(deathRaw(),'Z06'),company_id:'00000000-0000-4000-8000-000000000002'}
-  const context=bindDeathStatusSourceContext({kind:'customer_life_event',direction:'inbound',code:'Z06',companyId:message.company_id,environment:'test',sourceMessageId:message.id,
-    rawPayload:message.raw_payload!,sourceEventId:'synthetic-event',sourceRevision:'2',sourceDigest:'a'.repeat(64),businessContext:'death',bilateralCapabilityVerified:false,selection:deathSelection()})
+  const basis: Extract<DeathStatusValidationContext,{direction:'inbound'}>={kind:'customer_life_event',direction:'inbound',code:'Z06',companyId:message.company_id,environment:'test',sourceMessageId:message.id,
+    sourceContextReceiptId:'00000000-0000-4000-8000-000000000001',sourceContextFactsHash:'b'.repeat(64),rawPayload:message.raw_payload!,sourceEventId:'synthetic-event',sourceRevision:'2',sourceDigest:'a'.repeat(64),businessContext:'death',bilateralCapabilityVerified:false,selection:deathSelection()}
+  const context=bindDeathStatusSourceContext(basis)
   const decision=resolveCanonicalRuntimeDecision(message,{deathStatusContext:context})
   expect(decision.policy?.prodatDependentFacts?.deathStatus).toEqual(context.selection)
   expect(decision.issues.some(issue=>issue.code==='PRODAT_DEATH_STATUS_REQUIRED')).toBe(true)
