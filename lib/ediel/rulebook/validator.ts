@@ -401,6 +401,14 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
     ...(parsed?.errors ?? []).map((description) => issue({ severity: 'error', code: 'PARSER_ERROR', title: 'Parserfel', description })),
     ...(parsed?.warnings ?? []).map((description) => issue({ severity: 'warning', code: 'PARSER_WARNING', title: 'Parser-varning', description })),
   ]
+  // The actual raw admission path uses the same source-owned 0062 bound as
+  // the codec and envelope validator. This does not select a guide or grant
+  // acceptance to other syntax/profile defects.
+  if (input.rawPayload && parsed?.rawSegments.some(segment => segment.startsWith('UNH'))) {
+    parserIssues.push(...validateEdifactEnvelope(input.rawPayload).issues
+      .filter(entry => entry.code === 'message_reference_length_invalid')
+      .map(entry => issue({ severity: entry.severity, code: entry.code, title: 'EDIFACT-meddelandereferens', description: entry.message })))
+  }
 
   if (!parsed) {
     const issues = [...parserIssues, issue({ severity: 'error', code: 'CANONICAL_PAYLOAD_REQUIRED', title: 'Payload saknas', description: `${family} ${code} kan inte valideras utan payload.` })]
