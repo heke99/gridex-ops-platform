@@ -1,3 +1,9 @@
+## API/UI first CI stop recovered — 2026-10-01
+
+Source62e actual OPS36863477286 accountnative4PASS; purchase15 NOT_REACHED because the isolated config could not resolve server-only. This bounded correction adds only the exact installed-Next test alias and adopts genuine33 types/schema/fingerprint from artifact11163217587 byte-exact. Fresh Node22: loader RED→GREEN15 collected/native0, targeted51, app4GiB/scripts1.5GiB types, lint/diff, integrity686/590 and types33-tail PASS. No migration/runtime/lock/workflow/native assertion/original75 bytes changed. All75 original31PARTIAL/44NOT_VERIFIED and P0–P8 remain OPEN. Current new-head native/browser/restore/CI is still pending; preceding failures stay recorded. See continuation-20260930/api-ui-unblock-20261001.md.
+
+Next: Inspect genuine changed-head #422 OPS after purchase loader and authentic33 adoption: execute native15, private agreement browser diagnostics and later native/HTTP/browser/strict restore parity; fix first actual failure; then integrate preserved next11 U07/claim-attempt/mounted-account packets and continue every original75/P0-P8 effect chain under sole publication ownership.
+
 ## Final current-source integration qualification — 2026-10-01
 
 Root reconstructed33-forward source over actual9e is qualified: finalordinary7721/532PASS, app/fulltests/fullscriptsTSC PASS, productionbuild4GiBPASS, wholelint0/101 plus newscopedlint0, accountcore28/purchasecore29/roles14, API/RBAC/budgets6, ratchet2355 and integrity686/590PASS. All original75/lockeddeps/priorSQL/generated31 bytes unchanged. The new unpublished SSR17 dependency setup failure is resolved by moving its entire identical body to scripts with unconditional isolated quality runner; root17PASS, priorindependent17+PG2PASS retained. No tests/thresholds/exclusions weakened. Initial2GiBworkerOOM is setup, corrected4GiBbuildPASS. See continuation-20260930/next10-reconstructed-integration-20261001.md.

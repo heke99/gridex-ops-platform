@@ -1,3 +1,9 @@
+## API/UI first CI stop recovered — 2026-10-01
+
+Source62e actual OPS36863477286 accountnative4PASS; purchase15 NOT_REACHED because the isolated config could not resolve server-only. This bounded correction adds only the exact installed-Next test alias and adopts genuine33 types/schema/fingerprint from artifact11163217587 byte-exact. Fresh Node22: loader RED→GREEN15 collected/native0, targeted51, app4GiB/scripts1.5GiB types, lint/diff, integrity686/590 and types33-tail PASS. No migration/runtime/lock/workflow/native assertion/original75 bytes changed. All75 original31PARTIAL/44NOT_VERIFIED and P0–P8 remain OPEN. Current new-head native/browser/restore/CI is still pending; preceding failures stay recorded. See continuation-20260930/api-ui-unblock-20261001.md.
+
+Next: Inspect genuine changed-head #422 OPS after purchase loader and authentic33 adoption: execute native15, private agreement browser diagnostics and later native/HTTP/browser/strict restore parity; fix first actual failure; then integrate preserved next11 U07/claim-attempt/mounted-account packets and continue every original75/P0-P8 effect chain under sole publication ownership.
+
 ## Final33 candidate boundary
 
 LocalfullsourcegatesPASS; honestgenerated31→33 typesgateFAIL untilauthenticcapture. Newnative4/15=0, actual9e browserfailureCAUSE_UNKNOWN withlaterNOT_REACHED. Sanitizeddiagnostic45PASS alone doesnotclosebrowser. U07local38/core12PASS separate, remaininginternalchainsOPEN. Original75/P0–P8OPEN; no blanketexternalblock.

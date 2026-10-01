@@ -572,3 +572,7 @@ Actual source6bcb8f79 full7613/526units + fresh fulltestTypesPASS, oldidentical 
 ## 2026-10-01 CI correction and source recovery
 
 Exact published0cf/treecdb source recovered5990paths/130416041B with individual SHA/size/mode validation; original653 ae56 SQL bytes unchanged. Authentic31 replay artifact11145833501 3members adopted byte-exact; firstmanual6 historical42601/nativefuturepending. Fresh bounded6+11+11+8 and fullunits7624/527/typesapp+tests+scripts PASS, wholelint0errors101warnings PASS; peers approve boundedsource and correct false no-membership-trigger documentation to actual early-return constraint trigger. Unpublishednext10 bytes remain unavailable, priorreceipts retained. All75/P0–P8OPEN. Rootalone publisher; same422 frozenpublication/genuineCI next.
+
+## 2026-10-01 API/UI CI unblock
+
+Node22: original loaderRED1 / corrected15 collected (native0); targeted51PASS; app4096/scripts1536 typesPASS; integrity686/590/types33PASS; lint/diffPASS; artifact/merge/tree/byte checksPASS. Changed-head CI pending.

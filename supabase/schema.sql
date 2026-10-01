@@ -2461,6 +2461,339 @@ CREATE TABLE public.manual_email_outbox (
 COMMENT ON COLUMN public.manual_email_outbox.recipient_resolution IS 'Recipient resolution evidence: resolution_mode (real_grid_owner_contact|safe_recipient_override|manual_override|missing_contact), selected_to_email, actual_grid_owner_contact_email, contact source table/id, contact_verified, environment, reason, production_safe_override_warning, externally_sendable.';
 
 --
+-- Name: invoice_export_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invoice_export_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    export_run_id uuid NOT NULL,
+    customer_id uuid,
+    billing_underlay_id uuid,
+    pricing_run_id uuid,
+    provider text DEFAULT 'capway_aptic'::text NOT NULL,
+    environment text DEFAULT 'test'::text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    financing_mode text DEFAULT 'invoice_service'::text NOT NULL,
+    provider_invoice_guid text,
+    provider_invoice_number text,
+    provider_payment_reference text,
+    provider_ocr text,
+    provider_imp_stock_id integer,
+    provider_status text,
+    purchase_status text,
+    recourse_status text,
+    amount_ex_vat numeric DEFAULT 0 NOT NULL,
+    vat_amount numeric DEFAULT 0 NOT NULL,
+    amount_inc_vat numeric DEFAULT 0 NOT NULL,
+    rounding_amount numeric DEFAULT 0 NOT NULL,
+    idempotency_key text,
+    request_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    response_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    error_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    status_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    sent_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    attempt_count integer DEFAULT 0 NOT NULL,
+    next_retry_at timestamp with time zone,
+    last_attempt_at timestamp with time zone,
+    error_code text,
+    provider_request_id text,
+    provider_confirmed_at timestamp with time zone,
+    reconciliation_status text DEFAULT 'not_checked'::text NOT NULL,
+    last_reconciled_at timestamp with time zone,
+    provider_idempotency_key text,
+    provider_invoice_id text,
+    provider_reconciliation_status text DEFAULT 'pending'::text NOT NULL,
+    provider_purchase_confirmed_at timestamp with time zone,
+    provider_delivery_uncertain boolean DEFAULT false NOT NULL,
+    customer_contract_id uuid,
+    metering_point_id uuid,
+    period_start date,
+    period_end date,
+    total_kwh numeric,
+    currency text DEFAULT 'SEK'::text NOT NULL,
+    billing_export_run_item_id uuid,
+    CONSTRAINT invoice_export_items_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT invoice_export_items_financing_mode_check CHECK ((financing_mode = ANY (ARRAY['invoice_service'::text, 'factoring_without_recourse'::text, 'factoring_with_recourse'::text, 'manual'::text]))),
+    CONSTRAINT invoice_export_items_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'cancelled'::text, 'credited'::text, 'disputed'::text, 'rejected'::text, 'configuration_error'::text, 'failed_retryable'::text, 'needs_review'::text])))
+);
+
+--
+-- Name: invoice_manual_purchase_intents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invoice_manual_purchase_intents (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    invoice_export_item_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    session_id uuid NOT NULL,
+    financing_mode text NOT NULL,
+    purchase_payload jsonb NOT NULL,
+    item_binding jsonb NOT NULL,
+    request_hash text NOT NULL,
+    snapshot_sha256 text NOT NULL,
+    connection_sha256 text NOT NULL,
+    status text NOT NULL,
+    observation jsonb,
+    purchase_event_id uuid,
+    audit_event_id uuid,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    completed_at timestamp with time zone,
+    CONSTRAINT invoice_manual_purchase_intents_check CHECK ((((status = 'dispatch_started'::text) AND (observation IS NULL) AND (completed_at IS NULL) AND (purchase_event_id IS NULL) AND (audit_event_id IS NULL)) OR ((status <> 'dispatch_started'::text) AND (jsonb_typeof(observation) = 'object'::text) AND (completed_at IS NOT NULL) AND (purchase_event_id IS NOT NULL) AND (audit_event_id IS NOT NULL)))),
+    CONSTRAINT invoice_manual_purchase_intents_connection_sha256_check CHECK ((connection_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT invoice_manual_purchase_intents_financing_mode_check CHECK ((financing_mode = ANY (ARRAY['factoring_without_recourse'::text, 'factoring_with_recourse'::text]))),
+    CONSTRAINT invoice_manual_purchase_intents_request_hash_check CHECK ((request_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT invoice_manual_purchase_intents_snapshot_sha256_check CHECK ((snapshot_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT invoice_manual_purchase_intents_status_check CHECK ((status = ANY (ARRAY['dispatch_started'::text, 'response_observed'::text, 'rejected'::text, 'uncertain'::text])))
+);
+
+ALTER TABLE ONLY public.invoice_manual_purchase_intents FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE invoice_manual_purchase_intents; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.invoice_manual_purchase_intents IS 'Permanent manual purchase one-attempt barrier. Fulfilled transport is response_observed, never proof of purchased finance status. Unknown legacy approval provenance is locally held. No automatic retry/reset.';
+
+--
+-- Name: billing_underlays; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.billing_underlays (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid,
+    site_id uuid,
+    metering_point_id uuid,
+    source_request_id uuid,
+    grid_owner_id uuid,
+    underlay_month integer,
+    underlay_year integer,
+    status text DEFAULT 'pending'::text NOT NULL,
+    total_kwh numeric,
+    total_sek_ex_vat numeric,
+    currency text DEFAULT 'SEK'::text NOT NULL,
+    source_system text DEFAULT 'manual'::text NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    received_at timestamp with time zone,
+    validated_at timestamp with time zone,
+    exported_at timestamp with time zone,
+    failure_reason text,
+    readiness_status text DEFAULT 'not_checked'::text,
+    readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    contract_id uuid,
+    billing_period_start date,
+    billing_period_end date,
+    missing_values_count integer,
+    source_meter_value_count integer,
+    pricing_snapshot_id uuid,
+    customer_site_id uuid,
+    price_plan_id uuid,
+    campaign_id uuid,
+    price_area text,
+    calculated_total_sek_ex_vat numeric,
+    calculated_vat_sek numeric,
+    calculated_total_sek_inc_vat numeric,
+    pricing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    invoice_readiness_status text,
+    invoice_readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
+    invoice_export_locked_at timestamp with time zone,
+    invoice_export_run_id uuid,
+    price_plan_version_id uuid,
+    price_book_id uuid,
+    contract_price_snapshot_id uuid,
+    billing_block_reason text,
+    supply_period_id uuid,
+    vat_rate numeric DEFAULT 0.25,
+    energy_direction text DEFAULT 'consumption'::text NOT NULL,
+    settlement_type text DEFAULT 'invoice'::text NOT NULL,
+    portfolio_id uuid,
+    portfolio_monthly_settlement_id uuid,
+    portfolio_settlement_revision integer,
+    portfolio_settlement_sha256 text,
+    billing_configuration_snapshot jsonb,
+    billing_configuration_snapshot_sha256 text,
+    billing_configuration_snapshotted_at timestamp with time zone,
+    customer_contract_id uuid,
+    billing_blocked_by_case_id uuid,
+    CONSTRAINT billing_underlays_configuration_snapshot_check CHECK ((((billing_configuration_snapshot IS NULL) AND (billing_configuration_snapshot_sha256 IS NULL) AND (billing_configuration_snapshotted_at IS NULL)) OR ((jsonb_typeof(billing_configuration_snapshot) = 'object'::text) AND (billing_configuration_snapshot_sha256 ~ '^[0-9a-f]{64}$'::text) AND (billing_configuration_snapshotted_at IS NOT NULL)))),
+    CONSTRAINT billing_underlays_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
+    CONSTRAINT billing_underlays_month_valid_check CHECK ((((underlay_month >= 1) AND (underlay_month <= 12)) AND ((underlay_year >= 2000) AND (underlay_year <= 2100)))),
+    CONSTRAINT billing_underlays_period_order_check CHECK (((billing_period_start IS NULL) OR (billing_period_end IS NULL) OR (billing_period_end > billing_period_start))),
+    CONSTRAINT billing_underlays_price_area_check CHECK (((price_area IS NULL) OR (price_area = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
+    CONSTRAINT billing_underlays_settlement_type_check CHECK ((settlement_type = ANY (ARRAY['invoice'::text, 'credit_invoice'::text, 'self_billing'::text]))),
+    CONSTRAINT billing_underlays_vat_rate_fraction_check CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric)))),
+    CONSTRAINT billing_underlays_vat_rate_fraction_contract CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric))))
+);
+
+--
+-- Name: COLUMN billing_underlays.billing_configuration_snapshot; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot IS 'Immutable normalized payment terms, invoice profile, distribution, recipient, provider/environment, VAT, OCR/reference policy and address readiness evidence.';
+
+--
+-- Name: COLUMN billing_underlays.billing_configuration_snapshot_sha256; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot_sha256 IS 'SHA-256 of the canonical stable JSON representation created by the billing readiness runtime.';
+
+--
+-- Name: customer_invoices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_invoices (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    user_id uuid,
+    customer_id uuid,
+    agreement_id uuid,
+    billing_underlay_id uuid,
+    partner_export_id uuid,
+    partner_invoice_reference text,
+    invoice_number text,
+    period_start date,
+    period_end date,
+    total_kwh numeric,
+    amount_ex_vat numeric,
+    vat_amount numeric,
+    amount_inc_vat numeric,
+    currency text DEFAULT 'SEK'::text NOT NULL,
+    due_date date,
+    issued_at timestamp with time zone,
+    paid_at timestamp with time zone,
+    status text DEFAULT 'draft'::text NOT NULL,
+    pdf_path text,
+    pdf_url text,
+    source_system text DEFAULT 'manual'::text NOT NULL,
+    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    contract_id uuid,
+    customer_contract_id uuid,
+    price_plan_version_id uuid,
+    portfolio_id uuid,
+    portfolio_monthly_settlement_id uuid,
+    portfolio_price_area_code text,
+    portfolio_delivery_month date,
+    portfolio_settlement_revision integer,
+    portfolio_settlement_status text,
+    portfolio_price_ore_per_kwh numeric,
+    portfolio_management_fee_ore_per_kwh numeric,
+    portfolio_gross_energy_cost_sek numeric,
+    portfolio_energy_volume_kwh numeric,
+    portfolio_settlement_sha256 text,
+    portfolio_settlement_source text,
+    portfolio_settlement_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    delivery_month date,
+    price_area_code text,
+    consumption_kwh numeric,
+    portfolio_share_percent numeric,
+    spot_share_percent numeric,
+    portfolio_energy_cost_sek numeric,
+    spot_energy_cost_sek numeric,
+    management_fee_sek numeric,
+    other_fees_sek numeric,
+    vat_rate numeric,
+    calculation_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    calculation_snapshot_sha256 text,
+    invoice_export_item_id uuid,
+    canonical_export_item_id uuid,
+    fixed_share_percent numeric,
+    fixed_price_sek_per_kwh numeric,
+    fixed_energy_cost_sek numeric,
+    invoice_reference text NOT NULL,
+    CONSTRAINT customer_invoices_fixed_energy_cost_nonnegative_check CHECK (((fixed_energy_cost_sek IS NULL) OR (fixed_energy_cost_sek >= (0)::numeric))),
+    CONSTRAINT customer_invoices_fixed_price_nonnegative_check CHECK (((fixed_price_sek_per_kwh IS NULL) OR (fixed_price_sek_per_kwh >= (0)::numeric))),
+    CONSTRAINT customer_invoices_portfolio_price_area_check CHECK (((portfolio_price_area_code IS NULL) OR (portfolio_price_area_code = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
+    CONSTRAINT customer_invoices_portfolio_shares_check CHECK ((((portfolio_share_percent IS NULL) AND (spot_share_percent IS NULL) AND (fixed_share_percent IS NULL)) OR (((portfolio_share_percent >= (0)::numeric) AND (portfolio_share_percent <= (100)::numeric)) AND ((spot_share_percent >= (0)::numeric) AND (spot_share_percent <= (100)::numeric)) AND ((fixed_share_percent >= (0)::numeric) AND (fixed_share_percent <= (100)::numeric)) AND (abs((((portfolio_share_percent + spot_share_percent) + fixed_share_percent) - (100)::numeric)) <= 0.000001)))),
+    CONSTRAINT customer_invoices_price_area_code_check CHECK (((price_area_code IS NULL) OR (price_area_code = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
+    CONSTRAINT customer_invoices_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'issued'::text, 'sent'::text, 'paid'::text, 'overdue'::text, 'cancelled'::text, 'credited'::text, 'failed'::text])))
+);
+
+--
+-- Name: invoice_export_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invoice_export_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    provider text DEFAULT 'capway_aptic'::text NOT NULL,
+    environment text DEFAULT 'test'::text NOT NULL,
+    billing_month text NOT NULL,
+    financing_mode text DEFAULT 'invoice_service'::text NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    total_items integer DEFAULT 0 NOT NULL,
+    sent_items integer DEFAULT 0 NOT NULL,
+    failed_items integer DEFAULT 0 NOT NULL,
+    total_ex_vat numeric DEFAULT 0 NOT NULL,
+    vat_amount numeric DEFAULT 0 NOT NULL,
+    total_inc_vat numeric DEFAULT 0 NOT NULL,
+    readiness_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    requested_by uuid,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    lock_token uuid,
+    provider_confirmed_items integer DEFAULT 0 NOT NULL,
+    reconciliation_status text DEFAULT 'not_checked'::text NOT NULL,
+    idempotency_key text,
+    payload_hash text,
+    CONSTRAINT invoice_export_runs_billing_month_check CHECK ((billing_month ~ '^\d{4}-\d{2}$'::text)),
+    CONSTRAINT invoice_export_runs_billing_month_valid_check CHECK ((billing_month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text)),
+    CONSTRAINT invoice_export_runs_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT invoice_export_runs_financing_mode_check CHECK ((financing_mode = ANY (ARRAY['invoice_service'::text, 'factoring_without_recourse'::text, 'factoring_with_recourse'::text, 'manual'::text]))),
+    CONSTRAINT invoice_export_runs_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'processing'::text, 'sent'::text, 'partial_failed'::text, 'failed'::text, 'cancelled'::text])))
+);
+
+--
+-- Name: pricing_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pricing_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    billing_underlay_id uuid,
+    customer_id uuid,
+    billing_period_start timestamp with time zone,
+    billing_period_end timestamp with time zone,
+    status text DEFAULT 'success'::text NOT NULL,
+    total_ex_vat numeric DEFAULT 0 NOT NULL,
+    vat_amount numeric DEFAULT 0 NOT NULL,
+    total_inc_vat numeric DEFAULT 0 NOT NULL,
+    warnings jsonb DEFAULT '[]'::jsonb NOT NULL,
+    errors jsonb DEFAULT '[]'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    locked_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    energy_direction text DEFAULT 'consumption'::text NOT NULL,
+    settlement_type text DEFAULT 'invoice'::text NOT NULL,
+    portfolio_id uuid,
+    portfolio_monthly_settlement_id uuid,
+    portfolio_settlement_revision integer,
+    portfolio_settlement_sha256 text,
+    CONSTRAINT pricing_runs_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
+    CONSTRAINT pricing_runs_period_order_check CHECK (((billing_period_start IS NULL) OR (billing_period_end IS NULL) OR (billing_period_end > billing_period_start))),
+    CONSTRAINT pricing_runs_settlement_type_check CHECK ((settlement_type = ANY (ARRAY['invoice'::text, 'credit_invoice'::text, 'self_billing'::text]))),
+    CONSTRAINT pricing_runs_status_check CHECK ((status = ANY (ARRAY['success'::text, 'failed'::text, 'needs_review'::text, 'locked'::text, 'superseded'::text])))
+);
+
+--
 -- Name: customer_case_publications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10669,94 +11002,6 @@ CREATE FUNCTION public.gridex_normalize_phone(p_phone text) RETURNS text
 $$;
 
 --
--- Name: billing_underlays; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.billing_underlays (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    customer_id uuid,
-    site_id uuid,
-    metering_point_id uuid,
-    source_request_id uuid,
-    grid_owner_id uuid,
-    underlay_month integer,
-    underlay_year integer,
-    status text DEFAULT 'pending'::text NOT NULL,
-    total_kwh numeric,
-    total_sek_ex_vat numeric,
-    currency text DEFAULT 'SEK'::text NOT NULL,
-    source_system text DEFAULT 'manual'::text NOT NULL,
-    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    received_at timestamp with time zone,
-    validated_at timestamp with time zone,
-    exported_at timestamp with time zone,
-    failure_reason text,
-    readiness_status text DEFAULT 'not_checked'::text,
-    readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    contract_id uuid,
-    billing_period_start date,
-    billing_period_end date,
-    missing_values_count integer,
-    source_meter_value_count integer,
-    pricing_snapshot_id uuid,
-    customer_site_id uuid,
-    price_plan_id uuid,
-    campaign_id uuid,
-    price_area text,
-    calculated_total_sek_ex_vat numeric,
-    calculated_vat_sek numeric,
-    calculated_total_sek_inc_vat numeric,
-    pricing_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    invoice_readiness_status text,
-    invoice_readiness_issues jsonb DEFAULT '[]'::jsonb NOT NULL,
-    invoice_export_locked_at timestamp with time zone,
-    invoice_export_run_id uuid,
-    price_plan_version_id uuid,
-    price_book_id uuid,
-    contract_price_snapshot_id uuid,
-    billing_block_reason text,
-    supply_period_id uuid,
-    vat_rate numeric DEFAULT 0.25,
-    energy_direction text DEFAULT 'consumption'::text NOT NULL,
-    settlement_type text DEFAULT 'invoice'::text NOT NULL,
-    portfolio_id uuid,
-    portfolio_monthly_settlement_id uuid,
-    portfolio_settlement_revision integer,
-    portfolio_settlement_sha256 text,
-    billing_configuration_snapshot jsonb,
-    billing_configuration_snapshot_sha256 text,
-    billing_configuration_snapshotted_at timestamp with time zone,
-    customer_contract_id uuid,
-    billing_blocked_by_case_id uuid,
-    CONSTRAINT billing_underlays_configuration_snapshot_check CHECK ((((billing_configuration_snapshot IS NULL) AND (billing_configuration_snapshot_sha256 IS NULL) AND (billing_configuration_snapshotted_at IS NULL)) OR ((jsonb_typeof(billing_configuration_snapshot) = 'object'::text) AND (billing_configuration_snapshot_sha256 ~ '^[0-9a-f]{64}$'::text) AND (billing_configuration_snapshotted_at IS NOT NULL)))),
-    CONSTRAINT billing_underlays_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
-    CONSTRAINT billing_underlays_month_valid_check CHECK ((((underlay_month >= 1) AND (underlay_month <= 12)) AND ((underlay_year >= 2000) AND (underlay_year <= 2100)))),
-    CONSTRAINT billing_underlays_period_order_check CHECK (((billing_period_start IS NULL) OR (billing_period_end IS NULL) OR (billing_period_end > billing_period_start))),
-    CONSTRAINT billing_underlays_price_area_check CHECK (((price_area IS NULL) OR (price_area = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
-    CONSTRAINT billing_underlays_settlement_type_check CHECK ((settlement_type = ANY (ARRAY['invoice'::text, 'credit_invoice'::text, 'self_billing'::text]))),
-    CONSTRAINT billing_underlays_vat_rate_fraction_check CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric)))),
-    CONSTRAINT billing_underlays_vat_rate_fraction_contract CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric))))
-);
-
---
--- Name: COLUMN billing_underlays.billing_configuration_snapshot; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot IS 'Immutable normalized payment terms, invoice profile, distribution, recipient, provider/environment, VAT, OCR/reference policy and address readiness evidence.';
-
---
--- Name: COLUMN billing_underlays.billing_configuration_snapshot_sha256; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.billing_underlays.billing_configuration_snapshot_sha256 IS 'SHA-256 of the canonical stable JSON representation created by the billing readiness runtime.';
-
---
 -- Name: companies; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -17722,6 +17967,159 @@ end;
 $$;
 
 --
+-- Name: gridex_claim_manual_invoice_purchase_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_claim_manual_invoice_purchase_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+declare
+  v_company uuid:=(p_command->>'companyId')::uuid; v_id uuid:=(p_command->>'itemId')::uuid;
+  v_actor uuid:=(p_command->>'actorUserId')::uuid; v_session uuid:=(p_command->>'sessionId')::uuid;
+  v_mode text:=p_command->>'financingMode'; v_payload jsonb:=p_command->'payload';
+  v_item public.invoice_export_items%rowtype; v_invoice public.customer_invoices%rowtype;
+  v_run public.invoice_export_runs%rowtype; v_price public.pricing_runs%rowtype; v_underlay public.billing_underlays%rowtype;
+  v_connection public.billing_provider_connections%rowtype; v_intent public.invoice_manual_purchase_intents%rowtype;
+  v_binding jsonb; v_request_hash text; v_snapshot text; v_fresh boolean:=false; v_result jsonb;
+  v_connection_binding jsonb; v_connection_hash text; v_debt jsonb;
+begin
+  if current_user<>'service_role' or v_company is null or v_id is null or v_actor is null or v_session is null then
+    raise exception 'manual_purchase_actor_forbidden' using errcode='42501'; end if;
+  if jsonb_typeof(p_command) is distinct from 'object' or exists(select 1 from jsonb_object_keys(p_command) k(key)
+    where key not in ('companyId','itemId','actorUserId','sessionId','financingMode','payload','itemBinding','connectionJson'))
+    or jsonb_typeof(p_command->'connectionJson') is distinct from 'string'
+    or v_mode not in ('factoring_without_recourse','factoring_with_recourse') or v_mode is null
+    or jsonb_typeof(v_payload) is distinct from 'object' or v_payload->'approved' is distinct from 'true'::jsonb
+    or exists(select 1 from jsonb_object_keys(v_payload) k(key) where key not in
+      ('approved','purchaseFeePercentage','purchaseFeeAmount','purchaseFeeCurrency','recourseDays','depositAmount','note'))
+    or not v_payload ?& array['approved','purchaseFeePercentage','purchaseFeeAmount','purchaseFeeCurrency','recourseDays','depositAmount','note']
+    or v_payload->'purchaseFeePercentage' is distinct from 'null'::jsonb or v_payload->'purchaseFeeAmount' is distinct from 'null'::jsonb
+    or v_payload->'purchaseFeeCurrency' is distinct from 'null'::jsonb or v_payload->'depositAmount' is distinct from 'null'::jsonb
+    or jsonb_typeof(v_payload->'note') not in ('string','null')
+    or (v_mode='factoring_without_recourse' and v_payload->'recourseDays' is distinct from 'null'::jsonb)
+    or (v_mode='factoring_with_recourse' and jsonb_typeof(v_payload->'recourseDays') is distinct from 'number') then
+    raise exception 'invalid_manual_purchase_command' using errcode='22023'; end if;
+  -- Item-scoped serialization, not a caller-key-scoped lease. Authority and
+  -- the final live clock are checked after every resource/unique-index wait.
+  perform pg_advisory_xact_lock(hashtextextended(v_company::text||':manual-purchase:'||v_id::text,0));
+  perform private.gridex_manual_purchase_authorize_v1(v_actor,v_session,v_company,true);
+  select * into v_item from public.invoice_export_items where company_id=v_company and id=v_id for update;
+  if not found then raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  v_binding:=private.gridex_manual_purchase_item_binding_v1(v_item);
+  if p_command->'itemBinding' is distinct from v_binding then raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  select * into v_invoice from public.customer_invoices where company_id=v_company and invoice_export_item_id=v_id for update;
+  if not found or v_invoice.customer_id is distinct from v_item.customer_id
+    or v_invoice.customer_contract_id is distinct from v_item.customer_contract_id or v_invoice.contract_id is distinct from v_item.customer_contract_id
+    or v_invoice.partner_invoice_reference is distinct from v_item.provider_invoice_guid then
+    raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  select * into v_run from public.invoice_export_runs where id=v_item.export_run_id and company_id=v_company for share;
+  if not found or v_run.provider is distinct from v_item.provider or v_run.environment is distinct from v_item.environment then
+    raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  select * into v_underlay from public.billing_underlays where id=v_item.billing_underlay_id and company_id=v_company for share;
+  if not found or v_underlay.customer_id is distinct from v_item.customer_id
+    or coalesce(v_underlay.customer_contract_id,v_underlay.contract_id) is distinct from v_item.customer_contract_id then
+    raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  select * into v_price from public.pricing_runs where id=v_item.pricing_run_id and company_id=v_company for share;
+  if not found or v_price.billing_underlay_id is distinct from v_underlay.id then raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  perform 1 from public.customers where id=v_item.customer_id and company_id=v_company and archived_at is null and status<>'archived' for share;
+  if not found then raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  perform 1 from public.customer_contracts where id=v_item.customer_contract_id and company_id=v_company and customer_id=v_item.customer_id for share;
+  if not found then raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  select * into v_connection from public.billing_provider_connections where company_id=v_company and provider=v_item.provider
+    and environment=v_item.environment and status in ('ready','active') order by updated_at desc limit 1 for share;
+  if not found then raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+  v_connection_binding:=jsonb_build_object('id',v_connection.id,'company_id',v_connection.company_id,'provider',v_connection.provider,
+    'environment',v_connection.environment,'status',v_connection.status,'settings',v_connection.settings,'secret_reference',v_connection.secret_reference);
+  if (p_command->>'connectionJson')::jsonb is distinct from v_connection_binding then
+    raise exception 'manual_purchase_configuration_conflict' using errcode='40001'; end if;
+  v_connection_hash:=encode(extensions.digest(convert_to(p_command->>'connectionJson','UTF8'),'sha256'),'hex');
+  v_request_hash:=encode(extensions.digest(convert_to(jsonb_build_object('companyId',v_company,'itemId',v_id,
+    'actorUserId',v_actor,'sessionId',v_session,'financingMode',v_mode,'payload',v_payload,'itemBinding',v_binding,
+    'connectionHash',v_connection_hash)::text,'UTF8'),'sha256'),'hex');
+  v_snapshot:=private.gridex_manual_purchase_snapshot_v1(v_item,v_invoice,v_run,v_price,v_underlay);
+  select * into v_intent from public.invoice_manual_purchase_intents where company_id=v_company and invoice_export_item_id=v_id for update;
+  if found then
+    if v_intent.request_hash<>v_request_hash or v_intent.snapshot_sha256<>v_snapshot then
+      raise exception 'manual_purchase_conflict' using errcode='23505'; end if;
+  else
+    -- Only fully sent exports are eligible. Both existing automatic senders
+    -- accept pending/failed/failed_retryable; they cannot enter this sent lane.
+    -- Missing legacy approval provenance is held, never manufactured here.
+    if v_item.status<>'sent' or v_item.provider<>'capway_aptic' or v_item.environment not in ('test','production')
+      or v_item.sent_at is null or v_item.provider_confirmed_at is null
+      or nullif(btrim(v_item.provider_invoice_guid),'') is null or v_item.request_payload='{}'::jsonb
+      or coalesce(v_item.provider_request_id,v_item.provider_idempotency_key,v_item.idempotency_key) is null
+      or v_invoice.status not in ('issued','sent','overdue') or v_invoice.issued_at is null
+      or v_item.provider_status in ('paid','credited','cancelled','rejected','disputed')
+      or v_item.purchase_status in ('requested','purchased_without_recourse','purchased_with_recourse','recoursed','pledged')
+      or v_item.provider_purchase_confirmed_at is not null or v_item.response_payload->'purchase' is distinct from 'null'::jsonb and v_item.response_payload ? 'purchase'
+      or v_item.metadata#>>'{approval,status}' is distinct from 'approved' or v_invoice.metadata#>>'{approval,status}' is distinct from 'approved'
+      or coalesce(v_item.metadata#>>'{approval,review_hash}','') !~ '^[a-f0-9]{64}$'
+      or v_item.metadata#>>'{approval,review_hash}' is distinct from v_invoice.metadata#>>'{approval,review_hash}'
+      or v_item.metadata#>>'{approval,review_hash}' is distinct from private.gridex_manual_purchase_review_hash_v1(v_item,v_invoice,v_underlay)
+      or coalesce(v_invoice.calculation_snapshot_sha256,'') !~ '^[a-f0-9]{64}$'
+      or v_item.metadata#>>'{approval,calculation_snapshot_sha256}' is distinct from v_invoice.calculation_snapshot_sha256
+      or v_invoice.metadata#>>'{approval,calculation_snapshot_sha256}' is distinct from v_invoice.calculation_snapshot_sha256
+      or v_underlay.status is distinct from 'validated' or v_underlay.readiness_status is distinct from 'ready' or coalesce(v_underlay.missing_values_count,0)>0
+      or v_price.status<>'locked' or v_price.locked_at is null
+      or coalesce(v_invoice.price_area_code,v_underlay.price_area) is null or coalesce(v_invoice.price_area_code,v_underlay.price_area) not in ('SE1','SE2','SE3','SE4')
+      or v_underlay.total_kwh is null or v_item.total_kwh is null or abs(v_underlay.total_kwh-v_item.total_kwh)>0.001
+      or v_invoice.amount_inc_vat is null or abs(v_item.amount_ex_vat-v_price.total_ex_vat)>0.01
+      or abs(v_item.vat_amount-v_price.vat_amount)>0.01 or abs(v_item.amount_inc_vat-v_price.total_inc_vat)>0.01
+      or abs(v_invoice.amount_inc_vat-v_price.total_inc_vat)>0.01 or v_item.currency is distinct from v_invoice.currency
+      or exists(select 1 from public.invoice_purchase_events where company_id=v_company and invoice_export_item_id=v_id
+        and (event_type in ('purchase_requested','purchase_requested_manual') or purchase_status in ('requested','purchased_without_recourse','purchased_with_recourse','recoursed','pledged'))) then
+      raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+    if jsonb_typeof(v_item.request_payload->'customer') is distinct from 'object'
+      or jsonb_typeof(v_item.request_payload->'debts') is distinct from 'array' then
+      raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+    if jsonb_array_length(v_item.request_payload->'debts')<>1 then raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+    v_debt:=v_item.request_payload#>'{debts,0}';
+    if private.gridex_manual_purchase_extra_v1(v_item.request_payload->'extraFields','gridex_company_id') is distinct from v_company::text
+      or private.gridex_manual_purchase_extra_v1(v_item.request_payload->'extraFields','gridex_pricing_run_id') is distinct from v_item.pricing_run_id::text
+      or v_item.request_payload->>'externalReferenceCode' is distinct from v_item.pricing_run_id::text
+      or private.gridex_manual_purchase_extra_v1(v_item.request_payload->'extraFields','gridex_financing_mode') is distinct from v_item.financing_mode
+      or private.gridex_manual_purchase_extra_v1(v_item.request_payload#>'{customer,extraFields}','gridex_customer_id') is distinct from v_item.customer_id::text
+      or private.gridex_manual_purchase_extra_v1(v_debt->'extraFields','gridex_billing_underlay_id') is distinct from v_item.billing_underlay_id::text
+      or nullif(btrim(v_item.request_payload->>'invoiceDate'),'') is null or nullif(btrim(v_debt->>'dueDate'),'') is null
+      or v_debt->>'invoiceDate' is distinct from v_item.request_payload->>'invoiceDate'
+      or v_debt->>'currencyCode' is distinct from v_item.currency
+      or jsonb_typeof(v_debt->'originalPrincipal') is distinct from 'number' or jsonb_typeof(v_debt->'originalVat') is distinct from 'number'
+      or (v_debt ? 'rounding' and jsonb_typeof(v_debt->'rounding') is distinct from 'number') then
+      raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+    if abs((v_debt->>'originalPrincipal')::numeric-v_item.amount_ex_vat)>0.01
+      or abs((v_debt->>'originalVat')::numeric-v_item.vat_amount)>0.01
+      or abs((v_debt->>'originalPrincipal')::numeric+(v_debt->>'originalVat')::numeric+coalesce((v_debt->>'rounding')::numeric,0)-v_item.amount_inc_vat)>0.01
+      or (v_item.provider_invoice_id is not null and v_item.provider_invoice_id is distinct from v_item.provider_invoice_guid)
+      or (v_item.provider_request_id is not null and v_item.provider_idempotency_key is not null and v_item.provider_request_id is distinct from v_item.provider_idempotency_key) then
+      raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+    -- Supported canonical capture dates are ISO/date-only. Unsupported legacy
+    -- date spellings are held rather than emulating an arbitrary JS parser.
+    if v_item.request_payload->>'invoiceDate' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?([Zz]|[+-][0-9]{2}(:?[0-9]{2})?)?)?$'
+      or v_debt->>'dueDate' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?([Zz]|[+-][0-9]{2}(:?[0-9]{2})?)?)?$' then
+      raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+    begin
+      if not isfinite((v_item.request_payload->>'invoiceDate')::timestamptz) or not isfinite((v_debt->>'dueDate')::timestamptz) then
+        raise exception 'manual_purchase_ineligible' using errcode='55000'; end if;
+    exception when invalid_datetime_format or datetime_field_overflow then
+      raise exception 'manual_purchase_ineligible' using errcode='55000';
+    end;
+    perform set_config('gridex.manual_purchase_command','on',true);
+    insert into public.invoice_manual_purchase_intents(company_id,invoice_export_item_id,actor_user_id,session_id,financing_mode,
+      purchase_payload,item_binding,request_hash,snapshot_sha256,connection_sha256,status)
+      values(v_company,v_id,v_actor,v_session,v_mode,v_payload,v_binding,v_request_hash,v_snapshot,v_connection_hash,'dispatch_started') returning * into v_intent;
+    perform set_config('gridex.manual_purchase_command','off',true);
+    v_fresh:=true;
+  end if;
+  v_result:=private.gridex_manual_purchase_receipt_v1(v_intent,v_fresh);
+  -- After the INSERT and every receipt/lock wait: expiry rolls the barrier back.
+  perform private.gridex_manual_purchase_authorize_v1(v_actor,v_session,v_company,true);
+  return v_result;
+end;
+$_$;
+
+--
 -- Name: gridex_claim_spot_price_import_job(text, text, date, uuid, interval, boolean); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -19572,6 +19970,264 @@ $$;
 COMMENT ON FUNCTION public.gridex_company_legal_profile_defaults(p_company jsonb) IS 'Deterministic canonical projection from companies. Hash includes every legal field and excludes unrelated updated_at timestamps.';
 
 --
+-- Name: gridex_complete_customer_portal_account_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_complete_customer_portal_account_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare
+  v_company uuid; v_customer uuid; v_user uuid; v_session uuid;
+  v_email jsonb; v_final_email jsonb; v_input jsonb; v_source jsonb;
+  v_digits text; v_pn_variants text[]; v_install_variants text[];
+  v_full_name text; v_first text; v_last text; v_slug text;
+  v_customer_row public.customers%rowtype; v_site public.customer_sites%rowtype;
+  v_point public.metering_points%rowtype; v_account public.customer_portal_accounts%rowtype;
+  v_claim public.customer_portal_claims%rowtype; v_event public.customer_portal_events%rowtype;
+  v_final_account public.customer_portal_accounts%rowtype; v_final_claim public.customer_portal_claims%rowtype; v_final_event public.customer_portal_events%rowtype;
+  v_receipt private.customer_portal_account_completion_receipts%rowtype;
+  v_candidate public.customers%rowtype; v_candidate_site public.customer_sites%rowtype;
+  v_candidate_point public.metering_points%rowtype;
+  v_contacts jsonb; v_current_source jsonb; v_request_hash text; v_source_hash text;
+  v_candidate_hash text; v_final_candidate_hash text; v_account_hash text;
+  v_matches integer := 0; v_account_count integer; v_site_id uuid; v_point_id uuid;
+  v_names text[]; v_name text; v_name_ok boolean; v_email_ok boolean; v_install_ok boolean;
+  v_now timestamptz; v_status text; v_metadata jsonb; v_verification jsonb; v_event_payload jsonb; v_event_metadata jsonb;
+begin
+  if jsonb_typeof(p_command) is distinct from 'object' or
+     (select count(*) from jsonb_object_keys(p_command)) <> 7 or
+     not p_command ?& array['companyId','customerId','userId','sessionId','authEmail','input','source'] then
+    raise exception 'portal_completion_invalid' using errcode = '22023';
+  end if;
+  v_company := (p_command->>'companyId')::uuid;
+  v_customer := (p_command->>'customerId')::uuid;
+  v_user := (p_command->>'userId')::uuid;
+  v_session := (p_command->>'sessionId')::uuid;
+  v_input := p_command->'input'; v_source := p_command->'source';
+  if v_company is null or v_customer is null or v_user is null or v_session is null or
+     jsonb_typeof(v_input) is distinct from 'object' or (select count(*) from jsonb_object_keys(v_input)) <> 7 or
+     not v_input ?& array['email','personalNumber','firstName','lastName','fullName','installationId','companySlug'] or
+     exists(select 1 from jsonb_each(v_input) where jsonb_typeof(value) <> 'string' or length(value #>> '{}') > 512) or
+     jsonb_typeof(v_source) is distinct from 'object' or (select count(*) from jsonb_object_keys(v_source)) <> 4 or
+     not v_source ?& array['customer','contacts','site','point'] or pg_column_size(v_source)>262144 or
+     jsonb_typeof(v_source->'customer') is distinct from 'object' or jsonb_typeof(v_source->'site') is distinct from 'object' or
+     jsonb_typeof(v_source->'contacts') is distinct from 'array' or jsonb_array_length(v_source->'contacts')>1000 or
+     jsonb_typeof(v_source->'point') not in ('object','null') then
+    raise exception 'portal_completion_invalid' using errcode = '22023';
+  end if;
+  if not private.gridex_support_session_active_v1(v_user, v_session) then
+    raise exception 'portal_completion_current_session_required' using errcode = '42501';
+  end if;
+  v_email := private.gridex_invoice_redelivery_auth_email_v1(v_user);
+  if lower(btrim(p_command->>'authEmail')) is distinct from v_email->>'email' or
+     (btrim(v_input->>'email') <> '' and lower(btrim(v_input->>'email')) is distinct from v_email->>'email') then
+    raise exception 'portal_completion_current_email_required' using errcode = '42501';
+  end if;
+  v_digits := regexp_replace(v_input->>'personalNumber', '[^0-9]', '', 'g');
+  if length(v_digits) not in (10,12) or btrim(v_input->>'installationId') = '' then
+    raise exception 'portal_completion_invalid' using errcode = '22023';
+  end if;
+  v_pn_variants := array[v_digits];
+  if length(v_digits) = 12 then v_pn_variants := v_pn_variants || substr(v_digits,3);
+  else v_pn_variants := v_pn_variants || ('19'||v_digits) || ('20'||v_digits); end if;
+  v_install_variants := array[btrim(v_input->>'installationId'), regexp_replace(v_input->>'installationId','\s','','g'),regexp_replace(v_input->>'installationId','[^0-9]','','g')];
+  v_slug := lower(btrim(v_input->>'companySlug'));
+  v_full_name := private.gridex_account_completion_name_v1(coalesce(nullif(btrim(v_input->>'fullName'),''), concat_ws(' ',nullif(btrim(v_input->>'firstName'),''),nullif(btrim(v_input->>'lastName'),''))));
+  v_first := private.gridex_account_completion_name_v1(v_input->>'firstName');
+  v_last := private.gridex_account_completion_name_v1(v_input->>'lastName');
+  if length(v_full_name) < 4 then raise exception 'portal_completion_invalid' using errcode = '22023'; end if;
+
+  -- Stable effect, not a previous session's authority. All commands for this
+  -- normalized identity also serialize their complete ambiguity calculation.
+  perform pg_advisory_xact_lock(hashtextextended('portal-completion-match:'||v_digits, 0));
+  perform pg_advisory_xact_lock(hashtextextended('portal-completion-effect:'||v_company||':'||v_customer||':'||v_user, 0));
+  perform 1 from public.companies c where c.id in
+    (select x.company_id from public.customers x where x.normalized_personal_number = any(v_pn_variants))
+    order by c.id for share;
+  if not exists(select 1 from public.companies where id=v_company and is_active=true and status='active' and (v_slug='' or slug=v_slug)) then
+    raise exception 'portal_completion_company_changed' using errcode = 'PT409';
+  end if;
+  v_candidate_hash:=private.gridex_account_completion_candidate_hash_v1(v_pn_variants,v_slug);
+  -- Never inherit the outer customer's limit(10) or point's limit(1).
+  for v_candidate in select x.* from public.customers x join public.companies c on c.id=x.company_id
+      where x.normalized_personal_number=any(v_pn_variants) and (v_slug='' or c.slug=v_slug)
+      order by x.company_id,x.id for share of x loop
+    perform 1 from public.customer_contacts where company_id=v_candidate.company_id and customer_id=v_candidate.id order by id for share;
+    perform 1 from public.customer_sites where company_id=v_candidate.company_id and customer_id=v_candidate.id order by id for share;
+    perform 1 from public.metering_points p where p.site_id in
+      (select id from public.customer_sites where company_id=v_candidate.company_id and customer_id=v_candidate.id)
+      or p.customer_site_id in (select id from public.customer_sites where company_id=v_candidate.company_id and customer_id=v_candidate.id)
+      order by p.id for share;
+    v_email_ok := lower(btrim(v_candidate.email))=v_email->>'email' or exists
+      (select 1 from public.customer_contacts where company_id=v_candidate.company_id and customer_id=v_candidate.id and lower(btrim(email))=v_email->>'email');
+    select array_agg(n) into v_names from (
+      select concat_ws(' ',v_candidate.first_name,v_candidate.last_name) n union all select v_candidate.full_name
+      union all select v_candidate.company_name union all select name from public.customer_contacts
+      where company_id=v_candidate.company_id and customer_id=v_candidate.id) names;
+    v_name_ok := false;
+    foreach v_name in array v_names loop
+      v_name := private.gridex_account_completion_name_v1(v_name);
+      if v_name=v_full_name or (v_first<>'' and v_last<>'' and strpos(v_name,v_first)>0 and strpos(v_name,v_last)>0) then v_name_ok:=true; end if;
+    end loop;
+    v_install_ok := false;
+    if coalesce(v_email_ok,false) and v_name_ok then
+      for v_candidate_site in select * from public.customer_sites where company_id=v_candidate.company_id and customer_id=v_candidate.id order by id loop
+        if btrim(v_candidate_site.facility_id)=any(v_install_variants) then v_install_ok:=true; end if;
+        for v_candidate_point in select * from public.metering_points p where
+          (p.site_id=v_candidate_site.id or p.customer_site_id=v_candidate_site.id) and
+          (p.meter_point_id=any(v_install_variants) or p.metering_point_id=any(v_install_variants)) order by id loop
+          if v_candidate_point.company_id is distinct from v_candidate.company_id or
+             (v_candidate_point.customer_id is not null and v_candidate_point.customer_id<>v_candidate.id) or
+             (v_candidate_point.site_id is not null and v_candidate_point.site_id<>v_candidate_site.id) or
+             (v_candidate_point.customer_site_id is not null and v_candidate_point.customer_site_id<>v_candidate_site.id) then
+            raise exception 'portal_completion_point_alias_conflict' using errcode='PT409';
+          end if;
+          v_install_ok:=true;
+        end loop;
+      end loop;
+    end if;
+    if coalesce(v_email_ok,false) and v_name_ok and v_install_ok then
+      v_matches:=v_matches+1;
+      if v_candidate.id=v_customer and v_candidate.company_id=v_company then v_customer_row:=v_candidate; end if;
+    end if;
+  end loop;
+  if v_matches<>1 or v_customer_row.id is null then raise exception 'portal_completion_match_changed' using errcode='PT409'; end if;
+  -- Capture all candidate matching facts, including absent/new children, so a
+  -- late insertion outside this command cannot be silently accepted on replay.
+
+  if v_customer_row.status='archived' or v_customer_row.archived_at is not null then raise exception 'portal_completion_customer_archived' using errcode='PT409'; end if;
+  v_site_id := (v_source->'site'->>'id')::uuid;
+  select * into v_site from public.customer_sites where id=v_site_id and company_id=v_company and customer_id=v_customer;
+  if not found or v_site.archived_at is not null then raise exception 'portal_completion_site_changed' using errcode='PT409'; end if;
+  v_point_id := (v_source->'point'->>'id')::uuid;
+  if v_point_id is not null then
+    select * into v_point from public.metering_points where id=v_point_id;
+    if not found or v_point.company_id is distinct from v_company or
+       (v_point.customer_id is not null and v_point.customer_id<>v_customer) or
+       (v_point.site_id is not null and v_point.site_id<>v_site_id) or
+       (v_point.customer_site_id is not null and v_point.customer_site_id<>v_site_id) or
+       (v_point.site_id is null and v_point.customer_site_id is null) or
+       not (coalesce(v_point.meter_point_id=any(v_install_variants),false) or coalesce(v_point.metering_point_id=any(v_install_variants),false)) or
+       (v_source->'point'->>'updatedAt')::timestamptz is distinct from v_point.updated_at then
+      raise exception 'portal_completion_point_changed' using errcode='PT409';
+    end if;
+  elsif not coalesce(btrim(v_site.facility_id)=any(v_install_variants),false) then
+    raise exception 'portal_completion_installation_changed' using errcode='PT409';
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('id',id,'companyId',company_id,'customerId',customer_id,'name',name,'email',email) order by id),'[]')
+    into v_contacts from public.customer_contacts where company_id=v_company and customer_id=v_customer;
+  v_current_source:=jsonb_build_object('customer',jsonb_build_object('id',v_customer_row.id,'companyId',v_customer_row.company_id,
+    'customerType',v_customer_row.customer_type,'firstName',v_customer_row.first_name,'lastName',v_customer_row.last_name,'fullName',v_customer_row.full_name,
+    'companyName',v_customer_row.company_name,'email',v_customer_row.email,'personalNumber',v_customer_row.personal_number,'customerNumber',v_customer_row.customer_number,
+    'profileRevision',v_customer_row.profile_revision::text,'contactRevision',v_customer_row.contact_revision::text),'contacts',v_contacts,
+    'site',jsonb_build_object('id',v_site.id,'companyId',v_site.company_id,'customerId',v_site.customer_id,'facilityId',v_site.facility_id,'siteRevision',v_site.site_revision::text,'addressRevision',v_site.address_revision::text),
+    'point',case when v_point_id is null then 'null'::jsonb else jsonb_build_object('id',v_point.id,'companyId',v_point.company_id,'customerId',v_point.customer_id,
+      'siteId',v_point.site_id,'customerSiteId',v_point.customer_site_id,'meterPointId',v_point.meter_point_id,'meteringPointId',v_point.metering_point_id,'updatedAt',v_source->'point'->>'updatedAt') end);
+  if v_source is distinct from v_current_source then raise exception 'portal_completion_source_changed' using errcode='PT409'; end if;
+  v_source_hash:=public.canonical_json_sha256(v_current_source);
+  v_request_hash:=public.canonical_json_sha256(jsonb_build_object('companyId',v_company,'customerId',v_customer,'userId',v_user,'authEmail',v_email->>'email','input',v_input,'sourceHash',v_source_hash));
+  select count(*) into v_account_count from public.customer_portal_accounts where company_id=v_company and customer_id=v_customer and (user_id=v_user or portal_user_id=v_user);
+  if v_account_count>1 then raise exception 'portal_completion_account_ambiguous' using errcode='PT409'; end if;
+  select * into v_receipt from private.customer_portal_account_completion_receipts where company_id=v_company and customer_id=v_customer and user_id=v_user;
+  if v_account_count=1 then
+    select * into v_account from public.customer_portal_accounts where company_id=v_company and customer_id=v_customer and (user_id=v_user or portal_user_id=v_user) for update;
+    if v_account.user_id is distinct from v_user or v_account.status<>'active' or v_account.is_active is distinct from true or v_account.role not in ('owner','billing','viewer') then
+      raise exception 'portal_completion_saved_account_held' using errcode='PT409';
+    end if;
+    v_status:='existing';
+    if v_receipt.id is not null then
+      v_account_hash:=public.canonical_json_sha256(jsonb_build_object('id',v_account.id,'companyId',v_account.company_id,'customerId',v_account.customer_id,'userId',v_account.user_id,'portalUserId',v_account.portal_user_id,'externalAccountId',v_account.external_account_id,'status',v_account.status,'isActive',v_account.is_active,'verifiedAt',v_account.verified_at,'matchMethod',v_account.match_method,'verifiedIdentitySnapshot',v_account.verified_identity_snapshot));
+      select * into v_claim from public.customer_portal_claims where id=v_receipt.claim_id for share;
+      select * into v_event from public.customer_portal_events where id=v_receipt.event_id for share;
+      if v_receipt.account_id<>v_account.id or v_receipt.request_hash<>v_request_hash or v_receipt.source_hash<>v_source_hash or
+         v_receipt.account_binding_hash<>v_account_hash or v_claim.id is null or v_event.id is null or
+         v_claim.company_id is distinct from v_company or v_claim.customer_id is distinct from v_customer or v_claim.user_id is distinct from v_user or v_claim.status<>'approved' or
+         v_event.company_id is distinct from v_company or v_event.customer_id is distinct from v_customer or v_event.user_id is distinct from v_user or v_event.event_type<>'portal_account_verified' or
+         v_receipt.claim_hash<>public.canonical_json_sha256(to_jsonb(v_claim)) or v_receipt.event_hash<>public.canonical_json_sha256(to_jsonb(v_event)) then
+        raise exception 'portal_completion_receipt_changed' using errcode='PT409';
+      end if;
+      v_status:='replayed';
+    end if;
+  else
+    if v_receipt.id is not null then raise exception 'portal_completion_deleted_graph_held' using errcode='PT409'; end if;
+    v_now:=clock_timestamp();
+    v_metadata:=jsonb_build_object('schemaVersion',1,'source','native_account_completion_reconstructed_v1','user_email',v_email->>'email','match_method','self_claim_strict_identity','personal_number_last4',right(v_digits,4),
+      'email_matched',true,'name_matched',true,'personal_number_matched',true,'installation_matched',true,'matched_site_id',v_site_id,'matched_metering_point_id',v_point_id,
+      'failure_reason',null,'input_snapshot',jsonb_build_object('email',v_email->>'email','firstName',v_input->>'firstName','lastName',v_input->>'lastName','fullName',v_input->>'fullName',
+      'personalNumberLast4',right(v_digits,4),'installationId',v_input->>'installationId','companySlug',nullif(v_slug,'')),
+      'match_snapshot',jsonb_build_object('customerId',v_customer,'customerNumber',v_customer_row.customer_number,'emailMatched',true,'nameMatched',true,'personalNumberMatched',true,
+      'installationMatched',true,'matchedSiteId',v_site_id,'matchedMeteringPointId',v_point_id),'reviewed_at',v_now);
+    v_verification:=(v_metadata->'match_snapshot')||jsonb_build_object('inputName',coalesce(nullif(btrim(v_input->>'fullName'),''),concat_ws(' ',nullif(btrim(v_input->>'firstName'),''),nullif(btrim(v_input->>'lastName'),''))),
+      'inputInstallationId',v_input->>'installationId','personalNumberLast4',right(v_digits,4),'userEmail',v_email->>'email');
+    v_event_payload:=jsonb_build_object('message','Kundkonto verifierat och kopplat genom strikt identitetsmatchning.');
+    v_event_metadata:=jsonb_build_object('userEmail',v_email->>'email','matchMethod','self_claim_strict_identity','matchedSiteId',v_site_id,'matchedMeteringPointId',v_point_id);
+    begin
+    insert into public.customer_portal_accounts(company_id,customer_id,user_id,portal_user_id,customer_number,user_email,email,role,status,is_active,activated_at,verified_at,match_method,verified_identity_snapshot)
+      values(v_company,v_customer,v_user,null,v_customer_row.customer_number,v_email->>'email',v_email->>'email','owner','active',true,v_now,v_now,'self_claim_strict_identity',v_verification) returning * into v_account;
+    exception when unique_violation then
+      -- Only an actual INSERT 23505 permits current-row readback. A competing
+      -- legacy writer is not a new approved completion or an owner promotion.
+      select count(*) into v_account_count from public.customer_portal_accounts where company_id=v_company and customer_id=v_customer and (user_id=v_user or portal_user_id=v_user);
+      if v_account_count<>1 then raise exception 'portal_completion_account_collision_held' using errcode='PT409'; end if;
+      select * into v_account from public.customer_portal_accounts where company_id=v_company and customer_id=v_customer and (user_id=v_user or portal_user_id=v_user) for update;
+      if v_account.user_id is distinct from v_user or v_account.status<>'active' or v_account.is_active is distinct from true or v_account.role not in ('owner','billing','viewer') then
+        raise exception 'portal_completion_account_collision_held' using errcode='PT409';
+      end if;
+      v_status:='existing';
+    end;
+    if v_status is distinct from 'existing' then
+    insert into public.customer_portal_claims(company_id,customer_id,user_id,claim_type,status,claimed_at,metadata)
+      values(v_company,v_customer,v_user,'customer_access','approved',v_now,v_metadata) returning * into v_claim;
+    insert into public.customer_portal_events(company_id,customer_id,user_id,event_type,payload,metadata)
+      values(v_company,v_customer,v_user,'portal_account_verified',v_event_payload,v_event_metadata) returning * into v_event;
+    v_account_hash:=public.canonical_json_sha256(jsonb_build_object('id',v_account.id,'companyId',v_account.company_id,'customerId',v_account.customer_id,'userId',v_account.user_id,'portalUserId',v_account.portal_user_id,'externalAccountId',v_account.external_account_id,'status',v_account.status,'isActive',v_account.is_active,'verifiedAt',v_account.verified_at,'matchMethod',v_account.match_method,'verifiedIdentitySnapshot',v_account.verified_identity_snapshot));
+    insert into private.customer_portal_account_completion_receipts(company_id,customer_id,user_id,account_id,claim_id,event_id,creating_session_id,request_hash,source_hash,account_binding_hash,claim_hash,event_hash)
+      values(v_company,v_customer,v_user,v_account.id,v_claim.id,v_event.id,v_session,v_request_hash,v_source_hash,v_account_hash,public.canonical_json_sha256(to_jsonb(v_claim)),public.canonical_json_sha256(to_jsonb(v_event))) returning * into v_receipt;
+    v_status:='created';
+    end if;
+  end if;
+  select count(*) into v_account_count from public.customer_portal_accounts where company_id=v_company and customer_id=v_customer and (user_id=v_user or portal_user_id=v_user);
+  select * into v_final_account from public.customer_portal_accounts where id=v_account.id for share;
+  if v_account_count<>1 or v_final_account.id is null or v_final_account.company_id is distinct from v_company or v_final_account.customer_id is distinct from v_customer or
+     v_final_account.user_id is distinct from v_user or v_final_account.status<>'active' or v_final_account.is_active is distinct from true or
+     v_final_account.role is distinct from v_account.role or v_final_account.role not in ('owner','billing','viewer') or (v_status='created' and v_final_account.role<>'owner') or
+     public.canonical_json_sha256(to_jsonb(v_final_account))<>public.canonical_json_sha256(to_jsonb(v_account)) then
+    raise exception 'portal_completion_final_account_changed' using errcode='PT409';
+  end if;
+  if v_status<>'existing' then
+    select * into v_final_claim from public.customer_portal_claims where id=v_claim.id for share;
+    select * into v_final_event from public.customer_portal_events where id=v_event.id for share;
+    if (v_status='created' and (v_final_account.portal_user_id is not null or v_final_account.external_account_id is not null or
+       v_final_account.user_email is distinct from v_email->>'email' or v_final_account.email is distinct from v_email->>'email' or
+       v_final_account.match_method is distinct from 'self_claim_strict_identity' or v_final_account.activated_at is distinct from v_now or v_final_account.verified_at is distinct from v_now or
+       v_final_account.customer_number is distinct from v_customer_row.customer_number or v_final_account.verified_identity_snapshot is distinct from v_verification or
+       v_final_claim.metadata is distinct from v_metadata or v_final_claim.claim_type is distinct from 'customer_access' or v_final_claim.claimed_at is distinct from v_now or
+       v_final_event.payload is distinct from v_event_payload or v_final_event.metadata is distinct from v_event_metadata)) or
+       v_receipt.company_id is distinct from v_company or v_receipt.customer_id is distinct from v_customer or v_receipt.user_id is distinct from v_user or
+       v_receipt.account_id is distinct from v_account.id or v_receipt.claim_id is distinct from v_claim.id or v_receipt.event_id is distinct from v_event.id or
+       (v_status='created' and v_receipt.creating_session_id is distinct from v_session) or
+       v_receipt.request_hash is distinct from v_request_hash or v_receipt.source_hash is distinct from v_source_hash or v_receipt.account_binding_hash is distinct from v_account_hash or
+       v_final_claim.id is null or v_final_event.id is null or
+       v_final_claim.company_id is distinct from v_company or v_final_claim.customer_id is distinct from v_customer or v_final_claim.user_id is distinct from v_user or v_final_claim.status<>'approved' or
+       v_final_event.company_id is distinct from v_company or v_final_event.customer_id is distinct from v_customer or v_final_event.user_id is distinct from v_user or v_final_event.event_type<>'portal_account_verified' or
+       v_receipt.claim_hash<>public.canonical_json_sha256(to_jsonb(v_final_claim)) or
+       v_receipt.event_hash<>public.canonical_json_sha256(to_jsonb(v_final_event)) then
+      raise exception 'portal_completion_final_receipt_changed' using errcode='PT409';
+    end if;
+  end if;
+  -- Repeat complete candidate facts after the final potentially waiting write.
+  v_final_candidate_hash:=private.gridex_account_completion_candidate_hash_v1(v_pn_variants,v_slug);
+  if v_final_candidate_hash is distinct from v_candidate_hash then raise exception 'portal_completion_source_changed' using errcode='PT409'; end if;
+  if not private.gridex_support_session_active_v1(v_user,v_session) then raise exception 'portal_completion_current_session_required' using errcode='42501'; end if;
+  v_final_email:=private.gridex_invoice_redelivery_auth_email_v1(v_user);
+  if v_final_email is distinct from v_email then raise exception 'portal_completion_current_email_required' using errcode='42501'; end if;
+  return jsonb_build_object('status',v_status,'companyId',v_company,'customerId',v_customer,'userId',v_user,'accountId',v_account.id,'role',v_account.role,
+    'receiptId',case when v_status='existing' then null else v_receipt.id end,'claimId',case when v_status='existing' then null else v_receipt.claim_id end,'eventId',case when v_status='existing' then null else v_receipt.event_id end);
+end;
+$$;
+
+--
 -- Name: gridex_complete_facility_response(uuid, uuid, uuid, text, uuid, text, text, text, text, uuid, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -19890,6 +20546,92 @@ begin
     'stale_review_items_resolved', v_reviews_resolved,
     'batch_o_backfill', v_backfill
   );
+end;
+$$;
+
+--
+-- Name: gridex_complete_manual_invoice_purchase_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_complete_manual_invoice_purchase_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+declare
+  v_company uuid:=(p_command->>'companyId')::uuid; v_item_id uuid:=(p_command->>'itemId')::uuid;
+  v_actor uuid:=(p_command->>'actorUserId')::uuid; v_session uuid:=(p_command->>'sessionId')::uuid;
+  v_intent public.invoice_manual_purchase_intents%rowtype; v_item public.invoice_export_items%rowtype;
+  v_invoice public.customer_invoices%rowtype; v_outcome text:=p_command->>'outcome'; v_event uuid:=gen_random_uuid();
+  v_run public.invoice_export_runs%rowtype; v_price public.pricing_runs%rowtype; v_underlay public.billing_underlays%rowtype;
+  v_audit uuid:=gen_random_uuid(); v_result jsonb;
+begin
+  if current_user<>'service_role' or v_company is null or v_item_id is null or v_actor is null or v_session is null then
+    raise exception 'manual_purchase_actor_forbidden' using errcode='42501'; end if;
+  if jsonb_typeof(p_command) is distinct from 'object' or exists(select 1 from jsonb_object_keys(p_command) k(key)
+    where key not in ('companyId','itemId','actorUserId','sessionId','financingMode','payload','itemBinding',
+      'intentId','requestHash','snapshotHash','outcome','observation','connectionJson'))
+    or v_outcome is null or v_outcome not in ('response_observed','rejected','uncertain')
+    or jsonb_typeof(p_command->'observation') is distinct from 'object' then
+    raise exception 'invalid_manual_purchase_command' using errcode='22023'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_company::text||':manual-purchase:'||v_item_id::text,0));
+  -- A pause/freeze after dispatch does not erase the response. Live actor,
+  -- session and billing permission remain required for any local completion.
+  perform private.gridex_manual_purchase_authorize_v1(v_actor,v_session,v_company,false);
+  select * into v_item from public.invoice_export_items where company_id=v_company and id=v_item_id for update;
+  if not found then raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  select * into v_invoice from public.customer_invoices where company_id=v_company and invoice_export_item_id=v_item_id for update;
+  if not found or v_invoice.partner_invoice_reference is distinct from v_item.provider_invoice_guid then
+    raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  select * into v_run from public.invoice_export_runs where id=v_item.export_run_id and company_id=v_company for share;
+  if not found then raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  select * into v_underlay from public.billing_underlays where id=v_item.billing_underlay_id and company_id=v_company for share;
+  if not found then raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  select * into v_price from public.pricing_runs where id=v_item.pricing_run_id and company_id=v_company for share;
+  if not found then raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  perform 1 from public.customers where id=v_item.customer_id and company_id=v_company and archived_at is null and status<>'archived' for share;
+  if not found then raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  perform 1 from public.customer_contracts where id=v_item.customer_contract_id and company_id=v_company and customer_id=v_item.customer_id for share;
+  if not found then raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  select * into v_intent from public.invoice_manual_purchase_intents where company_id=v_company and invoice_export_item_id=v_item_id for update;
+  if not found or v_intent.id::text is distinct from p_command->>'intentId'
+    or v_intent.actor_user_id is distinct from v_actor or v_intent.session_id is distinct from v_session
+    or v_intent.request_hash is distinct from p_command->>'requestHash' or v_intent.snapshot_sha256 is distinct from p_command->>'snapshotHash'
+    or v_intent.financing_mode is distinct from p_command->>'financingMode' or v_intent.purchase_payload is distinct from p_command->'payload'
+    or v_intent.item_binding is distinct from p_command->'itemBinding'
+    or v_intent.connection_sha256 is distinct from encode(extensions.digest(convert_to(p_command->>'connectionJson','UTF8'),'sha256'),'hex')
+    or v_intent.item_binding is distinct from private.gridex_manual_purchase_item_binding_v1(v_item) then
+    raise exception 'manual_purchase_conflict' using errcode='23505'; end if;
+  if v_intent.snapshot_sha256 is distinct from private.gridex_manual_purchase_snapshot_v1(v_item,v_invoice,v_run,v_price,v_underlay) then
+    raise exception 'manual_purchase_snapshot_conflict' using errcode='40001'; end if;
+  if v_intent.status<>'dispatch_started' then
+    if v_intent.status<>v_outcome or v_intent.observation is distinct from p_command->'observation' then
+      raise exception 'manual_purchase_conflict' using errcode='23505'; end if;
+  else
+    insert into public.invoice_purchase_events(id,company_id,invoice_export_item_id,event_type,payload,created_by)
+      values(v_event,v_company,v_item_id,'purchase_'||v_outcome||'_manual',jsonb_build_object('intent_id',v_intent.id,
+        'requested_financing_mode',v_intent.financing_mode,'local_intent_status',v_outcome,'observation',p_command->'observation'),v_actor);
+    -- Preserve create financing_mode and every issued financial/request/GUID
+    -- byte. A fulfilled transport may project only a nonterminal request.
+    if v_outcome='response_observed' and v_item.status='sent' and v_invoice.status in ('issued','sent','overdue')
+      and coalesce(v_item.provider_status,'') not in ('paid','credited','cancelled','rejected','disputed')
+      and coalesce(v_item.purchase_status,'') not in ('purchased_without_recourse','purchased_with_recourse','recoursed','pledged')
+      and v_item.provider_purchase_confirmed_at is null then
+      update public.invoice_export_items set purchase_status='requested',updated_at=clock_timestamp()
+        where company_id=v_company and id=v_item_id;
+    end if;
+    insert into public.domain_events(id,company_id,event_type,aggregate_type,aggregate_id,subject_customer_id,actor_user_id,source,idempotency_key,payload)
+      values(v_audit,v_company,'invoice.manual_purchase.'||v_outcome,'invoice_manual_purchase_intent',v_intent.id::text,
+        v_item.customer_id,v_actor,'manual_purchase_intent_reconstructed_v1','manual-purchase-complete:'||v_intent.id::text,
+        jsonb_build_object('intent_id',v_intent.id,'invoice_export_item_id',v_item_id,'status',v_outcome,'requested_financing_mode',v_intent.financing_mode));
+    perform set_config('gridex.manual_purchase_command','on',true);
+    update public.invoice_manual_purchase_intents set status=v_outcome,observation=p_command->'observation',
+      purchase_event_id=v_event,audit_event_id=v_audit,completed_at=clock_timestamp()
+      where id=v_intent.id returning * into v_intent;
+    perform set_config('gridex.manual_purchase_command','off',true);
+  end if;
+  v_result:=private.gridex_manual_purchase_receipt_v1(v_intent,false);
+  perform private.gridex_manual_purchase_authorize_v1(v_actor,v_session,v_company,false);
+  return v_result;
 end;
 $$;
 
@@ -55950,39 +56692,6 @@ CREATE TABLE public.pricing_preview_lines (
 );
 
 --
--- Name: pricing_runs; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.pricing_runs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    billing_underlay_id uuid,
-    customer_id uuid,
-    billing_period_start timestamp with time zone,
-    billing_period_end timestamp with time zone,
-    status text DEFAULT 'success'::text NOT NULL,
-    total_ex_vat numeric DEFAULT 0 NOT NULL,
-    vat_amount numeric DEFAULT 0 NOT NULL,
-    total_inc_vat numeric DEFAULT 0 NOT NULL,
-    warnings jsonb DEFAULT '[]'::jsonb NOT NULL,
-    errors jsonb DEFAULT '[]'::jsonb NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    locked_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    energy_direction text DEFAULT 'consumption'::text NOT NULL,
-    settlement_type text DEFAULT 'invoice'::text NOT NULL,
-    portfolio_id uuid,
-    portfolio_monthly_settlement_id uuid,
-    portfolio_settlement_revision integer,
-    portfolio_settlement_sha256 text,
-    CONSTRAINT pricing_runs_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
-    CONSTRAINT pricing_runs_period_order_check CHECK (((billing_period_start IS NULL) OR (billing_period_end IS NULL) OR (billing_period_end > billing_period_start))),
-    CONSTRAINT pricing_runs_settlement_type_check CHECK ((settlement_type = ANY (ARRAY['invoice'::text, 'credit_invoice'::text, 'self_billing'::text]))),
-    CONSTRAINT pricing_runs_status_check CHECK ((status = ANY (ARRAY['success'::text, 'failed'::text, 'needs_review'::text, 'locked'::text, 'superseded'::text])))
-);
-
---
 -- Name: billing_export_readiness_v; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -60678,82 +61387,6 @@ CREATE TABLE public.customer_invoice_lines (
     source_invoice_line_id uuid,
     CONSTRAINT customer_invoice_lines_amount_consistency_check CHECK ((((vat_amount IS NULL) AND (amount_inc_vat IS NULL)) OR ((amount_ex_vat IS NOT NULL) AND (vat_amount IS NOT NULL) AND (amount_inc_vat IS NOT NULL) AND (abs((amount_inc_vat - (amount_ex_vat + vat_amount))) <= 0.01)))),
     CONSTRAINT customer_invoice_lines_vat_rate_fraction_check CHECK (((vat_rate IS NULL) OR ((vat_rate >= (0)::numeric) AND (vat_rate <= (1)::numeric))))
-);
-
---
--- Name: customer_invoices; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.customer_invoices (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    user_id uuid,
-    customer_id uuid,
-    agreement_id uuid,
-    billing_underlay_id uuid,
-    partner_export_id uuid,
-    partner_invoice_reference text,
-    invoice_number text,
-    period_start date,
-    period_end date,
-    total_kwh numeric,
-    amount_ex_vat numeric,
-    vat_amount numeric,
-    amount_inc_vat numeric,
-    currency text DEFAULT 'SEK'::text NOT NULL,
-    due_date date,
-    issued_at timestamp with time zone,
-    paid_at timestamp with time zone,
-    status text DEFAULT 'draft'::text NOT NULL,
-    pdf_path text,
-    pdf_url text,
-    source_system text DEFAULT 'manual'::text NOT NULL,
-    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    contract_id uuid,
-    customer_contract_id uuid,
-    price_plan_version_id uuid,
-    portfolio_id uuid,
-    portfolio_monthly_settlement_id uuid,
-    portfolio_price_area_code text,
-    portfolio_delivery_month date,
-    portfolio_settlement_revision integer,
-    portfolio_settlement_status text,
-    portfolio_price_ore_per_kwh numeric,
-    portfolio_management_fee_ore_per_kwh numeric,
-    portfolio_gross_energy_cost_sek numeric,
-    portfolio_energy_volume_kwh numeric,
-    portfolio_settlement_sha256 text,
-    portfolio_settlement_source text,
-    portfolio_settlement_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    delivery_month date,
-    price_area_code text,
-    consumption_kwh numeric,
-    portfolio_share_percent numeric,
-    spot_share_percent numeric,
-    portfolio_energy_cost_sek numeric,
-    spot_energy_cost_sek numeric,
-    management_fee_sek numeric,
-    other_fees_sek numeric,
-    vat_rate numeric,
-    calculation_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    calculation_snapshot_sha256 text,
-    invoice_export_item_id uuid,
-    canonical_export_item_id uuid,
-    fixed_share_percent numeric,
-    fixed_price_sek_per_kwh numeric,
-    fixed_energy_cost_sek numeric,
-    invoice_reference text NOT NULL,
-    CONSTRAINT customer_invoices_fixed_energy_cost_nonnegative_check CHECK (((fixed_energy_cost_sek IS NULL) OR (fixed_energy_cost_sek >= (0)::numeric))),
-    CONSTRAINT customer_invoices_fixed_price_nonnegative_check CHECK (((fixed_price_sek_per_kwh IS NULL) OR (fixed_price_sek_per_kwh >= (0)::numeric))),
-    CONSTRAINT customer_invoices_portfolio_price_area_check CHECK (((portfolio_price_area_code IS NULL) OR (portfolio_price_area_code = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
-    CONSTRAINT customer_invoices_portfolio_shares_check CHECK ((((portfolio_share_percent IS NULL) AND (spot_share_percent IS NULL) AND (fixed_share_percent IS NULL)) OR (((portfolio_share_percent >= (0)::numeric) AND (portfolio_share_percent <= (100)::numeric)) AND ((spot_share_percent >= (0)::numeric) AND (spot_share_percent <= (100)::numeric)) AND ((fixed_share_percent >= (0)::numeric) AND (fixed_share_percent <= (100)::numeric)) AND (abs((((portfolio_share_percent + spot_share_percent) + fixed_share_percent) - (100)::numeric)) <= 0.000001)))),
-    CONSTRAINT customer_invoices_price_area_code_check CHECK (((price_area_code IS NULL) OR (price_area_code = ANY (ARRAY['SE1'::text, 'SE2'::text, 'SE3'::text, 'SE4'::text])))),
-    CONSTRAINT customer_invoices_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'issued'::text, 'sent'::text, 'paid'::text, 'overdue'::text, 'cancelled'::text, 'credited'::text, 'failed'::text])))
 );
 
 --
@@ -70423,104 +71056,6 @@ CREATE TABLE public.invoice_export_attempts (
 );
 
 --
--- Name: invoice_export_items; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.invoice_export_items (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    export_run_id uuid NOT NULL,
-    customer_id uuid,
-    billing_underlay_id uuid,
-    pricing_run_id uuid,
-    provider text DEFAULT 'capway_aptic'::text NOT NULL,
-    environment text DEFAULT 'test'::text NOT NULL,
-    status text DEFAULT 'pending'::text NOT NULL,
-    financing_mode text DEFAULT 'invoice_service'::text NOT NULL,
-    provider_invoice_guid text,
-    provider_invoice_number text,
-    provider_payment_reference text,
-    provider_ocr text,
-    provider_imp_stock_id integer,
-    provider_status text,
-    purchase_status text,
-    recourse_status text,
-    amount_ex_vat numeric DEFAULT 0 NOT NULL,
-    vat_amount numeric DEFAULT 0 NOT NULL,
-    amount_inc_vat numeric DEFAULT 0 NOT NULL,
-    rounding_amount numeric DEFAULT 0 NOT NULL,
-    idempotency_key text,
-    request_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    response_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    error_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    status_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    sent_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    attempt_count integer DEFAULT 0 NOT NULL,
-    next_retry_at timestamp with time zone,
-    last_attempt_at timestamp with time zone,
-    error_code text,
-    provider_request_id text,
-    provider_confirmed_at timestamp with time zone,
-    reconciliation_status text DEFAULT 'not_checked'::text NOT NULL,
-    last_reconciled_at timestamp with time zone,
-    provider_idempotency_key text,
-    provider_invoice_id text,
-    provider_reconciliation_status text DEFAULT 'pending'::text NOT NULL,
-    provider_purchase_confirmed_at timestamp with time zone,
-    provider_delivery_uncertain boolean DEFAULT false NOT NULL,
-    customer_contract_id uuid,
-    metering_point_id uuid,
-    period_start date,
-    period_end date,
-    total_kwh numeric,
-    currency text DEFAULT 'SEK'::text NOT NULL,
-    billing_export_run_item_id uuid,
-    CONSTRAINT invoice_export_items_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT invoice_export_items_financing_mode_check CHECK ((financing_mode = ANY (ARRAY['invoice_service'::text, 'factoring_without_recourse'::text, 'factoring_with_recourse'::text, 'manual'::text]))),
-    CONSTRAINT invoice_export_items_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'cancelled'::text, 'credited'::text, 'disputed'::text, 'rejected'::text, 'configuration_error'::text, 'failed_retryable'::text, 'needs_review'::text])))
-);
-
---
--- Name: invoice_export_runs; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.invoice_export_runs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    provider text DEFAULT 'capway_aptic'::text NOT NULL,
-    environment text DEFAULT 'test'::text NOT NULL,
-    billing_month text NOT NULL,
-    financing_mode text DEFAULT 'invoice_service'::text NOT NULL,
-    status text DEFAULT 'draft'::text NOT NULL,
-    total_items integer DEFAULT 0 NOT NULL,
-    sent_items integer DEFAULT 0 NOT NULL,
-    failed_items integer DEFAULT 0 NOT NULL,
-    total_ex_vat numeric DEFAULT 0 NOT NULL,
-    vat_amount numeric DEFAULT 0 NOT NULL,
-    total_inc_vat numeric DEFAULT 0 NOT NULL,
-    readiness_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    requested_by uuid,
-    started_at timestamp with time zone,
-    finished_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    lock_token uuid,
-    provider_confirmed_items integer DEFAULT 0 NOT NULL,
-    reconciliation_status text DEFAULT 'not_checked'::text NOT NULL,
-    idempotency_key text,
-    payload_hash text,
-    CONSTRAINT invoice_export_runs_billing_month_check CHECK ((billing_month ~ '^\d{4}-\d{2}$'::text)),
-    CONSTRAINT invoice_export_runs_billing_month_valid_check CHECK ((billing_month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text)),
-    CONSTRAINT invoice_export_runs_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT invoice_export_runs_financing_mode_check CHECK ((financing_mode = ANY (ARRAY['invoice_service'::text, 'factoring_without_recourse'::text, 'factoring_with_recourse'::text, 'manual'::text]))),
-    CONSTRAINT invoice_export_runs_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'processing'::text, 'sent'::text, 'partial_failed'::text, 'failed'::text, 'cancelled'::text])))
-);
-
---
 -- Name: invoice_purchase_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -77152,6 +77687,20 @@ ALTER TABLE ONLY public.invoice_export_items
 
 ALTER TABLE ONLY public.invoice_export_runs
     ADD CONSTRAINT invoice_export_runs_pkey PRIMARY KEY (id);
+
+--
+-- Name: invoice_manual_purchase_intents invoice_manual_purchase_inten_company_id_invoice_export_ite_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_manual_purchase_intents
+    ADD CONSTRAINT invoice_manual_purchase_inten_company_id_invoice_export_ite_key UNIQUE (company_id, invoice_export_item_id);
+
+--
+-- Name: invoice_manual_purchase_intents invoice_manual_purchase_intents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_manual_purchase_intents
+    ADD CONSTRAINT invoice_manual_purchase_intents_pkey PRIMARY KEY (id);
 
 --
 -- Name: invoice_provider_events invoice_provider_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -90226,6 +90775,12 @@ CREATE TRIGGER invoice_export_items_customer_chain_v1 BEFORE INSERT OR UPDATE OF
 CREATE TRIGGER invoice_export_items_require_locked_pricing_run BEFORE INSERT OR UPDATE OF company_id, pricing_run_id ON public.invoice_export_items FOR EACH ROW EXECUTE FUNCTION private.gridex_require_locked_pricing_run_for_invoice_export();
 
 --
+-- Name: invoice_manual_purchase_intents invoice_manual_purchase_intent_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER invoice_manual_purchase_intent_guard BEFORE INSERT OR DELETE OR UPDATE ON public.invoice_manual_purchase_intents FOR EACH ROW EXECUTE FUNCTION private.gridex_manual_purchase_guard_v1();
+
+--
 -- Name: invoice_export_items invoice_provider_request_capture_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -96159,6 +96714,27 @@ ALTER TABLE ONLY public.invoice_export_items
 
 ALTER TABLE ONLY public.invoice_export_runs
     ADD CONSTRAINT invoice_export_runs_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: invoice_manual_purchase_intents invoice_manual_purchase_inten_company_id_invoice_export_it_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_manual_purchase_intents
+    ADD CONSTRAINT invoice_manual_purchase_inten_company_id_invoice_export_it_fkey FOREIGN KEY (company_id, invoice_export_item_id) REFERENCES public.invoice_export_items(company_id, id);
+
+--
+-- Name: invoice_manual_purchase_intents invoice_manual_purchase_intents_audit_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_manual_purchase_intents
+    ADD CONSTRAINT invoice_manual_purchase_intents_audit_event_id_fkey FOREIGN KEY (audit_event_id) REFERENCES public.domain_events(id);
+
+--
+-- Name: invoice_manual_purchase_intents invoice_manual_purchase_intents_purchase_event_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_manual_purchase_intents
+    ADD CONSTRAINT invoice_manual_purchase_intents_purchase_event_id_fkey FOREIGN KEY (purchase_event_id) REFERENCES public.invoice_purchase_events(id);
 
 --
 -- Name: invoice_provider_events invoice_provider_events_company_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -108304,6 +108880,12 @@ ALTER TABLE public.invoice_export_runs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY invoice_export_runs_service_role_all ON public.invoice_export_runs TO service_role USING (true) WITH CHECK (true);
 
 --
+-- Name: invoice_manual_purchase_intents; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.invoice_manual_purchase_intents ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: invoice_provider_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -117043,6 +117625,47 @@ GRANT ALL ON TABLE public.manual_email_outbox TO authenticated;
 GRANT ALL ON TABLE public.manual_email_outbox TO service_role;
 
 --
+-- Name: TABLE invoice_export_items; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.invoice_export_items TO authenticated;
+GRANT ALL ON TABLE public.invoice_export_items TO service_role;
+
+--
+-- Name: TABLE invoice_manual_purchase_intents; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE public.invoice_manual_purchase_intents TO service_role;
+
+--
+-- Name: TABLE billing_underlays; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.billing_underlays TO authenticated;
+GRANT ALL ON TABLE public.billing_underlays TO service_role;
+
+--
+-- Name: TABLE customer_invoices; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_invoices TO authenticated;
+GRANT ALL ON TABLE public.customer_invoices TO service_role;
+
+--
+-- Name: TABLE invoice_export_runs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.invoice_export_runs TO authenticated;
+GRANT ALL ON TABLE public.invoice_export_runs TO service_role;
+
+--
+-- Name: TABLE pricing_runs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.pricing_runs TO authenticated;
+GRANT ALL ON TABLE public.pricing_runs TO service_role;
+
+--
 -- Name: TABLE customer_case_publications; Type: ACL; Schema: public; Owner: -
 --
 
@@ -117677,13 +118300,6 @@ GRANT ALL ON FUNCTION public.gridex_normalize_personal_number(p_value text) TO s
 
 GRANT ALL ON FUNCTION public.gridex_normalize_phone(p_phone text) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_normalize_phone(p_phone text) TO service_role;
-
---
--- Name: TABLE billing_underlays; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.billing_underlays TO authenticated;
-GRANT ALL ON TABLE public.billing_underlays TO service_role;
 
 --
 -- Name: TABLE companies; Type: ACL; Schema: public; Owner: -
@@ -118404,6 +119020,13 @@ REVOKE ALL ON FUNCTION public.gridex_claim_manual_email_outbox_fair_v1(p_company
 GRANT ALL ON FUNCTION public.gridex_claim_manual_email_outbox_fair_v1(p_company_id uuid, p_limit integer, p_worker_id text, p_claim_token uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_claim_manual_invoice_purchase_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_claim_manual_invoice_purchase_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_claim_manual_invoice_purchase_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_claim_spot_price_import_job(p_provider text, p_price_area text, p_calendar_date date, p_company_id uuid, p_stale_after interval, p_force boolean); Type: ACL; Schema: public; Owner: -
 --
 
@@ -118517,6 +119140,13 @@ GRANT ALL ON FUNCTION public.gridex_company_legal_profile_defaults(p_company jso
 GRANT ALL ON FUNCTION public.gridex_company_legal_profile_defaults(p_company jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_complete_customer_portal_account_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_complete_customer_portal_account_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_complete_customer_portal_account_v1(p_command jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_complete_facility_response(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_source text, p_ediel_message_id uuid, p_facility_id text, p_metering_point_external_id text, p_grid_area_code text, p_price_area_code text, p_source_party_grid_owner_id uuid, p_raw_payload jsonb, p_note text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -118529,6 +119159,13 @@ GRANT ALL ON FUNCTION public.gridex_complete_facility_response(p_company_id uuid
 
 REVOKE ALL ON FUNCTION public.gridex_complete_grid_owner_readiness(p_source text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_complete_grid_owner_readiness(p_source text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_complete_manual_invoice_purchase_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_complete_manual_invoice_purchase_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_complete_manual_invoice_purchase_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_complete_unreferenced_internal_invoice_fee_tasks(); Type: ACL; Schema: public; Owner: -
@@ -122300,13 +122937,6 @@ GRANT ALL ON TABLE public.pricing_preview_lines TO authenticated;
 GRANT ALL ON TABLE public.pricing_preview_lines TO service_role;
 
 --
--- Name: TABLE pricing_runs; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.pricing_runs TO authenticated;
-GRANT ALL ON TABLE public.pricing_runs TO service_role;
-
---
 -- Name: TABLE billing_export_readiness_v; Type: ACL; Schema: public; Owner: -
 --
 
@@ -123095,13 +123725,6 @@ GRANT ALL ON TABLE public.customer_invoice_documents TO service_role;
 
 GRANT ALL ON TABLE public.customer_invoice_lines TO authenticated;
 GRANT ALL ON TABLE public.customer_invoice_lines TO service_role;
-
---
--- Name: TABLE customer_invoices; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.customer_invoices TO authenticated;
-GRANT ALL ON TABLE public.customer_invoices TO service_role;
 
 --
 -- Name: TABLE customer_lifecycle_decisions; Type: ACL; Schema: public; Owner: -
@@ -125024,20 +125647,6 @@ GRANT ALL ON TABLE public.invoice_documents TO service_role;
 GRANT ALL ON TABLE public.invoice_export_attempts TO anon;
 GRANT ALL ON TABLE public.invoice_export_attempts TO authenticated;
 GRANT ALL ON TABLE public.invoice_export_attempts TO service_role;
-
---
--- Name: TABLE invoice_export_items; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.invoice_export_items TO authenticated;
-GRANT ALL ON TABLE public.invoice_export_items TO service_role;
-
---
--- Name: TABLE invoice_export_runs; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.invoice_export_runs TO authenticated;
-GRANT ALL ON TABLE public.invoice_export_runs TO service_role;
 
 --
 -- Name: TABLE invoice_purchase_events; Type: ACL; Schema: public; Owner: -

@@ -20,7 +20,10 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = status.SERVICE_ROLE_KEY
 process.env.GRIDEX_MANUAL_PURCHASE_NATIVE_SYNTHETIC_KEY = 'synthetic-local-only-never-provider'
 
 export default defineConfig({
-  resolve: { alias: [{ find: '@', replacement: resolve(__dirname, '..') }], conditions: ['react-server', 'node'] },
+  resolve: { alias: [
+    { find: /^server-only$/, replacement: resolve(__dirname, '../node_modules/next/dist/compiled/server-only/empty.js') },
+    { find: '@', replacement: resolve(__dirname, '..') },
+  ], conditions: ['react-server', 'node'] },
   test: { environment: 'node', include: ['scripts/manual-purchase-intent-reconstructed-20261001-native.test.ts'],
     testTimeout: 120_000, fileParallelism: false },
 })

@@ -251,3 +251,7 @@ Actual isolated7b491b10 source7594/525 units and3TS/lint0/101/sourcegates PASS; 
 ## 2026-10-01 final ninth private-request qualification
 
 Actual source6bcb8f79 full7613/526units + fresh fulltestTypesPASS, oldidentical app/scripts/RBAC/API/integrity gates retained. Privateactual19 controls/CLI nonzero/no raw cause or capabilities PASS; initial ProcessEnv env{} TS2769 fixed onlycontrolled NODE_ENV=test. Browser/native0; published c4ab unchanged pending9. All75OPEN. See integration-pass9-20261001.md.
+
+## 2026-10-01 API/UI CI unblock
+
+Bounded purchase native loader correction and authentic33 generation adoption qualified locally; whole75/P0–P8 still open.

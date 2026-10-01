@@ -53635,6 +53635,88 @@ export type Database = {
           },
         ]
       }
+      invoice_manual_purchase_intents: {
+        Row: {
+          actor_user_id: string
+          audit_event_id: string | null
+          company_id: string
+          completed_at: string | null
+          connection_sha256: string
+          created_at: string
+          financing_mode: string
+          id: string
+          invoice_export_item_id: string
+          item_binding: Json
+          observation: Json | null
+          purchase_event_id: string | null
+          purchase_payload: Json
+          request_hash: string
+          session_id: string
+          snapshot_sha256: string
+          status: string
+        }
+        Insert: {
+          actor_user_id: string
+          audit_event_id?: string | null
+          company_id: string
+          completed_at?: string | null
+          connection_sha256: string
+          created_at?: string
+          financing_mode: string
+          id?: string
+          invoice_export_item_id: string
+          item_binding: Json
+          observation?: Json | null
+          purchase_event_id?: string | null
+          purchase_payload: Json
+          request_hash: string
+          session_id: string
+          snapshot_sha256: string
+          status: string
+        }
+        Update: {
+          actor_user_id?: string
+          audit_event_id?: string | null
+          company_id?: string
+          completed_at?: string | null
+          connection_sha256?: string
+          created_at?: string
+          financing_mode?: string
+          id?: string
+          invoice_export_item_id?: string
+          item_binding?: Json
+          observation?: Json | null
+          purchase_event_id?: string | null
+          purchase_payload?: Json
+          request_hash?: string
+          session_id?: string
+          snapshot_sha256?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_manual_purchase_inten_company_id_invoice_export_it_fkey"
+            columns: ["company_id", "invoice_export_item_id"]
+            isOneToOne: true
+            referencedRelation: "invoice_export_items"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "invoice_manual_purchase_intents_audit_event_id_fkey"
+            columns: ["audit_event_id"]
+            isOneToOne: false
+            referencedRelation: "domain_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_manual_purchase_intents_purchase_event_id_fkey"
+            columns: ["purchase_event_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_purchase_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_provider_events: {
         Row: {
           attempt_count: number
@@ -89461,6 +89543,10 @@ export type Database = {
         }
         Returns: Json[]
       }
+      gridex_claim_manual_invoice_purchase_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_claim_spot_price_import_job: {
         Args: {
           p_calendar_date: string
@@ -89656,6 +89742,10 @@ export type Database = {
         Args: { p_company: Json }
         Returns: Json
       }
+      gridex_complete_customer_portal_account_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_complete_facility_response: {
         Args: {
           p_actor_user_id?: string
@@ -89675,6 +89765,10 @@ export type Database = {
       }
       gridex_complete_grid_owner_readiness: {
         Args: { p_source?: string }
+        Returns: Json
+      }
+      gridex_complete_manual_invoice_purchase_v1: {
+        Args: { p_command: Json }
         Returns: Json
       }
       gridex_complete_unreferenced_internal_invoice_fee_tasks: {
