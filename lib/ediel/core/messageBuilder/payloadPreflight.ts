@@ -17,7 +17,7 @@ import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermission
 import {validateProdatReportingPermission} from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import {prodatDateEventAuthorityIssue} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatDateEvents} from '@/lib/ediel/rulebook/prodatDateEventPolicy'
-import type {TgtDateEventValidationContext,ProdatDateEventRow} from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import type {ProdatDateEventValidationContext,ProdatDateEventRow} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
@@ -368,7 +368,7 @@ function validateEdifactPayload(params: {
   mode: 'send' | 'parse'
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
-  dateEventContext?:TgtDateEventValidationContext
+  dateEventContext?:ProdatDateEventValidationContext
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
   meterChange?:MeterChangeSelection
@@ -751,7 +751,7 @@ export function preflightEdielPayload(params: {
    * only through their body-bound evidence envelope in the rulebook validator. */
   parsedPayload?: unknown
   dateEventRow?:ProdatDateEventRow
-  dateEventContext?:TgtDateEventValidationContext
+  dateEventContext?:ProdatDateEventValidationContext
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
   meterChange?:MeterChangeSelection
@@ -794,7 +794,7 @@ export function preflightEdielPayload(params: {
   return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange })
 }
 
-export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
+export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
   const result = preflightEdielPayload({
     rawPayload: message.raw_payload,
     mimeType: message.mime_type,

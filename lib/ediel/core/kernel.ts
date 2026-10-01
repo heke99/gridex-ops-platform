@@ -18,6 +18,9 @@ import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {isListedProdatDocumentCode,prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertUtiltsPositiveAckSourceAuthority } from '@/lib/ediel/utilts/positiveAckAuthority'
+import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionContext'
+import type { ProdatDateEventRow, ProdatDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority'
+import { readSourceQualifiedNegativeFixtureDraft, sourceQualifiedNegativeFixtureMatchesDraft, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {
   createCanonicalOutboundMessage,
   resolveCanonicalOutboundContext,
@@ -94,9 +97,18 @@ function isFinalCanonicalAckStatus(value: unknown): boolean {
 async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
   draft: CreateEdielMessageInput
   messageVersion?: string | null
+  reportingContext?: ExpectedContext
+  dateEventContext?: ProdatDateEventValidationContext
+  negativeFixture?: SourceQualifiedNegativeFixture | null
 }) {
   if (!params.draft.rawPayload) throw new Error('outbound_ediel_raw_payload_required')
 
+  const dateEventRow: ProdatDateEventRow = { company_id: params.draft.companyId ?? null, environment: params.draft.environment ?? 'test',
+    direction: 'outbound', message_code: params.draft.messageCode, sender_ediel_id: params.draft.senderEdielId ?? null,
+    receiver_ediel_id: params.draft.receiverEdielId ?? null, sender_sub_address: params.draft.senderSubAddress ?? null,
+    receiver_sub_address: params.draft.receiverSubAddress ?? null, application_reference: params.draft.applicationReference ?? null,
+    transport_type: params.draft.transportType ?? 'smtp', receiver_email: params.draft.receiverEmail ?? null,
+    communication_route_id: params.draft.communicationRouteId ?? null, route_profile_id: params.draft.routeProfileId ?? null, mailbox: params.draft.mailbox ?? null }
   const validation = await validateRulebookMessageWithRegistry({
     family: params.draft.messageFamily,
     code: String(params.draft.messageCode),
@@ -109,10 +121,13 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     environment: params.draft.environment ?? null,
     version: params.messageVersion ?? params.draft.messageVersion ?? null,
     companyId: params.draft.companyId ?? null,
+    dateEventRow, reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
   })
 
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
-  if (blocking.length > 0) {
+  const qualifiedNegative = validation.canonicalPolicy && !blocking.some(issue => issue.code.startsWith('CANONICAL_') || issue.scope === 'prodat_register' || issue.scope === 'prodat_dependent')
+    && sourceQualifiedNegativeFixtureMatchesDraft({ draft: params.draft, diagnosticCodes: blocking.map(issue => issue.code), qualification: params.negativeFixture })
+  if (blocking.length > 0 && !qualifiedNegative) {
     const first = blocking[0]
     throw new Error(
       `Outbound ${params.draft.messageFamily} ${params.draft.messageCode} blockerades av canonical Ediel-policy: ${first.code} - ${first.description}`,
@@ -391,6 +406,8 @@ export async function finalizeCanonicalOutboundDraft(params: {
   requestType: CanonicalRouteRequestType
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   draft: CreateEdielMessageInput
+  reportingContext?: ExpectedContext
+  dateEventContext?: ProdatDateEventValidationContext
   outboundRequestId?: string | null
   duplicateCheck: {
     sourceType?: string | null
@@ -406,6 +423,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const messageFamily = params.draft.messageFamily
   const messageCode = String(params.draft.messageCode)
+  const negativeFixture = readSourceQualifiedNegativeFixtureDraft(params.draft)
 
   const resolvedVersion = await resolveCanonicalOutboundVersion({
     family: messageFamily,
@@ -455,6 +473,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
     mailbox: params.draft.mailbox ?? params.routeContext.mailbox,
     communicationRouteId:
       params.draft.communicationRouteId ?? params.routeContext.route.id,
+    routeProfileId: params.draft.routeProfileId ?? sequenceString(params.routeContext.routeRuntime?.route_profile_id),
     environment: params.draft.environment ?? params.routeContext.environment,
     messageStandard:
       params.draft.messageStandard ?? params.routeContext.messageStandard,
@@ -464,6 +483,8 @@ export async function finalizeCanonicalOutboundDraft(params: {
   const rulePackSnapshot = await assertOutboundDraftAllowedByCanonicalPolicy({
     draft: baseInput,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
+    reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
+    negativeFixture,
   })
   const routeProfileId = sequenceString(baseInput.routeProfileId)
     ?? sequenceString(params.routeContext.routeRuntime?.route_profile_id)

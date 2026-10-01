@@ -224,6 +224,7 @@ export async function finalizeOutboundDraft(params: {
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null
   reportingContext?: ExpectedContext
+  dateEventContext?: import('@/lib/ediel/prodat/prodatDateEventAuthority').ProdatDateEventValidationContext
   duplicateCheck: {
     sourceType?: string | null
     sourceId?: string | null
@@ -247,6 +248,7 @@ export async function finalizeOutboundDraft(params: {
     outboundRequestId: params.outboundRequestId ?? null,
     duplicateCheck: params.duplicateCheck,
     reportingContext: params.reportingContext,
+    dateEventContext: params.dateEventContext,
   }
   return finalizeCanonicalOutboundDraft(canonical)
 }
