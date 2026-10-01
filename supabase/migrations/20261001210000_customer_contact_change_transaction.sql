@@ -84,18 +84,10 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE='P0002', MESSAGE='customer_not_found_in_scope';
   END IF;
 
-  -- Staff must be an active member of exactly this company with masterdata.write.
-  IF p_actor_kind='staff' AND NOT (
-    EXISTS (
-      SELECT 1 FROM public.user_profiles up
-      JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=p_company_id
-      WHERE up.id=p_actor_user_id AND up.user_status='active'
-        AND cm.status='active' AND coalesce(cm.is_active,true)
-    ) AND (
-      coalesce(public.canonical_actor_is_platform_admin(p_actor_user_id),false)
-      OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'masterdata.write'),false)
-    )
-  ) THEN
+  -- Staff: the canonical resolver grants masterdata.write in exactly this company (active member
+  -- with the permission) or to an active platform superadmin; disabled/banned users never pass.
+  IF p_actor_kind='staff'
+     AND NOT coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'masterdata.write'),false) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='contact_change_actor_not_authorized';
   END IF;
 
