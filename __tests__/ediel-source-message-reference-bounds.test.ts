@@ -29,7 +29,7 @@ describe('ENV-03 source-qualified UNH/UNT0062 decoded an14', () => {
   })
   it('checks each physical message and its own UNT through the shared framing authority', () => {
     const raw = EdifactEnvelopeCodec.encode({ sender: 'NETWORK', receiver: 'SUPPLIER', interchangeReference: 'ORIGINAL',
-      environment: 'test', acknowledgementRequest: false, messages: profiles.slice(0, 2).map((profile, index) => ({
+      environment: 'test', acknowledgementRequest: false, messages: [profiles[1], profiles[1]].map((profile, index) => ({ // two APERAK (BGM+++27) messages; one family per envelope
         messageReference: String(index + 1), messageTypeToken: profile, businessSegments: ['BGM+++27'],
       })) })
     const altered = raw.replace('UNH+2+', 'UNH+123456789012345+').replace('UNT+3+2', 'UNT+3+123456789012345')

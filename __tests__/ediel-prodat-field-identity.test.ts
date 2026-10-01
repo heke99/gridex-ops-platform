@@ -53,7 +53,8 @@ it('retains the concrete missing LI negative when readings knowledge is unknown'
 })
 
 it('checks supplied invalid254 independently of unknown readings and meter-change requiredness',async()=>{
- const body=z10();body.splice(3,0,...characteristic('Z15','INVALID'))
+ // Directory position (after the object's DTM, before its CCI); CAV 7111 is an..3.
+ const body=z10();body.splice(5,0,...characteristic('Z15','X99'))
  const d=await resolveCanonicalRuntimeDecisionWithRegistry(source(raw(body,'Z10'),'Z10'))
  expect(d.applicationDecision).toBe('rejected');expect(d.functionalDecision).toBe('accepted')
  const errors=d.responsePlan.find(x=>x.family==='APERAK')!.applicationErrors!
