@@ -4,6 +4,6 @@
   "generated_with": "supabase-cli-2.101.0-local-replay-typegen-claude-session-head-be0cb87f-plus-142590",
   "generated_types": "supabase/database.types.ts",
   "sha256": "e20547e1da4c5b38ffd791c7cd81f98166200bd4c8aef183eec35b6408e3f2be",
-  "latest_migration": "20261001142600_ediel_network_registry_consumers_company_source.sql",
-  "latest_migration_schema_effect": "Authentic local CLI clean replay of 03ba1d1d with 142560-142590 applied in order; types regenerated with nullability overrides. The only diff against the previous committed types is the 17 outbound_requests columns added by 142590. Not a CI artifact. 142600 rewrites three private plpgsql bodies (no signature/type change)."
+  "latest_migration": "20261001142690_ediel_retention_storage_delete_visibility.sql",
+  "latest_migration_schema_effect": "Authentic local CLI clean replay of 03ba1d1d with 142560-142590 applied in order; types regenerated with nullability overrides. The only diff against the previous committed types is the 17 outbound_requests columns added by 142590. Not a CI artifact. 142600 rewrites three private plpgsql bodies (no signature/type change). 142610 only switches one private trigger function to SECURITY DEFINER; 142620-142690 rewrite private plpgsql bodies, grant private parsers to the retention owner or add one storage RLS policy (no type change)."
 }

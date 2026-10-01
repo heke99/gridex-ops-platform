@@ -12,6 +12,7 @@ import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokeniz
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
 import {resolveCanonicalRuntimeDecisionWithRegistry,readCanonicalUtiltsIssuerIdentityAuthority,readCanonicalPeriodicReasonAuthority} from '@/lib/ediel/core/runtimeDecision'
+import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from '@/lib/ediel/flows/utiltsCanonicalValidation'
@@ -47,7 +48,9 @@ export async function createZ06fReadingNativeFixture(provider:(email:string)=>vo
   const raw=z06fNativeStructureWire(f,kind,document)
   const message=await capture(raw,'PRODAT','Z06',`PRODAT:Z06:${kind}:26.A:r3`),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
-  const recorded=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(recorded.status).toBe('recorded')
+  const recorded=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(recorded.status).toBe('recorded');
+ // Production inbound order: record validation, then capture the frozen rule-pack basis.
+ await captureFreshEdielSourceRulePackEvidence(f.companyId,message.id);
   const owner=createReceivedSourceOwnerSession(recorded);expect(owner).not.toBeNull();await owner!.finish()
   expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
   const apply=()=>approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:operator.id})

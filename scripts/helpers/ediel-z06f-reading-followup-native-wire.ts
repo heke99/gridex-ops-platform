@@ -6,7 +6,7 @@ import {priorE30PointWire} from '../../__tests__/helpers/priorUtiltsStructureFix
 export type Z06fNativeWireScope={external:string;sender:string;receiver:string;brpEdielId:string;caseReference:string;gridAreaCode:string}
 export function z06fNativeStructureWire(f:Z06fNativeWireScope,kind:'F'|'G',document:string){
  const base=structuralOwnerSource('Z06',kind==='F'?'E64':'E32',document)
- return base.raw_payload!.replaceAll('735123456789012345',f.external).replaceAll('12345:14',f.receiver+':14').replaceAll('54321:14',f.sender+':14')
+ return base.raw_payload!.replaceAll('735123456789012345',f.external).replaceAll('12345:14',f.receiver+':14').replaceAll('54321:14',f.sender+':14').replaceAll('NAD+FR+12345:160:SVK',`NAD+FR+${f.receiver}:160:SVK`).replaceAll('NAD+DO+54321:160:SVK',`NAD+DO+${f.sender}:160:SVK`)
   .replaceAll('12345:160:SVK',f.receiver+':160:SVK').replaceAll('54321:160:SVK',f.sender+':160:SVK')
   .replaceAll('NAD+Z02+11111:160:SVK',`NAD+Z02+${f.brpEdielId}:160:SVK`).replaceAll('RFF+LI:CASE-1',`RFF+LI:${f.caseReference}`).replaceAll('RFF+Z05:NET-1',`RFF+Z05:${f.gridAreaCode}`)
   .replaceAll('DTM+92:202610010000:203','DTM+92:202610030000:203')

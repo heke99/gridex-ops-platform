@@ -13,5 +13,8 @@ export function mixedProdatNativeWire(input:{external:string;sender:string;recei
   part[0]==='NAD'&&part[1]==='UD'?['NAD','UD',[input.customerIdentity.id,input.customerIdentity.qualifier,input.customerIdentity.agency],'','Synthetic','Street','City','','12345','SE']:part)
  const body=[...head().map(p=>p[0]==='NAD'&&p[1]==='FR'?['NAD','FR',[input.receiver,'160','SVK'],'','','','','','','SE']:p[0]==='NAD'&&p[1]==='DO'?['NAD','DO',[input.sender,'160','SVK'],'','','','','','','SE']:p),
   ...block('1',input.negativePoint,'NEGATIVE-OWN','1'),line('2',input.negativePoint,'2','9'),...block('3',input.external,input.caseReference)] as Parts[]
- return raw(body,'Z04').replace('+S+R+',`+${input.receiver}:14+${input.sender}:14+`)
+ // Test-environment interchange: acknowledgement request and UNB test indicator.
+ const wire=raw(body,'Z04').replace('+S+R+',`+${input.receiver}:14+${input.sender}:14+`)
+ if(!wire.includes("+23-DDQ-PRODAT'"))throw Error('mixed_prodat_unb_shape_changed')
+ return wire.replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++1++1'")
 }

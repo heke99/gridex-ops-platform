@@ -9,6 +9,7 @@ import {createRequestedChangeSupplyFixture} from './ediel-requested-change-nativ
 import {nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
 import {bilateralCustomerNativeWire} from './ediel-bilateral-customer-native-wire'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
@@ -40,7 +41,9 @@ export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<
  const saved=await supabaseService.from('ediel_messages').select('*').eq('id',sourceMessageId).single();expect(saved.error).toBeNull()
  const message=saved.data as EdielMessageRow,decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
- const receipt=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(receipt.status).toBe('recorded')
+ const receipt=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(receipt.status).toBe('recorded');
+ // Production inbound order: record validation, then capture the frozen rule-pack basis.
+ await captureFreshEdielSourceRulePackEvidence(f.companyId,message.id);
  const session=createReceivedSourceOwnerSession(receipt);expect(session).not.toBeNull();await session!.finish()
  return {sourceMessageId,message,wire}
 }
