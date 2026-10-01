@@ -195,6 +195,27 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  const pdfBuffer=Buffer.from(attachment.content,'base64'),documentSha256=createHash('sha256').update(pdfBuffer).digest('hex')
  await archiveSignedCustomerContractPdf({companyId,customerContractId:contractId,pdfBuffer,documentSha256,generationSnapshot:{schema:'gridex_signed_contract_document_v1',contract_id:contractId,signature_snapshot_sha256:signed.signature_snapshot_sha256,synthetic:true}})
  const bound=await supabaseService.from('customer_contracts').update({document_sha256:documentSha256}).eq('id',contractId).eq('company_id',companyId).is('document_sha256',null);expect(bound.error).toBeNull()
+ // End-user UD masterdata for a dated (future) switch day cannot come from
+ // today's registered address. Bind a declared SYNTHETIC signed masterdata
+ // declaration to this exact signed contract (same agreement bytes, revision
+ // and production contract hash). It is a fixture fact, never real approval.
+ const declarationSource=Buffer.from('SYNTHETIC signed customer masterdata declaration '+contractId)
+ sql(`INSERT INTO gridex_customer_masterdata.signed_declarations(company_id,customer_id,environment,contract_id,contract_revision,contract_hash,agreement_original,agreement_sha256,valid_from,customer_identity,end_user_masterdata,source_reference,source_version,source_original,source_sha256,approved_by,approved_at)
+  SELECT c.company_id,c.customer_id,'test',c.id,c.signed_version,gridex_received_sources.production_contract_hash_v1(c),decode(${literal(pdfBuffer.toString('hex'))},'hex'),${literal(documentSha256)},'2026-01-01T00:00:00Z',
+  jsonb_build_object('id',${literal(customerIdentity)},'qualifier','SE2','agency','260'),
+  jsonb_build_object('nameParts',jsonb_build_array('Synthetic Own Customer'),'streetParts',jsonb_build_array('Testgatan 1'),'postalCode','123 45','city','Teststad','country','SE'),
+  ${literal('SYNTHETIC-native-masterdata-'+contractId)},'1',decode(${literal(declarationSource.toString('hex'))},'hex'),${literal(createHash('sha256').update(declarationSource).digest('hex'))},${literal(actorUserId)},clock_timestamp()
+  FROM public.customer_contracts c WHERE c.id=${literal(contractId)} AND c.company_id=${literal(companyId)}`)
+ // The new agreement's requested metering method is its own signed source.
+ // Bind a declared SYNTHETIC method declaration to the same contract bytes and
+ // the point/grid/legal header actually seeded above (hourly Z04).
+ const methodSource=Buffer.from('SYNTHETIC signed new-agreement requested method '+contractId)
+ sql(`INSERT INTO gridex_metering_method_changes.contract_request_declarations(company_id,environment,contract_id,contract_revision,protected_contract_hash,customer_id,site_id,metering_point_id,legal_actor_id,legal_sender_id,legal_receiver_id,point_id,identity_agency,grid_area_code,requested_method,agreement_original,agreement_sha256,source_reference,source_version,source_original,source_sha256,approved_by,approved_at)
+  SELECT c.company_id,'test',c.id,c.signed_version,gridex_received_sources.production_contract_hash_v1(c),c.customer_id,coalesce(c.customer_site_id,c.site_id),c.metering_point_id,
+  (gridex_ai_processing.header_company_basis_v1(c.company_id,'test',${literal(sender)},p.grid_owner_ediel_id)->>'legalActorId')::uuid,${literal(sender)},p.grid_owner_ediel_id,
+  coalesce(nullif(p.ediel_metering_point_id,''),nullif(p.meter_point_id,'')),'9',p.grid_area_code,'Z04',decode(${literal(pdfBuffer.toString('hex'))},'hex'),${literal(documentSha256)},
+  ${literal('SYNTHETIC-native-method-'+contractId)},'1',decode(${literal(methodSource.toString('hex'))},'hex'),${literal(createHash('sha256').update(methodSource).digest('hex'))},${literal(actorUserId)},clock_timestamp()
+  FROM public.customer_contracts c JOIN public.metering_points p ON p.id=c.metering_point_id WHERE c.id=${literal(contractId)} AND c.company_id=${literal(companyId)}`)
  // Explicit test-only manual authorization is created by its existing public
  // admin writer and exact chain helper. It is a declared synthetic legal fact,
  // never a private owner receipt or claim of real customer authentication.
