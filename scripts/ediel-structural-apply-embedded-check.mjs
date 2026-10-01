@@ -9,7 +9,8 @@ await db.exec(`CREATE TABLE public.companies(id uuid PRIMARY KEY);
 CREATE TABLE public.company_memberships(company_id uuid,user_id uuid,status text,is_active boolean,accepted_at timestamptz);
 CREATE TABLE public.user_profiles(id uuid PRIMARY KEY,user_status text);
 CREATE TABLE public.supplier_switch_requests(id uuid PRIMARY KEY,company_id uuid);
-CREATE TABLE public.customer_supply_periods(id uuid PRIMARY KEY,company_id uuid);
+CREATE TABLE public.customer_supply_periods(id uuid PRIMARY KEY,company_id uuid,source_message_id uuid,market_state_version bigint);
+CREATE TABLE gridex_received_sources.supply_source_transitions(source_message_id uuid,company_id uuid,resulting_states jsonb);
 ALTER TABLE public.ediel_messages ADD COLUMN message_received_at timestamptz;
 CREATE TABLE public.ediel_message_events(company_id uuid,ediel_message_id uuid,message_id uuid,event_type text,event_status text,message text,payload jsonb,event_payload jsonb,created_by uuid);
 CREATE TABLE gridex_received_sources.object_assessments(id uuid PRIMARY KEY,source_message_id uuid,company_id uuid,environment text,source_payload_hash text,canonical_assessment_id uuid,previous_assessment_id uuid,facts_text text);
@@ -21,6 +22,7 @@ CREATE FUNCTION gridex_received_sources.review_business_proof_consistent(jsonb,j
 const decoder=readFileSync(new URL('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql',import.meta.url),'utf8')
 await db.exec(decoder.slice(0,decoder.indexOf('CREATE FUNCTION gridex_received_sources.permission_wire_v1'))+'\nCOMMIT;')
 await db.exec(readFileSync(new URL('../supabase/migrations/20260930193612_ediel_structural_source_atomic_review_apply.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql',import.meta.url),'utf8'))
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const company=id(1),actor=id(2),customer=id(3),site=id(4),point=id(5),source=id(6),canonical=id(7),owner=id(8)
 await db.query('INSERT INTO public.companies VALUES($1)',[company])
