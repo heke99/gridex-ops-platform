@@ -1,6 +1,7 @@
 import {tokenizeEdifact, segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
+import {isProdatIdentityOmissionScope} from '@/lib/ediel/prodat/prodatIdentityOmissionScope'
 import {isEvidenceRecord} from '@/lib/ediel/utilts/durableSourceDiscovery'
 
 function keys(value: unknown, expected: string[]): value is Record<string, unknown> {
@@ -23,6 +24,9 @@ export function bindReceivedRegisterValidation(value: unknown, raw: string): Pro
     const tokens=tokenizeEdifact(raw)
     if (tokens.segments.length > 8192) return null
     const groups=prodatRegisterGroups(tokens.segments,tokens.una).groups
+    const codes=new Map<number,string>()
+    let codeIndex=-1
+    for(const token of tokens.segments){if(token.tag==='UNH')codeIndex++;if(token.tag==='BGM')codes.set(codeIndex,segmentComposite(token,1,tokens.una)[0])}
     const expected=new Map<string,typeof groups>()
     const references=new Map<number,string|null>()
     let messageIndex=-1
@@ -42,12 +46,16 @@ export function bindReceivedRegisterValidation(value: unknown, raw: string): Pro
         || !object.reasons.every(reason=>typeof reason==='string' && /^[A-Za-z0-9_.:-]{1,128}$/.test(reason))
         || new Set(object.reasons).size!==object.reasons.length) return null
       if (object.disposition==='accepted' ? object.reasons.length!==0 : object.reasons.length===0) return null
-      if ((object.messageIndex!==0 || !text(object.messageReference) || !text(object.objectId))
-        && object.disposition!=='unavailable') return null
+      if ((object.messageIndex!==0 || !text(object.messageReference)) && object.disposition!=='unavailable') return null
       // Preserve a source-owned rejected identity exactly as received. The
       // physical match below still rejects forged agency substitutions; an
       // invalid agency can never acquire an accepted object disposition.
-      if (!['9','89'].includes(String(object.identityAgency)) && object.disposition==='accepted') return null
+      if ((!text(object.objectId)||!['9','89'].includes(String(object.identityAgency))) && object.disposition==='accepted'
+        && !groups.some(group=>group.lineIndex===(object.registers[0] as Record<string,unknown>)?.lineIndex
+          && isProdatIdentityOmissionScope(codes.get(object.messageIndex as number)??'',group,tokens.una))) return null
+      if(!text(object.objectId)&&object.disposition==='rejected'
+        && !groups.some(group=>group.lineIndex===(object.registers[0] as Record<string,unknown>)?.lineIndex
+          && isProdatIdentityOmissionScope(codes.get(object.messageIndex as number)??'',group,tokens.una)))return null
       const first=object.registers[0]
       if (!isEvidenceRecord(first)) return null
       const key=JSON.stringify([object.messageIndex,object.objectId,object.identityAgency,object.objectId ? null : first.lineIndex])
