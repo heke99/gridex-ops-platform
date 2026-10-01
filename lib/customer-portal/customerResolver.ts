@@ -510,6 +510,47 @@ async function selectPortalIdentitiesByUser(companyId: string, userId: string): 
   return []
 }
 
+async function hasBlockedPortalLink(companyId: string, customerId: string, userId: string): Promise<boolean> {
+  const accountFields: Array<'portal_user_id' | 'user_id' | 'external_account_id'> = isUuid(userId)
+    ? ['portal_user_id', 'user_id', 'external_account_id']
+    : ['external_account_id']
+  // query-loop-budget: bounded-block-check max=3
+  for (const field of accountFields) {
+    const { data, error } = await supabaseService
+      .from('customer_portal_accounts')
+      .select('id,customer_id,status,is_active')
+      .eq('company_id', companyId)
+      .eq(field, userId)
+      .limit(20) as { data: Record<string, unknown>[] | null; error: unknown | null }
+    if (error) {
+      if (isMissingPortalSchemaError(error)) continue
+      throw error
+    }
+    if (asRows(data).some((row) => !activeAccount(row))) return true
+  }
+
+  const identities = await selectPortalIdentitiesByUser(companyId, userId)
+  if (identities.some((row) => !activeIdentity(row))) return true
+
+  const { data, error } = await supabaseService
+    .from('customer_portal_identities')
+    .select('id,status,auth_user_id,customer_portal_user_id')
+    .eq('company_id', companyId)
+    .eq('customer_id', customerId)
+    .eq('provider', WEBSITE_PORTAL_PROVIDER)
+    .limit(20) as { data: Record<string, unknown>[] | null; error: unknown | null }
+  if (error) {
+    if (isMissingPortalSchemaError(error)) return false
+    throw error
+  }
+  return asRows(data).some((row) => {
+    if (!activeIdentity(row)) return true
+    // An identity already bound to a different portal user is not silently taken over.
+    const boundUser = str(row, 'customer_portal_user_id') ?? str(row, 'auth_user_id')
+    return Boolean(boundUser && boundUser !== userId)
+  })
+}
+
 export async function ensureCustomerPortalUserLink(input: {
   client: IntegrationApiClient
   customerId: string
@@ -541,6 +582,11 @@ export async function ensureCustomerPortalUserLink(input: {
   }
 
   const portalUserId = isUuid(userId) ? userId : null
+  // A link operation must never undo a block: any deactivated account/identity for this user or
+  // revoked identity for this customer stays deactivated and stops the link.
+  if (await hasBlockedPortalLink(input.client.company_id, input.customerId, userId)) {
+    throw new Error('customer_portal_link_blocked')
+  }
   let accountId: string | null = null
   const accountRows = await selectPortalAccountsByUser(input.client.company_id, userId)
   const existingAccount = accountRows.find((row) => str(row, 'customer_id') === input.customerId) ?? null
@@ -800,6 +846,13 @@ export async function resolvePortalCustomer(input: {
   } catch (error) {
     if (isMissingPortalSchemaError(error)) {
       return { ok: false, status: 503, code: 'customer_portal_schema_missing', error: 'Kundportalens datamodell är inte färdig i OPS.', identifiers }
+    }
+    const message = error instanceof Error ? error.message : ''
+    if (message === 'customer_portal_link_blocked') {
+      return { ok: false, status: 403, code: 'customer_portal_link_blocked', error: 'Portalkopplingen är spärrad eller tillhör en annan användare och kan inte återaktiveras via API.', identifiers }
+    }
+    if (message === 'customer_portal_identity_customer_conflict') {
+      return { ok: false, status: 409, code: 'customer_portal_identity_customer_conflict', error: 'Portalidentiteten är redan kopplad till en annan kund.', identifiers }
     }
     throw error
   }

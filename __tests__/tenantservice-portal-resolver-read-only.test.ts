@@ -177,6 +177,50 @@ describe('tenantservice portal resolver (read-only by default)', () => {
     }).catch(() => null)
     expect(state.writes.some((write) => write.table === 'customer_portal_accounts' || write.table === 'customer_portal_identities')).toBe(true)
   })
+
+  it('link mode refuses to reactivate a blocked account and writes nothing', async () => {
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    const result = await resolvePortalCustomer({
+      client: clientA,
+      mode: 'link',
+      identifiers: identifiers({ customerPortalUserId: USER_BLOCKED, customerNumber: 'A-1001', email: 'kund@example.test' }),
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.code).toBe('customer_portal_link_blocked')
+    expect(state.writes).toEqual([])
+  })
+
+  it('link mode refuses to take over a revoked identity of the customer', async () => {
+    state.tables.customer_portal_identities.push({
+      id: 'ident-revoked', company_id: COMPANY_A, customer_id: CUSTOMER_A1, provider: 'gridex_website', status: 'revoked',
+    })
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    const result = await resolvePortalCustomer({
+      client: clientA,
+      mode: 'link',
+      identifiers: identifiers({ customerPortalUserId: USER_UNLINKED, customerNumber: 'A-1001', email: 'kund@example.test' }),
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.code).toBe('customer_portal_link_blocked')
+    expect(state.writes).toEqual([])
+  })
+
+  it('link mode refuses to rebind an identity owned by another portal user', async () => {
+    state.tables.customer_portal_identities.push({
+      id: 'ident-other', company_id: COMPANY_A, customer_id: CUSTOMER_A1, provider: 'gridex_website', status: 'active',
+      customer_portal_user_id: USER_LINKED, auth_user_id: USER_LINKED,
+    })
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    const result = await resolvePortalCustomer({
+      client: clientA,
+      mode: 'link',
+      identifiers: identifiers({ customerPortalUserId: USER_UNLINKED, customerNumber: 'A-1001', email: 'kund@example.test' }),
+    })
+    expect(result.ok).toBe(false)
+    expect(state.writes).toEqual([])
+  })
 })
 
 describe('tenantservice end-customer mutation binding gate', () => {

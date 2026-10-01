@@ -49,10 +49,10 @@
 | # | Severity | Status | Description | Evidence | Fix |
 |---|---|---|---|---|---|
 | F1 (S2) | High | **Fixed (T)** | GET/read endpoints upserted `customer_portal_accounts`/`identities` with `role:owner`, `status:active` and a new `verified_at` | `customerResolver.ts` (previously at lines 740-750) ran on every read; the test fails on base | P1a: `mode:'read'` default, links only in `mode:'link'` |
-| F2 (S3) | High | **Fixed for reads (T)** | A blocked or deactivated account fell back to identifier matching and was given a new active owner account | test "never reactivates a blocked account" | P1a. The link path still needs the blocking check (P1b) |
+| F2 (S3) | High | **Fixed (T)** | A blocked or deactivated account fell back to identifier matching and was given a new active owner account | tests for read and link mode | P1a for reads. P1b: `hasBlockedPortalLink` in `ensureCustomerPortalUserLink` also covers `lib/website/customerApplication*` (variant) |
 | F3 (S1) | High | **Fixed (T, unit)** | End-customer writes were accepted on an identifier-only match (customer number or email alone) | `profile-update` never checked binding | P1a: `customer_identity_binding_required` (403) for mutations without a linked portal account |
 | F4 (S4) | High | Open (S) | The first link relies on tenant-supplied factors only (customer number + email); there is no customer-side proof | `hasStrongFirstLinkFactors` | P1b: signed identity/delegation proof (iss/aud/exp/tenant/relation) |
-| F5 (S5) | Medium | Open (S) | `customer-portal/sync` upsert can repoint or null `customer_id`/`auth_user_id` on an existing identity | `route.ts:216` | P1b |
+| F5 (S5) | Medium | **Fixed (T, unit)** | `customer-portal/sync` upsert can repoint or null `customer_id`/`auth_user_id` on an existing identity | `route.ts:216` | P1b: `lib/customer-portal/identityTransition.ts` → 409 |
 | F6 (S7) | Medium | Open (S) | Admin profile `status` has no allowlist, so the archive flow can be bypassed | `part-1.ts:231,290` | P2 |
 | F7 (S8/S9) | Medium | Open (S) | Primary contact sync is destructive in OPS and missing in the API, so data drifts; the contact change is not audited | `part-1.ts:309-356` | P2: shared contact command |
 | F8 (S10) | Medium | Open (S) | Invoice email silently falls back to `customer.email` | `billingReadiness.ts:198` | P3 |

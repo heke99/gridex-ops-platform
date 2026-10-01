@@ -10,6 +10,7 @@ import {
   requireIdempotencyKey,
 } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
+import { assertPortalIdentityTransitionAllowed } from '@/lib/customer-portal/identityTransition'
 import {
   logIntegrationApiRequest,
   requireIntegrationApiAccess,
@@ -194,6 +195,16 @@ async function upsertIdentity(input: {
   matchMethod: string
   metadata: Record<string, unknown>
 }) {
+  const existing = await supabaseService
+    .from('customer_portal_identities')
+    .select('id,status,customer_id,auth_user_id,customer_portal_user_id')
+    .eq('company_id', input.companyId)
+    .eq('provider', 'gridex_website')
+    .eq('external_customer_id', input.externalCustomerId)
+    .maybeSingle()
+  if (existing.error) throw existing.error
+  assertPortalIdentityTransitionAllowed(existing.data as Record<string, unknown> | null, input)
+
   const now = new Date().toISOString()
   const payload = {
     company_id: input.companyId,
