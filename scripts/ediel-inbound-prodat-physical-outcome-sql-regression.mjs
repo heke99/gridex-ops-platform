@@ -19,10 +19,10 @@ function loadPure(file){
  if(!path.extname(file))file+='.ts'
  if(moduleCache.has(file))return moduleCache.get(file).exports
  if(!file.startsWith(root+path.sep))throw Error('Canonical parser import outside repository')
- const module={exports:{}};moduleCache.set(file,module)
+ const loaded={exports:{}};moduleCache.set(file,loaded)
  const output=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
  const localRequire=name=>{if(name.startsWith('@/'))return loadPure(path.join(root,name.slice(2)));if(name.startsWith('.'))return loadPure(path.resolve(path.dirname(file),name));throw Error('Canonical parser import must remain pure: '+name)}
- new Function('require','module','exports',output)(localRequire,module,module.exports);return module.exports
+ new Function('require','module','exports',output)(localRequire,loaded,loaded.exports);return loaded.exports
 }
 const canonical=loadPure(path.join(root,'lib/ediel/prodat/prodatRegisterGroups.ts')),tokenizer=loadPure(path.join(root,'lib/ediel/core/edifactTokenizer.ts'))
 let checks=0
