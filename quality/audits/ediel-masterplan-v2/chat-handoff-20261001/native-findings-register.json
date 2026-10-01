@@ -120,6 +120,66 @@
       "severity": "high",
       "cause": "adapter defaulted a route-confirmed absent sub-address to PRODAT, diverging from the intent -> ediel_native_intent_wire_scope_changed",
       "fix": "route-decided value (incl. null) is authoritative; default only when undefined"
+    },
+    {
+      "id": "NATIVE-FIX-142610",
+      "severity": "high",
+      "cause": "Cancellation-origin trigger on ediel_messages was SECURITY INVOKER; service_role lacks USAGE on gridex_switch_cancellations, so every owner-path message update failed (was NATIVE-OPEN-07; approved by owner)",
+      "fix": "migration 142610: SECURITY DEFINER with pinned search_path; EXECUTE stays revoked"
+    },
+    {
+      "id": "NATIVE-FIX-142620",
+      "severity": "high",
+      "cause": "negative fixture reader raised for unlinked test messages, aborting every test-environment send",
+      "fix": "migration 142620: no run link returns NULL; ambiguity still raises"
+    },
+    {
+      "id": "NATIVE-FIX-142630",
+      "severity": "high",
+      "cause": "dsn_sending_mailbox_v1 smtp_from parameter ambiguous with ediel_mailboxes.smtp_from",
+      "fix": "migration 142630: parameter qualified"
+    },
+    {
+      "id": "NATIVE-FIX-142640",
+      "severity": "critical",
+      "cause": "023248 replaced the composed switch-original bind chain with a base-body copy, dropping requested-method and BRP bindings; every later send failed closed",
+      "fix": "migration 142640: non-H branch delegates to method wrapper then binds BRP source"
+    },
+    {
+      "id": "NATIVE-FIX-142650",
+      "severity": "high",
+      "cause": "requested-method parser closed the attribute section at the line-level DTM before CCI; canonical Z03 always NULL",
+      "fix": "migration 142650: DTM before first CCI stays in the LIN group"
+    },
+    {
+      "id": "NATIVE-FIX-142660",
+      "severity": "high",
+      "cause": "three actor gates referenced user_profiles.disabled_at, absent from the canonical schema",
+      "fix": "migration 142660: to_jsonb(row)->>'disabled_at' like 20260728/ediel_retention_lock_auth_actor_v1"
+    },
+    {
+      "id": "NATIVE-FIX-142670",
+      "severity": "critical",
+      "cause": "primary PRODAT object facet required the rule-pack receipt that inbound capture can only create from an earlier committed assessment (cycle since 000148); every inbound PRODAT with object facts stayed unconfirmed",
+      "fix": "migration 142670: recorder no longer requires it; capture and all business consumers still do"
+    },
+    {
+      "id": "NATIVE-FIX-142680",
+      "severity": "high",
+      "cause": "source purge: generated scope_point recomputed as retention owner without EXECUTE; guard compared generated column (NULL in BEFORE trigger)",
+      "fix": "migration 142680: EXECUTE on three pure parsers for the internal owner; guard ignores scope_point"
+    },
+    {
+      "id": "NATIVE-FIX-142690",
+      "severity": "high",
+      "cause": "storage DELETE...RETURNING needs SELECT visibility; ediel-files had none, so qualified purges silently deleted nothing and denials never reached the guard",
+      "fix": "migration 142690: SELECT policy only for storage.object.delete_many on authorized tombstoned targets; no download"
+    },
+    {
+      "id": "NATIVE-FIX-FIXTURE-PARTIES-UNB",
+      "severity": "test",
+      "cause": "inbound fixtures kept template NAD+FR/DO and lacked the UNB test indicator; legal-context derivation correctly held them",
+      "fix": "fixtures rewrite legal parties to fixture identities and set UNB ack/test indicators; capture rule-pack basis after recording, in production order"
     }
   ],
   "open": [
@@ -177,12 +237,6 @@
       "next": "At freeze, commit a fresh canonical snapshot from an authentic clean replay of the final head (CI schema set)."
     },
     {
-      "id": "NATIVE-OPEN-07",
-      "severity": "high",
-      "cause": "gridex_switch_cancellations.bound_message_immutable_v1() (20260930214933) is SECURITY INVOKER on BEFORE UPDATE public.ediel_messages while service_role has no USAGE on gridex_switch_cancellations; every owner-path status update of an outbound message fails 'permission denied for schema gridex_switch_cancellations'. Blocks artifact/blob retention native suites (3 tests) after the Z03 chain fixes.",
-      "fix": "BLOCKED: proposed forward migration making the trigger function SECURITY DEFINER (search_path already pinned, EXECUTE stays revoked) was refused by the session's security policy; requires explicit owner approval or an alternative design decision."
-    },
-    {
       "id": "NATIVE-OPEN-08",
       "severity": "medium",
       "cause": "Z03 field 261 RFF+ANJ is R in the 26A matrix but production compatAdapter only reads it from validation_snapshot.portalData.powerOfAttorneyReference (portal flow); ordinary switch requests have no independent agreement-reference source, so production Z03 fails FIELD_MATRIX_REQUIRED_FIELD_MISSING.",
@@ -193,6 +247,12 @@
       "severity": "medium",
       "cause": "Z03 invoicee (P26.A INVOICEE_GROUP) has no live production source; only caller_selection via portalData.dependentConditionFacts.invoiceeObjects.",
       "fix": "Open per f3 invoicee doc (separate unqualified work). Native fixture supplies a caller_selection invoicee equal to the end user."
+    },
+    {
+      "id": "NATIVE-OPEN-10",
+      "severity": "medium",
+      "cause": "variant of 142690: customer-contract-documents and invoice-file retention buckets also have DELETE-only storage policies for authenticated",
+      "fix": "verify with their native suites; apply the same delete-only visibility if they fail the same way"
     }
   ],
   "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
