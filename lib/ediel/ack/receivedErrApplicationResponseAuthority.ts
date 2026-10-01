@@ -5,7 +5,7 @@ import {readSourceBoundOutboundAckRulePackEvidence,type SourceQualifiedOutboundA
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
-declare const receivedErrResponseBrand:unique symbol
+const receivedErrResponseBrand:unique symbol=Symbol('receivedErrApplicationResponseAuthority')
 export type ReceivedErrApplicationResponseAuthority=Readonly<{
  sourceMessage:EdielMessageRow;evidence:SourceBoundAckRulePackEvidence;ackSourceQualification:SourceQualifiedOutboundAck
  transactions:readonly Readonly<{transactionIndex:number;transactionId:string}>[]
@@ -37,9 +37,9 @@ export async function readReceivedErrApplicationResponseAuthority(input:{message
   ||result.transactions.length!==ids.length||result.transactions.some((value,index)=>{const tx=record(value);return tx?.transactionIndex!==index||tx.transactionId!==ids[index]}))throw failure()
  const qualification=await readSourceBoundOutboundAckRulePackEvidence({companyId:m.company_id,environment:m.environment,sourceMessageId:m.id})
  if(qualification.sourceMessage.raw_payload!==m.raw_payload||JSON.stringify(qualification.evidence)!==JSON.stringify(result.sourceRulePackEvidence))throw failure()
- const capability=freeze({sourceMessage:qualification.sourceMessage,evidence:qualification.evidence,ackSourceQualification:qualification,
-  transactions:structuredClone(result.transactions),canonicalAssessmentId:result.canonicalAssessmentId,correlatedOriginalMessageId:result.correlatedOriginalMessageId,
-  sourceHash:result.sourceHash,authorizesBusinessEffect:false}) as ReceivedErrApplicationResponseAuthority
+ const capability:ReceivedErrApplicationResponseAuthority=freeze({sourceMessage:qualification.sourceMessage,evidence:qualification.evidence,ackSourceQualification:qualification,
+  transactions:ids.map((transactionId,transactionIndex)=>({transactionIndex,transactionId})),canonicalAssessmentId:result.canonicalAssessmentId,correlatedOriginalMessageId:result.correlatedOriginalMessageId,
+  sourceHash:createHash('sha256').update(m.raw_payload,'utf8').digest('hex'),authorizesBusinessEffect:false,[receivedErrResponseBrand]:true})
  capabilities.add(capability);return capability
 }
 
