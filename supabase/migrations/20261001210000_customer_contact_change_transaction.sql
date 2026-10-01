@@ -9,6 +9,11 @@
 --   5. records the domain event and its durable webhook outbox intent (idempotent per key).
 -- Any failure rolls everything back. External effects run later from the outbox.
 
+-- Schema drift repair: application code (customer API, billing readiness, invoice delivery)
+-- reads and writes customers.invoice_email and live databases have it as nullable text, but a
+-- clean replay of the migration history never created it. Idempotent and data-preserving.
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS invoice_email text;
+
 CREATE OR REPLACE FUNCTION public.gridex_customer_contact_change_v1(
   p_company_id uuid,
   p_customer_id uuid,
@@ -29,7 +34,7 @@ AS $$
 DECLARE
   v_allowed_customer constant text[] := ARRAY[
     'customer_type','status','first_name','last_name','full_name','company_name','personal_number','org_number',
-    'email','phone','preferred_language','apartment_number','metadata'
+    'email','phone','invoice_email','preferred_language','apartment_number','metadata'
   ];
   v_allowed_contact constant text[] := ARRAY['name','email','phone'];
   v_customer public.customers%ROWTYPE;
@@ -120,6 +125,7 @@ BEGIN
       org_number = CASE WHEN p_customer_patch ? 'org_number' THEN p_customer_patch->>'org_number' ELSE c.org_number END,
       email = CASE WHEN p_customer_patch ? 'email' THEN p_customer_patch->>'email' ELSE c.email END,
       phone = CASE WHEN p_customer_patch ? 'phone' THEN p_customer_patch->>'phone' ELSE c.phone END,
+      invoice_email = CASE WHEN p_customer_patch ? 'invoice_email' THEN p_customer_patch->>'invoice_email' ELSE c.invoice_email END,
       preferred_language = CASE WHEN p_customer_patch ? 'preferred_language' THEN p_customer_patch->>'preferred_language' ELSE c.preferred_language END,
       apartment_number = CASE WHEN p_customer_patch ? 'apartment_number' THEN p_customer_patch->>'apartment_number' ELSE c.apartment_number END,
       metadata = CASE WHEN p_customer_patch ? 'metadata' THEN p_customer_patch->'metadata' ELSE c.metadata END,
