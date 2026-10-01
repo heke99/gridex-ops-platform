@@ -22,10 +22,10 @@ function source(reference=document,customUna=false){
  }
  return message
 }
-function render(message=source(),negative=false){
+function render(message=source(),negative=false,parentReference='OWN-DM'){
  const runtime=negative?runUtiltsRuntimeForMessage(message):null
  return renderAperakEdiel({source:{id:message.id,messageFamily:'UTILTS',messageCode:'CACHED-WRONG',rawPayload:message.raw_payload,messageReceivedAt:message.message_received_at,externalReference:'CACHED-ROW'},
-  refs:{documentReference:'CACHED-DOC',messageReference:'CACHED-UNH',interchangeReference:'CACHED-UNB'},externalReference:'OWN-ACK',transactionReference:'OWN-DM',outcome:negative?'negative':'positive',
+  refs:{documentReference:'CACHED-DOC',messageReference:'CACHED-UNH',interchangeReference:'CACHED-UNB'},externalReference:'OWN-ACK',transactionReference:parentReference,outcome:negative?'negative':'positive',
   utiltsHeaderRejected:runtime?.ackPlan.utiltsHeaderRejection!==null&&runtime?.ackPlan.utiltsHeaderRejection!==undefined,applicationErrors:runtime?.ackPlan.utiltsHeaderRejection?.applicationErrors})
 }
 function doc(result:ReturnType<typeof render>){
@@ -68,4 +68,14 @@ describe('ACK-03 A503/A504 exact present physical original',()=>{
  it('holds a positive render with no observed original 203',()=>{
   expect(()=>render(source(''))).toThrow('aperak_utilts_document_reference_required')
  })
+ it('retains all own parent UUID entropy in every distinct A906 group',()=>{
+  const message=source(),wire=tokenizeEdifact(message.raw_payload),start=wire.segments.findIndex(t=>t.tag==='IDE'),end=wire.segments.findIndex(t=>t.tag==='UNT')
+  message.raw_payload=recountEdifactUnt(message.raw_payload!.replace("UNT+",wire.segments.slice(start,end).map(t=>t.raw.replace('GRIDEX2607E66001','SECOND')).join("'\n")+"'\nUNT+"))
+  const parent='APE'+'F'.repeat(32),result=render(message,false,parent),ack=tokenizeEdifact(result.segments.map(t=>t+"'").join(''))
+  const own=ack.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,ack.una)[0]==='DM').map(t=>segmentComposite(t,1,ack.una)[1])
+  expect(own).toEqual([parent+'-1',parent+'-2'])
+  expect(own.every(id=>id.length<=70)).toBe(true)
+  expect(()=>render(message,false,parent+'X')).toThrow('ediel_own_ack_group_reference_invalid')
+ })
+
 })

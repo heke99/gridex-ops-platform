@@ -14,6 +14,8 @@ import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ed
 import {isUtiltsAperakSourceText} from '@/lib/ediel/utilts/aperakSourceText'
 import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/dates'
 import {readPhysicalUtiltsDocumentIdentity} from '@/lib/ediel/core/physicalDocumentReference'
+import {buildEdielAckGroupReference} from '@/lib/ediel/core/referenceRegistry'
+import {CANONICAL_ACK_GUIDE_CONSTRAINTS} from '@/lib/ediel/rulebook/ackGuidePolicy'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -373,11 +375,11 @@ export function renderAperakEdiel(params: {
     )
 
     if (isUtiltsSource) {
-      // Each APERAK error/confirmation group has its own transaction number.
-      // Keep the old single-group ID, and reserve suffix space before truncating
-      // the generated own ID only. Original IDE identities are never normalized.
-      const suffix = errors.length > 1 ? `-${errorIndex + 1}` : ''
-      const ownId = (sanitizeEdifactToken(params.transactionReference, 35 - suffix.length) ?? 'APE') + suffix
+      // A906 owns an independent transaction number per response group. Keep
+      // every byte of the freshly allocated parent's entropy plus group scope;
+      // the one national field authority supplies capacity, without truncation.
+      const ownId = buildEdielAckGroupReference({parentReference:params.transactionReference,groupIndex:errorIndex,groupCount:errors.length,
+        maxLength:CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.ownDmMax})
       segments.push(`RFF+DM:${ownId}`)
       if (headerRejected) continue
       const reference = physicalReference(error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference
