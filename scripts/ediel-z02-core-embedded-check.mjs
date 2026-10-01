@@ -12,6 +12,7 @@ await db.exec(fixture)
 const decoder=readFileSync(process.env.EDIEL_DECODER_MIGRATION_PATH ?? new URL('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql',import.meta.url),'utf8')
 await db.exec(decoder.slice(0,decoder.indexOf('CREATE FUNCTION gridex_received_sources.permission_wire_v1'))+'\nCOMMIT;')
 await db.exec(readFileSync(new URL('../supabase/migrations/20260930154552_ediel_z02_source_owned_core.sql',import.meta.url),'utf8'))
+await db.exec(readFileSync(new URL('../supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql',import.meta.url),'utf8'))
 const ids={company:'00000000-0000-4000-8000-000000000001',customer:'00000000-0000-4000-8000-000000000002',site:'00000000-0000-4000-8000-000000000003',request:'00000000-0000-4000-8000-000000000004',incoming:'00000000-0000-4000-8000-000000000005',outgoing:'00000000-0000-4000-8000-000000000006',operation:'00000000-0000-4000-8000-000000000007',point:'00000000-0000-4000-8000-000000000008',assessment:'00000000-0000-4000-8000-000000000009'}
 const raw=(code,extra=false)=>{const send=code==='Z01'?'12345':'54321',receive=code==='Z01'?'54321':'12345';const segments=[`UNH+M+PRODAT:D:97A:UN:E2SE6A`,`BGM+${code}+DOC+9`,`NAD+FR+${send}:160:SVK`,`NAD+DO+${receive}:160:SVK`,`LIN+1++735123456789012345:::9`,`CCI++Z13`,`CAV+Z22`,`RFF+LI:CASE?+REF`,`RFF+Z05:NET`,`NAD+UD+199001011234:SE2:260++Dated Person`,`NAD+IT+735123456789012345:::9+++Street+City++12345+SE`,...(extra?[`QTY+147:777:KWH`]:[])];return `UNB+UNOC:3+${send}:14+${receive}:14+261001:1200+I+23-DDQ-PRODAT'${segments.join("'")}'UNT+${segments.length+1}+M'UNZ+1+I'`}
 const outgoing=raw('Z01'),incoming=raw('Z02',true)
@@ -40,6 +41,9 @@ await query("INSERT INTO public.customer_operation_request_snapshots(company_id,
 await query("INSERT INTO public.platform_grid_areas(grid_area_code,price_area,is_active) VALUES('NET','SE3',true)")
 const call=async(company=ids.company)=>(await query('SELECT public.gridex_apply_exact_z02_core($1,$2,$3,$4,$5,$6,NULL) AS result',[company,ids.customer,ids.site,ids.request,ids.incoming,ids.operation])).rows[0].result
 await query('UPDATE public.customer_info_requests SET metering_point_id=NULL WHERE id=$1',[ids.request])
+assert.equal((await call()).code,'z02_originating_dispatch_proof_required')
+assert.equal((await query('SELECT grid_area_code AS grid FROM public.customer_sites WHERE id=$1',[ids.site])).rows[0].grid,null)
+await query("INSERT INTO gridex_ediel_transport.attempts(id,message_id,company_id,environment,binding,classification,entered_at,observed_at) VALUES($1,$2,$3,'test',jsonb_build_object('originalHash',encode(sha256(convert_to($4,'UTF8')),'hex')),'accepted','2026-10-01T10:00:00Z','2026-10-01T10:00:01Z')",['00000000-0000-4000-8000-000000000010',ids.outgoing,ids.company,outgoing])
 const result=await call();assert.equal(result.ok,true);assert.equal(result.gridAreaCode,'NET');assert.equal(result.priceAreaCode,'SE3');assert.equal(result.meteringPointExternalId,'735123456789012345')
 assert.equal((await query('SELECT annual_consumption_kwh AS annual FROM public.customer_sites WHERE id=$1',[ids.site])).rows[0].annual,'9000')
 assert.equal((await query('SELECT estimated_annual_consumption_kwh AS annual FROM public.metering_points WHERE id=$1',[ids.point])).rows[0].annual,'8500')

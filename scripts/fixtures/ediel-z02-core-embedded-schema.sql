@@ -14,3 +14,7 @@ CREATE TABLE public.customer_operation_request_snapshots(company_id uuid,operati
 CREATE TABLE public.ediel_business_references(company_id uuid,source_message_id uuid,message_family text,message_code text,reference_type text,reference_value text);
 CREATE TABLE public.platform_grid_areas(grid_area_code text,price_area text,is_active boolean,valid_from date,valid_to date);
 CREATE TABLE public.grid_owner_data_requests(id uuid PRIMARY KEY,company_id uuid,status text,response_payload jsonb,updated_at timestamptz,updated_by uuid);
+
+-- Minimal synthetic journal shape; not real SMTP acceptance evidence.
+CREATE SCHEMA gridex_ediel_transport;
+CREATE TABLE gridex_ediel_transport.attempts(id uuid PRIMARY KEY,message_id uuid,company_id uuid,environment text,binding jsonb,classification text,entered_at timestamptz,observed_at timestamptz);
