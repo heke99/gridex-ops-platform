@@ -20,6 +20,7 @@ await db.exec(`create role anon;create role authenticated;create role service_ro
  create function gridex_actor_has_company_permission(uuid,uuid,text) returns bool language sql as $$select true$$;
  create table customer_contracts(id uuid primary key,company_id uuid,customer_id uuid,metering_point_id uuid,contract_version text,signed_version text,signed_at timestamptz,version_snapshot jsonb);
  create table metering_points(id uuid primary key,company_id uuid,customer_id uuid,product_direction text,ediel_metering_point_id text,grid_owner_ediel_id text,grid_area_code text,site_id uuid);
+ create table customer_sites(id uuid primary key,company_id uuid,customer_id uuid);
  create table tenant_ediel_profiles(id uuid primary key,company_id uuid,environment text,market text,is_enabled bool,valid_from timestamptz,valid_to timestamptz);
  create table tenant_actor_identifiers(id uuid primary key,company_id uuid,environment text,actor_id uuid,identifier_type text,identifier_value text,valid_from timestamptz,valid_to timestamptz);
  create table tenant_actor_roles(id uuid primary key,company_id uuid,environment text,actor_id uuid,role_code text,valid_from timestamptz,valid_to timestamptz);
@@ -41,9 +42,11 @@ await db.exec(readFileSync(new URL('../supabase/migrations/20260930174333_ediel_
  CREATE SCHEMA gridex_negative_fixtures;CREATE TABLE gridex_negative_fixtures.positive_consumptions(company_id uuid,message_id uuid);CREATE TABLE gridex_negative_fixtures.negative_prepared_consumptions(company_id uuid,message_id uuid);
  CREATE TABLE execution_permission_fixture(write_enabled bool,send_enabled bool,ediel_send_enabled bool);INSERT INTO execution_permission_fixture VALUES(true,true,false);CREATE OR REPLACE FUNCTION public.gridex_actor_has_company_permission(uuid,uuid,text) RETURNS bool LANGUAGE sql AS $$SELECT CASE $3 WHEN 'communication.write' THEN (SELECT write_enabled FROM public.execution_permission_fixture) WHEN 'communication.send' THEN (SELECT send_enabled FROM public.execution_permission_fixture) WHEN 'ediel.send' THEN (SELECT ediel_send_enabled FROM public.execution_permission_fixture) ELSE false END$$;`)
 const top=repair.indexOf('CREATE FUNCTION gridex_ediel_transport.mutate_v1(input jsonb)'),topEnd=repair.indexOf('$$;',top);await db.exec(repair.slice(top,topEnd+3));checks++;
+await db.exec(readFileSync(new URL('../supabase/migrations/20260930232155_ediel_production_contract_source_owned_site.sql',import.meta.url),'utf8'));checks++
 await db.exec(`insert into companies values('${uid(1)}');insert into auth.users values('${uid(2)}');insert into user_profiles values('${uid(2)}','active');insert into company_memberships values('${uid(20)}','${uid(1)}','${uid(2)}','active',true,now());insert into customers values('${uid(3)}','${uid(1)}');
  insert into customer_contracts values('${uid(4)}','${uid(1)}','${uid(3)}','${uid(5)}','1','1','2026-09-30T10:01:23Z','{}');
  insert into metering_points values('${uid(5)}','${uid(1)}','${uid(3)}','production','A','54321','TES','${uid(30)}');
+ insert into customer_sites values('${uid(30)}','${uid(1)}','${uid(3)}');
  insert into tenant_ediel_profiles values('${uid(21)}','${uid(1)}','test','electricity',true,'2000-01-01',null);
  insert into tenant_actor_identifiers values('${uid(22)}','${uid(1)}','test','${uid(6)}','EdielId','12345','2000-01-01',null);
  insert into tenant_actor_roles values('${uid(23)}','${uid(1)}','test','${uid(6)}','electricity_supplier','2000-01-01',null);
@@ -55,6 +58,8 @@ await db.exec(`insert into gridex_received_sources.production_contract_events(id
  insert into outbound_requests values('${uid(9)}','${uid(1)}','${uid(3)}','manual','${uid(9)}','customer_masterdata','{"environment":"test"}','${uid(8)}','${uid(30)}','${uid(5)}');
  insert into ediel_message_intents values('${uid(9)}','${uid(1)}','test','PRODAT','Z09','${uid(3)}','A','${uid(8)}',NULL,'${uid(9)}','validated');`)
 assert.equal((await read(uid(8))).rows[0].b.status,'authorized');checks++
+assert.equal((await read(uid(8))).rows[0].b.siteId,uid(30));checks++
+await db.exec(`update customer_sites set customer_id='${uid(99)}'`);assert.equal((await read(uid(8))).rows[0].b.status,'held');checks++;await db.exec(`update customer_sites set customer_id='${uid(3)}'`)
 await db.exec(`insert into tenant_actor_identifiers values('${uid(26)}','${uid(1)}','test','${uid(27)}','EdielId','OTHER','2000-01-01',null)`);assert.equal((await read(uid(8))).rows[0].b.status,'held');checks++
 await db.exec(`delete from tenant_actor_identifiers where id='${uid(26)}';update platform_actor_roles set is_active=false`);assert.equal((await read(uid(8))).rows[0].b.status,'held');checks++
 await db.exec(`update platform_actor_roles set is_active=true`)
