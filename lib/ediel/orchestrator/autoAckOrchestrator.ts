@@ -23,7 +23,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
   autoSend?: boolean
   outbox?: boolean
 }): Promise<{
-  status: 'created' | 'queued' | 'already_sent_success' | 'blocked' | 'manual_review' | 'no_ack'
+  status: 'created' | 'queued' | 'retained' | 'already_sent_success' | 'blocked' | 'manual_review' | 'no_ack'
   ackMessageId: string | null
   lifecycleStatus: string | null
   reason: string
@@ -53,7 +53,13 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
   const utiltsSource=['UTILTS','UTILTS_ERR'].includes(params.sourceMessage.message_family)
   const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:desiredFamily,
     outcome:desiredOutcome??undefined,messageText:params.decision.messageText,applicationErrors:params.decision.applicationErrors,utiltsHeaderRejected:params.decision.utiltsHeaderRejected})
-  if(prepared.kind==='existing')return {status:'already_sent_success',ackMessageId:prepared.message.id,lifecycleStatus:'already_sent_success',reason:'Originalets skyddade fysiska ACK återanvänds.'}
+  if(prepared.kind==='existing'){
+    // The original proves fixed response bytes/outcome, not SMTP acceptance.
+    // Prepared-only insertion repairs a missing outbox without requeueing an
+    // existing failed/sending/sent row or constructing another provider attempt.
+    if(params.outbox!==false)await createOutboxItem({actorUserId:params.actorUserId,message:prepared.message,sourceMessageId:params.sourceMessage.id,status:'prepared'})
+    return {status:'retained',ackMessageId:prepared.message.id,lifecycleStatus:'existing_response_retained',reason:'Originalets fastställda ACK återanvänds; transportutfallet avgörs av dess beständiga transportjournal.'}
+  }
   const existingAcks = utiltsSource?[]:await listAckMessagesForSource({ sourceMessageId: params.sourceMessage.id })
   const lifecycle = ensureExpectedAckSent({
     desiredFamily,
