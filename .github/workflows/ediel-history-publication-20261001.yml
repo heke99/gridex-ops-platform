@@ -33,9 +33,9 @@ jobs:
           assert os.environ['GITHUB_REF']=='refs/heads/codex/ediel-history-publication-20261001'
           directory=pathlib.Path('quality/audits/ediel-masterplan-v2/history-publication')
           raw=(directory/'manifest.json').read_bytes()
-          assert hashlib.sha256(raw).hexdigest()=='52b6cc1e88f3dad41347df0404cc3f81c14bab4c18136b126c53601c9741f96c'
+          assert hashlib.sha256(raw).hexdigest()=='10c7fa752d3961467e9de46978739e7fc253a94f17429ec3eac4f5b580fedde5'
           m=json.loads(raw)
-          assert m['source']=='1d7172ebe3ba01d5390a845f7087d546a9d2c3d2' and m['tree']=='f22804877b49cb78217f790de138e931cf67848f'
+          assert m['source']=='49d4b94fe06b55d499527117361b3a10a666d7b1' and m['tree']=='eee88212010ac89c11c88a1ed08f4221b7f85df1'
           assert m['targetRef']=='refs/heads/codex/ediel-composed-rules-20261001'
           assert run('rev-parse','HEAD')==os.environ['GITHUB_SHA']
           assert run('show','-s','--format=%P','HEAD')==m['bootstrapParent']
