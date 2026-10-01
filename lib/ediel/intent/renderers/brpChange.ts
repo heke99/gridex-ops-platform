@@ -34,7 +34,7 @@ export async function buildBrpChangeDraft(input: { actorUserId: string; basis: B
     processType: 'customer_masterdata', environment: b.environment, testFlag: b.environment === 'test' ? 1 : 0, status: 'draft', transportType: 'smtp', mailbox: route.mailbox,
     senderEdielId: route.senderEdielId, senderName: route.senderName, senderSubAddress: route.senderSubAddress, receiverEdielId: route.receiverEdielId,
     receiverName: route.receiverName, receiverSubAddress: route.receiverMessageSubAddress ?? route.receiverSubAddress, receiverEmail: route.receiverEmail,
-    communicationRouteId: route.route.id, outboundRequestId: input.outboundRequestId, customerId: b.customerId, meteringPointId: b.meteringPointId,
+    communicationRouteId: route.route.id, outboundRequestId: input.outboundRequestId, customerId: b.customerId, siteId: b.siteId, meteringPointId: b.meteringPointId,
     externalReference: i.interchangeReference, interchangeReference: i.interchangeReference, transactionReference: i.transactionReference, applicationReference: i.applicationReference,
     rawPayload: raw, parsedPayload: { draftType: 'brp_change', actorRole: 'supplier', brpChangeEventId: b.eventId,
       prodatEngine: { ...rendered.diagnostics, registerEvidence: createProdatRegisterEvidence({ code: 'Z09', rawSegments: rendered.segments, facts }) } },

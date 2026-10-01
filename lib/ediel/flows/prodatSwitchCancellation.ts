@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { generateEdielInterchangeReference } from '@/lib/ediel/core/referenceGenerator'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 type ScopedSelect = ReturnType<ReturnType<typeof supabaseService.from>['select']>
@@ -22,7 +23,7 @@ export async function prepareAndQueueSwitchCancellation(input: { companyId: stri
   const routeProfileId = route.routeRuntime?.route_profile_id
   if (!routeProfileId) throw new Error('switch_cancellation_canonical_route_profile_required')
   const operationId=basis.operationId??randomUUID()
-  const ref = randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()
+  const ref = generateEdielInterchangeReference()
   const intent = await createEdielMessageIntent({ companyId: basis.companyId, environment: basis.environment, market: 'electricity', messageFamily: 'PRODAT', messageCode: 'Z03',
     businessProcess:'supplier_switch', direction: 'outbound', senderEdielId: route.senderEdielId, senderSubaddress: route.senderSubAddress,
     receiverEdielId: route.receiverEdielId, receiverSubaddress: route.receiverMessageSubAddress ?? route.receiverSubAddress, applicationReference, routeProfileId,
