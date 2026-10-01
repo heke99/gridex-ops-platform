@@ -147,6 +147,17 @@ export function buildCanonicalOutboundReferences(params: {
   }
 }
 
+
+/** Format only newly allocated own ACK group identities. The caller supplies
+ * its canonical field-owner limit; no original/correlated identity is cut. */
+export function buildEdielAckGroupReference(input:{parentReference:string;groupIndex:number;groupCount:number;maxLength:number}):string {
+ const {parentReference,groupIndex,groupCount,maxLength}=input
+ if(!/^[A-Za-z0-9_.\/-]{1,35}$/.test(parentReference)||!Number.isSafeInteger(groupCount)||groupCount<1||!Number.isSafeInteger(groupIndex)||groupIndex<0||groupIndex>=groupCount||!Number.isSafeInteger(maxLength)||maxLength<1)throw new Error('ediel_own_ack_group_reference_invalid')
+ const reference=groupCount===1?parentReference:`${parentReference}-${groupIndex+1}`
+ if(reference.length>maxLength)throw new Error('ediel_own_ack_group_reference_invalid')
+ return reference
+}
+
 export function buildCanonicalAckReferences(params: {
   sourceMessage: EdielMessageRow
   ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -154,7 +165,7 @@ export function buildCanonicalAckReferences(params: {
   const ackFamily = params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily
 
   return {
-    externalReference: buildEdielExternalReference({
+    externalReference: buildEdielTransactionReference({
       family: ackFamily,
       code: params.ackFamily,
       relatedMessageId: params.sourceMessage.id,

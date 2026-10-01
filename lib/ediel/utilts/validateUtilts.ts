@@ -2,9 +2,11 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage, type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 import {inferEdielFamilyAndCodeFromRawPayload} from '@/lib/ediel/classify'
 
-export function validateUtilts(rawPayload: string, admissionAt?: string | null): UtiltsRuntimeResult['validation'] {
-  if (!admissionAt || !Number.isFinite(Date.parse(admissionAt))) throw new Error('ediel_admission_time_missing')
-  // Physical classification is diagnostic; only the explicit observed admission selects the guide.
+/** Observational validation at the evaluation clock, without a stored ingress
+ * receipt. DTM137 remains the original business time and cannot admit a guide. */
+export function validateUtilts(rawPayload: string,options:{evaluationAt?:string|Date}={}): UtiltsRuntimeResult['validation'] {
+  const evaluationAt=options.evaluationAt ?? new Date()
+  if(!Number.isFinite(new Date(evaluationAt).getTime())) throw new Error('ediel_evaluation_time_invalid')
   const physical=inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const runtime = runUtiltsRuntimeForMessage({
     id: 'utilts-validation',
@@ -62,18 +64,18 @@ export function validateUtilts(rawPayload: string, admissionAt?: string | null):
     functional_check_status: 'not_checked',
     failure_reason: null,
     message_created_at: null,
-    message_received_at: admissionAt,
+    message_received_at: null,
     message_sent_at: null,
     parsed_at: null,
     validated_at: null,
     acknowledged_at: null,
     failed_at: null,
     ack_due_at: null,
-    created_at: admissionAt,
-    updated_at: admissionAt,
+    created_at: new Date(evaluationAt).toISOString(),
+    updated_at: new Date(evaluationAt).toISOString(),
     created_by: null,
     updated_by: null,
-  } satisfies EdielMessageRow).validation
+  } satisfies EdielMessageRow,{referenceDate:evaluationAt}).validation
 
   return runtime
 }

@@ -1,3 +1,4 @@
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 // lib/ediel/agtEngine.ts
 
@@ -18,7 +19,6 @@ import {
   createEdielMessageEvent,
   createEdielTestRun,
   getEdielMessageById,
-  listAckMessagesForSource,
   listEdielTestRuns,
 } from '@/lib/ediel/db'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
@@ -937,7 +937,7 @@ export async function createEdielSupplierAgtResponsesForInbound(params: {
     })
   }
 
-  const existingAcks = await listAckMessagesForSource({ sourceMessageId: sourceMessage.id })
+  const existingAcks = await listBusinessAckMessagesForSource({ sourceMessageId: sourceMessage.id, companyId: params.companyId, environment: sourceMessage.environment, actorUserId: params.actorUserId })
   const created: EdielMessageRow[] = []
 
   for (const item of plan) {

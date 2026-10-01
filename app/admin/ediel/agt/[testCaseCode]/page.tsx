@@ -398,7 +398,7 @@ export default async function AgtCasePage({
   const candidateAckPairs = await Promise.all(
     candidateInbound.map(async (message) => ({
       message,
-      acks: await listAckMessagesForSource({
+      acks: await listAckMessagesForSource({ actorUserId: context.userId,
         sourceMessageId: message.id,
         companyId,
       }),
@@ -415,7 +415,7 @@ export default async function AgtCasePage({
   const linkedAckPairs = await Promise.all(
     linkedSourceIds.map(async (id) => ({
       sourceId: id,
-      acks: await listAckMessagesForSource({ sourceMessageId: id, companyId }),
+      acks: await listAckMessagesForSource({ actorUserId: context.userId, sourceMessageId: id, companyId }),
     })),
   );
 

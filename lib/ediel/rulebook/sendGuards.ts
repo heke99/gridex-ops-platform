@@ -25,7 +25,7 @@ export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventConte
 /** Actual persisted sends consume the same canonical registry/original ports.
  * In particular ACKs cannot gain original authority from detached row JSON. */
 export async function assertRegistryRulebookAllowsSend(message: EdielMessageRow, dateEventContext?: ProdatDateEventValidationContext,
-  reportingContext?: ExpectedContext, negativeFixture?: SourceQualifiedNegativeFixture | null,deathStatusContext?:DeathStatusValidationContext,ackSourceQualification?:SourceQualifiedOutboundAck,customerMasterdataContext?:CustomerMasterdataValidationContext,requestedChangeBasis?:RequestedChangeBasis|null): Promise<RulebookValidationResult | null> {
+  reportingContext?: ExpectedContext, negativeFixture?: SourceQualifiedNegativeFixture | null,deathStatusContext?:DeathStatusValidationContext,ackSourceQualification?:SourceQualifiedOutboundAck,customerMasterdataContext?:CustomerMasterdataValidationContext,requestedChangeBasis?:RequestedChangeBasis|null,executionActorUserId?:string): Promise<RulebookValidationResult | null> {
 
   if (message.direction !== 'outbound') return null
   assertProdatFreeTextSendBoundary(message)
@@ -33,7 +33,7 @@ export async function assertRegistryRulebookAllowsSend(message: EdielMessageRow,
   const validation = await validateRulebookMessageWithRegistry({family: message.message_family, code: message.message_code,
     processGroup: message.process_type, applicationReference: message.application_reference, rawPayload: message.raw_payload,
     parsedPayload: message.parsed_payload, mode: 'send', direction: message.direction, environment: message.environment,
-    companyId: message.company_id, messageRow: message, dateEventRow: message, dateEventContext, reportingContext,deathStatusContext,ackSourceQualification,customerMasterdataContext,requestedChangeBasis:requestedChangeBasis??undefined})
+    companyId: message.company_id, messageRow: message, executionActorUserId, dateEventRow: message, dateEventContext, reportingContext,deathStatusContext,ackSourceQualification,customerMasterdataContext,requestedChangeBasis:requestedChangeBasis??undefined})
 
   return enforceQualifiedSendValidation(message, validation, negativeFixture)
 }

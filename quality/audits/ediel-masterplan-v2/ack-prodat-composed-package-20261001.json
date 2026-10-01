@@ -1,0 +1,197 @@
+{
+  "owner": "ack-prodat",
+  "branch": "integration/ack-prodat-20261001",
+  "base_sha": "bba3163741c513a94938c63ffe88cf6089be78d1",
+  "incoming_sha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "pending_isolated_merge": true,
+  "files": [
+    {
+      "path": "__tests__/ediel-ack-canonical-admission.test.ts",
+      "sha256": "2529f0c2af2f51cc4c5d91ba0e62fe667353b093497237be3f0a771a427057a9"
+    },
+    {
+      "path": "__tests__/ediel-ack-inherited-guide-consumers.test.ts",
+      "sha256": "b37d01c507e9132ca4c30b1da2875f02c265c2bc78504daccd0684e5a801e9ae"
+    },
+    {
+      "path": "__tests__/ediel-ack-legal-transport-parties.test.ts",
+      "sha256": "3be94106b74122e31626c5ecaf00ef7ebe1846871641ff39201dbd333b4ec5f6"
+    },
+    {
+      "path": "__tests__/ediel-business-ack-native-list.test.ts",
+      "sha256": "8656e92a7a124f5f7a8b86c7dc3129c5ac4f2e48e5415f916e4586dbf713d59c"
+    },
+    {
+      "path": "__tests__/ediel-duplicate-103-orchestrator.test.ts",
+      "sha256": "50b2149f97b705bd88e99d7d9d60a5d6cf44abb0487fd1f6c8f0a1415b7169c7"
+    },
+    {
+      "path": "__tests__/ediel-genuine-duplicate-103-response.test.ts",
+      "sha256": "f97ae5f8614d0e3eb1b49359252e0d1754d77c4ff808872d539627b42bdc38b3"
+    },
+    {
+      "path": "__tests__/ediel-inbound-own-source-coordinator.test.ts",
+      "sha256": "37d4499f6dd678bbc205069bff0feb9b562dd117b08dc13dd488483b12c6cf2f"
+    },
+    {
+      "path": "__tests__/ediel-inbound-prelegal-syntax.test.ts",
+      "sha256": "e9500e02069e25b2e6ef4d04bd00c0c4d7d6818259a5ae5a2071ba54be7a2d4a"
+    },
+    {
+      "path": "__tests__/ediel-outbound-ack-original-dedupe.test.ts",
+      "sha256": "dcc11dc78f910e2106396ee9b425e24f998935c89a2ed4e84d117e722b8ff52d"
+    },
+    {
+      "path": "__tests__/ediel-prodat-aperak-selected-objects.test.ts",
+      "sha256": "a4d1a019ab6ce9da08a08122a7f26ce1ac51f4cda8407fe07e3238610a875d2a"
+    },
+    {
+      "path": "__tests__/ediel-prodat-aperak-unused-document.test.ts",
+      "sha256": "eb0717d10cf34825d9d0ee43de6cf688f00587fa043e8da4a50f4b9aef4b1fae"
+    },
+    {
+      "path": "__tests__/ediel-prodat-source-function-validation.test.ts",
+      "sha256": "f4f3659d1fd5c81f54f05fa234ca02328e91b0397e649985e522c20e41a8a3ff"
+    },
+    {
+      "path": "__tests__/ediel-prodat-structural-ack-retained-first.test.ts",
+      "sha256": "b4cebd200dcb4ab0ea2e4f8de37e83f41b49a726043f77ce01cff60ed0e6dc75"
+    },
+    {
+      "path": "__tests__/ediel-prodat-structural-final-response-plan.test.ts",
+      "sha256": "4dc5cdb2e198761fdff5b99e316f7d8b98a8cd2ecebe18aecda9fbc24c154416"
+    },
+    {
+      "path": "app/admin/ediel/actions.part-2.ts",
+      "sha256": "543f86f3157c1167392f18464cf0035a54b0e6800d6eb330fd6bf621f080ec0a"
+    },
+    {
+      "path": "app/admin/ediel/actions.part-3.ts",
+      "sha256": "6b77c1100fb39c2bc99c001992bc99bf1b76e3211f6d6f42bbc7cdd667f1047d"
+    },
+    {
+      "path": "app/admin/ediel/actions.part-4.ts",
+      "sha256": "1adce9d416d635fd0d03b6ee37824d8ec5f86f66d4efab5126d0a335caae69bf"
+    },
+    {
+      "path": "app/admin/ediel/system-tests/actions.part-2.ts",
+      "sha256": "fdc348b6a18504319cbde0dd5fd7137fa312d9c58a3b3618c26b6d5d9263724d"
+    },
+    {
+      "path": "lib/ediel/ack/prodatCommonHeaderNegativeAckRoute.ts",
+      "sha256": "0bca8e72723f7c217fbf01e68ad2977890f96e8fec466fcc71a6d0a8340993be"
+    },
+    {
+      "path": "lib/ediel/ack/prodatCommonHeaderRejectionAuthority.ts",
+      "sha256": "edc1295d8a60bb9a0c1b9613c52a5ae32f39f845c2a50ea46d60b59bf458fd69"
+    },
+    {
+      "path": "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "sha256": "295374315de42f85aa4cc374df4cc26bb117ae6692beb5e63e446204f6ca2b83"
+    },
+    {
+      "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
+      "sha256": "2e8bf00c3e8bf3127313ad46ddd8d0e3c23abd13dfbdce4ffc7da0f7e2a68058"
+    },
+    {
+      "path": "lib/ediel/core/ackDraftSource.ts",
+      "sha256": "ec4c2ed91a0a03b11aa65c0a1bc48c15bd60e7919570d57ebf6b93fe7e28bf1d"
+    },
+    {
+      "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "sha256": "65c846ad8612d4cb3fc51d9b3f8d7b7b665ffbdad5cbafaa9afc4712dc3684c1"
+    },
+    {
+      "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "sha256": "2145ef16a977fa5fadb8e8e107d54461ebcc16a5d6c7281d2b3b2ae7a5dc8f7d"
+    },
+    {
+      "path": "lib/ediel/inbound/businessAckMessages.ts",
+      "sha256": "53b9bcb56baf329e062a0ac9ecf9069dbf1aa9e238eb380b6d328ef182ae3fdb"
+    },
+    {
+      "path": "lib/ediel/inbound/duplicateResponses.ts",
+      "sha256": "cd49354823ecbce41b944b2f3b34e4e2e2a2d6d8bfc2b543e04d57e04eecbc9b"
+    },
+    {
+      "path": "lib/ediel/orchestrator/autoAckOrchestrator.ts",
+      "sha256": "e6dd549104563bcfb60b6bb360e8d1936e5767fb645b87aed6ade754e7a5b0ca"
+    },
+    {
+      "path": "lib/ediel/outbox/supersedeWrongDrafts.ts",
+      "sha256": "69db2bb5f97e43520d26a43022b2161587cf759d8e059ac640b90fa70e3059ce"
+    },
+    {
+      "path": "lib/ediel/prodat/compatAdapter.ts",
+      "sha256": "4b7724bc0093ff1fbcf8c037ab0de9febf3620d558c961707cb4f59dbdf5d506"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatAckMessageFunction.ts",
+      "sha256": "af4f2951448e378bff960c63b8683fa57aed7642300a8fbfca48de13529a45d4"
+    },
+    {
+      "path": "lib/ediel/testing/agtEngine.ts",
+      "sha256": "89d0798dfe7aa18bafeb198ffcbfa3d0c4750657d209941537c591b812c05d23"
+    },
+    {
+      "path": "lib/inbound-mail/edielInboundProcessor.ts",
+      "sha256": "3c8ffa29cd3faaffa7f1d51d2946f396a7e930471d7322912cb0943e38406c81"
+    },
+    {
+      "path": "scripts/ediel-duplicate-103-owner-sql-regression.mjs",
+      "sha256": "7a3608218b5fb5742bdff1be6aed5197e67460bb797eba8b713c8608868923ca"
+    },
+    {
+      "path": "supabase/migrations/20261001124000_ediel_genuine_reception_duplicate_103_response_owner.sql",
+      "sha256": "66e7b3a4b7c25421bf8764bc29ac8974b0974eb6a9b7e2b4af9ce6f49010df69"
+    }
+  ],
+  "completed_internal_components": [
+    "Composed full-directory syntax and guide precedence with existing V6 object/application/response/source-function facets, bilateral H-end and customer-version effects.",
+    "Retained ACK replay uses complete physical source tuples; successful native supply/permission receipt gates final APERAK, with no invented sibling outcomes.",
+    "Genuine new retained PRODAT duplicate reception invokes one current-authorized source-bound native103 command from inbox and OPS orchestrator; same saved reception replays immutable response before prospective transport work.",
+    "Private immutable intent/consumption binds new reception to negative103 canonical ACK, prepared outbox, audit/event and result in one transaction; ordinary business readers exclude only actual private consumption IDs.",
+    "New response DTM178 uses actual NEW arrival; old original reception and its replay clock stay immutable.",
+    "Canonical preparation catalog103735 remains independent of transport SEND: duplicate103 source/prepare/commit and all affected ACK draft authorities requirecommunication.write; transportrechecks communication.send/ediel.send. Native objectbatch source/completed permissions remainunchanged; unpublished124001 removed.",
+    "Native duplicate source/retained result/route/finalcommit/transport/current business-original reader recheck purpose and clock-sensitive roles/namespaces after inner waits. Terminallegalrole-expiry causes fullattempt rollback; ownUNB generation reuses canonicalreferenceRegistry."
+  ],
+  "source_provenance": [
+    {
+      "rule": "ACK-09",
+      "contract": "AT-ACK-09",
+      "registry_source": "T \u00a72.1; P \u00a73.2; SYS",
+      "normative_detail": "P26-A16-B page92 national103 compares BGM1004 of earlier received message; page91 A901 actual received PRODAT date/time; page99 DTM178 actual arrival",
+      "retained_text": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+      "retained_tables": "docs/ediel/masterplan-v2/annex/source_tables.json",
+      "manifest_P_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+      "original_P_pdf_authenticity": "not newly qualified by these local checks"
+    }
+  ],
+  "verification": {
+    "focused_unit": "16files150/150PASS at2026-10-01T12:45:32Z; /tmp/ack-all-focused.log",
+    "native_forward_mechanics": "22PASS actual new forward; finite synthetic external native IO; /tmp/ack103-final-mechanics.log",
+    "scoped_eslint": "0errors in changed modules; /tmp/ack-lint.log and /tmp/ack-producer-lint.log",
+    "tests_typecheck": "BLOCKED local clone unowned conflict markers; /tmp/ack-typecheck-tests.log",
+    "full_replay_build_browser_ci": "NOT_RUN; parent owns final same-head qualification",
+    "latest_affected_unit": "6files60/60PASS at2026-10-01T13:03:29Z; /tmp/ack-prepare-phase-final-focused.log",
+    "latest_native_forward_mechanics": "29PASS preparation-only localcommit, send-only transport, no-send denial, pending-company deny, expired-role finalrollback, canonicalcatalog noassignments, originals/ACKread/privateACL; /tmp/ack103-prepare-phase-final.log",
+    "latest_scoped_eslint": "7files0errors; /tmp/ack-prepare-phase-lint.log",
+    "earlier_focused_unit_reuse": "Earlier16files150/150 onpre-correction version remains baseline only; affectedlatest60 requalified, fullcandidate rootpending."
+  },
+  "remaining_scope": [
+    "Parent owns composition of current read-policy port and shared business ACK status projections in db/inbound snapshot/UI.",
+    "PRODAT captured DDQ duplicate103 command is bounded scope; UTILTS/other unsupported role/source cases remain fail-closed held with explicit reason, not accepted.",
+    "P16B_APERAK96A_OWN_Z07_LI_CARDINALITY external normative conflict remains fail-closed when strict D96A grammar cannot retain all required known own references; no reference dropping or broad syntax exception.",
+    "Authentic current source issuer/transport delegation/configuration/partner acceptance and exact-head native PostgreSQL concurrency, fresh replay/upgrade, UI/CI must be qualified separately."
+  ],
+  "formal_acceptance": "NOT_PROMOTED; targeted implementation proof is separate from original231acceptance qualification",
+  "actors_readonly_review": {
+    "migration_scope": [
+      "20261001040445_ediel_registry_market_txt_prerequisite.sql",
+      "20261001103439_ediel_registry_current_actor_source_guards.sql"
+    ],
+    "finding": "No new blocking issue in bounded ACL/source alias/installed current graph ordering review. Public metadata preserved, private ACL closed, importer and verifier acquire write-compatible graph before advisory/rows.",
+    "mechanical_probes": "28/28 pristine and28/28 recordedTXTupgrade independently rerun",
+    "limits": "Short synthetic graph/platform-admin fixture; no authentic current issuer/full native concurrent qualification."
+  }
+}

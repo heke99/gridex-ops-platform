@@ -4,6 +4,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
 const { test, after } = require('node:test')
 const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
@@ -41,6 +42,8 @@ async function loadRuntime() {
   await entry.link((name, parent) => {
     const sourceBoundary = sourceRuntimeBoundary(name, modules, parent)
     if (sourceBoundary) return sourceBoundary
+    const sourceData = loadEdielSourceTestData(name, root, modules, context)
+    if (sourceData) return sourceData
     if (boundaries.has(name)) return boundaries.get(name)
     if (name === 'crypto' || name === 'node:crypto') return crypto
     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)

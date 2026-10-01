@@ -47,6 +47,7 @@ DO $$
 DECLARE c uuid; env text; row_id uuid; saved jsonb; snap jsonb; receipt jsonb; first_assessment jsonb; second_assessment jsonb;
  a constant uuid:='00000000-0000-4000-8000-00000000e001'; b constant uuid:='00000000-0000-4000-8000-00000000e002';
  source_id uuid; null_source_id uuid; utilts_source_id uuid; source_hash text; inv jsonb; altered jsonb; mode text; blocked boolean; previous uuid;
+ other_source_id uuid;
 BEGIN
  FOREACH c IN ARRAY ARRAY[a,b] LOOP FOREACH env IN ARRAY ARRAY['test','production'] LOOP
   row_id:=pg_temp.ledger_row(c,env);
@@ -81,6 +82,11 @@ BEGIN
    AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=source_id::text AND v->>'payloadHash'=source_hash)
    AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=utilts_source_id::text AND v->>'payloadHash'=encode(sha256(convert_to('utilts','UTF8')),'hex'))
    AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=null_source_id::text AND v->>'payloadHash' IS NULL AND v->>'sourceReceivedAt' IS NULL));
+ other_source_id:=pg_temp.ledger_row(a,'test','other',clock_timestamp(),'{}','OTHER');
+ PERFORM pg_temp.ledger_check('unowned-family-not-captured',NOT EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=other_source_id));
+ PERFORM pg_temp.ledger_check('snapshot-exact-original-id-set',
+  (SELECT array_agg((v->>'sourceMessageId')::uuid ORDER BY (v->>'sourceMessageId')::uuid) FROM jsonb_array_elements(snap->'sources') v)
+   = (SELECT array_agg(expected ORDER BY expected) FROM unnest(ARRAY[source_id,null_source_id,utilts_source_id]) expected));
  inv:=pg_temp.ledger_inventory(snap);
  EXECUTE 'SET LOCAL ROLE service_role'; receipt:=public.gridex_record_source_discovery_v1(a,'test',(snap->>'snapshotId')::uuid,snap->>'snapshotHash','physical-lin-inventory-v1',inv::text); EXECUTE 'RESET ROLE';
  PERFORM pg_temp.ledger_check('discovery-exact-serialized-evidence',receipt->>'inventoryHash'=encode(sha256(convert_to(inv::text,'UTF8')),'hex')

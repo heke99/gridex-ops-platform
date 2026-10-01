@@ -1,3 +1,4 @@
+import { readBusinessAckStatusForDisplay, businessAckStatusPresentation } from '@/lib/ediel/inbound/businessAckReadModel'
 // app/admin/ediel/messages/[id]/page.tsx
 
 import Link from 'next/link'
@@ -12,11 +13,8 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import {
  getEdielMessageById,
- getEdielMessageAckStateById,
  listEdielMessageEvents,
- listAckMessagesForSource,
 } from '@/lib/ediel/db'
-import { getCanonicalAckState } from '@/lib/ediel/ack'
 import {
  getEdielRouteRuntimeByCommunicationRouteId,
  resolveInboundAcceptedVersionsRuntime,
@@ -344,9 +342,8 @@ export default async function AdminEdielMessageDetailPage({
 
  const companyId = isPlatformAdmin ? null : companyScope.companyId
 
- const [message, ackState, events] = await Promise.all([
+ const [message, events] = await Promise.all([
  getEdielMessageById(id, { companyId }),
- getEdielMessageAckStateById(id, companyId),
  listEdielMessageEvents(id, companyId),
  ])
 
@@ -369,10 +366,8 @@ export default async function AdminEdielMessageDetailPage({
  )
  }
 
- const [relatedAckMessages, linkedMessage, routeRuntime, versionWindow, inboundReview] = await Promise.all([
- message.direction === 'inbound'
- ? listAckMessagesForSource({ sourceMessageId: message.id, companyId })
- : Promise.resolve([]),
+ const [relatedAckStatus, linkedMessage, routeRuntime, versionWindow, inboundReview] = await Promise.all([
+ readBusinessAckStatusForDisplay({ actorUserId: context.userId, sourceMessageId: message.id, companyId, environment: message.environment }),
  message.related_message_id
  ? getEdielMessageById(message.related_message_id, { companyId })
  : Promise.resolve(null),
@@ -417,7 +412,8 @@ export default async function AdminEdielMessageDetailPage({
  }))
  : null
 
- const canonicalAckState = getCanonicalAckState(ackState ?? message)
+ const qualifiedAckPresentation = businessAckStatusPresentation(relatedAckStatus)
+ const canonicalAckState = qualifiedAckPresentation.state
  const duplicateBlockEvents = getDuplicateBlockEvents(events)
  const ackConflictEvents = getAckConflictEvents(events)
  const issueEvents = getIssueEvents(events)
@@ -430,6 +426,7 @@ export default async function AdminEdielMessageDetailPage({
  )
  const prodatPortalReadiness = evaluateProdatPortalReadiness(message)
  const tenantDiagnostics = getTenantResolutionDiagnostics(message)
+ const relatedAckMessages = relatedAckStatus.messages
  const hasContrlDraft = relatedAckMessages.some((ack) => ack.message_family === 'CONTRL')
  const hasAperakDraft = relatedAckMessages.some((ack) => ack.message_family === 'APERAK')
  const hasUtiltsErrDraft = relatedAckMessages.some(isUtiltsErrAckMessage)
@@ -652,19 +649,19 @@ Konfigurerat transportläge: {sendReadiness.resolvedEncryptionMode === 'smime' ?
  <div className="rounded-2xl border border-slate-200 p-4">
  <div className="text-xs uppercase tracking-wide text-slate-700">CONTRL</div>
  <div className="mt-2">
- <Pill text={message.contrl_status ?? '—'} />
+ <Pill text={qualifiedAckPresentation.contrl} />
  </div>
  </div>
  <div className="rounded-2xl border border-slate-200 p-4">
  <div className="text-xs uppercase tracking-wide text-slate-700">APERAK</div>
  <div className="mt-2">
- <Pill text={message.aperak_status ?? '—'} />
+ <Pill text={qualifiedAckPresentation.aperak} />
  </div>
  </div>
  <div className="rounded-2xl border border-slate-200 p-4">
  <div className="text-xs uppercase tracking-wide text-slate-700">UTILTS_ERR</div>
  <div className="mt-2">
- <Pill text={message.utilts_err_status ?? '—'} />
+ <Pill text={qualifiedAckPresentation.utiltsErr} />
  </div>
  </div>
  <div className="rounded-2xl border border-slate-200 p-4">
@@ -788,6 +785,7 @@ Konfigurerat transportläge: {sendReadiness.resolvedEncryptionMode === 'smime' ?
  <section className="grid gap-6 xl:grid-cols-2">
  <article className="rounded-3xl border border-slate-200 bg-white p-6">
  <h2 className="text-lg font-semibold text-slate-900">Ack chain</h2>
+ {'holdReason' in relatedAckStatus ? <p className="mb-3 text-sm text-amber-800">Kvittensunderlag kunde inte kvalificeras för aktuell läsbehörighet och tenant. Affärsstatus hålls för granskning.</p> : relatedAckStatus.heldOriginalIds.length > 0 ? <p className="mb-3 text-sm text-amber-800">{relatedAckStatus.heldOriginalIds.length} kvittensoriginal saknar kvalificerat källstöd. Affärsstatus hålls för granskning.</p> : null}
  {relatedAckMessages.length === 0 ? (
  <div className="mt-4 text-sm text-slate-700">
  Inga relaterade ack-meddelanden hittades.

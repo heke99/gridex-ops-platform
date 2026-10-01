@@ -1,0 +1,54 @@
+[
+  {
+    "ids": [
+      "ACK-10",
+      "AT-ACK-10"
+    ],
+    "owner": "authority_grammar; root integrates",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "normative_source": "Frozen registers/rules.json ACK-10 and registers/acceptance_tests.json AT-ACK-10; P pages98–100 as named by the unchanged literal contract. Full authentic P original remains a separate broader source-evidence limitation.",
+    "exact_requirement": "PRODAT-APERAK BGM/1225 carries27/34; BGM/1001 and1004 are unused. Use original BGM through RFF+ACW and a separate own technical UNH/archive identity; correct wire BGM+++27/34.",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/aperakEngine.ts",
+      "scripts/generate-ediel-native-response-guide-projection.cjs",
+      "supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql",
+      "supabase/migrations/20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql"
+    ],
+    "confirmed_code_gap": "Correct renderer already omitted1001/1004, but actual shared TS guide and native admission accepted nonempty values. Added same-owner exported unused positions[1,2], all decoded-component rejection, source-generated complete registered-guide native edition, fresh ownerprepare/outbound firstraw INSERT and incoming source-application predicate. Existing committed incoming outcome is read before/after candidate mutex; existing consumed originals keep protected old read paths. Further confirmed actual boundary: an old consumed malformed ACK with no prior transport entry remained readable by design and could create a fresh native attempt. NEW41455 delegates the complete existing journal first, then applies the SAME raw predicate only when fresh prepare/enter proceeds; a failure atomically rolls back new attempt writes. Fixed prepare/entered/observed/accepted prior records retain their immutable first result.",
+    "blockers": [],
+    "planned_tests": [
+      "Fixed integrated candidate native replay/schema/type parity must show forward migration composes with actual latest owner/apply wrappers and preserves existing immutable outcomes.",
+      "Full candidate unit/E2E/manual API and transport tests must prove bad1001/1004 cannot reach a fresh provider entry or accepted incoming application, including common P202 and partial P34 own scopes.",
+      "Full source/UNSM coverage is assessed separately; these probes do not authenticate missing full P original or declare all grammar verified."
+    ],
+    "assessment": "Fresh actual call-chain review confirmed shared guide is used by runtime and raw sync/registry validation/preflight, without AP-on-AP responses. Correct renderer retained. Native wrapper adds birth/fresh-application guards while preserving retained originals first. Two independent bounded reviews (matrix_projections and utilts_ack) found no open Critical/Important in this packet. No formal acceptance status changed. Independent matrix review also found no open Critical/Important in NEW41455 generic/H fresh journal fence. No broad proof promotion.",
+    "commits": [
+      "715d4005",
+      "984ff0a2c6d340654a85871c31632411fc44663a"
+    ],
+    "fast_checks": [
+      "31 targeted Vitest tests in3files PASS (actual parser/policy/guide/runtime/validator; source I/O boundary only is synthetic).",
+      "22 declared new native guard mechanics PASS using actual historical lexer/generated edition/new forward; old owner/actor/committed reader delegates explicitly declared boundary fixtures.",
+      "204 composed existing outbound guide/owner seal/one-use insertion/native source scope checks PASS; added bad unused fields before/after publication and old consumed original retention.",
+      "Generator --check and normative/parser authority guards PASS; scoped ESLint0errors4preexisting harness warnings; git diff --check and JS syntax PASS.",
+      "33 declared native guard/journal mechanics PASS, including fresh failure rollback and fixed/observed prior preservation.",
+      "207 composed existing owner checks PASS; old consumed-neverentered malformed ACK changed from native fresh prepare allowed with one attempt to held with zero attempts (actual existing owner/journal bodies, explicitly synthetic frozen legal/source boundary)."
+    ],
+    "not_run": [
+      "agent full TSC",
+      "full unit suite",
+      "native clean replay",
+      "full migration replay",
+      "browser/E2E",
+      "manual/counterparty tests"
+    ],
+    "planned_code_paths": [
+      "lib/ediel/payloadPreflight.ts"
+    ],
+    "pending_source_path_note": "Owner-named prospective migration is not present at integrated 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4; kept as planned path, not actual code evidence."
+  }
+]

@@ -8,6 +8,7 @@ import {utiltsErrSourceCopyViolations} from '@/lib/ediel/utilts/errSourceCopy'
 import {UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,validUtiltsLegalIdentity} from '@/lib/ediel/utilts/headerIdentityGuide'
 import {UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY} from './utilts25A4'
 import {canonicalRegisteredEdielGuideScopes} from './canonicalEdielFacade'
+import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 /** Source projection port for native admission. The TS guide consumer below
@@ -70,9 +71,10 @@ function dateTime(value:string){
  * authority. Full UNSM structure remains a separate source/evidence requirement.
  * Optional original bytes qualify conditional references; a parsed JSON marker
  * or a sibling ERC can never supply an own-object/transaction reference. */
-export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;rawSegments?:readonly string[]|null;una?:EdifactServiceStringAdvice;sourceRawPayload?:string|null;technicalOriginal?:TechnicalSyntaxAckEvidence}):EdielRulebookIssue[]{
+export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;rawSegments?:readonly string[]|null;rawPayload?:string|null;una?:EdifactServiceStringAdvice;sourceRawPayload?:string|null;technicalOriginal?:TechnicalSyntaxAckEvidence}):EdielRulebookIssue[]{
  if(!['CONTRL','APERAK','UTILTS_ERR'].includes(input.policy.family))return []
  const una=input.una??parseUna(null),wire=tokenizeEdifact(`${una.raw}${(input.rawSegments??[]).join(una.segmentTerminator)}${una.segmentTerminator}`),issues:EdielRulebookIssue[]=[]
+ issues.push(...validateEdifactHeaderGuide({direction:input.policy.direction as 'inbound'|'outbound',rawPayload:input.rawPayload,rawSegments:input.rawSegments,una}))
  const add=(code:string,description:string,fieldPath?:string)=>issues.push({code,severity:'error',blocking:true,title:'Nationell kvittensanvisning',description,fieldPath})
  const segments=wire.segments,all=(tag:string)=>segments.filter(t=>t.tag===tag),type=segmentComposite(all('UNH')[0],2,wire.una)
  if(all('UNH').length!==1)add('ACK_GUIDE_ONE_MESSAGE_REQUIRED','Kvittensen ska avse ett eget fysiskt meddelande.','UNH')

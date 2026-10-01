@@ -5,6 +5,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
 const { test, after } = require('node:test')
 const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
@@ -42,6 +43,8 @@ async function runtime(){
  await entry.link((name,parent)=>{
   const boundary=sourceRuntimeBoundary(name,modules,parent)
   if(boundary)return boundary
+    const sourceData = loadEdielSourceTestData(name, root, modules)
+    if (sourceData) return sourceData
   if(name==='@/lib/supabase/service') return service
   if(blocked.has(name))return blocked.get(name)
   if(name==='crypto'||name==='node:crypto')return crypto
@@ -173,17 +176,16 @@ for(const requestAck of [undefined,false,true])test(`compatibility builder emits
  assert.equal(bgm.raw,`BGM+Z03+DOC?+1+9+${requestAck===false?'NA':'AB'}`)
 })
 
+const ackLegalHeader=[['NAD','FR',['12345','160','SVK'],'','','','','','','SE'],['NAD','DO',['54321','160','SVK'],'','','','','','','SE']]
 for(const [label,id] of [['literal colon','DOC:1'],['literal plus','DOC+1'],['literal terminator',"DOC'1"],['literal release','DOC?'],['case and zeroes','000aBc'],['max length','D'.repeat(35)]])test(`real APERAK renderer references actual BGM, not stale ids (${label})`,async()=>{
- const a=await api,raw=wire([['BGM','Z03',id,'9','AB'],
-  ['NAD','FR',['12345','160','SVK'],'','','','','','','SE'],
-  ['NAD','DO',['54321','160','SVK'],'','','','','','','SE']],
-  [['LIN','1','',['OBJECT','','','9']],['RFF',['LI','CASE']]])
+ const a=await api,raw=wire([['BGM','Z03',id,'9','AB'],...ackLegalHeader],[['LIN','1','',['OBJECT','','','9']],['RFF',['LI','SOURCE-LI']]])
  const result=a.renderAperakEdiel({source:{id:'LOCAL-UUID',messageFamily:'PRODAT',messageCode:'Z03',rawPayload:raw,externalReference:'STALE'},refs:{documentReference:'WRONG',messageReference:'UNH-DISTINCT',interchangeReference:'INTERCHANGE'},externalReference:'ACK',transactionReference:'CASE',outcome:'positive'})
  assert.equal(result.diagnostics.previousMessageReference,id)
  assert(result.segments.includes(`RFF+ACW:${encode(id)}`))
  assert(result.segments.includes('NAD+FR+54321:160:SVK+++++++SE'))
  assert(result.segments.includes('NAD+DO+12345:160:SVK+++++++SE'))
- assert(result.segments.includes('RFF+LI:CASE'))
+ assert(result.segments.includes('RFF+LI:SOURCE-LI'))
+ assert(!result.segments.includes('RFF+LI:CASE'))
 })
 for(const id of ['', ['DOC','OTHER'], 'D'.repeat(36)])test(`real APERAK renderer blocks absent/malformed/oversized source BGM ${JSON.stringify(id)}`,async()=>{
  const a=await api,raw=wire([['BGM','Z03',id,'9','AB']])

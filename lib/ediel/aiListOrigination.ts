@@ -14,7 +14,7 @@ import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
 
 export type AiListOriginRequest={companyId:string;actorUserId:string;intentId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;fromDate:string;toDate:string}
 export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>){
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
  const {data:decision,error:decisionError}=await supabaseService.rpc('ediel_ai_export_decision_v2',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_environment:input.environment}).abortSignal(AbortSignal.timeout(2000))
  if(decisionError||decision?.status!=='authorized'||decision?.decision?.purpose!=='ediel_list_export')throw new Error('ai_list_export_decision_required')
  const parties=await readAiListPartyBasis({companyId:input.companyId,actorUserId:input.actorUserId,intentId:input.intentId})

@@ -57,4 +57,28 @@ describe('source-bound supply consumer execution', () => {
   io.rpc.mockResolvedValue({data:{applied:true,commits:[{switchRequestId:'own-A'}]},error:null})
   await expect(applySupplyMarketSource({actorUserId:'actor',message:source()})).rejects.toThrow('commit_scope_invalid')
  })
+ it('projects real own effects separately from held siblings and whole-source completion',async()=>{
+  const object=(segmentIndex:number)=>({messageIndex:0,messageReference:'own-UNH',objectId:`point-${segmentIndex}`,identityAgency:'9',
+    registers:[{lineIndex:segmentIndex,lineNumber:String(segmentIndex+1),registerIndex:null,registerPosition:1,segmentIndex}]})
+  const receipt='00000000-0000-0000-0000-000000000001'
+  io.rpc.mockResolvedValue({data:{applied:true,periods:[{id:'own-period',status:'confirmed_by_grid_owner'}],commits:[],effectReceiptIds:[receipt],partition:[
+    {object:object(7),disposition:'applied',effectReceiptId:receipt,effectFactsHash:'a'.repeat(64)},
+    {object:object(14),disposition:'held',reason:'own_application_not_accepted'},
+  ]},error:null})
+  expect(await applySupplyMarketSource({actorUserId:'actor',message:source()})).toMatchObject({applied:true,fullyApplied:false,reviewRequired:true,effectReceiptIds:[receipt],partition:[{disposition:'applied'},{disposition:'held'}]})
+  expect(io.from).not.toHaveBeenCalled();expect(io.notification).not.toHaveBeenCalled()
+ })
+ it('preserves an established legacy result without inventing own effect receipts',async()=>{
+  expect(await applySupplyMarketSource({actorUserId:'actor',message:source()})).toMatchObject({applied:true,fullyApplied:true,partition:null,effectReceiptIds:[]})
+ })
+ it.each(['same-register','missing-register-fields','receipt-mismatch','unknown-disposition'])('holds malformed native partition: %s',async mutation=>{
+  const object={messageIndex:0,messageReference:'M',objectId:'point',identityAgency:'9',registers:[{lineIndex:0,lineNumber:'1',registerIndex:null,registerPosition:1,segmentIndex:7}]}
+  const receipt='00000000-0000-0000-0000-000000000001'
+  const applied={object,disposition:'applied',effectReceiptId:receipt,effectFactsHash:'a'.repeat(64)}
+  const partition:unknown[]=mutation==='same-register'?[applied,{object,disposition:'held',reason:'held'}]
+    :mutation==='missing-register-fields'?[{...applied,object:{...object,registers:[{segmentIndex:7}]}}]
+    :mutation==='unknown-disposition'?[{...applied,disposition:'accepted'}]:[applied]
+  io.rpc.mockResolvedValue({data:{applied:true,partition,effectReceiptIds:mutation==='receipt-mismatch'?[]:[receipt]},error:null})
+  await expect(applySupplyMarketSource({actorUserId:'actor',message:source()})).rejects.toThrow('supply_object_partition_')
+ })
 })

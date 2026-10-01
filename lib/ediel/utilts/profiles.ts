@@ -3,6 +3,7 @@ import type { UtiltsRuntimeFacts, UtiltsValidationIssue } from '@/lib/ediel/util
 import { expectedObservationCountForResolution } from '@/lib/ediel/utilts/resolution'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import {segmentComposite,segmentUntrimmedRaw,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {isValidUtiltsTransactionReference} from './physicalReference'
 
 function issue(code: string, title: string, description: string, reference?: string | null, field = '512'): UtiltsValidationIssue {
   return {
@@ -78,6 +79,11 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts, functi
       index,
     )
     if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 per transaktion.`, reference, '505'))
+    else if(!isValidUtiltsTransactionReference(transaction.transactionId)) issues.push({
+      ...issue('UTILTS_TRANSACTION_ID_INVALID','Ogiltigt transaktions-id','Transaktions-id uppfyller inte källfält505 an..35.',reference,'505'),
+      aperakErcCode:'42',aperakText:'INCORRECT DATA',
+      aperakInvalidOccurrence:facts.utiltsObservedTransactions?.[index] ? {segmentIndex:facts.utiltsObservedTransactions[index].segmentIndex,elementIndex:2,componentIndex:0} : undefined,
+    })
     if (profile.requiresMeteringPoint && !(facts.messageCode === 'E66'
       ? transaction.meterPointId || transaction.regulatingObjectPresent
       : transaction.meterPointId)) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver ${facts.messageCode === 'E66' ? 'LOC+172 eller LOC+175' : 'LOC+172'} per transaktion.`, reference, '209'))

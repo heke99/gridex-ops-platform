@@ -13,7 +13,7 @@ import type {CreateEdielMessageInput} from '@/lib/ediel/types'
 export async function renderAndQueueAiList(input:{companyId:string;actorUserId:string;intentId:string;routeContext:Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>}){
  // Discovery allows an authenticated tenant reader or preparer; the private
  // port enforces READ for existing disclosure and actual prepare phase for new.
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.read','metering.read','communication.send']})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.read','metering.read','communication.write']})
  // The protected native port first qualifies this exact intent/company and
  // current actor/phase. A foreign selector never reaches the shared getter.
  const {data:status,error:statusError}=await supabaseService.rpc('gridex_ai_outbound_origin_status_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_intent_id:input.intentId}).abortSignal(AbortSignal.timeout(2000))
@@ -29,7 +29,7 @@ export async function renderAndQueueAiList(input:{companyId:string;actorUserId:s
  // or consulting today's legal registry/customer/privacy/write decisions.
  if(message)return message
  if(!evaluateIntentValidation(intent).ok)throw new Error('ai_list_validated_technical_intent_required')
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
  if(intent.environment!==route.environment||intent.senderEdielId!==route.senderEdielId||intent.receiverEdielId!==route.receiverEdielId||intent.communicationRouteId!==route.route.id)throw new Error('ai_list_intent_route_customer_scope_mismatch')
  if(!message){
   let draft:CreateEdielMessageInput

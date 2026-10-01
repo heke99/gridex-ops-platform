@@ -33,6 +33,13 @@ vi.mock('@/lib/ediel/db', async original => {
       return row && effects.readRaw !== null ? { ...row, raw_payload: effects.readRaw } : row
     } }
 })
+
+// Exact seven-argument prospective RPC until genuine regenerated metadata is
+// imported. This leaves every poisoned raw/contract payload unchanged.
+const nativePersistenceRpc = supabaseService.rpc.bind(supabaseService) as unknown as (
+ name: 'gridex_persist_utilts_consumption_v1', args: { p_company_id: string; p_environment: string; p_source_message_id: string;
+ p_message_code: string; p_raw_payload: string; p_transactions: unknown; p_actor_user_id?: string | null },
+) => PromiseLike<{ data: unknown; error: { message: string; code: string } | null }>
 const DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const lit = (value: unknown) => value === null ? 'NULL' : "'" + String(typeof value === 'object' ? JSON.stringify(value) : value).replaceAll("'", "''") + "'"
 function sql<T = unknown>(input: string): T {
@@ -52,6 +59,13 @@ async function seed() {
    VALUES(${lit(ids.actor)},'authenticated','authenticated',${lit(`e035-retry-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
    INSERT INTO public.user_profiles(id,email,full_name,user_status,created_at,updated_at)
    VALUES(${lit(ids.actor)},${lit(`e035-retry-${ids.actor}@example.invalid`)},'Synthetic E035 retry actor','active',now(),now()) ON CONFLICT(id) DO UPDATE SET user_status='active';
+   -- Declared local operator uses the genuine current membership/permission
+   -- tables. No admin exemption or verified-source fixture grants authority.
+   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+    VALUES(${lit(ids.company)},${lit(ids.actor)},'operations','active',now(),'{}','member',true,now(),'operations');
+   INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+    SELECT ${lit(ids.actor)},${lit(ids.company)},id,key FROM public.permissions
+    WHERE key IN('metering.write','communication.read','communication.write','communication.send');
    INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${lit(ids.customer)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','private');
    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${lit(ids.grid)},${lit(ids.company)},${lit(ids.grid)},'91100','test',true,'active');
    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${lit(ids.grid)});
@@ -70,14 +84,14 @@ async function seed() {
   }
   const original = await insertSource(message.raw_payload!)
   const dataRequest = { id: ids.request, company_id: ids.company, customer_id: ids.customer, site_id: ids.site, metering_point_id: ids.point, grid_owner_id: ids.grid, request_scope: 'billing_underlay', response_payload: {} } as GridOwnerDataRequestRow
-  const prepare = async (source = original, held = false, allowConsumption = true): Promise<UtiltsBoundPersistenceInput> => {
+  const prepare = async (source = original, held = false, allowConsumption = true): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {
     const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
     expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
     if (held) runtime.transactionDispositions = runtime.transactionDispositions.map(d => ({ ...d, disposition: 'internal_review', responseType: 'none', issueCodes: ['UTILTS_STRUCTURE_UNAVAILABLE'] }))
     const matches = runtime.facts.transactions.map(t => ({ transactionReference: t.transactionId, meteringPointId: ids.point, customerId: ids.customer, siteId: ids.site, gridOwnerId: ids.grid, externalMeteringPointId: t.meterPointId, externalGridAreaId: t.gridAreaId, matchStatus: 'matched' as const }))
     const contracts = await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches, dataRequest: allowConsumption ? dataRequest : null,
       fallback: { customerId: ids.customer, siteId: ids.site, meteringPointId: ids.point, gridOwnerId: ids.grid }, allowConsumption })
-    return { companyId: ids.company, environment: source.environment, sourceMessageId: source.id, messageCode: source.message_code!, rawPayload: source.raw_payload!, contracts,
+    return { actorUserId: ids.actor, companyId: ids.company, environment: source.environment, sourceMessageId: source.id, messageCode: source.message_code!, rawPayload: source.raw_payload!, contracts,
       transactions: buildUtiltsTransactionPersistencePayload({ messageCode: source.message_code, transactions: runtime.facts.transactions, rawSegments: runtime.facts.rawSegments, dispositions: runtime.transactionDispositions, matches }) }
   }
   return { ids, original, insertSource, prepare, dataRequest }
@@ -353,7 +367,7 @@ it('native S01 valid LOC+175 cannot reserve a point series or positive ACK throu
   forged.transactions[0].meteringPointId = f.ids.point
   forged.transactions[0].externalMeteringPointId = '735999260731000007'
   const wrongTenant = { ...forged, companyId: randomUUID() }
-  await expect(persistUtiltsTransactionResults(wrongTenant)).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(persistUtiltsTransactionResults(wrongTenant)).rejects.toThrow('utilts_execution_actor_forbidden')
   for (let attempt = 0; attempt < 2; attempt++) {
     await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_regulating_object_owner_unavailable')
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
@@ -401,7 +415,7 @@ it('native E72 empty request refuses unowned agency 89 atomically and preserves 
   expect(input.contracts[0].observations).toEqual([])
   const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
-  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_execution_actor_forbidden')
   for (let attempt = 0; attempt < 2; attempt++) {
     await expect(persistUtiltsTransactionResults(input)).rejects.toThrow('utilts_consumption_identity_unsupported')
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
@@ -565,7 +579,7 @@ it('native accepted S01 persists only SG5 field 532 and no individual consumptio
   const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak' }])
-  const input: UtiltsBoundPersistenceInput = { companyId: f.ids.company, environment: source.environment, sourceMessageId: source.id,
+  const input: UtiltsBoundPersistenceInput & { actorUserId: string } = { actorUserId: f.ids.actor, companyId: f.ids.company, environment: source.environment, sourceMessageId: source.id,
     messageCode: 'S01', rawPayload: source.raw_payload!,
     contracts: await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches: [], dataRequest: null,
       fallback: { customerId: null, siteId: null, meteringPointId: null, gridOwnerId: null }, allowConsumption: false }),
@@ -634,7 +648,7 @@ it('JSONB key order is immaterial and wrong source code/environment fail interna
   expect((await persistUtiltsTransactionResults(reordered))[0].seriesId).toBe(first[0].seriesId)
   await expect(persistUtiltsTransactionResults({ ...input, messageCode: 'E30' })).rejects.toThrow('utilts_source_binding_conflict')
   await expect(persistUtiltsTransactionResults({ ...input, environment: 'production' })).rejects.toThrow('utilts_source_binding_conflict')
-  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_execution_actor_forbidden')
 })
 it('distinguishable observation order is immutable, not a set comparison', async () => {
   const f = await seed()
@@ -675,7 +689,8 @@ it.each(['missing-field', 'extra-field', 'wrong-type', 'missing-member', 'duplic
   if (kind === 'text-month') billing!.month = String(billing!.month)
   if (kind === 'padded-customer') billing!.customerId = ` ${billing!.customerId}`
   const result = sql<string>(`CREATE FUNCTION pg_temp.binding_input_probe() RETURNS text LANGUAGE plpgsql AS $$ BEGIN
-    PERFORM public.gridex_persist_utilts_consumption_v1(${lit(input.companyId)},'test',${lit(input.sourceMessageId)},'E66',${lit(input.rawPayload)},${lit(payload)}::jsonb);
+    EXECUTE 'SET LOCAL ROLE service_role';
+    PERFORM public.gridex_persist_utilts_consumption_v1(${lit(input.companyId)},'test',${lit(input.sourceMessageId)},'E66',${lit(input.rawPayload)},${lit(payload)}::jsonb,${lit(f.ids.actor)});
     RETURN 'UNSAFE_SUCCESS'; EXCEPTION WHEN OTHERS THEN RETURN SQLSTATE||':'||SQLERRM; END $$;
     SELECT to_jsonb(pg_temp.binding_input_probe());`)
   expect(result).toMatch(/^P0U01:utilts_/)
@@ -692,8 +707,8 @@ it('two physical IDE+24 occurrences with the same 505 stop before receipt, ACK a
   const source = await f.insertSource(lines.join('\n'))
   expect(source.raw_payload!.match(/IDE\+24\+GRIDEX2607E66001'/g)).toHaveLength(2)
   const supported = await f.prepare()
-  const forged = await supabaseService.rpc('gridex_persist_utilts_consumption_v1', {
-    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!,
+  const forged = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
     p_transactions: Array.from({ length: 2 }, () => ({ ...supported.transactions[0], consumptionContract: supported.contracts[0] })),
   })
   expect(forged.error?.message).toContain('utilts_physical_membership_conflict')
@@ -853,7 +868,9 @@ it('private storage and old unbound function are unavailable to service callers'
   })
   expect(error).not.toBeNull()
   expect(sql(`SELECT has_function_privilege('service_role','gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)','EXECUTE')`)).toBe(false)
-  expect(sql(`SELECT has_function_privilege('authenticated','public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)','EXECUTE')`)).toBe(false)
+  expect(sql(`SELECT to_regprocedure('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)') IS NOT NULL`)).toBe(false)
+  expect(sql(`SELECT has_function_privilege('authenticated','public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)','EXECUTE')`)).toBe(false)
+  expect(sql(`SELECT has_function_privilege('service_role','gridex_utilts_binding.persist_consumption_before_actor_v1(uuid,text,uuid,text,text,jsonb)','EXECUTE')`)).toBe(false)
   expect(sql(`SELECT has_table_privilege('service_role','gridex_utilts_binding.contracts','INSERT')`)).toBe(false)
   for (const role of ['anon', 'authenticated']) {
     expect(sql(`SELECT has_function_privilege(${lit(role)},'public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)','EXECUTE')`)).toBe(false)
@@ -871,7 +888,8 @@ it.each(['missing-contract', 'corrupt-contract-hash', 'corrupt-raw-hash'])('nati
    ALTER TABLE public.meter_reading_series DISABLE TRIGGER USER;
    ${mutation}
    CREATE FUNCTION pg_temp.binding_corruption_probe() RETURNS text LANGUAGE plpgsql AS $$ BEGIN
-    PERFORM public.gridex_persist_utilts_consumption_v1(${lit(input.companyId)},'test',${lit(input.sourceMessageId)},'E66',${lit(input.rawPayload)},${lit(payload)}::jsonb);
+    EXECUTE 'SET LOCAL ROLE service_role';
+    PERFORM public.gridex_persist_utilts_consumption_v1(${lit(input.companyId)},'test',${lit(input.sourceMessageId)},'E66',${lit(input.rawPayload)},${lit(payload)}::jsonb,${lit(f.ids.actor)});
     RETURN 'UNSAFE_SUCCESS';
    EXCEPTION WHEN OTHERS THEN RETURN SQLSTATE||':'||SQLERRM; END $$;
    SELECT to_jsonb(pg_temp.binding_corruption_probe()); ROLLBACK;`)
@@ -1016,8 +1034,8 @@ it('native inbound binds IDE qualifier 505 rejection to tenant and source withou
   const f = await seed()
   const source = await f.insertSource(f.original.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001'))
   const supported = await f.prepare()
-  const forged = await supabaseService.rpc('gridex_persist_utilts_consumption_v1', {
-    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!,
+  const forged = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
     p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
   })
   expect(forged.error?.message).toContain('utilts_consumption_identity_unsupported')
@@ -1496,8 +1514,8 @@ it('native inbound stores unknown header NAD role 509 rejection without consumab
 it('R3 direct persistence HTTP cannot mint agency89 authority from forged plain-ID accepted contract', async () => {
   const f = await seed(), supported = await f.prepare()
   const source = await f.insertSource(f.original.raw_payload!.replace('735999260731000007::9', '735999260731000007::89'))
-  const { error } = await supabaseService.rpc('gridex_persist_utilts_consumption_v1', {
-    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!,
+  const { error } = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
     p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
   })
   expect(error?.message).toContain('identity_unsupported')
@@ -1551,4 +1569,29 @@ it('C1 restored case history is tenant-classified with real RLS and client acces
     expect(sql(`SELECT has_table_privilege(${lit(role)},'public.customer_case_events','SELECT,INSERT,UPDATE,DELETE')`)).toBe(false)
   }
   expect(sql(`SELECT count(*) FROM pg_constraint WHERE conrelid='public.customer_case_events'::regclass AND conname IN ('customer_case_events_case_owner_fk','customer_case_events_customer_company_fk') AND convalidated`)).toBe(2)
+})
+
+
+it('native prospective persistence and immutable replay require a current own operator', async () => {
+  const f = await seed(), foreign = await seed(), input = await f.prepare()
+  const args = { p_company_id: input.companyId, p_environment: input.environment, p_source_message_id: input.sourceMessageId,
+    p_message_code: input.messageCode, p_raw_payload: input.rawPayload,
+    p_transactions: input.transactions.map((item, i) => ({ ...item, consumptionContract: input.contracts[i] })) }
+  const state = () => ({ bound: snapshot(f.original.id), receipts: sql(`SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb)
+    FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(f.original.id)}`) })
+  const before = state()
+  for (const actor of [undefined, null, foreign.ids.actor]) {
+    const refused = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
+      ...args, ...(actor === undefined ? {} : { p_actor_user_id: actor }),
+    })
+    expect(refused.error).toMatchObject({ code: '42501', message: 'utilts_execution_actor_forbidden' })
+    expect(state()).toEqual(before)
+  }
+  await persistUtiltsTransactionResults(input)
+  const committed = state()
+  sql(`UPDATE public.company_memberships SET is_active=false WHERE company_id=${lit(f.ids.company)} AND user_id=${lit(f.ids.actor)}`)
+  const replay = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', { ...args, p_actor_user_id: f.ids.actor })
+  expect(replay.error).toMatchObject({ code: '42501', message: 'utilts_execution_actor_forbidden' })
+  expect(state()).toEqual(committed)
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.ack).not.toHaveBeenCalled()
 })

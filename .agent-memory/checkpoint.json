@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-01T08:49:34.540678+00:00",
+  "updated_at": "2026-10-01",
   "status": "IN_PROGRESS",
   "paused": false,
-  "branch": "codex/ediel-master-v2-integration-20261001",
-  "active_pr": 424,
+  "branch": "codex/ediel-composed-rules-20261001",
+  "active_pr": null,
   "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Isolated integration of whole Ediel masterplan v2 F0–F7 and all 352 literal IDs",
+  "active_item": "Compose existing Ediel v2 rule families and real consumers",
   "current_audit": "quality/audits/ediel-masterplan-v2/integration-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -1365,5 +1365,21 @@
     "ed3_import_only_not_reapplied": true,
     "whole352_final_approved": 0,
     "next_action": "Publish owned coherent root/runtime corrections and inspect actual clean/upgrade/native/browser results while remaining owner packets complete."
+  },
+  "rule_family_composition": {
+    "source_heads": [
+      "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+      "536cdc16fcae4b7bb073229540f7e6718ca7e78d",
+      "3c7342c64c83b705e85c18f300705166a1732ad6"
+    ],
+    "prior_prs_preserved": [
+      421,
+      423,
+      424,
+      418,
+      422,
+      310
+    ],
+    "qualification": "IN_PROGRESS, no final same-candidate acceptance"
   }
 }

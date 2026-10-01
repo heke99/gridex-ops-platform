@@ -1,3 +1,4 @@
+import { prepareDuplicate103Response } from '@/lib/ediel/inbound/duplicateResponses'
 import { InboundReceptionHeldError } from '@/lib/ediel/inbound/receptions'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { isDeliveryStatusNotification } from './dsnClassifier'
@@ -352,6 +353,18 @@ export async function processInboundEmailMessage(input: {
   } catch (error) {
     if (!(error instanceof InboundReceptionHeldError)) throw error
     const receipt = error.reception
+    let protocolResponseFailureCode: string | null = input.actorUserId ? null : 'current_actor_required'
+    if (input.actorUserId && receipt.classification === 'protocol_duplicate') {
+      try {
+        await prepareDuplicate103Response({ companyId: tenant.companyId, sourceMessageId: receipt.sourceMessageId, inboundEmailMessageId: input.inboundEmailMessageId, actorUserId: input.actorUserId })
+        return { status: 'protocol_response_prepared', companyId: tenant.companyId, parseResultId }
+      } catch (preparationError) {
+        const message = preparationError instanceof Error ? preparationError.message : ''
+        protocolResponseFailureCode = message.match(/^[A-Za-z][A-Za-z0-9_]+(?=:|\s|$)/)?.[0] ?? 'duplicate_response_preparation_failed'
+        // Current authority, native source or strict wire hold preserves the
+        // existing held-task path. No draft/intention is committed on failure.
+      }
+    }
     // The native receipt/request and NEW mail hold already committed. The old
     // canonical original, first validation and ACK are deliberately untouched.
     const matchedCustomer = outboundMatch.candidates?.[0]?.customer_id ?? meteringPointMatch.candidates?.[0]?.customer_id
@@ -361,7 +374,7 @@ export async function processInboundEmailMessage(input: {
       title: 'Ny Ediel-mottagning väntar på källbelagt dubblettsvar',
       description: receipt.reason,
       taskType: 'ediel_duplicate_response_held',
-      metadata: { sourceId: receipt.responseRequestId, reception: receipt, inboundEmailMessageId: input.inboundEmailMessageId, parseResultId },
+      metadata: { sourceId: receipt.responseRequestId, reception: receipt, protocolResponseFailureCode, inboundEmailMessageId: input.inboundEmailMessageId, parseResultId },
       actorUserId: input.actorUserId ?? null,
     })
     return { status: 'manual_review', companyId: tenant.companyId, parseResultId }

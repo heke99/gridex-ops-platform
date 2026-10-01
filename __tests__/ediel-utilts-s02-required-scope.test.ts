@@ -99,7 +99,7 @@ it.each(['E5SE9X', 'E5SE4A'])('clean physical S02 outranks stale row association
 it('the actual raw UTILTS validator accepts clean S02 without row policy metadata', () => {
   const source = s02PlanningFixture({ company: 's02-synthetic', transactions: s02PlanningPair('clean', true) })
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-01T20:00:00Z'))
-  try { expect(validateUtilts(source.raw_payload!, source.message_received_at!).ok).toBe(true) } finally { vi.useRealTimers() }
+  try { expect(validateUtilts(source.raw_payload!, { evaluationAt: source.message_received_at! }).ok).toBe(true) } finally { vi.useRealTimers() }
 })
 
 it('missing canonical physical membership cannot erase existing mandatory guide refusals', () => {
@@ -178,10 +178,10 @@ it('raw validation selects the actual E66 wire and still rejects an explicit con
  vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-01T20:00:00Z'))
  try {
   const e66=observationHandoffMessage('2026-10-01','tenant-raw-validator')
-  const validation=validateUtilts(e66.raw_payload!, e66.message_received_at!)
+  const validation=validateUtilts(e66.raw_payload!, { evaluationAt: e66.message_received_at! })
   expect(validation,JSON.stringify(validation)).toMatchObject({ok:true,classification:'accepted'})
   const priorGuideWire=e66.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+172+735999260731000008::9')
-  expect(validateUtilts(priorGuideWire, e66.message_received_at!).issues.some(issue=>issue.utiltsErrCode==='E19')).toBe(true)
+  expect(validateUtilts(priorGuideWire, { evaluationAt: e66.message_received_at! }).issues.some(issue=>issue.utiltsErrCode==='E19')).toBe(true)
   const s02=s02PlanningFixture({company:'s02-synthetic',transactions:s02PlanningPair('clean',true)})
   const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'S02',direction:'inbound',referenceDate:'2026-10-01',applicationReference:'23-DDQ-S02-S',mode:'parse'})
   expect(()=>runUtiltsRuntimeForMessage({...s02,message_code:'E66'},{canonicalPolicy:policy})).toThrow('utilts_runtime_policy_context_mismatch')

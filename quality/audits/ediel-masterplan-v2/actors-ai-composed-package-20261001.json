@@ -1,0 +1,464 @@
+{
+  "owner": "actors-ai",
+  "branch": "codex/ediel-actors-composed-20261001",
+  "base_sha": "bba3163741c513a94938c63ffe88cf6089be78d1",
+  "incoming_sha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "pending_merge": true,
+  "files": [
+    {
+      "path": "__tests__/ediel-ai-intent-gateway.test.ts",
+      "sha256": "4ea1769eb5eb4d08617d08c2c5564f098cbc9509352ee4a2e65ac05e0ef0256f"
+    },
+    {
+      "path": "__tests__/ediel-ai-list-history.test.ts",
+      "sha256": "85b3691d33adf000a4eff5ed1d10d223c46b53356683dc9d74dedfa724ec5296"
+    },
+    {
+      "path": "__tests__/ediel-facility-lookup-identity.test.ts",
+      "sha256": "94fe2a4ff20abd44e14c984e964218ec563f457f685e2fe32f5aa2fa9bd1463b"
+    },
+    {
+      "path": "__tests__/ediel-registry-zero-route-preview.test.ts",
+      "sha256": "a745f659da621b0f4886acad863308c1d34eb907f06cabbeb219887b287945f0"
+    },
+    {
+      "path": "app/admin/customer-info-requests/page.tsx",
+      "sha256": "fdbd232addfee7fbf1227106cbdae01e748e49e15b973934ee659bc9dcf128eb"
+    },
+    {
+      "path": "app/admin/ediel/actors/actions.ts",
+      "sha256": "37e1185a37b1c690f0fa6ab0f21902e3aad4d1a3871f2330d90808a84a2a8c56"
+    },
+    {
+      "path": "lib/actor-registry/importActorRegistry.ts",
+      "sha256": "6076438e74d6baa961334a83b67e04bddf325e35442eae4a7c72d38daac8a14a"
+    },
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "sha256": "4234cce8276fefd1a928c35d17a887a3136df4f75914ba340041742f7df74754"
+    },
+    {
+      "path": "lib/ediel/aiListHistory.ts",
+      "sha256": "01c5c21557bc5c79a6ef321ae90f154bebe9dcf151cebc100386c729226cb98e"
+    },
+    {
+      "path": "lib/ediel/aiListOrigination.ts",
+      "sha256": "62fc93e9582675ebf651379adb6530815b33966143489787cee93a305c0cef07"
+    },
+    {
+      "path": "lib/ediel/intent/aiListGateway.ts",
+      "sha256": "0703d7043c25d34c338b1723e1dffe4a3d9b868574a6809c62e3c3fb8cf72851"
+    },
+    {
+      "path": "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+      "sha256": "63a4dadcc251153a15fd29cf52ae65694776ad5295899d4e2c45baf35e712cb6"
+    },
+    {
+      "path": "lib/ediel/intent/renderers/facilityLookupZ01.ts",
+      "sha256": "b34b9794a17590812f11a3647da022cc1a2d3f3de3097d44ac72b5491a172a1b"
+    },
+    {
+      "path": "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+      "sha256": "969304ae55f9dab3e3b7833cd3e1b5cbeb6c77f494a487188b6fe4c2bd1feccf"
+    },
+    {
+      "path": "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+      "sha256": "bb5f05f63ffdccf370b834e8da02ea915619e0ecf15675f86b669f57ecd2aaff"
+    },
+    {
+      "path": "scripts/ediel-registry-current-actor-source-sql-regression.mjs",
+      "sha256": "ec6ab9beb6771af92c8578e420636864bebfdb8c2a8c77d5da7da66360bb8f71"
+    },
+    {
+      "path": "scripts/ediel-ai-phase-current-actor-sql-regression.mjs",
+      "sha256": "1dd80a134f30489a643e6bb2789b8abe5e4981457a3933b2c1e48aa16c059c68"
+    },
+    {
+      "path": "lib/ediel/flows/aiListFlow.ts",
+      "sha256": "b7428aff96a3fe2668c23206439ab9a1ab27e533daca7c1a0ee2f601b4432a08"
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "sha256": "ea2687d5ae7345c89866385aeb46ec96d1fc81017f41f0e7e842da208edeb515"
+    },
+    {
+      "path": "scripts/ediel-utilts-err-gateway-native.test.ts",
+      "sha256": "a7e20d7ae87c6f9ae5208d0bb56e469b7cdf41ec5b7d34e7598c31aaa39b3f84"
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "sha256": "f36af43e0945feb5e72fb18048a73f343e281744ec36065a5c106c4c00a30189"
+    },
+    {
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+      "sha256": "96f0e1beb3212901d3fa3641aa09a4086754a5691ad2d7cd58d239d1da5c1791"
+    }
+  ],
+  "completed_internal_components": [
+    "Composed exact WRITE preparation/export decision and readonly-original replay against the existing AI chain; external delivery retains its own SEND/ediel.send phase.",
+    "Composed qualified full customer facets and exact physical source-owned point/period deltas, preserving source hash/event time/cutoff and bilateral identity transition.",
+    "Preserved registered preview actor, genuine XML certificate PEM whitespace and actual postal/legal country conflicts.",
+    "Preserved actual OPS current next-actions and valid permission-form gating.",
+    "Retained current registered Z01 legalPartyId and technicalInterchangePartyId independently and exact persisted wire reference namespaces.",
+    "Repaired chronological40159→40446 prerequisite with additive40445; original migration bytes unchanged; paired current forward repairs already-recordedTXT upgrade.",
+    "Completed existing current EL source owner with company/environment/identifier-bound tenant-to-registry actor alias, fresh actor/identifier/route/market checks and current graph ordering for importer, preview and verification.",
+    "Restored exact original AI preparation communication.write after new103735 catalogue insertion; separate send communication.send/ediel.send unchanged. Current actor/scoped wallclock grants+denies checked before and after legal-source wait. Separate original-read and legal/purpose holds preserved; no SEND/WRITE alias.",
+    "Updated four nativefixtures to pass existing actual tenant operator identity to UTILTS persistence; ERR operator receives explicit active same-company metering.write. Existing unsafe direct native RPC negatives unchanged."
+  ],
+  "rules_in_component_scope": [
+    "TEN-01",
+    "TEN-02",
+    "TEN-04",
+    "TEN-05",
+    "IMP-01",
+    "IMP-02",
+    "IMP-03",
+    "IMP-04",
+    "IMP-05",
+    "AI-01",
+    "AI-02",
+    "AI-03"
+  ],
+  "primary_acceptance_contracts": [
+    "AT-TEN-01",
+    "AT-TEN-02",
+    "AT-TEN-04",
+    "AT-TEN-05",
+    "AT-IMP-01",
+    "AT-IMP-02",
+    "AT-IMP-03",
+    "AT-IMP-04",
+    "AT-IMP-05",
+    "AT-AI-01",
+    "AT-AI-02",
+    "AT-AI-03",
+    "SC-001",
+    "SC-009",
+    "SC-057",
+    "SC-058",
+    "SC-059",
+    "SC-065",
+    "SC-066",
+    "AT-Z01L-SUPPLIER",
+    "AT-Z01LK-SUPPLIER"
+  ],
+  "verification": {
+    "focused_unit": "Current changed AI phase: 43 PASS across4files (42 four-file run + additional ninth gateway test PASS); earlier86/7 component run predates phase correction and remains historical for unchanged checks.",
+    "scoped_eslint": "Current9file check PASS0errors,5preexisting unused-importwarnings in nativefixture files; prior15file check predates phase correction.",
+    "sql_prerequisite_red": "CONTROL exits2, ediel_registry_declared_country_update_predecessor_required",
+    "sql_clean_mechanics": "28 PASS actual relevant chronological owner SQL, synthetic surrounding auth/catalogue/registry bytes",
+    "sql_recorded_txt_upgrade_mechanics": "28 PASS old branch40446 then merged40159; additive prerequisite and latestforward",
+    "syntax_diff": "node --check and ownedgitdiff --check PASS",
+    "native_authentic_broad_candidate": "NOT_RUN; root final CI/replay owns qualification",
+    "sql_ai_phase_red": "CONTROL original WRITE-only preparer rejected by unrelated READ/SEND dependencies; exact initial-only consumer control incorrectly permits current DENY becoming effective during legal-source wait.",
+    "sql_ai_phase_current_mechanics": "59 PASS actual10758 permission/actor,92425 wallclock ports,20550 AI consumer/export RPC,92522 composition/original read,103735 catalogue without grants,latest103439 exact phase+terminal correction; synthetic surrounding catalogue/legal-purpose boundary.",
+    "provenance": "Uncommitted isolated semantic merge; exact owner-file sha256 listed. Focused units use refreshed composed root/UTILTS/ACK/recovery dependencies; final shared candidate tree/native/browser/CI qualification remains integrator owned.",
+    "mechanical_runtime": {
+      "node": "v24.19.0",
+      "pglite": "0.5.8",
+      "module": "/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js"
+    },
+    "native_fixture_types": "Focused4file tsconfig.scripts-derived TypeScript PASS0diagnostics, current composed read-only lib/script/type dependencies; heavy native NOT_RUN per integration instruction.",
+    "formal_phase_semantics": "20550 source-owner requires exact WRITE origination;224737 qualified-test capability remains within its existing protected port. No additional broad test alias or automatic grant is introduced.",
+    "source_change_note": "ACK independent bounded rereview accepted final phase distinction/terminal placement and independently reran current59PASS script with matching SQL/script hashes; /tmp/ack-review-ai-phase-final.log. This is not authentic native/full acceptance."
+  },
+  "remaining_external": [
+    "Authentic current official registry original and issuer provenance for relevant actor/route/version are required; synthetic mechanistic tests do not qualify them.",
+    "Transport delegation/mandate and genuine current network-owner/processing/privacy approval remain required where actual source ports hold.",
+    "Historical missing market/original/grant coverage cannot be backfilled; GAS and future capabilities remain disabled."
+  ],
+  "formal_acceptance": "NOT_PROMOTED; component targeted tests only, unchanged original acceptance criteria still need composed exact-head final qualification",
+  "rule_component_delivery": [
+    {
+      "id": "TEN-01",
+      "original_source": "SYS; T §5",
+      "original_condition": "Tenant, juridisk aktör, operativ roll och teknisk identitet är olika typer.",
+      "original_acceptance": "AT-TEN-01",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "TEN-02",
+      "original_source": "Användarbeslut; T §5",
+      "original_condition": "Tenantens verifierade juridiska Ediel-id används; gemensam brevlåda är en transportegenskap.",
+      "original_acceptance": "AT-TEN-02",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "TEN-04",
+      "original_source": "T §5; companies.xml",
+      "original_condition": "InterchangePartyId och juridisk PartyId bevaras var för sig; stöd endast uttryckligen dokumenterad relation.",
+      "original_acceptance": "AT-TEN-04",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "TEN-05",
+      "original_source": "T §5.2.3; P §2.1; SYS",
+      "original_condition": "Roll bestäms av affärsprocess, inte globalt standardfält.",
+      "original_acceptance": "AT-TEN-05",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "IMP-01",
+      "original_source": "companies.xml/companies.txt; SYS",
+      "original_condition": "Officiell struktur: Market/Company/Identifiers/Key Type/EDIFACTDetails; TXT har egna familjeblock och kan innehålla radbrytningar.",
+      "original_acceptance": "AT-IMP-01",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "IMP-02",
+      "original_source": "T §5; companies.xml",
+      "original_condition": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp.",
+      "original_acceptance": "AT-IMP-02",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "IMP-03",
+      "original_source": "SYS",
+      "original_condition": "Diff mot giltig snapshot; separation av registeruppgift, granskning och autosändningsberedskap.",
+      "original_acceptance": "AT-IMP-03",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "IMP-04",
+      "original_source": "T §5; companies.xml",
+      "original_condition": "Tom registrerad subadress är ett giltigt värde; UTILTS använder inte subadress.",
+      "original_acceptance": "AT-IMP-04",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "IMP-05",
+      "original_source": "T bilagaA; SYS",
+      "original_condition": "Säkerhetsidentitet och registrerad adress verifieras tillsammans; bevara gammal version för historik.",
+      "original_acceptance": "AT-IMP-05",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "supabase/migrations/20261001040445_ediel_registry_market_txt_prerequisite.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+        "lib/ediel/intent/renderers/facilityLookupZ01.ts"
+      ],
+      "durable_effect": "Existing atomic immutable registry batches/market current pointers/route version and held readiness; current legal vs technical dispatch checks",
+      "consumer_ui": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "AI-01",
+      "original_source": "AI §2–3",
+      "original_condition": "Använd separat semikolonformat Ver20140401, CSV från 2025-10-01 och huvud med nätföretag först/elhandelsföretag sedan.",
+      "original_acceptance": "AT-AI-01",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "lib/ediel/aiListHistory.ts",
+        "lib/ediel/aiListOrigination.ts",
+        "lib/ediel/intent/aiListGateway.ts",
+        "lib/ediel/intent/renderers/aiList.ts",
+        "lib/ediel/flows/aiListFlow.ts",
+        "supabase/migrations/20261001092522_ediel_ai_legal_technical_party_composition.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "app/admin/ediel/actions.part-4.ts"
+      ],
+      "durable_effect": "Existing protected AI intent/original/message/transport binding and confirmed source-owned historical detail projection",
+      "consumer_ui": [
+        "app/admin/ediel/ai-list/page.tsx",
+        "app/admin/ediel/actions.part-4.ts",
+        "lib/ediel/orchestrator.ts"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "AI-02",
+      "original_source": "AI §3.1 s.8–9",
+      "original_condition": "Lämna mätarnummer, avräkningsmetod, årsenergi, rapporteringsfrekvens, mätmetod och produktkod tomma.",
+      "original_acceptance": "AT-AI-02",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "lib/ediel/aiListHistory.ts",
+        "lib/ediel/aiListOrigination.ts",
+        "lib/ediel/intent/aiListGateway.ts",
+        "lib/ediel/intent/renderers/aiList.ts",
+        "lib/ediel/flows/aiListFlow.ts",
+        "supabase/migrations/20261001092522_ediel_ai_legal_technical_party_composition.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "app/admin/ediel/actions.part-4.ts"
+      ],
+      "durable_effect": "Existing protected AI intent/original/message/transport binding and confirmed source-owned historical detail projection",
+      "consumer_ui": [
+        "app/admin/ediel/ai-list/page.tsx",
+        "app/admin/ediel/actions.part-4.ts",
+        "lib/ediel/orchestrator.ts"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    },
+    {
+      "id": "AI-03",
+      "original_source": "AI §2.1 s.6–7",
+      "original_condition": "Ta med alla relevanta anläggningar under [från,till). Delperioder och strukturändringar ger flera detaljrader.",
+      "original_acceptance": "AT-AI-03",
+      "component_status": "IMPLEMENTED_COMPOSED_TARGETED; FULL_ACCEPTANCE_NOT_PROMOTED",
+      "code_and_real_paths": [
+        "lib/ediel/aiListHistory.ts",
+        "lib/ediel/aiListOrigination.ts",
+        "lib/ediel/intent/aiListGateway.ts",
+        "lib/ediel/intent/renderers/aiList.ts",
+        "lib/ediel/flows/aiListFlow.ts",
+        "supabase/migrations/20261001092522_ediel_ai_legal_technical_party_composition.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "app/admin/ediel/actions.part-4.ts"
+      ],
+      "durable_effect": "Existing protected AI intent/original/message/transport binding and confirmed source-owned historical detail projection",
+      "consumer_ui": [
+        "app/admin/ediel/ai-list/page.tsx",
+        "app/admin/ediel/actions.part-4.ts",
+        "lib/ediel/orchestrator.ts"
+      ],
+      "remaining_internal_qualification": "Composed exact-head native replay/upgrade/security/transaction/UI/CI verification by integrator",
+      "external_scope": "Authentic current official EL registry original/issuer and applicable delegation, legal-network/purpose sources; existing fail-closed holds preserved"
+    }
+  ]
+}

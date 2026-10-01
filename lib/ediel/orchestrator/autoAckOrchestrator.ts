@@ -1,10 +1,12 @@
+import { prepareDuplicate103Response } from '@/lib/ediel/inbound/duplicateResponses'
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 import { readInboundReceptionRequest } from '@/lib/ediel/inbound/receptions'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import type { EdielEngineDecision } from '@/lib/ediel/decisionEngine'
 import { ensureExpectedAckSent } from '@/lib/ediel/decisionEngine'
-import { createEdielMessageEvent, listAckMessagesForSource } from '@/lib/ediel/db'
+import { createEdielMessageEvent } from '@/lib/ediel/db'
 import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
 import { supersedeWrongDraftsForDecision } from '@/lib/ediel/outbox/supersedeWrongDrafts'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -34,7 +36,23 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     if(!params.sourceMessage.company_id)throw new Error('ediel_exact_reception_tenant_required')
     const receipt=await readInboundReceptionRequest({companyId:params.sourceMessage.company_id,messageId:params.sourceMessage.id,actorUserId:params.actorUserId,inboundEmailMessageId:params.inboundEmailMessageId})
     if(!receipt)throw new Error('ediel_exact_reception_original_required')
-    if(receipt.status==='held'||receipt.classification!=='first_reception')return{status:'manual_review',ackMessageId:null,lifecycleStatus:'duplicate_response_held',reason:receipt.reason??'authentic_duplicate_transport_response_policy_required'}
+    if(receipt.status==='held'||receipt.classification!=='first_reception'){
+      if(receipt.classification==='protocol_duplicate'&&params.sourceMessage.message_family==='PRODAT'){
+        try{
+          const response=await prepareDuplicate103Response({companyId:params.sourceMessage.company_id,sourceMessageId:params.sourceMessage.id,
+            inboundEmailMessageId:params.inboundEmailMessageId,actorUserId:params.actorUserId})
+          // This NEW reception has its own protocol receipt. Do not run the
+          // ordinary business-outcome, superseding, queue or send path here.
+          return{status:response.replayed?'retained':'created',ackMessageId:response.ackMessage.id,
+            lifecycleStatus:'duplicate_protocol_response_prepared',reason:'Den nya mottagningens dubblettsvar har ett eget beständigt kvitto.'}
+        }catch(error){
+          const message=error instanceof Error?error.message:''
+          const code=message.match(/^[A-Za-z][A-Za-z0-9_]+(?=:|\s|$)/)?.[0]??'duplicate_response_preparation_failed'
+          return{status:'manual_review',ackMessageId:null,lifecycleStatus:'duplicate_response_held',reason:code}
+        }
+      }
+      return{status:'manual_review',ackMessageId:null,lifecycleStatus:'duplicate_response_held',reason:receipt.reason??'authentic_duplicate_transport_response_policy_required'}
+    }
   }
   if (params.decision.kind === 'manual_review') {
     await createEdielMessageEvent({
@@ -68,7 +86,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     if(params.outbox!==false)await createOutboxItem({actorUserId:params.actorUserId,message:prepared.message,sourceMessageId:params.sourceMessage.id,status:'prepared'})
     return {status:'retained',ackMessageId:prepared.message.id,lifecycleStatus:'existing_response_retained',reason:'Originalets fastställda ACK återanvänds; transportutfallet avgörs av dess beständiga transportjournal.'}
   }
-  const existingAcks = utiltsSource?[]:await listAckMessagesForSource({ sourceMessageId: params.sourceMessage.id })
+  const existingAcks = utiltsSource?[]:await listBusinessAckMessagesForSource({ sourceMessageId: params.sourceMessage.id, companyId: params.sourceMessage.company_id, environment: params.sourceMessage.environment, actorUserId: params.actorUserId, ackFamily: desiredFamily })
   const lifecycle = ensureExpectedAckSent({
     desiredFamily,
     desiredOutcome,

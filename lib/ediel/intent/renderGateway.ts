@@ -1,3 +1,5 @@
+import {readExistingZ01Original} from '@/lib/ediel/prodat/z01OriginalReplay'
+import {z01WireReferencesFromIntent} from '@/lib/ediel/prodat/z01WireReferences'
 // lib/ediel/intent/renderGateway.ts
 //
 // RenderGateway (Batch 1). The single sanctioned bridge that turns a validated
@@ -35,7 +37,7 @@ import { buildServiceReportingContext } from '@/lib/ediel/services/reporting'
 
 export type RenderGatewayResult =
   | {
-      status: 'queued'
+      status: 'queued' | 'existing'
       intentId: string
       message: EdielMessageRow
       blockingReasons: never[]
@@ -204,6 +206,14 @@ export async function renderAndQueueFacilityLookupZ01(params: {
   outboundRequestId: string
   operationId: string
 }): Promise<RenderGatewayResult> {
+  const storedIntent = await getEdielMessageIntentById(params.intentId)
+  if(storedIntent?.edielMessageId){
+    try{
+      const original=await readExistingZ01Original({intent:storedIntent,actorUserId:params.actorUserId,companyId:params.routeContext.companyId,environment:params.routeContext.environment,
+        outboundRequestId:params.outboundRequestId,operationId:params.operationId,customerId:params.request.customer_id,siteId:params.request.customer_site_id,routeId:params.routeContext.route.id})
+      if(original)return {status:'existing',intentId:params.intentId,message:original,blockingReasons:[]}
+    }catch(error){return {status:'blocked',intentId:params.intentId,message:null,blockingReasons:[classifyRenderError(error)]}}
+  }
   const gate = await loadValidatedIntent(params.intentId)
   if (!gate.ok) {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
@@ -243,6 +253,7 @@ export async function renderAndQueueFacilityLookupZ01(params: {
   try {
     const { draft } = await buildFacilityLookupZ01Draft({
       companyId: gate.intent.companyId,
+      wireReferences: z01WireReferencesFromIntent(gate.intent),
       actorUserId: params.actorUserId,
       request: params.request,
       routeContext: params.routeContext,
@@ -326,6 +337,14 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
   messageVersion: string
   routeProfileId: string
 }): Promise<RenderGatewayResult> {
+  const storedIntent = await getEdielMessageIntentById(params.intentId)
+  if(storedIntent?.edielMessageId){
+    try{
+      const original=await readExistingZ01Original({intent:storedIntent,actorUserId:params.actorUserId,companyId:params.routeContext.companyId,environment:params.routeContext.environment,
+        outboundRequestId:params.outboundRequestId,operationId:params.operationId,customerId:params.dataRequest.customer_id,siteId:params.dataRequest.site_id,routeId:params.routeContext.route.id,dataRequestId:params.dataRequest.id})
+      if(original)return {status:'existing',intentId:params.intentId,message:original,blockingReasons:[]}
+    }catch(error){return {status:'blocked',intentId:params.intentId,message:null,blockingReasons:[classifyRenderError(error)]}}
+  }
   const gate = await loadValidatedIntent(params.intentId)
   if (!gate.ok) {
     return { status: 'blocked', intentId: params.intentId, message: null, blockingReasons: gate.reasons }
@@ -333,14 +352,16 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
 
   try {
     const { linkEdielMessage } = await import('@/lib/ediel/db')
+    const wireReferences = z01WireReferencesFromIntent(gate.intent)
 
     const draft = await buildCustomerMasterdataZ01Draft({
       actorUserId: params.actorUserId,
       routeContext: params.routeContext,
       dataRequest: params.dataRequest,
       gridOwner: params.gridOwner,
-      externalReference: params.externalReference,
-      transactionReference: params.transactionReference,
+      wireReferences,
+      externalReference: wireReferences.documentReference,
+      transactionReference: wireReferences.transactionReference,
       messageVersion: params.messageVersion,
       operationId: params.operationId,
     })
@@ -404,7 +425,7 @@ export async function renderAndQueueCustomerMasterdataZ01(params: {
       actorUserId: params.actorUserId,
       messageId: message.id,
       outboundRequestId: params.outboundRequestId,
-      externalReference: params.externalReference,
+      externalReference: message.external_reference ?? wireReferences.documentReference,
       intentId: params.intentId,
       payload: {
         edielCode: 'Z01',

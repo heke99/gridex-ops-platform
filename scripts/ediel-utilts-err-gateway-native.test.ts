@@ -56,7 +56,7 @@ async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransact
       VALUES(${literal(ids.actor)},'authenticated','authenticated',${literal(`err-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
     INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(ids.actor)},${literal(`err-${ids.actor}@example.invalid`)},'Synthetic ERR actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
     INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(ids.company)},${literal(ids.actor)},'operations','active',now(),'{}','member',true,now(),'operations');
-    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(ids.actor)},${literal(ids.company)},id,key FROM public.permissions WHERE key='communication.write';
+    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active) SELECT ${literal(ids.actor)},${literal(ids.company)},id,key,'allow','active',true FROM public.permissions WHERE key IN('communication.write','metering.write') AND is_active;
     INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from)
       VALUES(${literal(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');
     INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from)
@@ -378,7 +378,7 @@ it('actual canonical functional owner and native reservations qualify same/diffe
   expect(qualified.runtime.transactionDispositions.map(x=>[x.transactionId,x.disposition,x.responseType])).toEqual(references.map(id=>[id,'processability_rejected','utilts_err']))
   await recordFinalCanonicalUtiltsDecision({original:f.source,validated:f.source,initialDecision:initial,runtime:qualified.runtime})
   const contracts=await prepareUtiltsConsumptionContracts({message:f.source,runtime:qualified.runtime,policy:initial.policy,matches:[],dataRequest:null,fallback:{customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null},allowConsumption:false})
-  const reserved=await persistUtiltsTransactionResults({companyId:f.ids.company,environment:'test',sourceMessageId:f.source.id,messageCode:'E66',rawPayload:f.source.raw_payload!,contracts,transactions:buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:qualified.runtime.facts.transactions,rawSegments:qualified.runtime.facts.rawSegments,dispositions:qualified.runtime.transactionDispositions,matches:[]})})
+  const reserved=await persistUtiltsTransactionResults({actorUserId:f.ids.actor,companyId:f.ids.company,environment:'test',sourceMessageId:f.source.id,messageCode:'E66',rawPayload:f.source.raw_payload!,contracts,transactions:buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:qualified.runtime.facts.transactions,rawSegments:qualified.runtime.facts.rawSegments,dispositions:qualified.runtime.transactionDispositions,matches:[]})})
   expect(reserved.map(x=>[x.transactionId,x.disposition,x.persistenceStatus])).toEqual(references.map(id=>[id,'processability_rejected','not_applicable']))
   const before=snapshot(f.source.id);expect(before.acks).toEqual([]);expect(before.series).toEqual([]);expect(before.contracts).toEqual([])
   expect(before.reservations.map(x=>[x.transaction,x.plan,x.final,x.series])).toEqual(references.map(id=>[id,'utilts_err',null,null]))

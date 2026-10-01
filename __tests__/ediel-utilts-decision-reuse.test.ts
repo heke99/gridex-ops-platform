@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { createUtiltsFinalValidationIo } from './helpers/utiltsFinalValidationFixture'
+import {createUtiltsFinalValidationIo,qualifyUtiltsFixtureSource,currentUtiltsActorQuery,UTILTS_FIXTURE_ACTOR} from './helpers/utiltsCurrentOwnerFixture'
 import { beforeEach,describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import * as utiltsRuntime from '@/lib/ediel/utiltsEngine'
@@ -10,7 +10,7 @@ import {receivedUtiltsOwnerFixture} from './helpers/utiltsCanonicalOwnerIo'
 import {s02PlanningFixture,s02PlanningPair} from './helpers/utiltsS02PlanningFixture'
 
 const mocks = vi.hoisted(() => ({ getMessage: vi.fn(), processActual: vi.fn(), rpc: vi.fn(), source:null as EdielMessageRow|null }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: mocks.rpc } }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: mocks.rpc, from:currentUtiltsActorQuery } }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: mocks.getMessage }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', () => ({ resolveUtiltsRuntimeTestCaseCode: vi.fn().mockResolvedValue(null) }))
@@ -68,6 +68,7 @@ function message(documentDate: string, receivedDate: string): EdielMessageRow {
     metering_point_id: 'meter-a', business_match_status: 'matched',
     validation_report: null,
   } as unknown as EdielMessageRow)
+  qualifyUtiltsFixtureSource(original)
   mocks.source=original
   return original
 }
@@ -121,7 +122,7 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
     const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
     mocks.getMessage.mockResolvedValue(source)
     mocks.processActual.mockResolvedValue({ message: source })
-    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: decision.policy!,canonicalDecision:decision })
+    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: source.id, canonicalPolicy: decision.policy!,canonicalDecision:decision })
     expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy).toBe(decision.policy)
   })
 
@@ -129,19 +130,20 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
     const source = message('2026-09-30', '2026-10-01')
     mocks.rpc.mockImplementation(finalIo(source))
     mocks.getMessage.mockResolvedValue(source)
-    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id })
+    await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: source.id })
     expect(mocks.processActual.mock.lastCall?.[0].canonicalPolicy.referenceDate).toBe('2026-10-01')
   })
 
   it('retains the selected policy on the non-billing branch', async () => {
     const source = receivedUtiltsOwnerFixture(s02PlanningFixture({company:'fixture',transactions:[s02PlanningPair('clean',true)[0]]}))
+    qualifyUtiltsFixtureSource(source)
     mocks.source=source
     mocks.rpc.mockImplementation(finalIo(source))
     const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source),policy=decision.policy!
     mocks.getMessage.mockResolvedValue(source)
     const runtimeSpy = vi.spyOn(utiltsRuntime, 'runUtiltsRuntimeForMessage').mockImplementationOnce(() => { throw new Error('test-stop-before-non-billing-persistence') })
     try {
-      await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'operator', edielMessageId: source.id, canonicalPolicy: policy,canonicalDecision:decision })).rejects.toThrow('test-stop-before-non-billing-persistence')
+      await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: source.id, canonicalPolicy: policy,canonicalDecision:decision })).rejects.toThrow('test-stop-before-non-billing-persistence')
       expect(runtimeSpy.mock.lastCall?.[1]?.canonicalPolicy).toBe(policy)
     } finally {
       runtimeSpy.mockRestore()

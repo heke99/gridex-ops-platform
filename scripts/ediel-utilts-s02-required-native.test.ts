@@ -35,6 +35,13 @@ async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: b
     INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
       VALUES(${lit(ids.actor)},'authenticated','authenticated',${lit(`s02-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
     INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${lit(ids.actor)},${lit(`s02-${ids.actor}@example.invalid`)},'Synthetic S02 actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
+   -- Declared local operator uses the genuine current membership/permission
+   -- tables. No admin exemption or verified-source fixture grants authority.
+   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+    VALUES(${lit(ids.company)},${lit(ids.actor)},'operations','active',now(),'{}','member',true,now(),'operations');
+   INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+    SELECT ${lit(ids.actor)},${lit(ids.company)},id,key FROM public.permissions
+    WHERE key IN('metering.write','communication.read','communication.write','communication.send');
     INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from)
       VALUES(${lit(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');
     INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from)
@@ -60,14 +67,14 @@ async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: b
     databaseRole: 'evidence_only', family: 'UTILTS', code: 'S02', effectiveDate: '2026-10-01' })
   const source = data as EdielMessageRow
   expect(source.customer_id).toBeNull(); expect(source.site_id).toBeNull(); expect(source.metering_point_id).toBeNull()
-  const prepare = async (forceAccepted = false): Promise<UtiltsBoundPersistenceInput> => {
+  const prepare = async (forceAccepted = false): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {
     const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
     expect(runtime.validation.syntaxOk).toBe(true)
     // Deliberately exercise the service caller's attempted positive override,
     // even after runtime guide rejection. Preserve each physical IDE's fields.
     if (forceAccepted) runtime.transactionDispositions = runtime.transactionDispositions.map(row => ({
       ...row, disposition: 'accepted', responseType: 'positive_aperak', issueCodes: [] }))
-    return { companyId: ids.company, environment: 'test', sourceMessageId: source.id, messageCode: 'S02', rawPayload: source.raw_payload!,
+    return { actorUserId: ids.actor, companyId: ids.company, environment: 'test', sourceMessageId: source.id, messageCode: 'S02', rawPayload: source.raw_payload!,
       contracts: await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches: [], dataRequest: null,
         fallback: { customerId: null, siteId: null, meteringPointId: null, gridOwnerId: null }, allowConsumption: false }),
       transactions: buildUtiltsTransactionPersistencePayload({ messageCode: 'S02', transactions: runtime.facts.transactions,
@@ -97,14 +104,14 @@ function snapshot(source: string): Snapshot {
 function noConsumption() {
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
 }
-function directRpc(input: UtiltsBoundPersistenceInput) {
+function directRpc(input: UtiltsBoundPersistenceInput & { actorUserId: string }) {
   // Bypass application persistence validation entirely: this oracle belongs
   // to the service-only PostgreSQL boundary, not to its TypeScript adapter.
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_persist_utilts_consumption_v1', args: {
-    p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown
+    p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown; p_actor_user_id: string
   }) => PromiseLike<{ data: unknown; error: { message: string } | null }>
   return rpc('gridex_persist_utilts_consumption_v1', { p_company_id: input.companyId, p_environment: input.environment,
-    p_source_message_id: input.sourceMessageId, p_message_code: input.messageCode, p_raw_payload: input.rawPayload,
+    p_source_message_id: input.sourceMessageId, p_message_code: input.messageCode, p_raw_payload: input.rawPayload, p_actor_user_id: input.actorUserId,
     p_transactions: input.transactions.map((item, index) => ({ ...item, consumptionContract: input.contracts[index] })) })
 }
 function assertForecast(state: Snapshot, reference: string, point: string, quantity: number) {

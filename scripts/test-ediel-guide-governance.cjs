@@ -5,6 +5,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule } = require('node:vm')
 const { test, after } = require('node:test')
 const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
@@ -20,6 +21,8 @@ async function runtime() {
   await entry.link((specifier, parent) => {
     const boundary = sourceRuntimeBoundary(specifier, modules, parent)
     if (boundary) return boundary
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency: ${specifier}`)
     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)

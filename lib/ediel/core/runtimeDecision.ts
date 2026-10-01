@@ -162,6 +162,7 @@ function addNegativeAperakIfAllowed(params: {
 }
 
 function applyProdatPolicyDecision(params: {
+  rawPayload?:string|null
   sourceFunctionContext?:DeathStatusValidationContext
   policy: CanonicalEdielPolicy
   canonical: CanonicalEdielMessage
@@ -176,6 +177,7 @@ function applyProdatPolicyDecision(params: {
   const prodatIgnoredFields: ProdatIgnoredField[] = []
   const fieldIssues = validateCanonicalPolicyFields({
     policy: params.policy,
+    rawPayload:params.rawPayload,
     rawSegments: params.canonical.rawSegments,
     una: params.canonical.una,
     scope: 'all',
@@ -564,7 +566,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     utiltsHeaderValidation = utilts.utiltsHeaderValidation
     utiltsTransactionValidation = utilts.utiltsTransactionValidation
   } else if (canonical.family === 'PRODAT' && policy) {
-    const prodat = applyProdatPolicyDecision({ sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    const prodat = applyProdatPolicyDecision({ rawPayload:message.raw_payload,sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
     prodatSourceFunctionValidation=prodat.prodatSourceFunctionValidation
     prodatApplicationValidation=prodat.prodatApplicationValidation
     prodatRegisterValidation = prodat.prodatRegisterValidation
@@ -573,7 +575,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     applicationDecision = prodat.applicationDecision
     functionalDecision = prodat.functionalDecision
   } else if ((canonical.family === 'APERAK' || canonical.family === 'CONTRL' || canonical.family === 'UTILTS_ERR') && policy) {
-    const guideIssues=validateCanonicalAckGuide({policy,rawSegments:canonical.rawSegments,una:canonical.una})
+    const guideIssues=validateCanonicalAckGuide({policy,rawPayload:message.raw_payload,rawSegments:canonical.rawSegments,una:canonical.una})
     issues.push(...guideIssues.map(finding=>issue({layer:'application',severity:finding.severity,code:finding.code,title:finding.title,description:finding.description,source:policy.guide.documentName})))
     applicationDecision=guideIssues.some(finding=>finding.blocking||finding.severity==='error')?'rejected':'accepted'
     functionalDecision=applicationDecision==='accepted'?'manual_review':'not_applicable'
@@ -696,7 +698,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
   if (base.policy.family === 'APERAK' || base.policy.family === 'CONTRL' || base.policy.family === 'UTILTS_ERR') {
     if(base.applicationDecision!=='accepted'){
-      const findings=validateCanonicalAckGuide({policy:base.policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una}).filter(entry=>entry.blocking||entry.severity==='error')
+      const findings=validateCanonicalAckGuide({policy:base.policy,rawPayload:message.raw_payload,rawSegments:base.canonical.rawSegments,una:base.canonical.una}).filter(entry=>entry.blocking||entry.severity==='error')
       // Only a version-dependent ERR reason can await original qualification.
       // Other malformed national structures remain rejected before source I/O.
       if(base.policy.family!=='UTILTS_ERR'||!findings.length||findings.some(entry=>entry.code!=='ACK_UTILTS_ERR_ORIGINAL_REASON_SCOPE_REQUIRED'))return base
@@ -704,11 +706,11 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
     try {
       const qualification=await readSourceBoundAckRulePackEvidence(message),{sourceMessage,evidence}=qualification
       const policy=sourceBoundAckCanonicalPolicy({qualification,policy:base.policy})
-      const guideIssues=validateCanonicalAckGuide({policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una,sourceRawPayload:sourceMessage.raw_payload})
+      const guideIssues=validateCanonicalAckGuide({policy,rawPayload:message.raw_payload,rawSegments:base.canonical.rawSegments,una:base.canonical.una,sourceRawPayload:sourceMessage.raw_payload})
       // A reason's admissibility belongs to the inherited original edition.
       // Reproject only the previous guide pass; syntax and other diagnostics
       // retain their original scope and cannot be cleared by this source read.
-      const previousGuide=validateCanonicalAckGuide({policy:base.policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una})
+      const previousGuide=validateCanonicalAckGuide({policy:base.policy,rawPayload:message.raw_payload,rawSegments:base.canonical.rawSegments,una:base.canonical.una})
       const retainedIssues=base.issues.filter(entry=>!previousGuide.some(old=>entry.layer==='application'&&entry.code===old.code&&entry.description===old.description&&entry.source===base.policy!.guide.documentName))
       const issues=[...retainedIssues,...guideIssues.map(finding=>issue({layer:'application',severity:finding.severity,code:finding.code,title:finding.title,description:finding.description,source:policy.guide.documentName}))]
       const rejected=guideIssues.some(finding=>finding.blocking||finding.severity==='error')

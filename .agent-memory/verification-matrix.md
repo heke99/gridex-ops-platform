@@ -1,3 +1,11 @@
+## Saved coherent packages — 2026-10-01
+
+Active branch `codex/ediel-composed-rules-20261001`; genuine composition parents bba3163741c513a94938c63ffe88cf6089be78d1 and 3c7342c64c83b705e85c18f300705166a1732ad6. Published #424 and source #421 remain unchanged. Original121 rules/231 contracts and33 specification files pass immutable integrity. Current app/test types PASS; bounded status28 SQL mechanics +53 TS status/native-list/H tests PASS; scoped lint PASS. Owner packet receipts preserve their exact file hashes and scope. No authentic native/replay/browser/build/final CI qualification is inferred.
+
+Integrated actor/AI, ACK genuine103, UTILTS current execution actor, canonical preparation WRITE catalog, current clock/deny and private status presentation, complete H original/current executor/watch package. Source intake original commits and historical H commit are next genuine merges. Remaining internal packages: protected U/D correction; genuine F/G correction-event/watch binding; physical missingLI/V6 scope and its genuine server-allocated correction LI. Matrix historical gaps remain until explicit bounded resolutions. Heavy qualification deferred until all internally implementable paths freeze.
+
+No main merge, production migration, real communication or Ediel/TGT/AGT traffic. #310 untouched; tenantservice#418/#422 remain separate.
+
 ## Active — 2026-09-30 full Ediel masterplan v2 code phase (in progress)
 
 Root is sole integrator/publisher for draft #421, with six isolated package owners. Integrated local checkpoint `bd40962b9201bc4438e1e21362fd704bf8fbb72f`; last published remote `0b8c1c37c0806f99e18c36d8ccd576bbda117442` has the exact tree of local `0c39065f`. Later commits and current WIP are preserved and still incomplete. Baseline `885137de838481be6cda58f9af45df6c1655edfe` and all earlier commits remain intact. #418/#422 are read-only coordination contracts; #310 is untouched.
@@ -802,3 +810,5 @@ External requests are concrete in external-evidence-requests-20260930.md, not se
 ## 2026-10-01 restored integration checks
 
 Root exact-lock npm ci passed470 packages. SC072 actual full97A +independent T24.A6 oracle4/4; GAS/current-source finite boundary units26/26 and mixed full-source facet units7/7 (33/33 across3files); scripts/application TypeScript passed; RBAC service-client review24 checks/0warnings; all885 migration hashes verified. These are scoped local mechanics. New native11 reception tests are mandatory prepared fixtures, NOT_RUN. Actual033 CI clean/upgrade/independent-clean artifacts hash-check and byte-match; this does not qualify new/final head. Whole352 accepted0; no market traffic or main merge.
+
+2026-10-01: isolated coherent family composition; preserved both inherited memory source commits bba31637 and3c7342c6. Full final-candidate qualification remains NOT_RUN.

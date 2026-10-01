@@ -1,3 +1,5 @@
+import {buildEdielTgtRegisteredCustomerEventDraft} from './tgtEdifact.part-4';
+import {prepareTgtCustomerLifeEventSource,prepareTgtCustomerEventOriginal} from './tgtCustomerLifeEventSource';
 import {resolveTgtReportingBuildContext} from './tgtReportingPermissionContext'
 import {assertTgtReportingDraft} from './tgtReportingPermissionDraft'
 import { serializeTgtUnb } from './tgtEnvelope'
@@ -389,7 +391,8 @@ async function createDraftForStep(params: {
 
   const dateBuild=params.step.family==='PRODAT'?await resolveTgtDateEventBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,code:params.step.code,runtime:systemTestContext,testData:importedTestData??getEdielTgtTestDataForCase(params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}):undefined;
   const reportingBuild=params.step.family==='PRODAT'&&params.step.code==='Z13'?await resolveTgtReportingBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,runtime:systemTestContext}):undefined;
-  const draft = buildEdielTgtDraft({
+  const classifiedOriginal=await prepareTgtCustomerEventOriginal({companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId,family:params.step.family,code:params.step.code});
+  const buildParams = {
     actorUserId: params.actorUserId,
     testSuite: params.evaluation.definition.suite,
     roleCode: params.evaluation.definition.roleCode,
@@ -399,7 +402,8 @@ async function createDraftForStep(params: {
     testRunId:params.evaluation.testRun.id,
     registerFacts:reportingBuild?.facts??dateBuild?.facts,dateEventContext:dateBuild?.context,reportingContext:reportingBuild?.context,
     systemTestContext,
-  });
+  };
+  const draft=classifiedOriginal?buildEdielTgtRegisteredCustomerEventDraft(buildParams,classifiedOriginal):buildEdielTgtDraft(buildParams);
   const routeProfileId = String(params.evaluation.testRun.route_profile_id ?? "").trim();
   if (routeProfileId) {
     const { data: routeProfile, error } = await supabaseService
@@ -430,6 +434,7 @@ async function createDraftForStep(params: {
     }
   }
 
+  await prepareTgtCustomerLifeEventSource({draft,companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId});
   const blockingIssues = draft.validationIssues.filter(
     (issue) => issue.severity === "error",
   );

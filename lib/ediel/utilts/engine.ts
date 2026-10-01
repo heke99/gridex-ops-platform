@@ -6,7 +6,7 @@ import {inferEdielFamilyAndCodeFromRawPayload} from '@/lib/ediel/classify'
 
 export type UtiltsOperationsEngineResult = UtiltsRuntimeResult & {
   meteringPreview: ReturnType<typeof normalizeMeteringIngest>
-  /** Explicit observed admission only; preview supplies no persisted ingress proof. */
+  /** Evaluation clock only; this preview supplies no persisted ingress proof. */
   previewEvaluationAt:string
 }
 
@@ -14,11 +14,11 @@ export function runUtiltsOperationsEngine(params: {
   rawPayload: string
   companyId?: string | null
   sourceMessageId?: string | null
-  /** Observed source admission, required to select the actual dated guide. */
-  admissionAt?: string | null
+  evaluationAt?: string|Date
 }): UtiltsOperationsEngineResult {
-  if (!params.admissionAt || !Number.isFinite(Date.parse(params.admissionAt))) throw new Error('ediel_admission_time_missing')
   const physical=inferEdielFamilyAndCodeFromRawPayload(params.rawPayload)
+  const evaluationAt=params.evaluationAt ?? new Date()
+  if(!Number.isFinite(new Date(evaluationAt).getTime())) throw new Error('ediel_evaluation_time_invalid')
   const runtime = runUtiltsRuntimeForMessage({
     id: params.sourceMessageId ?? 'utilts-operations-preview',
     raw_payload: params.rawPayload,
@@ -27,9 +27,8 @@ export function runUtiltsOperationsEngine(params: {
     direction:'inbound',
     validation_report: null,
     syntax_check_status: 'not_checked',
-    message_received_at: params.admissionAt,
-    created_at: params.admissionAt,
-  } as unknown as EdielMessageRow)
+    message_received_at: null,
+  } as unknown as EdielMessageRow,{referenceDate:evaluationAt})
   const firstTransaction = runtime.facts.transactions[0] ?? null
   const meteringPreview = normalizeMeteringIngest({
     companyId: params.companyId ?? null,
@@ -51,6 +50,6 @@ export function runUtiltsOperationsEngine(params: {
   return {
     ...runtime,
     meteringPreview,
-    previewEvaluationAt:new Date(params.admissionAt).toISOString(),
+    previewEvaluationAt:new Date(evaluationAt).toISOString(),
   }
 }

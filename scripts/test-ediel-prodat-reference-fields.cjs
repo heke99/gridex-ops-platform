@@ -6,6 +6,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
 const { test } = require('node:test')
 const {sourceRuntimeBoundary,assertNoSourceBoundaryAttempts}=require('./helpers/ediel-source-manifest-vm.cjs')
@@ -56,9 +57,13 @@ async function runtime() {
     for(const name of names) this.setExport(name,()=>{throw new Error(`Unexpected mutation/context call: ${specifier}/${name}`)})
   })]))
   await entry.link((specifier, parent) => {
+    // Only the explicitly installed finite projection/candidate fixture may
+    // reach this declared DB port. All other adapters remain denied below.
     if (specifier === '@/lib/supabase/service') return service
     const sourceBoundary=sourceRuntimeBoundary(specifier,modules,parent)
     if(sourceBoundary)return sourceBoundary
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     if (specifier === 'crypto' || specifier === 'node:crypto') return crypto
     if (unreachable.has(specifier)) return unreachable.get(specifier)
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)

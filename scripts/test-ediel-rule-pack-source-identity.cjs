@@ -4,6 +4,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
 const { test } = require('node:test')
 
@@ -28,7 +29,11 @@ async function resolver(row, error = null) {
   }
   const entry = load(path.join(root, 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'))
   await entry.link((specifier, parent) => {
+    // This test intentionally exercises the real registry through a declared
+    // RPC fixture. Other server adapters keep the shared denied-I/O boundary.
     if (specifier === '@/lib/supabase/service') return service
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     if (specifier === 'node:crypto') {
       const key = 'real-public-crypto'
       if (!modules.has(key)) modules.set(key, new SyntheticModule(['createHash'], function () { this.setExport('createHash', require('node:crypto').createHash) }))

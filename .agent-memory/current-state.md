@@ -1,3 +1,15 @@
+## Saved coherent packages — 2026-10-01
+
+Active branch `codex/ediel-composed-rules-20261001`; genuine composition parents bba3163741c513a94938c63ffe88cf6089be78d1 and 3c7342c64c83b705e85c18f300705166a1732ad6. Published #424 and source #421 remain unchanged. Original121 rules/231 contracts and33 specification files pass immutable integrity. Current app/test types PASS; bounded status28 SQL mechanics +53 TS status/native-list/H tests PASS; scoped lint PASS. Owner packet receipts preserve their exact file hashes and scope. No authentic native/replay/browser/build/final CI qualification is inferred.
+
+Integrated actor/AI, ACK genuine103, UTILTS current execution actor, canonical preparation WRITE catalog, current clock/deny and private status presentation, complete H original/current executor/watch package. Source intake original commits and historical H commit are next genuine merges. Remaining internal packages: protected U/D correction; genuine F/G correction-event/watch binding; physical missingLI/V6 scope and its genuine server-allocated correction LI. Matrix historical gaps remain until explicit bounded resolutions. Heavy qualification deferred until all internally implementable paths freeze.
+
+No main merge, production migration, real communication or Ediel/TGT/AGT traffic. #310 untouched; tenantservice#418/#422 remain separate.
+
+## Active coherent rule composition — 2026-10-01
+
+Isolated `codex/ediel-composed-rules-20261001` preserves published c8f666d9, later local536cdc16 and source-owner3c7342c6 histories. Existing owners and all previous PR refs remain untouched. Full121/231 original criteria unchanged. Six isolated package owners are composing real caller chains, with focused regression/type/lint and immediate auth/transaction tests. Heavy replay/native/browser/build/fullCI is deferred to a frozen candidate. Final qualification is NOT_RUN. Earlier sections below are historical; source code and fresh receipts take precedence. Both inherited memory editions remain available in these exact immutable Git commits, and no inherited green result qualifies composed code.
+
 ## Active restored integration — 2026-10-01
 
 Continue the user-authorized whole F0–F7 and all352 original IDs on isolated draft #424. Public source snapshot0373d6d05dfad1e3eefd5121171dc5a22d58821c remains the authentic CI baseline; clean/upgrade/independent-clean generated types, full public/gridex_ schemas and fingerprints byte-match, but three mandatory workflows fail and no final whole-ID approval is inferred. Actual receipts and the disjoint352 reference index are in quality/audits/ediel-masterplan-v2/integration-20261001/.

@@ -1,3 +1,5 @@
+import { listAckMessagesForSource } from '@/lib/ediel/db'
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import { validateProdatPermissionMessage } from '@/lib/ediel/testing/prodatPermissionEngine'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
@@ -17,7 +19,7 @@ import { parseRulebookListPayload, parseRulebookMessage } from "@/lib/ediel/rule
 import { validateRulebookMessage } from "@/lib/ediel/rulebook/validator"
 
 import { attachRulebookArtifact } from "@/lib/ediel/rulebook/testRunner"
-import { attachEdielMessageToTestRun, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listAckMessagesForSource, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
+import { attachEdielMessageToTestRun, createEdielMessageEvent, createEdielTestRun, getEdielMessageById, listEdielTestRuns, updateEdielMessageStatus, updateEdielTestRunStatus } from "@/lib/ediel/db"
 import { createAckDraftForMessage, sendQueuedEdielMessage } from "@/lib/ediel/orchestrator"
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine"
 import type { EdielAperakApplicationError, EdielAckScope } from "@/lib/ediel/ack"
@@ -584,11 +586,9 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
     testCaseCode,
   });
 
-  const allExistingAcks = await listAckMessagesForSource({
-    sourceMessageId,
-    ackFamily,
-    companyId: sourceMessage.company_id ?? null,
-  }).catch(() => []);
+  const allExistingAcks = await listBusinessAckMessagesForSource({
+    sourceMessageId, ackFamily, companyId: sourceMessage.company_id ?? context.companyId, environment: sourceMessage.environment, actorUserId: context.userId,
+  });
   const finalSameAck = allExistingAcks.find((ack) => {
     if (!isFinalSystemTestAck(ack)) return false;
     if (ackFamily === "UTILTS_ERR") return true;

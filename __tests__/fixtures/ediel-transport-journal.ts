@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {EdielProviderEntry,SendEdielEmailInput} from '@/lib/email/sendEdielEmail'
 
 /** Explicit private-journal unit fixture. Production wrappers/callback ordering

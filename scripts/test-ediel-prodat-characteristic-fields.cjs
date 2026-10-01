@@ -6,6 +6,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
 const { test, after } = require('node:test')
 const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
@@ -44,6 +45,8 @@ async function runtime() {
   await entry.link((specifier, parent) => {
     const boundary = sourceRuntimeBoundary(specifier, modules, parent)
     if (boundary) return boundary
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     if (specifier === '@/lib/supabase/service') return service
     if (specifier === '@/lib/supabase/tenantDb') return tenant
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)

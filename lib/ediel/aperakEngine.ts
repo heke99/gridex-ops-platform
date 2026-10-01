@@ -13,6 +13,10 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
 import {isUtiltsAperakSourceText} from '@/lib/ediel/utilts/aperakSourceText'
 import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/dates'
+import {readPhysicalUtiltsDocumentIdentity} from '@/lib/ediel/core/physicalDocumentReference'
+import {buildEdielAckGroupReference} from '@/lib/ediel/core/referenceRegistry'
+import {CANONICAL_ACK_GUIDE_CONSTRAINTS} from '@/lib/ediel/rulebook/ackGuidePolicy'
+import {isCopyableUtiltsReference,isValidUtiltsTransactionReference} from '@/lib/ediel/utilts/physicalReference'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -249,7 +253,8 @@ export function renderAperakEdiel(params: {
     .map(transaction => transaction.transactionId).filter((id): id is string => id !== null && id.length > 0) : []
   const physicalReference = (reference: string | null | undefined): string => {
     if (!reference) throw new Error('utilts_aperak_transaction_reference_required')
-    if (reference.length > 35 || /[\r\n]/.test(reference)) throw new Error('utilts_aperak_transaction_reference_invalid')
+    if (!(params.outcome==='positive' ? isValidUtiltsTransactionReference(reference)
+      : isCopyableUtiltsReference(reference,CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.originalAcwMax))) throw new Error('utilts_aperak_transaction_reference_invalid')
     if (utiltsWire && !physicalIds.includes(reference)) throw new Error('utilts_aperak_transaction_reference_not_in_source')
     return reference
   }
@@ -258,7 +263,11 @@ export function renderAperakEdiel(params: {
   if (isUtiltsSource && params.outcome === 'positive' && (!positiveIds.length || new Set(positiveIds).size !== positiveIds.length)) {
     throw new Error('utilts_aperak_transaction_reference_required')
   }
-  const sourceWireCode = params.source.messageCode === 'UTILTS_ERR' ? 'ERR' : params.source.messageCode
+  const utiltsDocument = isUtiltsSource ? readPhysicalUtiltsDocumentIdentity(params.source.rawPayload) : null
+  if (isUtiltsSource && !utiltsDocument) throw new Error('aperak_utilts_document_identity_ambiguous')
+  if (isUtiltsSource && params.outcome === 'positive' && (!utiltsDocument!.messageCode || !utiltsDocument!.reference)) {
+    throw new Error('aperak_utilts_document_reference_required')
+  }
   const utiltsBgmCode = params.outcome === 'positive' ? '312' : '313'
   const sourceWire = params.source.messageFamily === 'PRODAT' ? tokenizeEdifact(params.source.rawPayload) : null
   const hasProdatWire = params.source.messageFamily === 'PRODAT' && Boolean(params.source.rawPayload?.trim())
@@ -269,7 +278,7 @@ export function renderAperakEdiel(params: {
     // licence to acknowledge an unrelated UNH/row/UUID. Preserve the source.
     throw new Error('aperak_prodat_document_reference_required')
   }
-  const previousMessageReference = hasProdatWire ? wireDocument as string :
+  const previousMessageReference = isUtiltsSource ? utiltsDocument!.reference : hasProdatWire ? wireDocument as string :
     sanitizeEdifactToken(params.refs.documentReference) ??
     sanitizeEdifactToken(params.refs.messageReference) ??
     sanitizeEdifactToken(params.source.externalReference, 14) ??
@@ -289,7 +298,10 @@ export function renderAperakEdiel(params: {
         // U p114: +0100 is the offset for every date/time in this APERAK.
         `DTM+137:${standardTimeMinute()}:203`,
         'DTM+735:?+0100:406',
-        `DOC+${sanitizeEdifactToken(sourceWireCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
+        // U A503/A504: copy each present actual BGM value. An absent field
+        // remains absent; technical/cached/generated references grant nothing.
+        ...(utiltsDocument!.messageCode || utiltsDocument!.reference
+          ? [`DOC+${escapeEdifactValue(utiltsDocument!.messageCode)}:SVK:260+${escapeEdifactValue(previousMessageReference)}`] : []),
         originalAckLegalNadSegment('MS', utiltsParties!.legalReceiver),
         originalAckLegalNadSegment('MR', utiltsParties!.legalSender),
         'NAD+DDQ',
@@ -384,11 +396,11 @@ export function renderAperakEdiel(params: {
     )
 
     if (isUtiltsSource) {
-      // Each APERAK error/confirmation group has its own transaction number.
-      // Keep the old single-group ID, and reserve suffix space before truncating
-      // the generated own ID only. Original IDE identities are never normalized.
-      const suffix = errors.length > 1 ? `-${errorIndex + 1}` : ''
-      const ownId = (sanitizeEdifactToken(params.transactionReference, 35 - suffix.length) ?? 'APE') + suffix
+      // A906 owns an independent transaction number per response group. Keep
+      // every byte of the freshly allocated parent's entropy plus group scope;
+      // the one national field authority supplies capacity, without truncation.
+      const ownId = buildEdielAckGroupReference({parentReference:params.transactionReference,groupIndex:errorIndex,groupCount:errors.length,
+        maxLength:CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.ownDmMax})
       segments.push(`RFF+DM:${ownId}`)
       if (headerRejected) continue
       const reference = physicalReference(error.lineItemReference ?? error.referenceNumber ?? params.refs.lineItemReference

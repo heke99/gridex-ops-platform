@@ -22,10 +22,15 @@ describe('actual AI intent/render/original/finalize/outbox chain',()=>{
   expect(mocks.rpc).toHaveBeenCalledWith('gridex_ai_record_outbound_original_v1',expect.objectContaining({p_company_id:company,p_intent_id:intentId,p_snapshot_id:'snapshot',p_readset_hash:'b'.repeat(64),p_raw_payload:'fresh-source-owned-CSV'}))
   expect(mocks.finalize).toHaveBeenCalledTimes(1);expect(mocks.queue).toHaveBeenCalledWith(expect.objectContaining({messageId:'message',intentId}))
  })
- it('allows send capability to prepare with no separate READ grant',async()=>{
-  mocks.authorize.mockImplementation(async input=>{if(!(input.permission==='communication.send'||input.permissionAnyOf?.includes('communication.send')))throw Error('send permission absent')})
+ it('allows exact write capability to prepare with no separate READ or SEND grant',async()=>{
+  mocks.authorize.mockImplementation(async input=>{if(!(input.permission==='communication.write'||input.permissionAnyOf?.includes('communication.write')))throw Error('prepare permission absent')})
   await renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})
   expect(mocks.render).toHaveBeenCalledTimes(1);expect(mocks.finalize).toHaveBeenCalledTimes(1)
+ })
+ it('refuses SEND-only as a preparation alias before protected source discovery or mutation',async()=>{
+  mocks.authorize.mockImplementation(async input=>{if(!(input.permission==='communication.send'||input.permissionAnyOf?.includes('communication.send')))throw Error('current preparation permission absent')})
+  await expect(renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})).rejects.toThrow('current preparation permission absent')
+  expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.render).not.toHaveBeenCalled();expect(mocks.finalize).not.toHaveBeenCalled();expect(mocks.queue).not.toHaveBeenCalled()
  })
  it('does not persist or queue when the own original receipt is unconfirmed',async()=>{
   mocks.rpc.mockImplementation(async name=>({data:name==='gridex_ai_outbound_origin_status_v1'?{status:'new'}:null,error:null}))

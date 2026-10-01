@@ -1,3 +1,4 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
 import { ensureActorUserId } from '@/lib/ediel/flows/shared'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -39,6 +40,7 @@ function hasIndividualLink(message: EdielMessageRow): boolean {
 }
 
 async function persistNonBillingTransactions(params: {
+  actorUserId:string
   message: EdielMessageRow
   messageCode: string
   runtime: ReturnType<typeof runUtiltsRuntimeForMessage>
@@ -53,6 +55,7 @@ async function persistNonBillingTransactions(params: {
   }
 
   const persistenceResults = await persistUtiltsTransactionResults({
+    actorUserId:params.actorUserId,
     companyId,
     environment: params.message.environment,
     sourceMessageId: params.message.id,
@@ -123,6 +126,7 @@ async function processExplicitNonBillingOutcome(params: {
   const ackPlan = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
     ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: runtimeTestCaseCode })
   const persisted = await persistNonBillingTransactions({
+    actorUserId:params.actorUserId,
     message: params.message,
     messageCode: policy.code,
     runtime,
@@ -236,6 +240,9 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message) throw new Error('Ediel-meddelande hittades inte')
   if (message.message_family !== 'UTILTS') throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
+
+  if(!message.company_id) throw new Error('UTILTS-meddelandet saknar tenantkoppling.')
+  await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
 
   const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
   const policy = resolveInboundPolicy(message, initialDecision.policy)

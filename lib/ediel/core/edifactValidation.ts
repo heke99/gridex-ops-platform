@@ -1,5 +1,6 @@
-import { segmentComposite, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { edifactMessageReferenceMaximum } from '@/lib/ediel/core/edifactReferenceConstraints'
 
 // Separate full business-directory authority; envelope-only callers keep their
 // bounded service contract and cannot silently inherit national table grammar.
@@ -10,7 +11,7 @@ export type EdifactEnvelopeIssueCode =
   | 'unt_count_mismatch' | 'unt_unh_reference_mismatch' | 'unz_unb_reference_mismatch'
   | 'unz_count_mismatch' | 'envelope_reference_missing' | 'envelope_order_invalid'
   | 'duplicate_envelope_segment' | 'duplicate_message_reference'
-  | 'syntax_tokenization_failed' | 'multi_message_interchange'
+  | 'syntax_tokenization_failed' | 'multi_message_interchange' | 'message_reference_length_invalid'
 
 export type EdifactValidationIssue = {
   severity: 'error' | 'warning'
@@ -91,6 +92,9 @@ export function validateEdifactEnvelope(rawPayload: string | null | undefined): 
       if (openMessage) fail('envelope_order_invalid', 'UNH förekommer före föregående UNT.')
       const reference = scalar(segment, 1, una)
       if (!reference) fail('envelope_reference_missing', 'UNH/0062 meddelandereferens saknas eller är ogiltig.')
+      const maximum = edifactMessageReferenceMaximum(segmentComposite(segment, 2, una))
+      const physicalReference = segmentComposite({ ...segment, raw: segmentUntrimmedRaw(segment) }, 1, una)
+      if (maximum !== null && physicalReference.some(part => part.length > maximum)) fail('message_reference_length_invalid', `UNH/0062 överstiger an..${maximum} enligt den egna källbelagda profilen.`)
       if (reference && references.has(reference)) fail('duplicate_message_reference', 'UNH/0062 ska vara unik inom interchange.')
       if (reference) references.add(reference)
       openMessage = segment
@@ -107,6 +111,9 @@ export function validateEdifactEnvelope(rawPayload: string | null | undefined): 
       if (count === null || count !== actual) fail('unt_count_mismatch', 'UNT/0074 ska vara ett positivt heltal och inkludera alla segment från UNH till UNT.')
       const reference = scalar(segment, 2, una)
       if (!reference) fail('envelope_reference_missing', 'UNT/0062 meddelandereferens saknas eller är ogiltig.')
+      const maximum = edifactMessageReferenceMaximum(segmentComposite(openMessage, 2, una))
+      const physicalReference = segmentComposite({ ...segment, raw: segmentUntrimmedRaw(segment) }, 2, una)
+      if (maximum !== null && physicalReference.some(part => part.length > maximum)) fail('message_reference_length_invalid', `UNT/0062 överstiger an..${maximum} enligt den egna källbelagda profilen.`)
       const originalReference = scalar(openMessage, 1, una)
       if (reference && originalReference && reference !== originalReference) fail('unt_unh_reference_mismatch', 'UNT referens matchar inte UNH referensen.')
       openMessage = undefined

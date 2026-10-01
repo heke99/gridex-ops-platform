@@ -1,3 +1,5 @@
+import type {Z01WireReferences} from '@/lib/ediel/prodat/z01WireReferences'
+import {requireZ01LegalSender,requireZ01LegalReceiver} from '@/lib/ediel/prodat/z01LegalParties'
 import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
 import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import { getCustomerExportContext, requireContextCompanyId } from '@/lib/cis/db-shared'
@@ -60,6 +62,7 @@ function gridAreaIdentifier(
 
 export async function buildCustomerMasterdataZ01Draft(input: {
   actorUserId: string
+  wireReferences: Z01WireReferences
   routeContext: RouteContext
   dataRequest: CustomerMasterdataZ01RenderRequest
   gridOwner: JsonRecord | null
@@ -84,6 +87,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     meteringPointId: input.dataRequest.metering_point_id,
   })
   const companyId = requireContextCompanyId(context, 'Bygg canonical PRODAT Z01')
+  const legalSenderId=requireZ01LegalSender(input.routeContext,companyId)
 
   if (clean(input.dataRequest.company_id) && clean(input.dataRequest.company_id) !== companyId) {
     throw new Error('z01_customer_masterdata_tenant_mismatch')
@@ -125,6 +129,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
   const receiverSubAddress = isTgt ? 'PRODAT' : input.routeContext.receiverSubAddress
   const applicationReference = input.routeContext.applicationReference
     ?? buildDefaultApplicationReference({ actorSubAddress: senderSubAddress, process: 'PRODAT' })
+  const legalReceiver=await requireZ01LegalReceiver(input.routeContext,companyId,applicationReference)
   const messageVersionToken = input.messageVersion === '26A' ? 'E2SE6A' : input.messageVersion
 
   const rendered = renderProdat({
@@ -151,8 +156,11 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     },
     context: {
       code: 'Z01',
-      bgmReference: input.externalReference,
-      transactionReference: input.transactionReference,
+      legalSenderId,
+      legalReceiverId:legalReceiver.legalEdielId,
+      legalReceiverCountry:legalReceiver.countryCode,
+      bgmReference: input.wireReferences.documentReference,
+      transactionReference: input.wireReferences.transactionReference,
       senderEdielId: input.routeContext.senderEdielId,
       receiverEdielId: input.routeContext.receiverEdielId,
       customerName: customer.name,
@@ -193,6 +201,8 @@ export async function buildCustomerMasterdataZ01Draft(input: {
   const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z01' })
 
   const envelope = buildEdifactEnvelope({
+    interchangeReference: input.wireReferences.interchangeReference,
+    messageReference: input.wireReferences.messageReference,
     acknowledgementRequest: ack.requiresContrl,
     senderEdielId: input.routeContext.senderEdielId,
     senderSubAddress,
@@ -209,6 +219,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
   return rememberCustomerMasterdataDraft({
     actorUserId: input.actorUserId,
     companyId,
+    sourceOperationId: input.operationId??null,
     direction: 'outbound',
     messageStandard: 'edifact',
     messageFamily: 'PRODAT',
@@ -234,8 +245,8 @@ export async function buildCustomerMasterdataZ01Draft(input: {
     mimeType: 'application/edifact',
     interchangeReference: envelope.interchangeReference,
     applicationReference,
-    externalReference: input.externalReference,
-    transactionReference: input.transactionReference,
+    externalReference: input.wireReferences.documentReference,
+    transactionReference: input.wireReferences.transactionReference,
     communicationRouteId: input.routeContext.route.id,
     gridOwnerDataRequestId: input.dataRequest.id,
     customerId: input.dataRequest.customer_id,

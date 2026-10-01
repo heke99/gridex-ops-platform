@@ -1,3 +1,4 @@
+import { readBusinessAckStatus, readBusinessAckStatusForDisplay } from '@/lib/ediel/inbound/businessAckReadModel'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prodatReferenceEntries } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -591,64 +592,37 @@ export async function findSequencedAckForSource(params: {
 
 export async function listAckMessagesForSource(params: {
   sourceMessageId: string
+  actorUserId: string
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
   companyId?: string | null
 }): Promise<EdielMessageRow[]> {
-  const rowsBySource = await listAckMessagesForSources({
-    sourceMessageIds: [params.sourceMessageId],
-    ackFamily: params.ackFamily,
-    outcome: params.outcome,
-    companyId: params.companyId,
-  })
-
-  return rowsBySource.get(params.sourceMessageId) ?? []
+  const status = await readBusinessAckStatus(params)
+  return params.outcome ? status.messages.filter(row => inferAckOutcome(row) === params.outcome) : status.messages
 }
 
 export async function listAckMessagesForSources(params: {
   sourceMessageIds: string[]
+  actorUserId: string
   ackFamily?: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
   companyId?: string | null
 }): Promise<Map<string, EdielMessageRow[]>> {
   const sourceMessageIds = Array.from(new Set(params.sourceMessageIds.filter(Boolean)))
-  const rowsBySource = new Map<string, EdielMessageRow[]>()
+  const pairs = await Promise.all(sourceMessageIds.map(async sourceMessageId => [sourceMessageId,
+    await listAckMessagesForSource({ ...params, sourceMessageId }),
+  ] as const))
+  return new Map(pairs)
+}
 
-  for (const sourceMessageId of sourceMessageIds) {
-    rowsBySource.set(sourceMessageId, [])
-  }
-
-  if (sourceMessageIds.length === 0) return rowsBySource
-
-  let query = supabaseService
-    .from('ediel_messages')
-    .select('*')
-    .in('related_message_id', sourceMessageIds)
-    .in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR'])
-
-  query = applyCompanyScope(query, params.companyId)
-
-  if (params.ackFamily) {
-    query = query.eq('message_family', params.ackFamily)
-  }
-
-  if (params.outcome) {
-    query = query.eq('ack_outcome', params.outcome)
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false })
-
-  if (error) throw error
-
-  const rows = (data ?? []) as EdielMessageRow[]
-  const filteredRows = params.outcome ? rows.filter((row) => inferAckOutcome(row) === params.outcome) : rows
-
-  for (const row of filteredRows) {
-    if (!row.related_message_id) continue
-    rowsBySource.get(row.related_message_id)?.push(row)
-  }
-
-  return rowsBySource
+export async function listBusinessAckStatusForSources(params: {
+  sourceMessageIds: string[]
+  actorUserId: string
+  companyId?: string | null
+}) {
+  const pairs = await Promise.all(Array.from(new Set(params.sourceMessageIds.filter(Boolean))).map(async sourceMessageId =>
+    [sourceMessageId, await readBusinessAckStatusForDisplay({ sourceMessageId, actorUserId: params.actorUserId, companyId: params.companyId })] as const))
+  return new Map(pairs)
 }
 
 export async function getEdielMessageAckStateById(

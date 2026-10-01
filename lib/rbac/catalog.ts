@@ -347,6 +347,13 @@ const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
     risk: 'low',
   },
   {
+    key: 'communication.write',
+    label: 'Förbereda kommunikation',
+    description: 'Kan skapa och förbereda källbundna meddelanden. Extern leverans kräver separat skickbehörighet.',
+    area: 'Kommunikation',
+    risk: 'high',
+  },
+  {
     key: 'communication.send',
     label: 'Skicka kommunikation',
     description: 'Kan skicka meddelanden eller kommunikation.',

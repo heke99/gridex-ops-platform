@@ -56,6 +56,8 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit local assessment time; sender DTM137 never admits a guide. */
   admissionAt?: string | Date
   messageRow?: EdielMessageRow
+  /** Current authenticated server executor; a retained creator is source history. */
+  executionActorUserId?: string
   /** Actual private source RPC capability; caller JSON supplies no authority. */
   bilateralDraftQualification?:QualifiedBilateralProdatOutboundDraft|null
   bilateralDraft?:CreateEdielMessageInput
@@ -370,7 +372,6 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     subtypeOrReasonCode: parsed.subtype,
     prodatDependentFacts: sourceQualifiedProdatFacts(input,code,parsed.rawSegments,parseUna(input.rawPayload)),
     businessContext:qualifiedLifeEventContext(input)?.businessContext,
-
     direction: dir,
     referenceDate,
     // Runtime guide aliases such as PRODAT 26A and CONTRL aliases are not UNH
@@ -422,6 +423,14 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
     ...(parsed?.errors ?? []).map((description) => issue({ severity: 'error', code: 'PARSER_ERROR', title: 'Parserfel', description })),
     ...(parsed?.warnings ?? []).map((description) => issue({ severity: 'warning', code: 'PARSER_WARNING', title: 'Parser-varning', description })),
   ]
+  // The actual raw admission path uses the same source-owned 0062 bound as
+  // the codec and envelope validator. This does not select a guide or grant
+  // acceptance to other syntax/profile defects.
+  if (input.rawPayload && parsed?.rawSegments.some(segment => segment.startsWith('UNH'))) {
+    parserIssues.push(...validateEdifactEnvelope(input.rawPayload).issues
+      .filter(entry => entry.code === 'message_reference_length_invalid')
+      .map(entry => issue({ severity: entry.severity, code: entry.code, title: 'EDIFACT-meddelandereferens', description: entry.message })))
+  }
 
   if (!parsed) {
     const issues = [...parserIssues, issue({ severity: 'error', code: 'CANONICAL_PAYLOAD_REQUIRED', title: 'Payload saknas', description: `${family} ${code} kan inte valideras utan payload.` })]
@@ -439,11 +448,11 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
       }))
     }
 
-    let fieldIssues = validateCanonicalPolicyFields({reportingContext:input.reportingContext, policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
+    let fieldIssues = validateCanonicalPolicyFields({reportingContext:input.reportingContext, policy, rawPayload:input.rawPayload,rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if(input.ackSourceQualification&&isSourceBoundAckFamily(policy.family as ActiveCanonicalFamily)){
       const qualification=sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
       if(!qualification)throw new Error('ack_source_qualification_required')
-      fieldIssues.push(...validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:qualification.sourceMessage.raw_payload}))
+      fieldIssues.push(...validateCanonicalAckGuide({policy,rawPayload:input.rawPayload,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:qualification.sourceMessage.raw_payload}))
     }
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
@@ -519,7 +528,7 @@ function qualifyTechnicalContrl(input:RulebookValidationInput,result:RulebookVal
   if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='CONTRL'||!result.canonicalPolicy||!input.rawPayload||!result.parsed)return unavailable()
   const envelope=validateEdifactEnvelope(input.rawPayload)
   const syntaxIssues=envelope.issues.map(entry=>issue({severity:entry.severity,code:entry.code,title:'EDIFACT-kuvert',description:entry.message}))
-  const own=validateCanonicalAckGuide({policy:result.canonicalPolicy,rawSegments:result.parsed.rawSegments,una:result.parsed.una,technicalOriginal:evidence})
+  const own=validateCanonicalAckGuide({policy:result.canonicalPolicy,rawPayload:input.rawPayload,rawSegments:result.parsed.rawSegments,una:result.parsed.una,technicalOriginal:evidence})
   const issues=[...result.issues,...syntaxIssues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
   return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'technical_source',rulePackSnapshot:null,technicalSyntaxAckEvidence:evidence}
 }
@@ -540,7 +549,7 @@ function qualifyCommonHeaderNegativeAck(input:RulebookValidationInput,result:Rul
     &&JSON.stringify(segmentComposite(texts[0],3,wire.una))===JSON.stringify(['202','','260'])
     &&JSON.stringify(segmentComposite(texts[0],4,wire.una))===JSON.stringify([evidence.field202.text])
   const syntax=validateEdifactEnvelope(input.rawPayload).issues.map(entry=>issue({severity:entry.severity,code:entry.code,title:'EDIFACT-kuvert',description:entry.message}))
-  const guide=validateCanonicalAckGuide({policy,rawSegments:result.parsed.rawSegments,una:result.parsed.una,sourceRawPayload:source.raw_payload})
+  const guide=validateCanonicalAckGuide({policy,rawPayload:input.rawPayload,rawSegments:result.parsed.rawSegments,una:result.parsed.una,sourceRawPayload:source.raw_payload})
   const issues=[...result.issues,...syntax,...guide,...(exact?[]:[issue({severity:'error',code:'CANONICAL_COMMON_HEADER_NEGATIVE_SCOPE_INVALID',title:'Nationellt fält202-utfall avviker',description:'Den enda ERC/FTX-gruppen måste återge originalets fastställda header202-fel i en helt avvisande APERAK.'})])]
   const blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
   return {...result,ok:!blocking,blocking,issues,canonicalPolicy:policy,fieldRuleSource:'common_header_source',rulePackSnapshot:null,prodatCommonHeaderRejectionEvidence:evidence}
@@ -577,7 +586,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return {ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null}
   if(input.mode==='send'&&input.messageRow?.direction==='outbound'&&input.messageRow.message_family==='PRODAT'&&requiresBilateralProdatOutboundOwner({rawPayload:input.messageRow.raw_payload??''})){
-    const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(input.messageRow)
+    const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(input.messageRow,input.executionActorUserId)
     input={...input,bilateralDraft:qualified.draft,bilateralDraftActorUserId:qualified.actorUserId,bilateralDraftQualification:qualified.qualification}
   }
   const source = sourceBoundProdatInput(input)
@@ -629,7 +638,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       try {
         const qualification=await readSourceBoundAckRulePackEvidence(input.messageRow),{sourceMessage,evidence}=qualification
         const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
-        const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+        const own=validateCanonicalAckGuide({policy,rawPayload:input.rawPayload,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
         const inherited=canonicalValidation({...input,parsed},policy)
         const issues=[...inherited.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
         return {...inherited,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
@@ -645,7 +654,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       if(!qualification)throw new Error('ack_source_qualification_required')
       const {sourceMessage,evidence}=qualification
       const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
-      const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
+      const own=validateCanonicalAckGuide({policy,rawPayload:input.rawPayload,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
       const inherited=canonicalValidation({...input,parsed},policy)
       const issues=[...inherited.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
       return {...inherited,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}

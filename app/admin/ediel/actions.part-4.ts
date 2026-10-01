@@ -1,3 +1,4 @@
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 import { revalidatePath } from "next/cache"
@@ -9,7 +10,7 @@ import { createAckDraftForMessage, createNegativeUtiltsResponse, prepareAndQueue
 import type { AckFamily, EdielAperakApplicationError } from "@/lib/ediel/ack"
 
 import { registerInboundCanonicalMessage } from "@/lib/ediel/core/kernel"
-import { createEdielMessageEvent, createEdielTestRun, listAckMessagesForSource, updateEdielMessageStatus } from "@/lib/ediel/db"
+import { createEdielMessageEvent, createEdielTestRun, updateEdielMessageStatus } from "@/lib/ediel/db"
 import { runEdielSelfTest } from "@/lib/ediel/testing/selftest"
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts"
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine"
@@ -59,10 +60,8 @@ export async function removeReplaceableAckMessagesForSource(params: {
   preset: string;
   companyId?: string | null;
 }) {
-  const existingAcks = await listAckMessagesForSource({
-    sourceMessageId: params.sourceMessageId,
-    ackFamily: params.ackFamily,
-    companyId: params.companyId ?? null,
+  const existingAcks = await listBusinessAckMessagesForSource({
+    sourceMessageId: params.sourceMessageId, ackFamily: params.ackFamily, companyId: params.companyId ?? null, actorUserId: params.actorUserId,
   });
 
   const nonReplaceable = existingAcks.find(

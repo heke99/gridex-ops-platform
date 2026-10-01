@@ -38,7 +38,7 @@ export async function prepareAndQueueAiList(params: {
   if(!isEvidenceUuid(params.actorUserId)||!isEvidenceUuid(params.companyId))throw new Error('ai_list_actor_company_context_required')
   const actorUserId = ensureActorUserId(params.actorUserId)
   const supabase = await makeServerClient()
-  await assertEdielTenantActor({companyId:params.companyId,actorUserId,permission:'communication.send'})
+  await assertEdielTenantActor({companyId:params.companyId,actorUserId,permission:'communication.write'})
   const {data:siteData,error:siteError}=await supabase.from('customer_sites').select('*').eq('id',params.siteId).eq('company_id',params.companyId).eq('customer_id',params.customerId).abortSignal(AbortSignal.timeout(2000)).maybeSingle()
   if(siteError||!siteData)throw new Error('ai_list_customer_site_scope_mismatch')
   const site=siteData as unknown as CustomerSiteRow

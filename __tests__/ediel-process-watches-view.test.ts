@@ -28,7 +28,8 @@ describe('OPS02 actual readonly process-watch server consumer',()=>{
   html=await render();expect(html).toContain('Processbeslutet kunde inte hämtas');expect(html).not.toContain('private_other_company_source_secret');expect(html).not.toContain(source)
  })
  it('tenant/body authority, repeated selectors, invalid source IDs and unknown keys are rejected before source reads',async()=>{
-  for(const query of [{companyId:'foreign'},{environment:['test','production']},{sourceId:[source]},{sourceId:'guessed'},{environment:'any'},{action:'send'}])
+  const invalidQueries: Array<Record<string,string|string[]>> = [{companyId:'foreign'},{environment:['test','production']},{sourceId:[source]},{sourceId:'guessed'},{environment:'any'},{action:'send'}]
+  for(const query of invalidQueries)
    await expect(render(query)).rejects.toThrow('not_found')
   expect(io.read).not.toHaveBeenCalled()
  })

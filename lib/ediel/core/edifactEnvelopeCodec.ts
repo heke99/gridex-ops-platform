@@ -1,4 +1,5 @@
 import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
+import { edifactMessageReferenceMaximum } from '@/lib/ediel/core/edifactReferenceConstraints'
 import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { DEFAULT_UNA, escapeEdifactData, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatInterchangeBatchIssues } from '@/lib/ediel/prodat/prodatInterchangeBatch'
@@ -149,6 +150,9 @@ function encodeMessage(message: EdifactEnvelopeMessageInput): string[] {
   const messageTypeToken = trimOrNull(message.messageTypeToken)
   if (!messageReference) throw new Error('edifact_message_reference_required')
   if (!messageTypeToken) throw new Error('edifact_message_type_token_required')
+  const type = tokenizeEdifact(`UNH+1+${messageTypeToken}'`)
+  const maximum = edifactMessageReferenceMaximum(segmentComposite(type.segments[0], 2, type.una))
+  if (maximum !== null && message.messageReference.length > maximum) throw new Error('edifact_message_reference_length_invalid')
   const businessSegments = message.businessSegments.map(sanitizeSegment)
   return [
     `UNH+${escapeEdifactData(messageReference)}+${messageTypeToken}`,

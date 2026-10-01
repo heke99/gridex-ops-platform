@@ -1,3 +1,4 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
 import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParties'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
@@ -372,6 +373,9 @@ export async function processInboundUtiltsMessage(params: {
     throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
   }
 
+  if(!message.company_id) throw new Error('UTILTS-meddelandet saknar tenantkoppling.')
+  await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
+
   const runtimeTestCaseCode = await resolveUtiltsRuntimeTestCaseCode({
     sourceMessage: message,
     explicitTestCaseCode: params.testCaseCode ?? null,
@@ -469,6 +473,7 @@ export async function processInboundUtiltsMessage(params: {
     const contracts = await prepareUtiltsConsumptionContracts({ message: runtimeSourceMessage, runtime, policy: canonicalPolicy,
       matches: transactionMatches, dataRequest, fallback, allowConsumption: true })
     transactionPersistenceResults = await persistUtiltsTransactionResults({
+      actorUserId,
       companyId,
       environment: runtimeSourceMessage.environment,
       sourceMessageId: runtimeSourceMessage.id,

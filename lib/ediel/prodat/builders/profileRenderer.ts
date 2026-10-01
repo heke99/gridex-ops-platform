@@ -196,7 +196,7 @@ export function buildProfiledProdatSegments(input: {
 
   const bgmReference = context.bgmReference.trim()
   const bgmSegment = renderProdatDocumentHeader({ code: policy.code, documentId: bgmReference })
-  const exactLineReference=policy.code==='Z10'||policy.code==='Z05'&&policy.subtype==='LK'||['Z06','Z09'].includes(policy.code)&&policy.subtype==='E'
+  const exactLineReference=policy.code==='Z01'||policy.code==='Z10'||policy.code==='Z05'&&policy.subtype==='LK'||['Z06','Z09'].includes(policy.code)&&policy.subtype==='E'
   const lineItemReference = exactLineReference ? context.transactionReference : compactProdatReference(context.transactionReference || context.bgmReference, 35)
   const isPermissionMessage = policy.processGroup === 'metering_access'
   const isSupplierZ09 = policy.code === 'Z09'

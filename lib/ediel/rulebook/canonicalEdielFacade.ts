@@ -1,4 +1,5 @@
 export {canonicalMessageCode,canonicalLogicalMessageCodeProjection} from '@/lib/ediel/core/messageIdentity'
+export {EDIFACT_MESSAGE_REFERENCE_CONSTRAINTS as canonicalEdifactMessageReferenceConstraints} from '@/lib/ediel/core/edifactReferenceConstraints'
 export { EDIEL_ENERGY_SHARING_CAPABILITY } from '@/lib/ediel/rulebook/guideRegistry'
 import {AUTHORITATIVE_EDIEL_GUIDES} from '@/lib/ediel/rulebook/guideRegistry'
 import {
@@ -234,3 +235,4 @@ export function canonicalProdatMethodChangeTuple(subtype:'F'|'G'){
  if(!method||!reason)throw new Error('canonical_method_change_tuple_missing')
  return Object.freeze({subtype,reason,method})
 }
+export { EDIFACT_UNUSED_HEADER_CONSTRAINTS as canonicalEdifactUnusedHeaderConstraints } from '@/lib/ediel/core/edifactHeaderConstraints'

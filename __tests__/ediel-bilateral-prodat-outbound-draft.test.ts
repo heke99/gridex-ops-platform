@@ -66,10 +66,10 @@ it.each([{company_id:id(99)},{created_by:id(99)},{immutable_payload_hash:'f'.rep
 
 it('fresh persisted send qualification reads its actual private original rather than accepting row JSON or reissuing a witness',async()=>{
  const message={id:id(10),company_id:id(1),environment:'test',direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z03',raw_payload:raw,created_by:actor,parsed_payload:{bilateralCapabilityVerified:true}}
- rpc.mockResolvedValueOnce({data:receipt(),error:null} as never)
- const q=await qualifyPersistedBilateralProdatOutboundOriginal(message as never)
- expect(rpc).toHaveBeenCalledExactlyOnceWith('ediel_read_bilateral_prodat_outbound_original_v1',{p_company_id:id(1),p_message_id:id(10)})
+ rpc.mockResolvedValueOnce({data:{...receipt(),originalActorUserId:actor},error:null} as never)
+ const q=await qualifyPersistedBilateralProdatOutboundOriginal(message as never,actor)
+ expect(rpc).toHaveBeenCalledExactlyOnceWith('ediel_qualify_persisted_prodat_outbound_source_v1',{p_company_id:id(1),p_actor_user_id:actor,p_message_id:id(10)})
  expect(bilateralProdatOutboundDraftQualified(q)).toBe(true)
  rpc.mockResolvedValueOnce({data:null,error:null} as never)
- await expect(qualifyPersistedBilateralProdatOutboundOriginal(message as never)).rejects.toThrow('current_profile_required')
+ await expect(qualifyPersistedBilateralProdatOutboundOriginal(message as never,actor)).rejects.toThrow('current_profile_required')
 })

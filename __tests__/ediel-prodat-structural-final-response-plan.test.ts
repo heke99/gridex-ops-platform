@@ -68,3 +68,50 @@ it('an unsupported primary effect kind cannot qualify a positive reply',async()=
   io.data={version:1,sourceMessage:f.message,responseFacet:{...f.facet,assessmentId:uuid(3),effectScopes:[{...f.effect,effectKind:'caller_acceptance'}]}}
   expect(await readReceivedProdatFinalResponsePlan({companyId:f.message.company_id,sourceMessageId:f.message.id,rawPayload:f.message.raw_payload!})).toBeNull()
 })
+
+it.each([['Z04','supply'],['Z05','supply'],['Z14','metering_permission'],['Z15','metering_permission']] as const)(
+ 'a real %s receipt keeps its distinct domain owner and an unknown sibling held',async(code,effectKind)=>{
+  const f=fixture(),message={...f.message,message_code:code,raw_payload:f.message.raw_payload!.replace('BGM+Z06','BGM+'+code)}
+  const facet={...f.facet,sourcePayloadHash:evidenceHash(message.raw_payload)}
+  io.data={version:1,sourceMessage:message,responseFacet:{...facet,assessmentId:uuid(3),effectScopes:[{
+   ...f.effect,objectAssessmentId:null,effectKind,effectReceiptId:uuid(5),effectFactsHash:'a'.repeat(64),
+  }]}}
+  const result=await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload})
+  expect(result?.totalObjectCount).toBe(2)
+  expect(result?.plans).toHaveLength(1)
+  expect(result?.plans[0]).toMatchObject({effectKind,effectReceiptId:uuid(5),effectFactsHash:'a'.repeat(64),objectAssessmentId:null})
+  expect(receivedProdatFinalResponseQualification({plan:result!.plans[0],sourceMessage:message})).toEqual([f.effect.lineIndex])
+  expect(receivedProdatFinalResponseQualification({plan:structuredClone(result!.plans[0]),sourceMessage:message})).toBeNull()
+ })
+
+it('a domain outcome cannot borrow a structural assessment, effect kind or unbound receipt',async()=>{
+ const f=fixture(),message={...f.message,message_code:'Z04',raw_payload:f.message.raw_payload!.replace('BGM+Z06','BGM+Z04')}
+ const facet={...f.facet,sourcePayloadHash:evidenceHash(message.raw_payload)}
+ const effect={...f.effect,objectAssessmentId:null,effectKind:'supply',effectReceiptId:uuid(5),effectFactsHash:'a'.repeat(64)}
+ for(const wrong of [
+  {...effect,effectReceiptId:null},{...effect,effectFactsHash:null},{...effect,objectAssessmentId:uuid(4)},
+  {...effect,effectKind:'customer_version'},{...effect,effectKind:'metering_permission'},
+ ]){
+  io.data={version:1,sourceMessage:message,responseFacet:{...facet,assessmentId:uuid(3),effectScopes:[wrong]}}
+  expect(await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload})).toBeNull()
+ }
+})
+
+it('a committed Z14N processing receipt preserves the physical null209 scope without inventing an object identity',async()=>{
+ const message={...source(raw([...head(),['LIN','1'],['RFF',['LI','OWN-N']]],'Z14'),'Z14'),company_id:uuid(2)}
+ const lineIndex=tokenizeEdifact(message.raw_payload!).segments.find(segment=>segment.tag==='LIN')!.index
+ const facet:ReceivedProdatResponseValidation={version:1,sourcePayloadHash:evidenceHash(message.raw_payload!),
+  objects:[{lineIndex,registerLineIndices:[lineIndex],id:null,li:'OWN-N',outcome:'positive'}],
+  responses:[{scope:'object',lineIndex,ercCode:'100',fieldCode:null,text:'OK',id:null,li:'OWN-N'}]}
+ // The native permission-effect read is declared IO. A positive APERAK here
+ // acknowledges real processing; it does not grant metering access.
+ const effect={lineIndex,canonicalAssessmentId:uuid(3),objectAssessmentId:null,effectKind:'metering_permission',
+  effectReceiptId:uuid(5),effectFactsHash:'a'.repeat(64),appliedAt:'2026-10-01T01:00:00Z'}
+ io.data={version:1,sourceMessage:message,responseFacet:{...facet,assessmentId:uuid(3),effectScopes:[effect]}}
+ const result=await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+ expect(result?.totalObjectCount).toBe(1);expect(result?.plans).toHaveLength(1)
+ expect(result?.plans[0]).toMatchObject({objectLineIndices:[lineIndex],acknowledgedReferences:['OWN-N'],effectKind:'metering_permission'})
+ expect(receivedProdatFinalResponseQualification({plan:result!.plans[0],sourceMessage:message})).toEqual([lineIndex])
+ io.data={version:1,sourceMessage:message,responseFacet:{...facet,objects:[{...facet.objects[0],id:'INVENTED'}],assessmentId:uuid(3),effectScopes:[effect]}}
+ expect(await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload!})).toBeNull()
+})

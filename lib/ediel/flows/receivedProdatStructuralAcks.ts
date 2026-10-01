@@ -11,10 +11,10 @@ import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 
 /** Manual approval consumes actual native own effects. Each own response and
  * outbox identity is immutable; retries repair only an absent prepared outbox. */
-export async function createReceivedProdatStructuralAcks(input:{actorUserId:string;companyId:string;sourceMessageId:string;objectLineIndices?:readonly number[]}):Promise<string[]>{
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
+export async function createReceivedProdatCommittedEffectAcks(input:{actorUserId:string;companyId:string;sourceMessageId:string;objectLineIndices?:readonly number[]}):Promise<string[]>{
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
  const source=await getEdielMessageById(input.sourceMessageId)
- if(!source||source.company_id!==input.companyId||!source.raw_payload||source.direction!=='inbound'||source.message_family!=='PRODAT'||!['Z06','Z10'].includes(source.message_code))throw new Error('prodat_structural_response_source_required')
+ if(!source||source.company_id!==input.companyId||!source.raw_payload||source.direction!=='inbound'||source.message_family!=='PRODAT'||!['Z04','Z05','Z06','Z10','Z14','Z15'].includes(source.message_code))throw new Error('prodat_structural_response_source_required')
  const wire=tokenizeEdifact(source.raw_payload),physical=prodatRegisterGroups(wire.segments,wire.una,source.message_code).groups.filter(group=>group.registerPosition===1)
  const selected=input.objectLineIndices===undefined?physical:physical.filter(group=>input.objectLineIndices!.includes(group.segments[0].index))
  if(input.objectLineIndices&&(!input.objectLineIndices.length||new Set(input.objectLineIndices).size!==input.objectLineIndices.length||selected.length!==input.objectLineIndices.length))throw new Error('prodat_structural_response_scope_required')
@@ -27,7 +27,8 @@ export async function createReceivedProdatStructuralAcks(input:{actorUserId:stri
   if(refs.length!==1)continue
   const reference=segmentComposite(refs[0],1,wire.una)[1]
   if(!reference)continue
-  const retained=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:[reference]})
+  const retained=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:source,ackFamily:'APERAK',ackScope:'object',acknowledgedReferences:[reference],
+   acknowledgedProdatObjects:[{objectId:group.itemId,identityAgency:group.identityAgency,firstLineIndex:lineIndex,lineItemReference:reference}]})
   if(!retained)continue
   if(retained.ack_outcome!=='positive'){
    if(input.objectLineIndices)throw new Error('blocked_final_ack_exists: Originalets ACK-utfall är oföränderligt.')
@@ -46,7 +47,10 @@ export async function createReceivedProdatStructuralAcks(input:{actorUserId:stri
   if(fixed.has(plan.objectLineIndices[0]))continue
   const indices=receivedProdatFinalResponseQualification({plan,sourceMessage:final.sourceMessage})
   if(!indices)throw new Error('prodat_structural_response_own_effect_unavailable')
-  let ack=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:final.sourceMessage,ackFamily:'APERAK',outcome:'positive',ackScope:'object',acknowledgedReferences:plan.acknowledgedReferences})
+  const own=physical.find(group=>group.segments[0].index===indices[0])
+  if(!own||indices.length!==1)throw new Error('prodat_structural_response_scope_required')
+  let ack=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:final.sourceMessage,ackFamily:'APERAK',outcome:'positive',ackScope:'object',acknowledgedReferences:plan.acknowledgedReferences,
+   acknowledgedProdatObjects:[{objectId:own.itemId,identityAgency:own.identityAgency,firstLineIndex:indices[0],lineItemReference:plan.acknowledgedReferences[0]??null}]})
   const retained=ack!==null
   if(!ack){
    const qualification=await readSourceBoundOutboundAckRulePackEvidence({companyId:input.companyId,environment:source.environment,sourceMessageId:source.id})
@@ -56,8 +60,12 @@ export async function createReceivedProdatStructuralAcks(input:{actorUserId:stri
   }
   await createOutboxItem({actorUserId:input.actorUserId,message:ack,sourceMessageId:source.id,status:retained?'prepared':'queued',queueOnlyIfInserted:true,
    payload:{createdBy:'reviewed_structural_source_effect',sourceMessageId:source.id,objectLineIndices:indices,
-    canonicalAssessmentId:plan.canonicalAssessmentId,objectAssessmentId:plan.objectAssessmentId,effectKind:plan.effectKind,ackFamily:'APERAK',outcome:'positive'}})
+    canonicalAssessmentId:plan.canonicalAssessmentId,objectAssessmentId:plan.objectAssessmentId,effectReceiptId:plan.effectReceiptId,
+    effectFactsHash:plan.effectFactsHash,effectKind:plan.effectKind,ackFamily:'APERAK',outcome:'positive'}})
   ids.push(ack.id)
  }
  return ids
 }
+
+/** Existing manual structural routes consume the same committed-effect port. */
+export const createReceivedProdatStructuralAcks=createReceivedProdatCommittedEffectAcks

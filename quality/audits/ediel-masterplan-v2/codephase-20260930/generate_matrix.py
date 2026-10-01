@@ -4,6 +4,8 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 import subprocess
 
@@ -14,6 +16,16 @@ AUDIT = Path('quality/audits/ediel-masterplan-v2')
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def implementation_path_state(root, locator):
+    # Owners may record an exact callable within a real file. Keep that locator
+    # while hashing the file; a symbol is not a filesystem suffix or proof.
+    file_path, separator, symbol = locator.partition('#')
+    path = root / file_path
+    return {'path': locator, 'file_path': file_path,
+        'callable_locator': symbol if separator else None,
+        'exists': path.is_file(), 'sha256': digest(path) if path.is_file() else None}
 
 
 def package(ids):
@@ -29,6 +41,37 @@ def package(ids):
     if prefixes & {'GOV', 'ENV'}:
         return 'authority_versions_grammar_envelope'
     return 'api_ui_manual_readiness'
+
+
+PACKAGE_DEPENDENCIES = {
+    'authority_versions_grammar_envelope': ['shared_source_context_and_immutable_witness_contracts'],
+    'prodat_fields_functions_consumers': ['authority_versions_grammar_envelope', 'actors_routing_grants_persistence'],
+    'utilts_validation_dispositions_ack': ['authority_versions_grammar_envelope', 'actors_routing_grants_persistence'],
+    'actors_routing_grants_persistence': ['shared_source_context_and_immutable_witness_contracts', 'authority_versions_grammar_envelope'],
+    'processes_expectations_retry_transport': ['authority_versions_grammar_envelope', 'prodat_fields_functions_consumers', 'utilts_validation_dispositions_ack', 'actors_routing_grants_persistence'],
+    'api_ui_manual_readiness': ['authority_versions_grammar_envelope', 'actors_routing_grants_persistence', 'processes_expectations_retry_transport'],
+}
+
+
+def atomic_write_text(path, value):
+    # Low-space checkpoints must never truncate their only current artifact.
+    # The managed overlay reserves blocks from f_bavail, so inspect actual free
+    # blocks before writing a sibling temporary file and replacing atomically.
+    encoded = value.encode('utf-8')
+    disk = os.statvfs(path.parent)
+    if disk.f_bfree * disk.f_frsize < len(encoded) + 1024 * 1024:
+        raise OSError('Insufficient actual free blocks for atomic matrix checkpoint')
+    descriptor, temporary_name = tempfile.mkstemp(prefix=path.name + '.', suffix='.tmp', dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, 'wb') as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
 
 
 def main():
@@ -94,7 +137,7 @@ def main():
             if (unreviewed_parts or missing_consumers) and priority[status] < priority['SEMANTIC_REVIEW_PENDING']:
                 status = 'SEMANTIC_REVIEW_PENDING'
             paths = sorted({p for a in assessments for p in a.get('code_paths', [])})
-            paths_state = [{'path': p, 'exists': (root / p).is_file(), 'sha256': digest(root / p) if (root / p).is_file() else None} for p in paths]
+            paths_state = [implementation_path_state(root, p) for p in paths]
             rows.append({
                 'id': own_id, 'kind': kind,
                 'normative_requirement': {'registry': str(SPEC / 'registers' / registry), 'json_pointer': f'/{number}',
@@ -117,6 +160,11 @@ def main():
                     'broad_final_tests': 'NOT_RUN_IN_THIS_CODE_PHASE; exact immutable candidate SHA required'},
                 'code_package': package(linked), 'integration_owner': '/root',
                 'dependencies': sorted({c['id'] for c in calls if set(c['rule_ids']) & set(linked)}),
+                'implementation_dependencies': {'shared_contracts_first': 'shared_source_context_and_immutable_witness_contracts',
+                    'code_packages': PACKAGE_DEPENDENCIES[package(linked)],
+                    'actual_consumer_owners': sorted({a['owner'] for a in assessments}),
+                    'current_owner_dependency_or_blocker_notes': [b for a in assessments for b in a.get('blockers', [])],
+                    'meaning': 'Integration dependency order; capability activation still requires its own current authentic evidence and native consumer gate.'},
                 'code_status': status,
                 'fresh_normative_component_coverage': {'reviewed_rule_components': sorted(covered_rules),
                     'unreviewed_rule_components': unreviewed_parts,
@@ -166,7 +214,7 @@ def main():
             'Browser/E2E: manual/API/job/retry/adapter real consumers and accurate transport/ACK/business/readiness projections.',
             'Later manual: authorized synthetic fixture/operator workflows; production/counterparty/market activation excluded.']}}
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    (args.output_dir / 'work-matrix.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    atomic_write_text(args.output_dir / 'work-matrix.json', json.dumps(result, ensure_ascii=False, indent=2) + '\n')
     lines = ['# Ediel v2 code-phase work matrix', '', f'Inventory code head: `{head}`. Root is integration owner.', '',
         '352 exact frozen IDs are retained. Literal normative records, CALL/data/timer/state/field catalogs, inherited assessment provenance and individual final expected/prohibited criteria are in `work-matrix.json`.', '',
         'Code status is separate from formal evidence. Unreviewed inherited rows remain SEMANTIC_REVIEW_PENDING; file existence, test counts and this generator cannot establish whole-plan code completeness.', '',
@@ -174,7 +222,7 @@ def main():
     for r in rows:
         owners = ', '.join(sorted({a['owner'] for a in r['actual_implementation']['fresh_assessments']})) or 'Inherited lead; fresh review pending'
         lines.append(f"| {r['id']} | {r['code_package']} | {r['code_status']} | {owners} |")
-    (args.output_dir / 'work-matrix.md').write_text('\n'.join(lines) + '\n')
+    atomic_write_text(args.output_dir / 'work-matrix.md', '\n'.join(lines) + '\n')
     print(json.dumps(result['counts'], ensure_ascii=False))
 
 

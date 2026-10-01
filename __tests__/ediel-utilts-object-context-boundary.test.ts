@@ -103,42 +103,41 @@ describe('UTILTS object/processability context boundary', () => {
   })
 
   it('keeps parser-only validation and operations preview on the same central runtime boundary', () => {
-    const admissionAt = runtimeMessage().message_received_at!
-    const validation = validateUtilts(VALID_MONTHLY_E66, admissionAt)
-    const operations = runUtiltsOperationsEngine({ rawPayload: VALID_MONTHLY_E66, admissionAt })
+    const evaluationAt='2026-08-31T16:11:00Z'
+    const validation = validateUtilts(VALID_MONTHLY_E66,{evaluationAt})
+    const operations = runUtiltsOperationsEngine({ rawPayload: VALID_MONTHLY_E66,evaluationAt })
 
     expect(validation.classification).toBe('accepted')
     expect(validation.issues.some((issue) => issue.code === 'UTILTS_E66_UNKNOWN_METERING_POINT')).toBe(false)
     expect(operations.validation.classification).toBe('accepted')
     expect(operations.validation.issues.some((issue) => issue.code === 'UTILTS_E66_UNKNOWN_METERING_POINT')).toBe(false)
-    expect(operations.previewEvaluationAt).toBe(new Date(admissionAt).toISOString())
+    expect(operations.previewEvaluationAt).toBe(evaluationAt.replace('Z','.000Z'))
   })
 
-  it('keeps explicitly observed preview admission independent of the original document date',()=>{
+  it('keeps preview evaluation independent of the original document date',()=>{
     const rawPayload=VALID_MONTHLY_E66.replace('QTY+136:1000','QTY+136:500')
-    const prior=runUtiltsOperationsEngine({rawPayload,admissionAt:'2026-09-30T12:00:00Z'})
-    const current=runUtiltsOperationsEngine({rawPayload,admissionAt:'2026-10-01T12:00:00Z'})
+    const prior=runUtiltsOperationsEngine({rawPayload,evaluationAt:'2026-09-30T12:00:00Z'})
+    const current=runUtiltsOperationsEngine({rawPayload,evaluationAt:'2026-10-01T12:00:00Z'})
     expect(prior.ackPlan.utiltsErrCodes).toContain('E19')
     expect(current.ackPlan.utiltsErrCodes).not.toContain('E19')
     expect(current.facts.rawSegments).toContain('DTM+137:202608311811:203')
     expect(current.previewEvaluationAt).toBe('2026-10-01T12:00:00.000Z')
   })
 
-  it('holds raw-only validation and preview without observed admission rather than selecting from a hidden clock', () => {
-    expect(() => validateUtilts(VALID_MONTHLY_E66)).toThrow('ediel_admission_time_missing')
-    expect(() => runUtiltsOperationsEngine({ rawPayload: VALID_MONTHLY_E66 })).toThrow('ediel_admission_time_missing')
-    expect(() => validateUtilts(VALID_MONTHLY_E66, 'invalid')).toThrow('ediel_admission_time_missing')
+  it('rejects an invalid explicit evaluation clock without creating an ingress receipt', () => {
+    expect(() => validateUtilts(VALID_MONTHLY_E66, {evaluationAt:'invalid'})).toThrow('ediel_evaluation_time_invalid')
+    expect(() => runUtiltsOperationsEngine({ rawPayload: VALID_MONTHLY_E66,evaluationAt:'invalid' })).toThrow('ediel_evaluation_time_invalid')
   })
 
-  it('keeps a replay observed admission stable despite a later wall clock and unchanged older UNB date', () => {
+  it('keeps an explicit preview evaluation stable despite a later wall clock and unchanged older UNB date', () => {
     const raw = VALID_MONTHLY_E66.replace('QTY+220:11000', 'QTY+220:11001')
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2030-01-01T00:00:00Z'))
     try {
-      expect(validateUtilts(raw, '2026-08-31T18:11:00+02:00').issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(true)
-      expect(runUtiltsOperationsEngine({ rawPayload: raw, admissionAt: '2026-08-31T18:11:00+02:00' })
+      expect(validateUtilts(raw, {evaluationAt:'2026-08-31T18:11:00+02:00'}).issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(true)
+      expect(runUtiltsOperationsEngine({ rawPayload: raw, evaluationAt: '2026-08-31T18:11:00+02:00' })
         .validation.issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(true)
-      expect(validateUtilts(raw, '2026-10-01T18:11:00+02:00').issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(false)
+      expect(validateUtilts(raw, {evaluationAt:'2026-10-01T18:11:00+02:00'}).issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(false)
     } finally { vi.useRealTimers() }
   })
 })

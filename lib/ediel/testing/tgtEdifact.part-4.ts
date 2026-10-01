@@ -1,3 +1,5 @@
+import {isQualifiedCustomerEventTestOriginal,type SourceQualifiedCustomerEventTestOriginal} from '@/lib/ediel/production/lifeEventCertificationSource'
+import {assertDeathStatusContextMatches,isQualifiedDeathStatusContext,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {validateProdatMeterChange} from '@/lib/ediel/rulebook/prodatMeterChangePolicy'
@@ -27,7 +29,7 @@ import { getEdielTgtTestCaseByCode, type EdielTgtExpectedStep } from "@/lib/edie
 
 import type { ParsedEdifactSegments, EdielTgtDraftBuildParams, EdielTgtDraftBuildResult, EdielTgtDraftValidationIssue, TgtPortalCustomerData } from './tgtEdifact.part-1'
 import { nowRefs, testActorId, testPortalEmail, testPortalId, testReceiverSubaddress, testSenderSubaddress } from './tgtEdifact.part-1'
-import { buildInterchange } from './tgtEdifact.part-2'
+import { buildInterchange,buildTgtProdatTransactionType } from './tgtEdifact.part-2'
 import { buildAckDraft, buildPortalProdatSegments, buildUtiltsDraft, parseEdifactSegments, pushIssue, validatePortalDataCoverage } from './tgtEdifact.part-3'
 
 /** Qualified reporting references may contain released characters, including apparent tags. */
@@ -57,8 +59,10 @@ export function validateEdielTgtDraft(
     portalRows?: TgtPortalCustomerData[];
     registerFacts?: ProdatDependentConditionFacts;
     reportingContext?:ExpectedContext;
+    deathStatusContext?:DeathStatusValidationContext;
   },
 ): EdielTgtDraftValidationIssue[] {
+  if(expected?.deathStatusContext&&(!isQualifiedDeathStatusContext(expected.deathStatusContext)||expected.deathStatusContext.direction!=='outbound'||expected.deathStatusContext.rawPayload!==rawPayload||expected.deathStatusContext.code!==step.code))throw new Error('customer_life_event_source_context_mismatch');
   const issues: EdielTgtDraftValidationIssue[] = [];
   const normalized = rawPayload.toUpperCase();
   const expectedActorEdielId =
@@ -75,7 +79,7 @@ export function validateEdielTgtDraft(
   if (step.family === 'PRODAT') {
     const wire = tokenizeEdifact(rawPayload);
     for(const failure of validateProdatGasApplicability({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
-    for(const failure of validateProdatDeathStatus({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
+    for(const failure of validateProdatDeathStatus({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.deathStatusContext?{...expected.registerFacts,deathStatus:expected.deathStatusContext.selection}:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
     for(const failure of validateProdatMeterChange({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,direction:step.actor==='portal'?'inbound':'outbound'}))pushIssue(issues,failure.severity,failure.code,failure.title,failure.description);
     for(const failure of validateProdatReportingPermission({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts,reportingContext:expected?.reportingContext}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
     for(const failure of validateProdatDateEvents({code:step.code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,facts:expected?.registerFacts}))pushIssue(issues,'error',failure.code,failure.title,failure.description);
@@ -406,6 +410,32 @@ export function validateEdielTgtDraft(
   return issues;
 }
 
+const retainedDraftValidation=new WeakMap<EdielTgtDraftBuildResult,(context:DeathStatusValidationContext)=>EdielTgtDraftValidationIssue[]>();
+/** Second source phase re-runs the complete original validator, with no
+ * diagnostic removal and no new render/reference allocation. */
+export function revalidateEdielTgtCustomerLifeEventDraft(draft:EdielTgtDraftBuildResult,context:DeathStatusValidationContext):void{
+ const validate=retainedDraftValidation.get(draft);if(!validate)throw new Error('tgt_original_draft_validation_required');
+ const m=draft.messageInput;assertDeathStatusContextMatches({company_id:m.companyId,environment:m.environment,direction:m.direction,message_family:m.messageFamily,message_code:m.messageCode,raw_payload:m.rawPayload,intent_id:m.intentId??null,communication_route_id:m.communicationRouteId},context);
+ if(m.rawPayload!==draft.rawPayload||context.certification?.authorizesBusinessEffect!==false)throw new Error('tgt_customer_event_source_only_required');
+ const issues=validate(context),hasErrors=issues.some(i=>i.severity==='error');draft.validationIssues=issues;
+ m.status=hasErrors?'draft':'prepared';m.parsedPayload={...m.parsedPayload,readyForDownload:!hasErrors,validationIssues:issues};m.validationReport={...m.validationReport,readyForEdielPortal:!hasErrors,issues};
+}
+
+/** Exact registered protocol bytes are kept intact. The existing versioned
+ * case/subtype owner must independently contain an E step; known F/G/D cases
+ * are never relabelled by a source payload or classification. */
+export function buildEdielTgtRegisteredCustomerEventDraft(params:EdielTgtDraftBuildParams,original:SourceQualifiedCustomerEventTestOriginal):EdielTgtDraftBuildResult{
+ const definition=getEdielTgtTestCaseByCode(params.testSuite,params.roleCode,params.testCaseCode),step=definition?.expectedSteps.find(s=>s.stepNo===params.stepNo),b=original.basis,q=b.registeredCase;
+ if(!isQualifiedCustomerEventTestOriginal(original)||!definition||!step||step.actor!=='gridex'||step.direction!=='outbound'||step.family!=='PRODAT'||step.code!=='Z09'||params.roleCode!=='supplier'||b.companyId!==params.systemTestContext.companyId||b.runId!==params.testRunId||!q||q.roleCode!==params.roleCode||q.caseCode!==params.testCaseCode||q.suite!==params.testSuite||q.stepNo!==params.stepNo||q.revision!==definition.approvalVersion||buildTgtProdatTransactionType(params,step)!=='Z09E')throw Error('tgt_versioned_customer_event_case_source_required');
+ const rawPayload=original.rawPayload,wire=tokenizeEdifact(rawPayload),one=(tag:string)=>{const found=wire.segments.filter(s=>s.tag===tag);if(found.length!==1)throw Error('tgt_registered_customer_event_envelope_required');return found[0]},unb=one('UNB'),unh=one('UNH'),bgm=one('BGM');one('UNZ');one('UNT');
+ const interchange=segmentComposite(unb,5,wire.una)[0],external=segmentComposite(bgm,2,wire.una)[0],sender=segmentComposite(unb,2,wire.una),receiver=segmentComposite(unb,3,wire.una),applicationReference=segmentComposite(unb,7,wire.una)[0],family=segmentComposite(unh,2,wire.una)[0];
+ if(!interchange||!external||family!=='PRODAT'||segmentComposite(bgm,1,wire.una)[0]!=='Z09'||rawPayload!==b.rawPayload)throw Error('tgt_registered_customer_event_envelope_required');
+ const expected={actorEdielId:testActorId(params),testPortalEdielId:testPortalId(params),receiverSubaddress:testReceiverSubaddress(params),applicationReference:resolveEdielTgtProdatApplicationReference({roleCode:params.roleCode,testCaseCode:params.testCaseCode,messageCode:'Z09'}),sourceTestData:params.importedTestData,registerFacts:{...params.registerFacts,deathStatus:b.selection}};
+ const validationIssues=validateEdielTgtDraft(rawPayload,step,null,expected),hasErrors=validationIssues.some(i=>i.severity==='error'),fileName=`gridex_tgt_registered_${params.testCaseCode.replace(/\./g,'_')}_s${params.stepNo}.edi`;
+ const result:EdielTgtDraftBuildResult={step,fileName,rawPayload,validationIssues,messageInput:{actorUserId:params.actorUserId,companyId:b.companyId,direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z09',messageVersion:'26A',processType:'tgt_prodat_portal_test',environment:'test',testFlag:1,status:hasErrors?'draft':'prepared',transportType:'manual_upload',communicationRouteId:null,mailbox:'tgt-file-engine',mailboxMessageId:interchange,senderEdielId:sender[0],senderSubAddress:sender[2]||null,receiverEdielId:receiver[0],receiverSubAddress:receiver[2]||null,receiverEmail:testPortalEmail(params),subject:`Gridex TGT ${params.testCaseCode} steg ${params.stepNo} PRODAT/Z09`,fileName,mimeType:'application/EDIFACT',interchangeReference:interchange,externalReference:external,transactionReference:null,applicationReference:applicationReference||null,rawPayload,parsedPayload:{testRunId:params.testRunId??null,testSuite:params.testSuite,roleCode:params.roleCode,testCaseCode:params.testCaseCode,stepNo:params.stepNo,source:'registered_customer_event_test_original',readyForDownload:!hasErrors,validationIssues},validationReport:{source:'registered_customer_event_test_original',readyForEdielPortal:!hasErrors,issues:validationIssues},requiresContrl:true,requiresAperak:true,contrlStatus:'pending',aperakStatus:'pending',utiltsErrStatus:'not_required',ackOutcome:null}};
+ retainedDraftValidation.set(result,context=>validateEdielTgtDraft(rawPayload,step,null,{...expected,deathStatusContext:context}));return result;
+}
+
 export function buildEdielTgtDraft(
   params: EdielTgtDraftBuildParams,
 ): EdielTgtDraftBuildResult {
@@ -622,6 +652,7 @@ export function buildEdielTgtDraft(
       messageCreatedAt: new Date().toISOString(),
     },
   };
+  retainedDraftValidation.set(result,context=>validateEdielTgtDraft(rawPayload,step,portalBuild?.portalData??null,{actorEdielId:testActorId(params),testPortalEdielId:testPortalId(params),receiverSubaddress:testReceiverSubaddress(params),applicationReference:prodatApplicationReference,sourceTestData:params.importedTestData,portalRows:portalBuild?.portalRows,registerFacts:params.registerFacts,reportingContext:params.reportingContext,deathStatusContext:context}));
   assertTgtDateEventDraft(result.messageInput,params.dateEventContext);
   assertTgtReportingDraft(result.messageInput,params.reportingContext);
   return result;

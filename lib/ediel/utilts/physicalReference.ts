@@ -11,3 +11,11 @@ export function isValidUtiltsTransactionReference(value: unknown): value is stri
   return typeof value === 'string' && value.length > 0 && value.length <= 35 &&
     !/^ *$/.test(value) && !/ $/.test(value) && !/[\x00-\x1f\x7f-\x9f\u0100-\uffff]/.test(value)
 }
+
+/** A copied original is an observation, not admission of its own505 shape.
+ * Its caller supplies the national copied field's capacity. Preserve decoded
+ * spaces and punctuation; control/non-UNOC bytes cannot enter an output wire. */
+export function isCopyableUtiltsReference(value:unknown,maximumDecodedLength:number):value is string {
+ return Number.isSafeInteger(maximumDecodedLength)&&maximumDecodedLength>0&&typeof value==='string'&&value.length>0&&value.length<=maximumDecodedLength
+  &&!/[\x00-\x1f\x7f-\x9f\u0100-\uffff]/.test(value)
+}

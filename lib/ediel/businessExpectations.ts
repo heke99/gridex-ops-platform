@@ -7,7 +7,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 export {EDIEL_TECHNICAL_ACK_EXPECTATION_CONSTRAINTS,prepareEdielTechnicalExpectationPlan,type EdielTechnicalExpectationPlan} from '@/lib/ediel/technicalExpectations'
 
 export type EdielBusinessExpectationPlan = Readonly<{
-  version: 1; sourceCode: 'Z01' | 'Z13' | 'Z18'; expectedFamily: 'PRODAT'; expectedCode: string;
+  version: 1; sourceCode: 'Z01' | 'Z13' | 'Z18' | 'Z08'; expectedFamily: 'PRODAT'; expectedCode: string;
   expectedSubtypes: readonly string[]; timerRuleId: string | null; offset: number | null; unit: 'minutes' | 'calendar_days' | null;
   anchor: 'actual_accepted_smtp_observed_at'; timerKind: 'internal_sender_watch' | 'untimed_business_response'; remoteReceiptKnown: false;
   deadlineSource: unknown; policy: { guideRevision: string; referenceDate: string; profileKey: string | null; sourceTrace: CanonicalEdielPolicy['sourceTrace'] };
@@ -21,10 +21,12 @@ export function prepareEdielBusinessExpectationPlan(message: EdielMessageRow, po
   // message per source. A manual multi-message source must not pass SMTP and
   // discover only afterwards that its response watches cannot be registered.
   const hasBusinessExpectation = physical.segments.some(segment => segment.tag === 'BGM'
-    && ['Z01', 'Z13', 'Z18'].includes(segmentComposite(segment, 1, physical.una)[0]))
+    && (['Z01', 'Z13', 'Z18'].includes(segmentComposite(segment, 1, physical.una)[0])
+      || segmentComposite(segment, 1, physical.una)[0] === 'Z08' && physical.segments.some(value => value.tag === 'CAV' && segmentComposite(value, 1, physical.una)[0] === 'Z25')))
   if (hasBusinessExpectation && physical.segments.filter(segment => segment.tag === 'UNH').length !== 1) throw new Error('ediel_expectation_multiple_message_scope_not_supported')
   const canonical = parseCanonicalMessageRow(message)
-  if (canonical.family !== 'PRODAT' || !['Z01', 'Z13', 'Z18'].includes(canonical.messageCode ?? '')) return null
+  if (canonical.family !== 'PRODAT' || !(['Z01', 'Z13', 'Z18'].includes(canonical.messageCode ?? '')
+    || canonical.messageCode === 'Z08' && canonicalProdatSubtypeForMessage('Z08', canonical.subtype) === 'H')) return null
   if (message.direction !== 'outbound' || policy.direction !== 'outbound' || policy.family !== 'PRODAT'
     || policy.code !== canonical.messageCode || policy.subtype !== canonicalProdatSubtypeForMessage(canonical.messageCode ?? '', canonical.subtype)) throw new Error('ediel_expectation_policy_source_mismatch')
   const responses = policy.businessResponses.map(value => value.split(':')).filter(value => value[0] === 'PRODAT')
@@ -32,11 +34,11 @@ export function prepareEdielBusinessExpectationPlan(message: EdielMessageRow, po
   if (codes.length !== 1 || !codes[0]) throw new Error('ediel_expectation_source_response_missing')
   const expectedCode = codes[0]
   const expectedSubtypes = [...new Set(responses.flatMap(value => value[2] ? [value[2]] : []))]
-  const deadline = canonicalDeadlineForMessage({ family: 'PRODAT', code: expectedCode, subtype: policy.subtype })
+  const deadline = canonicalDeadlineForMessage({ family: 'PRODAT', code: expectedCode, subtype: canonical.messageCode === 'Z08' ? 'L' : policy.subtype })
   const constraint = deadline?.constraints.find(value => value.kind === 'within_after' && (value.unit === 'minutes' || value.unit === 'calendar_days'))
-  const offset = canonical.messageCode === 'Z01' ? canonicalZ01BusinessResponseDeadlineMinutesProjection() : constraint?.offset ?? null
+  const offset = canonical.messageCode === 'Z08' ? null : canonical.messageCode === 'Z01' ? canonicalZ01BusinessResponseDeadlineMinutesProjection() : constraint?.offset ?? null
   const unit = offset === null ? null : canonical.messageCode === 'Z01' ? 'minutes' : constraint?.unit === 'calendar_days' ? 'calendar_days' : 'minutes'
-  return Object.freeze({ version: 1, sourceCode: canonical.messageCode as 'Z01' | 'Z13' | 'Z18', expectedFamily: 'PRODAT', expectedCode,
+  return Object.freeze({ version: 1, sourceCode: canonical.messageCode as 'Z01' | 'Z13' | 'Z18' | 'Z08', expectedFamily: 'PRODAT', expectedCode,
     expectedSubtypes: Object.freeze(expectedSubtypes), timerRuleId: canonical.messageCode === 'Z01' ? 'TM-Z02' : canonical.messageCode === 'Z13' ? 'TM-ESCO21' : null,
     offset, unit, anchor: 'actual_accepted_smtp_observed_at', timerKind: offset === null ? 'untimed_business_response' : 'internal_sender_watch', remoteReceiptKnown: false,
     deadlineSource: deadline?.source ?? null, policy: Object.freeze({ guideRevision: policy.guide.guideRevision, referenceDate: policy.referenceDate,

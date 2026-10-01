@@ -6,7 +6,8 @@ import {evidenceHash,isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/d
 
 export type ReceivedProdatFinalResponsePlan=Readonly<{
  outcome:'positive';objectLineIndices:readonly number[];acknowledgedReferences:readonly string[];
- canonicalAssessmentId:string;objectAssessmentId:string;effectAppliedAt:string;effectKind:'structural'|'customer_version';
+ canonicalAssessmentId:string;objectAssessmentId:string|null;effectReceiptId:string|null;effectFactsHash:string|null;
+ effectAppliedAt:string;effectKind:'structural'|'customer_version'|'supply'|'metering_permission';
 }>
 const owners=new WeakMap<ReceivedProdatFinalResponsePlan,{companyId:string;environment:string;sourceMessageId:string;sourceHash:string}>()
 
@@ -22,20 +23,32 @@ export async function readReceivedProdatFinalResponsePlan(input:{companyId:strin
  const source=data.sourceMessage as unknown as EdielMessageRow
  if(source.id!==input.sourceMessageId||source.company_id!==input.companyId||source.raw_payload!==input.rawPayload
   ||source.direction!=='inbound'||source.message_standard!=='edifact'||source.message_family!=='PRODAT'
-  ||!['Z06','Z10'].includes(source.message_code)||!['test','production'].includes(source.environment))return null
+  ||!['Z04','Z05','Z06','Z10','Z14','Z15'].includes(source.message_code)||!['test','production'].includes(source.environment))return null
  const {assessmentId,effectScopes,...candidate}=data.responseFacet
  if(!isEvidenceUuid(assessmentId)||!Array.isArray(effectScopes)||!effectScopes.length)return null
  const facet=bindReceivedProdatResponseValidation(candidate,input.rawPayload)
  if(!facet)return null
  const plans:ReceivedProdatFinalResponsePlan[]=[]
  for(const effect of effectScopes){
-  if(!isEvidenceRecord(effect)||!Number.isSafeInteger(effect.lineIndex)||!isEvidenceUuid(effect.canonicalAssessmentId)||!isEvidenceUuid(effect.objectAssessmentId)
-   ||typeof effect.appliedAt!=='string'||!Number.isFinite(Date.parse(effect.appliedAt))||effect.effectKind!==undefined&&effect.effectKind!=='structural'&&effect.effectKind!=='customer_version'||plans.some(plan=>plan.objectLineIndices[0]===effect.lineIndex))return null
+  if(!isEvidenceRecord(effect)||!Number.isSafeInteger(effect.lineIndex)||!isEvidenceUuid(effect.canonicalAssessmentId)
+   ||typeof effect.appliedAt!=='string'||!Number.isFinite(Date.parse(effect.appliedAt))||plans.some(plan=>plan.objectLineIndices[0]===effect.lineIndex))return null
+  const effectKind=effect.effectKind===undefined?'structural':effect.effectKind
+  const domainEffect=effectKind==='supply'||effectKind==='metering_permission'
+  if(domainEffect){
+   // A distinct native owner supplies its real effect receipt. It does not
+   // fabricate a structural/object-assessment UUID to fit this projection.
+   if(effect.objectAssessmentId!==null||!isEvidenceUuid(effect.effectReceiptId)||typeof effect.effectFactsHash!=='string'
+    ||!/^[a-f0-9]{64}$/.test(effect.effectFactsHash)
+    ||!(effectKind==='supply'?['Z04','Z05']:['Z14','Z15']).includes(source.message_code))return null
+  }else if(!isEvidenceUuid(effect.objectAssessmentId)
+   ||!(effectKind==='structural'?['Z06','Z10']:effectKind==='customer_version'?['Z06']:[]).includes(source.message_code))return null
   const own=facet.objects.find(object=>object.lineIndex===effect.lineIndex),responses=facet.responses.filter(response=>response.lineIndex===effect.lineIndex)
   if(!own||own.outcome!=='positive'||!own.li||responses.length!==1||responses[0].scope!=='object'||responses[0].ercCode!=='100'
    ||responses[0].id!==own.id||responses[0].li!==own.li||responses[0].fieldCode!==null)return null
   const plan:ReceivedProdatFinalResponsePlan=Object.freeze({outcome:'positive',objectLineIndices:Object.freeze([own.lineIndex]),acknowledgedReferences:Object.freeze([own.li]),
-   canonicalAssessmentId:effect.canonicalAssessmentId,objectAssessmentId:effect.objectAssessmentId,effectAppliedAt:effect.appliedAt,effectKind:effect.effectKind==='customer_version'?'customer_version':'structural'})
+   canonicalAssessmentId:effect.canonicalAssessmentId,objectAssessmentId:domainEffect?null:effect.objectAssessmentId as string,
+   effectReceiptId:domainEffect?effect.effectReceiptId as string:null,effectFactsHash:domainEffect?effect.effectFactsHash as string:null,
+   effectAppliedAt:effect.appliedAt,effectKind:effectKind as ReceivedProdatFinalResponsePlan['effectKind']})
   owners.set(plan,{companyId:input.companyId,environment:source.environment,sourceMessageId:source.id,sourceHash:evidenceHash(input.rawPayload)})
   plans.push(plan)
  }

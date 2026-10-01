@@ -5,9 +5,9 @@ vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.act
 import {loadServicePermissionRecoveryOrigin} from '@/lib/ediel/services/permissionOrigin'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const scope={companyId:id(1),operationId:id(2),actorUserId:id(3)}
-const basis={status:'authorized',companyId:id(1),assignmentId:id(4),assignmentVersion:2,scopeBasisVersion:1,code:'Z18',customer:{org_number:'SYNTHETIC-CUSTOMER',company_name:'Synthetic',country:'SE'},mode:'V',terminationReason:'Z32',li:'owned-li',objects:[{point:'owned-point',permissionId:'source-permission',product:'8716867000030'}]}
-const original={id:id(5),company_id:id(1),direction:'outbound',message_family:'PRODAT',message_code:'Z18',intent_id:id(6),parsed_payload:{sourcePermissionBasis:basis}}
-const recovery={originalMessageId:id(5),operationId:id(2),correctedPayloadHash:'a'.repeat(64),allowedObjects:[{point:'owned-point',li:'owned-li',customerIdentity:'SYNTHETIC-CUSTOMER',reason:'Z32'}]}
+const basis={status:'authorized',companyId:id(1),assignmentId:id(4),assignmentVersion:2,scopeBasisVersion:1,code:'Z18',environment:'test',customerId:id(8),customer:{org_number:'SYNTHETIC-CUSTOMER',company_name:'Synthetic',country:'SE'},mode:'V',terminationReason:'Z32',li:'owned-li',objects:[{point:'owned-point',permissionId:'source-permission',product:'8716867000030'}]}
+const original={id:id(5),company_id:id(1),direction:'outbound',message_family:'PRODAT',message_code:'Z18',environment:'test',customer_id:id(8),intent_id:id(6),parsed_payload:{sourcePermissionBasis:basis}}
+const recovery={originalMessageId:id(5),sourceOriginMessageId:id(5),operationId:id(2),correctedPayloadHash:'a'.repeat(64),allowedObjects:[{point:'owned-point',li:'owned-li',customerIdentity:'SYNTHETIC-CUSTOMER',reason:'Z32'}]}
 beforeEach(()=>{
  vi.clearAllMocks();io.actor.mockResolvedValue(undefined)
  io.rpc.mockImplementation(async(name:string)=>({data:name==='ediel_prodat_recovery_operation_basis_v1'?recovery:{basis,intentId:id(6),actorUserId:id(7)},error:null}))
@@ -16,7 +16,8 @@ beforeEach(()=>{
 it('uses qualified private recovery and current original origin for Z18 without binding the new intent to the old one',async()=>{
  const result=await loadServicePermissionRecoveryOrigin(scope)
  expect(result?.basis.assignmentId).toBe(id(4));expect(result?.sourceIntentId).toBe(id(6))
- expect(io.actor).toHaveBeenCalledWith({companyId:scope.companyId,actorUserId:scope.actorUserId,permissionAnyOf:['ediel.send','communication.send']})
+ expect(io.actor).toHaveBeenCalledWith({companyId:scope.companyId,actorUserId:scope.actorUserId,permission:'communication.write'})
+ expect(io.rpc).toHaveBeenCalledWith('ediel_service_permission_message_basis_v1',{p_company_id:scope.companyId,p_message_id:original.id,p_actor_user_id:scope.actorUserId,p_phase:'prepare'})
 })
 it('does not follow public original selectors when private recovery qualification is absent',async()=>{
  io.rpc.mockResolvedValue({data:null,error:null});expect(await loadServicePermissionRecoveryOrigin(scope)).toBeUndefined();expect(io.from).not.toHaveBeenCalled()

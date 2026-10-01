@@ -1,3 +1,6 @@
+import { readRegistryRouteSource, type SourceQualifiedRegistryRoute } from '@/lib/actor-registry/registryMarketSource';
+import {readZ01OriginalForRequest} from '@/lib/ediel/prodat/z01OriginalReplay'
+import {allocateZ01WireReferences,type Z01WireReferences} from '@/lib/ediel/prodat/z01WireReferences'
 // lib/ediel/flows/prodatCustomerMasterdata.ts
 
 import { getGridOwnerById } from "@/lib/masterdata/db";
@@ -34,7 +37,6 @@ import {
   Z01_FACILITY_IDENTIFIER_NEXT_ACTION,
   Z01_FACILITY_IDENTIFIER_ROUTE_STATUS,
 } from "@/lib/customer-operations/z01Prerequisites";
-import { buildCanonicalOutboundReferences } from "@/lib/ediel/core/referenceRegistry";
 import { materializeCompanyGridOwnerRoute } from "@/lib/ediel/routeMaterializer";
 import { resolveCustomerInfoOperationEnvironment } from "@/lib/ediel/customerInfoEnvironmentResolver";
 import { resolveCanonicalOutboundVersion } from "@/lib/ediel/core/versionRegistry";
@@ -73,48 +75,6 @@ type PrepareResult = {
       })
     | null;
 };
-
-function sanitize(value?: string | null): string {
-  return (value ?? "")
-    .replace(/[\r\n'+]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function shortProdatTimestamp(): string {
-  const now = new Date();
-  const year = String(now.getFullYear()).slice(-2);
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hour = String(now.getHours()).padStart(2, "0");
-  const minute = String(now.getMinutes()).padStart(2, "0");
-  return `${year}${month}${day}${hour}${minute}`;
-}
-
-function randomToken(length = 3): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < length; i += 1)
-    out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
-}
-
-function compactReference(
-  value: string | null | undefined,
-  fallbackPrefix: string,
-  maxLength: number,
-): string {
-  const cleaned = sanitize(value)
-    .toUpperCase()
-    .replace(/[^A-Z0-9_.\/-]/g, "");
-  if (cleaned) return cleaned.slice(0, maxLength);
-  return `${fallbackPrefix}${shortProdatTimestamp()}${randomToken(3)}`.slice(
-    0,
-    maxLength,
-  );
-}
-
-
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -376,15 +336,16 @@ async function findVerifiedPlatformActorRoute(input: {
     .eq("environment", input.environment)
     .eq("status", "active")
     .eq("is_verified", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(100);
   if (error) {
     const code = (error as { code?: string }).code ?? "";
     if (["42P01", "42703", "PGRST204", "PGRST205"].includes(code)) return null;
     throw error;
   }
-  return text((data as { id?: string } | null)?.id);
+  const sources = await Promise.all(((data ?? []) as Array<{ id: string }>).map(row => readRegistryRouteSource(row.id)));
+  const qualified = sources.filter((source): source is SourceQualifiedRegistryRoute => source.status === "source_qualified").filter(source => source.market === "EL");
+  if (qualified.length > 1) throw new Error("ediel_registry_current_el_route_ambiguous");
+  return qualified[0]?.routeId ?? null;
 }
 
 async function findCompanyMarketPartyRoute(input: {
@@ -422,6 +383,7 @@ export function buildProdatZ01Draft(params: {
   externalReference: string;
   transactionReference: string;
   messageVersion: string;
+  wireReferences: Z01WireReferences;
 }): Promise<CreateEdielMessageInput> {
   return buildCustomerMasterdataZ01Draft({
     ...params,
@@ -451,6 +413,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
 
   const operationId = params.operationId ?? dataRequest.operation_id ?? null;
   const companyId = dataRequest.company_id;
+  if(companyId){
+    const response=asRecord(dataRequest.response_payload)
+    const prior=await readZ01OriginalForRequest({actorUserId,companyId,requestId:dataRequest.id,requestKind:'customer_masterdata',customerId:dataRequest.customer_id,siteId:dataRequest.site_id,operationId,
+      environment:params.environment,routeId:params.communicationRouteId,messageIds:[text(response.edielMessageId),text(response.ediel_message_id)],outboundIds:[text(response.outboundRequestId)]})
+    if(prior)return {dataRequest,outbound:prior.outbound,message:prior.message,prepared:true,blockerReason:null,blockerCode:null,blockerDetails:null}
+  }
 
   const gridOwner = dataRequest.grid_owner_id
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
@@ -987,25 +955,12 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     },
   });
 
-  const refs = buildCanonicalOutboundReferences({
-    family: "PRODAT",
-    code: "Z01",
-    relatedMessageId: dataRequest.id,
-    preferredExternalReference:
-      outbound.external_reference ?? dataRequest.external_reference ?? null,
-    preferredTransactionReference:
-      dataRequest.external_reference ?? outbound.external_reference ?? null,
+  const wireReferences = allocateZ01WireReferences({
+    documentReference: outbound.external_reference ?? dataRequest.external_reference ?? null,
+    transactionReference: dataRequest.external_reference ?? outbound.external_reference ?? null,
   });
-  const externalReference = compactReference(
-    refs.externalReference ?? dataRequest.external_reference,
-    "Z01",
-    20,
-  );
-  const transactionReference = compactReference(
-    refs.transactionReference ?? dataRequest.external_reference,
-    "LIZ01",
-    25,
-  );
+  const externalReference = wireReferences.documentReference;
+  const transactionReference = wireReferences.transactionReference;
   const messageVersion =
     (await resolveCanonicalOutboundVersion({
       family: "PRODAT",
@@ -1105,8 +1060,8 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     facilityId: z01Prerequisites.facilityId ?? facilityIdFromDataRequest(dataRequest),
     meteringPointId: z01Prerequisites.meteringPointId ?? dataRequest.metering_point_id,
     gridAreaCode: gridAreaCodeFromDataRequest(dataRequest),
-    interchangeReference: externalReference,
-    messageReference: externalReference,
+    interchangeReference: wireReferences.interchangeReference,
+    messageReference: wireReferences.messageReference,
     transactionReference,
     idempotencyKey: [
       "customer_masterdata",
@@ -1120,6 +1075,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
     },
     payload: {
       ...(dataRequest.request_payload ?? {}),
+      documentReference: wireReferences.documentReference,
       outbound_request_id: outbound.id,
       grid_owner_data_request_id: dataRequest.id,
       authorization_document_id: dataRequest.authorization_document_id ?? null,
@@ -1263,6 +1219,7 @@ export async function prepareAndQueueProdatZ01FromDataRequest(params: {
   }
 
   const message = renderResult.message;
+  if(renderResult.status === 'existing')return {dataRequest,outbound,message,prepared:true,blockerReason:null,blockerCode:null,blockerDetails:null};
 
   await updateGridOwnerDataRequestStatus({
     actorUserId,
