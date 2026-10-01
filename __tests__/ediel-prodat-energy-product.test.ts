@@ -2,10 +2,12 @@ import {describe,it,expect,vi} from 'vitest'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
+import {expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
 import {raw,characteristic,alphabets,type Parts} from './fixtures/prodat-register'
 import {head,own,source} from './fixtures/prodat-identity'
 import {permissionWire,permissionObject,z18Message} from './fixtures/prodat-energy-product'
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:vi.fn(async()=>({profileKey:'synthetic-qualified',sourceHash:'synthetic-evidence',messageProfileId:'synthetic',rulePackId:'synthetic'}))}))
+vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('./helpers/p16bHold')).captureP16bPreflight(importOriginal))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))
 const check=(wire:string,code:string)=>validateRulebookMessage({family:'PRODAT',code,direction:'inbound',rawPayload:wire,applicationReference:code==='Z13'||code==='Z14'?'23-DGI-PRODAT':'23-DDQ-PRODAT',mode:'parse'})
 const national=(wire:string,code:string)=>check(wire,code).issues.filter(i=>i.prodatDiagnostic?.kind==='field'&&['242','506'].includes(i.prodatDiagnostic.fieldNumber))
@@ -44,7 +46,12 @@ for(const [n,alphabet] of alphabets.entries())describe(`incoming energy alphabet
     }
     expect(p.applicationErrors??[]).toMatchObject(erc?[{ercCode:erc,fieldCode:'506',referenceNumber:code==='Z13'?null:'735123456789012345',lineItemReference:'CASE:A+B?C'}]:[])
     expect(p.applicationErrors??[]).toHaveLength(erc?1:0)
-    if(erc){const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors});expect(draft.rawPayload).toContain('FTX+AAO++506::260');expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C')}
+    if(erc&&code==='Z14'){
+     // Own object id (Z07) and LI share the ERC: exact P16B hold, no wire.
+     p16bBlockedAperaks.length=0
+     expect(()=>buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+     expectP16bHold(wire);expect(p16bBlockedAperaks.join('')).toContain('FTX+AAO++506::260');expect(p16bBlockedAperaks.join('')).toContain('RFF+LI:CASE?:A?+B??C')
+    }else if(erc){const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors});expect(draft.rawPayload).toContain('FTX+AAO++506::260');expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C')}
    }
   })
  }
