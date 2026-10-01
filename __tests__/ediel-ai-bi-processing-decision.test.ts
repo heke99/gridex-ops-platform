@@ -1,4 +1,5 @@
 import {beforeEach,expect,it,vi} from 'vitest'
+import {approveAiBiDiscrepancy} from '@/lib/ediel/aiBiReconciliation'
 import {importAiBiListCsv} from '@/lib/ediel/aiBiImportEngine'
 import {requireAiBiProcessingDecision} from '@/lib/ediel/aiBiProcessingDecision'
 
@@ -24,5 +25,11 @@ it('checks the current tenant actor before decision or data reads',async()=>{
 it('rejects malformed alleged authorized scope instead of borrowing a basis/365-day default',async()=>{
  io.rpc.mockResolvedValue({data:{status:'authorized',decision:{companyId:'other'}},error:null})
  await expect(requireAiBiProcessingDecision(scope)).rejects.toThrow('ai_bi_processing_decision_invalid')
+ expect(io.from).not.toHaveBeenCalled()
+})
+
+it('denies discrepancy decisions from an unaccepted actor before any write',async()=>{
+ io.actor.mockRejectedValue(new Error('ediel_tenant_actor_forbidden'))
+ await expect(approveAiBiDiscrepancy({companyId,actorUserId,discrepancyId:'00000000-0000-4000-8000-000000000003',decision:'accepted'})).rejects.toThrow('ediel_tenant_actor_forbidden')
  expect(io.from).not.toHaveBeenCalled()
 })

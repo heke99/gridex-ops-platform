@@ -8,6 +8,7 @@
 // owns the approval workflow + audit; it never auto-overwrites masterdata.
 
 import { supabaseService } from '@/lib/supabase/service'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 
 // Masterdata tables the AI/BI import path must never write to automatically.
 export const AI_BI_PROTECTED_MASTERDATA_TABLES = [
@@ -52,6 +53,7 @@ export async function approveAiBiDiscrepancy(input: {
   actorUserId: string
   note?: string | null
 }): Promise<{ ok: boolean; discrepancyId: string; decision: AiBiDiscrepancyDecision; reason?: string }> {
+  await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
   const nowIso = new Date().toISOString()
   const status = input.decision === 'rejected' ? 'rejected' : 'resolved'
   const { error } = await supabaseService
