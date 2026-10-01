@@ -6,8 +6,9 @@ import {
 } from '@/lib/ediel/prodat/compatAdapter'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 
-const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('unexpected database access')}),getCustomerExportContext:vi.fn(),assertEdielTenantActor:vi.fn()}))
+const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('unexpected database access')}),getCustomerExportContext:vi.fn(),assertEdielTenantActor:vi.fn(),readContractRequestedMethodSource:vi.fn()}))
 vi.mock('@/lib/cis/db-shared',async importOriginal=>({...await importOriginal<typeof import('@/lib/cis/db-shared')>(),getCustomerExportContext:io.getCustomerExportContext}))
+vi.mock('@/lib/ediel/production/contractRequestedMethodSource',async importOriginal=>({...await importOriginal<typeof import('@/lib/ediel/production/contractRequestedMethodSource')>(),readContractRequestedMethodSource:io.readContractRequestedMethodSource}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.assertEdielTenantActor}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from}}))
 type Input=Parameters<typeof buildProdatZ04FromSwitch>[0]
@@ -16,12 +17,12 @@ const facts={market:'electricity',registerObjects:[{meteringPointId:id,identityA
 const registers=[{annualEnergyKwh:'10'},{annualEnergyKwh:'20'}]
 const source=()=>({facilityId:id,customerId:'USER',customerIdAgency:'89',powerOfAttorneyReference:'POA',customerName:'Synthetic',customerAddress:'Street',customerPostalCode:'12345',customerCity:'Town',customerCountry:'SE',siteAddress:'Street',siteCountry:'SE',gridAreaId:'TES',agreementStartDateTime:'202610010000',validityDateTime:'202610010000',reasonForTransaction:'Z22',observationLength:'15',observationLengthFormat:'806',registers,dependentConditionFacts:facts,meteringMethod:'Z03',reportingFrequency:'D',meterNumber:'NEW',oldMeterNumber:'OLD',productCode:'8716867000030',settlementMethod:'D',installationStatus:'E22',balanceResponsibleId:'12345'})
 const input=():Input=>({actorUserId:'actor',senderEdielId:'12345',receiverEdielId:'54321',senderSubAddress:'DDQ',receiverSubAddress:'DDQ',applicationReference:'23-DDQ-PRODAT',environment:'test',
- switchRequest:{id:'switch',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'meter',grid_owner_id:'owner',requested_start_date:'2026-10-01',request_type:'supplier_switch',status:'draft',current_supplier_name:'Existing',power_of_attorney_id:'poa',validation_snapshot:{portalData:source()}},
+ switchRequest:{id:'switch',customer_contract_id:'contract',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'meter',grid_owner_id:'owner',requested_start_date:'2026-10-01',request_type:'supplier_switch',status:'draft',current_supplier_name:'Existing',power_of_attorney_id:'poa',validation_snapshot:{portalData:source()}},
  site:{id:'site',company_id:'company',customer_id:'customer',facility_id:id,grid_owner_id:'owner',move_in_date:'2026-10-01',street:'Street',postal_code:'12345',city:'Town'},
  meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'},
 // Synthetic partial database rows: fields unused by this adapter are omitted.
 } as unknown as Input)
-beforeEach(()=>{vi.clearAllMocks();io.assertEdielTenantActor.mockResolvedValue(undefined);const p=input();io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null})})
+beforeEach(()=>{vi.clearAllMocks();io.assertEdielTenantActor.mockResolvedValue(undefined);io.readContractRequestedMethodSource.mockResolvedValue({status:'authorized',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',requestedMethod:'Z04'});const p=input();io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null})})
 
 // Saved switch context is a distinct real caller of the shared renderer. Only
 // external database access is disabled; engine, envelope and preflight are real.
@@ -39,10 +40,20 @@ describe('saved switch compatibility respects operational direction',()=>{
   expect(io.getCustomerExportContext).toHaveBeenCalledWith({customerId:'customer',siteId:'site',meteringPointId:'meter'})
   expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Source Customer')
   expect(draft.rawPayload).not.toContain('USER:')
+  expect(draft.rawPayload).toContain("CCI++Z04'CAV+Z04'")
+  expect(io.readContractRequestedMethodSource).toHaveBeenCalledWith({companyId:'company',contractId:'contract',actorUserId:'actor',environment:'test'})
   expect(io.assertEdielTenantActor).toHaveBeenCalledWith({companyId:'company',actorUserId:'actor',permissionAnyOf:['communication.write','ediel_testing.write']})
   const own=(draft.parsedPayload?.prodatEngine as {registerEvidence?:{facts?:{endUserAddressObjects?:unknown[]}}})?.registerEvidence?.facts?.endUserAddressObjects
   expect(own).toEqual([expect.objectContaining({meteringPointId:id,endUser:{id:'199001011234',qualifier:'SE2',agency:'260'},source:expect.objectContaining({companyId:'company',kind:'caller_selection'})})])
   expect(io.from).not.toHaveBeenCalled()
+ })
+ it('holds missing new-agreement declaration even when portal and prior DSO method look usable',async()=>{
+  io.readContractRequestedMethodSource.mockResolvedValue({status:'held',missing:['unique_authentic_new_agreement_requested_method_declaration']})
+  await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow('prodat_new_agreement_requested_method_held')
+ })
+ it('rejects unrelated signed-declaration scope rather than substituting its method',async()=>{
+  io.readContractRequestedMethodSource.mockResolvedValue({status:'authorized',companyId:'company',environment:'test',contractId:'contract',customerId:'other',siteId:'site',meteringPointId:'meter',requestedMethod:'Z04'})
+  await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow('contract_requested_method_selected_scope_mismatch')
  })
  it('does not permit a multi-register snapshot on the supplier Z03 path',async()=>{
   await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow(/register/)

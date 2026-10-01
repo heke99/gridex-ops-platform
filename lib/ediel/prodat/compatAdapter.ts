@@ -1,3 +1,4 @@
+import {readContractRequestedMethodSource,assertContractRequestedMethodSelection,type ContractRequestedMethodBasis} from '@/lib/ediel/production/contractRequestedMethodSource'
 import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { parseProdatMessage as parseSourceProdat } from '@/lib/ediel/prodat/parser'
@@ -76,6 +77,7 @@ export function allocateProdatSwitchWireReferences(code:ProdatSwitchCode,context
 }
 
 type BaseSwitchOutboundInput = {
+  contractId?: string | null
   wireReferences?: ProdatSwitchWireReferences
   actorUserId?: string | null
   senderEdielId: string
@@ -449,6 +451,7 @@ function validationErrorMessage(result: ProdatSwitchValidationResult): string {
 
 function renderProdatSegments(params: {
   sourceContext: CustomerExportContext
+  requestedMethodSource: ContractRequestedMethodBasis | null
   selectedVersion: string
   applicationReference: string
   code: ProdatSwitchCode
@@ -471,16 +474,17 @@ function renderProdatSegments(params: {
   const companyId=requireContextCompanyId(sourceContext,'Bygg PRODAT från vald kund/anläggning')
   const customer=resolveSwedishProdatCustomerIdentity(sourceContext.customer as unknown as Record<string,unknown>|null)
   if(!customer.id||!customer.qualifier||!customer.name)throw new Error('prodat_customer_legal_identity_required')
-  const meterPointId=inferMeterPointIdentifier(sourceContext.meteringPoint!)
+  const meterPointId=params.requestedMethodSource?.pointId??inferMeterPointIdentifier(sourceContext.meteringPoint!)
   if(!/^\d{18}$/.test(meterPointId))throw new Error('prodat_source_object_identity_required')
   const addressLines=[sourceContext.site?.street?.trim()??'']
-  const endUserAddressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${params.switchRequest.customer_id}/${params.switchRequest.site_id}/${params.switchRequest.metering_point_id}`,meterPointId,identityAgency:'9',customer,addressLines})
+  const endUserAddressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${params.switchRequest.customer_id}/${params.switchRequest.site_id}/${params.switchRequest.metering_point_id}`,meterPointId,identityAgency:params.requestedMethodSource?.identityAgency??'9',customer,addressLines})
   // A saved protocol preview cannot replace the selected server-owned legal
   // customer, object, address or its dependent-condition source.
   const portalData={...(savedPortalData??{}),customerId:customer.id,customerIdCodeListQualifier:customer.qualifier,customerIdAgency:'260',customerName:customer.name,customerNameLines:undefined,
     customerAddress:addressLines[0],customerAddressLines:addressLines,customerPostalCode:sourceContext.site?.postal_code??null,customerCity:sourceContext.site?.city??null,customerCountry:sourceContext.site?.country??null,
     facilityId:meterPointId,facilityIdAgency:'9',siteAddress:sourceContext.site?.street??null,sitePostalCode:sourceContext.site?.postal_code??null,siteCity:sourceContext.site?.city??null,siteCountry:sourceContext.site?.country??null,
-    dependentConditionFacts:{...(objectValue(savedPortalData?.dependentConditionFacts)??{}),endUserAddressObjects}}
+    dependentConditionFacts:{...(objectValue(savedPortalData?.dependentConditionFacts)??{}),endUserAddressObjects},
+    ...(params.requestedMethodSource?{meteringMethod:params.requestedMethodSource.requestedMethod,testCaseOverrides:{...(objectValue(savedPortalData?.testCaseOverrides)??{}),meteringMethod:undefined}}:{})}
   const customerName=customer.name
   const gridAreaId=sourceContext.meteringPoint?.grid_area_code??sourceContext.site?.grid_area_code??null
   const startDate =
@@ -498,10 +502,13 @@ function renderProdatSegments(params: {
       transactionReference: params.transactionReference || params.bgmReference,
       senderEdielId: params.senderEdielId,
       receiverEdielId: params.receiverEdielId,
+      legalSenderId: params.requestedMethodSource?.legalSenderId,
+      legalReceiverId: params.requestedMethodSource?.legalReceiverId,
       customerName,
       customerId: portalPartyText(portalData, 'customerId'),
       customerIdCodeListQualifier: portalPartyText(portalData, 'customerIdCodeListQualifier'),
       meterPointId,
+      meterPointIdAgency: params.requestedMethodSource?.identityAgency??'9',
       gridAreaId,
       startDate,
       // Z05 closes the supplier contract at the requested switch boundary.
@@ -515,7 +522,7 @@ function renderProdatSegments(params: {
       siteCity: portalPartyText(portalData, 'siteCity') ?? params.site.city?.trim() ?? null,
       siteCountry:sourceContext.site?.country??null,
       reasonForTransaction: portalString(portalData, 'reasonForTransaction'),
-      meteringMethod: resolveProdatMeteringMethod(portalData),
+      meteringMethod: params.code==='Z03'?params.requestedMethodSource?.requestedMethod??null:resolveProdatMeteringMethod(portalData),
       permissionStatus: portalString(portalData, 'permissionStatus'),
       permissionPurpose: portalString(portalData, 'permissionPurpose'),
       permissionEndReason: portalString(portalData, 'permissionEndReason'),
@@ -588,6 +595,18 @@ function buildProdatSwitchOutboundDraft(
       ||sourceContext.meteringPoint?.id!==input.switchRequest.metering_point_id||sourceContext.meteringPoint.customer_id!==input.switchRequest.customer_id||(sourceContext.meteringPoint.customer_site_id??sourceContext.meteringPoint.site_id)!==input.switchRequest.site_id
       ||input.site.id!==sourceContext.site.id||input.meteringPoint.id!==sourceContext.meteringPoint.id)throw new Error('prodat_selected_customer_site_point_scope_mismatch')
 
+    const environment = input.environment ?? 'test'
+    let requestedMethodSource:ContractRequestedMethodBasis|null=null
+    if(code==='Z03'){
+      const storedContractId=input.switchRequest.customer_contract_id??input.switchRequest.contract_id
+      const contractId=input.contractId??storedContractId
+      if(!contractId||(input.switchRequest.contract_id&&input.switchRequest.contract_id!==contractId)||(input.switchRequest.customer_contract_id&&input.switchRequest.customer_contract_id!==contractId))throw new Error('prodat_new_signed_contract_selector_required')
+      const basis=await readContractRequestedMethodSource({companyId:sourceCompanyId,contractId,actorUserId:input.actorUserId,environment})
+      if(basis.status==='held')throw new Error(`prodat_new_agreement_requested_method_held:${basis.missing.join(',')}`)
+      assertContractRequestedMethodSelection(basis,{companyId:sourceCompanyId,contractId,customerId:input.switchRequest.customer_id,siteId:sourceContext.site.id,meteringPointId:sourceContext.meteringPoint.id,environment})
+      requestedMethodSource=basis
+    }
+
     const refs = buildCanonicalOutboundReferences({
       family: 'PRODAT',
       code,
@@ -606,7 +625,6 @@ function buildProdatSwitchOutboundDraft(
       refs.transactionReference ?? input.transactionReference ?? input.switchRequest.id
     )
 
-    const environment = input.environment ?? 'test'
     const testFlag = environment === 'production' ? 0 : 1
     const messageVersion = await resolveCanonicalOutboundVersion({
       family: 'PRODAT',
@@ -630,7 +648,7 @@ function buildProdatSwitchOutboundDraft(
       })
 
     const prodatRendered = renderProdatSegments({
-      sourceContext,selectedVersion:messageVersion,applicationReference,
+      sourceContext,requestedMethodSource,selectedVersion:messageVersion,applicationReference,
       code,
       bgmReference: externalReference,
       transactionReference,
