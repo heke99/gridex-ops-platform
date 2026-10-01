@@ -1,14 +1,13 @@
 // lib/ediel/flows/inboundAckProcessing.ts
 
+import { qualifyInboundAckSourceCandidates, readInboundAckSourceCorrelation } from '@/lib/ediel/ack/sourceCorrelation';
 import { supabaseService } from "@/lib/supabase/service";
 import type {
-  EdielAckStatus,
   EdielMessageFamily,
   EdielMessageRow,
 } from "@/lib/ediel/types";
 import {
   createEdielMessageEvent,
-  getEdielMessageById,
   linkEdielMessage,
   updateEdielMessageStatus,
 } from "@/lib/ediel/db";
@@ -45,6 +44,8 @@ type AckProcessResult = {
   sourceMessage: EdielMessageRow | null;
   outcome: InboundAckOutcome;
   finalAckReached: boolean;
+  wholeSourceRejected: boolean;
+  sourceAccepted: boolean;
   outboundRequestId: string | null;
   switchRequestId: string | null;
   gridOwnerDataRequestId: string | null;
@@ -55,12 +56,6 @@ const ACK_FAMILIES: readonly InboundAckFamily[] = [
   "APERAK",
   "UTILTS_ERR",
 ];
-const SOURCE_EXCLUDED_FAMILIES: readonly string[] = [
-  "CONTRL",
-  "APERAK",
-  "UTILTS_ERR",
-];
-
 function isInboundAckFamily(
   value: string | null | undefined,
 ): value is InboundAckFamily {
@@ -90,128 +85,8 @@ function uniqueStrings(values: Array<string | null | undefined>): string[] {
   ];
 }
 
-function payloadString(message: EdielMessageRow, ...keys: string[]): string[] {
-  const payload = message.parsed_payload ?? {};
-  return uniqueStrings(keys.map((key) => stringOrNull(payload[key])));
-}
-
-function nestedPayloadReferenceValues(message: EdielMessageRow): string[] {
-  const payload = message.parsed_payload ?? {};
-  const references = payload.references;
-  if (!references || typeof references !== "object" || Array.isArray(references)) return [];
-
-  const values: Array<string | null | undefined> = [];
-  for (const key of ["UCI", "UCM", "ACW", "TN", "LI", "Z09", "Z07", "DOC_PRODAT", "DOC_UTILTS", "DOC_APERAK", "DOC"]) {
-    const candidate = (references as Record<string, unknown>)[key];
-    if (Array.isArray(candidate)) {
-      values.push(...candidate.map((value) => stringOrNull(value)));
-    } else {
-      values.push(stringOrNull(candidate));
-    }
-  }
-  return uniqueStrings(values);
-}
-
-function hasPayloadErrorSignal(message: EdielMessageRow): boolean {
-  const payload = message.parsed_payload ?? {};
-  const report = message.validation_report ?? {};
-
-  const errorLikeKeys = [
-    "error",
-    "hasError",
-    "hasErrors",
-    "rejected",
-    "syntaxError",
-    "functionalError",
-    "applicationError",
-  ];
-
-  if (
-    errorLikeKeys.some((key) => payload[key] === true || report[key] === true)
-  )
-    return true;
-
-  const arrays = [
-    payload.errors,
-    payload.errorCodes,
-    payload.aperakErrors,
-    payload.contrlErrors,
-    report.errors,
-    report.errorCodes,
-    report.aperakErrors,
-    report.contrlErrors,
-  ];
-
-  return arrays.some((value) => Array.isArray(value) && value.length > 0);
-}
-
 function inferInboundAckOutcome(message: EdielMessageRow): InboundAckOutcome {
-  const payload = message.parsed_payload ?? {};
-
-  if (payload.ackOutcome === "negative") return "negative";
-  if (payload.ackOutcome === "positive") return "positive";
-
-  const statusValues = [
-    stringOrNull(payload.status),
-    stringOrNull(payload.outcome),
-    stringOrNull(payload.result),
-    stringOrNull(payload.ackStatus),
-    stringOrNull(payload.acknowledgementStatus),
-  ]
-    .filter((value): value is string => Boolean(value))
-    .map((value) => value.toLowerCase());
-
-  if (
-    statusValues.some((value) =>
-      [
-        "negative",
-        "rejected",
-        "failed",
-        "error",
-        "not_accepted",
-        "not accepted",
-      ].includes(value),
-    )
-  ) {
-    return "negative";
-  }
-
-  if (
-    statusValues.some((value) =>
-      ["positive", "accepted", "ok", "success", "acknowledged"].includes(value),
-    )
-  ) {
-    return "positive";
-  }
-
-  if (message.message_family === "CONTRL") {
-    if (
-      message.syntax_check_status === "rejected" ||
-      message.syntax_check_status === "failed"
-    ) {
-      return "negative";
-    }
-    if (message.syntax_check_status === "accepted") return "positive";
-  }
-
-  if (
-    message.message_family === "APERAK" ||
-    message.message_family === "UTILTS_ERR"
-  ) {
-    if (
-      message.functional_check_status === "rejected" ||
-      message.functional_check_status === "failed"
-    ) {
-      return "negative";
-    }
-    if (message.functional_check_status === "accepted") return "positive";
-  }
-
-  return hasPayloadErrorSignal(message) ? "negative" : "positive";
-}
-
-function ackStatusForOutcome(outcome: InboundAckOutcome): EdielAckStatus {
-  return outcome === "positive" ? "received" : "failed";
+  return readInboundAckSourceCorrelation(message).classification.outcome as InboundAckOutcome;
 }
 
 function buildAckFailureReason(
@@ -232,55 +107,9 @@ function buildAckFailureReason(
   );
 }
 
-function isAckComplete(status: EdielAckStatus | null | undefined): boolean {
-  return (
-    status === "received" || status === "sent" || status === "not_required"
-  );
-}
-
-function computeFinalAckReached(params: {
-  source: EdielMessageRow;
-  nextContrlStatus: EdielAckStatus | null;
-  nextAperakStatus: EdielAckStatus | null;
-  nextUtiltsErrStatus: EdielAckStatus | null;
-}): boolean {
-  const contrlDone =
-    !params.source.requires_contrl || isAckComplete(params.nextContrlStatus);
-  const aperakDone =
-    !params.source.requires_aperak || isAckComplete(params.nextAperakStatus);
-  const utiltsErrBlocking = params.nextUtiltsErrStatus === "pending";
-
-  return contrlDone && aperakDone && !utiltsErrBlocking;
-}
-
 function readReferenceCandidates(message: EdielMessageRow): string[] {
-  return uniqueStrings([
-    message.related_message_id,
-    message.original_message_id,
-    message.original_transaction_id,
-    message.correlation_reference,
-    message.external_reference,
-    message.transaction_reference,
-    message.interchange_reference,
-    ...payloadString(
-      message,
-      "sourceMessageId",
-      "relatedMessageId",
-      "referencedMessageId",
-      "originalMessageId",
-      "originalTransactionId",
-      "sourceMessageReference",
-      "sourceTransactionReference",
-      "referencedTransactionReference",
-      "externalReference",
-      "transactionReference",
-      "correlationReference",
-      "interchangeReference",
-      "bgmReference",
-      "messageReference",
-    ),
-    ...nestedPayloadReferenceValues(message),
-  ]);
+  try { return uniqueStrings(readInboundAckSourceCorrelation(message).lookupReferences.map(reference => reference.value)); }
+  catch { return []; }
 }
 
 function isActorTestingAckCandidate(message: EdielMessageRow): boolean {
@@ -351,274 +180,46 @@ async function syncActorTestingAckSafely(params: {
   }
 }
 
-async function findOutboundSourceByColumn(params: {
-  companyId: string;
-  column: keyof Pick<
-    EdielMessageRow,
-    | "external_reference"
-    | "transaction_reference"
-    | "correlation_reference"
-    | "interchange_reference"
-    | "original_message_id"
-    | "original_transaction_id"
-  >;
-  values: string[];
-}): Promise<EdielMessageRow | null> {
-  if (params.values.length === 0) return null;
+async function findSourceMessageForInboundAck(message: EdielMessageRow): Promise<EdielMessageRow | null> {
+  const references = readInboundAckSourceCorrelation(message).lookupReferences;
+  const values = uniqueStrings(references.map(reference => reference.value));
+  const candidates = new Map<string, EdielMessageRow>();
+  const candidateIds = uniqueStrings([message.related_message_id, message.original_message_id]).filter(isUuidLike);
+  const indexed = await supabaseService.from('ediel_business_references')
+    .select('source_message_id').in('reference_value', values).limit(1001);
+  if (indexed.error) throw indexed.error;
+  if ((indexed.data ?? []).length > 1000) throw new Error('ack_reference_candidates_incomplete');
+  for (const row of indexed.data ?? []) if (isUuidLike(row.source_message_id)) candidateIds.push(row.source_message_id);
+  if (candidateIds.length) {
+    const rows = await supabaseService.from('ediel_messages').select('*').in('id', uniqueStrings(candidateIds)).eq('direction', 'outbound').limit(1001);
+    if (rows.error) throw rows.error;
+    if ((rows.data ?? []).length > 1000) throw new Error('ack_reference_candidates_incomplete');
+    for (const row of rows.data ?? []) candidates.set(row.id, row as EdielMessageRow);
+  }
+  // Legacy column matches discover candidates only. Raw qualification and the
+  // atomic RPC independently prove identity/uniqueness across all actual sends.
+  for (const column of ['external_reference', 'transaction_reference', 'correlation_reference', 'interchange_reference', 'bgm_reference'] as const) {
+    const rows = await supabaseService.from('ediel_messages').select('*').eq('direction', 'outbound').in(column, values).limit(1001);
+    if (rows.error) throw rows.error;
+    if ((rows.data ?? []).length > 1000) throw new Error('ack_reference_candidates_incomplete');
+    for (const row of rows.data ?? []) candidates.set(row.id, row as EdielMessageRow);
+  }
+  const qualified = qualifyInboundAckSourceCandidates({ackMessage: message, candidates: [...candidates.values()], expectedCompanyId: message.company_id});
+  return qualified.status === 'unique' ? qualified.sourceMessage : null;
+}
 
-  const { data, error } = await supabaseService
-    .from("ediel_messages")
-    .select("*")
-    .eq("company_id", params.companyId)
-    .eq("direction", "outbound")
-    .not("message_family", "in", `(${SOURCE_EXCLUDED_FAMILIES.join(",")})`)
-    .in(params.column, params.values)
-    .order("message_sent_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
+async function patchSourceMessageFromAck(params: {actorUserId: string; sourceMessage: EdielMessageRow; ackMessage: EdielMessageRow; outcome: InboundAckOutcome}) {
+  const {data, error} = await supabaseService.rpc('gridex_apply_inbound_ack_source_v1', {
+    p_company_id: params.sourceMessage.company_id, p_environment: params.sourceMessage.environment,
+    p_ack_message_id: params.ackMessage.id, p_source_message_id: params.sourceMessage.id, p_actor_user_id: params.actorUserId,
+  });
   if (error) throw error;
-  return (data as EdielMessageRow | null) ?? null;
-}
-
-async function findSourceMessageViaBusinessReferences(params: {
-  companyId: string;
-  values: string[];
-}): Promise<EdielMessageRow | null> {
-  if (params.values.length === 0) return null;
-
-  const { data, error } = await supabaseService
-    .from("ediel_business_references")
-    .select("source_message_id,reference_type,reference_value")
-    .eq("company_id", params.companyId)
-    .in("reference_value", params.values)
-    .order("created_at", { ascending: false })
-    .limit(10);
-
-  if (error) throw error;
-
-  for (const row of (data ?? []) as Array<{
-    source_message_id?: string | null;
-  }>) {
-    if (!row.source_message_id) continue;
-    const source = await getEdielMessageById(row.source_message_id, {
-      companyId: params.companyId,
-    });
-    if (
-      source &&
-      source.direction === "outbound" &&
-      !SOURCE_EXCLUDED_FAMILIES.includes(source.message_family)
-    ) {
-      return source;
-    }
-  }
-
-  return null;
-}
-
-async function findSourceMessageForInboundAck(
-  message: EdielMessageRow,
-): Promise<EdielMessageRow | null> {
-  const companyId = stringOrNull(message.company_id);
-  if (!companyId) return null;
-
-  if (message.related_message_id) {
-    const direct = await getEdielMessageById(message.related_message_id, {
-      companyId,
-    });
-    if (direct && direct.direction === "outbound") return direct;
-  }
-
-  const candidates = readReferenceCandidates(message);
-  const uuidCandidate = candidates.find(isUuidLike);
-  if (uuidCandidate) {
-    const direct = await getEdielMessageById(uuidCandidate, { companyId });
-    if (direct && direct.direction === "outbound") return direct;
-  }
-
-  const businessReferenceHit = await findSourceMessageViaBusinessReferences({
-    companyId,
-    values: candidates,
-  });
-  if (businessReferenceHit) return businessReferenceHit;
-
-  const sourceColumns: Array<
-    Parameters<typeof findOutboundSourceByColumn>[0]["column"]
-  > = [
-    "external_reference",
-    "transaction_reference",
-    "correlation_reference",
-    "interchange_reference",
-    "original_message_id",
-    "original_transaction_id",
-  ];
-
-  for (const column of sourceColumns) {
-    const hit = await findOutboundSourceByColumn({
-      companyId,
-      column,
-      values: candidates,
-    });
-    if (hit) return hit;
-  }
-
-  return null;
-}
-
-async function createAckChainIfMissing(params: {
-  sourceMessage: EdielMessageRow;
-  ackMessage: EdielMessageRow;
-  outcome: InboundAckOutcome;
-}) {
-  const companyId = stringOrNull(params.sourceMessage.company_id);
-  if (!companyId) return;
-
-  const parsed = params.ackMessage.parsed_payload ?? {};
-  const ackScope = stringOrNull(parsed.ackScope) ?? "message";
-  const transactionReference =
-    stringOrNull(parsed.relatedTransactionReference) ??
-    stringOrNull(params.ackMessage.transaction_reference);
-
-  let existing = supabaseService
-    .from("ediel_ack_chains")
-    .select("id")
-    .eq("company_id", companyId)
-    .eq("source_message_id", params.sourceMessage.id)
-    .eq("ack_family", params.ackMessage.message_family)
-    .eq("ack_scope", ackScope)
-    .eq("outcome", params.outcome)
-    .limit(1);
-
-  if (transactionReference) {
-    existing = existing.eq("transaction_reference", transactionReference);
-  } else {
-    existing = existing.is("transaction_reference", null);
-  }
-
-  const existingResult = await existing.maybeSingle();
-  if (existingResult.error) throw existingResult.error;
-  if (existingResult.data) return;
-
-  const { error } = await supabaseService.from("ediel_ack_chains").insert({
-    company_id: companyId,
-    source_message_id: params.sourceMessage.id,
-    ack_message_id: params.ackMessage.id,
-    ack_family: params.ackMessage.message_family,
-    ack_scope: ackScope,
-    transaction_reference: transactionReference,
-    outcome: params.outcome,
-  });
-
-  if (error && error.code !== "23505") throw error;
-}
-
-async function patchSourceMessageFromAck(params: {
-  actorUserId: string;
-  sourceMessage: EdielMessageRow;
-  ackMessage: EdielMessageRow;
-  outcome: InboundAckOutcome;
-}) {
-  const nextContrlStatus =
-    params.ackMessage.message_family === "CONTRL"
-      ? ackStatusForOutcome(params.outcome)
-      : params.sourceMessage.contrl_status;
-
-  const nextAperakStatus =
-    params.ackMessage.message_family === "APERAK"
-      ? ackStatusForOutcome(params.outcome)
-      : params.sourceMessage.aperak_status;
-
-  const nextUtiltsErrStatus =
-    params.ackMessage.message_family === "UTILTS_ERR"
-      ? ackStatusForOutcome(params.outcome)
-      : params.sourceMessage.utilts_err_status;
-
-  const failureReason = buildAckFailureReason(
-    params.ackMessage,
-    params.outcome,
-  );
-  const finalAckReached = computeFinalAckReached({
-    source: params.sourceMessage,
-    nextContrlStatus,
-    nextAperakStatus,
-    nextUtiltsErrStatus,
-  });
-
-  const now = new Date().toISOString();
-  const nextStatus =
-    params.outcome === "negative"
-      ? "failed"
-      : finalAckReached
-        ? "acknowledged"
-        : params.sourceMessage.status;
-
-  const patch: Record<string, unknown> = {
-    contrl_status: nextContrlStatus,
-    aperak_status: nextAperakStatus,
-    utilts_err_status: nextUtiltsErrStatus,
-    status: nextStatus,
-    failure_reason: failureReason ?? params.sourceMessage.failure_reason,
-    updated_by: params.actorUserId,
-    updated_at: now,
-  };
-
-  if (params.outcome === "negative") {
-    patch.failed_at = now;
-    patch.ack_due_at = null;
-  }
-
-  if (params.outcome === "positive" && finalAckReached) {
-    patch.acknowledged_at = now;
-    patch.ack_due_at = null;
-  }
-
-  const { data, error } = await supabaseService
-    .from("ediel_messages")
-    .update(patch)
-    .eq("id", params.sourceMessage.id)
-    .eq("company_id", params.sourceMessage.company_id ?? "")
-    .select("*")
-    .single();
-
-  if (error) throw error;
-
-  const updated = data as EdielMessageRow;
-
-  await createEdielMessageEvent({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.sourceMessage.id,
-    eventType:
-      params.ackMessage.message_family === "CONTRL"
-        ? "contrl_received"
-        : params.ackMessage.message_family === "APERAK"
-          ? "aperak_received"
-          : "utilts_err_received",
-    eventStatus:
-      params.outcome === "negative"
-        ? "error"
-        : finalAckReached
-          ? "success"
-          : "info",
-    message:
-      params.outcome === "negative"
-        ? `${params.ackMessage.message_family} mottagen med negativ kvittens.`
-        : finalAckReached
-          ? `${params.ackMessage.message_family} mottagen och ackkedjan är klar.`
-          : `${params.ackMessage.message_family} mottagen. Väntar fortfarande på resterande kvittens.`,
-    payload: {
-      ackMessageId: params.ackMessage.id,
-      ackFamily: params.ackMessage.message_family,
-      outcome: params.outcome,
-      finalAckReached,
-      nextContrlStatus,
-      nextAperakStatus,
-      nextUtiltsErrStatus,
-      clearedAckDueAt: params.outcome === "negative" || finalAckReached,
-    },
-  });
-
-  return { updated, finalAckReached, failureReason };
+  const result = data as {version?: unknown; sourceMessage?: EdielMessageRow; outcome?: unknown; finalAckReached?: unknown; wholeSourceRejected?: unknown; sourceAccepted?: unknown; failureReason?: unknown} | null;
+  if (!result || result.version !== 1 || !result.sourceMessage || result.sourceMessage.id !== params.sourceMessage.id
+    || result.sourceMessage.company_id !== params.sourceMessage.company_id || result.outcome !== params.outcome
+    || typeof result.finalAckReached !== 'boolean' || typeof result.wholeSourceRejected !== 'boolean' || typeof result.sourceAccepted !== 'boolean') throw new Error('ack_atomic_source_receipt_invalid');
+  return {updated: result.sourceMessage, finalAckReached: result.finalAckReached, wholeSourceRejected: result.wholeSourceRejected, sourceAccepted: result.sourceAccepted,
+    failureReason: typeof result.failureReason === 'string' ? result.failureReason : null};
 }
 
 async function getSwitchRequestById(
@@ -1025,11 +626,20 @@ export async function processInboundAckMessage(params: {
       sourceMessage: null,
       outcome,
       finalAckReached: false,
+      wholeSourceRejected: false,
+      sourceAccepted: false,
       outboundRequestId: null,
       switchRequestId: null,
       gridOwnerDataRequestId: null,
     };
   }
+
+  const sourcePatch = await patchSourceMessageFromAck({
+    actorUserId,
+    sourceMessage,
+    ackMessage,
+    outcome,
+  });
 
   await linkEdielMessage({
     actorUserId,
@@ -1046,29 +656,17 @@ export async function processInboundAckMessage(params: {
     communicationRouteId: sourceMessage.communication_route_id,
   });
 
-  const sourcePatch = await patchSourceMessageFromAck({
-    actorUserId,
-    sourceMessage,
-    ackMessage,
-    outcome,
-  });
-
-  await createAckChainIfMissing({
-    sourceMessage,
-    ackMessage,
-    outcome,
-  });
-
-  const outboundRequest = await syncOutboundRequestFromInboundAck({
+  const allowBusinessTransition = sourcePatch.wholeSourceRejected || sourcePatch.sourceAccepted;
+  const outboundRequest = allowBusinessTransition ? await syncOutboundRequestFromInboundAck({
     actorUserId,
     sourceMessage,
     ackMessage,
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
     failureReason: sourcePatch.failureReason,
-  });
+  }) : null;
 
-  const switchResult = await syncSwitchFromInboundAck({
+  const switchResult = allowBusinessTransition ? await syncSwitchFromInboundAck({
     actorUserId,
     sourceMessage,
     ackMessage,
@@ -1076,9 +674,9 @@ export async function processInboundAckMessage(params: {
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
     failureReason: sourcePatch.failureReason,
-  });
+  }) : null;
 
-  const gridOwnerDataRequest = await syncGridOwnerDataRequestFromInboundAck({
+  const gridOwnerDataRequest = allowBusinessTransition ? await syncGridOwnerDataRequestFromInboundAck({
     actorUserId,
     sourceMessage,
     ackMessage,
@@ -1086,15 +684,15 @@ export async function processInboundAckMessage(params: {
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
     failureReason: sourcePatch.failureReason,
-  });
+  }) : null;
 
-  const customerCase = await syncCustomerCaseCancellationAck({
+  const customerCase = allowBusinessTransition ? await syncCustomerCaseCancellationAck({
     actorUserId,
     sourceMessage: sourcePatch.updated,
     ackMessage,
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
-  });
+  }) : null;
 
   await updateEdielMessageStatus({
     actorUserId,
@@ -1107,6 +705,8 @@ export async function processInboundAckMessage(params: {
       ackOutcome: outcome,
       matchedOutboundEdielMessageId: sourceMessage.id,
       finalAckReached: sourcePatch.finalAckReached,
+      wholeSourceRejected: sourcePatch.wholeSourceRejected,
+      sourceAccepted: sourcePatch.sourceAccepted,
     },
   });
 
@@ -1134,6 +734,8 @@ export async function processInboundAckMessage(params: {
       customerCaseId: customerCase?.id ?? null,
       ackOutcome: outcome,
       finalAckReached: sourcePatch.finalAckReached,
+      wholeSourceRejected: sourcePatch.wholeSourceRejected,
+      sourceAccepted: sourcePatch.sourceAccepted,
     },
   });
 
@@ -1148,6 +750,8 @@ export async function processInboundAckMessage(params: {
     sourceMessage: sourcePatch.updated,
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
+    wholeSourceRejected: sourcePatch.wholeSourceRejected,
+    sourceAccepted: sourcePatch.sourceAccepted,
     outboundRequestId: outboundRequest?.id ?? sourceMessage.outbound_request_id,
     switchRequestId: switchResult?.id ?? sourceMessage.switch_request_id,
     gridOwnerDataRequestId:

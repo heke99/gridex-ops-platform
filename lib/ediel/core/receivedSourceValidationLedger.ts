@@ -23,7 +23,7 @@ export function takeReceivedSourceOwnerSeed(receipt: ReceivedSourceValidationRec
 export async function recordReceivedSourceValidation(input: {
   original: EdielMessageRow; validated: EdielMessageRow; resolvedCompanyId: string; decision: CanonicalRuntimeDecision
 }): Promise<ReceivedSourceValidationReceipt> {
-  if (input.original.message_family !== 'PRODAT' || !isEvidenceUuid(input.original.id) || !isEvidenceUuid(input.original.company_id)) {
+  if (!['PRODAT', 'CONTRL', 'APERAK', 'UTILTS_ERR'].includes(input.original.message_family) || !isEvidenceUuid(input.original.id) || !isEvidenceUuid(input.original.company_id)) {
     return { status: 'not_requested', sourceDisposition: 'not_established' }
   }
   try {
@@ -39,7 +39,7 @@ export async function recordReceivedSourceValidation(input: {
       || data.sourceMessageId !== evidence.sourceMessageId || data.sourcePayloadHash !== evidence.sourcePayloadHash || data.factsHash !== factsHash
       || data.sourceDisposition !== 'not_established' || !isEvidenceUuid(data.assessmentId)) return { status: 'unconfirmed', sourceDisposition: 'not_established' }
     const receipt: ReceivedSourceValidationReceipt = { status: 'recorded', sourceDisposition: 'not_established', assessmentId: data.assessmentId, factsHash }
-    freshOwnerSeeds.set(receipt, {original: capturedOriginal, evidence, assessmentId: data.assessmentId})
+    if (capturedOriginal.message_family === 'PRODAT') freshOwnerSeeds.set(receipt, {original: capturedOriginal, evidence, assessmentId: data.assessmentId})
     return receipt
   } catch { return { status: 'unconfirmed', sourceDisposition: 'not_established' } }
 }

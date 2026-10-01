@@ -5,7 +5,7 @@ import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core
 
 export type AckCorrelationMessage = {
   id: string
-  company_id: string | null
+  company_id?: string | null
   environment: string | null
   direction: string
   raw_payload: string | null
@@ -72,7 +72,9 @@ export function readInboundAckSourceCorrelation(message: AckCorrelationMessage):
     lookupReferences = [{type:'BGM_REF',value:original}, ...acknowledgedReferences.map(value => ({type:'IDE' as const,value}))]
   } else {
     const original = one(references(wire, 'ACW')); if (!original) throw Error('ack_correlation_original_document_required')
-    const objects = references(wire, 'LI'); scope = objects.length ? 'object' : 'message'; acknowledgedReferences = objects
+    const objects = references(wire, 'LI')
+    if (classification.outcome === 'negative' && component(wire, first(wire, 'BGM'), 3) === '34' && !objects.length) throw Error('ack_processed_negative_scope_unavailable')
+    scope = objects.length ? 'object' : 'message'; acknowledgedReferences = objects
     lookupReferences = [{type:'BGM_REF',value:original}, ...objects.map(value => ({type:'RFF_LI' as const,value}))]
   }
   return {classification, scope, acknowledgedReferences, lookupReferences}
