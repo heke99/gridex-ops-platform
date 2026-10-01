@@ -14,10 +14,16 @@ try{
  CREATE SCHEMA gridex_outbound_dispatch;CREATE TABLE gridex_outbound_dispatch.attempts(id uuid,message_id uuid,company_id uuid,environment text,binding jsonb);CREATE TABLE gridex_outbound_dispatch.originals(message_id uuid,company_id uuid,environment text,payload_hash text,raw_payload text);CREATE TABLE gridex_outbound_dispatch.events(id uuid,attempt_id uuid,message_id uuid,company_id uuid,environment text,kind text,facts jsonb,observed_at timestamptz);
  INSERT INTO user_profiles VALUES('${uid(2)}','active');INSERT INTO company_memberships VALUES('${uid(10)}','${uid(1)}','${uid(2)}','active',true,now());INSERT INTO ediel_messages(id,company_id,environment,direction,raw_payload,immutable_payload_hash,immutable_rendered_at,message_code) VALUES('${uid(3)}','${uid(1)}','test','outbound','${raw}','${hash}',now(),'Z13');`)
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930180445_ediel_accepted_transport_projection_v1.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930204937_ediel_shared_accepted_source_basis.sql',import.meta.url),'utf8'));checks++
  const forward=readFileSync(new URL('../supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql',import.meta.url),'utf8');await db.exec(forward.slice(forward.indexOf('-- Atomic projection'),forward.lastIndexOf('COMMIT;')));
  assert.equal(await read(),null);checks++
  await db.exec(`INSERT INTO gridex_ediel_transport.attempts VALUES('${uid(4)}','${uid(3)}','${uid(1)}','test',${json(binding)},${json(provider)},'accepted','2026-09-30 12:00+00','2026-09-30 12:01+00')`)
  const frozen=await read();assert.equal(frozen.status,'accepted_projection');assert.equal(frozen.observedAt,'2026-09-30T12:01:00+00:00');assert.deepEqual(frozen.businessExpectationPlan,plan);assert.equal(frozen.authorizesProviderEntry,false);checks++
+ await db.exec("UPDATE user_profiles SET user_status='inactive'");
+ assert.deepEqual((await db.query('SELECT gridex_ediel_transport.accepted_source_basis_v1(m) result FROM ediel_messages m')).rows[0].result,frozen);checks++
+ await assert.rejects(read(),/actor_forbidden/);checks++
+ await db.exec("UPDATE user_profiles SET user_status='active'");
+ assert.equal((await db.query("SELECT has_function_privilege('service_role','gridex_ediel_transport.accepted_source_basis_v1(public.ediel_messages)','EXECUTE') allowed")).rows[0].allowed,false);checks++
  const repair=()=>db.query(`SELECT gridex_ediel_repair_accepted_transport_projection_v1('${uid(1)}','test','${uid(2)}','${uid(3)}') result`)
  await db.exec(`UPDATE ediel_messages SET status='dispatching',processing_status='dispatching'`);assert.equal((await repair()).rows[0].result.projectionStatus,'sent');checks++
  await db.exec(`UPDATE ediel_messages SET status='acknowledged',processing_status='acknowledged'`);assert.equal((await repair()).rows[0].result.projectionStatus,'acknowledged');assert.equal((await db.query('SELECT processing_status,message_sent_at FROM ediel_messages')).rows[0].processing_status,'acknowledged');checks++
