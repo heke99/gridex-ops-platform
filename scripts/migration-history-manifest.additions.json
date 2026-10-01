@@ -155,6 +155,7 @@
     "20260930145115_ediel_generic_transport_attempts_v1.sql": "1298e08dd0d2aff2ba51c9741a3dd32d653cfab9abf416f7258bc1461ad55404",
     "20260930153118_ediel_actor_legal_identity_name_search_v1.sql": "4d4289746b256fab93c4523f13eb1b7ecd388525e26e36045fdc4c316b41cc08",
     "20260930164356_ediel_transport_copy_read_v1.sql": "b83e002a1dffa34af730cd617c5eb080a6a6b0980e5df38969add7c33ba3c445",
-    "20260930162005_ediel_service_permission_origination_v1.sql": "a6035a99da12ea91942896868971baa50c20ecf36974600c19206f8d9c49fa79"
+    "20260930162005_ediel_service_permission_origination_v1.sql": "a6035a99da12ea91942896868971baa50c20ecf36974600c19206f8d9c49fa79",
+    "20260930172759_ediel_atomic_registry_import_v1.sql": "fa4ec41c2d57083b644fd2e116ffd9801ac1d40d57886d7a2180f8bae1a641a5"
   }
 }
