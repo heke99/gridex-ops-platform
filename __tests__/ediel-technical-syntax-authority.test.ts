@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc } }))
-import { captureEdielTechnicalSyntaxAckEvidence, requireEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision } from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import { captureEdielTechnicalSyntaxAckEvidence, requireEdielTechnicalSyntaxAckEvidence, readEdielTechnicalSourceEndpoint, recordEdielTechnicalSyntaxDecision, technicalSyntaxAckQualification } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 const envelope = { sender: ['REMOTE','14','SUB-R'], receiver: ['LOCAL','14','SUB-L'], interchangeReference: 'ORIGINAL-REFERENCE-LONG', uciReference: 'ORIGINAL-REFER', applicationReference: '', testIndicator: '1' }
 const basis = { kind: 'technical_syntax_ack', version: 1, companyId: 'company', sourceMessageId: 'source', sourceHash: 'a'.repeat(64), environment: 'test', observedAt: '2026-09-30T12:00:00Z', syntaxAssessmentId: 'assessment', syntaxDecision: 'rejected', transportActorId: 'actor', transportEdielId: 'LOCAL', originalUNB: envelope }
 describe('protected technical syntax authority adapters', () => {
@@ -37,6 +37,15 @@ describe('protected technical syntax authority adapters', () => {
  it('does not turn a technical endpoint into business authorization', async () => {
   rpc.mockResolvedValue({data:{kind:'technical_endpoint_only',companyId:'company',sourceMessageId:'source',sourceHash:'a'.repeat(64),environment:'test',transportEdielId:'LOCAL',originalUNB:envelope,authorizesBusinessEffect:true},error:null})
   await expect(readEdielTechnicalSourceEndpoint('source')).rejects.toThrow('ediel_technical_endpoint_unqualified')
+ })
+ it('requires the exact protected RPC object and freezes its nested physical envelope', async () => {
+  rpc.mockResolvedValue({data:structuredClone(basis),error:null})
+  const e=await requireEdielTechnicalSyntaxAckEvidence('company','source')
+  expect(technicalSyntaxAckQualification({evidence:e,companyId:'company',environment:'test',sourceMessageId:'source'})).toBe(e)
+  expect(technicalSyntaxAckQualification({evidence:{...e},companyId:'company',environment:'test'})).toBeNull()
+  expect(technicalSyntaxAckQualification({evidence:e,companyId:'other',environment:'test'})).toBeNull()
+  expect(Object.isFrozen(e.originalUNB.receiver)).toBe(true)
+  expect(Object.isFrozen(e.originalUNB)).toBe(true)
  })
  it('records only the actual common syntax owner facet with an exact raw hash', async () => {
   rpc.mockResolvedValue({data:{syntaxAssessmentId:'assessment',scope:'canonical_syntax_only',authorizesBusinessEffect:false},error:null})

@@ -1,5 +1,15 @@
 import { supabaseService } from '@/lib/supabase/service'
 
+const authenticatedTechnicalEvidence = new WeakSet<object>()
+function freezeEvidence<T>(value: T, seen = new WeakSet<object>()): T {
+  if (value && typeof value === 'object' && !seen.has(value)) {
+    seen.add(value)
+    for (const child of Object.values(value)) freezeEvidence(child, seen)
+    Object.freeze(value)
+  }
+  return value
+}
+
 export type TechnicalSyntaxAckEvidence = Readonly<{
   kind: 'technical_syntax_ack'
   version: 1
@@ -48,7 +58,23 @@ function decodeTechnicalEvidence(value: unknown): TechnicalSyntaxAckEvidence {
     || !e.syntaxAssessmentId || !e.transportActorId || !e.transportEdielId || !e.observedAt
     || !['test', 'production'].includes(e.environment ?? '') || !['accepted', 'rejected'].includes(e.syntaxDecision ?? '')
     || !/^[a-f0-9]{64}$/.test(e.sourceHash ?? '') || !validEnvelope(e.originalUNB, e.transportEdielId)) throw new Error('ediel_technical_ack_basis_required')
-  return Object.freeze(e as TechnicalSyntaxAckEvidence)
+  const evidence = freezeEvidence(e as TechnicalSyntaxAckEvidence)
+  authenticatedTechnicalEvidence.add(evidence)
+  return evidence
+}
+
+/** Pure port: only the exact immutable protected RPC result is an authority.
+ * Structural copies and caller-minted objects never qualify. */
+export function technicalSyntaxAckQualification(input: {
+  evidence: unknown
+  companyId: string
+  environment: 'test' | 'production'
+  sourceMessageId?: string
+}): TechnicalSyntaxAckEvidence | null {
+  if (!input.evidence || typeof input.evidence !== 'object' || !authenticatedTechnicalEvidence.has(input.evidence)) return null
+  const e = input.evidence as TechnicalSyntaxAckEvidence
+  return e.companyId === input.companyId && e.environment === input.environment
+    && (input.sourceMessageId === undefined || e.sourceMessageId === input.sourceMessageId) ? e : null
 }
 
 async function technicalEvidence(action: 'capture' | 'require', companyId: string, sourceMessageId: string) {
