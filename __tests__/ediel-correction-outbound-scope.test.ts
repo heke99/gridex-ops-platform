@@ -31,7 +31,7 @@ it('holds a potential Z08 before SMTP when the database does not scope its origi
   const raw = closureFixture({ reason: 'Z25' }).wire.replace('BGM+Z05', 'BGM+Z08').slice(0, -1)
   const message = {
     id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
-    environment: 'test', direction: 'outbound', message_family: 'PRODAT', message_code: 'Z01', raw_payload: raw,
+    environment: 'test', direction: 'outbound', message_standard:'edifact', message_family: 'PRODAT', message_code: 'Z01', raw_payload: raw,
   } as EdielMessageRow
 
   await expect(sendCorrectionFencedEmail(
@@ -47,7 +47,7 @@ it('journals a valid non-Z08 outbound PRODAT before its provider entry', async (
   const raw = closureFixture().wire.replace('BGM+Z05', 'BGM+Z03')
   const message = {
     id: '00000000-0000-4000-8000-000000000004', company_id: '00000000-0000-4000-8000-000000000002',
-    environment: 'test', direction: 'outbound', message_family: 'PRODAT', message_code: 'Z03', raw_payload: raw,
+    environment: 'test', direction: 'outbound', message_standard:'edifact', message_family: 'PRODAT', message_code: 'Z03', raw_payload: raw,
   } as EdielMessageRow
 
   await expect(sendCorrectionFencedEmail(
@@ -65,7 +65,7 @@ it('journals a canonical Z08 LK exemption without weakening the sealed H lane', 
   const raw = closureFixture({ reason: 'Z23' }).wire.replace('BGM+Z05', 'BGM+Z08')
   const message = {
     id: '00000000-0000-4000-8000-000000000005', company_id: '00000000-0000-4000-8000-000000000002',
-    environment: 'test', direction: 'outbound', message_family: 'PRODAT', message_code: 'Z08', raw_payload: raw,
+    environment: 'test', direction: 'outbound', message_standard:'edifact', message_family: 'PRODAT', message_code: 'Z08', raw_payload: raw,
     rule_profile_key: 'PRODAT:Z08:LK:26.A:r3',
   } as EdielMessageRow
 
