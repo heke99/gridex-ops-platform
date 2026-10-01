@@ -377,7 +377,7 @@ function buildResult(params: {
 
 export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
-    ? validateEdifactSyntax(message)
+    ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
   let canonical: CanonicalEdielMessage
   try {
