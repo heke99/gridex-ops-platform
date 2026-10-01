@@ -207,7 +207,7 @@ export function selectStructuralSources(input: StructuralSelectionInput): Struct
       }
     }
     const priorMeasurements:SelectedStructure['measurements']=state?.measurements
-    const measurements=version.measurements ? Object.fromEntries(Object.entries(version.measurements).map(([key,value])=>[key,
+    const measurements:SelectedStructure['measurements']=version.measurements ? Object.fromEntries(Object.entries(version.measurements).map(([key,value])=>[key,
       value!==null ? {value,sourceMessageId:version.sourceMessageId}
         : priorMeasurements?.[key as keyof StructuralMeasurementProjection]??{value:null,sourceMessageId:null},
     ])) as SelectedStructure['measurements'] : undefined
