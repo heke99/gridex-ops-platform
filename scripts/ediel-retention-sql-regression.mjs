@@ -263,4 +263,27 @@ try{
  await db.exec(`UPDATE company_memberships SET accepted_at=NULL WHERE user_id='${uid(2)}'`);assert.equal(await classPermission(uid(2),'ediel.retention.mime_bytes'),false)
  console.log('PASS 12 archived-tenant/class authority mechanics: no default/global allow, separate explicit source/customer/original/MIME class grants, actual current auth+accepted own membership, global user/role deny and override time window; operative archived-company denial preserved (bounded synthetic resolver; NOT actual native/issuer approval)')
 
+ await db.exec(`UPDATE company_memberships SET accepted_at=now() WHERE user_id='${uid(2)}'`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001022426_ediel_blob_retention_review_reads.sql',import.meta.url),'utf8'))
+ const blobRead=(id,actor=uid(30),include=false,company=uid(1))=>authenticatedCall(actor,`select public.ediel_read_blob_retention_decision_v1('${company}','${actor}','${id}',${include}) b`)
+ const history=await blobRead(original.decisionId)
+ assert.equal(history.companyId,uid(1));assert.equal(history.sourceHash,original.sourceHash);assert.equal(history.documentBase64,null);assert.equal(history.currentQualified,false);assert.equal(history.purge.physicalBytesRemoved,true)
+ const document=await blobRead(original.decisionId,uid(30),true)
+ assert.equal(document.documentBase64,originalDoc.toString('base64'));assert.equal(document.documentHash,createHash('sha256').update(originalDoc).digest('hex'))
+ const pendingRead=await blobRead(mimeDecision.decisionId)
+ assert.equal(pendingRead.purge.physicalBytesRemoved,false,'SQL metadata deletion must never fabricate a physical Storage receipt')
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId,uid(30),false,uid(99)),/current_read_grant_required|current_actor_forbidden/)
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId,uid(80)),/current_read_grant_required/)
+ await db.exec(`INSERT INTO user_permission_overrides(user_id,company_id,permission_key,effect,is_active) VALUES('${uid(30)}',NULL,'ediel.retention.mime_bytes','deny',true)`)
+ const revokedBefore=(await db.query('select count(*)::int n from gridex_ediel_retention.blob_revocations')).rows[0].n
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId),/current_class_grant_required/)
+ await assert.rejects(()=>authenticatedCall(uid(30),`select public.ediel_revoke_blob_retention_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}','SYNTHETIC denied revocation') b`),/current_class_grant_required/)
+ assert.equal((await db.query('select count(*)::int n from gridex_ediel_retention.blob_revocations')).rows[0].n,revokedBefore)
+ await db.exec('DELETE FROM user_permission_overrides')
+ await authenticatedCall(uid(30),`select public.ediel_revoke_blob_retention_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}','SYNTHETIC own class revocation') b`)
+ assert.equal((await blobRead(mimeDecision.decisionId)).revoked,true)
+ await assert.rejects(()=>authenticatedCall(uid(30),`select public.ediel_revoke_blob_retention_before_class_guard_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}','BYPASS') b`),/permission denied/)
+ await assert.rejects(()=>service(`select public.ediel_read_blob_retention_decision_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}',true) b`),/permission denied/)
+ console.log('PASS 11 private review-reader/revocation mechanisms: current own actor and actual class, archived company history, exact original legal bytes/hash, no source/MIME byte export, metadata deletion cannot imply physical Storage finish, foreign/global/current deny no-effects, direct predecessor and service denial (bounded synthetic SQL; NOT native/issuer/physical proof)')
+
 }finally{await db.close()}

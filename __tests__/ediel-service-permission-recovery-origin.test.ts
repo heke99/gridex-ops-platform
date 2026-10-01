@@ -16,7 +16,7 @@ beforeEach(()=>{
 it('uses qualified private recovery and current original origin for Z18 without binding the new intent to the old one',async()=>{
  const result=await loadServicePermissionRecoveryOrigin(scope)
  expect(result?.basis.assignmentId).toBe(id(4));expect(result?.sourceIntentId).toBe(id(6))
- expect(io.actor).toHaveBeenCalledWith({companyId:scope.companyId,actorUserId:scope.actorUserId,permission:'communication.send'})
+ expect(io.actor).toHaveBeenCalledWith({companyId:scope.companyId,actorUserId:scope.actorUserId,permissionAnyOf:['ediel.send','communication.send']})
 })
 it('does not follow public original selectors when private recovery qualification is absent',async()=>{
  io.rpc.mockResolvedValue({data:null,error:null});expect(await loadServicePermissionRecoveryOrigin(scope)).toBeUndefined();expect(io.from).not.toHaveBeenCalled()

@@ -2,7 +2,8 @@ import {parseInboundUtilts} from '@/lib/ediel/utilts'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage, type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 
-export function validateUtilts(rawPayload: string): UtiltsRuntimeResult['validation'] {
+export function validateUtilts(rawPayload: string, admissionAt?: string | null): UtiltsRuntimeResult['validation'] {
+  if (!admissionAt || !Number.isFinite(Date.parse(admissionAt))) throw new Error('ediel_admission_time_missing')
   // No persisted metadata exists at this boundary. Read the actual BGM code;
   // retain malformed wire for the runtime's typed syntax refusal.
   let messageCode=''
@@ -63,15 +64,15 @@ export function validateUtilts(rawPayload: string): UtiltsRuntimeResult['validat
     functional_check_status: 'not_checked',
     failure_reason: null,
     message_created_at: null,
-    message_received_at: null,
+    message_received_at: admissionAt,
     message_sent_at: null,
     parsed_at: null,
     validated_at: null,
     acknowledged_at: null,
     failed_at: null,
     ack_due_at: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: admissionAt,
+    updated_at: admissionAt,
     created_by: null,
     updated_by: null,
   } satisfies EdielMessageRow).validation

@@ -1,0 +1,84 @@
+import {createClient,type SupabaseClient} from '@supabase/supabase-js'
+import {createHash,createHmac,randomUUID} from 'node:crypto'
+import {afterEach,expect,it,vi} from 'vitest'
+import {NextRequest} from 'next/server'
+const ports=vi.hoisted(()=>({smtp:vi.fn(),client:null as SupabaseClient|null,company:''}))
+vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:ports.smtp})}}))
+vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
+vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
+vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>{if(!ports.client)throw Error('actual_native_jwt_client_required');return ports.client}}))
+vi.mock('next/headers',()=>({cookies:async()=>({get:()=>({value:ports.company})})}))
+import {supabaseService} from '@/lib/supabase/service'
+import {seedNormalSwitchNativeFixture,nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
+import {onboardCustomerGraph} from '@/lib/customers/canonicalOnboarding'
+import {createTenantContext} from '@/lib/tenant/context'
+import {CUSTOMER_RECORD_RETENTION_CLASSES,type CustomerRecordRetentionClass} from '@/lib/ediel/retention/recordClasses.catalog'
+import {POST} from '@/app/api/ediel/customer-record-retention/route'
+import {requireCustomerRecordAvailable,requireContractRecordsAvailable,requirePortalRetentionAccess} from '@/lib/ediel/retention/customerRecordClasses'
+const digest=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex')
+const allClasses=['ediel.retention.contract_pdf','ediel.retention.signature','ediel.retention.address_history','ediel.retention.portal_history','ediel.retention.legal_history']
+afterEach(()=>{vi.unstubAllEnvs();ports.smtp.mockReset();ports.client=null;ports.company=''})
+async function user(company:string,permissions:string[]){
+ const email=randomUUID()+'@example.invalid',password=randomUUID()+'Aa1!',created=await supabaseService.auth.admin.createUser({email,password,email_confirm:true});expect(created.error).toBeNull();const id=created.data.user!.id
+ sql(`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(company)},${literal(id)},'member','active',now(),'{}','member',true,now(),'member');UPDATE public.user_profiles SET user_status='active' WHERE id=${literal(id)};INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(id)},${literal(company)},id,key FROM public.permissions WHERE key=ANY(ARRAY[${permissions.map(literal).join(',')}])`)
+ const client=createClient('http://127.0.0.1:54321',process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{auth:{persistSession:false}}),signed=await client.auth.signInWithPassword({email,password});expect(signed.error).toBeNull();expect((await client.auth.getUser()).data.user?.id).toBe(id);expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM public.admin_users WHERE user_id=${literal(id)} AND is_active))`)).toBe(false);return {id,client}
+}
+async function fixture(){
+ for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v)
+ const f=await seedNormalSwitchNativeFixture({provider:email=>ports.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})})
+ // Real canonical command owns the onboarding legal snapshot. Its supplied
+ // acceptance is an explicit synthetic customer boundary, not a legal approval.
+ const onboarding=await onboardCustomerGraph({company_id:f.companyId,actor_user_id:f.actorUserId,channel:'admin',idempotency_key:'retention-'+randomUUID(),matching_policy:'link_selected',existing_customer_id:f.customerId,update_existing:false,customer:{personal_number:f.customerIdentity.id},legal:{accepted_at:new Date().toISOString(),acceptance_snapshot:{syntheticPerson:'SYNTHETIC SOURCE ONLY'},signed_scopes:[]}},createTenantContext({companyId:f.companyId,actorType:'user',actorId:f.actorUserId,sourceChannel:'admin',permissions:['customers.write']}));expect(onboarding.ok).toBe(true);if(!onboarding.ok)throw Error('actual_onboarding_snapshot_required');expect(onboarding.legal_snapshot_id).toBeTruthy()
+ const history={address:randomUUID(),event:randomUUID(),access:randomUUID(),customerEvent:randomUUID(),domain:randomUUID()}
+ sql(`INSERT INTO public.customer_addresses(id,company_id,customer_id,type,street_1,postal_code,city,is_active,moved_out_at,metadata) VALUES(${literal(history.address)},${literal(f.companyId)},${literal(f.customerId)},'registered','SYNTHETIC ROAD','12345','TEST',false,'2020-01-01','{"synthetic":"person"}');
+ INSERT INTO public.customer_portal_events(id,company_id,customer_id,user_id,event_type,payload,metadata) VALUES(${literal(history.event)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.actorUserId)},'synthetic.history','{"synthetic":"person"}','{}');
+ INSERT INTO public.customer_portal_api_access_logs(id,company_id,customer_id,external_customer_id,route,action,metadata) VALUES(${literal(history.access)},${literal(f.companyId)},${literal(f.customerId)},'SYNTHETIC','/synthetic','read','{"synthetic":"person"}');
+ INSERT INTO public.customer_events(id,company_id,customer_id,event_type,external_customer_id,customer_number,payload,metadata) VALUES(${literal(history.customerEvent)},${literal(f.companyId)},${literal(f.customerId)},'customer.synthetic_history','SYNTHETIC','SYNTHETIC','{"synthetic":"person"}','{}');
+ INSERT INTO public.domain_events(id,company_id,subject_customer_id,actor_user_id,event_type,aggregate_type,aggregate_id,payload) VALUES(${literal(history.domain)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.actorUserId)},'customer.synthetic_history','customer',${literal(f.customerId)},'{"synthetic":"person"}');`)
+ // Closed status and absent supply below are public local fixture facts. No
+ // accepted private supply/source/retention receipt is seeded or represented as
+ // a real closure or issuer decision.
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND customer_id=${literal(f.customerId)}`)).toBe(0)
+ sql(`UPDATE public.customers SET status='archived' WHERE id=${literal(f.customerId)};UPDATE public.companies SET status='archived' WHERE id=${literal(f.companyId)}`)
+ const submitter=await user(f.companyId,['ediel.retention.submit','ediel.retention.purge',...allClasses]),reviewer=await user(f.companyId,['ediel.retention.review',...allClasses]);ports.company=f.companyId
+ const issuer=randomUUID(),key=Buffer.from('SYNTHETIC ONLY legal competence HMAC 01234567890123456789'),legal=Buffer.from('SYNTHETIC ONLY competence mechanism. NO actual legal policy approval.')
+ sql(`INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuer)},${literal(f.companyId)},'SYNTHETIC COMPETENCE ONLY',decode('${legal.toString('hex')}','hex'),${literal(digest(legal))},decode('${key.toString('hex')}','hex'),'2020-01-01','2099-01-01')`)
+ const one=(table:string,filter:string)=>sql<string>(`SELECT to_jsonb(id) FROM public.${table} WHERE company_id=${literal(f.companyId)} AND ${filter} ORDER BY id LIMIT 1`)
+ const targets:Record<CustomerRecordRetentionClass,string>={contract_signed_pdf_bytes:one('customer_contract_documents',`customer_contract_id=${literal(f.contractId)} AND document_type='signed_contract_pdf'`),contract_signature_personal_snapshot:f.contractId,contract_signature_request_personal:one('customer_contract_signature_requests',`customer_contract_id=${literal(f.contractId)}`),contract_acceptance_personal_snapshot:one('customer_contract_acceptances',`customer_contract_id=${literal(f.contractId)}`),contract_evidence_personal_snapshot:one('customer_contract_evidence',`customer_contract_id=${literal(f.contractId)}`),customer_address_history:history.address,portal_event_history:history.event,portal_access_log_history:history.access,portal_customer_event_history:history.customerEvent,portal_domain_event_history:history.domain,legal_acceptance_personal_snapshot:one('customer_legal_acceptances',`contract_id=${literal(f.contractId)}`),onboarding_legal_personal_snapshot:onboarding.legal_snapshot_id!}
+ for(const k of CUSTOMER_RECORD_RETENTION_CLASSES)expect(targets[k],`actual source missing ${k}`).toMatch(/^[a-f0-9-]{36}$/)
+ const policy=(k:CustomerRecordRetentionClass,document:Buffer,extra:Record<string,unknown>={})=>{
+  const basis=sql<Record<string,unknown>>(`SELECT gridex_ediel_retention.record_basis_v1(${literal(f.companyId)},${literal(k)},${literal(targets[k])})`),payload=Buffer.from(JSON.stringify({format:'ediel_customer_record_retention_policy_v1',...basis,documentHash:digest(document),issuerLegalReference:'SYNTHETIC COMPETENCE ONLY',legalBasisReference:'SYNTHETIC per-class exact source deadline',journalPurposeReference:'SYNTHETIC minimal immutable continuity',accessRevocationRequired:true,issuedAt:new Date(Date.now()-60000).toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),retainUntil:new Date(Date.now()-1000).toISOString(),journalRetainUntil:new Date(Date.now()+3600000).toISOString(),...extra}));return {issuerId:issuer,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',key).update(payload).digest('hex')}
+ }
+ return {...f,submitter,reviewer,targets,policy}
+}
+async function http(client:SupabaseClient,body:unknown){ports.client=client;return POST(new NextRequest('http://localhost/api/ediel/customer-record-retention',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}))}
+it('actual signed publication/PDF/POA/Z03, canonical onboarding and own public histories feed all twelve distinct native class owners through scoped HTTP; actual JWT Storage removal has a real unavailable readback',async()=>{
+ const f=await fixture()
+ for(const k of CUSTOMER_RECORD_RETENTION_CLASSES){
+  const document=Buffer.from('SYNTHETIC SOURCE-SPECIFIC POLICY '+k),response=await http(f.submitter.client,{action:'submit',retentionClass:k,targetId:f.targets[k],documentBase64:document.toString('base64'),issuerReceipt:f.policy(k,document)});expect(response.status,await response.clone().text()).toBe(200);const submitted=await response.json();expect(submitted).toMatchObject({status:'submitted',issuerQualified:true,retentionClass:k})
+  const inspected=await http(f.reviewer.client,{action:'read',decisionId:submitted.decisionId});expect(inspected.status).toBe(200);const bytes=await inspected.json();expect(Buffer.from(bytes.documentBase64,'base64')).toEqual(document);expect(bytes.documentHash).toBe(digest(document))
+  const same=await f.submitter.client.rpc('ediel_review_customer_record_retention_v1',{p_company_id:f.companyId,p_actor_user_id:f.submitter.id,p_decision_id:submitted.decisionId,p_outcome:'approve',p_reason:'invalid same writer'});expect(same.error).not.toBeNull()
+  const reviewed=await http(f.reviewer.client,{action:'review',decisionId:submitted.decisionId,outcome:'approve',reason:'SYNTHETIC separate exact-source mechanism review'});expect(reviewed.status,await reviewed.clone().text()).toBe(200);expect((await reviewed.json()).status).toBe('approved')
+  const beforePdf=k==='contract_signed_pdf_bytes'?sql<{path:string;hash:string}>(`SELECT jsonb_build_object('path',storage_path,'hash',document_sha256) FROM public.customer_contract_documents WHERE id=${literal(f.targets[k])}`):null
+  if(beforePdf){const before=await supabaseService.storage.from('customer-contract-documents').download(beforePdf.path);expect(before.error).toBeNull();expect(digest(Buffer.from(await before.data!.arrayBuffer()))).toBe(beforePdf.hash)}
+  const purged=await http(f.submitter.client,{action:'purge',decisionId:submitted.decisionId});expect(purged.status,await purged.clone().text()).toBe(200);const receipt=await purged.json();expect(receipt).toMatchObject({retentionClass:k,targetId:f.targets[k],status:beforePdf?'storage_object_absent':'redacted'})
+  if(beforePdf){expect(receipt.physicalBytesObservedUnavailable).toBe(true);const unavailable=await supabaseService.storage.from('customer-contract-documents').download(beforePdf.path);expect(unavailable.data).toBeNull();expect(['404','400']).toContain(String(unavailable.error?.statusCode));expect(unavailable.error?.message).toMatch(/not found|does not exist/i)}
+  else{const spec=sql<{table:string;redaction:Record<string,unknown>}>(`SELECT jsonb_build_object('table',source_table,'redaction',redaction) FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=${literal(k)}`),row=sql<Record<string,unknown>>(`SELECT to_jsonb(r) FROM public.${spec.table} r WHERE id=${literal(f.targets[k])}`);for(const [field,value]of Object.entries(spec.redaction))expect(row[field],k+'.'+field).toEqual(value==='RETENTION_EMAIL'?`retained-signature-${f.targets[k]}@example.invalid`:value)}
+  await expect(requireCustomerRecordAvailable({companyId:f.companyId,retentionClass:k,targetId:f.targets[k]})).rejects.toBeDefined()
+  expect((await (await http(f.submitter.client,{action:'purge',decisionId:submitted.decisionId})).json()).replay).toBe(true)
+ }
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.record_tombstones WHERE company_id=${literal(f.companyId)}`)).toBe(12)
+ await expect(requireContractRecordsAvailable({companyId:f.companyId,contractId:f.contractId})).rejects.toBeDefined();await expect(requirePortalRetentionAccess({companyId:f.companyId,customerId:f.customerId})).rejects.toBeDefined()
+},180000)
+it('missing legal competence, hostile tenant selectors and committed current reviewer class DENY hold actual source bytes and histories without partial tombstone or provider effects',async()=>{
+ const f=await fixture(),k='customer_address_history',document=Buffer.from('SYNTHETIC negative scope decision')
+ const unqualified=await http(f.submitter.client,{action:'submit',retentionClass:k,targetId:f.targets[k],documentBase64:document.toString('base64'),issuerReceipt:null});const u=await unqualified.json();expect(u.issuerQualified).toBe(false);expect((await http(f.reviewer.client,{action:'review',decisionId:u.decisionId,outcome:'approve',reason:'SYNTHETIC no issuer must hold'})).status).toBe(409)
+ expect((await http(f.submitter.client,{action:'purge',decisionId:u.decisionId,companyId:randomUUID()})).status).toBe(400)
+ const qualifiedDoc=Buffer.from('SYNTHETIC exact negative class policy'),created=await http(f.submitter.client,{action:'submit',retentionClass:k,targetId:f.targets[k],documentBase64:qualifiedDoc.toString('base64'),issuerReceipt:f.policy(k,qualifiedDoc)}),decision=(await created.json()).decisionId;expect((await http(f.reviewer.client,{action:'review',decisionId:decision,outcome:'approve',reason:'SYNTHETIC separate'})).status).toBe(200)
+ const before=sql<Record<string,unknown>>(`SELECT to_jsonb(a) FROM public.customer_addresses a WHERE id=${literal(f.targets[k])}`)
+ sql(`INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active) VALUES(${literal(f.reviewer.id)},${literal(f.companyId)},'ediel.retention.address_history','deny',true)`)
+ expect((await http(f.submitter.client,{action:'purge',decisionId:decision})).status).toBe(409);expect(sql(`SELECT to_jsonb(a) FROM public.customer_addresses a WHERE id=${literal(f.targets[k])}`)).toEqual(before);expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.record_tombstones WHERE company_id=${literal(f.companyId)}`)).toBe(0)
+ sql(`DELETE FROM public.user_permission_overrides WHERE user_id=${literal(f.reviewer.id)} AND company_id=${literal(f.companyId)}`)
+ const trigger='native_record_retention_late_'+randomUUID().replaceAll('-','');sql(`CREATE FUNCTION public.${trigger}() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.company_id=${literal(f.companyId)}::uuid AND NEW.action='ediel.retention.record_tombstoned' THEN RAISE EXCEPTION 'actual final retention audit blocked';END IF;RETURN NEW;END$$;CREATE TRIGGER ${trigger} BEFORE INSERT ON public.audit_logs FOR EACH ROW EXECUTE FUNCTION public.${trigger}()`)
+ try{expect((await http(f.submitter.client,{action:'purge',decisionId:decision})).status).toBe(403);expect(sql(`SELECT to_jsonb(a) FROM public.customer_addresses a WHERE id=${literal(f.targets[k])}`)).toEqual(before);expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.record_tombstones WHERE company_id=${literal(f.companyId)}`)).toBe(0)}finally{sql(`DROP TRIGGER ${trigger} ON public.audit_logs;DROP FUNCTION public.${trigger}()`)}
+},180000)

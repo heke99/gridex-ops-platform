@@ -251,14 +251,13 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
     ]))
     expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
   })
-  it('reports an omitted IDE qualifier as field 505 ERC 41', () => {
+  it('rejects an omitted mandatory UNSM IDE qualifier before national field505 or application effects', () => {
     const control = observationHandoffMessage('2026-09-30', 'tenant-ide505-missing')
     const message = { ...control, raw_payload: control.raw_payload!.replace('IDE+24+', 'IDE++') }
     const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
-    expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
-    expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
-      expect.objectContaining({ fieldCode: '505', ercCode: '41' }),
-    ]))
+    expect(runtime.validation.syntaxOk).toBe(false)
+    expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'syntax_rejected', responseType: 'negative_contrl' }])
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual([])
     expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
   })
   it('keeps an invalid IDE+25 separate from a valid IDE+24 sibling', () => {
@@ -308,6 +307,13 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
       const message = { ...control, sender_ediel_id: '91100', receiver_ediel_id: '21660',
         raw_payload: control.raw_payload!.replace(original, replacement) }
       const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      if (ercCode === '41') {
+        expect(runtime.validation.syntaxOk).toBe(false)
+        expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_contrl'])
+        expect(runtime.ackPlan.aperakApplicationErrors).toEqual([])
+        expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+        continue
+      }
       expect(runtime.transactionDispositions.map(item => item.responseType), replacement).toEqual(['negative_aperak'])
       expect(runtime.ackPlan.aperakApplicationErrors, replacement).toEqual(expect.arrayContaining([
         expect.objectContaining({ fieldCode, ercCode }),
@@ -327,6 +333,13 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
       const original = role === 'MS' ? 'NAD+MS+91100:SVK:260' : 'NAD+MR+21660:SVK:260'
       const message = { ...control, raw_payload: control.raw_payload!.replace(original, `NAD+${role}+${value}::${agency}`) }
       const runtime = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-09-30' })
+      if (!value) {
+        expect(runtime.validation.syntaxOk).toBe(false)
+        expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_contrl'])
+        expect(runtime.ackPlan.aperakApplicationErrors).toEqual([])
+        expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+        continue
+      }
       expect(runtime.transactionDispositions.map(item => item.responseType)).toEqual(['negative_aperak'])
       expect(runtime.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
         expect.objectContaining({ fieldCode: role === 'MS' ? '207' : '208', ercCode }),
@@ -611,8 +624,12 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
     }
     for (const phase of ['E05', '']) {
       const result = runUtiltsRuntimeForMessage({ ...control, raw_payload: control.raw_payload!.replace('MKS+23+E02::260', `MKS+23+${phase}::260`) }, { referenceDate: '2026-09-30' })
-      expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
-        expect.objectContaining({ fieldCode: '502', ercCode: phase ? '42' : '41' }),
+      if (!phase) {
+        expect(result.validation.syntaxOk).toBe(false)
+        expect(result.transactionDispositions.every(row => row.disposition === 'syntax_rejected' && row.responseType === 'negative_contrl')).toBe(true)
+        expect(result.ackPlan.aperakApplicationErrors).toEqual([])
+      } else expect(result.ackPlan.aperakApplicationErrors).toEqual(expect.arrayContaining([
+        expect.objectContaining({ fieldCode: '502', ercCode: '42' }),
       ]))
       expect(result.ackPlan.utiltsErrDetails).toEqual([])
     }

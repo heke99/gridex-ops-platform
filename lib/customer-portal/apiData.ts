@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
+import { requirePortalRetentionAccess } from '@/lib/ediel/retention/customerRecordClasses'
 import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
 import {
@@ -44,6 +45,7 @@ export async function resolvePortalCustomerContext(input: {
     identifiers: { externalCustomerId: input.externalCustomerId },
   })
   if (!resolution.ok) throw new Error(resolution.error)
+  await requirePortalRetentionAccess({ companyId: input.client.company_id, customerId: resolution.customer.customer_id });
 
   return {
     companyId: input.client.company_id,
@@ -80,6 +82,7 @@ async function logPortalAccess(input: {
   action: string
   metadata?: Record<string, unknown>
 }) {
+  await requirePortalRetentionAccess(input.context)
   // portal-bundle emits one request-level access log through externalApi.ts.
   // Suppress per-section rows here to avoid 10+ redundant DB roundtrips while
   // preserving standalone endpoint audit behavior unchanged.

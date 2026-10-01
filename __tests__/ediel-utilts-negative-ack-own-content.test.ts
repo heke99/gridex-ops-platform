@@ -10,10 +10,8 @@ import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
 // ERC42 copies the erroneous received field; ERC41 keeps its prescribed text.
 const literal = "BAD+:'?"
 const cases = [
-  { code: 'UTILTS_QUANTITY_UNIT_SCOPE_INVALID', field: '264', content: 'MWH',
-    replace: "SEQ++1'", with: "SEQ++1'\nMEA+AAZ++MWH'" },
-  { code: 'UTILTS_QUANTITY_UNIT_NOT_USED', field: 'QTY/C186/6411', content: literal,
-    replace: "QTY+136:500'", with: `QTY+136:500:${escapeEdifactData(literal)}'` },
+  { code: 'UTILTS_QUANTITY_UNIT_NOT_USED', field: 'QTY/C186/6411', content: "+?'",
+    replace: "QTY+136:500'", with: `QTY+136:500:${escapeEdifactData("+?'")}'` },
   { code: 'UTILTS_DECIMAL_FIELD_INVALID', field: '516', content: literal,
     replace: "QTY+136:500'", with: `QTY+136:${escapeEdifactData(literal)}'` },
   { code: 'UTILTS_DECIMAL_FIELD_INVALID', field: '522', content: '1.234',
@@ -100,16 +98,18 @@ it.each(['invalid-point', 'missing-point'] as const)('E30 %s preserves own209 an
   expect(draft.rawPayload).toContain('INCORRECT DATA KWH')
 })
 
-it('missing own6060 keeps ERC41, while zero and NULL retain distinct source meanings', () => {
+it('missing own6060 fails full syntax before national ERC, while zero and NULL retain distinct source meanings', () => {
   const source = physicalSource()
   source.raw_payload = source.raw_payload!.replace('QTY+136:500', 'QTY+136:')
-  expect(runUtiltsRuntimeForMessage(source).ackPlan.aperakApplicationErrors).toContainEqual(expect.objectContaining({
-    ercCode: '41', fieldCode: '516', text: 'MANDATORY FIELD MISSING', referenceNumber: 'OWN-IDE' }))
+  const missing = runUtiltsRuntimeForMessage(source)
+  expect(missing.validation.syntaxOk).toBe(false)
+  expect(missing.ackPlan.aperakApplicationErrors).toEqual([])
+  expect(missing.transactionDispositions.every(row => row.disposition === 'syntax_rejected' && row.responseType === 'negative_contrl')).toBe(true)
   for (const value of ['0', 'NULL']) {
     const valid = physicalSource()
     const before = "QTY+136:500'"
-    const after = value === 'NULL' ? "QTY+136:NULL'\nSTS+8+46'" : "QTY+136:0'"
-    const segments = tokenizeEdifact(valid.raw_payload!.replace(before, after)).segments.filter(segment => !['UNB', 'UNH', 'UNT', 'UNZ'].includes(segment.tag)).map(segment => segmentUntrimmedRaw(segment))
+    const after = value === 'NULL' ? "QTY+136:NULL'" : "QTY+136:0'"
+    const segments = tokenizeEdifact(valid.raw_payload!.replace(before, after).replace("STS+7++21::260'", value === 'NULL' ? "STS+7++21::260'\nSTS+8+46'" : "STS+7++21::260'")).segments.filter(segment => !['UNB', 'UNH', 'UNT', 'UNZ'].includes(segment.tag)).map(segment => segmentUntrimmedRaw(segment))
     valid.raw_payload = EdifactEnvelopeCodec.encode({ sender: '91100', receiver: '21660', interchangeReference: 'OWN-VALUE',
       applicationReference: valid.application_reference, acknowledgementRequest: false, environment: 'test',
       createdAt: new Date('2026-10-01T18:11:00Z'), messages: [{ messageReference: '1', messageTypeToken: 'UTILTS:D:02B:UN:E5SE5A', businessSegments: segments }] })
@@ -133,4 +133,13 @@ it.each([
     const draft = buildAperakDraft({ sourceMessage: source, outcome: 'negative', applicationErrors: errors, relatedTransactionReference: reference })
     expect(draft.rawPayload).toContain(`INCORRECT DATA ${received}`)
   }
+})
+
+for (const custom of [false, true]) it(`full grammar rejects physical MEA inside own SEQ before all application/sibling effects, custom UNA=${custom}`, () => {
+  const source=physicalSource(undefined,custom,raw=>raw.replace("SEQ++1'","SEQ++1'\nMEA+AAZ++MWH'"))
+  const runtime=runUtiltsRuntimeForMessage(source)
+  expect(runtime.validation.syntaxOk).toBe(false)
+  expect(runtime.transactionDispositions.every(row=>row.disposition==='syntax_rejected' && row.responseType==='negative_contrl')).toBe(true)
+  expect(runtime.ackPlan.aperakApplicationErrors).toEqual([])
+  expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
 })

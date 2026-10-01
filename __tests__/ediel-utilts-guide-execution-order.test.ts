@@ -156,7 +156,7 @@ it('projects canonical syntax and header decisions through the generic decision/
 it('does not borrow a misplaced transaction timezone as the message header', () => {
   const message = energyHandoffMessage('2026-10-01')
   message.raw_payload = message.raw_payload!.replace("DTM+735:?+0200:406'\n", '')
-    .replace("IDE+24+GRIDEX2607E66001'", "IDE+24+GRIDEX2607E66001'\nDTM+735:?+0200:406'")
+    .replace("DTM+324:202607010000202607010015:719'", "DTM+735:?+0200:406'\nDTM+324:202607010000202607010015:719'")
   const result = runUtiltsRuntimeForMessage(message, { referenceDate: '2026-10-01' })
   expect(result.ackPlan.utiltsHeaderRejection?.applicationErrors).toMatchObject([{ fieldCode: '206', ercCode: '41' }])
   expect(probe.count).toBe(0)

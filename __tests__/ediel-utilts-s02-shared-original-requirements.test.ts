@@ -82,6 +82,14 @@ it.each(requiredCases)('$guide own $defect cannot borrow a sibling when ownFirst
   source.raw_payload = recount(raw)
   const original = source.raw_payload, policy = selectedPolicy(guide)
   const runtime = runUtiltsRuntimeForMessage(source, { canonicalPolicy: policy })
+  if (defect === 'header-quantity') {
+    expect(runtime.validation.syntaxOk).toBe(false)
+    expect(runtime.transactionDispositions.every(row => row.disposition === 'syntax_rejected' && row.responseType === 'negative_contrl')).toBe(true)
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual([])
+    expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+    expect(source.raw_payload).toBe(original)
+    return
+  }
   expect(runtime.validation.syntaxOk, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.transactionDispositions.find(row => row.transactionId === 'S02-OWN')).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
   expect(runtime.transactionDispositions.find(row => row.transactionId === 'S02-SIBLING')).toMatchObject({ disposition: 'accepted', responseType: 'positive_aperak' })
@@ -111,6 +119,14 @@ it.each(qualityCases)('$guide NULL uses only own following quality $quality with
   if (quality === 'next-sequence-quality') raw = s02PlanningSecondSequence(raw, 333).replace("QTY+135:333'", `${quantity}\n${status}`)
   source.raw_payload = declaredAlphabet(raw.replace("IDE+24+S02-OWN'", "IDE+24+S02-OWN?+IDE'"), custom)
   const original = source.raw_payload, runtime = runUtiltsRuntimeForMessage(source, { canonicalPolicy: selectedPolicy(guide) })
+  if (quality === 'quality-before') {
+    expect(runtime.validation.syntaxOk).toBe(false)
+    expect(runtime.transactionDispositions.every(row => row.disposition === 'syntax_rejected' && row.responseType === 'negative_contrl')).toBe(true)
+    expect(runtime.ackPlan.aperakApplicationErrors).toEqual([])
+    expect(runtime.ackPlan.utiltsErrCodes).toEqual([])
+    expect(source.raw_payload).toBe(original)
+    return
+  }
   expect(runtime.validation.syntaxOk, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.transactionDispositions.find(row => row.transactionId === 'S02-OWN+IDE')).toMatchObject({
     disposition: quality === 'own-quality' ? 'accepted' : 'guide_rejected', responseType: quality === 'own-quality' ? 'positive_aperak' : 'negative_aperak' })

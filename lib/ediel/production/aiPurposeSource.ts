@@ -1,0 +1,26 @@
+import {createHash} from 'node:crypto'
+import {supabaseService} from '@/lib/supabase/service'
+import {REQUESTED_CHANGE_SOURCE_MAX_BYTES,type RequestedChangeReviewCommand} from './requestedChangeIntake'
+
+/** Selectors and original document bytes only. Submitted legal/purpose/retention claims are never authority. The native owner
+ * binds current own legal scope, actual source bytes and separate signed review. */
+export type AiPurposeSourceSubmission={environment:'test'|'production';listType:'AI'|'BI';purpose:'ediel_list_export'|'ediel_list_reconciliation';gdprBasis:string;retentionDays:number;retentionUntil:string;validFrom:string;validUntil:string;source:{bytesBase64:string;mimeType:'application/pdf';reference:string;version:string};issuerReceipt?:{keyId:string;representationId:string;payloadBase64:string;signatureHex:string}}
+export type ArchivedAiPurposeSource={status:'archived';artifactId:string;sourceHash:string;claimsHash:string;missing:string[]}
+export type AiPurposeSourceArtifact={artifactId:string;environment:'test'|'production';listType:'AI'|'BI';purpose:'ediel_list_export'|'ediel_list_reconciliation';gdprBasis:string;retentionDays:number;retentionUntil:string;validFrom:string;validUntil:string;sourceReference:string;sourceVersion:string;sourceHash:string;claimsHash:string;mimeType:'application/pdf';byteLength:number;status:'archived'|'held'|'rejected'|'authorized';missing:string[]}
+export type AiPurposeSourceReviewResult={status:'authorized';artifactId:string;decisionId:string}|{status:'held'|'rejected';artifactId:string;missing:string[]}
+type Scope={companyId:string;actorUserId:string;artifactId:string}
+type Rpc=(name:string,params:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
+const rpc=()=>supabaseService.rpc.bind(supabaseService) as unknown as Rpc
+const record=(v:unknown):Record<string,unknown>|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:null
+function requireResult(data:unknown,statuses:string[]){const r=record(data);if(!r||!statuses.includes(String(r.status))||typeof r.artifactId!=='string')throw Error('ai_purpose_source_result_invalid');return r}
+export async function archiveAiPurposeSource(input:AiPurposeSourceSubmission&{companyId:string;actorUserId:string}):Promise<ArchivedAiPurposeSource>{
+ const bytes=Buffer.from(input.source.bytesBase64,'base64')
+ if(!bytes.length||bytes.length>REQUESTED_CHANGE_SOURCE_MAX_BYTES||bytes.toString('base64')!==input.source.bytesBase64||!bytes.subarray(0,5).equals(Buffer.from('%PDF-')))throw Error('ai_purpose_source_bytes_invalid')
+ const{companyId,actorUserId,...submission}=input
+ const{data,error}=await rpc()('ediel_archive_ai_purpose_source_v1',{p_company_id:companyId,p_actor_user_id:actorUserId,p_submission:submission});if(error)throw error
+ const r=requireResult(data,['archived']);if(!/^[a-f0-9]{64}$/.test(String(r.sourceHash))||!/^[a-f0-9]{64}$/.test(String(r.claimsHash))||!Array.isArray(r.missing))throw Error('ai_purpose_source_archive_result_invalid');return r as unknown as ArchivedAiPurposeSource
+}
+async function read(input:Scope,includeBytes:boolean){const{data,error}=await rpc()('ediel_read_ai_purpose_source_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_artifact_id:input.artifactId,p_include_bytes:includeBytes});if(error)throw error;const r=requireResult(data,['archived','held','rejected','authorized']);if(r.artifactId!==input.artifactId)throw Error('ai_purpose_source_scope_invalid');return r}
+export async function readAiPurposeSourceArtifact(input:Scope):Promise<AiPurposeSourceArtifact>{const r=await read(input,false);if('bytesBase64'in r||typeof r.gdprBasis!=='string'||typeof r.sourceHash!=='string'||typeof r.claimsHash!=='string'||typeof r.byteLength!=='number'||!Array.isArray(r.missing))throw Error('ai_purpose_source_metadata_invalid');return r as unknown as AiPurposeSourceArtifact}
+export async function readAiPurposeSourceBytes(input:Scope):Promise<{mimeType:'application/pdf';bytes:Uint8Array;sourceHash:string}>{const r=await read(input,true);if(typeof r.bytesBase64!=='string'||r.mimeType!=='application/pdf'||typeof r.sourceHash!=='string')throw Error('ai_purpose_source_bytes_invalid');const bytes=Buffer.from(r.bytesBase64,'base64');if(!bytes.length||bytes.length!==r.byteLength||bytes.length>REQUESTED_CHANGE_SOURCE_MAX_BYTES||createHash('sha256').update(bytes).digest('hex')!==r.sourceHash)throw Error('ai_purpose_source_bytes_invalid');return{mimeType:'application/pdf',bytes,sourceHash:r.sourceHash}}
+export async function reviewAiPurposeSource(input:Scope&RequestedChangeReviewCommand):Promise<AiPurposeSourceReviewResult>{const{companyId,actorUserId,artifactId,...review}=input;const{data,error}=await rpc()('ediel_review_ai_purpose_source_v1',{p_company_id:companyId,p_actor_user_id:actorUserId,p_artifact_id:artifactId,p_review:review});if(error)throw error;const r=requireResult(data,['authorized','held','rejected']);if(r.artifactId!==artifactId||r.status==='authorized'&&typeof r.decisionId!=='string'||r.status!=='authorized'&&!Array.isArray(r.missing))throw Error('ai_purpose_source_review_result_invalid');return r as unknown as AiPurposeSourceReviewResult}

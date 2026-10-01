@@ -100,17 +100,17 @@ it.each([['MWH','500000'],['GWH','500000000']] as const)('represents %s conversi
   expect(result.runtime.ackPlan.utiltsErrCodes).toContain('E73')
   expect(result.contracts[0].observations).toEqual([])
 })
-it('rejects an own SEQ unit override at its guide before billing preparation',async()=>{
-  const result=await preparedEnergy('E66',raw=>recountEdifactUnt(raw.replace("SEQ++1'","SEQ++1'\nMEA+AAZ++MWH'")))
+it('rejects an own QTY unit override at its guide before billing preparation',async()=>{
+  const result=await preparedEnergy('E66',raw=>recountEdifactUnt(raw.replace("QTY+136:500'","QTY+136:500:MWH'")))
   expect(result.runtime.transactionDispositions[0]).toMatchObject({disposition:'guide_rejected',responseType:'negative_aperak'})
-  expect(result.runtime.validation.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_QUANTITY_UNIT_SCOPE_INVALID',aperakFieldCode:'264'})]))
+  expect(result.runtime.validation.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UTILTS_QUANTITY_UNIT_NOT_USED',aperakFieldCode:'QTY/C186/6411'})]))
   expect(result.contracts[0].observations).toEqual([])
 })
 it('keeps conflicting own-SEQ unit rejection separate from an accepted IDE sibling',async()=>{
   const result=await preparedEnergy('E66',raw=>{
     const lines=raw.split('\n'),begin=lines.findIndex(line=>line.startsWith('IDE+')),end=lines.findIndex(line=>line.startsWith('UNT+'))
     const second=lines.slice(begin,end).map(line=>line.replaceAll('GRIDEX2607E66001','SECOND'))
-    second.splice(second.findIndex(line=>line.startsWith('QTY+')),0,"MEA+AAZ++MWH'")
+    second[second.findIndex(line=>line.startsWith('QTY+'))]="QTY+136:500:MWH'"
     return recountEdifactUnt([...lines.slice(0,end),...second,...lines.slice(end)].join('\n'))
   })
   expect(result.runtime.transactionDispositions.map(d=>d.disposition)).toEqual(['accepted','guide_rejected'])

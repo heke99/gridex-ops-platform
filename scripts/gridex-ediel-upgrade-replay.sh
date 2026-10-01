@@ -38,6 +38,9 @@ generate_upgrade_artifacts() {
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/retained-before.json"
  while IFS= read -r migration; do
   printf 'UPGRADE_APPLY: %s\n' "${migration##*/}"
+  if [[ "${migration##*/}" == 20261001000500_ediel_artifact_retention_decision_and_purge.sql ]]; then
+    psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/ediel-retention-replay-role-diagnostic.sql"
+  fi
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$migration"
  done < "$UPGRADE_WORK/plan/upgrade-inputs.list"
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/retained-after.json"

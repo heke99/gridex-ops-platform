@@ -38,5 +38,7 @@ export default defineConfig({
     'scripts/ediel-confirmed-customer-bilateral-native.test.ts',
     'scripts/ediel-prodat-ack-raw-scope-native.test.ts',
     'scripts/ediel-bilateral-prodat-profile-native.test.ts',
+    'scripts/ediel-ai-purpose-source-native.test.ts',
+    'scripts/ediel-customer-record-retention-native.test.ts',
   ],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })

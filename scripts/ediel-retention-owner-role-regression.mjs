@@ -41,5 +41,31 @@ for(const role of ['anon','authenticated','service_role']){
 }
 assert.deepEqual((await db.query("SELECT member::regrole::text member,admin_option,inherit_option,set_option FROM pg_auth_members WHERE roleid='gridex_ediel_retention_owner'::regrole AND grantor='bounded_migrator'::regrole")).rows,[{member:'bounded_migrator',admin_option:false,inherit_option:true,set_option:true}])
 assert.equal((await db.query("SELECT count(*)::int n FROM pg_auth_members WHERE roleid='gridex_ediel_retention_owner'::regrole AND admin_option")).rows[0].n,1)
+// Independent auth/storage owners expose why a migration administrator's own
+// table access cannot be assumed to include delegation to a private owner.
+await db.exec('CREATE ROLE bounded_auth_owner NOLOGIN; CREATE ROLE bounded_storage_owner NOLOGIN; CREATE SCHEMA auth AUTHORIZATION bounded_auth_owner; CREATE SCHEMA storage AUTHORIZATION bounded_storage_owner; CREATE TABLE auth.users(id uuid PRIMARY KEY); ALTER TABLE auth.users OWNER TO bounded_auth_owner; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$SELECT NULL::uuid$$; ALTER FUNCTION auth.uid() OWNER TO bounded_auth_owner; CREATE TABLE storage.objects(id uuid PRIMARY KEY); ALTER TABLE storage.objects OWNER TO bounded_storage_owner; REVOKE ALL ON FUNCTION auth.uid() FROM PUBLIC; GRANT USAGE ON SCHEMA auth,storage TO bounded_migrator,gridex_ediel_retention_owner; GRANT SELECT,UPDATE ON auth.users,storage.objects TO bounded_migrator; GRANT EXECUTE ON FUNCTION auth.uid() TO bounded_migrator; REVOKE CREATE ON SCHEMA public FROM PUBLIC; GRANT USAGE,CREATE ON SCHEMA public TO bounded_migrator WITH GRANT OPTION; SET ROLE bounded_migrator; CREATE FUNCTION public.retention_owner_transfer_probe_v1() RETURNS int LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$SELECT 1$$;')
+await assert.rejects(()=>db.exec('ALTER FUNCTION public.retention_owner_transfer_probe_v1() OWNER TO gridex_ediel_retention_owner'),/permission denied for schema public/)
+const publicPrerequisite=readFileSync(new URL('../supabase/migrations/20261001000461_ediel_retention_public_owner_transfer_prerequisite.sql',import.meta.url),'utf8')
+const publicCleanup=readFileSync(new URL('../supabase/migrations/20261001022427_ediel_retention_public_owner_transfer_cleanup.sql',import.meta.url),'utf8')
+await db.exec(publicPrerequisite)
+await db.exec('ALTER FUNCTION public.retention_owner_transfer_probe_v1() OWNER TO gridex_ediel_retention_owner; REVOKE ALL ON FUNCTION public.retention_owner_transfer_probe_v1() FROM PUBLIC,anon,authenticated,service_role;')
+assert.equal((await db.query("SELECT pg_get_userbyid(proowner) owner FROM pg_proc WHERE oid='public.retention_owner_transfer_probe_v1()'::regprocedure")).rows[0].owner,'gridex_ediel_retention_owner')
+await db.exec(publicPrerequisite)
+for(const object of ['auth.users','storage.objects']){
+ assert.equal((await db.query(`SELECT has_table_privilege(current_user,'${object}','SELECT') value`)).rows[0].value,true)
+ assert.equal((await db.query(`SELECT has_table_privilege(current_user,'${object}','SELECT WITH GRANT OPTION') value`)).rows[0].value,false)
+ assert.equal((await db.query(`SELECT has_table_privilege('gridex_ediel_retention_owner','${object}','SELECT') value`)).rows[0].value,false)
+}
+await db.exec(publicCleanup)
+assert.equal((await db.query("SELECT has_schema_privilege('gridex_ediel_retention_owner','public','CREATE') value")).rows[0].value,false)
+assert.equal((await db.query('SELECT public.retention_owner_transfer_probe_v1() value')).rows[0].value,1)
+await db.exec(publicCleanup)
+await db.exec('RESET ROLE')
+for(const role of ['anon','authenticated','service_role']){
+ assert.equal((await db.query(`SELECT has_schema_privilege('${role}','public','CREATE') value`)).rows[0].value,false)
+ await db.exec(`SET ROLE ${role}`)
+ await assert.rejects(()=>db.exec(publicPrerequisite),/migration_schema_grantor_required/)
+ await db.exec('ROLLBACK; RESET ROLE')
+}
 await db.close()
-process.stdout.write('PASS existing-owner non-super migration ownership, idempotence, private owner, application-role denial and unchanged migrator administration\n')
+process.stdout.write('PASS bounded non-super SET/schema/function ownership, temporary public CREATE cleanup, independent auth/storage non-delegation, idempotence and application-role denial (not full native replay/runtime auth proof)\n')

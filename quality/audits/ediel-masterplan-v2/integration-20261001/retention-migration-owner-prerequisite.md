@@ -45,3 +45,27 @@ All application roles remain non-members and lack private schema USAGE. The
 extended regression failed red at schema CREATE before 00460 and passed green
 after it. The entire genuine 00500 clean/upgrade replay remains **NOT RUN here**;
 PGlite does not supply Supabase/native acceptance evidence.
+
+## Public function owner-transfer prerequisite and cleanup
+
+Authentic clean job 110190936723 and ancestor-upgrade job 110190936527 at
+`8d60dfec` both passed 00460 and 00500 schema/table creation, then failed
+00500 line163: the new private owner lacked CREATE on the public schema during
+ALTER FUNCTION OWNER. The historical 00459,00460 and00500 bytes remain unchanged.
+
+CLI-created 23940 is dependency-ordered as00461. Only the validated migration
+schema grantor gives CREATE to the exact private NOLOGIN owner, without grant
+option or application membership. CLI-created24042 is ordered as22427 after
+all current retention function transfers including012305 and22426; it removes
+CREATE and fails closed if any inherited public CREATE remains. Future DDL
+after that cleanup must explicitly grant/revoke CREATE inside its transaction.
+
+The bounded non-superuser SQL regression rejects the public function transfer
+before00461, accepts it afterward and confirms22427 removes CREATE while
+execution of the existing private-owned function remains possible. Distinct
+Auth/Storage table and function owners are explicitly simulated: the migration
+principal has its own SELECT/UPDATE privileges without grant option, and the
+retention owner has neither. This confirms that the public fix does not imply
+Auth/Storage grantability. Authentic role/ACL diagnostics and a whole genuine
+clean/upgrade replay remain required; runtime auth actor locking is unresolved
+until those native grants or a separately qualified owner port are implemented.

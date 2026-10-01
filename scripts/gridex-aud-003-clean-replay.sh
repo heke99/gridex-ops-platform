@@ -314,6 +314,9 @@ apply_sql(){
   local file="$1"
   test -f "$file" || { echo "missing replay source $file" >&2; exit 1; }
   echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
+  if [[ "${file##*/}" == 20261001000500_ediel_artifact_retention_decision_and_purge.sql ]]; then
+    psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$ROOT/scripts/sql/ediel-retention-replay-role-diagnostic.sql"
+  fi
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
 while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"

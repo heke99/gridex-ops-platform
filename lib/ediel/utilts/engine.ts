@@ -11,7 +11,10 @@ export function runUtiltsOperationsEngine(params: {
   rawPayload: string
   companyId?: string | null
   sourceMessageId?: string | null
+  /** Observed source admission, required to select the actual dated guide. */
+  admissionAt?: string | null
 }): UtiltsOperationsEngineResult {
+  if (!params.admissionAt || !Number.isFinite(Date.parse(params.admissionAt))) throw new Error('ediel_admission_time_missing')
   const runtime = runUtiltsRuntimeForMessage({
     id: params.sourceMessageId ?? 'utilts-operations-preview',
     raw_payload: params.rawPayload,
@@ -19,7 +22,8 @@ export function runUtiltsOperationsEngine(params: {
     message_code: null,
     validation_report: null,
     syntax_check_status: 'not_checked',
-    message_received_at: null,
+    message_received_at: params.admissionAt,
+    created_at: params.admissionAt,
   } as unknown as EdielMessageRow)
   const firstTransaction = runtime.facts.transactions[0] ?? null
   const meteringPreview = normalizeMeteringIngest({
