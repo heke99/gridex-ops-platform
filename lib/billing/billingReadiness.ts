@@ -21,7 +21,7 @@
 // Billability is NEVER decided from a cached boolean column. Callers that
 // persist a readiness flag must derive it from this function.
 
-import { resolveEffectiveInvoiceDelivery } from '@/lib/billing/effectiveInvoiceDelivery'
+import { resolveInvoiceDeliveryFor } from '@/lib/billing/effectiveInvoiceDelivery'
 
 export type BillingBlocker = {
   code: string
@@ -187,7 +187,7 @@ export function evaluateContractBillingAccountReadiness(input: {
   const customer = input.customer ?? null
 
   const siteAddress = input.billingProfile?.siteAddress
-  const delivery = resolveEffectiveInvoiceDelivery({ contract, customer, siteAddress: siteAddress ?? null })
+  const delivery = resolveInvoiceDeliveryFor('readiness', { contract, customer, siteAddress: siteAddress ?? null })
   const recipient = delivery.recipient
   if (!recipient) {
     blockers.push({
@@ -200,7 +200,10 @@ export function evaluateContractBillingAccountReadiness(input: {
   const invoiceEmail = delivery.email
   const sameAsSite = contract?.billing_address_same_as_site === true
   // Callers that do not load the site address keep the earlier contract-level trust in the flag.
-  const hasResolvedPostalAddress = Boolean(delivery.postalAddress) || (sameAsSite && siteAddress === undefined)
+  const siteAddressComplete = siteAddress === undefined
+    ? sameAsSite
+    : Boolean(clean(siteAddress?.street) && clean(siteAddress?.postalCode) && clean(siteAddress?.city))
+  const hasResolvedPostalAddress = Boolean(delivery.postalAddress) || (sameAsSite && siteAddressComplete)
   const hasDistribution = Boolean(invoiceEmail || hasResolvedPostalAddress)
   if (!hasDistribution) {
     blockers.push({

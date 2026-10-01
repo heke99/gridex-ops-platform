@@ -334,6 +334,7 @@ describe('evaluateContractBillingAccountReadiness', () => {
   })
 
   it('inherits the customer billing profile for recipient and distribution', () => {
+    process.env.GRIDEX_INVOICE_DELIVERY_RESOLVER = 'shared'
     const result = evaluateContractBillingAccountReadiness({
       contract: { vat_rate: 25 },
       customer: {
@@ -350,9 +351,11 @@ describe('evaluateContractBillingAccountReadiness', () => {
       invoice_email_source: 'customer_billing_profile',
       inherits_customer_billing_profile: true,
     })
+    delete process.env.GRIDEX_INVOICE_DELIVERY_RESOLVER
   })
 
   it('never silently uses the customer contact email as invoice email', () => {
+    process.env.GRIDEX_INVOICE_DELIVERY_RESOLVER = 'shared'
     const result = evaluateContractBillingAccountReadiness({
       contract: { vat_rate: 25 },
       customer: {
@@ -363,6 +366,7 @@ describe('evaluateContractBillingAccountReadiness', () => {
     })
     expect(result.evidence).toMatchObject({ invoice_email: null, invoice_email_source: null })
     expect(result.blockers.map((blocker) => blocker.code)).toContain('invoice_distribution_missing')
+    delete process.env.GRIDEX_INVOICE_DELIVERY_RESOLVER
   })
 
   it('blocks a contract without recipient, distribution and VAT', () => {

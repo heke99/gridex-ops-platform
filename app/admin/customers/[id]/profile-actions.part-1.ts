@@ -232,20 +232,11 @@ export async function saveCustomerProfileImpl(
   const orgNumberInput = normalizeOptionalString(
     getNullableString(formData, "org_number"),
   );
-  let email: string | null;
-  let phone: string | null;
-  let status: string;
-  try {
-    // The OPS form always posts these fields, so an empty value is an explicit clear.
-    email = normalizeContactEmail(getNullableString(formData, "email") ?? "") ?? null;
-    phone = normalizeContactPhone(getNullableString(formData, "phone") ?? "") ?? null;
-    status = assertProfileEditableStatus(getNullableString(formData, "status"), "draft");
-  } catch (error) {
-    if (error instanceof CustomerContactChangeError) {
-      throw new CustomerActionError(error.code, error.message);
-    }
-    throw error;
-  }
+  // The OPS form always posts these fields, so an empty value is an explicit clear. Values are
+  // validated only when they change, so legacy stored formats never block unrelated edits.
+  const rawEmail = normalizeOptionalString(getNullableString(formData, "email")) ?? null;
+  const rawPhone = normalizeOptionalString(getNullableString(formData, "phone")) ?? null;
+  const rawStatus = getNullableString(formData, "status");
   const expectedUpdatedAt = normalizeOptionalString(
     getNullableString(formData, "expected_updated_at"),
   );
@@ -309,6 +300,23 @@ export async function saveCustomerProfileImpl(
       "customer_archived_profile_locked",
       "Arkiverad kund kan inte återaktiveras eller ändras via vanlig profil. Öppna arkivläget eller använd en separat återställningsåtgärd.",
     );
+  }
+
+  const stored = before as Record<string, unknown>;
+  let email: string | null;
+  let phone: string | null;
+  let status: string;
+  try {
+    email = rawEmail === (stored.email ?? null) ? rawEmail : normalizeContactEmail(rawEmail ?? "") ?? null;
+    phone = rawPhone === (stored.phone ?? null) ? rawPhone : normalizeContactPhone(rawPhone ?? "") ?? null;
+    status = rawStatus && rawStatus === stored.status
+      ? rawStatus
+      : assertProfileEditableStatus(rawStatus, "draft");
+  } catch (error) {
+    if (error instanceof CustomerContactChangeError) {
+      throw new CustomerActionError(error.code, error.message);
+    }
+    throw error;
   }
 
   const companyId = await assertUserCanOperateCompany(

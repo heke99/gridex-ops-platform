@@ -1,4 +1,4 @@
-import { resolveEffectiveInvoiceDelivery, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
+import { resolveInvoiceDeliveryFor, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
@@ -234,7 +234,7 @@ async function createDraft(input: {
   const invoiceCustomer = await loadInvoiceCustomer(input.companyId, customerId)
   const customerNumber = text(invoiceCustomer?.customer_number)
   // Same effective recipient/delivery as billing readiness and export.
-  const delivery = resolveEffectiveInvoiceDelivery({ contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer })
+  const delivery = resolveInvoiceDeliveryFor('document', { contract: input.contract as InvoiceDeliveryContract, customer: invoiceCustomer })
   const runId = randomUUID()
   const itemId = randomUUID()
   const now = new Date().toISOString()

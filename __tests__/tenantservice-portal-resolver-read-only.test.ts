@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
  * Tenantservice P1a: the portal customer resolver is read-only by default, a presented but
@@ -114,7 +114,13 @@ const identifiers = (overrides: Record<string, string | null>) => ({
 })
 
 describe('tenantservice portal resolver (read-only by default)', () => {
-  beforeEach(seed)
+  beforeEach(() => {
+    seed()
+    process.env.GRIDEX_PORTAL_IDENTITY_ENFORCEMENT = 'enforce'
+  })
+  afterEach(() => {
+    delete process.env.GRIDEX_PORTAL_IDENTITY_ENFORCEMENT
+  })
 
   it('resolves an actively linked portal account as portal_account binding without writing', async () => {
     const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
@@ -242,5 +248,55 @@ describe('tenantservice end-customer mutation binding gate', () => {
       .filter(Boolean)
     expect(files).toEqual(['app/api/v1/customer/sync/route.ts'])
     expect(readFileSync('app/api/v1/customer/sync/route.ts', 'utf8')).toContain("mode: 'link'")
+  })
+})
+
+describe('rollout flag GRIDEX_PORTAL_IDENTITY_ENFORCEMENT (default report)', () => {
+  beforeEach(() => {
+    seed()
+    delete process.env.GRIDEX_PORTAL_IDENTITY_ENFORCEMENT
+  })
+
+  it('report mode keeps the legacy first link for existing integrations and logs would-reject', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    await resolvePortalCustomer({
+      client: clientA,
+      identifiers: identifiers({ customerPortalUserId: USER_UNLINKED, customerNumber: 'A-1001', email: 'kund@example.test' }),
+    }).catch(() => null)
+    expect(warn.mock.calls.some((call) => call[0] === '[customer-portal] portal_identity_would_reject')).toBe(true)
+    warn.mockRestore()
+  })
+
+  it('report mode still never reactivates a blocked account', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    const result = await resolvePortalCustomer({
+      client: clientA,
+      identifiers: identifiers({ customerPortalUserId: USER_BLOCKED, customerNumber: 'A-1001', email: 'kund@example.test' }),
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.code).toBe('customer_portal_link_blocked')
+    expect(state.writes).toEqual([])
+  })
+
+  it('strict resolution (new endpoints) enforces regardless of the flag', async () => {
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    const result = await resolvePortalCustomer({
+      client: clientA,
+      strict: true,
+      identifiers: identifiers({ customerPortalUserId: USER_UNLINKED, customerNumber: 'A-1001', email: 'kund@example.test' }),
+    })
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.code).toBe('customer_portal_link_required')
+    expect(state.writes).toEqual([])
+  })
+
+  it('support handlers always pass enforceBinding', async () => {
+    const { readFileSync } = await import('node:fs')
+    const handlers = readFileSync('lib/customer-service/supportApiHandlers.ts', 'utf8')
+    expect(handlers.match(/enforceBinding: true/g)?.length).toBe(5)
   })
 })

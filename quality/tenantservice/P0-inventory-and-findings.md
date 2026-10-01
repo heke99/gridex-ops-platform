@@ -219,3 +219,26 @@
 - Find historical support cases with `billing_blocked=true`, i.e. `source like 'tenant_support_%'` or `metadata->>support_case='true'`.
 - Find underlays/requests stopped by them (`billing_blocked_by_case_id` / `failure_reason`).
 - Every unblock is a separate, reviewed operator decision. Nothing is unblocked automatically.
+
+## Controlled rollout (before merging to main = production deploy)
+`vercel-production-deploy.yml` deploys every push to main. The behaviour changes are therefore behind flags whose defaults keep current production behaviour.
+
+| Flag | Default | Effect |
+|---|---|---|
+| `GRIDEX_PORTAL_IDENTITY_ENFORCEMENT` | `report` | Current portal behaviour is kept. Every request that `enforce` would reject is logged as `portal_identity_would_reject` (code, company, API client). `enforce` turns on P1a: reads never link, and writes require a linked portal account. |
+| `GRIDEX_INVOICE_DELIVERY_RESOLVER` | `legacy` | Exact previous behaviour per consumer: readiness inherits the customer with contact-email fallback, while review and export use the contract only. `shared` uses the shared resolver (P3/F8/F14). |
+
+**Always active (no legitimate dependency):**
+- Blocked or revoked links are never reactivated (P1b).
+- Identities are never repointed (F5).
+- New support endpoints always enforce identity.
+- F16 is already on main.
+
+**OPS profile save:** fields are validated only when they change, so legacy formats never block unrelated edits.
+
+**Cut-over order:**
+1. Measure `portal_identity_would_reject` per API client in the logs.
+2. Migrate the tenant clients.
+3. Set `enforce`.
+4. Review the invoice_email backfill (customers that only have a contact email).
+5. Set `shared`.

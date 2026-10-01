@@ -17,6 +17,8 @@ describe('shared contact-change rules', () => {
     expect(normalizeContactEmail(' Kund@Example.TEST ')).toBe('kund@example.test')
     expect(normalizeContactPhone(undefined)).toBeUndefined()
     expect(normalizeContactPhone('070-123 45 67')).toBe('070-123 45 67')
+    expect(normalizeContactPhone('070/123 45 67')).toBe('070/123 45 67')
+    expect(normalizeContactPhone('+46 (0)70 123 45 67')).toBe('+46 (0)70 123 45 67')
   })
 
   it('rejects invalid email and phone', () => {
@@ -64,6 +66,9 @@ describe('OPS and API adapters use the shared rules', () => {
   it('OPS validates status and supports an optimistic version check', () => {
     expect(ops).toContain('assertProfileEditableStatus(')
     expect(ops).toContain('expected_updated_at')
+    // Unchanged legacy values never block an unrelated save.
+    expect(ops).toContain('rawPhone === (stored.phone ?? null) ? rawPhone')
+    expect(ops).toContain('rawStatus && rawStatus === stored.status')
     expect(ops).not.toMatch(/getNullableString\(formData, "status"\) \?\? "draft"/)
   })
 

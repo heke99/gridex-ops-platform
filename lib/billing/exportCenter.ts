@@ -1,6 +1,6 @@
 import { tenantSelect } from "@/lib/supabase/tenantQuery";
 import {
-  resolveEffectiveInvoiceDelivery,
+  resolveInvoiceDeliveryFor,
   type InvoiceDeliveryContract,
   type InvoiceDeliveryCustomer,
 } from "@/lib/billing/effectiveInvoiceDelivery";
@@ -184,7 +184,7 @@ function buildInvoiceSnapshot(params: {
   customer?: InvoiceDeliveryCustomer | null;
 }) {
   // Same effective recipient/delivery as billing readiness and invoice review.
-  const delivery = resolveEffectiveInvoiceDelivery({
+  const delivery = resolveInvoiceDeliveryFor("document", {
     contract: params.contract as unknown as InvoiceDeliveryContract | null,
     customer: params.customer ?? null,
   });

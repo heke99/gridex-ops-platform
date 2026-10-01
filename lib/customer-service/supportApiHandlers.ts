@@ -25,7 +25,7 @@ import { toSupportApiError } from '@/lib/customer-service/supportApi'
 type Params = { params: Promise<{ reference: string }> }
 
 export async function getSupportCases(request: NextRequest) {
-  const context = await requireCustomerPortalApiContext(request, ['customer_support.read'])
+  const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
     const page = await listCustomerSupportCases(
@@ -40,7 +40,7 @@ export async function getSupportCases(request: NextRequest) {
 }
 
 export async function postSupportCase(request: NextRequest) {
-  const context = await requireCustomerPortalApiContext(request, ['customer_support.write'])
+  const context = await requireCustomerPortalApiContext(request, ['customer_support.write'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
     const body = await readJsonObject(request)
@@ -74,7 +74,7 @@ export async function postSupportCase(request: NextRequest) {
 }
 
 export async function getSupportCase(request: NextRequest, contextInput: { params: Promise<{ reference: string }> }) {
-  const context = await requireCustomerPortalApiContext(request, ['customer_support.read'])
+  const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
     const { reference } = await contextInput.params
@@ -89,7 +89,7 @@ export async function getSupportCase(request: NextRequest, contextInput: { param
 }
 
 export async function getSupportMessages(request: NextRequest, contextInput: Params) {
-  const context = await requireCustomerPortalApiContext(request, ['customer_support.read'])
+  const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
     const { reference } = await contextInput.params
@@ -104,7 +104,7 @@ export async function getSupportMessages(request: NextRequest, contextInput: Par
 }
 
 export async function postSupportMessage(request: NextRequest, contextInput: Params) {
-  const context = await requireCustomerPortalApiContext(request, ['customer_support.write'])
+  const context = await requireCustomerPortalApiContext(request, ['customer_support.write'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
     const { reference } = await contextInput.params

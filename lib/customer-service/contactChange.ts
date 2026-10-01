@@ -72,7 +72,7 @@ export function normalizeContactPhone(value: FieldPatch<string>): FieldPatch<str
   const phone = value.trim()
   if (!phone) return null
   // Validate the digits but keep the operator's formatting, so unrelated saves do not rewrite it.
-  if (phone.length > 32 || !/^\+?[0-9()]{5,20}$/.test(phone.replace(/[\s.-]/g, ''))) {
+  if (phone.length > 32 || !/^\+?[0-9]{5,20}$/.test(phone.replace(/[\s.\-/()]/g, ''))) {
     throw new CustomerContactChangeError('invalid_phone', 'Ogiltigt telefonnummer.')
   }
   return phone

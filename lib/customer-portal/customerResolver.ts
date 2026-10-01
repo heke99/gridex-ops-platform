@@ -2,6 +2,7 @@ import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
+import { portalIdentityEnforcement, reportPortalIdentityWouldReject } from '@/lib/customer-portal/identityEnforcement'
 
 export type CustomerPortalIdentifiers = {
   externalCustomerId: string | null
@@ -753,6 +754,8 @@ export async function resolvePortalCustomer(input: {
   request?: NextRequest
   identifiers?: Partial<CustomerPortalIdentifiers>
   mode?: PortalResolveMode
+  /** Enforce the identity rules regardless of the rollout flag (new endpoints). */
+  strict?: boolean
 }): Promise<PortalCustomerResolution> {
   const mode: PortalResolveMode = input.mode ?? 'read'
   const identifiers: CustomerPortalIdentifiers = {
@@ -772,7 +775,11 @@ export async function resolvePortalCustomer(input: {
     const linkedAccount = userId ? await linkedByAccount(input.client.company_id, userId) : null
     if (linkedAccount) return { ok: true, customer: linkedAccount, binding: 'portal_account' }
 
-    if (userId && mode === 'read') {
+    const enforcement = input.strict ? 'enforce' : portalIdentityEnforcement()
+    if (userId && mode === 'read' && enforcement === 'report') {
+      reportPortalIdentityWouldReject({ code: 'customer_portal_link_required', companyId: input.client.company_id, apiClientId: input.client.id })
+    }
+    if (userId && mode === 'read' && enforcement === 'enforce') {
       // A presented portal user that is not (or no longer) actively linked must not fall back to
       // identifier matching, and reads must never create, re-verify or reactivate a link.
       return {

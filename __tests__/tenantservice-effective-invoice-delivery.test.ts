@@ -51,7 +51,7 @@ describe('effective invoice delivery (P3)', () => {
 
   it('readiness, invoice review and export all use the shared resolver', () => {
     for (const path of ['lib/billing/billingReadiness.ts', 'lib/billing/invoiceReviewPrepare.ts', 'lib/billing/exportCenter.ts']) {
-      expect(readFileSync(path, 'utf8')).toContain('resolveEffectiveInvoiceDelivery(')
+      expect(readFileSync(path, 'utf8')).toContain('resolveInvoiceDeliveryFor(')
     }
   })
 })
