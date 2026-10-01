@@ -211,8 +211,9 @@ export async function findExistingAckForSource(params: {
   transactionReference?: string
   acknowledgedReferences?: readonly string[]
   expectedSource?: EdielMessageRow
+  expectedTechnicalCompanyId?: string
 }): Promise<EdielMessageRow | null> {
-  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily,params.expectedSource)
+  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily,params.expectedSource,params.expectedTechnicalCompanyId)
   const references=[...new Set([...(params.acknowledgedReferences??[]),...(params.transactionReference?[params.transactionReference]:[])])]
   for(const original of originals){
     const {correlation}=original

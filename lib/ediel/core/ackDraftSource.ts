@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto'
+import {readEdielTechnicalSourceEndpoint} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {findExistingAckForSource,type AckFamily,type AckOutcome} from './ackPolicy'
@@ -10,18 +12,20 @@ export async function readExistingAckBeforeDraft(input:{
  ackScope?:'interchange'|'message'|'transaction'|'object';acknowledgedReferences?:readonly string[]
 }):Promise<EdielMessageRow|null>{
  const source=input.sourceMessage
- if(!source.company_id){
-  // Unknown-recipient technical syntax responses resolve their endpoint inside
-  // the existing technical gateway. This read does not guess that tenant.
-  if(input.ackFamily==='CONTRL')return null
-  throw new Error('canonical_ack_source_scope_mismatch')
- }
  if(source.direction!=='inbound'||source.message_standard!=='edifact'||!source.raw_payload)throw new Error('canonical_ack_source_scope_mismatch')
+ let companyId=source.company_id,expectedTechnicalCompanyId:string|undefined
+ if(!companyId){
+  if(input.ackFamily==='UTILTS_ERR')throw new Error('canonical_ack_source_scope_mismatch')
+  const endpoint=await readEdielTechnicalSourceEndpoint(source.id)
+  if(!endpoint){if(input.ackFamily==='CONTRL')return null;throw new Error('canonical_ack_technical_source_basis_unavailable')}
+  if(endpoint.sourceMessageId!==source.id||endpoint.environment!==source.environment||endpoint.sourceHash!==createHash('sha256').update(source.raw_payload,'utf8').digest('hex'))throw new Error('canonical_ack_source_scope_mismatch')
+  companyId=endpoint.companyId;expectedTechnicalCompanyId=companyId
+ }
  await assertEdielTenantActor(source.environment==='test'&&input.ackFamily==='CONTRL'
-  ?{companyId:source.company_id,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']}
-  :{companyId:source.company_id,actorUserId:input.actorUserId,permission:'communication.write'})
+  ?{companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']}
+  :{companyId,actorUserId:input.actorUserId,permission:'communication.write'})
  const existing=await findExistingAckForSource({sourceMessageId:source.id,ackFamily:input.ackFamily,
-  ackScope:input.ackScope,acknowledgedReferences:input.acknowledgedReferences,expectedSource:source})
+  ackScope:input.ackScope,acknowledgedReferences:input.acknowledgedReferences,expectedSource:source,expectedTechnicalCompanyId})
  const requested=input.ackFamily==='UTILTS_ERR'?'negative':input.outcome
  if(existing&&requested&&existing.ack_outcome!==requested)throw new Error('blocked_final_ack_exists: Originalets ACK-utfall är oföränderligt.')
  return existing
