@@ -1,5 +1,5 @@
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
-import {prodatRegisterGroups,prodatRegisterMessageSegments} from './prodatRegisterGroups'
+import {prodatRegisterGroups,prodatRegisterMessageSegments,type ProdatRegisterGroup} from './prodatRegisterGroups'
 import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
 import {prodatErrorOccurrence,validProdatWireDiagnostic} from './prodatFieldDiagnostic'
 import {prodatHeaderFieldRejection} from './prodatHeaderDateRejection'
@@ -69,23 +69,34 @@ export function resolveProdatAckMessageFunction(params:{
   return sequenceProblems.length || header202?.qualified || header204?.qualified || header313?.qualified || header205?.qualified || header206?.qualified ? '27' : '34'
 }
 
+/** Selected positive objects are named by their actual first LIN token index,
+ * never by parsed cache/array ordinal or a later register's reference. */
+export function selectProdatAckFirstRegisterGroups(groups:readonly ProdatRegisterGroup[],indices?:readonly number[]):ProdatRegisterGroup[]{
+ const first=groups.filter(group=>group.registerPosition===1)
+ if(indices===undefined)return first
+ if(!indices.length||indices.some(index=>!Number.isInteger(index)||index<0)||new Set(indices).size!==indices.length)throw new Error('aperak_prodat_selected_scope_invalid')
+ const selected=first.filter(group=>indices.includes(group.segments[0].index))
+ if(selected.length!==indices.length||selected.some(group=>!group.validRegisterChain))throw new Error('aperak_prodat_selected_scope_invalid')
+ return selected
+}
+
 /** Physical first-register LI identities used by the same P34 renderer. A
  * diagnostic can select a subset only after its complete own tuple matches
- * this source. No caller object/cache/reference creates an ACK scope. */
+ * this source. Rejected siblings cannot supply or suppress its own LI. */
 export function prodatAckObjectReferences(params:{
  sourceWire:ReturnType<typeof tokenizeEdifact>;messageCode?:string|null
  outcome:AperakEngineOutcome;applicationErrors?:readonly AperakEngineApplicationError[]|null
- relatedTransactionReference?:string|null
+ relatedTransactionReference?:string|null;prodatAcknowledgementLineIndices?:readonly number[]
 }):string[]{
  const {sourceWire}=params
  const message=prodatRegisterMessageSegments(sourceWire.segments,sourceWire.una)
  const owner=prodatRegisterGroups(message,sourceWire.una,params.messageCode)
- const occurrences=owner.groups.filter(group=>group.registerPosition===1).map(group=>
-  prodatErrorOccurrence({rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una,code:params.messageCode},group.segments.map(token=>token.raw),'object',group.lineIndex))
+ const first=owner.groups.filter(group=>group.registerPosition===1)
+ const occurrences=first.map(group=>prodatErrorOccurrence({rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una,code:params.messageCode},group.segments.map(token=>token.raw),'object',group.lineIndex))
  const all=occurrences.map(own=>own?.lineItemReference)
- if(!all.length||all.some(ref=>!ref)||new Set(all).size!==all.length)throw new Error('aperak_prodat_own_line_reference_required')
+ const uniqueOwn=(ref:string|null|undefined)=>Boolean(ref&&all.filter(candidate=>candidate===ref).length===1)
  if(params.relatedTransactionReference){
-  if(!all.includes(params.relatedTransactionReference))throw new Error('aperak_prodat_requested_scope_unqualified')
+  if(!uniqueOwn(params.relatedTransactionReference))throw new Error('aperak_prodat_requested_scope_unqualified')
   return [params.relatedTransactionReference]
  }
  if(params.outcome==='negative'&&params.applicationErrors?.length){
@@ -96,10 +107,13 @@ export function prodatAckObjectReferences(params:{
    const own=error.prodatOccurrence!
    const actual=prodatErrorOccurrence({rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una,code:params.messageCode},[],own.scope,own.lineIndex??undefined)
    if(!actual||!(['scope','messageReference','lineIndex','lineNumber','registerPosition','objectId','identityAgency','lineItemReference'] as const).every(key=>own[key]===actual[key])
-    ||!actual.lineItemReference||!all.includes(actual.lineItemReference))throw new Error('aperak_prodat_requested_scope_unqualified')
-   return actual.lineItemReference
+    ||!uniqueOwn(actual.lineItemReference))throw new Error('aperak_prodat_requested_scope_unqualified')
+   return actual.lineItemReference!
   })
   return [...new Set(references)]
  }
- return all as string[]
+ const selected=selectProdatAckFirstRegisterGroups(owner.groups,params.prodatAcknowledgementLineIndices)
+ const references=selected.map(group=>all[first.indexOf(group)])
+ if(!references.length||references.some(ref=>!uniqueOwn(ref)))throw new Error('aperak_prodat_own_line_reference_required')
+ return references as string[]
 }

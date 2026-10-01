@@ -21,7 +21,7 @@ export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraf
   const whole=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'message'})
   if(whole)return {kind:'existing',message:whole}
   let referenceError:unknown
-  try{references=prodatAckObjectReferences({sourceWire,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors,relatedTransactionReference:input.relatedTransactionReference})}
+  try{references=prodatAckObjectReferences({sourceWire,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors,relatedTransactionReference:input.relatedTransactionReference,prodatAcknowledgementLineIndices:input.prodatAcknowledgementLineIndices})}
   catch(error){referenceError=error;references=[]}
   if(references.length){
    const original=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'object',acknowledgedReferences:references})

@@ -390,6 +390,7 @@ function buildAperakSegments(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
   const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: params.sourceMessage.message_family })
@@ -415,6 +416,7 @@ function buildAperakSegments(params: {
     applicationErrors: params.applicationErrors ?? null,
     utiltsAcknowledgementReference: params.relatedTransactionReference ?? null,
     utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
   })
 
   return rendered.segments.filter((segment) => !segment.toUpperCase().startsWith('UNH+'))
@@ -809,6 +811,7 @@ function buildAckDraft(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
   ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
@@ -886,6 +889,7 @@ function buildAckDraft(params: {
             applicationErrors: params.applicationErrors ?? null,
             relatedTransactionReference: params.relatedTransactionReference ?? null,
             utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
           })
         : buildUtiltsErrSegments({
             sourceMessage: params.sourceMessage,
@@ -1087,6 +1091,7 @@ export function buildAperakDraft(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
   ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   return buildAckDraft({
@@ -1100,6 +1105,7 @@ export function buildAperakDraft(params: {
     ackScope: params.ackScope ?? null,
     relatedTransactionReference: params.relatedTransactionReference ?? null,
     utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
   })
 }
 
@@ -1131,6 +1137,7 @@ export function buildAckDraftForSource(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
   ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   if (params.ackFamily === 'CONTRL') {
@@ -1152,6 +1159,7 @@ export function buildAckDraftForSource(params: {
       ackScope: params.ackScope ?? null,
       relatedTransactionReference: params.relatedTransactionReference ?? null,
       utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
       ackSourceQualification:params.ackSourceQualification,
     })
   }

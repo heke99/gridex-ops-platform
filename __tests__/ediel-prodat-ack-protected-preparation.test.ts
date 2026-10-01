@@ -50,6 +50,14 @@ describe('P protected ACK preparation',()=>{
   await expect(prepareSourceAckDraft({actorUserId:'actor',sourceMessage:source(['LIN+1++OBJECT-A:::9','RFF+LI:ONE','RFF+LI:TWO']),ackFamily:'APERAK',outcome:'positive'})).rejects.toThrow('own_line_reference_required')
   expect(io.read).toHaveBeenCalledTimes(1);expect(io.build).not.toHaveBeenCalled()
  })
+ it('allows a selected own A response while rejected sibling B lacks its own LI',async()=>{
+  const message=source(['LIN+1++OBJECT-A:::9','RFF+LI:OWN-A','LIN+2++OBJECT-B:::9']),wire=tokenizeEdifact(message.raw_payload!),index=wire.segments.find(t=>t.tag==='LIN')!.index
+  io.read.mockImplementation(async p=>p.ackScope==='object'?original:null)
+  expect((await prepareSourceAckDraft({actorUserId:'actor',sourceMessage:message,ackFamily:'APERAK',outcome:'positive',prodatAcknowledgementLineIndices:[index]})).kind).toBe('existing')
+  expect(io.read.mock.calls[1][0]).toMatchObject({ackScope:'object',acknowledgedReferences:['OWN-A']})
+  io.read.mockResolvedValue(null)
+  await expect(prepareSourceAckDraft({actorUserId:'actor',sourceMessage:message,ackFamily:'APERAK',outcome:'positive'})).rejects.toThrow('own_line_reference_required')
+ })
  it('projects fresh P34 object scope from the same physical source selector',async()=>{
   io.build.mockReturnValue({rawPayload:'fresh'})
   expect((await prepareSourceAckDraft({actorUserId:'actor',sourceMessage:source(lines),ackFamily:'APERAK',outcome:'positive'})).kind).toBe('draft')

@@ -3,7 +3,7 @@ import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
-import {resolveProdatAckMessageFunction} from '@/lib/ediel/prodat/prodatAckMessageFunction'
+import {resolveProdatAckMessageFunction,selectProdatAckFirstRegisterGroups} from '@/lib/ediel/prodat/prodatAckMessageFunction'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
@@ -204,6 +204,7 @@ export function renderAperakEdiel(params: {
   utiltsAcknowledgementReference?: string | null
   /** Canonical header-guide provenance; message scope alone grants nothing. */
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
 }): AperakEngineResult {
   const isUtiltsSource = usesUtiltsAperakProfile(params.source.messageFamily)
   let headerRejected = Boolean(params.utiltsHeaderRejected)
@@ -336,8 +337,9 @@ export function renderAperakEdiel(params: {
         ? positiveIds.map(reference => ({ ercCode:'100', fieldCode:null, text:'OK', referenceQualifier:null,
           referenceNumber:reference, lineItemReference:reference }))
         : sourceWire
-        ? prodatRegisterGroups(sourceWire.segments, sourceWire.una).groups.filter(group => group.registerPosition === 1).map(group => {
-          const lines = group.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, sourceWire.una)[0] === 'LI')
+        ? selectProdatAckFirstRegisterGroups(prodatRegisterGroups(sourceWire.segments, sourceWire.una).groups,params.prodatAcknowledgementLineIndices).map(group => {
+          const party=group.segments.findIndex(segment=>segment.tag==='NAD')
+          const lines = group.segments.slice(0,party<0?undefined:party).filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, sourceWire.una)[0] === 'LI')
           const li = lines.length === 1 ? segmentComposite(lines[0], 1, sourceWire.una)[1] : null
           if (!li) throw new Error('aperak_prodat_own_line_reference_required')
           return { ercCode: '100', fieldCode: null, text: 'OK', referenceQualifier: group.itemId ? 'Z07' : null, referenceNumber: group.itemId, lineItemReference: li }
