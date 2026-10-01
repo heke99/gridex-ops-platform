@@ -1,4 +1,5 @@
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
+import { readInboundReceptionRequest } from '@/lib/ediel/inbound/receptions'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import type { EdielEngineDecision } from '@/lib/ediel/decisionEngine'
@@ -19,6 +20,7 @@ function normalizeOutcome(value: unknown): AckOutcome | null {
 export async function runAutoAckOrchestratorForInboundMessage(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
+  inboundEmailMessageId?: string | null
   decision: EdielEngineDecision
   autoSend?: boolean
   outbox?: boolean
@@ -28,6 +30,12 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
   lifecycleStatus: string | null
   reason: string
 }> {
+  if(params.inboundEmailMessageId){
+    if(!params.sourceMessage.company_id)throw new Error('ediel_exact_reception_tenant_required')
+    const receipt=await readInboundReceptionRequest({companyId:params.sourceMessage.company_id,messageId:params.sourceMessage.id,actorUserId:params.actorUserId,inboundEmailMessageId:params.inboundEmailMessageId})
+    if(!receipt)throw new Error('ediel_exact_reception_original_required')
+    if(receipt.status==='held'||receipt.classification!=='first_reception')return{status:'manual_review',ackMessageId:null,lifecycleStatus:'duplicate_response_held',reason:receipt.reason??'authentic_duplicate_transport_response_policy_required'}
+  }
   if (params.decision.kind === 'manual_review') {
     await createEdielMessageEvent({
       actorUserId: params.actorUserId,

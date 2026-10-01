@@ -1,3 +1,4 @@
+import { recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
 // lib/ediel/core/kernel.ts
 
 import type {
@@ -115,6 +116,7 @@ function assertInboundDuplicateScope(duplicate:EdielMessageRow,input:CreateEdiel
 export async function registerInboundCanonicalMessage(params: {
   actorUserId?: string | null
   input: CreateEdielMessageInput
+  reception?: {inboundEmailMessageId:string;parseResultId:string}
 }) {
   const actorUserId=ensureActorUserId(params.actorUserId),input=params.input
   if(input.direction!=='inbound' || !['test','production'].includes(input.environment??''))
@@ -124,7 +126,14 @@ export async function registerInboundCanonicalMessage(params: {
   if(isAiBiSource&&!input.companyId)throw new Error('ai_bi_reconciliation_tenant_source_required')
   const identity=buildInboundCanonicalIdentity({...input,senderEdielId:input.senderEdielId,
     receiverEdielId:input.receiverEdielId,applicationReference:input.applicationReference})
+  const observe=async(message:EdielMessageRow)=>{
+    if(!params.reception)return
+    if(!input.companyId||isAiBiSource)throw new Error('canonical_inbound_reception_scope_required')
+    const r=await recordInboundReception({companyId:input.companyId,messageId:message.id,actorUserId,...params.reception})
+    requireFirstReception(r)
+  }
   const reuse=async(duplicate:EdielMessageRow)=>{
+    await observe(duplicate)
     assertInboundDuplicateScope(duplicate,input)
     if(isAiBiSource)await processAiBiInboundReconciliation({actorUserId,message:duplicate})
     await createCanonicalDuplicateBlockEvent({actorUserId,edielMessageId:duplicate.id,layer:'canonical_inbound',
@@ -137,6 +146,7 @@ export async function registerInboundCanonicalMessage(params: {
     environment:input.environment as 'test'|'production',actorUserId,rawPayload:input.rawPayload??''})
   try {
     const message=await createEdielMessage({...input,actorUserId})
+    await observe(message)
     if(isAiBiSource)await processAiBiInboundReconciliation({actorUserId,message})
     return message
   } catch(error) {
