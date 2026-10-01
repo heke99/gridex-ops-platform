@@ -8,10 +8,12 @@ import {createProdatRegisterEvidence,readProdatRegisterEvidence} from '@/lib/edi
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {validateRulebookMessage,validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validator'
 import {preflightEdielPayload} from '@/lib/ediel/core/messageBuilder/payloadPreflight'
+import {source} from './fixtures/prodat-identity'
 const input={companyId:'owned-company',customerId:'owned-customer',actorUserId:'current-actor',environment:'test' as const,asOf:'2026-10-01T12:00:00Z'}
 const values={status:'authorized',companyId:input.companyId,customerId:input.customerId,environment:'test',asOf:input.asOf,sourceKind:'registered_customer_address',sourceReference:'address-A',sourceDigest:'a'.repeat(64),sourceContextId:'00000000-0000-4000-8000-000000000001',customerIdentity:{id:'5566778899',qualifier:'SE1',agency:'260'},endUserMasterdata:{nameParts:['Name ','Second'],streetParts:['','Own + street:2 ',''],postalCode:'12345',city:'City ',country:'SE'}}
 const raw="UNB+UNOC:3+A:14+B:14+261001:0000+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+D+9'LIN+1++735123456789012345:9'NAD+UD+5566778899:SE1:260++Name :Second+.:Own ?+ street?:2 :+City ++12345+SE'UNT+5+M'UNZ+1+I'"
 const row={direction:'outbound',message_family:'PRODAT',message_code:'Z01',company_id:input.companyId,customer_id:input.customerId,environment:'test',raw_payload:raw,intent_id:'actual-intent',communication_route_id:'actual-route'}
+const actualRow=()=>({...source(raw),...row,direction:'outbound' as const,message_family:'PRODAT' as const,environment:'test' as const,created_at:input.asOf,message_received_at:input.asOf})
 beforeEach(()=>{rpc.mockReset();rpc.mockResolvedValue({data:structuredClone(values),error:null})})
 async function setup(){const projection=await prepareCustomerMasterdataSource(input);const context=bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:input.companyId,customerId:input.customerId,environment:'test',rawPayload:raw,intentId:row.intent_id,routeId:row.communication_route_id,projection});return {projection,context}}
 it('preserves literal component positions and only the prescribed missing-first wire dot',async()=>{
@@ -34,7 +36,7 @@ it('binds every validator and preflight to actual input bytes despite a contradi
  const {context}=await setup(),altered=raw.replace('Name :Second','Name:Second')
  const request={family:'PRODAT',code:'Z01',rawPayload:altered,mode:'send' as const,direction:'outbound' as const,environment:'test' as const,companyId:input.companyId,customerMasterdataContext:context,customerMasterdataRow:row}
  for(const result of [validateRulebookMessage(request),await validateRulebookMessageWithRegistry(request)])expect(result.issues.some(issue=>issue.code==='PRODAT_CUSTOMER_MASTERDATA_SOURCE_UNQUALIFIED')).toBe(true)
- const result=preflightEdielPayload({rawPayload:altered,messageStandard:'edifact',mode:'send',companyId:input.companyId,dateEventRow:row,customerMasterdataContext:context,customerMasterdataRow:row})
+ const result=preflightEdielPayload({rawPayload:altered,messageStandard:'edifact',mode:'send',companyId:input.companyId,dateEventRow:actualRow(),customerMasterdataContext:context,customerMasterdataRow:row})
  expect(result.blocking).toBe(true);expect(result.issues.some(issue=>issue.code.includes('CUSTOMER_MASTERDATA_SOURCE_UNQUALIFIED'))).toBe(true)
 })
 it('lets genuine rendering source reach the same field authority and never the live send context',async()=>{
@@ -48,6 +50,6 @@ it('lets genuine rendering source reach the same field authority and never the l
 })
 it.each(['customer_id','intent_id','communication_route_id'] as const)('prioritizes actual message %s over a detached matching source row',async field=>{
  const {context}=await setup()
- const request={family:'PRODAT',code:'Z01',rawPayload:raw,mode:'send' as const,direction:'outbound' as const,environment:'test' as const,companyId:input.companyId,customerMasterdataContext:context,customerMasterdataRow:row,messageRow:{...row,created_at:input.asOf,message_received_at:input.asOf,[field]:'foreign'}}
+ const request={family:'PRODAT',code:'Z01',rawPayload:raw,mode:'send' as const,direction:'outbound' as const,environment:'test' as const,companyId:input.companyId,customerMasterdataContext:context,customerMasterdataRow:row,messageRow:{...actualRow(),[field]:'foreign'}}
  for(const result of [validateRulebookMessage(request),await validateRulebookMessageWithRegistry(request)])expect(result.issues.some(issue=>issue.code==='PRODAT_CUSTOMER_MASTERDATA_SOURCE_UNQUALIFIED')).toBe(true)
 })
