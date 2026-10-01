@@ -1,0 +1,369 @@
+73029be2dc9d22eb7b37c695e408a22fa093fcab
+.agent-memory/checkpoint.json
+.agent-memory/current-state.md
+.agent-memory/current-task.md
+.agent-memory/handover.md
+.agent-memory/open-blockers.md
+.agent-memory/session-log.md
+.agent-memory/verification-matrix.md
+__tests__/ediel-ack-canonical-admission.test.ts
+__tests__/ediel-ack-inherited-guide-consumers.test.ts
+__tests__/ediel-ack-legal-transport-parties.test.ts
+__tests__/ediel-ai-list-history.test.ts
+__tests__/ediel-canonical-source-gateway.test.ts
+__tests__/ediel-facility-lookup-identity.test.ts
+__tests__/ediel-inbound-own-source-coordinator.test.ts
+__tests__/ediel-inbound-prelegal-syntax.test.ts
+__tests__/ediel-kernel-prodat-null-li-original.test.ts
+__tests__/ediel-outbound-ack-original-dedupe.test.ts
+__tests__/ediel-prodat-aperak-selected-objects.test.ts
+__tests__/ediel-prodat-aperak-unused-document.test.ts
+__tests__/ediel-prodat-recovery-gateway.test.ts
+__tests__/ediel-prodat-reporting-chain.test.ts
+__tests__/ediel-prodat-reporting-smtp.test.ts
+__tests__/ediel-prodat-source-function-validation.test.ts
+__tests__/ediel-prodat-structural-ack-retained-first.test.ts
+__tests__/ediel-prodat-structural-final-response-plan.test.ts
+__tests__/ediel-received-context-outcomes.test.ts
+__tests__/ediel-received-context-reader.test.ts
+__tests__/ediel-registry-zero-route-preview.test.ts
+__tests__/ediel-service-permission-recovery-origin.test.ts
+__tests__/ediel-smtp-post-acceptance.test.ts
+__tests__/ediel-source-owner-processor.test.ts
+__tests__/ediel-source-owner-runtime.test.ts
+__tests__/ediel-utilts-decision-reuse.test.ts
+__tests__/ediel-utilts-err-application-plan.test.ts
+__tests__/ediel-utilts-err-gateway.test.ts
+__tests__/ediel-utilts-final-validation-flow.test.ts
+__tests__/ediel-utilts-object-context-boundary.test.ts
+__tests__/ediel-utilts-persistence-processor.test.ts
+__tests__/ediel-utilts-runtime-cutoff.test.ts
+__tests__/ediel-utilts-s02-required-scope.test.ts
+__tests__/fixtures/ediel-transport-journal.ts
+__tests__/helpers/sourceOwnerTestDatabase.ts
+app/admin/customer-info-requests/page.tsx
+app/admin/ediel/actors/actions.ts
+lib/actor-registry/importActorRegistry.ts
+lib/actor-registry/parseActorRegistryXml.ts
+lib/ediel/aiListHistory.ts
+lib/ediel/aiListOrigination.ts
+lib/ediel/core/kernel.ts
+lib/ediel/core/kernelLegacy.ts
+lib/ediel/core/messageBuilder/payloadPreflight.ts
+lib/ediel/core/messagePolicy.ts
+lib/ediel/core/receivedProdatFinalResponsePlan.ts
+lib/ediel/core/receivedSourceValidationEvidence.ts
+lib/ediel/core/receivedSourceValidationLedger.ts
+lib/ediel/core/runtimeDecision.ts
+lib/ediel/flows/inboundProcessing.ts
+lib/ediel/flows/receivedProdatStructuralAcks.ts
+lib/ediel/flows/utiltsDataRequest.part-2.ts
+lib/ediel/flows/utiltsInboundPolicyProcessor.ts
+lib/ediel/intent/renderGateway.ts
+lib/ediel/intent/renderers/customerMasterdataZ01.ts
+lib/ediel/intent/renderers/facilityLookupZ01.ts
+lib/ediel/operations/businessExpectationSweep.ts
+lib/ediel/prodat/compatAdapter.ts
+lib/ediel/prodat/prodatAckMessageFunction.ts
+lib/ediel/prodat/prodatDeathStatusAuthority.ts
+lib/ediel/production/lifeEventCertificationSource.ts
+lib/ediel/production/lifeEventSource.ts
+lib/ediel/rulebook/ackGuidePolicy.ts
+lib/ediel/rulebook/sendGuards.ts
+lib/ediel/rulebook/validator.ts
+lib/ediel/safeApplyReview.ts
+lib/ediel/services/administration.ts
+lib/ediel/services/permissionOrigin.ts
+lib/ediel/sources/correctionOutboundDispatch.ts
+lib/ediel/transport/index.part-2.ts
+lib/ediel/transport/sendLock.ts
+lib/ediel/utilts/consumptionContract.ts
+lib/ediel/utilts/consumptionPreparation.ts
+lib/ediel/utilts/engine.ts
+lib/ediel/utilts/physicalReference.ts
+lib/ediel/utilts/qualifyReceivedStructure.ts
+lib/ediel/utilts/validateUtilts.ts
+lib/ediel/utiltsEngine.ts
+quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-actors.json
+quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-processes.json
+quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-prodat.json
+quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-projections.json
+quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-root.json
+quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-utilts.json
+quality/audits/ediel-masterplan-v2/codephase-20260930/generate_matrix.py
+quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.json
+quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.md
+scripts/ediel-ai-origination-embedded-check.mjs
+scripts/ediel-customer-event-certification-sql-regression.mjs
+scripts/ediel-outbound-owner-witness-sql-regression.mjs
+scripts/ediel-parser-authority-guard.cjs
+scripts/ediel-prodat-aperak-unused-document-sql-regression.mjs
+scripts/ediel-service-administration-sql-regression.mjs
+scripts/ediel-source-ledger-regression.sql
+scripts/migration-history-manifest.additions.json
+scripts/migration-history-manifest.json
+scripts/test-ediel-component-escaping.cjs
+scripts/test-ediel-guide-governance.cjs
+scripts/test-ediel-prodat-characteristic-fields.cjs
+scripts/test-ediel-prodat-d-z04-reference.cjs
+scripts/test-ediel-prodat-document-fields.cjs
+scripts/test-ediel-prodat-free-text-first-message.cjs
+scripts/test-ediel-prodat-free-text.cjs
+scripts/test-ediel-prodat-party-fields.cjs
+scripts/test-ediel-prodat-reference-fields.cjs
+scripts/test-ediel-prodat-source-locators.cjs
+scripts/test-ediel-unb-ack-request.cjs
+
+Auto-merging .agent-memory/checkpoint.json
+CONFLICT (content): Merge conflict in .agent-memory/checkpoint.json
+Auto-merging .agent-memory/current-state.md
+CONFLICT (content): Merge conflict in .agent-memory/current-state.md
+Auto-merging .agent-memory/current-task.md
+CONFLICT (content): Merge conflict in .agent-memory/current-task.md
+Auto-merging .agent-memory/handover.md
+CONFLICT (content): Merge conflict in .agent-memory/handover.md
+Auto-merging .agent-memory/open-blockers.md
+CONFLICT (content): Merge conflict in .agent-memory/open-blockers.md
+Auto-merging .agent-memory/session-log.md
+CONFLICT (content): Merge conflict in .agent-memory/session-log.md
+Auto-merging .agent-memory/verification-matrix.md
+CONFLICT (content): Merge conflict in .agent-memory/verification-matrix.md
+Auto-merging __tests__/ediel-ack-canonical-admission.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-ack-canonical-admission.test.ts
+Auto-merging __tests__/ediel-ack-inherited-guide-consumers.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-ack-inherited-guide-consumers.test.ts
+Auto-merging __tests__/ediel-ack-legal-transport-parties.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-ack-legal-transport-parties.test.ts
+Auto-merging __tests__/ediel-ai-list-history.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-ai-list-history.test.ts
+Auto-merging __tests__/ediel-canonical-source-gateway.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-canonical-source-gateway.test.ts
+Auto-merging __tests__/ediel-correction-outbound-scope.test.ts
+Auto-merging __tests__/ediel-facility-lookup-identity.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-facility-lookup-identity.test.ts
+Auto-merging __tests__/ediel-inbound-own-source-coordinator.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-inbound-own-source-coordinator.test.ts
+Auto-merging __tests__/ediel-inbound-prelegal-syntax.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-inbound-prelegal-syntax.test.ts
+Auto-merging __tests__/ediel-kernel-prodat-null-li-original.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-kernel-prodat-null-li-original.test.ts
+Auto-merging __tests__/ediel-outbound-ack-original-dedupe.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-outbound-ack-original-dedupe.test.ts
+Auto-merging __tests__/ediel-prodat-aperak-selected-objects.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-prodat-aperak-selected-objects.test.ts
+Auto-merging __tests__/ediel-prodat-aperak-unused-document.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-prodat-aperak-unused-document.test.ts
+Auto-merging __tests__/ediel-prodat-common-header-rejection.test.ts
+Auto-merging __tests__/ediel-prodat-recovery-gateway.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-prodat-recovery-gateway.test.ts
+Auto-merging __tests__/ediel-prodat-reporting-chain.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-prodat-reporting-chain.test.ts
+Auto-merging __tests__/ediel-prodat-reporting-smtp.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-prodat-reporting-smtp.test.ts
+Auto-merging __tests__/ediel-prodat-source-function-validation.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-prodat-source-function-validation.test.ts
+Auto-merging __tests__/ediel-prodat-structural-ack-retained-first.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-prodat-structural-ack-retained-first.test.ts
+Auto-merging __tests__/ediel-prodat-structural-final-response-plan.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-prodat-structural-final-response-plan.test.ts
+Auto-merging __tests__/ediel-received-context-outcomes.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-received-context-outcomes.test.ts
+Auto-merging __tests__/ediel-received-context-reader.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-received-context-reader.test.ts
+Auto-merging __tests__/ediel-received-register-validation-binding.test.ts
+Auto-merging __tests__/ediel-registry-zero-route-preview.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-registry-zero-route-preview.test.ts
+Auto-merging __tests__/ediel-service-permission-recovery-origin.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-service-permission-recovery-origin.test.ts
+Auto-merging __tests__/ediel-smtp-post-acceptance.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-smtp-post-acceptance.test.ts
+Auto-merging __tests__/ediel-source-owner-processor.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-source-owner-processor.test.ts
+Auto-merging __tests__/ediel-source-owner-runtime.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-source-owner-runtime.test.ts
+Auto-merging __tests__/ediel-utilts-consumption-contract.test.ts
+Auto-merging __tests__/ediel-utilts-decision-reuse.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-utilts-decision-reuse.test.ts
+Auto-merging __tests__/ediel-utilts-err-application-plan.test.ts
+CONFLICT (add/add): Merge conflict in __tests__/ediel-utilts-err-application-plan.test.ts
+Auto-merging __tests__/ediel-utilts-err-gateway.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-utilts-err-gateway.test.ts
+Auto-merging __tests__/ediel-utilts-final-validation-flow.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-utilts-final-validation-flow.test.ts
+Auto-merging __tests__/ediel-utilts-object-context-boundary.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-utilts-object-context-boundary.test.ts
+Auto-merging __tests__/ediel-utilts-persistence-processor.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-utilts-persistence-processor.test.ts
+Auto-merging __tests__/ediel-utilts-positive-ack-authority.test.ts
+Auto-merging __tests__/ediel-utilts-runtime-cutoff.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-utilts-runtime-cutoff.test.ts
+Auto-merging __tests__/ediel-utilts-s02-required-scope.test.ts
+CONFLICT (content): Merge conflict in __tests__/ediel-utilts-s02-required-scope.test.ts
+Auto-merging __tests__/fixtures/ediel-transport-journal.ts
+CONFLICT (content): Merge conflict in __tests__/fixtures/ediel-transport-journal.ts
+Auto-merging __tests__/helpers/sourceOwnerFixtures.ts
+Auto-merging __tests__/helpers/sourceOwnerTestDatabase.ts
+CONFLICT (content): Merge conflict in __tests__/helpers/sourceOwnerTestDatabase.ts
+Auto-merging app/admin/customer-info-requests/page.tsx
+CONFLICT (content): Merge conflict in app/admin/customer-info-requests/page.tsx
+Auto-merging app/admin/ediel/actors/actions.ts
+CONFLICT (content): Merge conflict in app/admin/ediel/actors/actions.ts
+Auto-merging lib/actor-registry/importActorRegistry.ts
+CONFLICT (content): Merge conflict in lib/actor-registry/importActorRegistry.ts
+Auto-merging lib/actor-registry/parseActorRegistryXml.ts
+CONFLICT (content): Merge conflict in lib/actor-registry/parseActorRegistryXml.ts
+Auto-merging lib/ediel/ack.ts
+Auto-merging lib/ediel/aiListHistory.ts
+CONFLICT (content): Merge conflict in lib/ediel/aiListHistory.ts
+Auto-merging lib/ediel/aiListOrigination.ts
+CONFLICT (content): Merge conflict in lib/ediel/aiListOrigination.ts
+Auto-merging lib/ediel/aperakEngine.ts
+Auto-merging lib/ediel/core/ackPolicy.ts
+Auto-merging lib/ediel/core/edifactEnvelopeCodec.ts
+Auto-merging lib/ediel/core/edifactValidation.ts
+Auto-merging lib/ediel/core/kernel.ts
+CONFLICT (content): Merge conflict in lib/ediel/core/kernel.ts
+Auto-merging lib/ediel/core/kernelLegacy.ts
+CONFLICT (content): Merge conflict in lib/ediel/core/kernelLegacy.ts
+Auto-merging lib/ediel/core/messageBuilder/payloadPreflight.ts
+CONFLICT (content): Merge conflict in lib/ediel/core/messageBuilder/payloadPreflight.ts
+Auto-merging lib/ediel/core/messagePolicy.ts
+CONFLICT (content): Merge conflict in lib/ediel/core/messagePolicy.ts
+Auto-merging lib/ediel/core/receivedProdatFinalResponsePlan.ts
+CONFLICT (add/add): Merge conflict in lib/ediel/core/receivedProdatFinalResponsePlan.ts
+Auto-merging lib/ediel/core/receivedSourceValidationEvidence.ts
+CONFLICT (content): Merge conflict in lib/ediel/core/receivedSourceValidationEvidence.ts
+Auto-merging lib/ediel/core/receivedSourceValidationLedger.ts
+CONFLICT (content): Merge conflict in lib/ediel/core/receivedSourceValidationLedger.ts
+Auto-merging lib/ediel/core/runtimeDecision.ts
+CONFLICT (content): Merge conflict in lib/ediel/core/runtimeDecision.ts
+Auto-merging lib/ediel/flows/inboundProcessing.ts
+CONFLICT (content): Merge conflict in lib/ediel/flows/inboundProcessing.ts
+Auto-merging lib/ediel/flows/prodatSwitch.ts
+Auto-merging lib/ediel/flows/receivedProdatStructuralAcks.ts
+CONFLICT (add/add): Merge conflict in lib/ediel/flows/receivedProdatStructuralAcks.ts
+Auto-merging lib/ediel/flows/shared.ts
+Auto-merging lib/ediel/flows/utiltsDataRequest.part-2.ts
+CONFLICT (content): Merge conflict in lib/ediel/flows/utiltsDataRequest.part-2.ts
+Auto-merging lib/ediel/flows/utiltsInboundPolicyProcessor.ts
+CONFLICT (content): Merge conflict in lib/ediel/flows/utiltsInboundPolicyProcessor.ts
+Auto-merging lib/ediel/intent/renderGateway.ts
+CONFLICT (content): Merge conflict in lib/ediel/intent/renderGateway.ts
+Auto-merging lib/ediel/intent/renderers/customerMasterdataZ01.ts
+CONFLICT (content): Merge conflict in lib/ediel/intent/renderers/customerMasterdataZ01.ts
+Auto-merging lib/ediel/intent/renderers/facilityLookupZ01.ts
+CONFLICT (content): Merge conflict in lib/ediel/intent/renderers/facilityLookupZ01.ts
+Auto-merging lib/ediel/intent/renderers/servicePermission.ts
+Auto-merging lib/ediel/operations/businessExpectationSweep.ts
+CONFLICT (content): Merge conflict in lib/ediel/operations/businessExpectationSweep.ts
+Auto-merging lib/ediel/prodat/builders/profileRenderer.ts
+Auto-merging lib/ediel/prodat/compatAdapter.ts
+CONFLICT (content): Merge conflict in lib/ediel/prodat/compatAdapter.ts
+Auto-merging lib/ediel/prodat/prodatAckMessageFunction.ts
+CONFLICT (add/add): Merge conflict in lib/ediel/prodat/prodatAckMessageFunction.ts
+Auto-merging lib/ediel/prodat/prodatDeathStatusAuthority.ts
+CONFLICT (content): Merge conflict in lib/ediel/prodat/prodatDeathStatusAuthority.ts
+Auto-merging lib/ediel/production/lifeEventCertificationSource.ts
+CONFLICT (add/add): Merge conflict in lib/ediel/production/lifeEventCertificationSource.ts
+Auto-merging lib/ediel/production/lifeEventSource.ts
+CONFLICT (add/add): Merge conflict in lib/ediel/production/lifeEventSource.ts
+Auto-merging lib/ediel/rulebook/ackGuidePolicy.ts
+CONFLICT (content): Merge conflict in lib/ediel/rulebook/ackGuidePolicy.ts
+Auto-merging lib/ediel/rulebook/canonicalEdielPolicy.ts
+Auto-merging lib/ediel/rulebook/canonicalPolicyFieldValidator.ts
+Auto-merging lib/ediel/rulebook/sendGuards.ts
+CONFLICT (content): Merge conflict in lib/ediel/rulebook/sendGuards.ts
+Auto-merging lib/ediel/rulebook/validator.ts
+CONFLICT (content): Merge conflict in lib/ediel/rulebook/validator.ts
+Auto-merging lib/ediel/safeApplyReview.ts
+CONFLICT (content): Merge conflict in lib/ediel/safeApplyReview.ts
+Auto-merging lib/ediel/services/administration.ts
+CONFLICT (content): Merge conflict in lib/ediel/services/administration.ts
+Auto-merging lib/ediel/services/permissionOrigin.ts
+CONFLICT (content): Merge conflict in lib/ediel/services/permissionOrigin.ts
+Auto-merging lib/ediel/sources/correctionOutboundDispatch.ts
+CONFLICT (content): Merge conflict in lib/ediel/sources/correctionOutboundDispatch.ts
+Auto-merging lib/ediel/testing/tgtAutopilot.ts
+Auto-merging lib/ediel/testing/tgtEdifact.part-4.ts
+Auto-merging lib/ediel/transport/index.part-2.ts
+CONFLICT (content): Merge conflict in lib/ediel/transport/index.part-2.ts
+Auto-merging lib/ediel/transport/outboundAttempt.ts
+Auto-merging lib/ediel/transport/sendLock.ts
+CONFLICT (content): Merge conflict in lib/ediel/transport/sendLock.ts
+Auto-merging lib/ediel/utilts/consumptionContract.ts
+CONFLICT (content): Merge conflict in lib/ediel/utilts/consumptionContract.ts
+Auto-merging lib/ediel/utilts/consumptionPreparation.ts
+CONFLICT (content): Merge conflict in lib/ediel/utilts/consumptionPreparation.ts
+Auto-merging lib/ediel/utilts/engine.ts
+CONFLICT (content): Merge conflict in lib/ediel/utilts/engine.ts
+Auto-merging lib/ediel/utilts/physicalReference.ts
+CONFLICT (add/add): Merge conflict in lib/ediel/utilts/physicalReference.ts
+Auto-merging lib/ediel/utilts/qualifyReceivedStructure.ts
+CONFLICT (content): Merge conflict in lib/ediel/utilts/qualifyReceivedStructure.ts
+Auto-merging lib/ediel/utilts/transactionPersistence.ts
+Auto-merging lib/ediel/utilts/validateUtilts.ts
+CONFLICT (content): Merge conflict in lib/ediel/utilts/validateUtilts.ts
+Auto-merging lib/ediel/utiltsEngine.ts
+CONFLICT (content): Merge conflict in lib/ediel/utiltsEngine.ts
+Auto-merging lib/onboarding/inboundEdielLinking.ts
+Auto-merging lib/onboarding/infoRequests.ts
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-actors.json
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-actors.json
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-processes.json
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-processes.json
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-prodat.json
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-prodat.json
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-projections.json
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-projections.json
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-root.json
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-root.json
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-utilts.json
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/assessment-utilts.json
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/generate_matrix.py
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/generate_matrix.py
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.json
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.json
+Auto-merging quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.md
+CONFLICT (content): Merge conflict in quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.md
+Auto-merging scripts/ediel-ai-origination-embedded-check.mjs
+CONFLICT (content): Merge conflict in scripts/ediel-ai-origination-embedded-check.mjs
+Auto-merging scripts/ediel-customer-event-certification-sql-regression.mjs
+CONFLICT (add/add): Merge conflict in scripts/ediel-customer-event-certification-sql-regression.mjs
+Auto-merging scripts/ediel-outbound-owner-witness-sql-regression.mjs
+CONFLICT (content): Merge conflict in scripts/ediel-outbound-owner-witness-sql-regression.mjs
+Auto-merging scripts/ediel-parser-authority-guard.cjs
+CONFLICT (content): Merge conflict in scripts/ediel-parser-authority-guard.cjs
+Auto-merging scripts/ediel-prodat-aperak-unused-document-sql-regression.mjs
+CONFLICT (add/add): Merge conflict in scripts/ediel-prodat-aperak-unused-document-sql-regression.mjs
+Auto-merging scripts/ediel-service-administration-sql-regression.mjs
+CONFLICT (content): Merge conflict in scripts/ediel-service-administration-sql-regression.mjs
+Auto-merging scripts/ediel-source-ledger-regression.sql
+CONFLICT (content): Merge conflict in scripts/ediel-source-ledger-regression.sql
+Auto-merging scripts/ediel-source-owner-native.test.ts
+Auto-merging scripts/migration-history-manifest.additions.json
+CONFLICT (content): Merge conflict in scripts/migration-history-manifest.additions.json
+Auto-merging scripts/migration-history-manifest.json
+CONFLICT (content): Merge conflict in scripts/migration-history-manifest.json
+Auto-merging scripts/test-ediel-component-escaping.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-component-escaping.cjs
+Auto-merging scripts/test-ediel-guide-governance.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-guide-governance.cjs
+Auto-merging scripts/test-ediel-prodat-characteristic-fields.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-characteristic-fields.cjs
+Auto-merging scripts/test-ediel-prodat-d-z04-reference.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-d-z04-reference.cjs
+Auto-merging scripts/test-ediel-prodat-document-fields.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-document-fields.cjs
+Auto-merging scripts/test-ediel-prodat-free-text-first-message.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-free-text-first-message.cjs
+Auto-merging scripts/test-ediel-prodat-free-text.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-free-text.cjs
+Auto-merging scripts/test-ediel-prodat-party-fields.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-party-fields.cjs
+Auto-merging scripts/test-ediel-prodat-reference-fields.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-reference-fields.cjs
+Auto-merging scripts/test-ediel-prodat-source-locators.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-prodat-source-locators.cjs
+Auto-merging scripts/test-ediel-rule-pack-source-identity.cjs
+Auto-merging scripts/test-ediel-unb-ack-request.cjs
+CONFLICT (content): Merge conflict in scripts/test-ediel-unb-ack-request.cjs

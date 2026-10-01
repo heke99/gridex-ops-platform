@@ -1,0 +1,413 @@
+{
+  "schema_version": 1,
+  "observed_at_utc": "2026-10-01T10:05:16.092919+00:00",
+  "repository": "heke99/gridex-ops-platform",
+  "work_item": "Preserve active writers, diagnose absent current-head CI, prepare safe continuation",
+  "source_files_changed_by_this_recovery": 0,
+  "protected_refs_changed": false,
+  "database_changed": false,
+  "original_publication": {
+    "pr": 424,
+    "commit": "47f4ed18d24169ea7f4800c66d920e1cf2e3a485",
+    "tree": "2fa50c613b243c90144808060822e6bf094251b7",
+    "local_source": "c02deec2392efa359486377e6c1487fc99620380",
+    "matching_tree": true,
+    "force": false,
+    "receipt_path": "quality/audits/ediel-masterplan-v2/integration-20261001/restoration/publication-15-receipt.json"
+  },
+  "github_pr424": {
+    "head": "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+    "tree": "667be5ad06e31ed4bb22caf92844505b225d8eed",
+    "branch": "codex/ediel-master-v2-integration-20261001",
+    "draft": true,
+    "merged": false,
+    "base_head": "3c7342c64c83b705e85c18f300705166a1732ad6",
+    "base_branch": "codex/ediel-v2-identity-e035-owner-20260928",
+    "mergeable": false,
+    "mergeable_state": "dirty",
+    "current_head_workflow_runs": 0,
+    "ahead_commits": 16,
+    "behind_commits": 143,
+    "merge_base": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+    "conflicting_paths": 114
+  },
+  "latest_local_snapshot": {
+    "commit": "536cdc16fcae4b7bb073229540f7e6718ca7e78d",
+    "tree": "b4e7386c65c6b8d22d135e33770d56dfe52761be",
+    "branch": "codex/ediel-master-v2-integration-published-20261001",
+    "conflicting_paths_against_pr421": 116,
+    "not_a_freeze": true
+  },
+  "history_bridge": {
+    "commit": "bba3163741c513a94938c63ffe88cf6089be78d1",
+    "tree": "b4e7386c65c6b8d22d135e33770d56dfe52761be",
+    "parents": [
+      "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+      "536cdc16fcae4b7bb073229540f7e6718ca7e78d"
+    ],
+    "publication": "LOCAL_PREPARATION_ONLY",
+    "source_files_changed": 0,
+    "merge_tree_exit": 0
+  },
+  "confirmed_ci_blocker": {
+    "cause": "The pull request cannot create a merge ref due to source/base merge conflicts. Ordinary pull_request Actions do not run for conflicted PRs.",
+    "workflow_branch_filter_hypothesis": "REFUTED: relevant pull_request workflows do not exclude the current base branch",
+    "primary_source": "https://docs.github.com/en/actions/how-tos/troubleshoot-workflows"
+  },
+  "skills": {
+    "activated": [
+      "using-git-worktrees: independent clone preserving active indexes and refs",
+      "systematic-debugging: publication receipt, current GitHub state and merge-tree reproduction",
+      "verification-before-completion: exact-tree and ancestry checks plus fresh remote status"
+    ],
+    "conditional": [
+      "Supabase/native: only during actual database replay work",
+      "Next.js/browser: only during actual UI implementation and interaction tests"
+    ],
+    "skipped": "No runtime, UI, SQL, workflow or performance code was changed in this focused recovery investigation."
+  },
+  "live_workspaces": [
+    {
+      "path": "/workspace/scratch/29079c3a4297/gridex-integration",
+      "branch": "codex/ediel-master-v2-integration-published-20261001",
+      "head": "536cdc16fcae4b7bb073229540f7e6718ca7e78d",
+      "tree": "b4e7386c65c6b8d22d135e33770d56dfe52761be",
+      "commit_time": "2026-10-01T11:58:49+02:00",
+      "status": [],
+      "observation_not_backup_or_freeze": true
+    },
+    {
+      "path": "/workspace/scratch/29079c3a4297/gridex-native-owner-restored",
+      "branch": "codex/ediel-native-owner-restored-20261001",
+      "head": "62995fcda7c01479d3fcc17044fef75c9dc72871",
+      "tree": "a1692f3119e3485ca4b5bbd419cf6b56289519c5",
+      "commit_time": "2026-10-01T11:54:07+02:00",
+      "status": [
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001083100_ediel_contract_original_source_intake.sql",
+          "sha256": "e71fb08eab24fcdf19561e56b628b1400ccc275c71cdfd7c753acdeda3b64e9e",
+          "bytes": 38430,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "tsconfig.invoice-file-scoped.tmp.json",
+          "sha256": "525038000ba3ab192457e113a7a74c1fc30d2c70ccc0c020933edfd3f714df39",
+          "bytes": 510,
+          "unchanged_while_hashing": true
+        }
+      ],
+      "observation_not_backup_or_freeze": true
+    },
+    {
+      "path": "/workspace/scratch/29079c3a4297/gridex-mixed-recovered",
+      "branch": "codex/ediel-mixed-recovered-20261001",
+      "head": "0023ee685fd25e0f21a9c7ef2a4e3bfae3de24e2",
+      "tree": "ceec054b39cc07cd23f8cdaff02bb057c0acb5b8",
+      "commit_time": "2026-10-01T12:00:14+02:00",
+      "status": [
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001100148_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0,
+          "unchanged_while_hashing": true
+        }
+      ],
+      "observation_not_backup_or_freeze": true
+    },
+    {
+      "path": "/workspace/scratch/29079c3a4297/gridex-ack-owned-recovery",
+      "branch": "codex/ediel-ack-owned-recovery-20261001",
+      "head": "a8ded9d00799af76266d20cbb3deebe3fd4fdcfb",
+      "tree": "8dc639e38c64b920af2cce2196a1c9cefb07bc81",
+      "commit_time": "2026-10-01T11:33:37+02:00",
+      "status": [
+        {
+          "status": " M",
+          "path": "app/admin/ediel/actions.part-2.ts",
+          "sha256": "6d87c87960666568ed4596e96f6c608a8841280ee8db68786d0858f90cee7466",
+          "bytes": 44361,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "app/admin/ediel/actions.part-3.ts",
+          "sha256": "89fa480417a50fc55c4b845599a275831d17ae820395f9e8f220bff31c2c6052",
+          "bytes": 35176,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "app/admin/ediel/actions.part-4.ts",
+          "sha256": "1adce9d416d635fd0d03b6ee37824d8ec5f86f66d4efab5126d0a335caae69bf",
+          "bytes": 39281,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "app/admin/ediel/system-tests/actions.part-2.ts",
+          "sha256": "ed73f8052f66b16772d10a1c037a0b197193d71bafca8da47ba557dbcdaeef78",
+          "bytes": 38380,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/ack/prodatCommonHeaderNegativeAckRoute.ts",
+          "sha256": "2c5f9e40938cf9bd40fc2b3e30bc754f12fab100d938dd3d238f1c9553927350",
+          "bytes": 4638,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/ack/prodatCommonHeaderRejectionAuthority.ts",
+          "sha256": "2dd28a5005fdda2e80aa78e132ffe82d52ba0a6273295042c4de5af0c29dbcf1",
+          "bytes": 6404,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+          "sha256": "a6993214730bc297d1a704f6e87af08e6effb82757ddc441750d6c817c05cc73",
+          "bytes": 5551,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/ack/technicalSyntaxRoute.ts",
+          "sha256": "36acfb9025d545ca07c4053bc0b78ef04b1cd463237cbffb04842eb69b5533ca",
+          "bytes": 4582,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/core/ackDraftSource.ts",
+          "sha256": "4040d178a7635c794105dc74fe734c4d3e620914632ae8fac1ca89d1aa850739",
+          "bytes": 3070,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+          "sha256": "bae43f9ab7c1de535c0f64d3e553633a15d5202d80054adfc7c8db30d2d69ccd",
+          "bytes": 5414,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/inboundCases.ts",
+          "sha256": "a176a94233da44ff663648059e6519160fd7023d2addb251b49e3cc32679f59b",
+          "bytes": 64426,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/orchestrator/autoAckOrchestrator.ts",
+          "sha256": "d10f3a810b78dd7521db20b49c9f943b0c034f7b7835f41d42502d40e233856d",
+          "bytes": 7909,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/outbox/supersedeWrongDrafts.ts",
+          "sha256": "69db2bb5f97e43520d26a43022b2161587cf759d8e059ac640b90fa70e3059ce",
+          "bytes": 3329,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/testing/agtEngine.ts",
+          "sha256": "89d0798dfe7aa18bafeb198ffcbfa3d0c4750657d209941537c591b812c05d23",
+          "bytes": 40192,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/inbound-mail/edielInboundProcessor.ts",
+          "sha256": "4e60449a82df98bdf6f25b9efe111205973dbd43d72ebe3610226ab22866e946",
+          "bytes": 17806,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "__tests__/ediel-business-ack-native-list.test.ts",
+          "sha256": "8656e92a7a124f5f7a8b86c7dc3129c5ac4f2e48e5415f916e4586dbf713d59c",
+          "bytes": 3063,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "__tests__/ediel-genuine-duplicate-103-response.test.ts",
+          "sha256": "9190dcfa06942c62899950ed2de6299db2f9d59f25e6e2cd9da5d94b3584ac50",
+          "bytes": 9087,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "lib/ediel/inbound/businessAckMessages.ts",
+          "sha256": "53b9bcb56baf329e062a0ac9ecf9069dbf1aa9e238eb380b6d328ef182ae3fdb",
+          "bytes": 1990,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "lib/ediel/inbound/duplicateResponses.ts",
+          "sha256": "b7863797a6d98f8542a49665291d023d149243f701abef0ffea5ed25660a85eb",
+          "bytes": 8647,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "scripts/ediel-duplicate-103-owner-sql-regression.mjs",
+          "sha256": "5d4f0e7b56e2a4c1977e314ae2e5ae1e4e9c2d58db365e1e767a5c4a4433f83f",
+          "bytes": 28601,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001092213_ediel_genuine_reception_duplicate_103_response_owner.sql",
+          "sha256": "5f2b82d6ffd95f03262155e48f3b69ed09d992bd9e30bd817c65c4b8b91062b9",
+          "bytes": 43517,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001100409_ediel_object_batch_actual_send_catalog_lookup.sql",
+          "sha256": "6603c8a14695162ada9a8c4937c219fb3cc631d47bf2f72ec185a266b511c541",
+          "bytes": 748,
+          "unchanged_while_hashing": true
+        }
+      ],
+      "observation_not_backup_or_freeze": true
+    },
+    {
+      "path": "/workspace/scratch/29079c3a4297/gridex-transport-retention-restored",
+      "branch": "codex/ediel-transport-retention-restored-20261001",
+      "head": "b5ce52cd8d7f185c53f019f3f7cfd026f3d8d067",
+      "tree": "31bdb4400c1178237db0d50b8496e3a92fb3cc86",
+      "commit_time": "2026-10-01T11:51:03+02:00",
+      "status": [
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001093100_ediel_signed_brp_contract_source_intake.sql",
+          "sha256": "4560e664172122dde5a3603181cc4ceb2379a788e2403cf69cec04030a0d6a03",
+          "bytes": 35544,
+          "unchanged_while_hashing": true
+        }
+      ],
+      "observation_not_backup_or_freeze": true
+    },
+    {
+      "path": "/workspace/scratch/29079c3a4297/gridex-requested-customer-e",
+      "branch": "codex/ediel-requested-customer-e-recovered-20261001",
+      "head": "d30784e49717e47a3c6a98ac8b9a6457934666fb",
+      "tree": "4d1062488d9a3e6ee8c730bddf062cd9a0a7d423",
+      "commit_time": "2026-10-01T11:42:56+02:00",
+      "status": [
+        {
+          "status": "??",
+          "path": "scripts/ediel-registry-current-market-source-sql-regression.mjs",
+          "sha256": "606a07f8f2225249c51b9d124e20a501dcde35b70daef346bd9e1c8dd8bfc53d",
+          "bytes": 12959,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001094835_ediel_registry_current_market_source_composition.sql",
+          "sha256": "3b80ad20dc1b4791f2aa74f7bd6d51fe6b559e7b5f290e5f9b9ae08bd8dda597",
+          "bytes": 31603,
+          "unchanged_while_hashing": true
+        }
+      ],
+      "observation_not_backup_or_freeze": true
+    },
+    {
+      "path": "/workspace/scratch/29079c3a4297/gridex-recovery-lineage-restored",
+      "branch": "codex/ediel-recovery-lineage-restored-20261001",
+      "head": "1dabb922c08dd9df85900284ae7eff739f4761f2",
+      "tree": "f29736e69bbb0de6c9278559bfa889036c3782a0",
+      "commit_time": "2026-10-01T11:14:25+02:00",
+      "status": [
+        {
+          "status": " M",
+          "path": "__tests__/ediel-recovery-date-context.test.ts",
+          "sha256": "f5fbe3f6f97be43e863ba867fa38dba17727f3c74bb89eb1c2606b2c641a12cb",
+          "bytes": 4684,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "__tests__/ediel-recovery-reporting-context.test.ts",
+          "sha256": "d58ff99470fa448f214c4a6e5999b214792fb852517cfeb6187b06837f265895",
+          "bytes": 5621,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/recovery/reportingContext.ts",
+          "sha256": "011d00c83b60cec2dc8e2560bf3d8426da54a2de5bffb7731381283c7929c0de",
+          "bytes": 4314,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": " M",
+          "path": "lib/ediel/recovery/sourceContext.ts",
+          "sha256": "ad63d32340de85b3ffeedcd17efad85f3db029271801ffafa6f5ed650e089383",
+          "bytes": 2334,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "quality/audits/ediel-masterplan-v2/integration-20261001/recovery-lineage-phases/"
+        },
+        {
+          "status": "??",
+          "path": "scripts/ediel-recovery-execution-phases-native.test.ts",
+          "sha256": "0c2b046f28bbf81389a35768689988a2b5b2cb925100fe76509f1d5115ba03cd",
+          "bytes": 11676,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "scripts/ediel-recovery-execution-phases-sql-regression.mjs",
+          "sha256": "6aae27a74f621882e266a23cff51af8efc8a4a9dd78a4cc6170be966270f87ad",
+          "bytes": 6738,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "scripts/ediel-recovery-lineage-sql-fixture.mjs",
+          "sha256": "f9c850bc8864a423f62762bf103e328ab2f735d10438711c3fc2294fdec24ddb",
+          "bytes": 13212,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "scripts/ediel-recovery-source-lineage-sql-regression.mjs",
+          "sha256": "1da10d25c3e785cfe67a62646e8e88f3161d30ccb06c1cc30738096d771f9de8",
+          "bytes": 4747,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001041631_ediel_customer_event_recovery_source_lineage.sql",
+          "sha256": "f78ecd814759bfd5dd5894c29e1844d5bff1570eb2c64bc6f1d91a6c1b5d3d9a",
+          "bytes": 10438,
+          "unchanged_while_hashing": true
+        },
+        {
+          "status": "??",
+          "path": "supabase/migrations/20261001092832_ediel_recovery_established_source_and_execution_phases.sql",
+          "sha256": "39ef046c4496900971aa57ed9a7dc3a5ef40b6b2e93878f1462e0f4723264e39",
+          "bytes": 41793,
+          "unchanged_while_hashing": true
+        }
+      ],
+      "observation_not_backup_or_freeze": true
+    }
+  ],
+  "release_verdict": "NOT_QUALIFIED",
+  "whole_masterplan_acceptance_changed": false,
+  "next_action": "Preserve published and latest local history, compose a genuine merge with frozen PR421 through named file owners, then publish and run fresh exact-head CI."
+}

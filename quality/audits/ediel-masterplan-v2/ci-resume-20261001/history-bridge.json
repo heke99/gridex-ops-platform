@@ -1,0 +1,11 @@
+{
+  "commit": "bba3163741c513a94938c63ffe88cf6089be78d1",
+  "tree": "b4e7386c65c6b8d22d135e33770d56dfe52761be",
+  "parents": [
+    "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+    "536cdc16fcae4b7bb073229540f7e6718ca7e78d"
+  ],
+  "publication": "LOCAL_PREPARATION_ONLY",
+  "source_files_changed": 0,
+  "merge_tree_exit": 0
+}
