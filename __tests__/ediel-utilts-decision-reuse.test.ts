@@ -6,6 +6,7 @@ import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/valida
 import { processInboundUtiltsMessageByCanonicalPolicy } from '@/lib/ediel/flows/utiltsInboundPolicyProcessor'
 import {receivedUtiltsOwnerFixture} from './helpers/utiltsCanonicalOwnerIo'
 import {s02PlanningFixture,s02PlanningPair} from './helpers/utiltsS02PlanningFixture'
+import {createHash} from 'node:crypto'
 
 const mocks = vi.hoisted(() => ({ getMessage: vi.fn(), processActual: vi.fn(), rpc: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: mocks.rpc } }))
@@ -55,8 +56,9 @@ const VALID_MONTHLY_E66 = [
   "UNZ+1+260831181101'",
 ].join('\n')
 
+let sourceForRead:EdielMessageRow|null=null
 function message(documentDate: string, receivedDate: string): EdielMessageRow {
-  return receivedUtiltsOwnerFixture({
+  const source=receivedUtiltsOwnerFixture({
     id: 'retained-utilts-decision', company_id: 'tenant-a',
     message_family: 'UTILTS', message_code: 'E66', message_standard: 'edifact',
     direction: 'inbound', environment: 'test', message_version: 'E5SE5A',
@@ -66,11 +68,29 @@ function message(documentDate: string, receivedDate: string): EdielMessageRow {
     metering_point_id: 'meter-a', business_match_status: 'matched',
     validation_report: null,
   } as unknown as EdielMessageRow)
+  sourceForRead=source
+  return source
+}
+
+/** The two protected external read ports are independently declared. This
+ * synthetic issuer/history result is not authentic namespace absence proof;
+ * the real owner, selected national guide and opaque token remain exercised. */
+function installRegistryIo(revision?:'3'|'4'){
+  mocks.rpc.mockImplementation(async(name,args)=>{
+    if(name==='resolve_canonical_ediel_rule_pack_with_witness_v1')return {data:[activationEvidence(revision??(args.p_business_date==='2026-09-30'?'3':'4'),args.p_message_code)],error:null}
+    if(name==='gridex_read_utilts_issuer_identity_authority_v1'){
+      const source=sourceForRead
+      if(!source||args.p_company_id!==source.company_id||args.p_message_id!==source.id)throw new Error('fixture_actual_issuer_source_required')
+      return {error:null,data:{version:1,companyId:source.company_id,environment:source.environment,sourceMessageId:source.id,sourcePayloadHash:createHash('sha256').update(source.raw_payload!).digest('hex'),status:'qualified',authorityVersionId:'88888888-8888-4888-8888-888888888888',namespaceEpoch:'1',messageReferenceCollision:false,transactionReferenceCollisions:[],holdReason:null}}
+    }
+    throw new Error('fixture_undeclared_external_port:'+name)
+  })
 }
 
 beforeEach(()=>{
   vi.clearAllMocks()
-  mocks.rpc.mockImplementation(async(_name,args)=>({data:[activationEvidence(args.p_business_date==='2026-09-30' ? '3' : '4',args.p_message_code)],error:null}))
+  sourceForRead=null
+  installRegistryIo()
 })
 
 describe('UTILTS decision reuse across document and receipt dates', () => {
@@ -122,6 +142,7 @@ describe('UTILTS decision reuse across document and receipt dates', () => {
 
   it('retains the selected policy on the non-billing branch', async () => {
     const source = receivedUtiltsOwnerFixture(s02PlanningFixture({company:'fixture',transactions:[s02PlanningPair('clean',true)[0]]}))
+    sourceForRead=source
     const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source),policy=decision.policy!
     mocks.getMessage.mockResolvedValue(source)
     const runtimeSpy = vi.spyOn(utiltsRuntime, 'runUtiltsRuntimeForMessage').mockImplementationOnce(() => { throw new Error('test-stop-before-non-billing-persistence') })
@@ -161,7 +182,7 @@ describe('UTILTS selected reference survives registry verification', () => {
     ['2026-09-30', '2026-10-01', '4'],
     ['2026-10-01', '2026-09-30', '3'],
   ] as const)('runtime preserves document date %s separately from selected admission %s', async (date, received, revision) => {
-    mocks.rpc.mockReset().mockResolvedValue({ data: [activationEvidence(revision)], error: null })
+    mocks.rpc.mockReset();installRegistryIo(revision)
     const source = message(date, received)
     const result = await resolveCanonicalRuntimeDecisionWithRegistry(source)
     expect(result.syntaxDecision).toBe('accepted')
@@ -170,12 +191,12 @@ describe('UTILTS selected reference survives registry verification', () => {
     expect(result.policy?.applicationReference).toBe('23-DDQ-E66-S')
     expect(result.issues.some(issue => issue.code === 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE')).toBe(false)
     expect(result.validationReport).toHaveProperty('rulePackEvidence.rulePackId', activationEvidence(revision).rule_pack_id)
-    expect(mocks.rpc).toHaveBeenCalledOnce()
+    expect(mocks.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_read_utilts_issuer_identity_authority_v1','resolve_canonical_ediel_rule_pack_with_witness_v1'])
     expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack_with_witness_v1', expect.objectContaining({ p_business_date: received, p_family: 'UTILTS' }))
   })
 
   it.each([['2026-09-30', '3'], ['2026-10-01', '4']] as const)('public validator retains E66 reference on %s', async (date, revision) => {
-    mocks.rpc.mockReset().mockResolvedValue({ data: [activationEvidence(revision)], error: null })
+    mocks.rpc.mockReset();installRegistryIo(revision)
     const source = message(date, date)
     const result = await validateRulebookMessageWithRegistry({
       family: 'UTILTS', code: 'E66', direction: 'inbound', mode: 'parse',
