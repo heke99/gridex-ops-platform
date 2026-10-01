@@ -46,6 +46,23 @@ describe('P protected ACK preparation',()=>{
   expect((await prepareSourceAckDraft({actorUserId:'actor',sourceMessage:message,ackFamily:'APERAK',outcome:'negative',applicationErrors:[error]})).kind).toBe('existing')
   expect(io.read.mock.calls[1][0]).toMatchObject({ackScope:'object',acknowledgedReferences:['OWN-B']})
  })
+ it('reads a qualified own negative missing226 as an exact physical object tuple without inventing LI',async()=>{
+  const message=source(['LIN+1++OBJECT-A:::9','LIN+2++OBJECT-B:::9','RFF+LI:OWN-B']),wire=tokenizeEdifact(message.raw_payload!),group=prodatRegisterGroups(wire.segments,wire.una,'Z04').groups[0]
+  const diagnostic=prodatFieldDiagnostic('226','missing',{rawSegments:wire.segments.map(t=>t.raw),una:wire.una,code:'Z04'},group.segments.map(t=>t.raw),'P:own226',group.lineIndex)
+  if(diagnostic.kind!=='field')throw new Error('fixture own diagnostic absent')
+  const text=composeProdatAperakText(diagnostic);if(text.kind!=='ready')throw new Error('fixture text absent')
+  const own=diagnostic.occurrence,error={ercCode:'41',fieldCode:'226',text:text.text,prodatFieldDiagnostic:diagnostic,prodatAperakText:text,prodatOccurrence:own,referenceQualifier:'Z07',referenceNumber:own.objectId,lineItemReference:null}
+  io.read.mockImplementation(async p=>p.ackScope==='object'?original:null)
+  expect(await prepareSourceAckDraft({actorUserId:'actor',sourceMessage:message,ackFamily:'APERAK',outcome:'negative',applicationErrors:[error]})).toEqual({kind:'existing',message:original})
+  expect(io.read.mock.calls[1][0]).toMatchObject({ackScope:'object',acknowledgedReferences:[],acknowledgedProdatObjects:[{objectId:'OBJECT-A',identityAgency:'9',firstLineIndex:group.segments[0].index,lineItemReference:null}]})
+  expect(io.build).not.toHaveBeenCalled()
+  io.read.mockResolvedValue(null);io.build.mockReturnValue({rawPayload:'fresh'})
+  expect((await prepareSourceAckDraft({actorUserId:'actor',sourceMessage:message,ackFamily:'APERAK',outcome:'negative',applicationErrors:[error]})).kind).toBe('draft')
+  expect(io.build.mock.calls[0][0]).toMatchObject({ackScope:'object'})
+  io.build.mockClear()
+  await expect(prepareSourceAckDraft({actorUserId:'actor',sourceMessage:message,ackFamily:'APERAK',outcome:'negative',applicationErrors:[{...error,prodatOccurrence:{...own,identityAgency:'11'}}]})).rejects.toThrow('requested_scope_unqualified')
+  expect(io.build).not.toHaveBeenCalled()
+ })
  it('does not treat a missing or ambiguous own LI as whole-message coverage',async()=>{
   await expect(prepareSourceAckDraft({actorUserId:'actor',sourceMessage:source(['LIN+1++OBJECT-A:::9','RFF+LI:ONE','RFF+LI:TWO']),ackFamily:'APERAK',outcome:'positive'})).rejects.toThrow('own_line_reference_required')
   expect(io.read).toHaveBeenCalledTimes(1);expect(io.build).not.toHaveBeenCalled()

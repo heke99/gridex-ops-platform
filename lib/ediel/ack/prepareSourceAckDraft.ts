@@ -3,7 +3,7 @@ import {readExistingAckBeforeDraft} from '@/lib/ediel/core/ackDraftSource'
 import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
-import {prodatAckObjectReferences,resolveProdatAckMessageFunction} from '@/lib/ediel/prodat/prodatAckMessageFunction'
+import {prodatAckObjectScopes,resolveProdatAckMessageFunction} from '@/lib/ediel/prodat/prodatAckMessageFunction'
 
 /** Operational construction follows protected replay first, then the actual
  * immutable source capability. The public synchronous builder remains a pure
@@ -20,16 +20,16 @@ export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraf
   // fresh error qualification. A P34 original never satisfies this read.
   const whole=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'message'})
   if(whole)return {kind:'existing',message:whole}
-  let referenceError:unknown
-  try{references=prodatAckObjectReferences({sourceWire,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors,relatedTransactionReference:input.relatedTransactionReference,prodatAcknowledgementLineIndices:input.prodatAcknowledgementLineIndices})}
+  let referenceError:unknown,objects:ReturnType<typeof prodatAckObjectScopes>=[]
+  try{objects=prodatAckObjectScopes({sourceWire,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors,relatedTransactionReference:input.relatedTransactionReference,prodatAcknowledgementLineIndices:input.prodatAcknowledgementLineIndices});references=objects.flatMap(own=>own.lineItemReference?[own.lineItemReference]:[])}
   catch(error){referenceError=error;references=[]}
-  if(references.length){
-   const original=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'object',acknowledgedReferences:references})
+  if(objects.length){
+   const original=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'object',acknowledgedReferences:references,acknowledgedProdatObjects:objects})
    if(original)return {kind:'existing',message:original}
   }
   const fn=resolveProdatAckMessageFunction({sourceWire,hasProdatWire:true,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors})
   if(fn==='34'&&referenceError)throw referenceError
-  if(fn==='34'&&!references.length)throw new Error('aperak_prodat_requested_scope_unqualified')
+  if(fn==='34'&&!objects.length)throw new Error('aperak_prodat_requested_scope_unqualified')
   scope=fn==='27'?'message':'object'
  }else{
   references=input.ackFamily==='CONTRL'||input.utiltsHeaderRejected?[]:input.relatedTransactionReference?[input.relatedTransactionReference]

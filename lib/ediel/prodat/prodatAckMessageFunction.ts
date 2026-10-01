@@ -3,6 +3,7 @@ import {prodatRegisterGroups,prodatRegisterMessageSegments,type ProdatRegisterGr
 import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
 import {prodatErrorOccurrence,validProdatWireDiagnostic} from './prodatFieldDiagnostic'
 import {prodatHeaderFieldRejection} from './prodatHeaderDateRejection'
+import type {ProdatAckObjectScope} from '@/lib/ediel/ack/sourceCorrelation'
 import type {AperakEngineApplicationError,AperakEngineOutcome} from '@/lib/ediel/aperakEngine'
 
 /** The existing source-owned P27/P34 selector and qualification, shared by
@@ -83,11 +84,11 @@ export function selectProdatAckFirstRegisterGroups(groups:readonly ProdatRegiste
 /** Physical first-register LI identities used by the same P34 renderer. A
  * diagnostic can select a subset only after its complete own tuple matches
  * this source. Rejected siblings cannot supply or suppress its own LI. */
-export function prodatAckObjectReferences(params:{
+export function prodatAckObjectScopes(params:{
  sourceWire:ReturnType<typeof tokenizeEdifact>;messageCode?:string|null
  outcome:AperakEngineOutcome;applicationErrors?:readonly AperakEngineApplicationError[]|null
  relatedTransactionReference?:string|null;prodatAcknowledgementLineIndices?:readonly number[]
-}):string[]{
+}):ProdatAckObjectScope[]{
  const {sourceWire}=params
  const message=prodatRegisterMessageSegments(sourceWire.segments,sourceWire.una)
  const owner=prodatRegisterGroups(message,sourceWire.una,params.messageCode)
@@ -95,9 +96,10 @@ export function prodatAckObjectReferences(params:{
  const occurrences=first.map(group=>prodatErrorOccurrence({rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una,code:params.messageCode},group.segments.map(token=>token.raw),'object',group.lineIndex))
  const all=occurrences.map(own=>own?.lineItemReference)
  const uniqueOwn=(ref:string|null|undefined)=>Boolean(ref&&all.filter(candidate=>candidate===ref).length===1)
+ const scopeFor=(group:ProdatRegisterGroup):ProdatAckObjectScope=>({objectId:group.itemId,identityAgency:group.identityAgency,firstLineIndex:group.segments[0].index,lineItemReference:occurrences[first.indexOf(group)]?.lineItemReference??null})
  if(params.relatedTransactionReference){
   if(!uniqueOwn(params.relatedTransactionReference))throw new Error('aperak_prodat_requested_scope_unqualified')
-  return [params.relatedTransactionReference]
+  return [scopeFor(first[all.indexOf(params.relatedTransactionReference)])]
  }
  if(params.outcome==='negative'&&params.applicationErrors?.length){
   const scoped=params.applicationErrors.filter(error=>error.prodatOccurrence?.scope!=='header')
@@ -107,13 +109,24 @@ export function prodatAckObjectReferences(params:{
    const own=error.prodatOccurrence!
    const actual=prodatErrorOccurrence({rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una,code:params.messageCode},[],own.scope,own.lineIndex??undefined)
    if(!actual||!(['scope','messageReference','lineIndex','lineNumber','registerPosition','objectId','identityAgency','lineItemReference'] as const).every(key=>own[key]===actual[key])
-    ||!uniqueOwn(actual.lineItemReference))throw new Error('aperak_prodat_requested_scope_unqualified')
-   return actual.lineItemReference!
+    )throw new Error('aperak_prodat_requested_scope_unqualified')
+   const group=owner.groups.find(group=>group.lineIndex===actual.lineIndex)
+   const firstGroup=group?.validRegisterChain&&group.firstLineIndex!==null?owner.groups.find(candidate=>candidate.lineIndex===group.firstLineIndex):group
+   if(!firstGroup||firstGroup.registerPosition!==1||!firstGroup.itemId
+    ||first.filter(candidate=>candidate.itemId===firstGroup.itemId&&candidate.identityAgency===firstGroup.identityAgency).length!==1
+    ||(actual.lineItemReference?!uniqueOwn(actual.lineItemReference):actual.ownReferences?.lineItemReference.kind!=='absent'))throw new Error('aperak_prodat_requested_scope_unqualified')
+   return scopeFor(firstGroup)
   })
-  return [...new Set(references)]
+  return references.filter((scope,index)=>references.findIndex(own=>own.firstLineIndex===scope.firstLineIndex)===index)
  }
  const selected=selectProdatAckFirstRegisterGroups(owner.groups,params.prodatAcknowledgementLineIndices)
  const references=selected.map(group=>all[first.indexOf(group)])
  if(!references.length||references.some(ref=>!uniqueOwn(ref)))throw new Error('aperak_prodat_own_line_reference_required')
- return references as string[]
+ return selected.map(scopeFor)
+}
+
+/** Compatibility reference projection. Missing original LI remains an explicit
+ * source object tuple in prodatAckObjectScopes; it is never an invented alias. */
+export function prodatAckObjectReferences(params:Parameters<typeof prodatAckObjectScopes>[0]):string[]{
+ return prodatAckObjectScopes(params).flatMap(scope=>scope.lineItemReference?[scope.lineItemReference]:[])
 }
