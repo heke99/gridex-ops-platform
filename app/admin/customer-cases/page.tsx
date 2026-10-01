@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
@@ -41,6 +43,7 @@ export default async function CustomerCasesPage() {
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Nytt supportärende</h2>
             <form action={createCustomerCaseFromFormAction} className="mt-4 grid gap-3 lg:grid-cols-2">
+              <input type="hidden" name="expected_company_id" value={scope.companyId} />
               <select name="customer_id" required className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Välj kund</option>
                 {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.label}</option>)}
@@ -49,8 +52,12 @@ export default async function CustomerCasesPage() {
                 <option value="low">Låg</option><option value="normal">Normal</option><option value="high">Hög</option><option value="urgent">Akut</option>
               </select>
               <input name="title" required maxLength={180} placeholder="Rubrik" className="rounded-xl border border-slate-300 px-3 py-2 text-sm lg:col-span-2" />
+              <select name="channel" defaultValue="admin" aria-label="Kanal" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                <option value="admin">Registrerat i OPS</option><option value="phone">Telefon</option>
+              </select>
               <input name="category" placeholder="Kategori, t.ex. faktura eller avtal" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-              <input name="idempotency_key" placeholder="Extern referens (valfri)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              {/* One key per rendered form: a double submit reuses the same case instead of creating two. */}
+              <input type="hidden" name="idempotency_key" value={randomUUID()} />
               <textarea name="description" rows={4} placeholder="Beskriv ärendet" className="rounded-xl border border-slate-300 px-3 py-2 text-sm lg:col-span-2" />
               <button className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white lg:col-span-2">Skapa supportärende</button>
             </form>
@@ -65,7 +72,7 @@ export default async function CustomerCasesPage() {
               <article key={row.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-950">{row.title}</p>
+                    <Link href={`/admin/customer-cases/${row.id}`} className="font-semibold text-slate-950 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600">{row.title}</Link>
                     <p className="mt-1 text-sm text-slate-600">{row.customer_name ?? row.customer_number ?? row.customer_id}</p>
                     {row.description ? <p className="mt-2 max-w-3xl text-sm text-slate-700">{row.description}</p> : null}
                     <p className="mt-2 text-xs text-slate-500">{row.reason_category ?? 'support'} · {row.source ?? 'support'} · {formatDate(row.created_at)}</p>
@@ -76,7 +83,7 @@ export default async function CustomerCasesPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {['action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'].map((status) => (
                       <form key={status} action={updateCustomerCaseStatusAction}>
-                        <input type="hidden" name="case_id" value={row.id} /><input type="hidden" name="status" value={status} />
+                        <input type="hidden" name="case_id" value={row.id} /><input type="hidden" name="status" value={status} /><input type="hidden" name="expected_company_id" value={scope.companyId ?? ''} />
                         <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{status}</button>
                       </form>
                     ))}

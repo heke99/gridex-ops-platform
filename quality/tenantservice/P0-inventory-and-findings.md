@@ -160,3 +160,29 @@
 - Dedicated `channel` column and interaction table if reporting needs them.
 - Private attachments with quarantine and scanning: **not built.** No attachment endpoint exists. Unknown scan status must never count as approved.
 - Action-bound, expiring verification proof stored in the DB.
+
+## P5a (tenant UI)
+**Done:**
+- Tenant navigation starts with **Översikt, Kunder, Ärenden, Fakturering**. Then come Drift, Avtal & pris, **Inställningar** and White-label.
+- Support cases were previously missing from the navigation. Finance and operations staff keep all their tools; only the grouping changed.
+- New case detail view `/admin/customer-cases/[caseId]`:
+  - tenant-scoped;
+  - history where each entry is labelled "Synlig för kunden" or "Endast internt";
+  - internal and customer status shown side by side;
+  - link to the customer card.
+- Composer with three clearly separate modes: Svara kunden / Intern anteckning / Registrera samtal.
+  - The phone mode records the verification method, a representative/mandate and a warning against asking for passwords or codes.
+  - The summary is not sent automatically.
+  - Pending state blocks double submits; focus is visible; every field has a label.
+  - Every form carries `expected_company_id`, so a submit after a tenant switch in another tab is refused.
+  - The composer is shown only with `cases.write` and never to platform admins (read-only).
+- **Bug fix (F15):** the customer card loader did not select `updated_at`, so the P2a version check was never active. The column is now loaded.
+- The support creation form gets one idempotency key per render (double click → same case) and a channel choice (OPS/Telefon).
+
+**Remaining (P5b):**
+- Fixed customer header with an action menu (Registrera kontakt / Ändra uppgifter / Fler).
+- Consolidate the customer card's 20 tabs into Översikt / Uppgifter / Avtal & anläggningar / Fakturor / Ärenden & historik.
+- A shared edit panel with the billing-impact view from P3.
+- Browser verification on mobile and with the keyboard (needs a running app with a DB; blocked in this session).
+
+**Pre-existing red script on base (not caused here):** `scripts/gridex-customer-operation-events-regression.cjs`.
