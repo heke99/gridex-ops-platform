@@ -114,7 +114,11 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   if (!companyId) throw new Error('PRODAT Z03 stoppades: switchärendet och anläggningen saknar company_id.')
 
   const subtype = normalizeSwitchSubtype(switchRequest)
-  if(subtype==='C')return prepareAndQueueSwitchCancellation({companyId,switchRequestId:switchRequest.id,actorUserId,preferredRouteId:params.communicationRouteId,environment:params.environment})
+  if (subtype === 'C') {
+    const withdrawal = await prepareAndQueueSwitchCancellation({ companyId, switchRequestId: switchRequest.id, actorUserId, preferredRouteId: params.communicationRouteId, environment: params.environment })
+    if (withdrawal.status === 'held') throw new Error(`PRODAT Z03C stoppades: ${withdrawal.missing.join(', ')}`)
+    return withdrawal
+  }
 
   const contractId =
     switchRequest.customer_contract_id
