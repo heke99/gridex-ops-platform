@@ -38,6 +38,23 @@ def migration_bytes(root, revision, name):
     return git(root, 'show', f'{revision}:supabase/migrations/{name}')
 
 
+def noncanonical(root, head, committed, current):
+    try:
+        contract = json.loads(git(root, 'show', f'{head}:scripts/gridex-aud-003-noncanonical-artifacts.json'))
+    except subprocess.CalledProcessError:
+        return []
+    excluded = []
+    for item in contract.get('artifacts') or []:
+        name = Path(item.get('path', '')).name
+        if name in committed:
+            if item.get('status') != 'merged_repository_artifact_not_deployed' or not item.get('reason') or not item.get('evidence'):
+                raise ValueError('incomplete_noncanonical_union_classification:' + name)
+            if hashlib.sha256(committed[name]).hexdigest() != item.get('sha256') or current[name] != item.get('sha256'):
+                raise ValueError('noncanonical_union_checksum_mismatch:' + name)
+            excluded.append({'name': name, 'sha256': item['sha256'], 'finding': item.get('finding')})
+    return excluded
+
+
 def prepare(root, out, contract_path, candidate='HEAD'):
     root, out = Path(root).resolve(), Path(out).resolve()
     contract_bytes = Path(contract_path).read_bytes()
@@ -116,12 +133,16 @@ def prepare(root, out, contract_path, candidate='HEAD'):
         ancestor(root, source, head, 'earlier_source_not_candidate_ancestor')
         if migration_bytes(root, source, name) != committed[name]:
             raise ValueError('earlier_source_bytes_mismatch:' + name)
+    # Checksum-bound artifacts the canonical clean replay also excludes are not
+    # union inputs either; same contract file and exact-byte binding as upgrade.
+    excluded = noncanonical(root, head, committed, current)
+    excluded_names = {row['name'] for row in excluded}
     # No source SQL runs here; outputs contain exact committed input bytes.
     out.mkdir(parents=True, exist_ok=False)
     inputs = out / 'inputs'
     inputs.mkdir()
     rows = []
-    for name in additions:
+    for name in [name for name in additions if name not in excluded_names]:
         target = inputs / name
         target.write_bytes(committed[name])
         rows.append({'name': name, 'sha256': current[name], 'path': str(target),
@@ -133,6 +154,7 @@ def prepare(root, out, contract_path, candidate='HEAD'):
         'contractSha256': hashlib.sha256(contract_bytes).hexdigest(),
         'contractGeneratedFromSha': snapshot, 'historicalMigrationsPreserved': len(previous),
         'earlierAbsentInputs': len(earlier), 'pendingMigrations': rows,
+        'excludedNoncanonical': excluded,
         'alreadyAppliedTxtSource': applied,
         'provenance': 'actual committed branch ancestor and exact absent checksummed inputs; old source bytes preserved',
         'ledgerClaim': 'NONE: already-applied source execution is not an externally observed40446 deployment ledger',

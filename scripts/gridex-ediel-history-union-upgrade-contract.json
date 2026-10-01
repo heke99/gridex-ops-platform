@@ -42,9 +42,19 @@
       "sourceCommit": "f461436f20b37c2ee9fc689c9c1e6aba67f42f3b"
     },
     {
+      "name": "20261001043233_ediel_supply_before_legal_alias_bridge_for_partition.sql",
+      "sha256": "ce2fce0ed2b39bcca5d10385496e6d6b35a106d68c40ec6b35edcc5c385cb899",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
+    },
+    {
       "name": "20261001043234_ediel_prodat_supply_own_effect_partition.sql",
       "sha256": "a9e0a3e12f4c0df878259799e2d00ea248ab542dea9929c1be692b50f07ec2d2",
       "sourceCommit": "49a3170e9309f9e539513d667a58db3410dd7442"
+    },
+    {
+      "name": "20261001043235_ediel_supply_before_legal_alias_bridge_restore.sql",
+      "sha256": "af191ea59fb3aac6a1b9174a922e83bbcb1a1cbc135a97928800bf0f733d964a",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
     },
     {
       "name": "20261001043602_ediel_committed_domain_prodat_final_responses.sql",
@@ -112,9 +122,19 @@
       "sourceCommit": "f461436f20b37c2ee9fc689c9c1e6aba67f42f3b"
     },
     {
+      "name": "20261001062831_ediel_service_context_timing_bridge_for_recovery_phase.sql",
+      "sha256": "885be9e78ee90a9660d31eaad17192bbfd6c1612dd3cb2f167057b1a6e32d526",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
+    },
+    {
       "name": "20261001062832_ediel_service_origin_recovery_execution_phase.sql",
       "sha256": "e62d85065be53b6348421af24cf6b920237c8fc8de6cb724600f52ee5b5261d0",
       "sourceCommit": "13be9fe12cffda516c5d52bcd235c180fde33123"
+    },
+    {
+      "name": "20261001062833_ediel_service_context_timing_bridge_restore.sql",
+      "sha256": "8781ee49c8b23a76c12131bc1105b1b55df157ef72d5023d1555da17698d050e",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
     },
     {
       "name": "20261001065415_ediel_recovery_current_service_source_bridge.sql",
