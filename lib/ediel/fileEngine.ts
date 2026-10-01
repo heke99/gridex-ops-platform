@@ -748,11 +748,16 @@ export async function registerEdielFile(
     );
   }
 
-  const senderEdielId =
+  const technicalList = parsed.messageFamily === 'AI_LIST' ? parseAiBiTechnicalFile(rawPayload) : null;
+  const senderEdielId = technicalList
+    ? params.direction === 'inbound' ? technicalList.header.networkEdielId : technicalList.header.supplierEdielId
+    :
     parsed.senderEdielId ??
     (params.direction === "outbound" ? ownActorEdielId : testPortalEdielId);
 
-  const receiverEdielId =
+  const receiverEdielId = technicalList
+    ? params.direction === 'inbound' ? technicalList.header.supplierEdielId : technicalList.header.networkEdielId
+    :
     parsed.receiverEdielId ??
     (params.direction === "outbound" ? testPortalEdielId : ownActorEdielId);
 

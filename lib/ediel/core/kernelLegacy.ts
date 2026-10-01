@@ -32,6 +32,7 @@ import {
   resolveCanonicalOutboundVersion,
 } from '@/lib/ediel/core/versionRegistry'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
+import { prepareAiBiInboundReconciliation, processAiBiInboundReconciliation } from '@/lib/ediel/aiBiInboundReconciliation'
 
 function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
@@ -138,6 +139,11 @@ export async function registerInboundCanonicalMessage(params: {
   input: CreateEdielMessageInput
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
+  const isAiBiSource = params.input.messageStandard === 'ai_list' || params.input.messageFamily === 'AI_LIST'
+    || /^\uFEFF?(AI|BI);/.test(params.input.rawPayload ?? '')
+  if (isAiBiSource) {
+    if (params.input.direction !== 'inbound' || !params.input.companyId) throw new Error('ai_bi_reconciliation_tenant_source_required')
+  }
   const identity = buildInboundCanonicalIdentity({
     mailbox: params.input.mailbox,
     mailboxMessageId: params.input.mailboxMessageId,
@@ -149,6 +155,11 @@ export async function registerInboundCanonicalMessage(params: {
 
   const duplicate = await findInboundDuplicateByCanonicalIdentity(identity)
   if (duplicate) {
+    if (isAiBiSource) {
+      if (duplicate.company_id !== params.input.companyId || duplicate.environment !== params.input.environment
+        || duplicate.raw_payload !== params.input.rawPayload) throw new Error('ai_bi_reconciliation_duplicate_scope_mismatch')
+      await processAiBiInboundReconciliation({ actorUserId, message: duplicate })
+    }
     await createCanonicalDuplicateBlockEvent({
       actorUserId,
       edielMessageId: duplicate.id,
@@ -164,6 +175,13 @@ export async function registerInboundCanonicalMessage(params: {
       },
     })
     return duplicate
+  }
+
+  if (isAiBiSource) {
+    const environment = params.input.environment
+    if (!params.input.companyId || (environment !== 'test' && environment !== 'production')) throw new Error('ai_bi_reconciliation_tenant_source_required')
+    const source = { companyId: params.input.companyId, environment, actorUserId, rawPayload: params.input.rawPayload ?? '' }
+    await prepareAiBiInboundReconciliation(source)
   }
 
   const inboundAckFamily = isCanonicalAckFamily(params.input.messageFamily)
@@ -203,10 +221,12 @@ export async function registerInboundCanonicalMessage(params: {
   }
 
   try {
-    return await createEdielMessage({
+    const message = await createEdielMessage({
       ...params.input,
       actorUserId,
     })
+    if (isAiBiSource) await processAiBiInboundReconciliation({ actorUserId, message })
+    return message
   } catch (error) {
     if (
       isPostgresUniqueViolation(error) &&
