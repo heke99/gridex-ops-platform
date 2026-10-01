@@ -49,6 +49,8 @@ for filename in sys.argv[1:]:
         message=re.sub(r'[^\s\x27\x22]+@[^\s\x27\x22]+','[synthetic-email]',message)
         # SQL context is not necessary to diagnose a restore object's error.
         message=message.split('Command was:',1)[0].split('DETAIL:',1)[0].strip()
+        if path.name.startswith('bootstrap-'):
+            message='private bootstrap stage failed; catalog and role details suppressed'
         print(f'TENANTSERVICE_PROOF_FIRST_ERROR {path.name}: {message[:240]}',file=sys.stderr)
         raise SystemExit(0)
 PY
@@ -121,11 +123,14 @@ tenantservice_private_cleanup(){
   if [[ "$proof_status" != 0 ]]; then
     tenantservice_safe_first_error "$TENANTSERVICE_TEMP/baseline-clean.log" \
       "$TENANTSERVICE_TEMP/dump.log" "$TENANTSERVICE_TEMP/restore-authority.log" "$TENANTSERVICE_TEMP/restore.log" \
+      "$TENANTSERVICE_TEMP/bootstrap-catalog.log" "$TENANTSERVICE_TEMP/bootstrap-plan.log" \
+      "$TENANTSERVICE_TEMP/bootstrap-authority.log" "$TENANTSERVICE_TEMP/bootstrap-apply.log" \
       "$TENANTSERVICE_TEMP/schema-snapshot.log" || true
   fi
   rm -rf "$TENANTSERVICE_TEMP"
 }
 trap 'tenantservice_private_cleanup "$?"' EXIT
+source "$TENANTSERVICE_CANDIDATE_ROOT/scripts/tenantservice-restore-bootstrap-acl.sh"
 mkdir "$TENANTSERVICE_TEMP/baseline" "$TENANTSERVICE_TEMP/forward"
 git -C "$TENANTSERVICE_CANDIDATE_ROOT" cat-file -e "$TENANTSERVICE_BASELINE_SHA^{commit}"
 git -C "$TENANTSERVICE_CANDIDATE_ROOT" archive "$TENANTSERVICE_BASELINE_SHA" |
@@ -267,6 +272,7 @@ PY
   echo 'TENANTSERVICE_RESTORE_EMPTY_TEMPLATE0_DATABASE_PASS'
   tenantservice_restore_archive "$TENANTSERVICE_RESTORE_DATABASE" "$TENANTSERVICE_RESTORE_URL"
   echo 'TENANTSERVICE_RESTORE_REAL_PG_DUMP_ARCHIVE_PASS'
+  tenantservice_restore_bootstrap_acl "$TENANTSERVICE_RESTORE_DATABASE" "$TENANTSERVICE_RESTORE_URL"
   psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 \
     -f "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-restore-data-fingerprint.sql" \
     > "$TENANTSERVICE_TEMP/data-after.sha256"

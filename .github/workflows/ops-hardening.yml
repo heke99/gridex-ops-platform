@@ -277,6 +277,17 @@ jobs:
           GRIDEX_NOTIFICATION_READ_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-notification-http-native.config.ts
           rm -f "$GRIDEX_NOTIFICATION_READ_FIXTURE_PATH"
           unset GRIDEX_NOTIFICATION_READ_LOCAL_E2E GRIDEX_NOTIFICATION_READ_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # A current operator reviews one uncertain local delivery and its
+          # tenant-scoped alarm, with an independent quiet tenant retained.
+          export GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH="$RUNNER_TEMP/analytics-incident-fixture.json"
+          npx vitest run --config scripts/analytics-incident-20261001.native.config.ts
+          [[ -s "$GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH" ]] || exit 1
+          export OPS_HEALTH_CRON_SECRET="$(node -e 'const fs=require("fs"); const f=JSON.parse(fs.readFileSync(process.env.GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH,"utf8")); process.stdout.write(f.secret)')"
+          GRIDEX_ANALYTICS_INCIDENT_LOCAL_E2E=1 npx playwright test e2e/browser/analytics-incident-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_ANALYTICS_INCIDENT_PHASE=verify_after_http npx vitest run --config scripts/analytics-incident-20261001.native.config.ts
+          GRIDEX_ANALYTICS_INCIDENT_PHASE=cleanup npx vitest run --config scripts/analytics-incident-20261001.native.config.ts
+          rm -f "$GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH"
+          unset OPS_HEALTH_CRON_SECRET GRIDEX_ANALYTICS_INCIDENT_FIXTURE_PATH
           # Genuine HTTP/Data API qualification; these request specs are not
           # counted as interactive UI evidence. Every proof owns its fixtures.
           export GRIDEX_LEGAL_READ_LOCAL_E2E=1
@@ -403,10 +414,20 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/tenantservice-upgrade-restore.sh 2>&1 | tee tenantservice-upgrade-restore.log
+      - name: Restore the pre-forward backup and qualify baseline rollback
+        if: always() && !cancelled()
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          bash scripts/tenantservice-baseline-rollback-20261001.sh 2>&1 | tee tenantservice-baseline-rollback.log
       - name: Upload sanitized upgrade and restore proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: tenantservice-upgrade-restore-proof
-          path: tenantservice-upgrade-restore.log
+          path: |
+            tenantservice-upgrade-restore.log
+            tenantservice-baseline-rollback.log
           if-no-files-found: error

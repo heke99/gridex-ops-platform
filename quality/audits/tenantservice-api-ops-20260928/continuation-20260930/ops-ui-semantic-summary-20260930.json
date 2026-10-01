@@ -1,0 +1,123 @@
+{
+  "generator": {
+    "file": "scripts/tenantservice/ops-ui-semantic-denominator-20260930.mjs",
+    "sha256": "7e2462bd8e529d40c98c5005c8fca2b3ac8727a57a37546d6580273d32be3334"
+  },
+  "archivedBoundary": {
+    "pages": 147,
+    "sourceFamilies": 323,
+    "contextCandidates": 5806,
+    "explicitUnresolvedDecisions": 11,
+    "frozenInputSha256": {
+      "ops-ui-handler-families.jsonl.gz": "dba626d690a13efdd40951f89a63098fee02d23fc2d24d200632658609ee9ea7",
+      "ops-ui-pages.jsonl": "5720021f2b0ea23aa852428a0d0a37bc043d424efd991a7b907ad1b6501a77f1",
+      "ops-ui-control-contexts.jsonl.gz": "96eb7d49f71ad236fc55e3fdb6c2177228ba58d6f9a606c4d40634ef12927a69"
+    }
+  },
+  "currentSource": {
+    "pages": 148,
+    "addedPages": [
+      "app/admin/billing/invoices/[id]/redelivery/page.tsx"
+    ],
+    "contexts": 5832,
+    "handlerFamilies": 327,
+    "sourceCommandIdentities": 302,
+    "manuallyMappedFacadeSources": 33,
+    "explicitManualBusinessVariants": 43,
+    "sourceFunctionFacts": 5683,
+    "sourceBranches": 19078,
+    "unresolvedConcreteFamilies": [],
+    "classificationCounts": {
+      "ATTACHMENT_NAVIGATION_TO_ANALYTICS_GET": 7,
+      "BUTTON_COMPONENT_SHELL_CALLER_DELEGATION": 16,
+      "CURRENT_PAGE_GET_FILTER_NO_WRITER": 48,
+      "FIELD_COMPONENT_NO_INDEPENDENT_COMMAND": 10,
+      "FIELD_OR_FILTER_NO_INDEPENDENT_COMMAND": 2480,
+      "FILTER_NAVIGATION_NO_WRITER": 8,
+      "FORM_COMPONENT_SHELL_CALLER_DELEGATION": 45,
+      "FORM_CONTAINER_WITH_EXPLICIT_BUTTON_COMMANDS": 1,
+      "GENERIC_COMMAND_PROP_FACADE": 9,
+      "LOCAL_DRAFT_OR_RELOAD": 6,
+      "LOCAL_UI_OPERATION": 18,
+      "MANUALLY_DEDUPLICATED_DOMAIN_FACADE": 62,
+      "MANUALLY_SPLIT_DOMAIN_COMMANDS": 8,
+      "NAVIGATION_NO_WRITER": 1147,
+      "SOURCE_COMMAND_IDENTITY_REQUIRES_DOMAIN_BRANCH_REVIEW": 1956,
+      "SUBMIT_SUBCOMPONENT_PARENT_FORM_REQUIRED": 11
+    }
+  },
+  "uniqueSemanticBusinessActionTotal": null,
+  "semanticDenominatorStatus": "OPEN_EXPLICIT_BRANCH_AND_CALLER_GAPS",
+  "verifiedWholeOpsActions": 0,
+  "executedBoundedCommandReceipts": 11,
+  "qualificationGaps": 1893,
+  "qualificationGapsByKind": {
+    "ACTUAL_GENERIC_CALLER_BINDING": 81,
+    "ACTUAL_UI_CALLER_RESULT_AND_STATE": 302,
+    "BUSINESS_BRANCH_AND_DUPLICATE_DECISION": 302,
+    "CURRENT_ACTOR_AND_EXACT_TARGET_AUTHORITY": 302,
+    "DURABLE_EFFECT_FAILURE_AND_RETRY": 302,
+    "EXACT_SOURCE_TEST_RECEIPT": 302,
+    "UNFOLLOWED_EFFECT_CHAIN": 302
+  },
+  "sourceManifestSha256": "a3bf422ba60e425702a80b858cd98d8f0882ba542a70759d1620cf488c864594",
+  "artifactMeaning": "Exhaustive archived family reconciliation plus current AST/import graph context and source command identities. Unique business action count remains unaccepted because nested command branches and generic/dynamic caller bindings require manual domain qualification. All current branch conditions/call chains and exact gap IDs retained; lexical tests never imply PASS. Source/test references never inherit a bounded receipt for another branch.",
+  "artifacts": [
+    {
+      "file": "ops-ui-semantic-command-registry-20260930.jsonl.gz",
+      "rows": 302,
+      "bytes": 313030,
+      "sha256": "b8979df345d428267fec3382de06bac5b00bf77469619c691882b4575d42fc34",
+      "uncompressedSha256": "2f475b6a9d62b78d96a620e9f1cf9859b15409ecd97082646c4c57562e6ef136"
+    },
+    {
+      "file": "ops-ui-semantic-handler-registry-20260930.jsonl.gz",
+      "rows": 327,
+      "bytes": 216136,
+      "sha256": "7b907dcb5c41c61933ecbee3aac778dd5854794151cd3a0c5b079b9a5e8511ed",
+      "uncompressedSha256": "ebb659734946380abe78ad58e0122820abf9280e5964fd76a916cd046f410559"
+    },
+    {
+      "file": "ops-ui-semantic-callchain-source-20260930.jsonl.gz",
+      "rows": 5683,
+      "bytes": 2391328,
+      "sha256": "f9e88306e6229fbdfb438f12be5506b9b3e13a06b94b3bf81954b32deb37c0cd",
+      "uncompressedSha256": "0aecf2931f6ed5b61f007bdff1cff760da2dbb983c5a3577a7eee52c63786d1c"
+    },
+    {
+      "file": "ops-ui-semantic-context-registry-20260930.jsonl.gz",
+      "rows": 5832,
+      "bytes": 264772,
+      "sha256": "2327cb764f8a122db50b9bccd08114c1302b478224618db6f4a4d5146ed2256a",
+      "uncompressedSha256": "66a309cfb7ac6dc34707aa05576ed727ae6a6e273e5584b4a714a9f058128ddc"
+    },
+    {
+      "file": "ops-ui-semantic-frozen-reconciliation-20260930.jsonl.gz",
+      "rows": 323,
+      "bytes": 43691,
+      "sha256": "9affa43715f1b86dd65fac08c3a75255a8f3f836493ed496d6c95eb1a90bbbd4",
+      "uncompressedSha256": "09366fb0090f3609667b14947028be3c6a3e564e574bfc3b91c451a5ddc3f521"
+    },
+    {
+      "file": "ops-ui-semantic-source-hashes-20260930.jsonl.gz",
+      "rows": 1682,
+      "bytes": 80937,
+      "sha256": "5dd92a29333d3b9d8bcde70e8c3326b8d4759f8b1f95488d4c279fc54a7b5153",
+      "uncompressedSha256": "ce28098e2bf431a3fe7ae658afecd29fae75fdc368ad89ef46de802ada1ed168"
+    },
+    {
+      "file": "ops-ui-semantic-qualification-gaps-20260930.jsonl.gz",
+      "rows": 1893,
+      "bytes": 199278,
+      "sha256": "c599979bb394040fb224065dda926265dfea52e1de35d8fa70b1e20b67b078d0",
+      "uncompressedSha256": "9f79258fc0cf00ce8467eac06aad9c14fcc5b53310889586e5b76b06f2fcec21"
+    },
+    {
+      "file": "ops-ui-semantic-pages-20260930.jsonl",
+      "rows": 148,
+      "bytes": 375432,
+      "sha256": "3e28ad4b72e073cf37d63a17493caf3b6826d35dfa46d315b1faa0f2ab23c60a",
+      "uncompressedSha256": "3e28ad4b72e073cf37d63a17493caf3b6826d35dfa46d315b1faa0f2ab23c60a"
+    }
+  ]
+}

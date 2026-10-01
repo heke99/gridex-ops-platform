@@ -98,7 +98,9 @@ const noDelivery = { customerInfo: 0, gridOwnerRequests: 0, outboundRequests: 0,
 
 describe.sequential('site producer to actual safe job/readiness consumer', () => {
   it('compiles the literal production candidate guard and preserves complete/incomplete postal validation', () => {
-    const migration = readFileSync(new URL('../supabase/migrations/20260930192831_customer_site_registry_atomic_command.sql', import.meta.url), 'utf8')
+    // Sourced clean replay holds migration files outside this checkout after
+    // applying them. Inspect the exact installed owner, never a path fallback.
+    const migration = sql<string>(`SELECT to_jsonb(pg_get_functiondef('public.gridex_save_customer_site_v1(jsonb)'::regprocedure));`)
     const start = migration.indexOf("  if not v_candidate ?& array['street','postal_code'")
     const ending = "then raise exception 'site_candidate_invalid' using errcode='22023'; end if;"
     const end = migration.indexOf(ending, start)

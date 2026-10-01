@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_rethrow } from 'next/navigation'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
@@ -22,15 +23,20 @@ export async function GET(request: NextRequest) {
   const allowed = ANALYTICS_REPORTS.some((item) => item.key === report)
   if (!allowed) return new NextResponse('Okänd rapport.', { status: 400 })
 
-  const rows = await getReportRows(companyId, report, month)
-  const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))))
-  const body = buildCsv(headers.length ? headers : ['status'], headers.length ? rows : [{ status: 'Inga rader' }])
+  try {
+    const rows = await getReportRows(companyId, report, month, { requireAvailable: true })
+    const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))))
+    const body = buildCsv(headers.length ? headers : ['status'], headers.length ? rows : [{ status: 'Inga rader' }])
 
-  return new NextResponse(body, {
-    headers: {
-      'content-type': 'text/csv; charset=utf-8',
-      'content-disposition': `attachment; filename="analytics-${report}-${month.slice(0, 7)}.csv"`,
-      'cache-control': 'no-store',
-    },
-  })
+    return new NextResponse(body, {
+      headers: {
+        'content-type': 'text/csv; charset=utf-8',
+        'content-disposition': `attachment; filename="analytics-${report}-${month.slice(0, 7)}.csv"`,
+        'cache-control': 'no-store',
+      },
+    })
+  } catch (error) {
+    unstable_rethrow(error)
+    return new NextResponse('Kunde inte skapa rapportfil.', { status: 500, headers: { 'cache-control': 'no-store' } })
+  }
 }

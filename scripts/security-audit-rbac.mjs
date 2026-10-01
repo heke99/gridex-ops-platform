@@ -290,6 +290,7 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/platform/data-cleanup/actions.ts",
   "app/admin/system/auth-diagnostics/page.tsx",
   "app/admin/system-health/page.tsx",
+  "app/admin/system-health/actions.ts",
   "app/admin/outbound/unresolved/actions.ts",
   "app/admin/users/[id]/actions.ts",
   "app/admin/users/actions.ts",
@@ -298,6 +299,22 @@ const reviewedServiceClientFiles = new Set([
 ]);
 
 const serviceClientFiles = [];
+// Exact current platform actor and scoped conditional recovery reviewed with actual exported Action tests.
+const incidentAction = "app/admin/system-health/actions.ts";
+mustContain(incidentAction, "const context = await requirePlatformAdminActionAccess()");
+mustContain(incidentAction, "actorUserId(context.userId)");
+mustContain(incidentAction, "if (error || !user || user.id !== expectedUserId)");
+mustContain(incidentAction, "outboxKind !== 'tenant' && outboxKind !== 'manual'");
+mustContain(incidentAction, ".from(outboxTable)");
+mustContain(incidentAction, ".select('id,company_id,status')");
+mustContain(incidentAction, ".eq('id', outboxId)");
+mustContain(incidentAction, ".eq('company_id', companyId)");
+mustContain(incidentAction, "current.id !== outboxId");
+mustContain(incidentAction, "current.company_id !== companyId");
+mustContain(incidentAction, "current.status !== 'delivery_uncertain'");
+mustContain(incidentAction, "companyId: current.company_id");
+mustContain(incidentAction, "unstable_rethrow(error)");
+
 const redeliveryPage = "app/admin/billing/invoices/[id]/redelivery/page.tsx";
 mustContain(redeliveryPage, "requireAdminPageKeyAccess('billing.workspace')");
 mustContain(redeliveryPage, "getOperationalCompanyScope(guard.userId)");

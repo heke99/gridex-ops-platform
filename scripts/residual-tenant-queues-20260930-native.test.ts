@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { quote, session, sql, until } from './partner-queue-continuation-20260930-native'
 
@@ -153,7 +152,7 @@ describe.sequential('native residual queues and aggregate tenant request budget'
       const id = f.rows()[0].id
       sql(`INSERT INTO private.approved_invoice_retry_leases(company_id,item_id,claim_token,claimed_at)
         VALUES(${quote(f.noisy)},${quote(id)},${quote(competingToken)},clock_timestamp()); SELECT to_jsonb(true);`)
-      const source = readFileSync('supabase/migrations/20260930225911_partner_email_invoice_retry_fair_claims.sql','utf8')
+      const source = sql<string>(`SELECT to_jsonb(pg_get_functiondef('private.gridex_claim_partner_queue_fair_v1(text,uuid,integer,uuid,text[],integer)'::regprocedure));`)
       const fragment = source.match(/v_lease:=\$fragment\$, leases as \(([\s\S]*?)\n    \)\$fragment\$/)?.[1]
       expect(fragment).toBeTruthy()
       const write = fragment!.replaceAll('$7',quote(token) + '::uuid').replaceAll('$4','clock_timestamp()')

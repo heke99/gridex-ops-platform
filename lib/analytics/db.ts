@@ -21,12 +21,12 @@ async function safeCount(table: string, companyId: string, build?: (query: any) 
   return count ?? 0
 }
 
-async function safeRows<T>(table: string, select: string, companyId: string, build?: (query: any) => any): Promise<T[]> {
+async function safeRows<T>(table: string, select: string, companyId: string, build?: (query: any) => any, options?: { requireAvailable?: boolean }): Promise<T[]> {
   let query = supabaseService.from(table).select(select).eq('company_id', companyId)
   if (build) query = build(query)
   const { data, error } = await query
   if (error) {
-    if (isMissingRelationError(error)) return []
+    if (!options?.requireAvailable && isMissingRelationError(error)) return []
     throw error
   }
   return (data ?? []) as T[]
@@ -417,29 +417,28 @@ export async function getPlatformAnalyticsIssueSummary(month = monthStart()) {
   return rows.sort((a, b) => (b.openIssues + b.failedEdiel + b.unresolvedEdiel) - (a.openIssues + a.failedEdiel + a.unresolvedEdiel))
 }
 
-export async function getReportRows(companyId: string, report: string, month: string): Promise<Array<Record<string, unknown>>> {
+export async function getReportRows(companyId: string, report: string, month: string, options?: { requireAvailable?: boolean }): Promise<Array<Record<string, unknown>>> {
   const safeMonth = monthStart(month)
   if (report === 'customer_monthly_metrics') {
-    return safeRows<Record<string, unknown>>('customer_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('actual_kwh', { ascending: false }).limit(5000))
+    return safeRows<Record<string, unknown>>('customer_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('actual_kwh', { ascending: false }).limit(5000), options)
   }
   if (report === 'bidding_zone_metrics') {
-    return safeRows<Record<string, unknown>>('bidding_zone_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('bidding_zone_code', { ascending: true }))
+    return safeRows<Record<string, unknown>>('bidding_zone_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('bidding_zone_code', { ascending: true }), options)
   }
   if (report === 'grid_owner_metrics') {
-    return safeRows<Record<string, unknown>>('grid_owner_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('actual_kwh', { ascending: false }))
+    return safeRows<Record<string, unknown>>('grid_owner_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('actual_kwh', { ascending: false }), options)
   }
   if (report === 'metering_points_by_grid_owner') {
-    return safeRows<Record<string, unknown>>('grid_owner_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('metering_points_count', { ascending: false }))
+    return safeRows<Record<string, unknown>>('grid_owner_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('metering_points_count', { ascending: false }), options)
   }
   if (report === 'forecast_run_items') {
-    return safeRows<Record<string, unknown>>('forecast_run_items', '*', companyId, (query) => query.gte('period_start', safeMonth).lt('period_start', addMonths(safeMonth, 1)).limit(5000))
+    return safeRows<Record<string, unknown>>('forecast_run_items', '*', companyId, (query) => query.gte('period_start', safeMonth).lt('period_start', addMonths(safeMonth, 1)).limit(5000), options)
   }
   if (report === 'data_quality_issues' || report === 'missing_metering_values') {
-    return safeRows<Record<string, unknown>>('data_quality_issues', '*', companyId, (query) =>
-      report === 'missing_metering_values' ? query.eq('issue_type', 'missing_metering_values').limit(5000) : query.limit(5000)
-    )
+    return safeRows<Record<string, unknown>>('data_quality_issues', '*', companyId,
+      (query) => report === 'missing_metering_values' ? query.eq('issue_type', 'missing_metering_values').limit(5000) : query.limit(5000), options)
   }
-  return safeRows<Record<string, unknown>>('company_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth))
+  return safeRows<Record<string, unknown>>('company_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth), options)
 }
 
 export async function getCustomerAnalytics(companyId: string, customerId: string, month: string) {
