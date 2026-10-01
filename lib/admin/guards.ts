@@ -161,9 +161,13 @@ const loadBaseAdminContext = cache(async function loadBaseAdminContext(): Promis
     .map((row) => roleFromRpcRow(row as UserRoleRpcRow))
     .filter((value): value is string => typeof value === 'string' && value.length > 0)
 
-  const isAdmin =
+  // Canonical global authority also covers active admin_users rows, which do
+  // not necessarily produce a user_roles/permission projection. Do not reject
+  // that authenticated database decision before the platform guard can use it.
+  const isAdmin = Boolean(context.is_platform_admin) || (
     (permissions.length > 0 || roles.some(isPlatformAdminRole)) &&
     !(roles.length === 1 && roles[0] === 'customer')
+  )
 
   return {
     userId: user.id,

@@ -1,3 +1,7 @@
+## API/UI save and merge preparation — 2026-10-01
+
+2026-10-01 user requests current-package commit/save/merge and next-chat prompt. All seven dirty worktrees saved remotely; actual next CI first failure traced to canonical flag vs empty role projection, reproduced before minimal guard fix. Independent review/current CI/stack merge active.
+
 ## API/UI resumed CI and billing fixture correction — 2026-10-01
 
 Published949dfe60440d5f70c713971ae26c83152bebad94/treea2623cc6e71cd5d062e75d653899278c2d02d850; genuine OPS36871357216 checked out12945f22e2fffbb2044252afa77d8b768594b215/same tree. Verify/golden, ordinary7721/532+build, strict upgrade/backup/restore, pinned-old rollback ALL_PASS and fresh-old backfill PASS. FullE2E smoke/coverage/certificate, tenant/Ediel/publicbrowser PASS; full/staging/nightly SKIPPED. Loader/schema defects are genuinely cleared.
