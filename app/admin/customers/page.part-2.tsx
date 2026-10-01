@@ -4,7 +4,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
-import { listCustomersPage } from '@/lib/customers/getCustomers'
+import { CustomerRegistryFilterUnavailableError, listCustomersPage, type CustomerListPageResult } from '@/lib/customers/getCustomers'
 import { supabaseService } from '@/lib/supabase/service'
 
 import { type LatestCustomerContractSummary } from '@/lib/customer-contracts/db'
@@ -13,7 +13,7 @@ import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 
 import type { CustomerWithOperations, CustomersPageProps } from './page.part-1'
-import { FilterChip, PAGE_SIZE, PaginationLink, StatusBadge, buildCustomerOperationsSummary, buildCustomersHref, contractFilterLabel, contractStatusLabel, contractStatusTone, contractTypeLabel, customerDisplayName, customerFlagFilterLabel, customerStatusLabel, customerTypeFilterLabel, customerTypeLabel, filterLabel, formatCurrency, formatDate, matchesContractFilter, matchesOperationsFilter, normalizeContractFilter, normalizeCustomerFlagFilter, normalizeCustomerTypeFilter, normalizeOperationsFilter, normalizePage, normalizeStatusFilter, priorityTone, safeLatestContractsByCustomerIds, safeQueryRows, sortCustomersByOperations } from './page.part-1'
+import { FilterChip, PAGE_SIZE, PaginationLink, StatusBadge, buildCustomerOperationsSummary, buildCustomersHref, contractFilterLabel, contractStatusLabel, contractStatusTone, contractTypeLabel, customerDisplayName, customerFlagFilterLabel, customerStatusLabel, customerTypeFilterLabel, customerTypeLabel, filterLabel, formatCurrency, formatDate, matchesOperationsFilter, normalizeContractFilter, normalizeCustomerFlagFilter, normalizeCustomerTypeFilter, normalizeOperationsFilter, normalizePage, normalizeStatusFilter, priorityTone, safeLatestContractsByCustomerIds, safeQueryRows, sortCustomersByOperations } from './page.part-1'
 
 export async function AdminCustomersPage({
  searchParams,
@@ -68,7 +68,9 @@ export async function AdminCustomersPage({
  )
  }
 
-  const pageResult = await listCustomersPage({
+  let pageResult: CustomerListPageResult
+  try {
+    pageResult = await listCustomersPage({
     query,
     page,
     pageSize: PAGE_SIZE,
@@ -80,7 +82,16 @@ export async function AdminCustomersPage({
     // Tenants never see test/dirty rows in the normal registry; platform
     // admins see everything (and can filter with flag=test_customers).
     excludeTestData: !tenantScope.isPlatformAdmin,
-  })
+    })
+  } catch (error) {
+    if (!(error instanceof CustomerRegistryFilterUnavailableError)) throw error
+    return <main className="space-y-4 p-8">
+      <h1 className="text-2xl font-semibold">Kundregister</h1>
+      <p role="alert">Det valda kundfiltret är inte tillgängligt eftersom dess registeruppgift ännu saknar en verifierad lagrad källa.</p>
+      <Link href={buildCustomersHref({ q: query, ops: opsFilter, status: statusFilter, contract: contractFilter,
+        customerType: customerTypeFilter, flag: 'all', page: 1 })}>Rensa kundflaggan och behåll övriga filter</Link>
+    </main>
+  }
 
  const customers = pageResult.rows
  const customerIds = customers.map((customer) => customer.id)
@@ -140,9 +151,8 @@ export async function AdminCustomersPage({
  matchesOperationsFilter(customer.operations, opsFilter)
  )
 
- const filteredCustomers = customersMatchingOps.filter((customer) =>
- matchesContractFilter(latestContractsByCustomerId.get(customer.id) ?? null, contractFilter)
- )
+ // The advanced read owns the latest-contract predicate before pagination.
+ const filteredCustomers = customersMatchingOps
 
  const blockedCustomers = sortedCustomers.filter(
  (customer) => customer.operations.blocked > 0
