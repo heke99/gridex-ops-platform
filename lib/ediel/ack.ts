@@ -26,10 +26,10 @@ import {
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
-import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
 import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
-import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import {utiltsDefaultAlphabetSegment,utiltsErrOriginalCopySegments} from '@/lib/ediel/utilts/errSourceCopy'
 
 export type {
   AckFamily,
@@ -445,17 +445,9 @@ type UtiltsErrSourceGroup = {
   supplierSegment: string | null
 }
 
-/** Decode with the actual source alphabet, then serialize the observed segment
- * with the established outgoing alphabet. Released data stays data. */
-function utiltsSourceSegment(segment: EdifactTokenizedSegment, una: EdifactServiceStringAdvice): string {
-  const observed = { ...segment, raw: segmentUntrimmedRaw(segment) }
-  return [segment.tag, ...segment.elements.slice(1).map((_, index) =>
-    segmentComposite(observed, index + 1, una).map(escapeEdifactValue).join(':'))].join('+')
-}
-
 function edifactSegmentsFromRaw(rawPayload?: string | null): string[] {
   const wire = tokenizeEdifact(rawPayload)
-  return wire.segments.map(segment => utiltsSourceSegment(segment, wire.una))
+  return wire.segments.map(segment => utiltsDefaultAlphabetSegment(segment, wire.una))
 }
 
 function segmentByPrefix(segments: readonly string[], prefix: string): string | null {
@@ -513,7 +505,7 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
     // nested data and another IDE never repair missing group identity data.
     const header = transaction.segments.slice(0, transaction.segments.findIndex(segment => segment.tag === 'SEQ') < 0
       ? undefined : transaction.segments.findIndex(segment => segment.tag === 'SEQ'))
-    const group = header.map(segment => utiltsSourceSegment(segment, wire.una))
+    const group = header.map(segment => utiltsDefaultAlphabetSegment(segment, wire.una))
     const location = (qualifier: string) => {
       const own = header.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === qualifier)
       if (own.length > 1) throw new Error('utilts_err_source_location_ambiguous')
@@ -801,52 +793,10 @@ function buildUtiltsErrSegments(params: {
 
     segments.push(`IDE+24+${outboundTransactionId}`)
 
-    if (sourceCode === 'S03' && group?.segments?.length) {
-      // S03 UTILTS-ERR must keep the S03 transaction identity data, but it
-      // must not copy the whole quantity/detail chain from the rejected S03.
-      // If LIN/MEA/CCI/CAV/SEQ/QTY is copied, the portal validator expects the
-      // complete profile-share detail model and can reject the message before
-      // it reaches the E49 rejection status. Build the minimal S03 rejection
-      // group instead: grid area + required S03 identity/role fields + period
-      // + original reason, then append STS+E01 and RFF below.
-      if (group?.gridAreaId) {
-        segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
-      }
-
-      segments.push(copiedUtiltsSegment(group?.settlementResponsibleSegment ?? null, 'NAD+DDK'))
-      segments.push(copiedUtiltsSegment(group?.supplierSegment ?? null, 'NAD+DDQ'))
-      segments.push(copiedUtiltsSegment(group?.productIdSegment ?? null, 'PIA+'))
-
-      const s03DateSegments = group.segments.filter((sourceSegment) => {
-        const upper = sourceSegment.toUpperCase()
-        return upper.startsWith('DTM+368:') || upper.startsWith('DTM+354:') || upper.startsWith('DTM+324:')
-      })
-      segments.push(...s03DateSegments)
-      segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))
-    } else {
-      if (group?.meterPointId) {
-        const meterPointId = sanitizeEdifactToken(group.meterPointId) ?? group.meterPointId
-        segments.push(`LOC+172+${meterPointId}::9`)
-        usedMeterPointIds.add(meterPointId)
-      }
-
-      if (group?.gridAreaId) {
-        segments.push(`LOC+239+${sanitizeEdifactToken(group.gridAreaId) ?? group.gridAreaId}:SVK:260`)
-      }
-
-      if (sourceCode === 'E31') {
-        // E31 UTILTS-ERR keeps the settlement responsible party and supplier
-        // inside the SG5 transaction group. The Ediel portal validates these
-        // as mandatory for E31-SCH error responses; keeping them scoped to E31
-        // avoids changing earlier passed E66/S02 UTILTS-ERR flows.
-        segments.push(copiedUtiltsSegment(group?.settlementResponsibleSegment ?? null, 'NAD+DDK'))
-        segments.push(copiedUtiltsSegment(group?.supplierSegment ?? null, 'NAD+DDQ'))
-      }
-
-      segments.push(copiedUtiltsSegment(group?.productIdSegment ?? null, 'PIA+'))
-      segments.push(copiedUtiltsSegment(group?.deliveryPeriodSegment ?? null, 'DTM+324'))
-      segments.push(copiedUtiltsSegment(group?.reasonSegment ?? null, 'STS+7'))
-    }
+    // U §3.7.4 pp66–68: copy only the rejected original's own SG5
+    // identity fields. Source-qualified groups never borrow another IDE,
+    // nested SEQ fields, parsed projections or synthetic TGT identities.
+    segments.push(...utiltsErrOriginalCopySegments(params.sourceMessage.raw_payload!,sourceGroups[0].transactionId!))
 
     segments.push(`STS+E01::260+41+${code}::260`)
 

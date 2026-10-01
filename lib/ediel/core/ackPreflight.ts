@@ -3,6 +3,7 @@
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {utiltsErrSourceCopyViolations} from '@/lib/ediel/utilts/errSourceCopy'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 
 export type EdielAckPreflightIssue = {
@@ -342,24 +343,10 @@ function validateUtiltsErrPreflight(params: {
 
   if (isUtiltsS03Err(rawPayload, sourceMessage)) {
     const segments = allSegments(String(ackMessage.raw_payload ?? ''))
-    const una = tokenizeEdifact(ackMessage.raw_payload).una
-    const sg5HasValuedDdk = segments.some(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, una)[0] === 'DDK' && Boolean(segmentComposite(segment, 2, una)[0]))
-    const sg5HasValuedDdq = segments.some(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, una)[0] === 'DDQ' && Boolean(segmentComposite(segment, 2, una)[0]))
-    const hasPia = segments.some(segment => segment.tag === 'PIA')
     const forbiddenDetail = segments.find(segment => ['LIN', 'MEA', 'CCI', 'CAV', 'SEQ', 'QTY'].includes(segment.tag))
 
-    if (!sg5HasValuedDdk) {
-      issues.push(issue('error', 'utilts_s03_err_missing_ddk_value', 'S03 UTILTS-ERR måste innehålla SG5/NAD+DDK med aktörs-ID.'))
-    }
-
-    if (!sg5HasValuedDdq) {
-      issues.push(issue('error', 'utilts_s03_err_missing_ddq_value', 'S03 UTILTS-ERR måste innehålla SG5/NAD+DDQ med aktörs-ID.'))
-    }
-
-    if (!hasPia) {
-      issues.push(issue('error', 'utilts_s03_err_missing_pia', 'S03 UTILTS-ERR måste innehålla SG5/PIA.'))
-    }
-
+    // U §3.7.4: optional/conditional own fields are required only when
+    // actually present in the original; the shared copy check owns this.
     if (forbiddenDetail) {
       issues.push(issue('error', 'utilts_s03_err_forbidden_quantity_detail', `S03 UTILTS-ERR får inte skicka mät-/kvantitetsdetalj ${forbiddenDetail.tag} i avvisningssvaret.`))
     }
@@ -391,6 +378,8 @@ function validateParsedAckPreflight(params: {
     issues.push(...validateAperakPreflight({ ackMessage, sourceMessage }))
   } else if (ackMessage.message_family === 'UTILTS_ERR') {
     issues.push(...validateUtiltsErrPreflight({ ackMessage, sourceMessage }))
+    const copyViolations=utiltsErrSourceCopyViolations(sourceMessage.raw_payload ?? '',ackMessage.raw_payload ?? '')
+    if(copyViolations.length)issues.push(issue('error','utilts_err_original_copy_mismatch',`UTILTS-ERR saknar eller ändrar egna originalfält: ${copyViolations.join(', ')}.`))
   } else {
     issues.push(issue('error', 'not_ack_family', `Meddelandefamilj ${ackMessage.message_family} är inte en kvittensfamilj.`))
   }
