@@ -61,5 +61,11 @@ export function assertAiListOutboundMessage(message:{message_standard?:string|nu
   assertAiListOutboundType(parsed.header.listType)
   if(parsed.header.supplierEdielId!==message.sender_ediel_id||parsed.header.networkEdielId!==message.receiver_ediel_id)throw new Error('ai_list_outbound_party_scope_mismatch')
   if(parsed.rows.some(row=>row.columns.slice(11,17).some(Boolean)))throw new Error('ai_list_supplier_network_fields_present')
-  if(!message.file_name?.toLowerCase().endsWith('.csv')||message.mime_type!=='text/csv')throw new Error('ai_list_csv_file_type_required')
+  if(!message.file_name?.toLowerCase().endsWith('.csv')||!isAiListCsvMediaType(message.mime_type))throw new Error('ai_list_csv_file_type_required')
+}
+
+/** The file encoder emits UTF-8. Accept the actual media type and an explicit
+ * matching charset; no permissive other charset/parameter interpretation. */
+export function isAiListCsvMediaType(value:string|null|undefined):boolean {
+  return typeof value==='string'&&/^text\/csv(?:[ \t]*;[ \t]*charset[ \t]*=[ \t]*(?:utf-8|"utf-8"))?[ \t]*$/i.test(value)
 }
