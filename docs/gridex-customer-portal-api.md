@@ -29,3 +29,5 @@ The organization's own support page uses these endpoints. The same cases are han
 **Writes.** Both POST endpoints require `Idempotency-Key`. The same key with the same payload replays the stored result. The same key with a different payload returns `409`. A closed case rejects new messages with `409 support_case_closed`.
 
 **Side effects.** Opening a support case does not stop billing, onboarding, metering requests or switches.
+
+**Reference client.** `docs/examples/tenant-support-reference-client.mjs` is a synthetic, server-side reference integration for the support page. It is tested end to end against the mounted routes.

@@ -194,3 +194,31 @@ describe('mounted customer support routes', () => {
     expect(db.customer_case_events.filter((row) => row.customer_id === CUSTOMER_A2)).toHaveLength(0)
   })
 })
+
+describe('synthetic reference client (docs/examples) against the mounted routes', () => {
+  it('opens, reads and replies through the published contract; another customer is denied', async () => {
+    const cases = await import('@/app/api/v1/customer/support/cases/route')
+    const detail = await import('@/app/api/v1/customer/support/cases/[reference]/route')
+    const messages = await import('@/app/api/v1/customer/support/cases/[reference]/messages/route')
+    const routeFetch = async (url: string, init: RequestInit) => {
+      const path = new URL(url).pathname
+      const request = new NextRequest(url, init as never)
+      const match = /^\/api\/v1\/customer\/support\/cases(?:\/([^/]+)(\/messages)?)?$/.exec(path)!
+      const reference = match[1] ? decodeURIComponent(match[1]) : null
+      const params = { params: Promise.resolve({ reference: reference ?? '' }) }
+      if (!reference) return init.method === 'POST' ? cases.POST(request) : cases.GET(request)
+      if (match[2]) return init.method === 'POST' ? messages.POST(request, params) : messages.GET(request, params)
+      return detail.GET(request, params)
+    }
+    const { createSupportClient } = await import('../docs/examples/tenant-support-reference-client.mjs')
+    const client = createSupportClient({ apiKey: 'synthetic-key', portalUserId: 'synthetic-portal-user', fetchImpl: routeFetch as unknown as typeof fetch })
+    const opened = await client.openCase({ title: 'Fråga om faktura', message: 'Syntetiskt testärende.' })
+    expect(opened.data.status).toBe('received')
+    await client.reply(opened.data.case_reference, 'Tillägg från kunden.')
+    const read = await client.getCase(opened.data.case_reference)
+    expect(read.data.messages.map((message: { author_type: string }) => message.author_type)).toEqual(['customer', 'customer'])
+    expect((await client.listCases()).data).toHaveLength(1)
+    auth.customerId = CUSTOMER_A2
+    await expect(client.getCase(opened.data.case_reference)).rejects.toMatchObject({ status: 404, code: 'support_case_not_found' })
+  })
+})
