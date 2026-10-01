@@ -1,3 +1,4 @@
+import {fixtureOrganizationNumber} from './helpers/ediel-normal-switch-native-fixture'
 import {execFile,execFileSync} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
 import {promisify} from 'node:util'
@@ -34,7 +35,7 @@ async function seed(wire=raw()){
  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
  SELECT ${literal(actorUserId)},id,'company_admin',${literal(companyId)},'active',true FROM public.roles WHERE key='company_admin' ON CONFLICT DO NOTHING;
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
- SELECT ${literal(actorUserId)},${literal(companyId)},id,'communication.send' FROM public.permissions WHERE key='communication.send';
+ SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions WHERE key IN('communication.send','communication.write','communication.read');
  -- Pin the actual enabled C registry profile like the retained closure fixture.
  -- Code/date-only inference sees L, LK and C as three Z05 candidates; it cannot
  -- use parsed subtype to choose one. Preserve the real receive/commit clock.
@@ -988,6 +989,7 @@ it.each(['inactive_membership','inactive_company','denied_permission'] as const)
   VALUES(${literal(f.companyId)},${literal(backup.actorUserId)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
   INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
   SELECT ${literal(backup.actorUserId)},id,'company_admin',${literal(f.companyId)},'active',true FROM public.roles WHERE key='company_admin';
+  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(backup.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key IN('communication.send','communication.write','communication.read');
   UPDATE public.company_memberships SET is_active=false WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)};`)
   expect(sql(`SELECT to_jsonb(count(*)) FROM public.company_memberships m JOIN auth.users u ON u.id=m.user_id JOIN public.user_profiles p ON p.id=u.id
    WHERE m.company_id=${literal(f.companyId)} AND m.user_id=${literal(backup.actorUserId)} AND m.is_active AND m.status='active' AND m.membership_role='company_admin'
@@ -1797,7 +1799,7 @@ it('a rolled-back process deletion leaves the producer and immutable facts uncha
 it.each([false,true])('the actual invoice-test archive retains committed contract, point and site transitions, signed=%s', async sign => {
  const {companyId,actorUserId}=await seed(),customerId=randomUUID(),siteId=randomUUID()
  const pointId=randomUUID(),contractId=randomUUID(),marker={test_center:{kind:'invoice_test_customer'}}
- const organizationNumber=sign?'5590001243':'5590001235'
+ const organizationNumber=fixtureOrganizationNumber()
  const supplierEdielId=sign?'12346':'12345',brpEdielId=sign?'54322':'54321'
  const pricing={schema:'gridex_contract_pricing_v5',pricing_model:'spot',energy_direction:'consumption',interval_resolution:'hourly',vat_rate:0.25,
   price_areas:['SE3'],base_components:[{source_type:'spot',label:'Spotpris',weight_percent:100,price_area:'SE3'}],

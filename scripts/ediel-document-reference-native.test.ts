@@ -32,7 +32,7 @@ async function sourceSeed(wire=raw()){
  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
  SELECT ${literal(actorUserId)},id,'company_admin',${literal(companyId)},'active',true FROM public.roles WHERE key='company_admin' ON CONFLICT DO NOTHING;
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
- SELECT ${literal(actorUserId)},${literal(companyId)},id,'communication.send' FROM public.permissions WHERE key='communication.send';
+ SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions WHERE key IN('communication.send','communication.write','communication.read');
  -- Pin the actual enabled C registry profile like the retained closure fixture.
  -- Code/date-only inference sees L, LK and C as three Z05 candidates; it cannot
  -- use parsed subtype to choose one. Preserve the real receive/commit clock.
@@ -60,7 +60,9 @@ const ownedObjects:string[]=[]
 afterEach(async()=>{
  // Only owned synthetic direct grants; never disable a shared or last admin.
  if(ownedActors.length)sql(`DELETE FROM public.user_permissions WHERE user_id IN (${ownedActors.splice(0).map(literal).join(',')})`)
- if(ownedObjects.length){const result=await supabaseService.storage.from('customer-contract-documents').remove(ownedObjects.splice(0));expect(result.error).toBeNull()}
+ // Contract originals are retention-protected (20261001083000 storage guard):
+ // a disposable stack keeps them; deleting them must be refused, not bypassed.
+ if(ownedObjects.length){const result=await supabaseService.storage.from('customer-contract-documents').remove(ownedObjects.splice(0));expect(result.error?.message??'').toMatch(/database error|P0001/)}
  vi.restoreAllMocks()
 })
 async function seed(bytes=Buffer.from('%PDF-1.4\nsynthetic signed context\n%%EOF'),origin='gridex_signed_contract_document_v1'){

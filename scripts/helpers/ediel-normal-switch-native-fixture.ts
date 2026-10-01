@@ -16,6 +16,13 @@ import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+// Unique Luhn-valid Swedish organisation number per disposable company. The
+// canonical schema enforces one company per normalized organisation number.
+export function fixtureOrganizationNumber(){
+ const body='55'+String(Math.floor(Math.random()*1e7)).padStart(7,'0')
+ const sum=[...body].reduce((total,digit,index)=>{const value=Number(digit)*(index%2===0?2:1);return total+(value>9?value-9:value)},0)
+ return body+String((10-sum%10)%10)
+}
 export const literal=(v:unknown):string=>v===null?'NULL':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 export function nativeSql<T>(input:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
@@ -36,7 +43,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  if(input.initialSubtype!==undefined&&!['L','H'].includes(input.initialSubtype))throw Error('native_switch_initial_subtype_unsupported')
  const companyId=randomUUID(),actorUserId=randomUUID(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID(),contractId=randomUUID(),gridId=randomUUID(),switchId=randomUUID(),routeId=randomUUID(),routeProfileId=randomUUID(),marketActor=randomUUID()
  const external=input.external??fixtureGsrn(),requestedStartDate=input.requestedStartDate??'2026-10-01'
- const customerIdentity='199001011234',organizationNumber='5590001243',brpEdielId='99876',marker={test_center:{kind:'invoice_test_customer'}}
+ const customerIdentity='199001011234',organizationNumber=fixtureOrganizationNumber(),brpEdielId='99876',marker={test_center:{kind:'invoice_test_customer'}}
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic normal switch native','active');
  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES(${literal(actorUserId)},'authenticated','authenticated',${literal(`${actorUserId}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(actorUserId)},${literal(`${actorUserId}@example.invalid`)},'Synthetic normal switch actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
