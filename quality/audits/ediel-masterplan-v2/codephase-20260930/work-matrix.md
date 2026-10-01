@@ -1,6 +1,6 @@
 # Ediel v2 code-phase work matrix
 
-Inventory code head: `43b2b3deb64396623016ebb10186dea9b9165689`. Root is integration owner.
+Inventory code head: `9f9012d535489c1e6bb22054eed7ae6e9b11ca2c`. Root is integration owner.
 
 352 exact frozen IDs are retained. Literal normative records, CALL/data/timer/state/field catalogs, inherited assessment provenance and individual final expected/prohibited criteria are in `work-matrix.json`.
 
@@ -16,8 +16,8 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | GOV-06 | authority_versions_grammar_envelope | CODE_READY_NOT_VERIFIED | /root/authority_grammar |
 | GOV-07 | authority_versions_grammar_envelope | CODE_READY_NOT_VERIFIED | /root/authority_grammar |
 | GOV-08 | authority_versions_grammar_envelope | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
-| TEN-01 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
-| TEN-02 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
+| TEN-01 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
+| TEN-02 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
 | TEN-03 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | TEN-04 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | TEN-05 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
@@ -26,9 +26,9 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | TEN-08 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | TEN-09 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | TEN-10 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
-| TEN-11 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
+| TEN-11 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
 | TEN-12 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
-| TEN-13 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
+| TEN-13 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
 | TEN-14 | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | actors_history (integrationowner /root) |
 | IMP-01 | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | actors_history (integrationowner /root) |
 | IMP-02 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
@@ -46,19 +46,19 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | ENV-09 | authority_versions_grammar_envelope | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
 | P-01 | prodat_fields_functions_consumers | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | prodat (fält/identitet/AI); root är integrationsägare |
 | P-02 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| P-03 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
+| P-03 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | prodat (fält/identitet/AI); root är integrationsägare |
 | P-04 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
 | P-05 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
 | P-06 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| P-07 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| P-08 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| P-07 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | prodat (fält/identitet/AI); root är integrationsägare |
+| P-08 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | P-09 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | P-10 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | /root/authority_grammar, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| P-11 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| P-11 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | P-12 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | P-13 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| P-14 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| P-15 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| P-14 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| P-15 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history, prodat dated structure/mutation; process separate lifecycle owner; root integration owner |
 | P-16 | prodat_fields_functions_consumers | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | prodat (fält/identitet/AI); root är integrationsägare |
 | P-17 | prodat_fields_functions_consumers | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | prodat (fält/identitet/AI); root är integrationsägare |
 | ESCO-01 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
@@ -76,11 +76,11 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | ACK-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | ACK-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | ACK-04 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
-| ACK-05 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | matrix_projections_native_err, utilts_ack |
+| ACK-05 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | matrix_projections_native_err, utilts_ack |
 | ACK-06 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
-| ACK-07 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
-| ACK-08 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | matrix_projections_native_err, utilts_ack |
-| ACK-09 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
+| ACK-07 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/matrix_projections, utilts_ack |
+| ACK-08 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/matrix_projections, matrix_projections_native_err, utilts_ack |
+| ACK-09 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | utilts_ack |
 | U-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
@@ -94,11 +94,11 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | U-11 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-12 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-13 | utilts_validation_dispositions_ack | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | utilts_ack |
-| U-14 | utilts_validation_dispositions_ack | COORDINATION_BLOCKED | matrix_projections, utilts_ack |
+| U-14 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | matrix_projections, utilts_ack |
 | TR-01 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | /root |
 | TR-02 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | TR-03 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| TR-04 | processes_expectations_retry_transport | REMAINING_CODE_WORK | /root, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| TR-04 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | /root, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | TR-05 | processes_expectations_retry_transport | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | TR-06 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
 | TR-07 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
@@ -106,9 +106,9 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | TR-09 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root, /root/authority_grammar |
 | TR-10 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | TR-11 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | /root, actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| AI-01 | api_ui_manual_readiness | REMAINING_CODE_WORK | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
+| AI-01 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
 | AI-02 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| AI-03 | api_ui_manual_readiness | REMAINING_CODE_WORK | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
+| AI-03 | api_ui_manual_readiness | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
 | AI-04 | api_ui_manual_readiness | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | prodat (fält/identitet/AI); root är integrationsägare |
 | AI-05 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | matrix_projections, prodat (fält/identitet/AI); root är integrationsägare |
 | DB-01 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
@@ -129,8 +129,8 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | U-17 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-18 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | U-19 | utilts_validation_dispositions_ack | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | utilts_ack |
-| SC-001 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/authority_grammar, /root/matrix_projections, actors_history |
-| SC-002 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections, actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| SC-001 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history |
+| SC-002 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections, actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-003 | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | actors_history (integrationowner /root) |
 | SC-004 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | SC-005 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
@@ -141,8 +141,8 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | SC-010 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | SC-011 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-012 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections, actors_history |
-| SC-013 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections, actors_history, utilts_ack |
-| SC-014 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections, actors_history |
+| SC-013 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections, actors_history, utilts_ack |
+| SC-014 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections, actors_history |
 | SC-015 | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-016 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-017 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
@@ -153,7 +153,7 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | SC-022 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-023 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-024 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| SC-025 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
+| SC-025 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | prodat (fält/identitet/AI); root är integrationsägare |
 | SC-026 | prodat_fields_functions_consumers | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | prodat (fält/identitet/AI); root är integrationsägare |
 | SC-027 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history, prodat (fält/identitet/AI); root är integrationsägare |
 | SC-028 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | /root/authority_grammar, prodat (fält/identitet/AI); root är integrationsägare |
@@ -164,18 +164,18 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | SC-033 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | /root/authority_grammar, prodat (fält/identitet/AI); root är integrationsägare |
 | SC-034 | prodat_fields_functions_consumers | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | prodat (fält/identitet/AI); root är integrationsägare |
 | SC-035 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | /root/authority_grammar, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history, prodat (fält/identitet/AI); root är integrationsägare |
-| SC-036 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history, prodat (fält/identitet/AI); root är integrationsägare, utilts_ack |
-| SC-037 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| SC-036 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history, prodat (fält/identitet/AI); root är integrationsägare, utilts_ack |
+| SC-037 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-038 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-039 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-040 | processes_expectations_retry_transport | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-041 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/authority_grammar, utilts_ack |
 | SC-042 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | SC-043 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare, utilts_ack |
-| SC-044 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | matrix_projections_native_err, utilts_ack |
+| SC-044 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | matrix_projections_native_err, utilts_ack |
 | SC-045 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | SC-046 | utilts_validation_dispositions_ack | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | utilts_ack |
-| SC-047 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections, actors_history, utilts_ack |
+| SC-047 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections, actors_history, utilts_ack |
 | SC-048 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | SC-049 | utilts_validation_dispositions_ack | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | utilts_ack |
 | SC-050 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
@@ -183,18 +183,18 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | SC-052 | utilts_validation_dispositions_ack | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | utilts_ack |
 | SC-053 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | SC-054 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
-| SC-055 | utilts_validation_dispositions_ack | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | utilts_ack |
+| SC-055 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | SC-056 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | SC-057 | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/matrix_projections, actors_history, actors_history (integrationowner /root) |
 | SC-058 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | SC-059 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | SC-060 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
 | SC-061 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
-| SC-062 | processes_expectations_retry_transport | REMAINING_CODE_WORK | /root, actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| SC-062 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | /root, actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-063 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | SC-064 | authority_versions_grammar_envelope | CODE_READY_NOT_VERIFIED | /root/authority_grammar, matrix_projections |
-| SC-065 | api_ui_manual_readiness | REMAINING_CODE_WORK | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
-| SC-066 | api_ui_manual_readiness | REMAINING_CODE_WORK | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
+| SC-065 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
+| SC-066 | api_ui_manual_readiness | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
 | SC-067 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | matrix_projections, prodat (fält/identitet/AI); root är integrationsägare |
 | SC-068 | authority_versions_grammar_envelope | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
 | SC-069 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | matrix_projections |
@@ -209,8 +209,8 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-GOV-06 | authority_versions_grammar_envelope | CODE_READY_NOT_VERIFIED | /root/authority_grammar |
 | AT-GOV-07 | authority_versions_grammar_envelope | CODE_READY_NOT_VERIFIED | /root/authority_grammar |
 | AT-GOV-08 | authority_versions_grammar_envelope | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
-| AT-TEN-01 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
-| AT-TEN-02 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
+| AT-TEN-01 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
+| AT-TEN-02 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
 | AT-TEN-03 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | AT-TEN-04 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | AT-TEN-05 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
@@ -219,9 +219,9 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-TEN-08 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | AT-TEN-09 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | AT-TEN-10 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
-| AT-TEN-11 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
+| AT-TEN-11 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
 | AT-TEN-12 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
-| AT-TEN-13 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/matrix_projections |
+| AT-TEN-13 | actors_routing_grants_persistence | COORDINATION_BLOCKED | /root/matrix_projections |
 | AT-TEN-14 | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | actors_history (integrationowner /root) |
 | AT-IMP-01 | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | actors_history (integrationowner /root) |
 | AT-IMP-02 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
@@ -239,19 +239,19 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-ENV-09 | authority_versions_grammar_envelope | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
 | AT-P-01 | prodat_fields_functions_consumers | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | prodat (fält/identitet/AI); root är integrationsägare |
 | AT-P-02 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| AT-P-03 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
+| AT-P-03 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | prodat (fält/identitet/AI); root är integrationsägare |
 | AT-P-04 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
 | AT-P-05 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
 | AT-P-06 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| AT-P-07 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| AT-P-08 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| AT-P-07 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | prodat (fält/identitet/AI); root är integrationsägare |
+| AT-P-08 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-P-09 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-P-10 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | /root/authority_grammar, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| AT-P-11 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| AT-P-11 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-P-12 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-P-13 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| AT-P-14 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| AT-P-15 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| AT-P-14 | prodat_fields_functions_consumers | CODE_READY_NOT_VERIFIED | actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| AT-P-15 | prodat_fields_functions_consumers | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history, prodat dated structure/mutation; process separate lifecycle owner; root integration owner |
 | AT-P-16 | prodat_fields_functions_consumers | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | prodat (fält/identitet/AI); root är integrationsägare |
 | AT-P-17 | prodat_fields_functions_consumers | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | prodat (fält/identitet/AI); root är integrationsägare |
 | AT-ESCO-01 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
@@ -269,11 +269,11 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-ACK-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-ACK-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-ACK-04 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
-| AT-ACK-05 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | matrix_projections_native_err, utilts_ack |
+| AT-ACK-05 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | matrix_projections_native_err, utilts_ack |
 | AT-ACK-06 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
-| AT-ACK-07 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
-| AT-ACK-08 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | matrix_projections_native_err, utilts_ack |
-| AT-ACK-09 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
+| AT-ACK-07 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/matrix_projections, utilts_ack |
+| AT-ACK-08 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | /root/matrix_projections, matrix_projections_native_err, utilts_ack |
+| AT-ACK-09 | utilts_validation_dispositions_ack | REMAINING_CODE_WORK | utilts_ack |
 | AT-U-01 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-U-02 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-U-03 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
@@ -287,11 +287,11 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-U-11 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-U-12 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | utilts_ack |
 | AT-U-13 | utilts_validation_dispositions_ack | ALREADY_IMPLEMENTED_VERIFICATION_ONLY | utilts_ack |
-| AT-U-14 | utilts_validation_dispositions_ack | COORDINATION_BLOCKED | matrix_projections, utilts_ack |
+| AT-U-14 | utilts_validation_dispositions_ack | CODE_READY_NOT_VERIFIED | matrix_projections, utilts_ack |
 | AT-TR-01 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | /root |
 | AT-TR-02 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
 | AT-TR-03 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| AT-TR-04 | processes_expectations_retry_transport | REMAINING_CODE_WORK | /root, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
+| AT-TR-04 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | /root, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-TR-05 | processes_expectations_retry_transport | REMAINING_CODE_WORK | processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-TR-06 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
 | AT-TR-07 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar |
@@ -299,9 +299,9 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-TR-09 | processes_expectations_retry_transport | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root, /root/authority_grammar |
 | AT-TR-10 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root), processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
 | AT-TR-11 | processes_expectations_retry_transport | CODE_READY_NOT_VERIFIED | /root, actors_history, processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history |
-| AT-AI-01 | api_ui_manual_readiness | REMAINING_CODE_WORK | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-AI-01 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-AI-02 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | prodat (fält/identitet/AI); root är integrationsägare |
-| AT-AI-03 | api_ui_manual_readiness | REMAINING_CODE_WORK | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-AI-03 | api_ui_manual_readiness | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | matrix_projections_ai_finalizer, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-AI-04 | api_ui_manual_readiness | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | prodat (fält/identitet/AI); root är integrationsägare |
 | AT-AI-05 | api_ui_manual_readiness | CODE_READY_NOT_VERIFIED | matrix_projections, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-DB-01 | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | actors_history (integrationowner /root) |
@@ -325,14 +325,14 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-Z01L-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z02L-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z03L-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z04L-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-Z04L-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z05L-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z01LK-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z02LK-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z03LK-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z04LK-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-Z04LK-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z05LK-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z03C-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-Z03C-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z04C-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z05C-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z04A-SUPPLIER | actors_routing_grants_persistence | EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
@@ -348,13 +348,13 @@ Code status is separate from formal evidence. Unreviewed inherited rows remain S
 | AT-Z09F-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z06G-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z09G-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z09B-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-Z09B-SUPPLIER | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z09D-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z10M-SUPPLIER | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z13V-ESCO | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-Z13V-ESCO | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z14V-ESCO | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z15V-ESCO | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
-| AT-Z13VH-ESCO | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
+| AT-Z13VH-ESCO | actors_routing_grants_persistence | REMAINING_CODE_WORK | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z14VH-ESCO | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z15VH-ESCO | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |
 | AT-Z14N-ESCO | actors_routing_grants_persistence | CODE_READY_NOT_VERIFIED | /root/authority_grammar, /root/matrix_projections, actors_history, processes; root integration owner; actors live ESCO origins/grants; prodat P15/fields, prodat (fält/identitet/AI); root är integrationsägare |

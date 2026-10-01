@@ -61,6 +61,8 @@ def main():
                 raise ValueError(f'Unknown assessment ID: {own_id}')
             by_id.setdefault(own_id, []).append(assessment)
     head = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
+    git_state = subprocess.check_output(['git', '-C', str(root), 'status', '--porcelain=v1'], text=True)
+    git_diff = subprocess.check_output(['git', '-C', str(root), 'diff', 'HEAD', '--binary'])
     rows = []
     for kind, registry, records in [('rule_card', 'rules.json', rules), ('acceptance_contract', 'acceptance_tests.json', contracts)]:
         for number, literal in enumerate(records):
@@ -91,7 +93,7 @@ def main():
             status = max((a['code_status'] for a in assessments), key=lambda s: priority[s]) if assessments else 'SEMANTIC_REVIEW_PENDING'
             if (unreviewed_parts or missing_consumers) and priority[status] < priority['SEMANTIC_REVIEW_PENDING']:
                 status = 'SEMANTIC_REVIEW_PENDING'
-            paths = sorted(set(old.get('code_paths', []) + [p for a in assessments for p in a.get('code_paths', [])]))
+            paths = sorted({p for a in assessments for p in a.get('code_paths', [])})
             paths_state = [{'path': p, 'exists': (root / p).is_file(), 'sha256': digest(root / p) if (root / p).is_file() else None} for p in paths]
             rows.append({
                 'id': own_id, 'kind': kind,
@@ -103,6 +105,7 @@ def main():
                     'fresh_assessments': assessments,
                     'inherited_implementation_lead': {'as_of': '2026-09-27', 'verdict': old.get('inherited_code_verdict_20260927'),
                         'description': old.get('inherited_assessment_20260927'), 'gap': old.get('inherited_gap_20260927'),
+                        'referenced_paths_not_current_authority': old.get('code_paths', []),
                         'status': 'INHERITED_NOT_FRESHLY_REVIEWED' if not assessments else 'INHERITED_LEAD_RECHECKED_ONLY_TO_EXPLICIT_FRESH_SCOPE'},
                     'previous_bounded_semantic_review': old.get('fresh_semantic_review')},
                 'confirmed_code_gaps': [a['confirmed_code_gap'] for a in assessments if a.get('confirmed_code_gap')],
@@ -137,7 +140,11 @@ def main():
         data = json.loads(p.read_text())
         catalog[str(p.relative_to(root))] = {'sha256': digest(p), 'row_count': len(data), 'records': data}
     result = {'title': 'Ediel v2 additive code-phase work matrix', 'inventory_head': head, 'integration_owner': '/root',
-        'inventory_worktree': str(root), 'inherited_reconciliation': {'path': str(inherited_path), 'sha256': digest(root / inherited_path), 'review_head': inherited['review_head']},
+        'inventory_worktree': str(root),
+        'inventory_git': {'head': head, 'working_tree_status': git_state.splitlines(),
+            'uncommitted_diff_sha256': hashlib.sha256(git_diff).hexdigest(),
+            'is_fixed_candidate': False,
+            'meaning': 'Current named HEAD plus explicit working-tree state/path hashes; code-phase inventory is not a fixed, verified test candidate.'}, 'inherited_reconciliation': {'path': str(inherited_path), 'sha256': digest(root / inherited_path), 'review_head': inherited['review_head']},
         'status_meaning': {'CODE_READY_NOT_VERIFIED': 'Fresh scoped code implementation integrated; own final tests still pending.',
             'ALREADY_IMPLEMENTED_VERIFICATION_ONLY': 'Fresh source/code review found own scoped requirement implemented; not formal approval.',
             'REMAINING_CODE_WORK': 'A fresh confirmed implementation gap remains.',
