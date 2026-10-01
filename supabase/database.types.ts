@@ -53765,6 +53765,105 @@ export type Database = {
           },
         ]
       }
+      invoice_redelivery_decisions: {
+        Row: {
+          account_id: string
+          actor_user_id: string
+          audit_event_id: string
+          billing_profile_revision: number
+          company_id: string
+          contract_override_revision: number
+          created_at: string
+          customer_id: string
+          delivery_status: string
+          destination_email: string
+          document_references_sha256: string
+          email_confirmed_at: string
+          email_source: string
+          environment: string
+          financial_snapshot_sha256: string
+          id: string
+          idempotency_key: string
+          invoice_id: string
+          original_provider_guid: string
+          provider: string
+          reason: string
+          request_hash: string
+          session_id: string
+          status: string
+          verified_auth_user_id: string
+        }
+        Insert: {
+          account_id: string
+          actor_user_id: string
+          audit_event_id: string
+          billing_profile_revision: number
+          company_id: string
+          contract_override_revision: number
+          created_at?: string
+          customer_id: string
+          delivery_status?: string
+          destination_email: string
+          document_references_sha256: string
+          email_confirmed_at: string
+          email_source: string
+          environment: string
+          financial_snapshot_sha256: string
+          id?: string
+          idempotency_key: string
+          invoice_id: string
+          original_provider_guid: string
+          provider: string
+          reason: string
+          request_hash: string
+          session_id: string
+          status?: string
+          verified_auth_user_id: string
+        }
+        Update: {
+          account_id?: string
+          actor_user_id?: string
+          audit_event_id?: string
+          billing_profile_revision?: number
+          company_id?: string
+          contract_override_revision?: number
+          created_at?: string
+          customer_id?: string
+          delivery_status?: string
+          destination_email?: string
+          document_references_sha256?: string
+          email_confirmed_at?: string
+          email_source?: string
+          environment?: string
+          financial_snapshot_sha256?: string
+          id?: string
+          idempotency_key?: string
+          invoice_id?: string
+          original_provider_guid?: string
+          provider?: string
+          reason?: string
+          request_hash?: string
+          session_id?: string
+          status?: string
+          verified_auth_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_redelivery_decisions_audit_event_id_fkey"
+            columns: ["audit_event_id"]
+            isOneToOne: false
+            referencedRelation: "domain_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_redelivery_decisions_company_id_invoice_id_fkey"
+            columns: ["company_id", "invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["company_id", "id"]
+          },
+        ]
+      }
       legal_bundle_items: {
         Row: {
           created_at: string
@@ -88735,6 +88834,20 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_apply_invoice_provider_event_v1: {
+        Args: {
+          p_amount: number
+          p_company_id: string
+          p_currency: string
+          p_event_id: string
+          p_event_type: string
+          p_finance_status: string
+          p_payload: Json
+          p_processing_token: string
+          p_state: string
+        }
+        Returns: Json
+      }
       gridex_apply_public_contract_backfill_v1: {
         Args: {
           p_actor_user_id?: string
@@ -88802,6 +88915,14 @@ export type Database = {
           p_contract_product_version_id: string
         }
         Returns: string
+      }
+      gridex_assert_contract_company_permission: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_permission: string
+        }
+        Returns: undefined
       }
       gridex_assert_contract_permission: {
         Args: { p_actor_user_id: string; p_permission: string }
@@ -88951,6 +89072,10 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      gridex_claim_approved_invoice_retries_fair_v1: {
+        Args: { p_claim_token: string; p_company_id: string; p_limit: number }
+        Returns: Json[]
+      }
       gridex_claim_billing_automation_jobs: {
         Args: { p_limit?: number; p_worker_id: string }
         Returns: {
@@ -89080,6 +89205,55 @@ export type Database = {
           id: string
           status: string
         }[]
+      }
+      gridex_claim_tenant_email_outbox_fair_v1: {
+        Args: { p_claim_token: string; p_company_id: string; p_limit: number }
+        Returns: {
+          attachments: Json
+          attempts: number | null
+          blocked_at: string | null
+          blocked_reason: string | null
+          branding_snapshot: Json
+          communication_log_id: string | null
+          company_id: string
+          company_status_snapshot: string | null
+          created_at: string
+          created_by: string | null
+          customer_case_id: string | null
+          customer_id: string | null
+          dead_letter_at: string | null
+          delivery_uncertain_at: string | null
+          email_type: string
+          failed_at: string | null
+          failure_reason: string | null
+          from_email: string | null
+          html_body: string
+          id: string
+          last_error: string | null
+          lock_token: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number | null
+          next_attempt_at: string | null
+          provider_idempotency_key: string | null
+          provider_message_id: string | null
+          redirect_url: string | null
+          reply_to_email: string | null
+          request_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          text_body: string | null
+          to_email: string
+          trace_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tenant_email_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       gridex_claim_webhook_deliveries_fair_v1: {
         Args: { p_claim_token: string; p_limit: number }
@@ -89419,6 +89593,14 @@ export type Database = {
       gridex_contact_has_channel: { Args: { p_value: Json }; Returns: boolean }
       gridex_contract_actor_can_operate_company: {
         Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: boolean
+      }
+      gridex_contract_actor_has_company_permission: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_permission: string
+        }
         Returns: boolean
       }
       gridex_contract_actor_has_permission: {
@@ -90979,6 +91161,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_record_customer_operation_event_v1: {
+        Args: { p_event: Json }
+        Returns: Json
+      }
       gridex_record_invoice_fee_remediation: {
         Args: {
           p_blocker_code: string
@@ -90990,6 +91176,10 @@ export type Database = {
           p_status: string
         }
         Returns: undefined
+      }
+      gridex_record_invoice_redelivery_decision_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_record_legacy_api_key_use_v1: {
         Args: { p_api_client_id: string; p_route: string }
@@ -91078,6 +91268,16 @@ export type Database = {
           p_source_value_id: string
         }
         Returns: string
+      }
+      gridex_release_approved_invoice_retry_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_item_id: string
+          p_outcome?: string
+          p_reason?: string
+        }
+        Returns: boolean
       }
       gridex_release_automation_lock: {
         Args: { p_lock_key: string; p_lock_token: string }
@@ -91424,6 +91624,10 @@ export type Database = {
       gridex_support_ops_read_access_v1: {
         Args: { p_company_id: string; p_session_id: string; p_user_id: string }
         Returns: boolean
+      }
+      gridex_support_sensitive_contact_v1: {
+        Args: { p_command: Json; p_proof: Json }
+        Returns: Json
       }
       gridex_supported_price_areas_v1: {
         Args: { p_contract_product_version_id: string }

@@ -3,6 +3,12 @@
 set time zone 'UTC';
 -- Synthetic tenant rows plus their restored current authorization records.
 -- A digest is retained only in RUNNER_TEMP, never raw Auth rows or fixture IDs.
+\if :{?tenantservice_catalog_detail}
+-- The optional diagnostic emits only the catalog payload below. Its private
+-- output is never uploaded; the default two-digest acceptance gate is intact.
+\set tenantservice_catalog_is_detail true
+\else
+\set tenantservice_catalog_is_detail false
 with fixture as (
  select array['e4954930-0000-4000-8000-000000000001'::uuid,
               'e4954930-0000-4000-8000-000000000002'::uuid] companies,
@@ -31,6 +37,7 @@ with fixture as (
  from fixture f
 )
 select encode(extensions.digest(body::text,'sha256'),'hex') from evidence;
+\endif
 
 -- Supplemental restore-specific catalog digest. Shared schema introspection
 -- does not cover owners, column ACL or creator default ACL. Cover those here,
@@ -92,4 +99,5 @@ with namespaces as (
   'defaultAcl',(select coalesce(jsonb_agg(to_jsonb(d) order by creator,schema_name,object_type,
     grantee,grantor,privilege_type,is_grantable),'[]'::jsonb) from defaults d)) body
 )
-select encode(extensions.digest(body::text,'sha256'),'hex') from payload;
+select case when :'tenantservice_catalog_is_detail'::boolean then body::text
+ else encode(extensions.digest(body::text,'sha256'),'hex') end from payload;

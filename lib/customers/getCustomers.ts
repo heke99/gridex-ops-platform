@@ -10,6 +10,7 @@ export type CustomerListRow = {
   duplicate_review_status?: string | null
   consolidated_invoice?: boolean | null
   billing_level?: string | null
+  billing_profile_revision?: number | null
   intake_status?: string | null
   intake_missing_fields?: unknown
   has_missing_grid_owner?: boolean
@@ -55,6 +56,7 @@ const CUSTOMER_LIST_SELECT = [
   'duplicate_review_status',
   'consolidated_invoice',
   'billing_level',
+  'billing_profile_revision',
   'intake_status',
   'intake_missing_fields',
   'first_name',
@@ -187,6 +189,8 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
     duplicate_review_status: stringOrNull(row.duplicate_review_status),
     consolidated_invoice: booleanOrFalse(row.consolidated_invoice),
     billing_level: stringOrNull(row.billing_level),
+    billing_profile_revision: typeof row.billing_profile_revision === 'number' && Number.isSafeInteger(row.billing_profile_revision)
+      && row.billing_profile_revision >= 0 ? row.billing_profile_revision : null,
     intake_status: stringOrNull(row.intake_status),
     intake_missing_fields: row.intake_missing_fields ?? null,
     has_missing_grid_owner: false,

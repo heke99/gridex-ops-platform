@@ -34,6 +34,10 @@ export async function AdminCustomersPage({
  const page = normalizePage(resolvedSearchParams.page)
 
  const scopedCompanyId = tenantScope.companyId
+ if (!tenantScope.isPlatformAdmin && scopedCompanyId &&
+   (scopedCompanyId !== context.companyId || companyScope.companyId !== scopedCompanyId)) {
+   return <main className="p-8"><p role="alert">Tenantkontexten har ändrats. Välj bolag och läs in kundregistret igen.</p></main>
+ }
  const canReadContracts =
    tenantScope.isPlatformAdmin ||
    context.permissions.includes('contracts.read') ||
@@ -843,6 +847,9 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  </p>
  <p className="mt-1 text-xs text-slate-700 ">
  {customer.id}
+ </p>
+ <p className="mt-1 text-xs text-slate-700">
+ {`Faktureringsrevision: ${typeof customer.billing_profile_revision === 'number' && Number.isSafeInteger(customer.billing_profile_revision) && customer.billing_profile_revision >= 0 ? customer.billing_profile_revision : 'saknas'}`}
  </p>
  {customer.possible_duplicate ? (
  <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">

@@ -1,11 +1,22 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { unstable_rethrow } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
 import { BillingProfileCommandError, changeCustomerBillingProfile, changeContractBillingOverride } from '@/lib/billing/billingProfileCommand'
 import type { BillingProfileFields } from '@/lib/billing/effectiveBillingProfile'
 import { currentSupportSession } from '@/lib/customer-operations/supportSession'
+
+function refreshBillingPaths(paths: string[]) {
+  try {
+    for (const path of paths) revalidatePath(path)
+    return ''
+  } catch (error) {
+    unstable_rethrow(error)
+    return ' Ladda om sidan för aktuella uppgifter.'
+  }
+}
 
 export async function saveCustomerBillingProfileAction(input: {
   companyId: string; customerId: string; expectedRevision: number; idempotencyKey: string; changes: BillingProfileFields
@@ -19,10 +30,9 @@ export async function saveCustomerBillingProfileAction(input: {
   const session = await currentSupportSession('ops', actor.userId)
   try {
     const result = await changeCustomerBillingProfile({ ...input, actor: { ...session, kind: 'ops', reason: 'ops_customer_billing_default' } })
-    revalidatePath(`/admin/customers/${input.customerId}`)
-    revalidatePath('/admin/customers')
-    revalidatePath('/admin/billing')
-    return { status: 'success' as const, ...result, message: `Faktureringsstandarden är sparad. ${result.affectedContractIds.length} avtal ärver de ändrade uppgifterna.` }
+    const refreshMessage = refreshBillingPaths([`/admin/customers/${input.customerId}`, '/admin/customers', '/admin/billing'])
+    return { status: 'success' as const, ...result, ...(refreshMessage ? { notice: refreshMessage.trim() } : {}),
+      message: `Faktureringsstandarden är sparad. ${result.affectedContractIds.length} avtal ärver de ändrade uppgifterna.${refreshMessage}` }
   } catch (error) {
     if (error instanceof BillingProfileCommandError) {
       return { status: 'error' as const, code: error.code, message: error.status === 409
@@ -46,9 +56,9 @@ export async function saveCustomerContractBillingOverrideAction(input: {
   const session = await currentSupportSession('ops', actor.userId)
   try {
     const result = await changeContractBillingOverride({ ...input, actor: { ...session, kind: 'ops', reason: 'ops_contract_billing_override' } })
-    revalidatePath(`/admin/customers/${input.customerId}`)
-    revalidatePath('/admin/billing')
-    return { status: 'success' as const, ...result, message: 'Avtalets faktureringsundantag är sparat. Låsta underlag och historiska fakturor behåller sin tidigare profil.' }
+    const refreshMessage = refreshBillingPaths([`/admin/customers/${input.customerId}`, '/admin/billing'])
+    return { status: 'success' as const, ...result, ...(refreshMessage ? { notice: refreshMessage.trim() } : {}),
+      message: 'Avtalets faktureringsundantag är sparat. Låsta underlag och historiska fakturor behåller sin tidigare profil.' + refreshMessage }
   } catch (error) {
     if (error instanceof BillingProfileCommandError) return { status: 'error' as const, code: error.code,
       message: error.status === 409 ? 'Kundstandarden eller avtalsundantaget har ändrats. Bevara utkastet och läs in aktuell revision.'

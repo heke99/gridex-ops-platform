@@ -3,7 +3,6 @@
 import { redirect } from 'next/navigation'
 import { createExternalContractIntake, parseExternalContractFormData } from '@/lib/external-contracts/intake'
 import {
-  EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE,
   EXTERNAL_CONTRACT_SUCCESS_NEEDS_REVIEW_MESSAGE,
   externalContractErrorFlash,
 } from '@/lib/external-contracts/publicIntakeFlash'
@@ -25,12 +24,11 @@ export async function submitExternalContractAction(formData: FormData): Promise<
   let status: 'success' | 'error'
   let message: string
   try {
-    const result = await createExternalContractIntake(input)
+    await createExternalContractIntake(input)
     status = 'success'
-    message =
-      result.status === 'needs_review'
-        ? EXTERNAL_CONTRACT_SUCCESS_NEEDS_REVIEW_MESSAGE
-        : EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE
+    // Anonymous acknowledgement must not disclose a replayed intake's private
+    // progress. Canonical stored status and review work stay unchanged.
+    message = EXTERNAL_CONTRACT_SUCCESS_NEEDS_REVIEW_MESSAGE
   } catch (error) {
     status = 'error'
     message = externalContractErrorFlash(error)

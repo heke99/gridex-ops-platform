@@ -172,6 +172,7 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_ANON_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).ANON_KEY')"
           export SUPABASE_SERVICE_ROLE_KEY="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).SERVICE_ROLE_KEY')"
           [[ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" && -n "$SUPABASE_SERVICE_ROLE_KEY" ]] || exit 1
+          npx vitest run --config scripts/billing-recipient-revision-continuation-20260930-native.config.ts
           npx vitest run --config scripts/customer-contact-concurrency-native.config.ts
           # Exercise the contact browser/API path before the independent case
           # publication browser fixture, so its own replay result is observable.
@@ -204,6 +205,17 @@ jobs:
           GRIDEX_REFERENCE_RUNTIME_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-reference-runtime-20260930.native.config.ts
           rm -f "$GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH"
           unset GRIDEX_REFERENCE_RUNTIME_LOCAL_E2E GRIDEX_REFERENCE_RUNTIME_FIXTURE_PATH GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          # Anonymous intake and independent configured issuers use their own
+          # current local accounts and private trust, then verify zero foreign effects.
+          export GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH="$RUNNER_TEMP/customer-intake-identity-security-20260930.json"
+          npx vitest run --config scripts/customer-intake-identity-security-20260930.native.config.ts
+          [[ -s "$GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH" ]] || exit 1
+          export GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON="$(node -e 'const fs=require("fs"); const f=JSON.parse(fs.readFileSync(process.env.GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH,"utf8")); process.stdout.write(JSON.stringify(f.trust))')"
+          GRIDEX_INTAKE_IDENTITY_SECURITY_LOCAL_E2E=1 npx playwright test e2e/browser/customer-intake-identity-security-20260930.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_INTAKE_IDENTITY_SECURITY_VERIFY_AFTER_HTTP=1 npx vitest run --config scripts/customer-intake-identity-security-20260930.native.config.ts
+          unset GRIDEX_CUSTOMER_DELEGATION_TRUST_JSON
+          rm -f "$GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH"
+          unset GRIDEX_INTAKE_IDENTITY_SECURITY_FIXTURE_PATH
           # Company settings use independent disposable Auth/company fixtures.
           export GRIDEX_SETTINGS_LOCAL_E2E=1
           export GRIDEX_SETTINGS_FIXTURE_PATH="$RUNNER_TEMP/company-settings-browser-fixture.json"
@@ -226,6 +238,26 @@ jobs:
           GRIDEX_OPS_EFFECT_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ops-effect-browser-native.config.ts
           rm -f "$GRIDEX_OPS_EFFECT_FIXTURE_PATH"
           unset GRIDEX_OPS_EFFECT_LOCAL_E2E GRIDEX_OPS_EFFECT_FIXTURE_PATH GRIDEX_OPS_EFFECT_PASSWORD
+          # The real billing forms own a fresh local fixture. Readiness,
+          # immutable invoices and both sender paths are separately tested above.
+          export GRIDEX_BILLING_RECIPIENT_LOCAL_E2E=1
+          export GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH="$RUNNER_TEMP/billing-recipient-revision-fixture.json"
+          export GRIDEX_BILLING_RECIPIENT_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          GRIDEX_BILLING_RECIPIENT_PHASE=browser-seed npx vitest run --config scripts/billing-recipient-revision-continuation-20260930-native.config.ts
+          [[ -s "$GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH" ]] || exit 1
+          npx playwright test e2e/browser/billing-recipient-revision-runtime-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_BILLING_RECIPIENT_PHASE=browser-postcheck npx vitest run --config scripts/billing-recipient-revision-continuation-20260930-native.config.ts
+          # Read current customer revision and immutable saved invoice revision
+          # in the actual list/card/invoice pages after the real form journey.
+          export GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH="$RUNNER_TEMP/billing-revision-views-fixture.json"
+          npx vitest run --config scripts/billing-revision-views-continuation-20261001-native.config.ts
+          [[ -s "$GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH" ]] || exit 1
+          GRIDEX_BILLING_REVISION_VIEWS_LOCAL_E2E=1 npx playwright test e2e/browser/billing-revision-views-runtime-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_BILLING_REVISION_VIEWS_POSTCHECK=1 npx vitest run --config scripts/billing-revision-views-continuation-20261001-native.config.ts
+          rm -f "$GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH"
+          unset GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH
+          rm -f "$GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH"
+          unset GRIDEX_BILLING_RECIPIENT_LOCAL_E2E GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH GRIDEX_BILLING_RECIPIENT_PASSWORD
           # Actual customer events HTTP -> v2 RPC on this same disposable stack.
           export GRIDEX_EVENT_V2_LOCAL_E2E=1
           export GRIDEX_EVENT_V2_FIXTURE_PATH="$RUNNER_TEMP/customer-event-v2-fixture.json"

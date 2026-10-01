@@ -232,6 +232,9 @@ fi
   psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 \
     -f "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-restore-data-fingerprint.sql" \
     > "$TENANTSERVICE_TEMP/data-before.sha256"
+  psql "$DB_URL" -X -At -v ON_ERROR_STOP=1 -v tenantservice_catalog_detail=1 \
+    -f "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-restore-data-fingerprint.sql" \
+    > "$TENANTSERVICE_TEMP/restore-catalog-before.json"
 
   # The backup contains real data and original ACL/ownership records. pg_cron
   # alone is excluded: it can be installed in only cron.database_name, and this
@@ -267,7 +270,15 @@ PY
   psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 \
     -f "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-restore-data-fingerprint.sql" \
     > "$TENANTSERVICE_TEMP/data-after.sha256"
-  cmp "$TENANTSERVICE_TEMP/data-before.sha256" "$TENANTSERVICE_TEMP/data-after.sha256"
+  if ! cmp "$TENANTSERVICE_TEMP/data-before.sha256" "$TENANTSERVICE_TEMP/data-after.sha256"; then
+    psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 -v tenantservice_catalog_detail=1 \
+      -f "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-restore-data-fingerprint.sql" \
+      > "$TENANTSERVICE_TEMP/restore-catalog-after.json"
+    node "$TENANTSERVICE_CANDIDATE_ROOT/scripts/tenantservice-restore-catalog-diagnostic.cjs" \
+      "$TENANTSERVICE_TEMP/restore-catalog-before.json" "$TENANTSERVICE_TEMP/restore-catalog-after.json" || true
+    echo 'TENANTSERVICE_RESTORE_DATA_OR_CATALOG_FINGERPRINT_MISMATCH' >&2
+    exit 1
+  fi
   echo 'TENANTSERVICE_RESTORE_APPLICATION_AUTH_DATA_FINGERPRINT_PASS'
   echo 'TENANTSERVICE_RESTORE_OWNER_COLUMN_DEFAULT_ACL_FINGERPRINT_PASS'
   psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 -v 'schemas={public,private,auth,storage,gridex_received_sources}' \
