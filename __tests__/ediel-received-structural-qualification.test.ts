@@ -8,6 +8,7 @@ import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceived
 import {createUtiltsRuntimeAcks} from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import {buildUtiltsTransactionPersistencePayload} from '@/lib/ediel/utilts/transactionPersistence'
 import {priorE30PointWire,priorE66MembershipWire} from './helpers/priorUtiltsStructureFixtures'
+import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),ack:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc,from:io.from}}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
@@ -18,6 +19,30 @@ beforeEach(()=>{
  io.rpc.mockImplementation(()=>({abortSignal:async()=>({data:null,error:{message:'private unavailable'}})}))
 })
 afterEach(()=>vi.useRealTimers())
+/** Declared private ACK-read boundary only. The real active tenant actor gate,
+ * immutable source/hash DTO checks, runtime and held-transaction logic execute.
+ * Empty originals means no existing response; this supplies no native outcome,
+ * technical endpoint authority or permission to release the held readings. */
+function ackReadBoundary(source:ReturnType<typeof input>['message'],options:{membership?:boolean;permission?:boolean;foreignSource?:boolean}={}){
+ io.from.mockImplementation((table:string)=>{
+  const rows=table==='user_profiles'?[{id:ownerId(9),user_status:'active'}]:table==='company_memberships'&&options.membership!==false
+   ?[{company_id:source.company_id,user_id:ownerId(9),status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'}]:[]
+  if(!['user_profiles','company_memberships'].includes(table))throw Error(`unexpected_ack_actor_table:${table}`)
+  const filters:Array<(row:Record<string,unknown>)=>boolean>=[]
+  const query={select:()=>query,eq:(key:string,value:unknown)=>{filters.push(row=>row[key]===value);return query},not:(key:string,_operator:string,value:unknown)=>{filters.push(row=>row[key]!==value);return query},
+   maybeSingle:async()=>({data:rows.find(row=>filters.every(filter=>filter(row)))??null,error:null})}
+  return query
+ })
+ io.rpc.mockImplementation((name:string,args:Record<string,unknown>)=>{
+  if(name==='gridex_actor_has_company_permission')return{data:options.permission!==false&&args.p_company_id===source.company_id&&args.p_actor_user_id===ownerId(9)&&['communication.write','ediel_testing.write'].includes(String(args.p_permission)),error:null}
+  if(name==='gridex_read_outbound_acks_for_source_v1'){
+   if(args.p_source_message_id!==source.id||args.p_ack_family!=='CONTRL')throw Error('unexpected_ack_read_scope')
+   return{data:{version:1,sourceMessageId:source.id,companyId:options.foreignSource?ownerId(99):source.company_id,environment:source.environment,
+    sourcePayloadHash:createHash('sha256').update(source.raw_payload!,'utf8').digest('hex'),originals:[]},error:null}
+  }
+  throw Error(`unexpected_ack_read_rpc:${name}`)
+ })
+}
 function input(energy=false,referenceDate='2026-10-01'){
  const message=energy?energyHandoffMessage('2026-10-01',ownerId(2)):observationHandoffMessage('2026-10-01',ownerId(2))
  message.id=ownerId(1);message.sender_ediel_id='91100';message.receiver_ediel_id='21660'
@@ -110,6 +135,7 @@ it('activated original monthly readings without approved structure are held, not
 })
 it('held transactions cannot fall through to positive APERAK even with original BGM AB',async()=>{
  const args=input(),result=await qualifyReceivedUtiltsStructure(args)
+ ackReadBoundary(args.message)
  expect(await createUtiltsRuntimeAcks({actorUserId:ownerId(9),sourceMessage:args.message,ackPlan:result.runtime.ackPlan,transactionDispositions:result.runtime.transactionDispositions})).toEqual(['synthetic-contrl'])
  expect(io.ack.mock.calls.map(([call])=>call.ackFamily)).toEqual(['CONTRL'])
 })
@@ -127,12 +153,21 @@ it('holds a regulating-object E66 IDE without borrowing a metering-point identit
  expect(result).toMatchObject({hasInternalReview:true,hasNationalMismatch:false,
   runtime:{transactionDispositions:[{disposition:'internal_review',responseType:'none'}]}})
  expect(result.runtime.ackPlan.utiltsErrCodes).toEqual([])
+ ackReadBoundary(args.message)
  expect(await createUtiltsRuntimeAcks({actorUserId:ownerId(9),sourceMessage:args.message,ackPlan:result.runtime.ackPlan,
   transactionDispositions:result.runtime.transactionDispositions})).toEqual(['synthetic-contrl'])
  expect(buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:result.runtime.facts.transactions,
   dispositions:result.runtime.transactionDispositions,matches:[{transactionReference:'GRIDEX2607E66001',
    externalMeteringPointId:'735999260731000007',externalGridAreaId:'TES',meteringPointId:ownerId(8)}]})[0])
   .toMatchObject({meteringPointId:null,externalMeteringPointId:null,quantities:[]})
+})
+it.each(['membership','permission','foreignSource'] as const)('held transaction ACK preparation rejects %s at the real actor/protected source boundary',async failure=>{
+ const args=input(),result=await qualifyReceivedUtiltsStructure(args)
+ ackReadBoundary(args.message,{membership:failure!=='membership',permission:failure!=='permission',foreignSource:failure==='foreignSource'})
+ await expect(createUtiltsRuntimeAcks({actorUserId:ownerId(9),sourceMessage:args.message,ackPlan:result.runtime.ackPlan,transactionDispositions:result.runtime.transactionDispositions}))
+  .rejects.toThrow(failure==='membership'?'ediel_tenant_actor_forbidden':failure==='permission'?'ediel_tenant_permission_forbidden':'ediel_existing_ack_original_source_mismatch')
+ expect(io.ack).not.toHaveBeenCalled()
+ expect(result.runtime.transactionDispositions).toMatchObject([{disposition:'internal_review',responseType:'none'}])
 })
 it('isolates LOC+175 and LOC+172 sibling IDEs through disposition, ACK and persistence',async()=>{
  const args=input(true)
