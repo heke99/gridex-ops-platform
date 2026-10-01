@@ -2,7 +2,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
-import { createUtiltsRuntimeAcks } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
+import { createAckIfMissing,createUtiltsRuntimeAcks } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
+import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { buildAperakDraft, buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -359,4 +360,37 @@ it.each([true, false])('a unique insert failure recovers only the same IDE ERR w
     await expect(create(references[1])).rejects.toMatchObject({ code: '23505' })
     expect(f.acks()).toEqual([first])
   }
+})
+
+
+it('reuses a protected prior-edition ERR before current rendering despite failed mutable projection',async()=>{
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-09-30T12:00:00Z'))
+  const f=seed([{reference:'RETAINED-E19',outcome:'processability_rejected'}],'2026-09-30')
+  await f.finalize()
+  const err=f.acks().find(row=>row.message_family==='UTILTS_ERR')!
+  const immutable={id:err.id,raw:err.raw_payload,reservation:structuredClone(f.reservations)}
+  err.status='failed';err.ack_outcome='positive';err.parsed_payload={...(err.parsed_payload as Row),ackOutcome:'positive'}
+  database.sourceBases.clear() // Fresh original reads would now fail, never select today's guide.
+  vi.setSystemTime(new Date('2026-10-15T12:00:00Z'))
+  const replay=await createAckIfMissing({actorUserId:f.actor,sourceMessage:f.source,ackFamily:'UTILTS_ERR',messageText:'E87',relatedTransactionReference:'RETAINED-E19'})
+  expect(replay).toMatchObject({id:immutable.id,ack_outcome:'negative',raw_payload:immutable.raw})
+  expect(f.acks().filter(row=>row.message_family==='UTILTS_ERR')).toHaveLength(1)
+  expect(f.reservations).toEqual(immutable.reservation)
+})
+
+it('refuses a changed caller source before reusing a protected ACK original',async()=>{
+  const f=seed([{reference:'HASH-BOUND-ERR',outcome:'processability_rejected'}])
+  await f.finalize()
+  await expect(createAckIfMissing({actorUserId:f.actor,sourceMessage:{...f.source,raw_payload:f.source.raw_payload!.replace('HASH-BOUND-ERR','OTHER-SOURCE-IDE')},ackFamily:'UTILTS_ERR',relatedTransactionReference:'HASH-BOUND-ERR'})).rejects.toThrow('ediel_existing_ack_original_source_mismatch')
+  expect(f.acks().filter(row=>row.message_family==='UTILTS_ERR')).toHaveLength(1)
+})
+
+it('accepts only the actual immutable source capability in ERR preflight, never its JSON copy',async()=>{
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-01T12:00:00Z'))
+  const f=seed([{reference:'ORIGINAL-GUIDE-E19',outcome:'processability_rejected'}],'2026-09-30')
+  const q=await readSourceBoundOutboundAckRulePackEvidence({companyId:f.source.company_id!,environment:f.source.environment,sourceMessageId:f.source.id})
+  const draft=buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E19',relatedTransactionReference:'ORIGINAL-GUIDE-E19',ackSourceQualification:q})
+  expect(draft.rawPayload).toContain('STS+E01::260+41+E19::260')
+  expect(()=>buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E19',ackSourceQualification:{...q}})).toThrow('ack_source_qualification_scope_mismatch')
+  expect(()=>buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E19'})).toThrow('ACK_UTILTS_ERR_ORIGINAL_REASON_SCOPE_REQUIRED')
 })

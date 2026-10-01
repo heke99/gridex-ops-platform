@@ -1,3 +1,5 @@
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
 import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
@@ -374,6 +376,7 @@ function validateEdifactPayload(params: {
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
@@ -600,8 +603,9 @@ function validateEdifactPayload(params: {
     applicationReference: canonical.applicationReference,
     rawPayload,
     companyId: params.companyId,
+    ackSourceQualification: params.ackSourceQualification,
     dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange,
-    ...(params.mode==='send'?{environment:params.dateEventRow?.environment,direction:params.dateEventRow?.direction}:{}),
+    ...(params.mode==='send'?{environment:params.ackSourceQualification?EdifactEnvelopeCodec.decode(rawPayload).environment:params.dateEventRow?.environment,direction:params.ackSourceQualification?'outbound':params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
       ? params.parsedPayload as Record<string, unknown> : null,
@@ -757,6 +761,7 @@ export function preflightEdielPayload(params: {
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): EdielPayloadPreflightResult {
   const rawPayload = String(params.rawPayload ?? '').trim()
   const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
@@ -791,17 +796,17 @@ export function preflightEdielPayload(params: {
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange })
+  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,ackSourceQualification:params.ackSourceQualification,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange })
 }
 
-export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
+export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,ackSourceQualification?:SourceQualifiedOutboundAck): EdielPayloadPreflightResult {
   const result = preflightEdielPayload({
     rawPayload: message.raw_payload,
     mimeType: message.mime_type,
     messageStandard: message.message_standard,
     mode,
     parsedPayload:message.parsed_payload,
-    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,
+    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,ackSourceQualification,
   })
   const gasBoundary=mode==='send'?gasApplicabilitySendIssue(message):null
   if(gasBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}));result.ok=false;result.blocking=true}

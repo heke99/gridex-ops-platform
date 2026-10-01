@@ -1,3 +1,4 @@
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import { buildEdielInterchangeReference } from '@/lib/ediel/references'
 import { preflightEdielPayload, type EdielPayloadPreflightResult } from '@/lib/ediel/core/messageBuilder'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
@@ -17,6 +18,7 @@ type BuildEdifactEnvelopeInput = {
   messageTypeToken: string
   segments: string[]
   companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
   parsedPayload?: Record<string, unknown> | null
 }
 
@@ -57,6 +59,7 @@ export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdi
     messageStandard: 'edifact',
     mode: 'send',
     companyId: input.companyId,
+    ackSourceQualification: input.ackSourceQualification,
     parsedPayload: input.parsedPayload,
   })
   if (preflight.blocking) {

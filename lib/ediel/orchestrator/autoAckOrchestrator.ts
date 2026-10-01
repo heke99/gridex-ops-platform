@@ -1,4 +1,4 @@
-import { buildAckDraftForSource } from '@/lib/ediel/ack'
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import type { EdielEngineDecision } from '@/lib/ediel/decisionEngine'
@@ -50,7 +50,11 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
 
   const desiredFamily = params.decision.ackFamily
   const desiredOutcome = normalizeOutcome(params.decision.outcome)
-  const existingAcks = await listAckMessagesForSource({ sourceMessageId: params.sourceMessage.id })
+  const utiltsSource=['UTILTS','UTILTS_ERR'].includes(params.sourceMessage.message_family)
+  const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:desiredFamily,
+    outcome:desiredOutcome??undefined,messageText:params.decision.messageText,applicationErrors:params.decision.applicationErrors,utiltsHeaderRejected:params.decision.utiltsHeaderRejected})
+  if(prepared.kind==='existing')return {status:'already_sent_success',ackMessageId:prepared.message.id,lifecycleStatus:'already_sent_success',reason:'Originalets skyddade fysiska ACK återanvänds.'}
+  const existingAcks = utiltsSource?[]:await listAckMessagesForSource({ sourceMessageId: params.sourceMessage.id })
   const lifecycle = ensureExpectedAckSent({
     desiredFamily,
     desiredOutcome,
@@ -81,7 +85,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     return { status: 'blocked', ackMessageId: lifecycle.existingAckId, lifecycleStatus: lifecycle.status, reason: lifecycle.message }
   }
 
-  const supersedeResult = await supersedeWrongDraftsForDecision({
+  const supersedeResult = utiltsSource?{blockedFinalAckId:null}:await supersedeWrongDraftsForDecision({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     desiredFamily,
@@ -92,15 +96,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     return { status: 'blocked', ackMessageId: supersedeResult.blockedFinalAckId, lifecycleStatus: 'blocked_final_ack_exists', reason: 'Opposite final ACK exists.' }
   }
 
-  const draft = buildAckDraftForSource({
-    actorUserId: params.actorUserId,
-    sourceMessage: params.sourceMessage,
-    ackFamily: desiredFamily,
-    outcome: desiredOutcome ?? undefined,
-    messageText: params.decision.messageText,
-    applicationErrors: params.decision.applicationErrors,
-    utiltsHeaderRejected: params.decision.utiltsHeaderRejected,
-  })
+  const draft=prepared.draft
 
   const ack = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,

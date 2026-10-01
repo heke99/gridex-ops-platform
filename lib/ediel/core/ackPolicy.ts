@@ -210,8 +210,9 @@ export async function findExistingAckForSource(params: {
   ackScope?: 'interchange'|'message'|'transaction'|'object'
   transactionReference?: string
   acknowledgedReferences?: readonly string[]
+  expectedSource?: EdielMessageRow
 }): Promise<EdielMessageRow | null> {
-  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily)
+  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily,params.expectedSource)
   const references=[...new Set([...(params.acknowledgedReferences??[]),...(params.transactionReference?[params.transactionReference]:[])])]
   for(const original of originals){
     const {correlation}=original

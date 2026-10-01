@@ -1,3 +1,4 @@
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 import {loadRecoveryReportingValidationContext} from '@/lib/ediel/recovery/reportingContext'
 import {resolveSourceQualifiedNegativeFixtureForMessage, sourceQualifiedNegativeFixtureAllowsPreflight} from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
@@ -110,16 +111,10 @@ export async function createAckForSourceMessage(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
 }) {
-  const draft = buildAckDraftForSource({
-    actorUserId: params.actorUserId,
-    sourceMessage: params.sourceMessage,
-    ackFamily: params.ackFamily,
-    outcome: params.outcome,
-    messageText: params.messageText ?? null,
-    applicationErrors: params.applicationErrors ?? null,
-    ackScope: params.ackScope ?? null,
-    relatedTransactionReference: params.relatedTransactionReference ?? null,
-  })
+  if(!params.actorUserId)throw new Error('ediel_tenant_actor_required')
+  const prepared=await prepareSourceAckDraft({...params,actorUserId:params.actorUserId})
+  if(prepared.kind==='existing')return prepared.message
+  const draft=prepared.draft
 
   return createCanonicalAckMessage({
     actorUserId: params.actorUserId,

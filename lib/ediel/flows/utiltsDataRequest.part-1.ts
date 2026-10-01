@@ -1,3 +1,4 @@
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
 
 
@@ -13,7 +14,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 
 
 import { findMatchingGridOwnerDataRequest, matchMeteringPointForEdielMessage, matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
-import { buildAperakDraft, buildContrlDraft, buildUtiltsErrDraft, getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak, type EdielAckScope, type EdielAperakApplicationError } from '@/lib/ediel/ack'
+import { getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak, type EdielAckScope, type EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
 import { finalizeUtiltsTransactionAck, resolveUtiltsTransactionId, type UtiltsTransactionPersistenceResult } from '@/lib/ediel/utilts/transactionPersistence'
 import type { UtiltsTransactionDisposition } from '@/lib/ediel/utiltsEngine'
@@ -530,31 +531,9 @@ export async function createAckIfMissing(params: {
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
 }) {
-  const draft =
-    params.ackFamily === 'CONTRL'
-      ? buildContrlDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: params.sourceMessage,
-          outcome: params.outcome ?? 'positive',
-          messageText: params.messageText ?? null,
-        })
-      : params.ackFamily === 'APERAK'
-        ? buildAperakDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            outcome: params.outcome ?? 'positive',
-            messageText: params.messageText ?? null,
-            applicationErrors: params.applicationErrors ?? null,
-            ackScope: params.ackScope ?? null,
-            relatedTransactionReference: params.relatedTransactionReference ?? null,
-            utiltsHeaderRejected: params.utiltsHeaderRejected,
-          })
-        : buildUtiltsErrDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            messageText: params.messageText ?? null,
-            relatedTransactionReference: params.relatedTransactionReference ?? null,
-          })
+  const prepared=await prepareSourceAckDraft(params)
+  if(prepared.kind==='existing')return prepared.message
+  const draft=prepared.draft
 
   const ackMessage = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
