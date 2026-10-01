@@ -126,5 +126,14 @@ try{
  assert.equal((await boundaries('2026-09-30T11:00:01Z','2026-10-01T11:00:00Z')).rows[0].b.boundaries.length,0);checks++;
  await assert.rejects(boundaries('2026-09-30T11:00:00Z','2026-09-30T11:00:00Z'),/boundary_period_required/);checks++;
  await db.exec('RESET ROLE');
+ await db.exec('ALTER TABLE gridex_received_sources.object_assessments ADD assessed_at timestamptz NOT NULL DEFAULT clock_timestamp();ALTER TABLE gridex_received_sources.object_availability_witnesses ADD observed_at timestamptz NOT NULL DEFAULT clock_timestamp();');
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001020309_ediel_customer_life_event_scoped_patches.sql',import.meta.url),'utf8'));checks++;
+ const patches=(from,to,cutoff)=>db.query('SELECT ediel_customer_life_event_patches_v1($1,$2,$3,$4,$5,$6) b',[id(1),id(3),id(20),from,to,cutoff]);
+ const cutoff=(await db.query('SELECT clock_timestamp() t')).rows[0].t;await db.exec('SET ROLE service_role');
+ const ownPatches=(await patches('2026-09-29T00:00:00Z','2026-10-01T00:00:00Z',cutoff)).rows[0].b;assert.equal(ownPatches.status,'authorized');assert.equal(ownPatches.authorizesInitialCustomer,false);assert.equal(ownPatches.patches.length,1);assert.equal(ownPatches.patches[0].sourceMessageId,id(30));assert.equal(ownPatches.patches[0].customerFields.full_name,'New name');assert.deepEqual(ownPatches.patches[0].endUserMasterdata.street,['End user street']);checks++;
+ const noPatches=(await patches('2026-09-29T00:00:00Z','2026-09-30T10:59:59Z',cutoff)).rows[0].b;assert.equal(noPatches.status,'authorized');assert.equal(noPatches.authorizesInitialCustomer,false);assert.equal(noPatches.patches.length,0);checks++;
+ assert.equal((await patches('2026-09-29T00:00:00Z','2026-10-01T00:00:00Z','2020-01-01T00:00:00Z')).rows[0].b.status,'held');checks++;
+ await assert.rejects(patches('2026-09-29T00:00:00Z','2026-10-01T00:00:00Z','2099-01-01T00:00:00Z'),/patch_cutoff_required/);checks++;
+ await db.exec('RESET ROLE');
  console.log(`PASS ${checks} actual life-event source/business SQL checks; declared synthetic owner ports, not authentic/native acceptance`)
 }finally{await db.close()}
