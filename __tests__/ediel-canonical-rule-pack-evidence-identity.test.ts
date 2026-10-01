@@ -10,10 +10,11 @@ vi.mock('@/lib/supabase/service', () => ({
   },
 }))
 
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 
 function z01Evidence(profileOverrides: Record<string, unknown> = {}) {
-  return {
+  const row = {
     rule_pack_id: 'fa1b164d-a996-43a8-906a-1d495ea0e2b2',
     message_profile_id: '39157f78-0b05-4300-8b80-bf5cc5de3000',
     market: 'electricity',
@@ -46,6 +47,7 @@ function z01Evidence(profileOverrides: Record<string, unknown> = {}) {
     ack_ready: true,
     state_machine_ready: true,
   }
+  return {...row,original_version:'26.A:r3',original_snapshot:{rulePack:{id:row.rule_pack_id,source_hash:row.source_hash,guide_version:row.guide_version,guide_revision:row.guide_revision},messageProfile:{id:row.message_profile_id,rule_pack_id:row.rule_pack_id,profile_key:row.profile_key,profile:row.profile},guideSources:[]}}
 }
 
 beforeEach(() => {
@@ -104,5 +106,31 @@ describe('canonical rule-pack evidence identity', () => {
       direction: 'outbound',
       businessDate: '2026-09-03',
     })).rejects.toThrow('canonical_rule_pack_evidence_direction_mismatch:inbound:outbound')
+  })
+})
+
+
+describe('original named owner witness',()=>{
+  const input={family:'PRODAT' as const,messageCode:'Z01',transactionSubtype:'L',direction:'outbound' as const,businessDate:'2026-09-30'}
+  it('preserves registered opaque version and named snapshot through semantic projection',async()=>{
+    const row=z01Evidence();mocks.rpc.mockResolvedValue({data:[row],error:null})
+    const result=await resolveCanonicalRulePack(input)
+    expect(result.originalVersion).toBe('26.A:r3')
+    expect(result.originalSnapshot).toEqual(row.original_snapshot)
+    expect(result.guideRevision).not.toBe(result.originalVersion)
+    expect(mocks.rpc).toHaveBeenCalledWith('resolve_canonical_ediel_rule_pack_with_witness_v1',expect.objectContaining({p_business_date:'2026-09-30'}))
+  })
+  it.each(['version','scope','missing'])('rejects %s original witness without replacement',async(change)=>{
+    const row=z01Evidence() as Record<string,unknown>
+    if(change==='version')row.original_version='26.A:r999'
+    if(change==='scope')(row.original_snapshot as {rulePack:{id:string}}).rulePack.id='foreign'
+    if(change==='missing')delete row.original_snapshot
+    mocks.rpc.mockResolvedValue({data:[row],error:null})
+    await expect(resolveCanonicalRulePack(input)).rejects.toThrow(/canonical_original_rule_witness/)
+  })
+  it('does not silently replace an explicit selected policy from another source scope',async()=>{
+    const canonicalPolicy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z01',subtypeOrReasonCode:'LK',direction:'outbound',referenceDate:'2026-09-30',mode:'catalog_evidence'})
+    await expect(resolveCanonicalRulePack({...input,canonicalPolicy})).rejects.toThrow('canonical_selected_policy_scope_mismatch')
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 })

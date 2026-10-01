@@ -539,13 +539,15 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       applicationReference: policy.applicationReference,
       direction: dir,
       businessDate: policy.referenceDate,
+      canonicalPolicy: policy,
       requireBuilder: dir === 'outbound' && input.mode === 'send',
       requireStateMachine: true,
     })
     const snapshot: RegistryRulePackSnapshot = {
-      profileKey: evidence.profileKey,
+      profileKey: evidence.databaseProfileKey ?? evidence.profileKey,
       profileVersionId: evidence.messageProfileId,
-      version: `${evidence.guideVersion}:r${evidence.guideRevision}`,
+      version: evidence.originalVersion,
+      originalWitness: evidence.originalSnapshot,
       checksum: evidence.sourceHash,
     }
     return { ...result, fieldRuleSource: 'registry', rulePackSnapshot: snapshot }

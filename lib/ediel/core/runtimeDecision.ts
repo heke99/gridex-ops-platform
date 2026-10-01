@@ -1,3 +1,4 @@
+import {buildReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from './receivedUtiltsTransactionValidation'
 import {readSourceBoundAckRulePackEvidence} from './ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
 import { classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
@@ -56,6 +57,7 @@ export type CanonicalDecisionIssue = {
 }
 
 export type CanonicalRuntimeDecision = {
+  utiltsTransactionValidation?: ReceivedUtiltsTransactionValidation
   prodatIgnoredFields?: ProdatIgnoredField[]
   prodatRegisterValidation?: ProdatRegisterValidationEvidence
   prodatProcessingDisposition?: ProdatProcessingDisposition
@@ -220,8 +222,10 @@ function resolveUtiltsDecision(params: {
   applicationDecision: CanonicalDecisionState
   functionalDecision: CanonicalDecisionState
   businessOutcome: UtiltsInboundBusinessOutcome
+  utiltsTransactionValidation?: ReceivedUtiltsTransactionValidation
 } {
   const runtime = runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: params.policy })
+  const utiltsTransactionValidation=buildReceivedUtiltsTransactionValidation({source:params.message,transactions:runtime.transactionDispositions}) ?? undefined
   const businessOutcome = resolveUtiltsInboundBusinessOutcome(params.policy)
   params.sourceRules.push('CANONICAL_EDIEL_POLICY', `UTILTS_RUNTIME_${runtime.validation.classification.toUpperCase()}`, `UTILTS_BUSINESS_OUTCOME_${businessOutcome.kind.toUpperCase()}`)
   params.decisionTrace.push(`UTILTS ${params.policy.code} klassades som ${businessOutcome.kind}; runtime=${runtime.validation.classification}.`)
@@ -241,7 +245,7 @@ function resolveUtiltsDecision(params: {
       responsePlan: params.responsePlan,
       reason: `${params.policy.code} har fel business scope för individuell kundkoppling.`,
     })
-    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome }
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome, utiltsTransactionValidation }
   }
 
   for (const utiltsIssue of runtime.validation.issues) {
@@ -256,7 +260,7 @@ function resolveUtiltsDecision(params: {
   }
 
   if (runtime.validation.classification === 'syntax_rejected') {
-    return { applicationDecision: 'not_applicable', functionalDecision: 'not_applicable', businessOutcome }
+    return { applicationDecision: 'not_applicable', functionalDecision: 'not_applicable', businessOutcome, utiltsTransactionValidation }
   }
 
   if (runtime.ackPlan.shouldSendUtiltsErr) {
@@ -265,7 +269,7 @@ function resolveUtiltsDecision(params: {
       outcome: 'negative',
       reason: runtime.ackPlan.reason || 'UTILTS process-/funktionsfel ska besvaras med UTILTS_ERR.',
     })
-    return { applicationDecision: 'not_applicable', functionalDecision: 'rejected', businessOutcome }
+    return { applicationDecision: 'not_applicable', functionalDecision: 'rejected', businessOutcome, utiltsTransactionValidation }
   }
 
   if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'negative') {
@@ -286,7 +290,7 @@ function resolveUtiltsDecision(params: {
         lineItemReference: item.lineItemReference ?? null,
       })),
     })
-    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome }
+    return { applicationDecision: 'rejected', functionalDecision: 'accepted', businessOutcome, utiltsTransactionValidation }
   }
 
   if (runtime.ackPlan.shouldSendAperak && runtime.ackPlan.aperakOutcome === 'positive') {
@@ -300,10 +304,11 @@ function resolveUtiltsDecision(params: {
     })
   }
 
-  return { applicationDecision: 'accepted', functionalDecision: 'accepted', businessOutcome }
+  return { applicationDecision: 'accepted', functionalDecision: 'accepted', businessOutcome, utiltsTransactionValidation }
 }
 
 function buildResult(params: {
+  utiltsTransactionValidation?: ReceivedUtiltsTransactionValidation
   prodatIgnoredFields?: ProdatIgnoredField[]
   prodatRegisterValidation?: ProdatRegisterValidationEvidence
   prodatProcessingDisposition?: ProdatProcessingDisposition
@@ -349,6 +354,7 @@ function buildResult(params: {
     utiltsBusinessOutcome: params.utiltsBusinessOutcome,
   }
   return {
+    utiltsTransactionValidation: params.utiltsTransactionValidation,
     prodatRegisterValidation: params.prodatRegisterValidation,
     prodatIgnoredFields: params.prodatIgnoredFields,
     prodatProcessingDisposition: params.prodatProcessingDisposition,
@@ -471,6 +477,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     })
   }
 
+  let utiltsTransactionValidation: ReceivedUtiltsTransactionValidation | undefined
   let prodatRegisterValidation: ProdatRegisterValidationEvidence | undefined
   let prodatProcessingDisposition: ProdatProcessingDisposition | undefined
   let prodatIgnoredFields: ProdatIgnoredField[] | undefined
@@ -483,6 +490,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     applicationDecision = utilts.applicationDecision
     functionalDecision = utilts.functionalDecision
     utiltsBusinessOutcome = utilts.businessOutcome
+    utiltsTransactionValidation = utilts.utiltsTransactionValidation
   } else if (canonical.family === 'PRODAT' && policy) {
     const prodat = applyProdatPolicyDecision({ policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
     prodatRegisterValidation = prodat.prodatRegisterValidation
@@ -503,6 +511,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
   }
 
   return buildResult({
+    utiltsTransactionValidation,
     prodatRegisterValidation,
     prodatIgnoredFields,
     prodatProcessingDisposition,
@@ -532,7 +541,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       const rejected=guideIssues.some(finding=>finding.blocking||finding.severity==='error')
       const applicationDecision:CanonicalDecisionState=rejected?'rejected':'accepted',functionalDecision:CanonicalDecisionState=rejected?'not_applicable':'accepted'
       const decisionTrace=[...base.decisionTrace,`Original ${sourceMessage.id}; oförändrat källpaket ${evidence.rulePackId}/${evidence.sourceHash}.`]
-      const rulePackEvidence={profileKey:evidence.profileKey,messageProfileId:evidence.messageProfileId,rulePackId:evidence.rulePackId,sourceHash:evidence.sourceHash}
+      const rulePackEvidence={profileKey:evidence.profileKey,messageProfileId:evidence.messageProfileId,rulePackId:evidence.rulePackId,sourceHash:evidence.sourceHash,version:evidence.version,snapshot:{rulePack:evidence.snapshot.rulePack,messageProfile:evidence.snapshot.messageProfile,guideSources:evidence.snapshot.guideSources}}
       return {...base,applicationDecision,functionalDecision,issues,decisionTrace,validationReport:{...base.validationReport,applicationDecision,functionalDecision,issues,decisionTrace,rulePackEvidence,ackOriginalMessageId:sourceMessage.id,fieldRuleSource:'canonical_policy'}}
     } catch(error) {
       const failureDisposition=classifyEdielFailure(error),description=error instanceof Error?error.message:String(error)
@@ -551,6 +560,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       applicationReference: base.policy.applicationReference,
       direction: message.direction,
       businessDate: base.policy.referenceDate,
+      canonicalPolicy: base.policy,
       requireBuilder: false,
       requireStateMachine: true,
     })
@@ -566,6 +576,8 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
         messageProfileId: evidence.messageProfileId,
         rulePackId: evidence.rulePackId,
         sourceHash: evidence.sourceHash,
+        version: evidence.originalVersion,
+        snapshot: evidence.originalSnapshot,
       },
       fieldRuleSource: 'canonical_policy',
     }
