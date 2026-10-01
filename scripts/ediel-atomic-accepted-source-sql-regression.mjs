@@ -94,7 +94,7 @@ try{
  // Execute the real message repair, private receipt and source projection
  // together. These fixtures remain synthetic; this is not native/concurrency evidence.
  await db.query("UPDATE gridex_ediel_transport.attempts SET binding=binding||jsonb_build_object('technicalExpectationPlan',$1::jsonb)",[technicalPlan])
- const repair=async()=>{await db.exec('SET ROLE service_role');try{return(await db.query('SELECT gridex_ediel_repair_accepted_transport_projection_v1($1,$2,$3,$4) r',[company,'test',actor,source.mid])).rows[0].r}finally{await db.exec('RESET ROLE')}}
+ const repair=async(mid=source.mid)=>{await db.exec('SET ROLE service_role');try{return(await db.query('SELECT gridex_ediel_repair_accepted_transport_projection_v1($1,$2,$3,$4) r',[company,'test',actor,mid])).rows[0].r}finally{await db.exec('RESET ROLE')}}
  for(const current of ['dispatching','acknowledged','failed','cancelled','rejected','completed']){
   await db.query("UPDATE ediel_messages SET status=$1,processing_status=$1,contrl_status='received',contrl_due_at=NULL,ack_due_at=NULL,message_sent_at=NULL",[current])
   const repaired=await repair(),s=await state()
@@ -111,6 +111,32 @@ try{
  await db.exec(`UPDATE gridex_ediel_transport.attempts SET classification='accepted'`)
  assert.equal((await db.query("SELECT has_function_privilege('service_role','gridex_ediel_transport.repair_message_projection_v1(uuid,text,uuid,uuid)','EXECUTE') a")).rows[0].a,false);checks++
  assert.equal((await db.query("SELECT has_function_privilege('authenticated','gridex_ediel_repair_accepted_transport_projection_v1(uuid,text,uuid,uuid)','EXECUTE') a")).rows[0].a,false);checks++
+ // The actual outer wrapper must add its method-owner call in the same
+ // transaction. This named boundary double proves composition/rollback only;
+ // the actual method owner has its independent focused SQL regression.
+ await db.exec(`CREATE SCHEMA gridex_method_expectations;
+ CREATE TABLE fixture_method_calls(message_id uuid);
+ CREATE TABLE fixture_method_failure(fail boolean);INSERT INTO fixture_method_failure VALUES(false);
+ CREATE FUNCTION gridex_method_expectations.mutate_v1(i jsonb) RETURNS jsonb LANGUAGE plpgsql AS $$
+ BEGIN INSERT INTO public.fixture_method_calls VALUES((i->>'messageId')::uuid);
+ IF (SELECT fail FROM public.fixture_method_failure) THEN RAISE EXCEPTION 'fixture_method_owner_failure';END IF;
+ RETURN '[]'::jsonb;END $$;`)
+ await db.exec(migration('20260930234515_ediel_accepted_metering_method_watch_projection.sql'))
+ const methodSource=await seed('Z09',33,'2026-09-30T12:00:00Z')
+ const methodTechnicalPlan={...technicalPlan,policy:{...technicalPlan.policy,profileKey:'prodat_z09_masterdata_supplier_to_grid'}}
+ await db.exec(`UPDATE ediel_messages SET message_family='PRODAT',message_code='Z09',status='dispatching',requires_contrl=true,contrl_status='pending' WHERE id='${methodSource.mid}';
+ UPDATE gridex_ediel_transport.attempts SET binding=(binding-'businessExpectationPlan')||jsonb_build_object('to','recipient@example.invalid','technicalExpectationPlan',${literal(JSON.stringify(methodTechnicalPlan))}::jsonb),provider_result='{"accepted":["recipient@example.invalid"],"rejected":[],"messageId":"SYNTHETIC-method-ID","response":"SYNTHETIC 250"}' WHERE message_id='${methodSource.mid}';
+ INSERT INTO fixture_source_rule_basis SELECT company_id,'${methodSource.mid}',basis FROM fixture_source_rule_basis WHERE message_id='${source.mid}';`)
+ await repair(methodSource.mid);assert.equal((await db.query('SELECT count(*) n FROM fixture_method_calls')).rows[0].n,1);checks++
+ await db.exec(`UPDATE ediel_messages SET status='dispatching',processing_status='dispatching',message_sent_at=NULL WHERE id='${methodSource.mid}';UPDATE fixture_method_failure SET fail=true`)
+ const methodState=async()=>(await db.query('SELECT * FROM ediel_messages ORDER BY id')).rows
+ const beforeMethodFailure=await methodState(),beforeMethodExpectations=(await db.query('SELECT * FROM ediel_business_expectations ORDER BY id')).rows
+ await assert.rejects(repair(methodSource.mid),/fixture_method_owner_failure/)
+ assert.deepEqual(await methodState(),beforeMethodFailure);assert.deepEqual((await db.query('SELECT * FROM ediel_business_expectations ORDER BY id')).rows,beforeMethodExpectations)
+ assert.equal((await db.query('SELECT count(*) n FROM fixture_method_calls')).rows[0].n,1);checks++
+ await db.exec(`UPDATE fixture_method_failure SET fail=false;UPDATE gridex_ediel_transport.attempts SET classification='unknown' WHERE message_id='${methodSource.mid}'`)
+ assert.equal(await repair(methodSource.mid),null);assert.equal((await db.query('SELECT count(*) n FROM fixture_method_calls')).rows[0].n,1);checks++
+ assert.equal((await db.query("SELECT has_function_privilege('service_role','gridex_ediel_transport.repair_before_method_watch_v1(uuid,text,uuid,uuid)','EXECUTE') a")).rows[0].a,false);checks++
  for(const permission of ['communication.read','communication.write','ediel_testing.write']){await db.exec('TRUNCATE fixture_permissions');await db.query('INSERT INTO fixture_permissions VALUES($1)',[permission]);await assert.rejects(project(),/actor_forbidden/);checks++}
  assert.equal((await db.query("SELECT has_function_privilege('authenticated','ediel_project_accepted_source_state_v1(uuid,text,uuid,uuid,text)','EXECUTE') a")).rows[0].a,false);checks++
  console.log(`PASS ${checks} atomic accepted-source PostgreSQL checks; actual receipt/expectation/projection functions, actual central plan validator with named synthetic source-owner port, native/concurrency/authentic proof deferred`)

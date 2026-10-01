@@ -19,6 +19,7 @@ import {hasProdatDateEventMessage} from '@/lib/ediel/prodat/prodatDateEventAutho
 import {loadProdatDateEventValidationContext} from '@/lib/ediel/production/dateEventContext'
 import {assertRulebookAllowsSend, assertRegistryRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
 import { prepareEdielBusinessExpectationPlan, prepareEdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
+import {prepareEdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
 import {assertEdielSendLock} from './sendLock'
 import { inspectCmsRecipientCertificateSet } from './cmsRecipientSet'
 import { resolveSourceQualifiedNegativeFixtureForMessage } from '@/lib/ediel/testing/negativeFixtureAuthority'
@@ -359,7 +360,7 @@ export async function sendEdielMessageViaSmtp(
   if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
   if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
   await assertBrpChangeSendSource(message, actorUserId)
-  await assertMeteringMethodChangeSendSource(message, actorUserId)
+  const methodSendBasis = await assertMeteringMethodChangeSendSource(message, actorUserId)
   await assertUtiltsPositiveAckAuthorityForSend(message)
   assertAiListOutboundMessage(message)
   await assertScopedEdielProductionCapability(message)
@@ -403,6 +404,8 @@ export async function sendEdielMessageViaSmtp(
     guide: policy.guide, associationAssignedCode: policy.associationAssignedCode, sourceTrace: policy.sourceTrace }) : null
   const businessExpectationPlan = policy ? prepareEdielBusinessExpectationPlan(message, policy) : null
   const technicalExpectationPlan = policy ? prepareEdielTechnicalExpectationPlan(message, policy) : null
+  const meteringMethodExpectationPlan = policy && methodSendBasis.kind !== 'certification'
+    ? prepareEdielMeteringMethodExpectationPlan(message, policy) : null
 
   if (!message.company_id) throw new Error('ediel_transport_company_required')
   const recoveryAuthorization = params?.dispatchOwner?.kind === 'worker'
@@ -545,7 +548,7 @@ export async function sendEdielMessageViaSmtp(
 
   const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
-    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,
+    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, meteringMethodExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,
   })
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
