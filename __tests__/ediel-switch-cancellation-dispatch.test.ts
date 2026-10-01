@@ -20,7 +20,7 @@ beforeEach(() => { io.withdrawal.mockReset(); io.normal.mockReset(); io.rpc.mock
 describe('actual switch flow cancellation dispatch', () => {
   it('withdraws through the dedicated owner before new-contract origination gates', async () => {
     const message = { id: 'withdrawal', status: 'draft' }
-    io.withdrawal.mockResolvedValue(message)
+    io.withdrawal.mockResolvedValue({ status: 'queued', message })
     expect(await prepareAndQueueProdatSwitch({ messageCode: 'Z03', actorUserId: 'actor', switchRequestId: 'switch', communicationRouteId: 'route', environment: 'production' })).toBe(message)
     expect(io.withdrawal).toHaveBeenCalledWith({ companyId: 'tenant', switchRequestId: 'switch', actorUserId: 'actor', preferredRouteId: 'route', environment: 'production' })
     expect(io.rpc).not.toHaveBeenCalled(); expect(io.normal).not.toHaveBeenCalled()

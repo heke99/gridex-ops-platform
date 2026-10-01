@@ -17,7 +17,7 @@ import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
-import type { EdielEnvironment } from '@/lib/ediel/types'
+import type { EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import {
   ensureActorUserId,
   findOrCreateSwitchOutbound,
@@ -105,7 +105,7 @@ function blockedSwitchFlowCode(code: Exclude<ProdatSwitchCode, 'Z03'>): never {
 
 export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchParams & {
   messageCode: ProdatSwitchCode
-}) {
+}): Promise<EdielMessageRow> {
   if (params.messageCode !== 'Z03') return blockedSwitchFlowCode(params.messageCode)
 
   const actorUserId = ensureActorUserId(params.actorUserId)
@@ -117,7 +117,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   if (subtype === 'C') {
     const withdrawal = await prepareAndQueueSwitchCancellation({ companyId, switchRequestId: switchRequest.id, actorUserId, preferredRouteId: params.communicationRouteId, environment: params.environment })
     if (withdrawal.status === 'held') throw new Error(`PRODAT Z03C stoppades: ${withdrawal.missing.join(', ')}`)
-    return withdrawal
+    return withdrawal.message
   }
 
   const contractId =
@@ -161,7 +161,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     actorUserId,
     payload: {
       requestType: switchRequest.request_type,
-      cancellation_requested: subtype === 'C',
+      cancellation_requested: false,
       move_in: subtype === 'LK',
       transactionSubtype: subtype,
       reasonForTransaction,
