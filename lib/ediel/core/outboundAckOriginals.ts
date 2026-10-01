@@ -20,7 +20,7 @@ export async function readOutboundAckOriginals(sourceMessageId:string,ackFamily:
   const item=candidate as {status?:unknown;message?:EdielMessageRow;payloadHash?:unknown},m=item.message
   if(!m||!['qualified','held'].includes(String(item.status))||m.direction!=='outbound'||m.message_family!==ackFamily||m.company_id!==result.companyId||m.environment!==result.environment
    ||!m.raw_payload||createHash('sha256').update(m.raw_payload,'utf8').digest('hex')!==item.payloadHash) throw new Error('ediel_existing_ack_original_read_scope_invalid')
-  const correlation=readPhysicalAckSourceCorrelation(m)
+  const correlation=readPhysicalAckSourceCorrelation(m,expectedSource)
   if(correlation.classification.family!==ackFamily) throw new Error('ediel_existing_ack_original_read_scope_invalid')
   return Object.freeze({status:item.status as 'qualified'|'held',message:m,correlation})
  })

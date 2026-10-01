@@ -4,6 +4,7 @@ import {readEdielTechnicalSourceEndpoint} from '@/lib/ediel/ack/technicalSyntaxA
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {findExistingAckForSource,type AckFamily,type AckOutcome} from './ackPolicy'
+import type {ProdatAckObjectScope} from '@/lib/ediel/ack/sourceCorrelation'
 
 /** Read an already fixed physical response before rendering a fresh draft. The
  * actual source hash and active tenant actor qualify this read; neither a
@@ -11,6 +12,7 @@ import {findExistingAckForSource,type AckFamily,type AckOutcome} from './ackPoli
 export async function readExistingAckBeforeDraft(input:{
  actorUserId:string;sourceMessage:EdielMessageRow;ackFamily:AckFamily;outcome?:AckOutcome
  ackScope?:'interchange'|'message'|'transaction'|'object';acknowledgedReferences?:readonly string[]
+ acknowledgedProdatObjects?:readonly ProdatAckObjectScope[]
 }):Promise<EdielMessageRow|null>{
  const source=input.sourceMessage
  if(source.direction!=='inbound'||source.message_standard!=='edifact'||!source.raw_payload)throw new Error('canonical_ack_source_scope_mismatch')
@@ -29,7 +31,7 @@ export async function readExistingAckBeforeDraft(input:{
   ?{companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']}
   :{companyId,actorUserId:input.actorUserId,permission:'communication.write'})
  const existing=await findExistingAckForSource({sourceMessageId:source.id,ackFamily:input.ackFamily,
-  ackScope:input.ackScope,acknowledgedReferences:input.acknowledgedReferences,expectedSource:source,expectedTechnicalCompanyId})
+  ackScope:input.ackScope,acknowledgedReferences:input.acknowledgedReferences,acknowledgedProdatObjects:input.acknowledgedProdatObjects,expectedSource:source,expectedTechnicalCompanyId})
  const requested=input.ackFamily==='UTILTS_ERR'?'negative':input.outcome
  if(existing&&requested&&existing.ack_outcome!==requested)throw new Error('blocked_final_ack_exists: Originalets ACK-utfall är oföränderligt.')
  return existing
