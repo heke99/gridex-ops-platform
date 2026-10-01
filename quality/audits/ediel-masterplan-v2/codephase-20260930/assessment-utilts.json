@@ -152,17 +152,30 @@
       "lib/ediel/flows/inboundProcessing.ts",
       "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
       "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql",
-      "__tests__/ediel-inbound-own-source-coordinator.test.ts"
+      "__tests__/ediel-inbound-own-source-coordinator.test.ts",
+      "lib/ediel/core/physicalDocumentReference.ts",
+      "lib/ediel/utilts/physicalReference.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionContract.ts",
+      "__tests__/ediel-utilts-aperak-physical-document.test.ts",
+      "supabase/migrations/20261001051413_ediel_utilts_aperak_dm_source_capacity.sql",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "__tests__/ediel-utilts-own-505-admission.test.ts",
+      "scripts/ediel-utilts-aperak-dm-capacity-sql-regression.mjs",
+      "scripts/ediel-utilts-rejected-reference-sql-regression.mjs",
+      "supabase/migrations/20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql"
     ],
-    "confirmed_code_gap": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
+    "confirmed_code_gap": "Corrected actual U APERAK DOC A503/A504 copy through one shared physical BGM observation, exact UNA decoding and output escaping; observed negative A505/ACW references retain their source bytes up to70 while positive own505 remains strict35. A906 ownDM retains generated parent entropy and every actual namespace/ordinaryU/receivedERR native consumer uses the same immutable national70 source projection. Genuine perIDE APP505 rejection persists through zero-effect V3 diagnostics only; V1/V2 fixed contracts, original scopes and final ACKs remain immutable.",
     "blockers": [],
     "planned_tests": [
       "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id.",
       "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
       "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
-      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance.",
+      "Final native: own35 acceptedV2 and own36/70 national42/505 rejectedV3 in one full-source batch; exactly one eligible V2 series/contract, no rejected observations/billing, same immutable own ACKs and source-bound V1/V2 retries.",
+      "Final native: generated own DM37/70 is valid only for exact U-APERAK profile; DM71 and wrong profile held; original ACW/DOC bytes preserve alternate UNA/released punctuation without positive invalid505 admission."
     ],
-    "assessment": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
+    "assessment": "Fresh literal U-APERAK requirement reviewed against actual source-aware draft/render/preflight/canonical/native CREATE/SEND paths. Root integrated f40575f8/86bb049b/6e0e21b4/9b0d48bd. Mixed positives/negatives retain separate own responses and header rejection does not invent ACW. Native DM20 and V3 34 declared mechanics plus108 scoped TS tests passed; broad/final native/concurrency/legal/generated parity proofs remain NOT_RUN.",
     "normative_source": "U §5.3–5.5",
     "exact_requirement": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id.",
     "commits": [
@@ -181,11 +194,16 @@
       "ceeac5c9",
       "e864cac1",
       "fcd09c684fdae2f0622e40d326f1b113af40d0db",
-      "33e15dca"
+      "33e15dca",
+      "fd9f2b0add854a249c052e70546e7c74aa74efde",
+      "a5380a6ef64d426bb51cf8091a066bac731fea2c",
+      "dc37b7b7",
+      "58690403",
+      "9837c8b4358ccd93b8ba6438fff7ec0c88f8ea70"
     ],
     "applies_to": "APERAK på UTILTS",
     "prohibited_effect": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
-    "current_code_review_checkpoint": "8e2ecbfdd89327dcf1df9eeeb0d6bc99a1ec6b69",
+    "current_code_review_checkpoint": "5a6a9285",
     "review_scope": "Exact literal owned criterion and actual source owner/consumer paths; multi-owner integration acceptance and external activation remain separate. This review changes no frozen requirement or formal acceptance status."
   },
   {
@@ -643,17 +661,28 @@
       "lib/ediel/utilts/consumptionPreparation.ts",
       "lib/ediel/utilts/meteringObservationParser.ts",
       "lib/ediel/flows/utiltsDataRequest.part-2.ts",
-      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "lib/ediel/core/physicalDocumentReference.ts",
+      "lib/ediel/utilts/physicalReference.ts",
+      "__tests__/ediel-utilts-aperak-physical-document.test.ts",
+      "supabase/migrations/20261001051413_ediel_utilts_aperak_dm_source_capacity.sql",
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "__tests__/ediel-utilts-own-505-admission.test.ts",
+      "scripts/ediel-utilts-aperak-dm-capacity-sql-regression.mjs",
+      "scripts/ediel-utilts-rejected-reference-sql-regression.mjs",
+      "supabase/migrations/20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql"
     ],
-    "confirmed_code_gap": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
+    "confirmed_code_gap": "Corrected transient default-alphabet consumers to use the same physical tokenizer/ownIDE/SEQ observations without changing retained raw/AST. Actual runtime and canonical invocation now share existing own505 shape authority and exact APP42/505 occurrence before FUNCTION. A distinct V3 diagnostic carries only the invalid own source national rejection with no observations, metering or billing writes; mixed acceptedV2 siblings retain their own exact quantities and immutable consumption contracts.",
     "blockers": [],
     "planned_tests": [
       "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp.",
       "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
       "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
-      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance.",
+      "Final native: own35 acceptedV2 and own36/70 national42/505 rejectedV3 in one full-source batch; exactly one eligible V2 series/contract, no rejected observations/billing, same immutable own ACKs and source-bound V1/V2 retries.",
+      "Final native: generated own DM37/70 is valid only for exact U-APERAK profile; DM71 and wrong profile held; original ACW/DOC bytes preserve alternate UNA/released punctuation without positive invalid505 admission."
     ],
-    "assessment": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
+    "assessment": "Fresh literal transaction/SEQ preservation requirement reviewed in actual parser/runtime/canonical ownfacet/preparation/native bound owner and consumers. Exact membership/rawhash/latest COMMITTED own outcome is required; no first LOC/QTY or sibling reference supplies authority. Root integrated 9b0d48bd.108 scoped TS and34 declared PG mechanics passed, including source/tenant mismatch, zero V3 effects, immutable V1 negative replay and genuine V2 sibling; broad/final native/concurrency proofs remain NOT_RUN.",
     "normative_source": "U §2,3.8–3.9",
     "exact_requirement": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp.",
     "commits": [
@@ -662,11 +691,16 @@
       "7230bc65",
       "c1aff819",
       "9088317c",
-      "5b553041"
+      "5b553041",
+      "fd9f2b0add854a249c052e70546e7c74aa74efde",
+      "a5380a6ef64d426bb51cf8091a066bac731fea2c",
+      "dc37b7b7",
+      "58690403",
+      "9837c8b4358ccd93b8ba6438fff7ec0c88f8ea70"
     ],
     "applies_to": "Samtliga UTILTS",
     "prohibited_effect": "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
-    "current_code_review_checkpoint": "8e2ecbfdd89327dcf1df9eeeb0d6bc99a1ec6b69",
+    "current_code_review_checkpoint": "5a6a9285",
     "review_scope": "Exact literal owned criterion and actual source owner/consumer paths; multi-owner integration acceptance and external activation remain separate. This review changes no frozen requirement or formal acceptance status."
   },
   {
@@ -2521,17 +2555,30 @@
       "lib/ediel/flows/inboundProcessing.ts",
       "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
       "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql",
-      "__tests__/ediel-inbound-own-source-coordinator.test.ts"
+      "__tests__/ediel-inbound-own-source-coordinator.test.ts",
+      "lib/ediel/core/physicalDocumentReference.ts",
+      "lib/ediel/utilts/physicalReference.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionContract.ts",
+      "__tests__/ediel-utilts-aperak-physical-document.test.ts",
+      "supabase/migrations/20261001051413_ediel_utilts_aperak_dm_source_capacity.sql",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "__tests__/ediel-utilts-own-505-admission.test.ts",
+      "scripts/ediel-utilts-aperak-dm-capacity-sql-regression.mjs",
+      "scripts/ediel-utilts-rejected-reference-sql-regression.mjs",
+      "supabase/migrations/20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql"
     ],
-    "confirmed_code_gap": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
+    "confirmed_code_gap": "Corrected actual U APERAK DOC A503/A504 copy through one shared physical BGM observation, exact UNA decoding and output escaping; observed negative A505/ACW references retain their source bytes up to70 while positive own505 remains strict35. A906 ownDM retains generated parent entropy and every actual namespace/ordinaryU/receivedERR native consumer uses the same immutable national70 source projection. Genuine perIDE APP505 rejection persists through zero-effect V3 diagnostics only; V1/V2 fixed contracts, original scopes and final ACKs remain immutable.",
     "blockers": [],
     "planned_tests": [
       "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
       "Forbidden effect: Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
       "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
-      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance.",
+      "Final native: own35 acceptedV2 and own36/70 national42/505 rejectedV3 in one full-source batch; exactly one eligible V2 series/contract, no rejected observations/billing, same immutable own ACKs and source-bound V1/V2 retries.",
+      "Final native: generated own DM37/70 is valid only for exact U-APERAK profile; DM71 and wrong profile held; original ACW/DOC bytes preserve alternate UNA/released punctuation without positive invalid505 admission."
     ],
-    "assessment": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
+    "assessment": "Fresh literal U-APERAK requirement reviewed against actual source-aware draft/render/preflight/canonical/native CREATE/SEND paths. Root integrated f40575f8/86bb049b/6e0e21b4/9b0d48bd. Mixed positives/negatives retain separate own responses and header rejection does not invent ACW. Native DM20 and V3 34 declared mechanics plus108 scoped TS tests passed; broad/final native/concurrency/legal/generated parity proofs remain NOT_RUN.",
     "exact_expected": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
     "exact_prohibited": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
     "commits": [
@@ -2550,13 +2597,18 @@
       "ceeac5c9",
       "e864cac1",
       "fcd09c684fdae2f0622e40d326f1b113af40d0db",
-      "33e15dca"
+      "33e15dca",
+      "fd9f2b0add854a249c052e70546e7c74aa74efde",
+      "a5380a6ef64d426bb51cf8091a066bac731fea2c",
+      "dc37b7b7",
+      "58690403",
+      "9837c8b4358ccd93b8ba6438fff7ec0c88f8ea70"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-03",
     "exact_requirement": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
     "given": "APERAK på UTILTS",
     "prohibited_effect": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
-    "current_code_review_checkpoint": "8e2ecbfdd89327dcf1df9eeeb0d6bc99a1ec6b69",
+    "current_code_review_checkpoint": "5a6a9285",
     "review_scope": "Exact literal owned criterion and actual source owner/consumer paths; multi-owner integration acceptance and external activation remain separate. This review changes no frozen requirement or formal acceptance status."
   },
   {
@@ -3052,17 +3104,28 @@
       "lib/ediel/utilts/consumptionPreparation.ts",
       "lib/ediel/utilts/meteringObservationParser.ts",
       "lib/ediel/flows/utiltsDataRequest.part-2.ts",
-      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "lib/ediel/core/physicalDocumentReference.ts",
+      "lib/ediel/utilts/physicalReference.ts",
+      "__tests__/ediel-utilts-aperak-physical-document.test.ts",
+      "supabase/migrations/20261001051413_ediel_utilts_aperak_dm_source_capacity.sql",
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "__tests__/ediel-utilts-own-505-admission.test.ts",
+      "scripts/ediel-utilts-aperak-dm-capacity-sql-regression.mjs",
+      "scripts/ediel-utilts-rejected-reference-sql-regression.mjs",
+      "supabase/migrations/20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql"
     ],
-    "confirmed_code_gap": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
+    "confirmed_code_gap": "Corrected transient default-alphabet consumers to use the same physical tokenizer/ownIDE/SEQ observations without changing retained raw/AST. Actual runtime and canonical invocation now share existing own505 shape authority and exact APP42/505 occurrence before FUNCTION. A distinct V3 diagnostic carries only the invalid own source national rejection with no observations, metering or billing writes; mixed acceptedV2 siblings retain their own exact quantities and immutable consumption contracts.",
     "blockers": [],
     "planned_tests": [
       "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
       "Forbidden effect: Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
       "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
-      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance.",
+      "Final native: own35 acceptedV2 and own36/70 national42/505 rejectedV3 in one full-source batch; exactly one eligible V2 series/contract, no rejected observations/billing, same immutable own ACKs and source-bound V1/V2 retries.",
+      "Final native: generated own DM37/70 is valid only for exact U-APERAK profile; DM71 and wrong profile held; original ACW/DOC bytes preserve alternate UNA/released punctuation without positive invalid505 admission."
     ],
-    "assessment": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
+    "assessment": "Fresh literal transaction/SEQ preservation requirement reviewed in actual parser/runtime/canonical ownfacet/preparation/native bound owner and consumers. Exact membership/rawhash/latest COMMITTED own outcome is required; no first LOC/QTY or sibling reference supplies authority. Root integrated 9b0d48bd.108 scoped TS and34 declared PG mechanics passed, including source/tenant mismatch, zero V3 effects, immutable V1 negative replay and genuine V2 sibling; broad/final native/concurrency proofs remain NOT_RUN.",
     "exact_expected": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
     "exact_prohibited": "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
     "commits": [
@@ -3071,13 +3134,18 @@
       "7230bc65",
       "c1aff819",
       "9088317c",
-      "5b553041"
+      "5b553041",
+      "fd9f2b0add854a249c052e70546e7c74aa74efde",
+      "a5380a6ef64d426bb51cf8091a066bac731fea2c",
+      "dc37b7b7",
+      "58690403",
+      "9837c8b4358ccd93b8ba6438fff7ec0c88f8ea70"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-U-02",
     "exact_requirement": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
     "given": "Samtliga UTILTS",
     "prohibited_effect": "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
-    "current_code_review_checkpoint": "8e2ecbfdd89327dcf1df9eeeb0d6bc99a1ec6b69",
+    "current_code_review_checkpoint": "5a6a9285",
     "review_scope": "Exact literal owned criterion and actual source owner/consumer paths; multi-owner integration acceptance and external activation remain separate. This review changes no frozen requirement or formal acceptance status."
   },
   {

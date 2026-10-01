@@ -16,25 +16,38 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": "P §3; U §5.2",
     "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
     "exact_expected": "Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
     "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
       "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -53,27 +66,40 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "P §3; U §5.2"
     ],
     "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
     "exact_expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
     "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
       "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -92,10 +118,13 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -104,17 +133,27 @@
     "exact_requirement": "23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
     "exact_expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
       "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -133,10 +172,13 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -145,17 +187,27 @@
     "exact_requirement": "23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
     "exact_expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
       "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -174,10 +226,13 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -186,17 +241,27 @@
     "exact_requirement": "23-DDQ-PRODAT; BGM=Z05; fält223=Z22; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
     "exact_expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z22; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "23-DDQ-PRODAT; BGM=Z05; fält223=Z22; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
       "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -215,10 +280,13 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -227,17 +295,27 @@
     "exact_requirement": "23-DDQ-PRODAT; BGM=Z05; fält223=Z23; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
     "exact_expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z23; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "23-DDQ-PRODAT; BGM=Z05; fält223=Z23; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
       "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -256,10 +334,13 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -268,17 +349,27 @@
     "exact_requirement": "23-DGI-PRODAT; BGM=Z14; fält223=S17; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
     "exact_expected": "23-DGI-PRODAT; BGM=Z14; fält223=S17; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "23-DGI-PRODAT; BGM=Z14; fält223=S17; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
       "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -297,10 +388,13 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -309,17 +403,27 @@
     "exact_requirement": "23-DGI-PRODAT; BGM=Z14; fält223=S18; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
     "exact_expected": "23-DGI-PRODAT; BGM=Z14; fält223=S18; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "23-DGI-PRODAT; BGM=Z14; fält223=S18; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
       "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
   },
   {
     "ids": [
@@ -338,10 +442,13 @@
       "lib/ediel/sources/receivedSourceOwnerSession.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
       "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
-      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql"
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
     ],
-    "confirmed_code_gap": "Confirmed feasible non-structural partial PRODAT effect gap: inbound coordinator returns on any own APP-bad sibling; normal/regulatory supply and permission native owners require whole globalAPP/decoder. For canonical globalFUNCTION accepted and complete good ownAPP, valid own Z04/Z05/Z14 source/business scope is suppressed. Initial national own-positive ACK can be emitted before its actual effect. Source P85–87 permits own correct installations with erroneous siblings; native needs complete applied/held partition, independent exact own source/legal/current relation qualification and real committed own effect receipt. APP/register/nationalACK alone never grants business or positive final response; globallyFUNCTION held stays held absent genuine per-own proof.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -350,16 +457,170 @@
     "exact_requirement": "23-DGI-PRODAT; BGM=Z14; fält223=Z96; CONTRL och APERAK på själva Z14N om korrekt; ingen datarapportering.; Neka berörd begäran; lägg ingen market_permission för åtkomst.",
     "exact_expected": "23-DGI-PRODAT; BGM=Z14; fält223=Z96; CONTRL och APERAK på själva Z14N om korrekt; ingen datarapportering.; Neka berörd begäran; lägg ingen market_permission för åtkomst.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
     ],
     "planned_tests": [
       "23-DGI-PRODAT; BGM=Z14; fält223=Z96; CONTRL och APERAK på själva Z14N om korrekt; ingen datarapportering.; Neka berörd begäran; lägg ingen market_permission för åtkomst.",
       "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "1 correct +1 own APP-rejected Z04/Z05/Z14: correct independent effect commits once, bad/held writes zero; own100 requires previously committed actual effect receipt; national own-negative survives optional effect failure.",
       "Replays retain earlier first own ACK/effects before current rules; tenant/raw/physical scope races fail atomically; no whole business fulfillment inferred from partial effect manifest."
-    ]
+    ],
+    "planned_code_paths": []
+  },
+  {
+    "ids": [
+      "AT-Z15V-ESCO"
+    ],
+    "owner": "/root/matrix_projections; actual supply processes / permission actors_history / coordinator root",
+    "covered_rule_ids": [],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
+    ],
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
+    "normative_source": "docs/ediel/masterplan-v2/registers/acceptance_tests.json#AT-Z15V-ESCO; authentic full P pp85–87 SHA83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "exact_requirement": "ESCO; Datum164, idZ09, status/orsak; får inte avsluta annan tenant eller DDQ-leverans.",
+    "exact_expected": "23-DGI-PRODAT; BGM=Z15; fält223=S17; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
+    "blockers": [
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
+    ],
+    "planned_tests": [
+      "23-DGI-PRODAT; BGM=Z15; fält223=S17; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+      "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "1 qualified own permission +1 APP-rejected sibling: correct V/VH/C owner changes only its independently qualified market permission once, bad/held sibling zero effects, own100 requires real previously committed receipt. V/H/C legal/current correlation and separately revoked tenant grant remain separate unchanged guards.",
+      "Legacy/fixed own ACK first; absent/current-TX/foreign source/effect receipt holds newpositive; actual first physical LIN/fullregister/requested subset maps exactly; no positive from global error absence."
+    ],
+    "planned_code_paths": []
+  },
+  {
+    "ids": [
+      "AT-Z15VH-ESCO"
+    ],
+    "owner": "/root/matrix_projections; actual supply processes / permission actors_history / coordinator root",
+    "covered_rule_ids": [],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
+    ],
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
+    "normative_source": "docs/ediel/masterplan-v2/registers/acceptance_tests.json#AT-Z15VH-ESCO; authentic full P pp85–87 SHA83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "exact_requirement": "ESCO; Datum164, idZ09, status/orsak; får inte avsluta annan tenant eller DDQ-leverans.",
+    "exact_expected": "23-DGI-PRODAT; BGM=Z15; fält223=S18; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
+    "blockers": [
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
+    ],
+    "planned_tests": [
+      "23-DGI-PRODAT; BGM=Z15; fält223=S18; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+      "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "1 qualified own permission +1 APP-rejected sibling: correct V/VH/C owner changes only its independently qualified market permission once, bad/held sibling zero effects, own100 requires real previously committed receipt. V/H/C legal/current correlation and separately revoked tenant grant remain separate unchanged guards.",
+      "Legacy/fixed own ACK first; absent/current-TX/foreign source/effect receipt holds newpositive; actual first physical LIN/fullregister/requested subset maps exactly; no positive from global error absence."
+    ],
+    "planned_code_paths": []
+  },
+  {
+    "ids": [
+      "AT-Z15C-ESCO"
+    ],
+    "owner": "/root/matrix_projections; actual supply processes / permission actors_history / coordinator root",
+    "covered_rule_ids": [],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql"
+    ],
+    "confirmed_code_gap": "Remaining actual coordinator integration for complete own Z04/Z05/Z14/Z15 partitions: C supply, R permission and M final ACK receipt union are integrated, but root must wire continuation from genuine same-invocation full ownAPP+GLOBAL FUNCTION accepted, preserve initial genuine negatives, commit only independent native-qualified business objects, and emit positive own responses only from stored effects. P Z14N genuine null209 facet correction9de7a133 is coherent and reviewed but still awaits root integration; no invented point or scope. Unknown/business-held own objects and globally FUNCTION-held source remain held absent authentic own authority.",
+    "assessment": "Actual integrated 5a6a9285fb3184fb958ddfa64f80e6502e17516d: C1db99f9d/c38c1b59, R426778df/108c86bd, Ma8fc7dd9/20466a23 and physical retainedtuple711500f1/46ce1f36 exist. Real C41+M11 and R61+M11 declared compositions passed; actual root coordinator is currently uncommitted and its own tests/review still pending. This whole consumer component therefore remains REMAINING_CODE_WORK.",
+    "normative_source": "docs/ediel/masterplan-v2/registers/acceptance_tests.json#AT-Z15C-ESCO; authentic full P pp85–87 SHA83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "exact_requirement": "ESCO; Status och datum enligt fältspecifikation; kräver inte generell egen Z18.",
+    "exact_expected": "23-DGI-PRODAT; BGM=Z15; fält223=Z24; CONTRL och APERAK.; Återställ berört market_permission efter rätt korrelation. Återuppliva inte ett separat återkallat tenantåtkomstgrant.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "1db99f9d",
+      "c38c1b59",
+      "426778df",
+      "108c86bd",
+      "a8fc7dd9",
+      "20466a23",
+      "711500f1",
+      "46ce1f36"
+    ],
+    "blockers": [
+      "Root actual partial coordinator and current tests/review in progress; P9de7a133 null209 facet root publication pending.",
+      "Full fixed-candidate native/concurrency/RLS/security/browser/manual proofs and authentic activation grounds NOT_RUN."
+    ],
+    "planned_tests": [
+      "23-DGI-PRODAT; BGM=Z15; fält223=Z24; CONTRL och APERAK.; Återställ berört market_permission efter rätt korrelation. Återuppliva inte ett separat återkallat tenantåtkomstgrant.",
+      "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "1 qualified own permission +1 APP-rejected sibling: correct V/VH/C owner changes only its independently qualified market permission once, bad/held sibling zero effects, own100 requires real previously committed receipt. V/H/C legal/current correlation and separately revoked tenant grant remain separate unchanged guards.",
+      "Legacy/fixed own ACK first; absent/current-TX/foreign source/effect receipt holds newpositive; actual first physical LIN/fullregister/requested subset maps exactly; no positive from global error absence."
+    ],
+    "planned_code_paths": []
   }
 ]

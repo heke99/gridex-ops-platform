@@ -1837,5 +1837,43 @@
     "commits": [
       "6ce90c966dd8f6214dd9c5e7e1cfbb9e4bbe62a5"
     ]
+  },
+  {
+    "ids": [
+      "IMP-02",
+      "AT-IMP-02",
+      "SC-058",
+      "SC-009"
+    ],
+    "owner": "actors_history (integration owner /root; receiver Z01 consumer owner prodat)",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+      "lib/actor-registry/registryMarketSource.ts",
+      "lib/ediel/routeMaterializer.ts",
+      "lib/ediel/core/routeRegistry.ts#assertFreshBusinessRegistryRouteSource",
+      "lib/ediel/flows/prodatCustomerMasterdata.ts#findVerifiedPlatformActorRoute",
+      "app/admin/ediel/actors/actions.ts#verifyPlatformActorForCustomerFlowAction",
+      "app/admin/ediel/route-readiness/actions.ts#verifyActorRouteForManualSendAction",
+      "app/admin/ediel/route-readiness/actions.ts#bulkRouteReadinessByStatusAction",
+      "app/admin/ediel/actors/page.tsx"
+    ],
+    "confirmed_code_gap": "Fresh current actual importer rejected same legal actor EL+GAS in one source and sequential GAS contradicted EL routes/roles; actual materializer/manual/bulk/first-route consumers lacked immutable source market authority. Forward keeps common exact legal actor with independent market/country/roles/full transport route tuples and immutable original/current pointers; GAS retained blocked without changing legacy EL/manual public role. Every mapped current company profile/communication dispatch must match same qualified EL private source, own raw UNB/UNH and separate common-header legal NADDO/MR. Actual materializer uses technical InterchangePartyId, legal receiver port uses original legal PartyId. Existing protected results return before new fresh gate. Z01 downstream source receiver consumption is independently owned prodat; this component does not infer its integration or an authentic mandate.",
+    "blockers": [
+      "Historical NULL market or no prospective immutable qualified source remains held; no market backfill or caller JSON market/selector licence.",
+      "Authentic registry original/authorized technical delegation, versioned owner and G04 production evidence remain unseeded/external. GAS/future capabilities remain blocked.",
+      "Native/full migrations/schema-types/parity/concurrency/authentic registry behavior/E2E deferred; root integrates f7c9d73e after independent U code/spec clear, no formal PASSED."
+    ],
+    "planned_tests": [
+      "Same legal EdielId with EL and GAS in same genuine export preserves both original market/country/roles/technical identifiers and endpoints, one legal actor; selected EL dispatch never uses GAS first/latest/fallback.",
+      "Sequential GAS preserves established EL/manual role and unrelated EL route status/certificate/security/readiness, including historical metadata{}; source omission never manufactures deletion.",
+      "Private original/batch/current pointer plus full actual company profile/comm SMTP address/environment/family/APP/subaddress/technical receiver and ownUNB/UNH+legalDO/MR must match; metadata selector laundering, changed bytes/actor/market/country/route or foreign company held.",
+      "Source legal PartyId differs from InterchangePartyId preserved independently; authentic authority for delegation remains separate; manual verify affects only genuinely qualified EL routeIDs and never grants auto-send.",
+      "Frozen established native provider outcomes and prior importer batch return first without current-market rewrite; fresh new missing/unknown/GAS profile fails before effects/provider; actual service_role→public invoker→guarded owner ACL passes."
+    ],
+    "assessment": "Fresh current importer/native/readiness/dispatch/manual/materializer/selector/UI chain inspected; U bounded independent read reports no remaining Critical/Important.89 embedded actual SQL mechanics (explicit external transport/readiness ports) and34 targeted TS plus lint/parser/diff pass; no authentic/native acceptance claimed.",
+    "commits": [
+      "f7c9d73edd05cd16a9a33794479f90d3bfa335b6"
+    ]
   }
 ]

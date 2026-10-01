@@ -7,28 +7,38 @@
     "covered_rule_ids": [
       "IMP-02"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/actor-registry/importActorRegistry.ts",
-      "app/admin/ediel/actors/actions.ts",
-      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql"
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+      "lib/actor-registry/registryMarketSource.ts",
+      "lib/ediel/routeMaterializer.ts",
+      "lib/ediel/core/routeRegistry.ts#assertFreshBusinessRegistryRouteSource",
+      "lib/ediel/flows/prodatCustomerMasterdata.ts#findVerifiedPlatformActorRoute",
+      "app/admin/ediel/actors/actions.ts#verifyPlatformActorForCustomerFlowAction",
+      "app/admin/ediel/route-readiness/actions.ts#verifyActorRouteForManualSendAction",
+      "app/admin/ediel/route-readiness/actions.ts#bulkRouteReadinessByStatusAction",
+      "app/admin/ediel/actors/page.tsx"
     ],
-    "confirmed_code_gap": "Fresh actual SQL probe confirmed same legal actor EL and GAS entries in one file are rejected as duplicate legalId; sequential GAS import clears existing EL role and holds EL route because materializer/flow/current route dependency omit market. Verification action can bulk activate same actor routes across market. This is source-backed independent code gap, separate from held missing authentic TXT grammar. Root/actors coordinate new forward/shared materializer and actual verification consumers.",
-    "assessment": "New owner read/probe finding after independent parser packet; exact multi-market source contract must remain distinct while legal identity is shared. No false codecomplete from parser or generic source hash.",
+    "confirmed_code_gap": "Fresh current actual importer rejected same legal actor EL+GAS in one source and sequential GAS contradicted EL routes/roles; actual materializer/manual/bulk/first-route consumers lacked immutable source market authority. Forward keeps common exact legal actor with independent market/country/roles/full transport route tuples and immutable original/current pointers; GAS retained blocked without changing legacy EL/manual public role. Every mapped current company profile/communication dispatch must match same qualified EL private source, own raw UNB/UNH and separate common-header legal NADDO/MR. Actual materializer uses technical InterchangePartyId, legal receiver port uses original legal PartyId. Existing protected results return before new fresh gate. Z01 downstream source receiver consumption is independently owned prodat; this component does not infer its integration or an authentic mandate.",
+    "assessment": "Fresh source-owner R market component independently reviewed and integrated; actual current source paths exist at 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4. Fresh current importer/native/readiness/dispatch/manual/materializer/selector/UI chain inspected; U bounded independent read reports no remaining Critical/Important.89 embedded actual SQL mechanics (explicit external transport/readiness ports) and34 targeted TS plus lint/parser/diff pass; no authentic/native acceptance claimed.",
     "normative_source": "T §5; companies.xml",
     "exact_requirement": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp.",
     "exact_expected": "Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
     "exact_prohibited": "Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
-    "commits": [],
+    "commits": [
+      "f7c9d73edd05cd16a9a33794479f90d3bfa335b6"
+    ],
     "blockers": [
-      "Coordinated market-separated atomic import/projection/route verification correction in progress.",
-      "Authentic XML/TXT/cert/native full source proof and broad acceptance NOT_RUN."
+      "Historical NULL market or no prospective immutable qualified source remains held; no market backfill or caller JSON market/selector licence.",
+      "Authentic registry original/authorized technical delegation, versioned owner and G04 production evidence remain unseeded/external. GAS/future capabilities remain blocked.",
+      "Native/full migrations/schema-types/parity/concurrency/authentic registry behavior/E2E deferred; root integrates f7c9d73e after independent U code/spec clear, no formal PASSED."
     ],
     "planned_tests": [
       "Exact expected: Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
       "Exact prohibited: Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
       "Same legalId EL+GAS one batch and sequential import preserve per-market role/routes/evidence; current verification may activate only its proven market scope; native/RLS/replay/full source proof NOT_RUN."
-    ]
+    ],
+    "resolved_by_component_owner": "actors_history; full literal other-owner criteria and final tests remain independent."
   },
   {
     "ids": [
@@ -38,30 +48,40 @@
     "covered_rule_ids": [
       "IMP-02"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/actor-registry/importActorRegistry.ts",
-      "app/admin/ediel/actors/actions.ts",
-      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql"
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+      "lib/actor-registry/registryMarketSource.ts",
+      "lib/ediel/routeMaterializer.ts",
+      "lib/ediel/core/routeRegistry.ts#assertFreshBusinessRegistryRouteSource",
+      "lib/ediel/flows/prodatCustomerMasterdata.ts#findVerifiedPlatformActorRoute",
+      "app/admin/ediel/actors/actions.ts#verifyPlatformActorForCustomerFlowAction",
+      "app/admin/ediel/route-readiness/actions.ts#verifyActorRouteForManualSendAction",
+      "app/admin/ediel/route-readiness/actions.ts#bulkRouteReadinessByStatusAction",
+      "app/admin/ediel/actors/page.tsx"
     ],
-    "confirmed_code_gap": "Fresh actual SQL probe confirmed same legal actor EL and GAS entries in one file are rejected as duplicate legalId; sequential GAS import clears existing EL role and holds EL route because materializer/flow/current route dependency omit market. Verification action can bulk activate same actor routes across market. This is source-backed independent code gap, separate from held missing authentic TXT grammar. Root/actors coordinate new forward/shared materializer and actual verification consumers.",
-    "assessment": "New owner read/probe finding after independent parser packet; exact multi-market source contract must remain distinct while legal identity is shared. No false codecomplete from parser or generic source hash.",
+    "confirmed_code_gap": "Fresh current actual importer rejected same legal actor EL+GAS in one source and sequential GAS contradicted EL routes/roles; actual materializer/manual/bulk/first-route consumers lacked immutable source market authority. Forward keeps common exact legal actor with independent market/country/roles/full transport route tuples and immutable original/current pointers; GAS retained blocked without changing legacy EL/manual public role. Every mapped current company profile/communication dispatch must match same qualified EL private source, own raw UNB/UNH and separate common-header legal NADDO/MR. Actual materializer uses technical InterchangePartyId, legal receiver port uses original legal PartyId. Existing protected results return before new fresh gate. Z01 downstream source receiver consumption is independently owned prodat; this component does not infer its integration or an authentic mandate.",
+    "assessment": "Fresh source-owner R market component independently reviewed and integrated; actual current source paths exist at 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4. Fresh current importer/native/readiness/dispatch/manual/materializer/selector/UI chain inspected; U bounded independent read reports no remaining Critical/Important.89 embedded actual SQL mechanics (explicit external transport/readiness ports) and34 targeted TS plus lint/parser/diff pass; no authentic/native acceptance claimed.",
     "normative_source": [
       "T §5; companies.xml"
     ],
     "exact_requirement": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp. → Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
     "exact_expected": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp. → Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
     "exact_prohibited": "Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
-    "commits": [],
+    "commits": [
+      "f7c9d73edd05cd16a9a33794479f90d3bfa335b6"
+    ],
     "blockers": [
-      "Coordinated market-separated atomic import/projection/route verification correction in progress.",
-      "Authentic XML/TXT/cert/native full source proof and broad acceptance NOT_RUN."
+      "Historical NULL market or no prospective immutable qualified source remains held; no market backfill or caller JSON market/selector licence.",
+      "Authentic registry original/authorized technical delegation, versioned owner and G04 production evidence remain unseeded/external. GAS/future capabilities remain blocked.",
+      "Native/full migrations/schema-types/parity/concurrency/authentic registry behavior/E2E deferred; root integrates f7c9d73e after independent U code/spec clear, no formal PASSED."
     ],
     "planned_tests": [
       "Exact expected: Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp. → Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
       "Exact prohibited: Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
       "Same legalId EL+GAS one batch and sequential import preserve per-market role/routes/evidence; current verification may activate only its proven market scope; native/RLS/replay/full source proof NOT_RUN."
-    ]
+    ],
+    "resolved_by_component_owner": "actors_history; full literal other-owner criteria and final tests remain independent."
   },
   {
     "ids": [
@@ -71,29 +91,39 @@
     "covered_rule_ids": [
       "IMP-02"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/actor-registry/importActorRegistry.ts",
-      "app/admin/ediel/actors/actions.ts",
-      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql"
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+      "lib/actor-registry/registryMarketSource.ts",
+      "lib/ediel/routeMaterializer.ts",
+      "lib/ediel/core/routeRegistry.ts#assertFreshBusinessRegistryRouteSource",
+      "lib/ediel/flows/prodatCustomerMasterdata.ts#findVerifiedPlatformActorRoute",
+      "app/admin/ediel/actors/actions.ts#verifyPlatformActorForCustomerFlowAction",
+      "app/admin/ediel/route-readiness/actions.ts#verifyActorRouteForManualSendAction",
+      "app/admin/ediel/route-readiness/actions.ts#bulkRouteReadinessByStatusAction",
+      "app/admin/ediel/actors/page.tsx"
     ],
-    "confirmed_code_gap": "Fresh actual SQL probe confirmed same legal actor EL and GAS entries in one file are rejected as duplicate legalId; sequential GAS import clears existing EL role and holds EL route because materializer/flow/current route dependency omit market. Verification action can bulk activate same actor routes across market. This is source-backed independent code gap, separate from held missing authentic TXT grammar. Root/actors coordinate new forward/shared materializer and actual verification consumers.",
-    "assessment": "New owner read/probe finding after independent parser packet; exact multi-market source contract must remain distinct while legal identity is shared. No false codecomplete from parser or generic source hash.",
+    "confirmed_code_gap": "Fresh current actual importer rejected same legal actor EL+GAS in one source and sequential GAS contradicted EL routes/roles; actual materializer/manual/bulk/first-route consumers lacked immutable source market authority. Forward keeps common exact legal actor with independent market/country/roles/full transport route tuples and immutable original/current pointers; GAS retained blocked without changing legacy EL/manual public role. Every mapped current company profile/communication dispatch must match same qualified EL private source, own raw UNB/UNH and separate common-header legal NADDO/MR. Actual materializer uses technical InterchangePartyId, legal receiver port uses original legal PartyId. Existing protected results return before new fresh gate. Z01 downstream source receiver consumption is independently owned prodat; this component does not infer its integration or an authentic mandate.",
+    "assessment": "Fresh source-owner R market component independently reviewed and integrated; actual current source paths exist at 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4. Fresh current importer/native/readiness/dispatch/manual/materializer/selector/UI chain inspected; U bounded independent read reports no remaining Critical/Important.89 embedded actual SQL mechanics (explicit external transport/readiness ports) and34 targeted TS plus lint/parser/diff pass; no authentic/native acceptance claimed.",
     "normative_source": [
       "T §5; companies.xml"
     ],
     "exact_requirement": "Använd EL-adressen; GAS är inte reservrutt.",
     "exact_expected": "Använd EL-adressen; GAS är inte reservrutt.",
     "exact_prohibited": "Använd inte en marknadslös sökning som väljer första träffen.",
-    "commits": [],
+    "commits": [
+      "f7c9d73edd05cd16a9a33794479f90d3bfa335b6"
+    ],
     "blockers": [
-      "Coordinated market-separated atomic import/projection/route verification correction in progress.",
-      "Authentic XML/TXT/cert/native full source proof and broad acceptance NOT_RUN."
+      "Historical NULL market or no prospective immutable qualified source remains held; no market backfill or caller JSON market/selector licence.",
+      "Authentic registry original/authorized technical delegation, versioned owner and G04 production evidence remain unseeded/external. GAS/future capabilities remain blocked.",
+      "Native/full migrations/schema-types/parity/concurrency/authentic registry behavior/E2E deferred; root integrates f7c9d73e after independent U code/spec clear, no formal PASSED."
     ],
     "planned_tests": [
       "Exact expected: Använd EL-adressen; GAS är inte reservrutt.",
       "Exact prohibited: Använd inte en marknadslös sökning som väljer första träffen.",
       "Same legalId EL+GAS one batch and sequential import preserve per-market role/routes/evidence; current verification may activate only its proven market scope; native/RLS/replay/full source proof NOT_RUN."
-    ]
+    ],
+    "resolved_by_component_owner": "actors_history; full literal other-owner criteria and final tests remain independent."
   }
 ]

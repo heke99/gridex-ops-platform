@@ -25,7 +25,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "e92fb799",
       "d77c62ca",
@@ -81,9 +81,13 @@
       "supabase/migrations/20261001014726_ediel_customer_life_event_epoch_boundaries.sql",
       "lib/ediel/production/lifeEventCertificationSource.ts",
       "supabase/migrations/20261001023512_ediel_partial_customer_life_event_source_effects.sql",
-      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql"
+      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql",
+      "lib/ediel/testing/tgtCustomerLifeEventSource.ts",
+      "lib/ediel/testing/tgtEdifact.part-4.ts",
+      "lib/ediel/testing/tgtAutopilot.ts",
+      "supabase/migrations/20261001035555_ediel_classified_customer_event_fixture_preparation.sql"
     ],
-    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is being completed (035555), with no business effects. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
+    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is committed035555/9d9fc502 and integrated rootadc0e7ea, including real manual/kernel consumers and exact whole retained validation with zero business effects. The current nullable source loader correctionafc21122 is integrated283e3b23. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
     "blockers": [
       "Actual independent authentic customer-life-event classification/source original and legal approval; nonstandard E requires exact bilateral capability and legal basis. Actual certification original registrations do not contain independent lifeevent classification; verified versioned certification-only owner declaration is still required. None seeded."
     ],
@@ -91,7 +95,7 @@
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
       "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "4031ef7f",
       "0ddddbeb",
@@ -100,7 +104,11 @@
       "c23d6201",
       "e96c8c65",
       "e808c131",
-      "c1deb8e2"
+      "c1deb8e2",
+      "9d9fc502",
+      "adc0e7ea",
+      "afc21122",
+      "283e3b23"
     ],
     "path_review": [
       {
@@ -133,7 +141,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -169,18 +177,24 @@
       "supabase/migrations/20260930204937_ediel_shared_accepted_source_basis.sql",
       "lib/ediel/sources/closureReviewCoverage.ts",
       "lib/ediel/sources/reviewReceivedClosureSource.ts",
-      "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql"
+      "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "lib/ediel/flows/supplyEndFollowup.ts",
+      "supabase/migrations/20261001054018_ediel_supply_end_followup_receipt_command.sql"
     ],
-    "confirmed_code_gap": "Old normal confirmation wrote mutable parsed-date switch/period state separately and future activation lacked immutable source authority. Whole physical source now atomically qualifies every exact original/customer/point/LI/legal-party/contract tuple and freezes own confirmations; source-only proven site normalization closes legacy alias-consumer mismatch. Future activation rechecks that same immutable version at its source-declared market minute/day. Positive ACK status is accepted only with the genuine immutable provider receipt and never approves supply. Primary received-source owner consumes committed native whole-period callbacks. Closure reads preserve initial Z04 source UUID plus exact Z05 end source UUID through the sole current owner.",
+    "confirmed_code_gap": "Old normal confirmation wrote mutable parsed-date switch/period state separately and future activation lacked immutable source authority. Whole physical source now atomically qualifies every exact original/customer/point/LI/legal-party/contract tuple and freezes own confirmations; source-only proven site normalization closes legacy alias-consumer mismatch. Future activation rechecks that same immutable version at its source-declared market minute/day. Positive ACK status is accepted only with the genuine immutable provider receipt and never approves supply. Primary received-source owner consumes committed native whole-period callbacks. Closure reads preserve initial Z04 source UUID plus exact Z05 end source UUID through the sole current owner. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first is implemented3e078025 via authentic committed end-effect command054018; root real receive consumer hook remains its separately owned integration step, with no #422 takeover. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [],
     "planned_tests": [
-      "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races."
+      "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "9c8903cb",
       "ce92322d",
-      "a38a5e91"
+      "a38a5e91",
+      "1db99f9d",
+      "3e078025"
     ],
     "path_review": [
       {
@@ -251,7 +265,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
       "83fd9381",
@@ -290,7 +304,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
       "83fd9381",
@@ -335,7 +349,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
       "83fd9381",
@@ -386,7 +400,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "39184",
       "6b8b1aa2",
@@ -461,7 +475,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f1b66070",
       "0deeee79",
@@ -520,7 +534,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -574,7 +588,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -628,7 +642,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -682,7 +696,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -737,7 +751,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -791,7 +805,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -848,7 +862,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f1b66070",
       "0deeee79",
@@ -907,7 +921,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -961,7 +975,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -1015,7 +1029,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -1066,7 +1080,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -1122,7 +1136,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "d6bd145f",
       "99145496",
@@ -1187,7 +1201,7 @@
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
       "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "2a659207",
       "ccb922af",
@@ -1249,7 +1263,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -1284,7 +1298,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -1333,7 +1347,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "4b0044a7"
     ],
@@ -1379,7 +1393,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -1445,7 +1459,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -1489,7 +1503,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/flows/prodatSwitch.ts",
       "lib/ediel/flows/shared.ts",
@@ -1502,12 +1516,12 @@
       "lib/ediel/production/customerMasterdataSource.ts",
       "lib/cis/db-shared.ts"
     ],
-    "confirmed_code_gap": "Normal actual Z03 allocates all four references before validated intent, uses source-owned renderer/gateway/immutable original and exact current request operation/customer/site/point/payload environment; accepted receipt survives positive ACK projection. Requested217 is bound to an authentic specific signed new-contract declaration (no prior DSO method authority); physical262 uses the same qualified BRP source owner. Registered dated UD preparation/bind/current source ports and native literal/actor/scope fixes are integrated14700/25107/30500/root81b7. Remaining shared consumer dependency: prodat actual literal source-UD producer opt-in/route-context final packet is pending publication/integration; root owns opaque-address WithRegistry/send hook. No residual absent normal source-owner engine.",
+    "confirmed_code_gap": "Normal actual Z03 allocates all four references before validated intent, uses source-owned renderer/gateway/immutable original and exact current request operation/customer/site/point/payload environment; accepted receipt survives positive ACK projection. Requested217 is bound to an authentic specific signed new-contract declaration (no prior DSO method authority); physical262 uses the same qualified BRP source owner. Registered dated UD preparation/bind/current source ports and native literal/actor/scope fixes are integrated14700/25107/30500/root81b7. Actual literal source-UD producer opt-in, route/context qualification and opaque-address WithRegistry/send consumers are now integrated (P28a/root81b, source-owner30500/root0604, P85 fresh review). No remaining normal source-origination publication gap in this owned component; broad fixed-candidate verification and external authentic declarations remain separate.",
     "blockers": [],
     "planned_tests": [
       "Fixed candidate: genuine contract + legal supplier/DSO and actual Z03 L/LK dates; intent-before-render exact UNB/UNH/BGM/LI; direct RPC wrong tenant/request op/physical point held; unchanged old accepted original on replay; whole later Z04 matching; native real schema and concurrency."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "7e22518c",
       "d77c62ca",
@@ -1517,7 +1531,10 @@
       "ef0ecb14",
       "0b65caf1",
       "f41c3d41",
-      "81b7dc8f"
+      "81b7dc8f",
+      "28a",
+      "81b",
+      "30500"
     ],
     "path_review": [
       {
@@ -1581,18 +1598,21 @@
       "supabase/migrations/20260930204937_ediel_shared_accepted_source_basis.sql",
       "lib/ediel/sources/closureReviewCoverage.ts",
       "lib/ediel/sources/reviewReceivedClosureSource.ts",
-      "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql"
+      "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql"
     ],
-    "confirmed_code_gap": "Old normal confirmation wrote mutable parsed-date switch/period state separately and future activation lacked immutable source authority. Whole physical source now atomically qualifies every exact original/customer/point/LI/legal-party/contract tuple and freezes own confirmations; source-only proven site normalization closes legacy alias-consumer mismatch. Future activation rechecks that same immutable version at its source-declared market minute/day. Positive ACK status is accepted only with the genuine immutable provider receipt and never approves supply. Primary received-source owner consumes committed native whole-period callbacks. Closure reads preserve initial Z04 source UUID plus exact Z05 end source UUID through the sole current owner.",
+    "confirmed_code_gap": "Old normal confirmation wrote mutable parsed-date switch/period state separately and future activation lacked immutable source authority. Whole physical source now atomically qualifies every exact original/customer/point/LI/legal-party/contract tuple and freezes own confirmations; source-only proven site normalization closes legacy alias-consumer mismatch. Future activation rechecks that same immutable version at its source-declared market minute/day. Positive ACK status is accepted only with the genuine immutable provider receipt and never approves supply. Primary received-source owner consumes committed native whole-period callbacks. Closure reads preserve initial Z04 source UUID plus exact Z05 end source UUID through the sole current owner. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first remains an allocated new native receipt-command (054018), separate from supplyauthority. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [],
     "planned_tests": [
-      "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races."
+      "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "9c8903cb",
       "ce92322d",
-      "a38a5e91"
+      "a38a5e91",
+      "1db99f9d"
     ],
     "path_review": [
       {
@@ -1664,17 +1684,23 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
-      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql"
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "lib/ediel/flows/supplyEndFollowup.ts",
+      "supabase/migrations/20261001054018_ediel_supply_end_followup_receipt_command.sql"
     ],
-    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained.",
+    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first is implemented3e078025 via authentic committed end-effect command054018; root real receive consumer hook remains its separately owned integration step, with no #422 takeover. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1db99f9d",
+      "3e078025"
     ],
     "path_review": [
       {
@@ -1738,7 +1764,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -1804,7 +1830,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -1848,7 +1874,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/flows/prodatSwitch.ts",
       "lib/ediel/flows/shared.ts",
@@ -1861,12 +1887,12 @@
       "lib/ediel/production/customerMasterdataSource.ts",
       "lib/cis/db-shared.ts"
     ],
-    "confirmed_code_gap": "Normal actual Z03 allocates all four references before validated intent, uses source-owned renderer/gateway/immutable original and exact current request operation/customer/site/point/payload environment; accepted receipt survives positive ACK projection. Requested217 is bound to an authentic specific signed new-contract declaration (no prior DSO method authority); physical262 uses the same qualified BRP source owner. Registered dated UD preparation/bind/current source ports and native literal/actor/scope fixes are integrated14700/25107/30500/root81b7. Remaining shared consumer dependency: prodat actual literal source-UD producer opt-in/route-context final packet is pending publication/integration; root owns opaque-address WithRegistry/send hook. No residual absent normal source-owner engine.",
+    "confirmed_code_gap": "Normal actual Z03 allocates all four references before validated intent, uses source-owned renderer/gateway/immutable original and exact current request operation/customer/site/point/payload environment; accepted receipt survives positive ACK projection. Requested217 is bound to an authentic specific signed new-contract declaration (no prior DSO method authority); physical262 uses the same qualified BRP source owner. Registered dated UD preparation/bind/current source ports and native literal/actor/scope fixes are integrated14700/25107/30500/root81b7. Actual literal source-UD producer opt-in, route/context qualification and opaque-address WithRegistry/send consumers are now integrated (P28a/root81b, source-owner30500/root0604, P85 fresh review). No remaining normal source-origination publication gap in this owned component; broad fixed-candidate verification and external authentic declarations remain separate.",
     "blockers": [],
     "planned_tests": [
       "Fixed candidate: genuine contract + legal supplier/DSO and actual Z03 L/LK dates; intent-before-render exact UNB/UNH/BGM/LI; direct RPC wrong tenant/request op/physical point held; unchanged old accepted original on replay; whole later Z04 matching; native real schema and concurrency."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "7e22518c",
       "d77c62ca",
@@ -1876,7 +1902,10 @@
       "ef0ecb14",
       "0b65caf1",
       "f41c3d41",
-      "81b7dc8f"
+      "81b7dc8f",
+      "28a",
+      "81b",
+      "30500"
     ],
     "path_review": [
       {
@@ -1940,18 +1969,21 @@
       "supabase/migrations/20260930204937_ediel_shared_accepted_source_basis.sql",
       "lib/ediel/sources/closureReviewCoverage.ts",
       "lib/ediel/sources/reviewReceivedClosureSource.ts",
-      "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql"
+      "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql"
     ],
-    "confirmed_code_gap": "Old normal confirmation wrote mutable parsed-date switch/period state separately and future activation lacked immutable source authority. Whole physical source now atomically qualifies every exact original/customer/point/LI/legal-party/contract tuple and freezes own confirmations; source-only proven site normalization closes legacy alias-consumer mismatch. Future activation rechecks that same immutable version at its source-declared market minute/day. Positive ACK status is accepted only with the genuine immutable provider receipt and never approves supply. Primary received-source owner consumes committed native whole-period callbacks. Closure reads preserve initial Z04 source UUID plus exact Z05 end source UUID through the sole current owner.",
+    "confirmed_code_gap": "Old normal confirmation wrote mutable parsed-date switch/period state separately and future activation lacked immutable source authority. Whole physical source now atomically qualifies every exact original/customer/point/LI/legal-party/contract tuple and freezes own confirmations; source-only proven site normalization closes legacy alias-consumer mismatch. Future activation rechecks that same immutable version at its source-declared market minute/day. Positive ACK status is accepted only with the genuine immutable provider receipt and never approves supply. Primary received-source owner consumes committed native whole-period callbacks. Closure reads preserve initial Z04 source UUID plus exact Z05 end source UUID through the sole current owner. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first remains an allocated new native receipt-command (054018), separate from supplyauthority. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [],
     "planned_tests": [
-      "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races."
+      "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "9c8903cb",
       "ce92322d",
-      "a38a5e91"
+      "a38a5e91",
+      "1db99f9d"
     ],
     "path_review": [
       {
@@ -2023,17 +2055,23 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
-      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql"
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "lib/ediel/flows/supplyEndFollowup.ts",
+      "supabase/migrations/20261001054018_ediel_supply_end_followup_receipt_command.sql"
     ],
-    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained.",
+    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first is implemented3e078025 via authentic committed end-effect command054018; root real receive consumer hook remains its separately owned integration step, with no #422 takeover. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1db99f9d",
+      "3e078025"
     ],
     "path_review": [
       {
@@ -2095,7 +2133,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "aac69429",
       "f04995f4",
@@ -2153,19 +2191,22 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
-      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql"
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql"
     ],
-    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained.",
+    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first remains an allocated new native receipt-command (054018), separate from supplyauthority. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [
       "Already executed cancellation effect requires authorized controlled compensation, not arbitrary destructive rollback."
     ],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1db99f9d"
     ],
     "path_review": [
       {
@@ -2221,17 +2262,23 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
-      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql"
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "lib/ediel/flows/supplyEndFollowup.ts",
+      "supabase/migrations/20261001054018_ediel_supply_end_followup_receipt_command.sql"
     ],
-    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained.",
+    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first is implemented3e078025 via authentic committed end-effect command054018; root real receive consumer hook remains its separately owned integration step, with no #422 takeover. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1db99f9d",
+      "3e078025"
     ],
     "path_review": [
       {
@@ -2287,19 +2334,22 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
-      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql"
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql"
     ],
-    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained.",
+    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first remains an allocated new native receipt-command (054018), separate from supplyauthority. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [
       "A/D actual regulated mandates/decision/registry and source legal basis are unseeded; old unauthenticated history remains held."
     ],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1db99f9d"
     ],
     "path_review": [
       {
@@ -2355,19 +2405,22 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/supplyMarketTransition.ts",
-      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql"
+      "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql"
     ],
-    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained.",
+    "confirmed_code_gap": "Actual immutable whole source transition and native current state/own original correlation replaces generic legacy mutation; no ACK prerequisite for accepted business response; chronological own scopes and history retained. Newly confirmed whole-APP bad-sibling suppression is corrected by actual normal/regulated/end/C own effects in1db99f9d: complete physical ownAPPaccepted +unchanged globalFUNCaccepted +independent original/legal/contract/business qualification; immutable applied/held partition and real COMMITTED final receipt. Root/M actual coordinator/final reply integration is source-owned; ancillary final-metering/billing operationalcase after rootapply-first remains an allocated new native receipt-command (054018), separate from supplyauthority. No blanket partial-functional approval or legacy-first-row mutation.",
     "blockers": [
       "A/D actual regulated mandates/decision/registry and source legal basis are unseeded; old unauthenticated history remains held."
     ],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "Fixed candidate: complete mixed own-supply partition with two accepted installations, bad national sibling, independently business-held sibling; no first-row hint exclusion; same canonical UUID/global function, original point agency, source cohort drift, rollback, actual end/cancellation/restoration; COMMITTED own effect before100 and idempotent final-metering case after business commit."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "a9737c7d",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1db99f9d"
     ],
     "path_review": [
       {
@@ -2431,7 +2484,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -2491,7 +2544,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -2551,7 +2604,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -2611,7 +2664,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -2672,7 +2725,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [],
     "path_review": [
       {
@@ -2732,9 +2785,13 @@
       "supabase/migrations/20261001014726_ediel_customer_life_event_epoch_boundaries.sql",
       "lib/ediel/production/lifeEventCertificationSource.ts",
       "supabase/migrations/20261001023512_ediel_partial_customer_life_event_source_effects.sql",
-      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql"
+      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql",
+      "lib/ediel/testing/tgtCustomerLifeEventSource.ts",
+      "lib/ediel/testing/tgtEdifact.part-4.ts",
+      "lib/ediel/testing/tgtAutopilot.ts",
+      "supabase/migrations/20261001035555_ediel_classified_customer_event_fixture_preparation.sql"
     ],
-    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is being completed (035555), with no business effects. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
+    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is committed035555/9d9fc502 and integrated rootadc0e7ea, including real manual/kernel consumers and exact whole retained validation with zero business effects. The current nullable source loader correctionafc21122 is integrated283e3b23. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
     "blockers": [
       "Actual independent authentic customer-life-event classification/source original and legal approval; nonstandard E requires exact bilateral capability and legal basis. Actual certification original registrations do not contain independent lifeevent classification; verified versioned certification-only owner declaration is still required. None seeded."
     ],
@@ -2742,7 +2799,7 @@
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
       "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "4031ef7f",
       "0ddddbeb",
@@ -2751,7 +2808,11 @@
       "c23d6201",
       "e96c8c65",
       "e808c131",
-      "c1deb8e2"
+      "c1deb8e2",
+      "9d9fc502",
+      "adc0e7ea",
+      "afc21122",
+      "283e3b23"
     ],
     "path_review": [
       {
@@ -2815,9 +2876,13 @@
       "supabase/migrations/20261001014726_ediel_customer_life_event_epoch_boundaries.sql",
       "lib/ediel/production/lifeEventCertificationSource.ts",
       "supabase/migrations/20261001023512_ediel_partial_customer_life_event_source_effects.sql",
-      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql"
+      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql",
+      "lib/ediel/testing/tgtCustomerLifeEventSource.ts",
+      "lib/ediel/testing/tgtEdifact.part-4.ts",
+      "lib/ediel/testing/tgtAutopilot.ts",
+      "supabase/migrations/20261001035555_ediel_classified_customer_event_fixture_preparation.sql"
     ],
-    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is being completed (035555), with no business effects. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
+    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is committed035555/9d9fc502 and integrated rootadc0e7ea, including real manual/kernel consumers and exact whole retained validation with zero business effects. The current nullable source loader correctionafc21122 is integrated283e3b23. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
     "blockers": [
       "Actual independent authentic customer-life-event classification/source original and legal approval; nonstandard E requires exact bilateral capability and legal basis. Actual certification original registrations do not contain independent lifeevent classification; verified versioned certification-only owner declaration is still required. None seeded."
     ],
@@ -2825,7 +2890,7 @@
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
       "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "4031ef7f",
       "0ddddbeb",
@@ -2834,7 +2899,11 @@
       "c23d6201",
       "e96c8c65",
       "e808c131",
-      "c1deb8e2"
+      "c1deb8e2",
+      "9d9fc502",
+      "adc0e7ea",
+      "afc21122",
+      "283e3b23"
     ],
     "path_review": [
       {
@@ -2899,7 +2968,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "39184",
       "6b8b1aa2",
@@ -2980,7 +3049,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "805",
       "d4cd",
@@ -3050,7 +3119,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "39184",
       "6b8b1aa2",
@@ -3131,7 +3200,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "805",
       "d4cd",
@@ -3202,7 +3271,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "fd53457a"
     ],
@@ -3278,7 +3347,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "e92fb799",
       "d77c62ca",
@@ -3359,7 +3428,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "39184",
       "6b8b1aa2",
@@ -3446,7 +3515,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3554,7 +3623,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3660,7 +3729,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3769,7 +3838,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3877,7 +3946,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3983,7 +4052,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -4089,7 +4158,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -4195,7 +4264,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -4301,7 +4370,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
+    "assessment": "Fresh literal process component assessment against actual committed source/consumer packages through1db99f9d/673959a9/3e078025 and rootc38c1b59 (2026-10-01). Root/M/R separately owned integration and authentic external grounds remain explicit. Code-ready is not acceptance/native verification or activation.",
     "commits": [
       "f8c2759a",
       "83fd9381",

@@ -7,24 +7,27 @@
     "covered_rule_ids": [
       "TEN-13"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
+      "lib/ediel/core/referenceRegistry.ts",
       "lib/ediel/flows/prodatCustomerMasterdata.ts",
-      "lib/ediel/prodat/compatAdapter.ts",
-      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
       "lib/ediel/intent/renderGateway.ts",
-      "lib/ediel/core/referenceRegistry.ts"
+      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
+      "lib/ediel/prodat/compatAdapter.ts"
     ],
-    "confirmed_code_gap": "Fresh Z01 actual intent→wire gap: both live Z01 intents store document/external reference as UNB+UNH, while actual renderers independently allocate random UNB14 and UNH1. Native exact wire intent binding rejects the prepared original. Source-owned refs must be allocated once before intent and used unchanged by both renderer/gateway; retained originals preserved. Sender-only0d910f4e does not resolve separately pending verified legal receiver source.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Resolved actual Z01 intent/wire mismatch: all four source-owned wire references are allocated once before the validated intent and consumed unchanged by both real renderers/gateway. Genuine old or orphan source-owned originals are read first with current tenant READ and exact frozen source/raw scope; no remint/reset/requeue. UNB14/UNH1/document+LI35 bounds preserve the full UUID/reference authority.",
+    "assessment": "Fresh current actual producer/source review from prodat85rev2 and integrated d1c99b5b6c at 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4; legal sender and source-qualified EL receiver are separate from technical UNB agent. This closes only the recorded Z01 namespace consumer component, not all TEN13 historical issuer proof.",
     "normative_source": "P §2.2,3; U §3.9,5.5; SYS",
     "exact_requirement": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO.",
     "exact_expected": "Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
     "exact_prohibited": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
-    "commits": [],
+    "commits": [
+      "6c0fd978",
+      "d1c99b5b",
+      "0d910f4e"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Broad fixed-candidate native/concurrency/security/browser/manual tests NOT_RUN. Authentic transport mandate/current source registry grounds remain required for activation."
     ],
     "planned_tests": [
       "Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
@@ -41,26 +44,29 @@
     "covered_rule_ids": [
       "TEN-13"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
+      "lib/ediel/core/referenceRegistry.ts",
       "lib/ediel/flows/prodatCustomerMasterdata.ts",
-      "lib/ediel/prodat/compatAdapter.ts",
-      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
       "lib/ediel/intent/renderGateway.ts",
-      "lib/ediel/core/referenceRegistry.ts"
+      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
+      "lib/ediel/prodat/compatAdapter.ts"
     ],
-    "confirmed_code_gap": "Fresh Z01 actual intent→wire gap: both live Z01 intents store document/external reference as UNB+UNH, while actual renderers independently allocate random UNB14 and UNH1. Native exact wire intent binding rejects the prepared original. Source-owned refs must be allocated once before intent and used unchanged by both renderer/gateway; retained originals preserved. Sender-only0d910f4e does not resolve separately pending verified legal receiver source.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Resolved actual Z01 intent/wire mismatch: all four source-owned wire references are allocated once before the validated intent and consumed unchanged by both real renderers/gateway. Genuine old or orphan source-owned originals are read first with current tenant READ and exact frozen source/raw scope; no remint/reset/requeue. UNB14/UNH1/document+LI35 bounds preserve the full UUID/reference authority.",
+    "assessment": "Fresh current actual producer/source review from prodat85rev2 and integrated d1c99b5b6c at 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4; legal sender and source-qualified EL receiver are separate from technical UNB agent. This closes only the recorded Z01 namespace consumer component, not all TEN13 historical issuer proof.",
     "normative_source": [
       "P §2.2,3; U §3.9,5.5; SYS"
     ],
     "exact_requirement": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
     "exact_expected": "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
     "exact_prohibited": "Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
-    "commits": [],
+    "commits": [
+      "6c0fd978",
+      "d1c99b5b",
+      "0d910f4e"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Broad fixed-candidate native/concurrency/security/browser/manual tests NOT_RUN. Authentic transport mandate/current source registry grounds remain required for activation."
     ],
     "planned_tests": [
       "Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
@@ -77,16 +83,16 @@
     "covered_rule_ids": [
       "TEN-05"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
+      "lib/ediel/core/referenceRegistry.ts",
       "lib/ediel/flows/prodatCustomerMasterdata.ts",
-      "lib/ediel/prodat/compatAdapter.ts",
-      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
       "lib/ediel/intent/renderGateway.ts",
-      "lib/ediel/core/referenceRegistry.ts"
+      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
+      "lib/ediel/prodat/compatAdapter.ts"
     ],
-    "confirmed_code_gap": "Fresh Z01 actual intent→wire gap: both live Z01 intents store document/external reference as UNB+UNH, while actual renderers independently allocate random UNB14 and UNH1. Native exact wire intent binding rejects the prepared original. Source-owned refs must be allocated once before intent and used unchanged by both renderer/gateway; retained originals preserved. Sender-only0d910f4e does not resolve separately pending verified legal receiver source.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Resolved actual Z01 intent/wire mismatch: all four source-owned wire references are allocated once before the validated intent and consumed unchanged by both real renderers/gateway. Genuine old or orphan source-owned originals are read first with current tenant READ and exact frozen source/raw scope; no remint/reset/requeue. UNB14/UNH1/document+LI35 bounds preserve the full UUID/reference authority.",
+    "assessment": "Fresh current actual producer/source review from prodat85rev2 and integrated d1c99b5b6c at 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4; legal sender and source-qualified EL receiver are separate from technical UNB agent. This closes only the recorded Z01 namespace consumer component, not all TEN13 historical issuer proof.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -95,10 +101,13 @@
     "exact_requirement": "23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
     "exact_expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "6c0fd978",
+      "d1c99b5b",
+      "0d910f4e"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Broad fixed-candidate native/concurrency/security/browser/manual tests NOT_RUN. Authentic transport mandate/current source registry grounds remain required for activation."
     ],
     "planned_tests": [
       "23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
@@ -115,16 +124,16 @@
     "covered_rule_ids": [
       "TEN-05"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
+      "lib/ediel/core/referenceRegistry.ts",
       "lib/ediel/flows/prodatCustomerMasterdata.ts",
-      "lib/ediel/prodat/compatAdapter.ts",
-      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
       "lib/ediel/intent/renderGateway.ts",
-      "lib/ediel/core/referenceRegistry.ts"
+      "lib/ediel/intent/renderers/facilityLookupZ01.ts",
+      "lib/ediel/prodat/compatAdapter.ts"
     ],
-    "confirmed_code_gap": "Fresh Z01 actual intent→wire gap: both live Z01 intents store document/external reference as UNB+UNH, while actual renderers independently allocate random UNB14 and UNH1. Native exact wire intent binding rejects the prepared original. Source-owned refs must be allocated once before intent and used unchanged by both renderer/gateway; retained originals preserved. Sender-only0d910f4e does not resolve separately pending verified legal receiver source.",
-    "assessment": "Fresh exact source/call-chain review at integrated root bf1aa7e4; confirmed actual code gap, separate from evidence. Independent fixed components remain covered by their other explicit owner reviews.",
+    "confirmed_code_gap": "Resolved actual Z01 intent/wire mismatch: all four source-owned wire references are allocated once before the validated intent and consumed unchanged by both real renderers/gateway. Genuine old or orphan source-owned originals are read first with current tenant READ and exact frozen source/raw scope; no remint/reset/requeue. UNB14/UNH1/document+LI35 bounds preserve the full UUID/reference authority.",
+    "assessment": "Fresh current actual producer/source review from prodat85rev2 and integrated d1c99b5b6c at 20466a238fedd7fb3b6c1ccae5562a5c45dadbf4; legal sender and source-qualified EL receiver are separate from technical UNB agent. This closes only the recorded Z01 namespace consumer component, not all TEN13 historical issuer proof.",
     "normative_source": [
       "T §5.2.3; P §2.1; SYS",
       "P §2.1,2.6",
@@ -133,10 +142,13 @@
     "exact_requirement": "23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
     "exact_expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
     "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
-    "commits": [],
+    "commits": [
+      "6c0fd978",
+      "d1c99b5b",
+      "0d910f4e"
+    ],
     "blockers": [
-      "Allocated source supply (processes), permission (actors_history), final own ACK receipt union (matrix_projections), inbound coordinator (root) package in progress.",
-      "Authentic original/classification/contract/mandate/registry grounds remain held independently; full fixed-candidate native/replay/security/browser/manual proof NOT_RUN."
+      "Broad fixed-candidate native/concurrency/security/browser/manual tests NOT_RUN. Authentic transport mandate/current source registry grounds remain required for activation."
     ],
     "planned_tests": [
       "23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
