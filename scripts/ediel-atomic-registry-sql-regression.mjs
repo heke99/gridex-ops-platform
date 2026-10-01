@@ -19,6 +19,7 @@ try{
  const cert=readFileSync(new URL('20260613100000_actor_auto_readiness_certificates.sql',root),'utf8');await db.exec(cert.slice(cert.indexOf('create table if not exists public.platform_actor_certificates'),cert.indexOf('create unique index')));await db.exec(`CREATE UNIQUE INDEX fixture_cert_key ON platform_actor_certificates(actor_id,environment,purpose,fingerprint_sha256) WHERE fingerprint_sha256 IS NOT NULL`)
  await db.exec(readFileSync(new URL('20260930153118_ediel_actor_legal_identity_name_search_v1.sql',root),'utf8'))
  await db.exec(readFileSync(new URL('20260930172759_ediel_atomic_registry_import_v1.sql',root),'utf8'));checks++
+ const forward=readFileSync(new URL('20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql',root),'utf8');await db.exec(forward.slice(forward.indexOf('CREATE OR REPLACE FUNCTION public.ediel_apply_actor_registry_v1'),forward.indexOf('-- Atomic projection')));
  const first=await apply('SYNTHETIC SOURCE ONE',[actor('21660')]);assert.equal(first.created,1);assert.equal(first.activation,'held_pending_current_source_readiness');checks++
  const replay=await apply('SYNTHETIC SOURCE ONE',[actor('21660')]);assert.equal(replay.reusedExistingRun,true);assert.equal(replay.importRunId,first.importRunId);checks++
  await assert.rejects(apply('SYNTHETIC SOURCE ONE',[actor('99999')]),/normalization_conflict/);checks++
@@ -40,6 +41,16 @@ try{
  await apply('SYNTHETIC CHANGED TECHNICAL ROUTE',[changed])
  const changedRoute=(await db.query(`SELECT status,is_verified,auto_send_allowed FROM platform_actor_routes WHERE party_id='21660'`)).rows[0]
  assert.deepEqual(changedRoute,{status:'needs_review',is_verified:false,auto_send_allowed:false});checks++
+ await db.exec(`UPDATE platform_actor_routes SET is_verified=true,auto_send_allowed=true,status='active' WHERE party_id='21660'`)
+ const moved=actor('21660');moved.routes[0].communicationAddress='new-target@example.invalid'
+ await apply('SYNTHETIC CONTRADICTORY TARGET',[moved])
+ const both=(await db.query(`SELECT communication_address,status,is_verified,auto_send_allowed FROM platform_actor_routes WHERE party_id='21660' ORDER BY communication_address`)).rows
+ assert.equal(both.length,2);assert.ok(both.every(r=>r.status==='needs_review'&&!r.is_verified&&!r.auto_send_allowed));checks++
+ // A separate genuine application does not replace the other application's route.
+ await db.exec(`UPDATE platform_actor_routes SET is_verified=true,auto_send_allowed=true,status='active' WHERE party_id='21660' AND communication_address='new-target@example.invalid'`)
+ const separate=actor('21660');separate.routes[0].applicationReference='OTHER-SOURCE-APP';separate.routes[0].communicationAddress='separate@example.invalid'
+ await apply('SYNTHETIC SEPARATE APPLICATION',[separate])
+ assert.equal((await db.query(`SELECT auto_send_allowed FROM platform_actor_routes WHERE party_id='21660' AND communication_address='new-target@example.invalid'`)).rows[0].auto_send_allowed,true);checks++
  const held=await apply('SYNTHETIC MISSING ID',[actor(null)]);assert.equal(held.conflicts,1);assert.equal(held.created,0);checks++
  await db.exec(`INSERT INTO actor_registry_import_runs(source,source_hash,status) VALUES('legacy',encode(sha256(convert_to('LEGACY SOURCE','UTF8')),'hex'),'running')`)
  await assert.rejects(apply('LEGACY SOURCE',[actor('LEGACY')]),/legacy_run_requires_reconciliation/);checks++
