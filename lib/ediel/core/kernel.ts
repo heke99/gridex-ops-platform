@@ -34,6 +34,10 @@ import {readTechnicalSyntaxAckRoute} from '@/lib/ediel/ack/technicalSyntaxRoute'
 import {readProdatCommonHeaderRejectionEvidence,prepareProdatCommonHeaderNegativeAckWitness} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {readProdatCommonHeaderNegativeAckRoute} from '@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute'
 import {qualifyAiListProspectiveOriginal} from '@/lib/ediel/aiListOrigination'
+import {prepareCustomerLifeEventCertificationDraftContext,prepareCustomerEventTestOriginal,isQualifiedCustomerEventTestOriginal} from '@/lib/ediel/production/lifeEventCertificationSource'
+import {isQualifiedDeathStatusContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {assertFreshBusinessRegistryRouteSource} from '@/lib/ediel/core/routeRegistry'
 import {
   createCanonicalOutboundMessage as createLegacyCanonicalOutboundMessage,
   resolveCanonicalOutboundContext,
@@ -113,6 +117,43 @@ async function assertOutboundPreparationActor(input:{companyId:string;actorUserI
     : {companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
 }
 
+/** An exact registered test original is independent of its diagnostic result.
+ * Read its current classification after the prior-original branch, before the
+ * same national validator. Ordinary business intents retain their own source. */
+async function prepareDraftCustomerEventContext(input:{draft:CreateEdielMessageInput;actorUserId:string;
+  negativeFixture:SourceQualifiedNegativeFixture|null;positiveFixture:SourceQualifiedPositiveFixture|null;
+  context?:DeathStatusValidationContext}):Promise<DeathStatusValidationContext|undefined>{
+  const {draft}=input,fixture=input.negativeFixture??input.positiveFixture
+  if(!fixture||draft.messageFamily!=='PRODAT'||draft.messageCode!=='Z09'||!validateEdifactEnvelope(draft.rawPayload).ok)return input.context
+  if(draft.companyId!==fixture.companyId||draft.environment!=='test'||!draft.rawPayload)
+    throw Error('canonical_customer_event_actual_test_route_required')
+  const original=await prepareCustomerEventTestOriginal({companyId:fixture.companyId,actorUserId:input.actorUserId,runId:fixture.runId,stepNo:fixture.stepNo})
+  if(original===undefined)return input.context
+  if(!isQualifiedCustomerEventTestOriginal(original))throw Error(`canonical_customer_event_independent_classification_held:${original.missing.join(',')}`)
+  if(original.basis.fixtureRegistrationId!==fixture.registrationId||original.rawPayload!==draft.rawPayload
+    ||!draft.communicationRouteId)throw Error('canonical_customer_event_actual_test_route_required')
+  const context=await prepareCustomerLifeEventCertificationDraftContext({companyId:fixture.companyId,actorUserId:input.actorUserId,
+    rawPayload:draft.rawPayload,runId:fixture.runId,stepNo:fixture.stepNo,intentId:draft.intentId??null,routeId:draft.communicationRouteId})
+  if(context===undefined)throw Error('canonical_customer_event_independent_classification_held:actual_preparation_basis_missing')
+  if(!isQualifiedDeathStatusContext(context))throw Error(`canonical_customer_event_independent_classification_held:${context.missing.join(',')}`)
+  if(context.direction!=='outbound'||!context.certification||context.certification.fixtureRegistrationId!==fixture.registrationId
+    ||context.certification.runId!==fixture.runId||context.certification.expectedOutcome!==fixture.expectedOutcome
+    ||JSON.stringify([...context.certification.expectedDiagnosticCodes].sort())!==JSON.stringify([...fixture.expectedDiagnosticCodes].sort()))
+    throw Error('canonical_customer_event_fixture_source_mismatch')
+  return context
+}
+
+async function assertFreshDraftRegistryDispatch(draft:CreateEdielMessageInput){
+  if(!['PRODAT','UTILTS','AI'].includes(draft.messageFamily)||!draft.communicationRouteId||!draft.routeProfileId)return
+  if(!draft.companyId||!['test','production'].includes(draft.environment??''))throw Error('canonical_outbound_registry_scope_required')
+  const {readRegistryDispatchSource}=await import('@/lib/actor-registry/registryMarketSource')
+  const source=await readRegistryDispatchSource({companyId:draft.companyId,communicationRouteId:draft.communicationRouteId,
+    routeProfileId:draft.routeProfileId,environment:draft.environment as 'test'|'production',messageFamily:draft.messageFamily,
+    applicationReference:draft.applicationReference??null})
+  if(source&&(source.wire.interchangePartyId!==draft.receiverEdielId||source.wire.address!==draft.receiverEmail
+    ||source.wire.subaddress!==(draft.receiverSubAddress??null)))throw Error('canonical_outbound_registry_dispatch_mismatch')
+}
+
 /** Prospective test originals are private, byte-bound capabilities. The same
  * native token is consumed alongside the ordinary canonical original seal. */
 async function prepareDraftFixtureWitnesses(input:{actorUserId:string;rawPayload:string;
@@ -178,8 +219,10 @@ export async function createCanonicalOutboundMessage(params: Parameters<typeof c
       duplicateCheck:params.duplicateCheck?{...params.duplicateCheck,messageFamily:draft.messageFamily,
         messageCode:String(draft.messageCode),messageVersion:null}:undefined})
   }
+  const deathStatusContext=await prepareDraftCustomerEventContext({draft,actorUserId,negativeFixture,positiveFixture,context:params.deathStatusContext})
   const snapshot=await assertOutboundDraftAllowedByCanonicalPolicy({draft,messageVersion:draft.messageVersion,
-    negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext,deathStatusContext:params.deathStatusContext,customerMasterdataContext:params.customerMasterdataContext})
+    negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext,deathStatusContext,customerMasterdataContext:params.customerMasterdataContext})
+  await assertFreshDraftRegistryDispatch(draft)
   const evidence=originalValidationEvidence(snapshot)
   if(draft.canonicalRulePackId && draft.canonicalRulePackId!==evidence.rulePackId)throw new Error('canonical_outbound_selected_rule_pack_mismatch')
   const fixtureWitnesses=await prepareDraftFixtureWitnesses({actorUserId,rawPayload:draft.rawPayload,negativeFixture,positiveFixture})
@@ -636,12 +679,15 @@ export async function finalizeCanonicalOutboundDraft(params: {
     testFlag: params.draft.testFlag ?? params.routeContext.actor.testFlag,
   }
 
+  const deathStatusContext=await prepareDraftCustomerEventContext({draft:baseInput,actorUserId,negativeFixture,positiveFixture,context:params.deathStatusContext})
   const rulePackSnapshot = await assertOutboundDraftAllowedByCanonicalPolicy({
     draft: baseInput,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
-    reportingContext: params.reportingContext, dateEventContext: params.dateEventContext, deathStatusContext:params.deathStatusContext,customerMasterdataContext:params.customerMasterdataContext,
+    reportingContext: params.reportingContext, dateEventContext: params.dateEventContext, deathStatusContext,customerMasterdataContext:params.customerMasterdataContext,
     negativeFixture,positiveFixture,
   })
+  await assertFreshBusinessRegistryRouteSource(params.routeContext,messageFamily)
+  await assertFreshDraftRegistryDispatch(baseInput)
   const routeProfileId = sequenceString(baseInput.routeProfileId)
     ?? sequenceString(params.routeContext.routeRuntime?.route_profile_id)
   if (!routeProfileId) {

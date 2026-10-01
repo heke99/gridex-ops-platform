@@ -30,6 +30,8 @@ import { registerEdielFile } from "@/lib/ediel/fileEngine"
 import { getEdielTgtTestCaseByCode } from "@/lib/ediel/testing/tgtRegistry"
 
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact"
+import {buildEdielTgtRegisteredCustomerEventDraft} from '@/lib/ediel/testing/tgtEdifact.part-4'
+import {prepareTgtCustomerEventOriginal,prepareTgtCustomerLifeEventSource} from '@/lib/ediel/testing/tgtCustomerLifeEventSource'
 import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority'
 import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
@@ -863,7 +865,8 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testData:importedTestData ?? getEdielTgtTestDataForCase(testSuite,roleCode,testCaseCode)}) : undefined;
   const reportingBuild=run&&step.family==='PRODAT'&&step.code==='Z13'?await resolveTgtReportingBuildContext({run,stepNo,runtime:systemTestContext}):undefined;
   const registerFacts=reportingBuild?.facts??dateBuild?.facts;
-  const draft = buildEdielTgtDraft({
+  const classifiedOriginal=run?await prepareTgtCustomerEventOriginal({companyId,runId:run.id,stepNo,actorUserId:context.userId,family:step.family,code:step.code}):undefined;
+  const buildParams = {
     actorUserId: context.userId,
     testSuite,
     roleCode,
@@ -873,7 +876,21 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     registerFacts,dateEventContext:dateBuild?.context,reportingContext:reportingBuild?.context,
     testRunId:run?.id ?? null,
     systemTestContext,
-  });
+  };
+  const draft=classifiedOriginal?buildEdielTgtRegisteredCustomerEventDraft(buildParams,classifiedOriginal):buildEdielTgtDraft(buildParams);
+  let deathStatusContext;
+  if(classifiedOriginal&&run){
+    const route=await resolveTgtDateEventRoute(run,step.code,systemTestContext);
+    if(!route.communicationRouteId)throw Error('tgt_customer_event_actual_route_required');
+    if(route.senderId!==draft.messageInput.senderEdielId||route.receiverId!==draft.messageInput.receiverEdielId
+      ||route.senderSubaddress!==(draft.messageInput.senderSubAddress??null)||route.receiverSubaddress!==(draft.messageInput.receiverSubAddress??null)
+      ||route.applicationReference!==draft.messageInput.applicationReference)throw Error('tgt_customer_event_original_route_mismatch');
+    draft.messageInput.communicationRouteId=route.communicationRouteId;
+    draft.messageInput.routeProfileId=route.routeProfileId;
+    draft.messageInput.mailbox=route.mailbox;
+    draft.messageInput.receiverEmail=route.receiverEmail;
+    deathStatusContext=await prepareTgtCustomerLifeEventSource({draft,companyId,runId:run.id,stepNo,actorUserId:context.userId});
+  }
 
   const blockingIssues = draft.validationIssues.filter(
     (issue) => issue.severity === "error",
@@ -898,7 +915,7 @@ export async function createEdielTgtDraftAction(formData: FormData) {
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createCanonicalOutboundMessage({actorUserId:context.userId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context});
+  const message = await createCanonicalOutboundMessage({actorUserId:context.userId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context,deathStatusContext});
 
   if (testRunId) {
     await attachEdielMessageToTestRun({
