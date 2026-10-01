@@ -1,0 +1,99 @@
+[
+  {
+    "ids": [
+      "IMP-02"
+    ],
+    "owner": "actors_history; root integration owner",
+    "covered_rule_ids": [
+      "IMP-02"
+    ],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual SQL probe confirmed same legal actor EL and GAS entries in one file are rejected as duplicate legalId; sequential GAS import clears existing EL role and holds EL route because materializer/flow/current route dependency omit market. Verification action can bulk activate same actor routes across market. This is source-backed independent code gap, separate from held missing authentic TXT grammar. Root/actors coordinate new forward/shared materializer and actual verification consumers.",
+    "assessment": "New owner read/probe finding after independent parser packet; exact multi-market source contract must remain distinct while legal identity is shared. No false codecomplete from parser or generic source hash.",
+    "normative_source": "T §5; companies.xml",
+    "exact_requirement": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp.",
+    "exact_expected": "Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
+    "exact_prohibited": "Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
+    "commits": [],
+    "blockers": [
+      "Coordinated market-separated atomic import/projection/route verification correction in progress.",
+      "Authentic XML/TXT/cert/native full source proof and broad acceptance NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact expected: Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
+      "Exact prohibited: Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
+      "Same legalId EL+GAS one batch and sequential import preserve per-market role/routes/evidence; current verification may activate only its proven market scope; native/RLS/replay/full source proof NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-IMP-02"
+    ],
+    "owner": "actors_history; root integration owner",
+    "covered_rule_ids": [
+      "IMP-02"
+    ],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual SQL probe confirmed same legal actor EL and GAS entries in one file are rejected as duplicate legalId; sequential GAS import clears existing EL role and holds EL route because materializer/flow/current route dependency omit market. Verification action can bulk activate same actor routes across market. This is source-backed independent code gap, separate from held missing authentic TXT grammar. Root/actors coordinate new forward/shared materializer and actual verification consumers.",
+    "assessment": "New owner read/probe finding after independent parser packet; exact multi-market source contract must remain distinct while legal identity is shared. No false codecomplete from parser or generic source hash.",
+    "normative_source": [
+      "T §5; companies.xml"
+    ],
+    "exact_requirement": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp. → Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
+    "exact_expected": "Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp. → Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
+    "exact_prohibited": "Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
+    "commits": [],
+    "blockers": [
+      "Coordinated market-separated atomic import/projection/route verification correction in progress.",
+      "Authentic XML/TXT/cert/native full source proof and broad acceptance NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact expected: Bevara marknad, originalkod, land, roller, teknik/juridik, familj, subadress och transporttyp. → Matcha rätt rutt inom rätt marknad; GAS kan lagras som referens men inte köras i EL-profil.",
+      "Exact prohibited: Slå inte ihop aktörer endast på namn/orgnr eller tappa familjekvalificerare.",
+      "Same legalId EL+GAS one batch and sequential import preserve per-market role/routes/evidence; current verification may activate only its proven market scope; native/RLS/replay/full source proof NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "SC-058"
+    ],
+    "owner": "actors_history; root integration owner",
+    "covered_rule_ids": [
+      "IMP-02"
+    ],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual SQL probe confirmed same legal actor EL and GAS entries in one file are rejected as duplicate legalId; sequential GAS import clears existing EL role and holds EL route because materializer/flow/current route dependency omit market. Verification action can bulk activate same actor routes across market. This is source-backed independent code gap, separate from held missing authentic TXT grammar. Root/actors coordinate new forward/shared materializer and actual verification consumers.",
+    "assessment": "New owner read/probe finding after independent parser packet; exact multi-market source contract must remain distinct while legal identity is shared. No false codecomplete from parser or generic source hash.",
+    "normative_source": [
+      "T §5; companies.xml"
+    ],
+    "exact_requirement": "Använd EL-adressen; GAS är inte reservrutt.",
+    "exact_expected": "Använd EL-adressen; GAS är inte reservrutt.",
+    "exact_prohibited": "Använd inte en marknadslös sökning som väljer första träffen.",
+    "commits": [],
+    "blockers": [
+      "Coordinated market-separated atomic import/projection/route verification correction in progress.",
+      "Authentic XML/TXT/cert/native full source proof and broad acceptance NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact expected: Använd EL-adressen; GAS är inte reservrutt.",
+      "Exact prohibited: Använd inte en marknadslös sökning som väljer första träffen.",
+      "Same legalId EL+GAS one batch and sequential import preserve per-market role/routes/evidence; current verification may activate only its proven market scope; native/RLS/replay/full source proof NOT_RUN."
+    ]
+  }
+]

@@ -8,26 +8,29 @@
     "owner": "processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history",
     "normative_source": "P §2.2,3.3",
     "exact_requirement": "210 XOR211; inte216 i stället. Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation. Båda: P-APERAK40/109; ingen generell157.",
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/flows/prodatProductionContract.ts",
       "lib/ediel/intent/productionContractGateway.ts",
       "lib/ediel/intent/renderers/productionContract.ts",
       "lib/ediel/production/dateEventContext.ts",
-      "supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql"
+      "supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql",
+      "lib/ediel/production/brpFieldSource.ts",
+      "supabase/migrations/20261001011248_ediel_switch_production_brp_source_binding.sql"
     ],
-    "confirmed_code_gap": "Dedicated genuine approved production-contract event, exact92 XOR93 signed/ceased precise-minute renderer/intent/request/private origin and actual source period support are implemented174333. Fresh review found native provider prepare/enter lacked current event-origin qualification and legacy request schema assumptions in shared consumers. Forward221158 now supplies exact native current source/event/point/period/request and phase-specific write vs existing send-union authority after frozen provider replay, plus the real payload.environment check; independent review still open.",
+    "confirmed_code_gap": "Dedicated production signed/ceased precise-minute210 XOR211 source event and native original/current request owner were implemented174333/221158/site232155. Remaining actual physical262 producer/native gap is now corrected ff247698/11248 by the SAME protected BRP source owner; ceased commands retain exact immutable linked signed-start contractual BRP rather than requiring a newly signed active contract. No portal BRP, old provider/ACK truth or invented original is authority.",
     "blockers": [
       "Authentic production signed/ceased event with exact minute, current signed contract hash, explicit original start for cessation and versioned DSO registry SHA/version must be provided by the actual issuer; no approvals/events seeded."
     ],
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "e92fb799",
       "d77c62ca",
-      "211e23bc"
+      "211e23bc",
+      "ff247698"
     ],
     "path_review": [
       {
@@ -50,7 +53,8 @@
         "path": "supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -63,18 +67,41 @@
     "exact_requirement": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar. Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
     "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
-      "lib/ediel/stateMachines/prodatLifecycle.ts",
-      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      "lib/ediel/prodat/prodatDeathStatusAuthority.ts",
+      "lib/ediel/prodat/prodatDeathStatus.ts",
+      "lib/ediel/production/lifeEventSource.ts",
+      "lib/ediel/production/customerLifeEventExport.ts",
+      "lib/ediel/flows/prodatCustomerLifeEvent.ts",
+      "lib/ediel/flows/inboundCustomerLifeEvent.ts",
+      "lib/ediel/sources/customerLifeEventSourceOwner.ts",
+      "lib/ediel/flows/sourceCustomerLifeEventCommit.ts",
+      "supabase/migrations/20260930233247_ediel_customer_life_event_source_authority.sql",
+      "supabase/migrations/20261001010530_ediel_customer_life_event_dated_projection.sql",
+      "supabase/migrations/20261001012053_ediel_customer_life_event_dated_brp_source.sql",
+      "supabase/migrations/20261001014726_ediel_customer_life_event_epoch_boundaries.sql",
+      "lib/ediel/production/lifeEventCertificationSource.ts",
+      "supabase/migrations/20261001023512_ediel_partial_customer_life_event_source_effects.sql",
+      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql"
     ],
-    "confirmed_code_gap": "Source-backed feasible E support remains in implementation: frozen PC-310-Z09 requires known customer_event==death but current pure branch marks all Z09E death; no authentic source-bound live E origination/classification/native first-effect exists, Z06E customer_only structural review is explicitly held. Add opaque fresh private event/whole original context, distinct bankruptcy/nondeath bilateral ground, NAD+UD own customer, desired change journal/event-driven operational task and separate accepted Z06 versioned effects. No unknown/mutable label or wire Z41 alone may establish life event.",
+    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is being completed (035555), with no business effects. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
     "blockers": [
-      "Authentic life event original/evidence and current customer/supply/legal actor/DSO scope, plus explicit legal/bilateral process for nondeath E34; source version/hash and information-known timestamp must come from the actual owner. No approvals/life events seeded."
+      "Actual independent authentic customer-life-event classification/source original and legal approval; nonstandard E requires exact bilateral capability and legal basis. Actual certification original registrations do not contain independent lifeevent classification; verified versioned certification-only owner declaration is still required. None seeded."
     ],
     "planned_tests": [
-      "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
+      "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
+      "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "4031ef7f",
+      "0ddddbeb",
+      "fb1fe84a",
+      "0166f434",
+      "c23d6201",
+      "e96c8c65",
+      "e808c131",
+      "c1deb8e2"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/stateMachines/prodatLifecycle.ts",
@@ -84,7 +111,8 @@
         "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -105,7 +133,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -116,7 +144,8 @@
         "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -147,7 +176,7 @@
     "planned_tests": [
       "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "9c8903cb",
       "ce92322d",
@@ -198,7 +227,8 @@
         "path": "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -221,7 +251,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "83fd9381",
@@ -236,7 +266,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -259,7 +290,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "83fd9381",
@@ -278,7 +309,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -303,7 +335,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "83fd9381",
@@ -326,7 +358,8 @@
         "path": "supabase/migrations/20260930153955_ediel_supply_source_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -336,7 +369,7 @@
     "owner": "processes; root integration owner; P15 assigned prodat; live ESCO origins/grants assigned actors_history",
     "normative_source": "P §2.2; U §3.6.10,3.6.13",
     "exact_requirement": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. Använd rätt mätare, register och produkt för varje tidsperiod. Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/safeApplyReview.ts",
       "lib/ediel/sources/reviewReceivedStructuralSource.ts",
@@ -348,13 +381,17 @@
       "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
       "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql"
     ],
-    "confirmed_code_gap": "Prodat193612/204916/205032 now implements actual source-qualified whole structural/meter/register versioned apply and continuation through the shared immutable supply owner. Prodat owns final literal expected/prohibited assessment and F/G live requested-change origination. Fresh getter review found current_point equal-bounds calls cannot pass the strict interval owner; explicit protected point authority/consumer integration is coordinated and still open. Old scalar/current-status or caller JSON owners remain unavailable.",
+    "confirmed_code_gap": "Own process continuation gap is corrected by sole immutable supply owner normal/regulated current-source proof, explicit at-instant port (no fabricated minute), and actual P15 source-qualified structural transition/receipts. Z06F/G and Z10M route to the same own complete application/function/source/business scope; F/M do not invent missing readings and G does not infer them. Dedicated producer/field/qualified-history components are assessed by prodat; this row closes only the former absent process/at-instant integration, not their independent remaining clauses. Authentic historic baseline or original source gaps stay held.",
     "blockers": [],
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "39184",
+      "6b8b1aa2",
+      "d5da4825"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/safeApplyReview.ts",
@@ -392,7 +429,8 @@
         "path": "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -411,19 +449,24 @@
       "lib/ediel/services/administration.ts",
       "lib/ediel/intent/renderGateway.ts",
       "lib/ediel/intent/renderers/servicePermission.ts",
-      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql"
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/onboarding/infoRequests.ts",
+      "app/admin/customers/[id]/actions.part-3.ts",
+      "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql"
     ],
-    "confirmed_code_gap": "Previously permanently blocked switch Z13/Z18 aliases are replaced by dedicated source-owned ESCO intent/renderer/gateway; assignment tuple coordination, separate legal/transport/beneficiary, pending administrative claims and exact immutable scope version; own Z14 proof and other active assignment gates before shared Z18.",
+    "confirmed_code_gap": "Actual dedicated service origin/intent/gateway/native permission commands and current source/grant/readiness checks are integrated. Manual queueMeteringPermissionForZ13 and customer meter_access now consume the exact linked assignment/current version through the same dedicated source-backed Z13 path; no generic meter_values placeholder or z13_ready reset. Genuine approved/active reuse returns without new Z13/ACK/grant/status; own bound draft crash resumes exact frozen intent/request/message; incompatible or missing old owner remains held. Genuine G04 mandate, customer purposes/217/agreement, DSO/ESCO registry and permission reporting scope remain separate unseeded external grounds.",
     "blockers": [
       "Authentic current approved end-user/DSO/service/downstream/privacy and any separate transport mandate evidence is not manufactured; new claims stay pending/held."
     ],
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
     "commits": [
       "f1b66070",
-      "0deeee79"
+      "0deeee79",
+      "1049dbbd",
+      "99a"
     ],
     "path_review": [
       {
@@ -450,7 +493,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -476,7 +520,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -503,7 +547,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -529,7 +574,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -556,7 +601,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -582,7 +628,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -609,7 +655,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -635,7 +682,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -662,7 +709,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -689,7 +737,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -716,7 +764,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -742,7 +791,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -769,7 +818,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -786,19 +836,24 @@
       "lib/ediel/services/administration.ts",
       "lib/ediel/intent/renderGateway.ts",
       "lib/ediel/intent/renderers/servicePermission.ts",
-      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql"
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/onboarding/infoRequests.ts",
+      "app/admin/customers/[id]/actions.part-3.ts",
+      "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql"
     ],
-    "confirmed_code_gap": "Previously permanently blocked switch Z13/Z18 aliases are replaced by dedicated source-owned ESCO intent/renderer/gateway; assignment tuple coordination, separate legal/transport/beneficiary, pending administrative claims and exact immutable scope version; own Z14 proof and other active assignment gates before shared Z18.",
+    "confirmed_code_gap": "Actual dedicated service origin/intent/gateway/native permission commands and current source/grant/readiness checks are integrated. Manual queueMeteringPermissionForZ13 and customer meter_access now consume the exact linked assignment/current version through the same dedicated source-backed Z13 path; no generic meter_values placeholder or z13_ready reset. Genuine approved/active reuse returns without new Z13/ACK/grant/status; own bound draft crash resumes exact frozen intent/request/message; incompatible or missing old owner remains held. Genuine G04 mandate, customer purposes/217/agreement, DSO/ESCO registry and permission reporting scope remain separate unseeded external grounds.",
     "blockers": [
       "Authentic current approved end-user/DSO/service/downstream/privacy and any separate transport mandate evidence is not manufactured; new claims stay pending/held."
     ],
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
     "commits": [
       "f1b66070",
-      "0deeee79"
+      "0deeee79",
+      "1049dbbd",
+      "99a"
     ],
     "path_review": [
       {
@@ -825,7 +880,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -851,7 +907,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -878,7 +934,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -904,7 +961,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -931,7 +988,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -957,7 +1015,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -984,7 +1042,8 @@
         "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1007,7 +1066,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -1034,7 +1093,8 @@
         "path": "app/api/internal/customer-operations/cron/route.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1062,7 +1122,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "d6bd145f",
       "99145496",
@@ -1097,7 +1157,8 @@
         "path": "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1118,19 +1179,22 @@
       "supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql",
       "supabase/migrations/20260930190449_ediel_recovery_intent_source_gateway.sql"
     ],
-    "confirmed_code_gap": "Common whole negative CONTRL/new-BGM APERAK and exact failed-own-LI/private negative-scope correction, plus verified definite transfer-loss fresh append-only attempt/cursor, are implemented in164804/190449 and root journal hooks. Remaining actual consumer gap being closed in221158: corrected Z03 must append a qualified switch-original receipt and move only the still-unapproved operative pointer before queue. The same forward corrects real outbound_requests payload.environment and current op/site/MP checks. Independent SQL review remains open; no old source/ACK/attempt/outbox reset.",
+    "confirmed_code_gap": "Common genuine whole negative CONTRL/new-BGM APERAK and exact failed own LI correction plus independently proved definite transfer-loss recovery are implemented through private immutable operation/origin/native request/outbox/journal consumers. Prior accepted/partial/unknown attempts/ACKs are never reset; timer expiry never sends. Remaining own actual E-specific consumer gap: a subsequent correction of an already corrected genuine customer-event source needs bounded private recovery alias traversal to its original classified event, preserving each exact original/corrected hash and failed-scope proof. Current first correction is source-qualified and reviewed.",
     "blockers": [
       "Unsupported special PRODAT APERAK correction exceptions require actual frozen-source/original evidence; no invented retry rules. Timers, DSN observations, accepted/partial/unknown transport never authorize resend."
     ],
     "planned_tests": [
-      "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
+      "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions.",
+      "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
     "commits": [
       "2a659207",
       "ccb922af",
       "d77c62ca",
-      "211e23bc"
+      "211e23bc",
+      "e96c8c65",
+      "e808c131"
     ],
     "path_review": [
       {
@@ -1161,7 +1225,8 @@
         "path": "supabase/migrations/20260930190449_ediel_recovery_intent_source_gateway.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1184,7 +1249,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -1195,7 +1260,8 @@
         "path": "lib/ediel/transport/index.part-2.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1218,7 +1284,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "1675946c",
       "c07bcafe",
@@ -1245,7 +1311,8 @@
         "path": "app/api/internal/customer-operations/cron/route.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1266,7 +1333,7 @@
     "planned_tests": [
       "On fixed candidate SHA: tenant-cross-source/direct RPC rejection; actual accepted canonical leaf and raw hash; exact every physical object scope; concurrent replay/row-lock/CAS order; source first effect vs established receipt; business response before ACK; native forward replay/RLS and schema/type parity; UI/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "4b0044a7"
     ],
@@ -1279,7 +1346,8 @@
         "path": "lib/customer-operations/customerCardWorkflow.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1311,7 +1379,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -1346,7 +1414,8 @@
         "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1376,7 +1445,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -1403,7 +1472,8 @@
         "path": "lib/onboarding/inboundEdielLinking.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1419,7 +1489,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/flows/prodatSwitch.ts",
       "lib/ediel/flows/shared.ts",
@@ -1428,18 +1498,26 @@
       "lib/ediel/outbox/sendOutboxItem.ts",
       "lib/ediel/transport/index.part-2.ts",
       "supabase/migrations/20260930213949_ediel_switch_intent_original_source_binding.sql",
-      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql"
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql",
+      "lib/ediel/production/customerMasterdataSource.ts",
+      "lib/cis/db-shared.ts"
     ],
-    "confirmed_code_gap": "Normal live Z03 rendered before intent and never bound the actual operative source. The flow now allocates all four actual wire references before the validated intent; owned gateway renders the same tuple, binds the frozen contract/customer/site/point/LI source natively, then queues. Old accepted/ACK-projected originals replay without rerender/requeue. Current request/source/op mismatch is held. The actual-schema payload.environment replacement is implemented in uncommitted forward221158 and under independent review.",
+    "confirmed_code_gap": "Normal actual Z03 allocates all four references before validated intent, uses source-owned renderer/gateway/immutable original and exact current request operation/customer/site/point/payload environment; accepted receipt survives positive ACK projection. Requested217 is bound to an authentic specific signed new-contract declaration (no prior DSO method authority); physical262 uses the same qualified BRP source owner. Registered dated UD preparation/bind/current source ports and native literal/actor/scope fixes are integrated14700/25107/30500/root81b7. Remaining shared consumer dependency: prodat actual literal source-UD producer opt-in/route-context final packet is pending publication/integration; root owns opaque-address WithRegistry/send hook. No residual absent normal source-owner engine.",
     "blockers": [],
     "planned_tests": [
       "Fixed candidate: genuine contract + legal supplier/DSO and actual Z03 L/LK dates; intent-before-render exact UNB/UNH/BGM/LI; direct RPC wrong tenant/request op/physical point held; unchanged old accepted original on replay; whole later Z04 matching; native real schema and concurrency."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
     "commits": [
       "7e22518c",
       "d77c62ca",
-      "49398405"
+      "49398405",
+      "e100bf7b",
+      "ff247698",
+      "ef0ecb14",
+      "0b65caf1",
+      "f41c3d41",
+      "81b7dc8f"
     ],
     "path_review": [
       {
@@ -1474,7 +1552,8 @@
         "path": "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1509,7 +1588,7 @@
     "planned_tests": [
       "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "9c8903cb",
       "ce92322d",
@@ -1560,7 +1639,8 @@
         "path": "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1591,7 +1671,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "b0bc0b5a"
@@ -1625,7 +1705,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1657,7 +1738,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -1692,7 +1773,8 @@
         "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1722,7 +1804,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -1749,7 +1831,8 @@
         "path": "lib/onboarding/inboundEdielLinking.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1765,7 +1848,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/flows/prodatSwitch.ts",
       "lib/ediel/flows/shared.ts",
@@ -1774,18 +1857,26 @@
       "lib/ediel/outbox/sendOutboxItem.ts",
       "lib/ediel/transport/index.part-2.ts",
       "supabase/migrations/20260930213949_ediel_switch_intent_original_source_binding.sql",
-      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql"
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql",
+      "lib/ediel/production/customerMasterdataSource.ts",
+      "lib/cis/db-shared.ts"
     ],
-    "confirmed_code_gap": "Normal live Z03 rendered before intent and never bound the actual operative source. The flow now allocates all four actual wire references before the validated intent; owned gateway renders the same tuple, binds the frozen contract/customer/site/point/LI source natively, then queues. Old accepted/ACK-projected originals replay without rerender/requeue. Current request/source/op mismatch is held. The actual-schema payload.environment replacement is implemented in uncommitted forward221158 and under independent review.",
+    "confirmed_code_gap": "Normal actual Z03 allocates all four references before validated intent, uses source-owned renderer/gateway/immutable original and exact current request operation/customer/site/point/payload environment; accepted receipt survives positive ACK projection. Requested217 is bound to an authentic specific signed new-contract declaration (no prior DSO method authority); physical262 uses the same qualified BRP source owner. Registered dated UD preparation/bind/current source ports and native literal/actor/scope fixes are integrated14700/25107/30500/root81b7. Remaining shared consumer dependency: prodat actual literal source-UD producer opt-in/route-context final packet is pending publication/integration; root owns opaque-address WithRegistry/send hook. No residual absent normal source-owner engine.",
     "blockers": [],
     "planned_tests": [
       "Fixed candidate: genuine contract + legal supplier/DSO and actual Z03 L/LK dates; intent-before-render exact UNB/UNH/BGM/LI; direct RPC wrong tenant/request op/physical point held; unchanged old accepted original on replay; whole later Z04 matching; native real schema and concurrency."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
     "commits": [
       "7e22518c",
       "d77c62ca",
-      "49398405"
+      "49398405",
+      "e100bf7b",
+      "ff247698",
+      "ef0ecb14",
+      "0b65caf1",
+      "f41c3d41",
+      "81b7dc8f"
     ],
     "path_review": [
       {
@@ -1820,7 +1911,8 @@
         "path": "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1855,7 +1947,7 @@
     "planned_tests": [
       "Fixed candidate: true source original and Z04 before APERAK; multi-object all-or-nothing with exact own LI/customer/point; actual acknowledged provider receipt preserves supply authority; future precise-minute/day activation only at own boundary; changed contract/site tuple held; initial-source/end-source closure UUID continuity; source-owner callback only after native commit; native replay and concurrent races."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "9c8903cb",
       "ce92322d",
@@ -1906,7 +1998,8 @@
         "path": "supabase/migrations/20260930211258_ediel_source_qualified_supply_closure_continuity.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -1937,7 +2030,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "b0bc0b5a"
@@ -1971,7 +2064,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2001,7 +2095,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "aac69429",
       "f04995f4",
@@ -2034,7 +2128,8 @@
         "path": "supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2067,7 +2162,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "b0bc0b5a"
@@ -2101,7 +2196,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2132,7 +2228,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "b0bc0b5a"
@@ -2166,7 +2262,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2199,7 +2296,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "b0bc0b5a"
@@ -2233,7 +2330,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2266,7 +2364,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "a9737c7d",
       "b0bc0b5a"
@@ -2300,7 +2398,8 @@
         "path": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2332,7 +2431,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -2359,7 +2458,8 @@
         "path": "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2391,7 +2491,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -2418,7 +2518,8 @@
         "path": "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2450,7 +2551,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -2477,7 +2578,8 @@
         "path": "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2509,7 +2611,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -2537,7 +2639,8 @@
         "exists": true,
         "review_basis": "actual integrated source-owner dispatch path"
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2569,7 +2672,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [],
     "path_review": [
       {
@@ -2596,7 +2699,8 @@
         "path": "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2614,23 +2718,41 @@
     ],
     "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
-      "lib/ediel/flows/inboundProcessing.ts",
-      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
-      "lib/ediel/stateMachines/prodatLifecycle.ts",
-      "lib/ediel/businessExpectations.ts",
-      "lib/ediel/sla/createAckTimers.ts",
-      "lib/ediel/safeApplyReview.ts",
-      "lib/ediel/prodat/prodatDeathStatus.ts"
+      "lib/ediel/prodat/prodatDeathStatusAuthority.ts",
+      "lib/ediel/prodat/prodatDeathStatus.ts",
+      "lib/ediel/production/lifeEventSource.ts",
+      "lib/ediel/production/customerLifeEventExport.ts",
+      "lib/ediel/flows/prodatCustomerLifeEvent.ts",
+      "lib/ediel/flows/inboundCustomerLifeEvent.ts",
+      "lib/ediel/sources/customerLifeEventSourceOwner.ts",
+      "lib/ediel/flows/sourceCustomerLifeEventCommit.ts",
+      "supabase/migrations/20260930233247_ediel_customer_life_event_source_authority.sql",
+      "supabase/migrations/20261001010530_ediel_customer_life_event_dated_projection.sql",
+      "supabase/migrations/20261001012053_ediel_customer_life_event_dated_brp_source.sql",
+      "supabase/migrations/20261001014726_ediel_customer_life_event_epoch_boundaries.sql",
+      "lib/ediel/production/lifeEventCertificationSource.ts",
+      "supabase/migrations/20261001023512_ediel_partial_customer_life_event_source_effects.sql",
+      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql"
     ],
-    "confirmed_code_gap": "Source-backed feasible E support remains in implementation: frozen PC-310-Z09 requires known customer_event==death but current pure branch marks all Z09E death; no authentic source-bound live E origination/classification/native first-effect exists, Z06E customer_only structural review is explicitly held. Add opaque fresh private event/whole original context, distinct bankruptcy/nondeath bilateral ground, NAD+UD own customer, desired change journal/event-driven operational task and separate accepted Z06 versioned effects. No unknown/mutable label or wire Z41 alone may establish life event.",
+    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is being completed (035555), with no business effects. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
     "blockers": [
-      "Authentic life event original/evidence and current customer/supply/legal actor/DSO scope, plus explicit legal/bilateral process for nondeath E34; source version/hash and information-known timestamp must come from the actual owner. No approvals/life events seeded."
+      "Actual independent authentic customer-life-event classification/source original and legal approval; nonstandard E requires exact bilateral capability and legal basis. Actual certification original registrations do not contain independent lifeevent classification; verified versioned certification-only owner declaration is still required. None seeded."
     ],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "4031ef7f",
+      "0ddddbeb",
+      "fb1fe84a",
+      "0166f434",
+      "c23d6201",
+      "e96c8c65",
+      "e808c131",
+      "c1deb8e2"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/flows/inboundProcessing.ts",
@@ -2660,7 +2782,8 @@
         "path": "lib/ediel/prodat/prodatDeathStatus.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2678,23 +2801,41 @@
     ],
     "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
-      "lib/ediel/flows/inboundProcessing.ts",
-      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
-      "lib/ediel/stateMachines/prodatLifecycle.ts",
-      "lib/ediel/businessExpectations.ts",
-      "lib/ediel/sla/createAckTimers.ts",
-      "lib/ediel/safeApplyReview.ts",
-      "lib/ediel/prodat/prodatDeathStatus.ts"
+      "lib/ediel/prodat/prodatDeathStatusAuthority.ts",
+      "lib/ediel/prodat/prodatDeathStatus.ts",
+      "lib/ediel/production/lifeEventSource.ts",
+      "lib/ediel/production/customerLifeEventExport.ts",
+      "lib/ediel/flows/prodatCustomerLifeEvent.ts",
+      "lib/ediel/flows/inboundCustomerLifeEvent.ts",
+      "lib/ediel/sources/customerLifeEventSourceOwner.ts",
+      "lib/ediel/flows/sourceCustomerLifeEventCommit.ts",
+      "supabase/migrations/20260930233247_ediel_customer_life_event_source_authority.sql",
+      "supabase/migrations/20261001010530_ediel_customer_life_event_dated_projection.sql",
+      "supabase/migrations/20261001012053_ediel_customer_life_event_dated_brp_source.sql",
+      "supabase/migrations/20261001014726_ediel_customer_life_event_epoch_boundaries.sql",
+      "lib/ediel/production/lifeEventCertificationSource.ts",
+      "supabase/migrations/20261001023512_ediel_partial_customer_life_event_source_effects.sql",
+      "supabase/migrations/20261001032824_ediel_independently_classified_customer_event_test_sources.sql"
     ],
-    "confirmed_code_gap": "Source-backed feasible E support remains in implementation: frozen PC-310-Z09 requires known customer_event==death but current pure branch marks all Z09E death; no authentic source-bound live E origination/classification/native first-effect exists, Z06E customer_only structural review is explicitly held. Add opaque fresh private event/whole original context, distinct bankruptcy/nondeath bilateral ground, NAD+UD own customer, desired change journal/event-driven operational task and separate accepted Z06 versioned effects. No unknown/mutable label or wire Z41 alone may establish life event.",
+    "confirmed_code_gap": "Independent incoming classification originals and per-object prospective context receipts now replace the old raw E34/Z41 death inference. Actual same admitted canonical APP+FUNC receipt and exact current plan qualify only good own customer effects; held/rejected/conflicting scopes get no customer version/effect. Full partition manifests, dated immutable customer versions, source-only UD/AI patches and final own-primary response proofs are implemented e96c8c65 + M025115/rootc1deb8e2. Cert-only separately classified workbook support e808c131 is implemented; actual TGT two-phase preparation/null protocol intent consumer is being completed (035555), with no business effects. Remaining feasible own gap: further genuine negative-ACK E correction cycles currently fail original-event lookup through an existing qualified correction alias; implement bounded immutable alias traversal. Missing authentic original classifications/mandates remain external rather than raw-wire guesses.",
     "blockers": [
-      "Authentic life event original/evidence and current customer/supply/legal actor/DSO scope, plus explicit legal/bilateral process for nondeath E34; source version/hash and information-known timestamp must come from the actual owner. No approvals/life events seeded."
+      "Actual independent authentic customer-life-event classification/source original and legal approval; nonstandard E requires exact bilateral capability and legal basis. Actual certification original registrations do not contain independent lifeevent classification; verified versioned certification-only owner declaration is still required. None seeded."
     ],
     "planned_tests": [
-      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
+      "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions.",
+      "On fixed candidate: exact independent classification receipt vs raw E34/Z41; mixed own APP/FUNC accepted+held complete partition; same-customer conflicting fragments; prospective committed primary effect before final100; classification revocation/current-source drift between canonical invocation and effect; genuine multi-cycle correction aliases; cert-only same run/outcome/raw/null intent/route classification with zero customer/business writes."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "4031ef7f",
+      "0ddddbeb",
+      "fb1fe84a",
+      "0166f434",
+      "c23d6201",
+      "e96c8c65",
+      "e808c131",
+      "c1deb8e2"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/flows/inboundProcessing.ts",
@@ -2724,7 +2865,8 @@
         "path": "lib/ediel/prodat/prodatDeathStatus.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2740,7 +2882,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/safeApplyReview.ts",
       "lib/ediel/sources/reviewReceivedStructuralSource.ts",
@@ -2752,13 +2894,17 @@
       "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
       "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql"
     ],
-    "confirmed_code_gap": "Prodat193612/204916/205032 now implements actual source-qualified whole structural/meter/register versioned apply and continuation through the shared immutable supply owner. Prodat owns final literal expected/prohibited assessment and F/G live requested-change origination. Fresh getter review found current_point equal-bounds calls cannot pass the strict interval owner; explicit protected point authority/consumer integration is coordinated and still open. Old scalar/current-status or caller JSON owners remain unavailable.",
+    "confirmed_code_gap": "Own process continuation gap is corrected by sole immutable supply owner normal/regulated current-source proof, explicit at-instant port (no fabricated minute), and actual P15 source-qualified structural transition/receipts. Z06F/G and Z10M route to the same own complete application/function/source/business scope; F/M do not invent missing readings and G does not infer them. Dedicated producer/field/qualified-history components are assessed by prodat; this row closes only the former absent process/at-instant integration, not their independent remaining clauses. Authentic historic baseline or original source gaps stay held.",
     "blockers": [],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "39184",
+      "6b8b1aa2",
+      "d5da4825"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/safeApplyReview.ts",
@@ -2796,7 +2942,8 @@
         "path": "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2812,7 +2959,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/flows/inboundProcessing.ts",
       "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
@@ -2820,17 +2967,26 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/prodatSwitch.ts",
-      "lib/ediel/prodat/prodatDateValidation.ts"
+      "lib/ediel/prodat/prodatDateValidation.ts",
+      "lib/ediel/flows/prodatMeteringMethodChange.ts",
+      "lib/ediel/production/meteringMethodChangeSource.ts",
+      "lib/ediel/intent/meteringMethodChangeGateway.ts",
+      "app/admin/ediel/metering-method-actions.ts"
     ],
-    "confirmed_code_gap": "Canonical fields/subtypes/date validation and TGT fixtures exist but blocked generic Z09 supplier-switch facade is the only live alias; dedicated actual desired-change/BRP source journal+intent producer is absent.",
+    "confirmed_code_gap": "Dedicated live desired metering-method event producer exists: protected authenticated agreement/event and exact current own supply source -> dedicated renderer/intent/gateway/native original/current send -> outbox. It is no longer the blocked generic Z09 switch alias. Exact event217/new agreement, source-only BRP262, source date authority and genuine certification source-kind port are integrated by prodat/authority; processes assessment closes absence of actual process producer only. External genuine agreement/event/registry/qualified historic source remains held; each other owner supplies their exact field/functional/certification component assessment.",
     "blockers": [
       "Authentic requested contract change or versioned BRP owner registry/bilateral source required; no current global BRP projection as historical evidence."
     ],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "805",
+      "d4cd",
+      "b73bb3f1",
+      "075d272b"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/flows/inboundProcessing.ts",
@@ -2860,7 +3016,8 @@
         "path": "lib/ediel/prodat/prodatDateValidation.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2876,7 +3033,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/safeApplyReview.ts",
       "lib/ediel/sources/reviewReceivedStructuralSource.ts",
@@ -2888,13 +3045,17 @@
       "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
       "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql"
     ],
-    "confirmed_code_gap": "Prodat193612/204916/205032 now implements actual source-qualified whole structural/meter/register versioned apply and continuation through the shared immutable supply owner. Prodat owns final literal expected/prohibited assessment and F/G live requested-change origination. Fresh getter review found current_point equal-bounds calls cannot pass the strict interval owner; explicit protected point authority/consumer integration is coordinated and still open. Old scalar/current-status or caller JSON owners remain unavailable.",
+    "confirmed_code_gap": "Own process continuation gap is corrected by sole immutable supply owner normal/regulated current-source proof, explicit at-instant port (no fabricated minute), and actual P15 source-qualified structural transition/receipts. Z06F/G and Z10M route to the same own complete application/function/source/business scope; F/M do not invent missing readings and G does not infer them. Dedicated producer/field/qualified-history components are assessed by prodat; this row closes only the former absent process/at-instant integration, not their independent remaining clauses. Authentic historic baseline or original source gaps stay held.",
     "blockers": [],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "39184",
+      "6b8b1aa2",
+      "d5da4825"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/safeApplyReview.ts",
@@ -2932,7 +3093,8 @@
         "path": "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -2948,7 +3110,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/flows/inboundProcessing.ts",
       "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
@@ -2956,17 +3118,26 @@
       "lib/ediel/businessExpectations.ts",
       "lib/ediel/sla/createAckTimers.ts",
       "lib/ediel/flows/prodatSwitch.ts",
-      "lib/ediel/prodat/prodatDateValidation.ts"
+      "lib/ediel/prodat/prodatDateValidation.ts",
+      "lib/ediel/flows/prodatMeteringMethodChange.ts",
+      "lib/ediel/production/meteringMethodChangeSource.ts",
+      "lib/ediel/intent/meteringMethodChangeGateway.ts",
+      "app/admin/ediel/metering-method-actions.ts"
     ],
-    "confirmed_code_gap": "Canonical fields/subtypes/date validation and TGT fixtures exist but blocked generic Z09 supplier-switch facade is the only live alias; dedicated actual desired-change/BRP source journal+intent producer is absent.",
+    "confirmed_code_gap": "Dedicated live desired metering-method event producer exists: protected authenticated agreement/event and exact current own supply source -> dedicated renderer/intent/gateway/native original/current send -> outbox. It is no longer the blocked generic Z09 switch alias. Exact event217/new agreement, source-only BRP262, source date authority and genuine certification source-kind port are integrated by prodat/authority; processes assessment closes absence of actual process producer only. External genuine agreement/event/registry/qualified historic source remains held; each other owner supplies their exact field/functional/certification component assessment.",
     "blockers": [
       "Authentic requested contract change or versioned BRP owner registry/bilateral source required; no current global BRP projection as historical evidence."
     ],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "805",
+      "d4cd",
+      "b73bb3f1",
+      "075d272b"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/flows/inboundProcessing.ts",
@@ -2996,7 +3167,8 @@
         "path": "lib/ediel/prodat/prodatDateValidation.ts",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3030,7 +3202,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "fd53457a"
     ],
@@ -3067,7 +3239,8 @@
         "path": "supabase/migrations/20260930213308_ediel_brp_positive_test_original_bridge.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3083,7 +3256,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/flows/inboundProcessing.ts",
       "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
@@ -3094,19 +3267,22 @@
       "lib/ediel/intent/productionContractGateway.ts",
       "lib/ediel/intent/renderers/productionContract.ts",
       "lib/ediel/production/dateEventContext.ts",
-      "supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql"
+      "supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql",
+      "lib/ediel/production/brpFieldSource.ts",
+      "supabase/migrations/20261001011248_ediel_switch_production_brp_source_binding.sql"
     ],
-    "confirmed_code_gap": "Dedicated genuine approved production-contract event, exact92 XOR93 signed/ceased precise-minute renderer/intent/request/private origin and actual source period support are implemented174333. Fresh review found native provider prepare/enter lacked current event-origin qualification and legacy request schema assumptions in shared consumers. Forward221158 now supplies exact native current source/event/point/period/request and phase-specific write vs existing send-union authority after frozen provider replay, plus the real payload.environment check; independent review still open.",
+    "confirmed_code_gap": "Dedicated production signed/ceased precise-minute210 XOR211 source event and native original/current request owner were implemented174333/221158/site232155. Remaining actual physical262 producer/native gap is now corrected ff247698/11248 by the SAME protected BRP source owner; ceased commands retain exact immutable linked signed-start contractual BRP rather than requiring a newly signed active contract. No portal BRP, old provider/ACK truth or invented original is authority.",
     "blockers": [
       "Actual issuer-owned exact-minute contract event and current versioned DSO registry/contract source hash required; no seeded evidence."
     ],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "e92fb799",
-      "d77c62ca"
+      "d77c62ca",
+      "ff247698"
     ],
     "path_review": [
       {
@@ -3149,7 +3325,8 @@
         "path": "supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3165,7 +3342,7 @@
     "covered_components": [
       "business_expected_and_prohibited_plus_independent_ack_expectations"
     ],
-    "code_status": "REMAINING_CODE_WORK",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/safeApplyReview.ts",
       "lib/ediel/sources/reviewReceivedStructuralSource.ts",
@@ -3177,13 +3354,17 @@
       "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
       "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql"
     ],
-    "confirmed_code_gap": "Prodat193612/204916/205032 now implements actual source-qualified whole structural/meter/register versioned apply and continuation through the shared immutable supply owner. Prodat owns final literal expected/prohibited assessment and F/G live requested-change origination. Fresh getter review found current_point equal-bounds calls cannot pass the strict interval owner; explicit protected point authority/consumer integration is coordinated and still open. Old scalar/current-status or caller JSON owners remain unavailable.",
+    "confirmed_code_gap": "Own process continuation gap is corrected by sole immutable supply owner normal/regulated current-source proof, explicit at-instant port (no fabricated minute), and actual P15 source-qualified structural transition/receipts. Z06F/G and Z10M route to the same own complete application/function/source/business scope; F/M do not invent missing readings and G does not infer them. Dedicated producer/field/qualified-history components are assessed by prodat; this row closes only the former absent process/at-instant integration, not their independent remaining clauses. Authentic historic baseline or original source gaps stay held.",
     "blockers": [],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
-    "commits": [],
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
+    "commits": [
+      "39184",
+      "6b8b1aa2",
+      "d5da4825"
+    ],
     "path_review": [
       {
         "path": "lib/ediel/safeApplyReview.ts",
@@ -3221,7 +3402,8 @@
         "path": "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3252,22 +3434,27 @@
       "lib/onboarding/inboundEdielLinking.ts",
       "lib/ediel/intent/renderGateway.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
-      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql"
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/onboarding/infoRequests.ts",
+      "app/admin/customers/[id]/actions.part-3.ts",
+      "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql"
     ],
-    "confirmed_code_gap": "Whole authentic Z14/Z15 source process, original sealed Z13 own customer/LI/legal actor, physical perobject status/product/reportwindow, immutable permission transitions; N A13/A76 no access; V termination and VH history separate; C restores exact prior snapshot without revoked grant resurrection. Dedicated current approved source Z13/Z18 actor intent path; one ended beneficiary never terminates stillshared permission.",
+    "confirmed_code_gap": "Actual dedicated service origin/intent/gateway/native permission commands and current source/grant/readiness checks are integrated. Manual queueMeteringPermissionForZ13 and customer meter_access now consume the exact linked assignment/current version through the same dedicated source-backed Z13 path; no generic meter_values placeholder or z13_ready reset. Genuine approved/active reuse returns without new Z13/ACK/grant/status; own bound draft crash resumes exact frozen intent/request/message; incompatible or missing old owner remains held. Genuine G04 mandate, customer purposes/217/agreement, DSO/ESCO registry and permission reporting scope remain separate unseeded external grounds.",
     "blockers": [
       "Actual end-user/DSO/service/downstream/privacy and transport evidence + exact prospective assignment scope version required; no legal activation from staged claims."
     ],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
     "commits": [
       "f8c2759a",
       "83fd9381",
       "f1b66070",
       "0deeee79",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1049dbbd",
+      "99a"
     ],
     "path_review": [
       {
@@ -3326,7 +3513,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3366,7 +3554,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3431,7 +3619,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3471,7 +3660,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3536,7 +3725,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3567,22 +3757,27 @@
       "lib/onboarding/inboundEdielLinking.ts",
       "lib/ediel/intent/renderGateway.ts",
       "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
-      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql"
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/onboarding/infoRequests.ts",
+      "app/admin/customers/[id]/actions.part-3.ts",
+      "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql"
     ],
-    "confirmed_code_gap": "Whole authentic Z14/Z15 source process, original sealed Z13 own customer/LI/legal actor, physical perobject status/product/reportwindow, immutable permission transitions; N A13/A76 no access; V termination and VH history separate; C restores exact prior snapshot without revoked grant resurrection. Dedicated current approved source Z13/Z18 actor intent path; one ended beneficiary never terminates stillshared permission.",
+    "confirmed_code_gap": "Actual dedicated service origin/intent/gateway/native permission commands and current source/grant/readiness checks are integrated. Manual queueMeteringPermissionForZ13 and customer meter_access now consume the exact linked assignment/current version through the same dedicated source-backed Z13 path; no generic meter_values placeholder or z13_ready reset. Genuine approved/active reuse returns without new Z13/ACK/grant/status; own bound draft crash resumes exact frozen intent/request/message; incompatible or missing old owner remains held. Genuine G04 mandate, customer purposes/217/agreement, DSO/ESCO registry and permission reporting scope remain separate unseeded external grounds.",
     "blockers": [
       "Actual end-user/DSO/service/downstream/privacy and transport evidence + exact prospective assignment scope version required; no legal activation from staged claims."
     ],
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh literal process component assessment against current integrated source/actual consumers (2026-10-01); code-ready does not assert full acceptance, native replay, authentic evidence or activation. Other owners retain their own field/guide/functional/consumer components.",
     "commits": [
       "f8c2759a",
       "83fd9381",
       "f1b66070",
       "0deeee79",
-      "b0bc0b5a"
+      "b0bc0b5a",
+      "1049dbbd",
+      "99a"
     ],
     "path_review": [
       {
@@ -3641,7 +3836,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3681,7 +3877,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3746,7 +3942,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3786,7 +3983,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3851,7 +4048,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3891,7 +4089,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -3956,7 +4154,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -3996,7 +4195,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -4061,7 +4260,8 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   },
   {
     "ids": [
@@ -4101,7 +4301,7 @@
     "planned_tests": [
       "Fixed candidate SHA actual role/direction/source raw vs labels and rejected R/D field has zero mutation; same LI wrong actor/customer/point/period rejected; original order permutations/business response before ACK; whole multiobject rejection atomic; exact deadline anchor and immutable replay; full native/RLS/schema parity then browser/manual own allowed actions."
     ],
-    "assessment": "Fresh literal consumer assessment through 7e22518c, a38a5e91, 9c8903cb/ce92322d, d77c62ca, and source-qualified C aac69429. Source schema/native P08/corrected-switch forward 221158 is still under independent review. Frozen expected/prohibited and formal execution statuses unchanged; no native/replay/browser/manual acceptance claim.",
+    "assessment": "Fresh process component review on actual current consumer chain; implementation status is not acceptance, native proof or market activation. Independent integration owner is root.",
     "commits": [
       "f8c2759a",
       "83fd9381",
@@ -4166,6 +4366,7 @@
         "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "exists_in_current_integration_or_owner_worktree": true
       }
-    ]
+    ],
+    "path_check": "All listed code_paths are real files on the current integrated root checkout; unpublished packet paths are described in confirmed_code_gap rather than treated as integrated authority."
   }
 ]

@@ -1,0 +1,1361 @@
+[
+  {
+    "ids": [
+      "P-09"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "P-09"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": "P §2.2,2.6,bilaga1; HB kap.4.4",
+    "exact_requirement": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse.",
+    "exact_expected": "Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+    "exact_prohibited": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+      "Exact own prohibited: Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-P-09"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "P-09"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": [
+      "P §2.2,2.6,bilaga1; HB kap.4.4"
+    ],
+    "exact_requirement": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+    "exact_expected": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+    "exact_prohibited": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+      "Exact own prohibited: Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "P-15"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "P-15"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": "P §2.2; U §3.6.10,3.6.13",
+    "exact_requirement": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start.",
+    "exact_expected": "Använd rätt mätare, register och produkt för varje tidsperiod.",
+    "exact_prohibited": "Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Använd rätt mätare, register och produkt för varje tidsperiod.",
+      "Exact own prohibited: Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-P-15"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "P-15"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": [
+      "P §2.2; U §3.6.10,3.6.13"
+    ],
+    "exact_requirement": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod.",
+    "exact_expected": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod.",
+    "exact_prohibited": "Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod.",
+      "Exact own prohibited: Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "ACK-08"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-08"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": "P §3; U §5.2",
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+    "exact_expected": "Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Exact own prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-08"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-08"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": [
+      "P §3; U §5.2"
+    ],
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Exact own prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06E-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06F-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06G-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z10M-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatApplicationObjects.ts",
+      "lib/ediel/prodat/prodatApplicationObjectValidation.ts",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "lib/ediel/sources/sourceOwnerPersistence.ts",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/inboundCases.ts",
+      "app/admin/ediel/structure-actions.ts",
+      "app/admin/ediel/actions.part-4.ts",
+      "app/admin/ediel/actions.part-5.ts",
+      "supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql",
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own incoming effect gap: global register-negative/function hold stopped valid own physical objects; mutable manual proposals drove whole graph. END of SAME full application invocation now freezes complete ownAPP. Independent E function is captured in SAME genuinely classified context invocation with separate native COMMITTED receipt. Structural/customer owners require ownAPP and independent source/business/function qualification, atomically commit only eligible exact scope, retain complete rejected/held partition and zero bad effects. Manual review/case/selection delegates the same private owner and returns verified own counts, no parsed fallback or staged bad customer creation.",
+    "assessment": "Scoped inbound complete-application/function/structural owner integration reread at rootc1deb8e2; copied JSON cannot allow partial continuation. This component covers own inbound eligible scope, effect/history lineage and manual consumers. Outbound Z09 producers, independent functional classifications and authentic grounds have separate literal owners; whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "42453206",
+      "58f30913",
+      "0ff25965",
+      "827f4fea",
+      "ec510cc2",
+      "b9b6f566",
+      "c1deb8e2"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "ACK-02"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-02"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": "P §3.3–3.5",
+    "exact_requirement": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.",
+    "exact_expected": "Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+    "exact_prohibited": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+      "Exact own prohibited: Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-02"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-02"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "P §3.3–3.5"
+    ],
+    "exact_requirement": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+    "exact_expected": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+    "exact_prohibited": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+      "Exact own prohibited: Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "ACK-07"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-07"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": "P §3.2; U §5.2; T §2",
+    "exact_requirement": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion.",
+    "exact_expected": "Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+    "exact_prohibited": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+      "Exact own prohibited: Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-07"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-07"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "P §3.2; U §5.2; T §2"
+    ],
+    "exact_requirement": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+    "exact_expected": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+    "exact_prohibited": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+      "Exact own prohibited: Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "SC-056"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-07"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "P §3.2; U §5.2; T §2"
+    ],
+    "exact_requirement": "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
+    "exact_expected": "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
+    "exact_prohibited": "Ett återförsök får inte skriva om kvittenshistoriken.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
+      "Exact own prohibited: Ett återförsök får inte skriva om kvittenshistoriken.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "ACK-08"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-08"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": "P §3; U §5.2",
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+    "exact_expected": "Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Exact own prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-08"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-08"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "P §3; U §5.2"
+    ],
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Exact own prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06E-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06F-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06G-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z10M-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql"
+    ],
+    "confirmed_code_gap": "Resolved own final response consumer gap: national/application success is separate from committed effect. Opaque final plans read immutable exact own structural/customer primary receipt plus original guide; first physical LIN/all registers/LI or qualified negative tuple is explicit. Held siblings remain held. Protected retained ACK read precedes new plan/current effect and repairs prepared outbox only. ACK-id outbox identity separates sibling replies, preserves old lock/status and queues only actual first insert. E34 positive requires genuine customer-version owner; structure cannot borrow E acceptance.",
+    "assessment": "Scoped finalmaterializer/first-final scope/actual selectedrenderer/manual/outbox implemented. Root national negative/CONTRL remains independent. New ACK10 BGM unused-field requirement is a separate open owner finding; broad whole acceptance not asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "0ff25965",
+      "65993857",
+      "7d60067c",
+      "827f4fea",
+      "19f9ab4e",
+      "d67d86ff"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "P-09"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "P-09"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql",
+      "supabase/migrations/20261001033759_ediel_customer_primary_response_commit_fence.sql"
+    ],
+    "confirmed_code_gap": "New confirmed birth-capture defect: old E trigger accessed system xmin via SELECT* %rowtype instead of actual transition table and lacked prospective same-ownFUNC fence. Forward33759 implements actual committed-table check and ownFUNC requirement whenever genuine prospective facet exists. Coherent c84afd73 is integrated as80d91afe; C bounded independent read found no Critical/Important; existing finalbindings/receipts remain unchanged/first.",
+    "assessment": "34 explicit synthetic-boundary mechanics compose actual current C consistency proof: real committed transition/customer version+ownAPP/FUNC under global manual_review, unknown own no positive, current transaction/failure rollback, retained bound ACK before todayFUNC. Classifier/APP/FUNC/guide/prepare ports are declared synthetic, not legal/native proof. Actual root80d91afe integration observed; source-owner bound review clear, no native/legal proof asserted.",
+    "normative_source": "P §2.2,2.6,bilaga1; HB kap.4.4",
+    "exact_requirement": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse.",
+    "exact_expected": "Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+    "exact_prohibited": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+    "commits": [
+      "c84afd73",
+      "80d91afe"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+      "Exact own prohibited: Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-P-09"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "P-09"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql",
+      "supabase/migrations/20261001033759_ediel_customer_primary_response_commit_fence.sql"
+    ],
+    "confirmed_code_gap": "New confirmed birth-capture defect: old E trigger accessed system xmin via SELECT* %rowtype instead of actual transition table and lacked prospective same-ownFUNC fence. Forward33759 implements actual committed-table check and ownFUNC requirement whenever genuine prospective facet exists. Coherent c84afd73 is integrated as80d91afe; C bounded independent read found no Critical/Important; existing finalbindings/receipts remain unchanged/first.",
+    "assessment": "34 explicit synthetic-boundary mechanics compose actual current C consistency proof: real committed transition/customer version+ownAPP/FUNC under global manual_review, unknown own no positive, current transaction/failure rollback, retained bound ACK before todayFUNC. Classifier/APP/FUNC/guide/prepare ports are declared synthetic, not legal/native proof. Actual root80d91afe integration observed; source-owner bound review clear, no native/legal proof asserted.",
+    "normative_source": [
+      "P §2.2,2.6,bilaga1; HB kap.4.4"
+    ],
+    "exact_requirement": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+    "exact_expected": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+    "exact_prohibited": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+    "commits": [
+      "c84afd73",
+      "80d91afe"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+      "Exact own prohibited: Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "ACK-08"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-08"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql",
+      "supabase/migrations/20261001033759_ediel_customer_primary_response_commit_fence.sql"
+    ],
+    "confirmed_code_gap": "New confirmed birth-capture defect: old E trigger accessed system xmin via SELECT* %rowtype instead of actual transition table and lacked prospective same-ownFUNC fence. Forward33759 implements actual committed-table check and ownFUNC requirement whenever genuine prospective facet exists. Coherent c84afd73 is integrated as80d91afe; C bounded independent read found no Critical/Important; existing finalbindings/receipts remain unchanged/first.",
+    "assessment": "34 explicit synthetic-boundary mechanics compose actual current C consistency proof: real committed transition/customer version+ownAPP/FUNC under global manual_review, unknown own no positive, current transaction/failure rollback, retained bound ACK before todayFUNC. Classifier/APP/FUNC/guide/prepare ports are declared synthetic, not legal/native proof. Actual root80d91afe integration observed; source-owner bound review clear, no native/legal proof asserted.",
+    "normative_source": "P §3; U §5.2",
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+    "exact_expected": "Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "commits": [
+      "c84afd73",
+      "80d91afe"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Exact own prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-08"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-08"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql",
+      "supabase/migrations/20261001033759_ediel_customer_primary_response_commit_fence.sql"
+    ],
+    "confirmed_code_gap": "New confirmed birth-capture defect: old E trigger accessed system xmin via SELECT* %rowtype instead of actual transition table and lacked prospective same-ownFUNC fence. Forward33759 implements actual committed-table check and ownFUNC requirement whenever genuine prospective facet exists. Coherent c84afd73 is integrated as80d91afe; C bounded independent read found no Critical/Important; existing finalbindings/receipts remain unchanged/first.",
+    "assessment": "34 explicit synthetic-boundary mechanics compose actual current C consistency proof: real committed transition/customer version+ownAPP/FUNC under global manual_review, unknown own no positive, current transaction/failure rollback, retained bound ACK before todayFUNC. Classifier/APP/FUNC/guide/prepare ports are declared synthetic, not legal/native proof. Actual root80d91afe integration observed; source-owner bound review clear, no native/legal proof asserted.",
+    "normative_source": [
+      "P §3; U §5.2"
+    ],
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "commits": [
+      "c84afd73",
+      "80d91afe"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Exact own prohibited: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06E-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/outbox/createOutboxItem.ts",
+      "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql",
+      "supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql",
+      "supabase/migrations/20261001033759_ediel_customer_primary_response_commit_fence.sql"
+    ],
+    "confirmed_code_gap": "New confirmed birth-capture defect: old E trigger accessed system xmin via SELECT* %rowtype instead of actual transition table and lacked prospective same-ownFUNC fence. Forward33759 implements actual committed-table check and ownFUNC requirement whenever genuine prospective facet exists. Coherent c84afd73 is integrated as80d91afe; C bounded independent read found no Critical/Important; existing finalbindings/receipts remain unchanged/first.",
+    "assessment": "34 explicit synthetic-boundary mechanics compose actual current C consistency proof: real committed transition/customer version+ownAPP/FUNC under global manual_review, unknown own no positive, current transaction/failure rollback, retained bound ACK before todayFUNC. Classifier/APP/FUNC/guide/prepare ports are declared synthetic, not legal/native proof. Actual root80d91afe integration observed; source-owner bound review clear, no native/legal proof asserted.",
+    "normative_source": [
+      "T §5.2.3; P §2.1; SYS",
+      "P §2.1,2.6",
+      "P §2.2,2.6,3.3"
+    ],
+    "exact_requirement": "23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+    "exact_expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+    "exact_prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "commits": [
+      "c84afd73",
+      "80d91afe"
+    ],
+    "blockers": [
+      "Missing authentic originals, classified legal ground/mandates, versioned owner/DSO register or retention/deletion epochs remain held at their actual owner; no fixture activation.",
+      "Broad fixed-candidate native/RLS/concurrency/replay/schema/browser/E2E/manual proof NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+      "Exact own prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "ACK-10"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-10"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql",
+      "supabase/migrations/20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql"
+    ],
+    "confirmed_code_gap": "Resolved exact unused BGM1001/1004 source gap in shared TS/fresh native admission715d4005→bf1aa7e4; subsequent oldconsumed-neverentered fresh-journal gap resolved984ff0a2→5fc160d5. Existing immutable/entered outcomes are read first. Independent source/native scoped reviews clear; broad fixed-candidate proof NOT_RUN.",
+    "assessment": "Own exact P98–100 literal criterion traced through renderer, shared guide, prospective owner INSERT and actual generic/H fresh prepare/enter at integrated5fc160d5. No formal acceptance or historical rewrite.",
+    "normative_source": "P s.98–100",
+    "exact_requirement": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34.",
+    "exact_expected": "Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+    "exact_prohibited": "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+    "commits": [
+      "715d4005",
+      "984ff0a2",
+      "bf1aa7e4",
+      "5fc160d5"
+    ],
+    "blockers": [
+      "Full fixed-candidate native/concurrency/replay/whole criteria NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+      "Exact own prohibited: Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-10"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "ACK-10"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "supabase/migrations/20260930204944_ediel_source_generated_native_ack_guide_constraints.sql",
+      "supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql",
+      "supabase/migrations/20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql"
+    ],
+    "confirmed_code_gap": "Resolved exact unused BGM1001/1004 source gap in shared TS/fresh native admission715d4005→bf1aa7e4; subsequent oldconsumed-neverentered fresh-journal gap resolved984ff0a2→5fc160d5. Existing immutable/entered outcomes are read first. Independent source/native scoped reviews clear; broad fixed-candidate proof NOT_RUN.",
+    "assessment": "Own exact P98–100 literal criterion traced through renderer, shared guide, prospective owner INSERT and actual generic/H fresh prepare/enter at integrated5fc160d5. No formal acceptance or historical rewrite.",
+    "normative_source": [
+      "P s.98–100"
+    ],
+    "exact_requirement": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34. → Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+    "exact_expected": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34. → Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+    "exact_prohibited": "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+    "commits": [
+      "715d4005",
+      "984ff0a2",
+      "bf1aa7e4",
+      "5fc160d5"
+    ],
+    "blockers": [
+      "Full fixed-candidate native/concurrency/replay/whole criteria NOT_RUN."
+    ],
+    "planned_tests": [
+      "Exact own expected: BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34. → Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+      "Exact own prohibited: Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+      "Fixed candidate: complete physical partition; own accepted effect and immutable receipt; bad/held sibling zero effects; first ACK retained before current rules; native opposite/scope/tenant/raw races rollback; actual manual/UI sameowner. Full suite/native/replay/schema/E2E/manual NOT_RUN."
+    ]
+  }
+]

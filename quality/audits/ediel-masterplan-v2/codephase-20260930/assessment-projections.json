@@ -1275,7 +1275,7 @@
     "covered_rule_ids": [
       "TEN-13"
     ],
-    "code_status": "COORDINATION_BLOCKED",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "__tests__/ediel-inbound-original-scope.test.ts",
       "lib/ediel/ack/sourceCorrelation.ts",
@@ -1290,9 +1290,9 @@
       "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql",
       "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
     ],
-    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld. Fresh actual-kernel review additionally found inbound global sender+UNBref dedup omitted company/environment/receiver/APP/exact raw and inbound ACK family-only dedup could merge ownIDE responses. Root owns scoped/exact-byte duplicate query/reuse correction and race branch; it is still uncommitted at this audit refresh. This is actual code/integration work, distinct from deferred proof.",
+    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld. Root actual canonical inbound duplicate reuse now requires exact company/environment/receiver/application and raw bytes in both query/reuse/race paths. An explicit new UNB is a distinct original even when old BGM/IDE repeats. New arrivals append actual immutable reception/request support rather than overwriting original; source-owned known issuer collision support is independently implemented by UTILTS. No LI-only tenant choice, status reset or opposite final response is introduced.",
     "blockers": [
-      "Root actual inbound dedup integration commit/focused regression/final bounded review pending.",
+      "Authentic complete issuer/agent/register/history/deletion/retention approval grounds remain unseeded; absence is HELD rather than inferred uniqueness.",
       "Full native namespace concurrency/RLS/replay/E2E proof NOT_RUN."
     ],
     "planned_tests": [
@@ -1301,12 +1301,15 @@
       "Source trigger/given: Allokering och korrelation / BGM/UNB/IDE/tillstånd",
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
     ],
-    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred.",
+    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred. Fresh root core/dedupe.ts and kernelLegacy.ts exact query/reuse guards were reread at c1deb8e2; prior pending integration statement is superseded for this own component.",
     "commits": [
       "caed7dd9",
       "ec262944",
       "5efd8124",
-      "c012e202"
+      "c012e202",
+      "d36e10e8",
+      "345ea3aa",
+      "1d45782b"
     ]
   },
   {
@@ -1317,7 +1320,7 @@
     "covered_rule_ids": [
       "TEN-13"
     ],
-    "code_status": "COORDINATION_BLOCKED",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "__tests__/ediel-inbound-original-scope.test.ts",
       "lib/ediel/ack/sourceCorrelation.ts",
@@ -1332,9 +1335,9 @@
       "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql",
       "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
     ],
-    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld. Fresh actual-kernel review additionally found inbound global sender+UNBref dedup omitted company/environment/receiver/APP/exact raw and inbound ACK family-only dedup could merge ownIDE responses. Root owns scoped/exact-byte duplicate query/reuse correction and race branch; it is still uncommitted at this audit refresh. This is actual code/integration work, distinct from deferred proof.",
+    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld. Root actual canonical inbound duplicate reuse now requires exact company/environment/receiver/application and raw bytes in both query/reuse/race paths. An explicit new UNB is a distinct original even when old BGM/IDE repeats. New arrivals append actual immutable reception/request support rather than overwriting original; source-owned known issuer collision support is independently implemented by UTILTS. No LI-only tenant choice, status reset or opposite final response is introduced.",
     "blockers": [
-      "Root actual inbound dedup integration commit/focused regression/final bounded review pending.",
+      "Authentic complete issuer/agent/register/history/deletion/retention approval grounds remain unseeded; absence is HELD rather than inferred uniqueness.",
       "Full native namespace concurrency/RLS/replay/E2E proof NOT_RUN."
     ],
     "planned_tests": [
@@ -1343,12 +1346,15 @@
       "Source trigger/given: Allokering och korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall. / BGM/UNB/IDE/tillstånd",
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
     ],
-    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred.",
+    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred. Fresh root core/dedupe.ts and kernelLegacy.ts exact query/reuse guards were reread at c1deb8e2; prior pending integration statement is superseded for this own component.",
     "commits": [
       "caed7dd9",
       "ec262944",
       "5efd8124",
-      "c012e202"
+      "c012e202",
+      "d36e10e8",
+      "345ea3aa",
+      "1d45782b"
     ]
   },
   {
@@ -1359,7 +1365,7 @@
     "covered_rule_ids": [
       "TEN-13"
     ],
-    "code_status": "COORDINATION_BLOCKED",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "__tests__/ediel-inbound-original-scope.test.ts",
       "lib/ediel/ack/sourceCorrelation.ts",
@@ -1374,9 +1380,9 @@
       "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql",
       "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
     ],
-    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld. Fresh actual-kernel review additionally found inbound global sender+UNBref dedup omitted company/environment/receiver/APP/exact raw and inbound ACK family-only dedup could merge ownIDE responses. Root owns scoped/exact-byte duplicate query/reuse correction and race branch; it is still uncommitted at this audit refresh. This is actual code/integration work, distinct from deferred proof.",
+    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld. Root actual canonical inbound duplicate reuse now requires exact company/environment/receiver/application and raw bytes in both query/reuse/race paths. An explicit new UNB is a distinct original even when old BGM/IDE repeats. New arrivals append actual immutable reception/request support rather than overwriting original; source-owned known issuer collision support is independently implemented by UTILTS. No LI-only tenant choice, status reset or opposite final response is introduced.",
     "blockers": [
-      "Root actual inbound dedup integration commit/focused regression/final bounded review pending.",
+      "Authentic complete issuer/agent/register/history/deletion/retention approval grounds remain unseeded; absence is HELD rather than inferred uniqueness.",
       "Full native namespace concurrency/RLS/replay/E2E proof NOT_RUN."
     ],
     "planned_tests": [
@@ -1385,12 +1391,15 @@
       "Source trigger/given: En kvittens för aktör B anländer till delad brevlåda. / Två aktörer har liknande LI/BGM-referenser i olika namnrymder.",
       "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
     ],
-    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred.",
+    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred. Fresh root core/dedupe.ts and kernelLegacy.ts exact query/reuse guards were reread at c1deb8e2; prior pending integration statement is superseded for this own component.",
     "commits": [
       "caed7dd9",
       "ec262944",
       "5efd8124",
-      "c012e202"
+      "c012e202",
+      "d36e10e8",
+      "345ea3aa",
+      "1d45782b"
     ]
   },
   {

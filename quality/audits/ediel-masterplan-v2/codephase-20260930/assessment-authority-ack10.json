@@ -1,0 +1,54 @@
+[
+  {
+    "ids": [
+      "ACK-10",
+      "AT-ACK-10"
+    ],
+    "owner": "authority_grammar; root integrates",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "normative_source": "Frozen registers/rules.json ACK-10 and registers/acceptance_tests.json AT-ACK-10; P pages98–100 as named by the unchanged literal contract. Full authentic P original remains a separate broader source-evidence limitation.",
+    "exact_requirement": "PRODAT-APERAK BGM/1225 carries27/34; BGM/1001 and1004 are unused. Use original BGM through RFF+ACW and a separate own technical UNH/archive identity; correct wire BGM+++27/34.",
+    "code_paths": [
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "scripts/generate-ediel-native-response-guide-projection.cjs",
+      "supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql",
+      "supabase/migrations/20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql"
+    ],
+    "confirmed_code_gap": "Resolved exact unused BGM1001/1004 source gap in shared TS/fresh native admission715d4005→bf1aa7e4; subsequent oldconsumed-neverentered fresh-journal gap resolved984ff0a2→5fc160d5. Existing immutable/entered outcomes are read first. Independent source/native scoped reviews clear; broad fixed-candidate proof NOT_RUN.",
+    "blockers": [
+      "Full fixed-candidate native/concurrency/replay/whole criteria NOT_RUN."
+    ],
+    "planned_tests": [
+      "Fixed integrated candidate native replay/schema/type parity must show forward migration composes with actual latest owner/apply wrappers and preserves existing immutable outcomes.",
+      "Full candidate unit/E2E/manual API and transport tests must prove bad1001/1004 cannot reach a fresh provider entry or accepted incoming application, including common P202 and partial P34 own scopes.",
+      "Full source/UNSM coverage is assessed separately; these probes do not authenticate missing full P original or declare all grammar verified."
+    ],
+    "assessment": "Own exact P98–100 literal criterion traced through renderer, shared guide, prospective owner INSERT and actual generic/H fresh prepare/enter at integrated5fc160d5. No formal acceptance or historical rewrite.",
+    "commits": [
+      "715d4005",
+      "984ff0a2",
+      "bf1aa7e4",
+      "5fc160d5"
+    ],
+    "fast_checks": [
+      "31 targeted Vitest tests in3files PASS (actual parser/policy/guide/runtime/validator; source I/O boundary only is synthetic).",
+      "22 declared new native guard mechanics PASS using actual historical lexer/generated edition/new forward; old owner/actor/committed reader delegates explicitly declared boundary fixtures.",
+      "204 composed existing outbound guide/owner seal/one-use insertion/native source scope checks PASS; added bad unused fields before/after publication and old consumed original retention.",
+      "Generator --check and normative/parser authority guards PASS; scoped ESLint0errors4preexisting harness warnings; git diff --check and JS syntax PASS.",
+      "33 declared native guard/journal mechanics PASS, including fresh failure rollback and fixed/observed prior preservation.",
+      "207 composed existing owner checks PASS; old consumed-neverentered malformed ACK changed from native fresh prepare allowed with one attempt to held with zero attempts (actual existing owner/journal bodies, explicitly synthetic frozen legal/source boundary)."
+    ],
+    "not_run": [
+      "agent full TSC",
+      "full unit suite",
+      "native clean replay",
+      "full migration replay",
+      "browser/E2E",
+      "manual/counterparty tests"
+    ]
+  }
+]
