@@ -59,3 +59,27 @@ describe('physical legal parties and technical transport stay separate across ac
     expect(segmentComposite(output.segments[0], 2, output.una)).toEqual(['543+2:1', '160', 'SVK'])
   })
 })
+
+describe('UTILTS APERAK uses original legal actors through direct and envelope consumers', () => {
+  function utiltsRaw(alternate=false) {
+    return EdifactEnvelopeCodec.encode({sender:'90001',receiver:'90002',senderQualifier:'ZZ',receiverQualifier:'ZZ',senderSubAddress:'ORIGINAL:S',receiverSubAddress:'ORIGINAL:R',interchangeReference:'SOURCEI',environment:'test',applicationReference:'23-DDQ-E66-T',acknowledgementRequest:true,
+      ...(alternate ? {una:{componentDataElementSeparator:'*',dataElementSeparator:';',releaseCharacter:'!',segmentTerminator:'~'}}:{}),
+      messages:[{messageReference:'SOURCEM',messageTypeToken:'UTILTS:D:02B:UN:E5SE5A',businessSegments:['BGM+E66::260+SOURCEDOC+9+AB','DTM+137:202609301200:203','NAD+MS+54321:SVK:260','NAD+MR+12345:SVK:260','NAD+DDQ','IDE+24+OWN','QTY+136:1']} ]})
+  }
+  it.each([false,true])('reverses physical technical endpoints and independent exact NAD=%s',alternate=>{
+    const message={...source(utiltsRaw(alternate)),message_family:'UTILTS',message_code:'E66',application_reference:'23-DDQ-E66-T'} as EdielMessageRow
+    const draft=buildAckDraftForSource({sourceMessage:message,ackFamily:'APERAK',outcome:'positive',utiltsAcknowledgementReference:'OWN'})
+    const wire=tokenizeEdifact(draft.rawPayload),unb=wire.segments.find(segment=>segment.tag==='UNB')
+    expect(segmentComposite(unb,2,wire.una)).toEqual(['90002','ZZ','ORIGINAL:R']);expect(segmentComposite(unb,3,wire.una)).toEqual(['90001','ZZ','ORIGINAL:S'])
+    const parties=wire.segments.filter(segment=>segment.tag==='NAD' && ['MS','MR'].includes(segmentComposite(segment,1,wire.una)[0]))
+    expect(parties.map(segment=>segmentComposite(segment,2,wire.una))).toEqual([['12345','SVK','260'],['54321','SVK','260']])
+  })
+  it('holds missing/ambiguous own legal receiver even when technical and object actors exist',()=>{
+    for(const raw of [utiltsRaw().replace('NAD+MR+12345:SVK:260','NAD+UD+12345:SVK:260'),utiltsRaw().replace('NAD+MR+12345:SVK:260',"NAD+MR+12345:SVK:260'NAD+MR+11111:SVK:260")]) {
+      expect(()=>renderAperakEdiel({source:{id:'source',rawPayload:raw,messageFamily:'UTILTS',messageCode:'E66',senderEdielId:'90001',receiverEdielId:'90002'},refs:{},externalReference:'ACKDOC',transactionReference:'ACKT',outcome:'positive',utiltsAcknowledgementReference:'OWN'})).toThrow(/juridiska parter/)
+    }
+  })
+  it('rejects a projected transport identity used as a legal actor',()=>{
+    expect(()=>renderAperakEdiel({source:{id:'source',rawPayload:utiltsRaw(),messageFamily:'UTILTS',messageCode:'E66',legalSenderEdielId:'90001'},refs:{},externalReference:'ACKDOC',transactionReference:'ACKT',outcome:'positive',utiltsAcknowledgementReference:'OWN'})).toThrow('aperak_original_legal_party_projection_conflict')
+  })
+})

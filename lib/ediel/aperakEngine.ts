@@ -325,14 +325,19 @@ export function renderAperakEdiel(params: {
     sanitizeEdifactToken(params.transactionReference) ??
     'UNKNOWN'
 
+  const utiltsParties = isUtiltsSource ? originalAckPartyIdentities({rawPayload:params.source.rawPayload,expectedFamily:'UTILTS'}) : null
+  if (utiltsParties && ((params.source.legalSenderEdielId && params.source.legalSenderEdielId !== utiltsParties.legalSender.id)
+    || (params.source.legalReceiverEdielId && params.source.legalReceiverEdielId !== utiltsParties.legalReceiver.id))) {
+    throw new Error('aperak_original_legal_party_projection_conflict')
+  }
   const segments = isUtiltsSource
     ? [
         `BGM+${utiltsBgmCode}+${sanitizeEdifactToken(params.externalReference) ?? 'APERAK'}+9`,
         `DTM+137:${swedishDateTime()}:203`,
         'DTM+735:?+0100:406',
         `DOC+${sanitizeEdifactToken(sourceWireCode) ?? 'UTILTS'}:SVK:260+${previousMessageReference}`,
-        `NAD+MS+${sanitizeEdifactToken(params.source.receiverEdielId) ?? 'UNKNOWN'}:SVK:260`,
-        `NAD+MR+${sanitizeEdifactToken(params.source.senderEdielId) ?? 'UNKNOWN'}:SVK:260`,
+        originalAckLegalNadSegment('MS', utiltsParties!.legalReceiver),
+        originalAckLegalNadSegment('MR', utiltsParties!.legalSender),
         'NAD+DDQ',
       ]
     : [
