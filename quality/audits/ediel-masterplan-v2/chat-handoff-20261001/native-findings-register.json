@@ -72,9 +72,9 @@
     },
     {
       "id": "NATIVE-OPEN-04",
-      "tests": "ediel-outbound-ack-replay-native (2 existing cases)",
+      "tests": "ediel-outbound-ack-replay-native (all 3 cases incl. the new 134600/142520 actor/phase probe)",
       "error": "23502 canonical_ediel_company_required",
-      "rootCause": "gridex_validate_ediel_message_contract requires company_id on every canonical-family message, while these fixtures insert an unattributed technical inbound source (company_id NULL). Product code (ackDraftSource/kernel) still models null-company technical sources; the schema and the TS model disagree. Needs an owner decision whether null-company technical sources remain supported.",
+      "rootCause": "gridex_validate_ediel_message_contract requires company_id on every canonical-family message, while these fixtures insert an unattributed technical inbound source (company_id NULL). Product code (ackDraftSource/kernel) still models null-company technical sources; the schema and the TS model disagree. Needs an owner decision whether null-company technical sources remain supported. A company-attributed source with the same unlisted wire instead fails canonical_inbound_rule_profile_resolution_failed, so the technical-only path cannot be exercised natively until this is decided. The 142520 gates are therefore verified by unit tests and applied-migration review only.",
       "status": "REMAINING_DECISION"
     }
   ],

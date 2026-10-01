@@ -128,7 +128,7 @@ it('qualifies persisted CONTRL and source-ACK reads only for the actual current 
   INSERT INTO public.tenant_actor_identifiers(id,company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES(${literal(identifierId)},${literal(company)},'test',${literal(actor)},'EdielId',${literal(endpoint)},now()-interval '1 day');`)
  grant(actor,'communication.write')
  const raw=`UNB+UNOC:3+12345:14+${endpoint}:14+260930:1200+${sourceReference}++23-DDQ-PRODAT++++1'UNH+${sourceUnh}+PRODAT:D:96A:UN:E2SE6A'BGM+UNLISTED+SOURCE+9+AB'DTM+137:202609301200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+${endpoint}:160:SVK+++++++SE'UNT+7+${sourceUnh}'UNZ+1+${sourceReference}'`
- const stored=await supabaseService.from('ediel_messages').insert({id:sourceId,company_id:company,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'UNLISTED',status:'received',raw_payload:raw,message_received_at:new Date().toISOString()}).select('*').single()
+ const stored=await supabaseService.from('ediel_messages').insert({id:sourceId,company_id:null,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'UNLISTED',status:'received',raw_payload:raw,message_received_at:new Date().toISOString()}).select('*').single()
  expect(stored.error).toBeNull();const source=stored.data as EdielMessageRow
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
  const prepare={actorUserId:actor,phase:'prepare' as const}
