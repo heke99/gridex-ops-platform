@@ -115,6 +115,8 @@ assert.equal((await db.query('SELECT gridex_received_sources.committed_supply_ef
  await incomingSource(id(31),id(41),'Z05',ending,[1]);
  const ended=(await run(id(31))).rows[0].b;assert.equal(ended.applied,true);assert.equal(ended.periods.length,1);assert.equal(ended.periods[0].id,firstPeriod.id);assert.equal(ended.periods[0].status,'ending');checks++;
  assert.equal((await db.query('SELECT gridex_received_sources.committed_supply_effects_v1($1,$2) b',[id(1),id(31)])).rows[0].b.length,1);checks++;
+ const followupModule=process.env.EDIEL_SUPPLY_END_FOLLOWUP_MODULE?await import(pathToFileURL(process.env.EDIEL_SUPPLY_END_FOLLOWUP_MODULE).href):null;
+ if(followupModule)await followupModule.default({phase:'birth',db,id,sourceId:id(31),ended,initialSourceId:id(30),run,incomingSource,objects});
  assert.equal((await db.query('SELECT gridex_received_sources.supply_period_source_basis_v1($1,$2,$3,$4) b',[id(1),firstPeriod.id,'2026-01-01T00:00Z','2026-02-01T00:00Z'])).rows[0].b.currentSourceMessageId,id(31));checks++;
  await incomingSource(id(32),id(42),'Z04',[objects[1]],[],'manual_review');
  const heldFunction=(await run(id(32))).rows[0].b;assert.equal(heldFunction.applied,false);assert.equal(heldFunction.reason,'supply_complete_own_application_and_function_required');checks++;
@@ -151,6 +153,7 @@ assert.equal((await db.query('SELECT gridex_received_sources.committed_supply_ef
  await assert.rejects(db.query('SELECT gridex_received_sources.normal_switch_scope_effect_v1($1,$2,$3,$4,$5,$6) b',[id(1),id(38),id(2),changedCohort.scopes[0],[id(420)],id(40)]),/scoped_canonical_assessment_changed/);checks++;
  await incomingSource(id(39),id(49),'Z04',[{...future,reason:'Z24',agency:'89'}]);const wrongNamespace=(await run(id(39))).rows[0].b;assert.equal(wrongNamespace.applied,false);assert.equal(wrongNamespace.partition[0].reason,'z04c_exact_original_unavailable');checks++;
  await incomingSource(id(40),id(51),'Z05',[{...objects[0],start:'202801010000',agency:'89'}]);const wrongEndNamespace=(await run(id(40))).rows[0].b;assert.equal(wrongEndNamespace.applied,false);assert.equal(wrongEndNamespace.partition[0].reason,'z05_accepted_relationship_baseline_required');checks++;
+ if(followupModule)await followupModule.default({phase:'finish',db,id,sourceId:id(31),ended,initialSourceId:id(30),run,incomingSource,objects});
  if(process.env.EDIEL_SUPPLY_COMPOSITION_MODULE){const{default:compose}=await import(process.env.EDIEL_SUPPLY_COMPOSITION_MODULE.startsWith('file:')?new URL(process.env.EDIEL_SUPPLY_COMPOSITION_MODULE).href:pathToFileURL(process.env.EDIEL_SUPPLY_COMPOSITION_MODULE).href);await compose({db,id,raw,sourceId:id(30),canonicalAssessmentId:id(40),scopes,objects,result,app,facts,committed})}
  await db.exec(`DELETE FROM legal_context_fixture;UPDATE customer_contracts SET status='cancelled'`);assert.equal((await run()).rows[0].b.idempotent,true);checks++;
  await assert.rejects(db.exec('UPDATE gridex_received_sources.supply_object_partitions SET result=\'{}\''),/immutable/);checks++;
