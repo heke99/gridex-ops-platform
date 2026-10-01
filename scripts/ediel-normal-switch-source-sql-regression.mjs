@@ -46,6 +46,7 @@ try{
  await db.exec(fn('../supabase/migrations/20260930174333_ediel_production_contract_source_commands.sql','gridex_received_sources.production_contract_hash_v1'))
  await db.exec(fn('../supabase/migrations/20260930204937_ediel_shared_accepted_source_basis.sql','gridex_ediel_transport.accepted_source_basis_v1'));
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930211830_ediel_supply_source_initial_scope_continuity.sql',import.meta.url),'utf8'));checks++
  await db.exec(`INSERT INTO companies VALUES('${id(1)}');INSERT INTO user_profiles VALUES('${id(2)}','active');INSERT INTO company_memberships VALUES('${id(1)}','${id(2)}','active',true,now());INSERT INTO tenant_ediel_profiles VALUES('${id(70)}','${id(1)}','test','electricity',true,'2000-01-01',NULL);INSERT INTO tenant_actor_roles VALUES('${id(71)}','${id(1)}','test','${id(50)}','electricity_supplier','2000-01-01',NULL);INSERT INTO tenant_actor_identifiers VALUES('${id(72)}','${id(1)}','test','${id(50)}','EdielId','12345','2000-01-01',NULL);`)
  const own=[{point:'735123456789012345',li:'LI-A',customer:'PERSON-A',start:'202601011330'},{point:'735123456789012352',li:'LI-B',customer:'PERSON-B',start:'202601011330'},{point:'735123456789012369',li:'LI-FUTURE',customer:'PERSON-FUTURE',start:'209901011330'}]
  for(const [index,o]of own.entries()){
@@ -86,7 +87,7 @@ try{
  await db.exec(`UPDATE customer_contracts SET status='signed' WHERE id='${id(6)}'`)
  const first=(await activate()).rows[0];assert.ok(first.supply_period_id);checks++
  assert.deepEqual((await activate()).rows[0],first);checks++
- const bounds=await db.query('SELECT gridex_received_sources.supply_period_source_basis_v1($1,$2,$3,$4) b',[id(1),first.supply_period_id,'2026-01-01T12:30Z','2026-01-02T00:00Z']);assert.equal(bounds.rows[0].b.qualified,true);assert.equal(bounds.rows[0].b.activated,true);checks++
+ const bounds=await db.query('SELECT gridex_received_sources.supply_period_source_basis_v1($1,$2,$3,$4) b',[id(1),first.supply_period_id,'2026-01-01T12:30Z','2026-01-02T00:00Z']);assert.equal(bounds.rows[0].b.qualified,true);assert.equal(bounds.rows[0].b.activated,true);assert.equal(bounds.rows[0].b.dsoEdielId,'54321');assert.equal(bounds.rows[0].b.sourceObjects[0].identityAgency,'9');assert.ok(bounds.rows[0].b.originalAcceptedAt);checks++
  assert.equal((await db.query('SELECT gridex_received_sources.supply_period_source_basis_v1($1,$2,$3,$4) b',[id(1),first.supply_period_id,'2026-01-01T12:29Z','2026-01-02T00:00Z'])).rows[0].b,null);checks++
  await db.exec(`UPDATE customer_contracts SET signed_version='changed' WHERE id='${id(6)}'`)
  assert.deepEqual((await activate()).rows[0],first);checks++ // immutable activation replay precedes today's contract/rule/date guard
