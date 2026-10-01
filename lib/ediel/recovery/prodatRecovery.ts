@@ -9,6 +9,7 @@ import { readRecoveryOperationBasis } from './sourceContext'
 import { loadProdatDateEventValidationContext, recoveryDateEventScope } from '@/lib/ediel/production/dateEventContext'
 import { loadRecoveryReportingContext } from './reportingContext'
 import { loadServicePermissionRecoveryOrigin } from '@/lib/ediel/services/permissionOrigin'
+import { copyReportingSelection } from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { canonicalEdielActorRole } from '@/lib/ediel/actorRole'
@@ -118,7 +119,7 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
     const wire = tokenizeEdifact(input.correctedRawPayload)
     const protectedFacts = { market: 'electricity' as const,
       ...(dateEventContext ? { dateEventSource: dateEventContext.source,dateEventObjects: dateEventContext.objects } : {}),
-      ...(reportingContext ? { reportingPermission: { source: reportingContext.source,objects: reportingContext.objects,evaluationUtcMs: reportingContext.evaluationUtcMs } } : {}) }
+      ...(reportingContext ? { reportingPermission: copyReportingSelection({ source: reportingContext.source,objects: reportingContext.objects }) } : {}) }
     const draft: CreateEdielMessageInput = { actorUserId: input.actorUserId, companyId: input.companyId,intentId: intent.id,routeProfileId, direction: 'outbound', messageStandard: 'edifact',
       messageFamily: 'PRODAT', messageCode: canonical.messageCode, messageVersion: canonical.version, processType: type, environment: original.environment,
       testFlag: original.environment === 'test' ? 1 : 0, status: 'draft', transportType: 'smtp', rawPayload: input.correctedRawPayload,
