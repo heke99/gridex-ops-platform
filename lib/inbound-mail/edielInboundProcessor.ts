@@ -2,6 +2,7 @@ import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { isDeliveryStatusNotification } from './dsnClassifier'
 import { parseDeliveryStatusReport } from './dsnDisposition'
 import { projectDsnTransportCandidates } from './dsnTransportCandidates'
+import {recordDsnSourceObservation,type DsnSourceField} from './dsnSourceObservations'
 import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
 import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
@@ -82,31 +83,41 @@ export async function processInboundEmailMessage(input: {
   const row = data as Record<string, unknown> | null
   if (!row) throw new Error('Inbound email hittades inte.')
 
-  const quarantineDsn = async (raw: string | null) => {
+  const quarantineDsn = async (raw: string,sourceField:DsnSourceField,attachmentId?:string|null) => {
     // The returned original cannot establish the report's tenant or authorize
     // business processing. Preserve mailbox attribution until attempt matching
     // and recipient verification can be performed by a transport handler.
     const companyId = text(row.company_id)
     const deliveryStatusReport = parseDeliveryStatusReport(raw)
     const transportCandidates = await projectDsnTransportCandidates(row, deliveryStatusReport)
+    let sourceObservation:Awaited<ReturnType<typeof recordDsnSourceObservation>>|null=null
+    let observationStatus='not_qualified'
+    if(companyId&&input.actorUserId&&transportCandidates.status==='candidate_found'){
+      try{
+        sourceObservation=await recordDsnSourceObservation({companyId,actorUserId:input.actorUserId,
+          inboundEmailMessageId:input.inboundEmailMessageId,sourceField,attachmentId,rawSource:raw})
+        observationStatus=sourceObservation?'source_matched_unverified':'not_qualified'
+      }catch{observationStatus='source_observation_held'}
+    }
     await updateInboundEmailProcessingStatus({
       inboundEmailMessageId: input.inboundEmailMessageId,
       companyId,
       status: 'manual_review',
       matchStatus: 'dsn_transport_review',
       matchPayload: { classification: 'delivery_status_notification', transportCorrelation: 'unverified',
-        deliveryStatusReport, transportCandidates },
+        deliveryStatusReport, transportCandidates, sourceObservation, observationStatus },
       errorMessage: 'Leveransrapport kräver verifierad korrelation till transportförsök och mottagare.',
     })
     return { status: 'manual_review', companyId, parseResultId: null }
   }
-  for (const raw of [text(row.raw_email), text(row.body_text)]) {
-    if (isDeliveryStatusNotification(raw)) return quarantineDsn(raw)
+  for (const sourceField of ['raw_email','body_text'] as const) {
+    const raw=row[sourceField]
+    if (typeof raw==='string' && isDeliveryStatusNotification(raw)) return quarantineDsn(raw,sourceField)
   }
 
   const attachmentResult = await supabaseService
     .from('inbound_email_attachments')
-    .select('raw_text,is_edifact_candidate,filename')
+    .select('id,raw_text,is_edifact_candidate,filename')
     .eq('inbound_email_message_id', input.inboundEmailMessageId)
     .order('is_edifact_candidate', { ascending: false })
     .limit(MAX_PHYSICAL_ATTACHMENTS + 1)
@@ -121,8 +132,8 @@ export async function processInboundEmailMessage(input: {
     return { status: 'manual_review', companyId, parseResultId: null }
   }
   for (const attachment of attachments) {
-    const raw = text(attachment.raw_text)
-    if (isDeliveryStatusNotification(raw)) return quarantineDsn(raw)
+    const raw=attachment.raw_text
+    if (typeof raw==='string' && isDeliveryStatusNotification(raw)) return quarantineDsn(raw,'attachment',text(attachment.id))
   }
   // Technical lists have their own positional format, legal storage decision
   // and source-bound reconciliation. They never enter the EDIFACT/ACK engine.

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import ReceivedStructureReview from '@/components/admin/ediel/ReceivedStructureReview'
 import EdielTransportCopiesPanel from '@/components/admin/ediel/EdielTransportCopiesPanel'
+import EdielDeliveryReportsPanel from '@/components/admin/ediel/EdielDeliveryReportsPanel'
 import EdielInboundCasesPanel from '@/components/admin/ediel/EdielInboundCasesPanel'
 import { getEdielInboundCaseForMessage } from '@/lib/ediel/inboundCases'
 import { isPlatformAdminContext, requirePlatformAdminAccess } from '@/lib/admin/guards'
@@ -446,6 +447,7 @@ export default async function AdminEdielMessageDetailPage({
 
  <div className="space-y-8 p-8">
  {message.direction === 'outbound' && message.company_id ? <EdielTransportCopiesPanel key={message.id} messageId={message.id} /> : null}
+ {message.direction === 'outbound' && message.company_id ? <EdielDeliveryReportsPanel key={`delivery-${message.id}`} messageId={message.id} /> : null}
  {inboundReview ? <EdielInboundCasesPanel cases={[inboundReview]} /> : null}
  {message.company_id && message.direction === 'inbound' && message.message_standard === 'edifact' && message.message_family === 'PRODAT' && ['Z04','Z05','Z06','Z10'].includes(message.message_code ?? '') ? <ReceivedStructureReview closure={message.message_code === 'Z05'} companyId={message.company_id} sourceMessageId={message.id} environment={message.environment}/> : null}
  <section className="rounded-3xl border border-slate-200 bg-white p-6">
