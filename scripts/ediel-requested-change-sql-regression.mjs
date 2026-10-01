@@ -3,6 +3,7 @@
 import {readFileSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 import assert from 'node:assert/strict'
+import {createHash,createHmac} from 'node:crypto'
 if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
 const{PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite(),uid=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`
 const fn=(file,name)=>{const s=readFileSync(new URL(file,import.meta.url),'utf8'),start=s.indexOf(`CREATE FUNCTION ${name}`),end=s.indexOf('$$;',start);if(start<0||end<0)throw Error(name);return s.slice(start,end+3)}
@@ -78,4 +79,77 @@ try{
  for(const schema of ['gridex_ediel_transport','gridex_outbound_dispatch'])await assert.rejects(()=>service(`select ${schema}.mutate_v1(${quote({action:'enter',companyId:uid(1),messageId:bound[0].mid})})`),/current_source_required/)
  assert.equal((await db.query('select count(*)::int n from provider_effects')).rows[0].n,0)
  console.log('PASS focused SQL E/F/G originate+bind, idempotence, source/tenant/route/date/hash/permission/revocation, immutable private rows, both provider rollback boundaries (synthetic predecessor/supply records; not native replay)')
+ await db.exec(`alter table permissions rename to boundary_permissions;create table permissions(id uuid default gen_random_uuid(),key text,name text,category text,description text,is_active bool default true);create or replace function gridex_actor_has_company_permission(a uuid,c uuid,p text) returns bool language sql as $$select coalesce((select allowed from public.boundary_permissions where actor=a and company=c and permission=p),false)$$;
+ alter table auth.users add deleted_at timestamptz,add banned_until timestamptz;
+ create table user_permissions(id uuid default gen_random_uuid(),user_id uuid,company_id uuid,permission_id uuid,permission_key text,is_active bool,status text,effect text);
+ create table roles(id uuid primary key,key text,is_active bool);create table user_roles(id uuid default gen_random_uuid(),user_id uuid,company_id uuid,role_id uuid,is_active bool,status text);create table role_permissions(id uuid default gen_random_uuid(),role_id uuid,permission_id uuid,permission_key text,effect text);
+ alter table customer_contracts add signature_snapshot jsonb,add signature_snapshot_sha256 text,add document_sha256 text;
+ create table customer_contract_documents(id uuid primary key,company_id uuid,customer_contract_id uuid,document_type text,document_sha256 text,verified_at timestamptz);`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930232100_ediel_requested_change_source_intake_and_review.sql',import.meta.url),'utf8'))
+ // The upgraded owner no longer accepts manually inserted old fixture events.
+ assert.equal((await read(bound[1].event)).rows[0].b.status,'held')
+ for(const key of ['communication.write','communication.read','customers.read','customers.write','contracts.read','contracts.write'])await db.exec(`insert into permissions(key,name,is_active) values('${key}','Synthetic ${key}',true)`)
+ await db.exec(`insert into auth.users(id) values('${uid(30)}');insert into user_profiles values('${uid(30)}','active');insert into company_memberships values('${uid(1)}','${uid(30)}','active',true,now());insert into boundary_permissions(actor,company,permission,allowed) values('${uid(30)}','${uid(1)}','communication.write',true);`)
+ for(const actor of [uid(2),uid(30)])await db.exec(`insert into user_permissions(user_id,company_id,permission_id,permission_key,is_active,status,effect) select '${actor}','${uid(1)}',id,key,true,'active','allow' from permissions where key in('communication.write','communication.read','customers.read','customers.write','contracts.read','contracts.write')`)
+ const pdf=Buffer.from('%PDF-1.7\nSYNTHETIC MECHANISM ONLY: own quarter measurement clause.\n%%EOF'),pdfHash=createHash('sha256').update(pdf).digest('hex')
+ await db.exec(`update customer_contracts set signature_snapshot=${quote({company_id:uid(1),customer_id:uid(3),contract_id:uid(5)})},document_sha256='${pdfHash}' where id='${uid(5)}';update customer_contracts set signature_snapshot_sha256=encode(sha256(convert_to(signature_snapshot::text,'UTF8')),'hex');insert into customer_contract_documents values('${uid(31)}','${uid(1)}','${uid(5)}','signed_contract_pdf','${pdfHash}',now())`)
+ const submission=kind=>({supplyPeriodId:uid(6),contractId:uid(5),kind,effectiveAt:'2026-10-01T12:00:00Z',source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference:`SYNTHETIC ARCHIVE-${kind}`,version:'1'},customerIdentity:party,invoiceeProfile:invoicee})
+ const archive=(input,actor=uid(2))=>service(`select public.ediel_archive_requested_change_source_v1('${uid(1)}','${actor}',${quote(input)}) b`)
+ const review=(a,cmd,actor=uid(30))=>service(`select public.ediel_review_requested_change_artifact_v1('${uid(1)}','${a.artifactId}','${actor}',${quote({sourceHash:a.sourceHash,claimsHash:a.claimsHash,decision:'approve',reason:'SYNTHETIC SEPARATE REVIEW MECHANISM',clause:{locator:'page1 synthetic own clause',quote:'own quarter measurement clause'},...cmd})}) b`)
+ const quarter=(await archive(submission('quarter_contract'))).rows[0].b
+ assert.equal(quarter.status,'archived');assert.equal(quarter.sourceHash,pdfHash);assert.deepEqual((await archive(submission('quarter_contract'))).rows[0].b,quarter)
+ await assert.rejects(()=>review(quarter,{}),/review_actor_forbidden/) // Generic permissions, even global legacy authority, cannot grant review.
+ await db.exec(`insert into user_permissions(user_id,company_id,permission_id,permission_key,is_active,status,effect) select '${uid(30)}','${uid(1)}',id,key,true,'active','allow' from permissions where key='ediel.source.review'`)
+ await assert.rejects(()=>review(quarter,{sourceHash:'a'.repeat(64)}),/actual_archived_candidate_required/)
+ assert.equal((await review(quarter,{decision:'hold'})).rows[0].b.status,'held')
+ const approved=(await review(quarter,{})).rows[0].b;assert.equal(approved.status,'authorized');assert.deepEqual((await review(quarter,{})).rows[0].b,approved)
+ assert.equal((await read(approved.eventId,uid(1),uid(30))).rows[0].b.status,'authorized')
+ await db.exec(`update user_permissions set effect='deny' where user_id='${uid(30)}' and permission_key='ediel.source.review'`)
+ assert.equal((await read(approved.eventId,uid(1),uid(30))).rows[0].b.status,'held')
+ await db.exec(`update user_permissions set effect='allow' where user_id='${uid(30)}' and permission_key='ediel.source.review'`)
+ const death=(await archive(submission('death'))).rows[0].b
+ const before=(await db.query('select count(*)::int n from gridex_requested_changes.events')).rows[0].n
+ assert.equal((await review(death,{})).rows[0].b.status,'held');assert.equal((await db.query('select count(*)::int n from gridex_requested_changes.events')).rows[0].n,before)
+ const secret=Buffer.from('SYNTHETIC HMAC RECEIPT FIXTURE KEY ONLY 0123456789'),payload={format:'ediel_requested_change_issuer_receipt_v1',issuerCode:'SYNTHETIC-DEATH-ISSUER',receiptId:'SYNTHETIC-RECEIPT-1',companyId:uid(1),environment:'production',legalActorId:uid(9),customerId:uid(3),meteringPointId:uid(4),kind:'death',effectiveAt:'2026-10-01T12:00:00Z',sourceHash:pdfHash,sourceReference:'SYNTHETIC AUTHENTICATED-MECHANISM',sourceVersion:'1',customerIdentity:party,issuedAt:new Date(Date.now()-60000).toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString()},payloadBytes=Buffer.from(JSON.stringify(payload))
+ const receipt={keyId:uid(40),representationId:uid(41),payloadBase64:payloadBytes.toString('base64'),signatureHex:createHmac('sha256',secret).update(payloadBytes).digest('hex')}
+ await db.exec(`insert into gridex_requested_changes.issuer_keys values('${uid(40)}','${uid(1)}','production','SYNTHETIC-DEATH-ISSUER','SYNTHETIC COMPETENCE MECHANISM NOT APPROVAL','${'c'.repeat(64)}',decode('${secret.toString('hex')}','hex'),'2026-01-01','2099-01-01');insert into gridex_requested_changes.issuer_representations values('${uid(41)}','${uid(1)}','production','${uid(40)}','${uid(9)}','death','SYNTHETIC REPRESENTATION NOT APPROVAL','${'d'.repeat(64)}','2026-01-01','2099-01-01')`)
+ const sqlHmac=(await db.query(`select encode(gridex_requested_changes.receipt_hmac_sha256_v1(decode('${payloadBytes.toString('hex')}','hex'),decode('${secret.toString('hex')}','hex')),'hex') h`)).rows[0].h;assert.equal(sqlHmac,receipt.signatureHex)
+ const authenticated=(await archive({...submission('death'),effectiveAt:'2026-10-01T12:01:00Z',source:{...submission('death').source,reference:payload.sourceReference},issuerReceipt:receipt})).rows[0].b
+ assert.equal((await review(authenticated,{})).rows[0].b.status,'held') // Signed minute differs from actual candidate.
+ const actualReceipt={...payload,effectiveAt:'2026-10-01T12:02:00Z',receiptId:'SYNTHETIC-RECEIPT-2'},actualBytes=Buffer.from(JSON.stringify(actualReceipt)),actualToken={...receipt,payloadBase64:actualBytes.toString('base64'),signatureHex:createHmac('sha256',secret).update(actualBytes).digest('hex')}
+ const authenticatedOwn=(await archive({...submission('death'),effectiveAt:actualReceipt.effectiveAt,source:{...submission('death').source,reference:payload.sourceReference},issuerReceipt:actualToken})).rows[0].b
+ const deathApproval=(await review(authenticatedOwn,{})).rows[0].b;assert.equal(deathApproval.status,'authorized')
+ // Actual forward customer owner, with explicitly synthetic previously-qualified
+ // supply/transport/source-assessment boundary records. Not authentic replay.
+ await db.exec(`alter table ediel_messages add message_received_at timestamptz;alter table metering_points add site_id uuid,add customer_site_id uuid;create table customer_sites(id uuid primary key,company_id uuid,customer_id uuid);insert into customer_sites values('${uid(60)}','${uid(1)}','${uid(3)}');update metering_points set site_id='${uid(60)}' where id='${uid(4)}';
+ create table ediel_message_events(company_id uuid,ediel_message_id uuid,message_id uuid,event_type text,event_status text,message text,payload jsonb,event_payload jsonb,created_by uuid);
+ create schema gridex_ediel_inbound_context;create function gridex_ediel_inbound_context.require_v1(c uuid,m uuid) returns void language plpgsql as $$begin null;end$$;
+ create schema gridex_ediel_source_rules;create function gridex_ediel_source_rules.require_v1(c uuid,m uuid) returns void language plpgsql as $$begin null;end$$;
+ create table gridex_received_sources.sources(source_message_id uuid primary key,company_id uuid,environment text,raw_payload text,payload_hash text,source_received_at timestamptz);
+ create table gridex_received_sources.validation_assessments(id uuid primary key,source_message_id uuid,company_id uuid,environment text,source_payload_hash text,facts_text text,previous_assessment_id uuid);
+ create schema gridex_ai_processing;`)
+ await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.permission_date_v1'))
+ await db.exec(fn('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql','gridex_received_sources.permission_time_v1'))
+ await db.exec(fn('../supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql','gridex_ai_processing.party_text_v1'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001002600_ediel_confirmed_customer_source_versions.sql',import.meta.url),'utf8'))
+ const receivedWire="UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z06+SYNTHETIC-INCOMING+9'NAD+FR+54321:160:SVK'NAD+DO+12345:160:SVK'LIN+1++735999123456789012:::9'DTM+157:202610011302:203'CCI++Z13'CAV+E34'CCI++Z17'CAV+Z41'RFF+LI:SYNTHETIC-NETWORK-CASE'NAD+UD+199001019999:SE1:260++SYNTHETIC CUSTOMER ESTATE+TEST ROAD 1+TEST++12345+SE'"
+ const incomingHash=createHash('sha256').update(receivedWire).digest('hex')
+ await db.exec(`insert into ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,sender_ediel_id,receiver_ediel_id,message_received_at) values('${uid(61)}','${uid(1)}','production','inbound','edifact','PRODAT','Z06',${quote(receivedWire)},'54321','12345','2026-10-01T12:03Z');insert into gridex_received_sources.sources values('${uid(61)}','${uid(1)}','production',${quote(receivedWire)},'${incomingHash}','2026-10-01T12:03Z');insert into gridex_received_sources.validation_assessments values('${uid(62)}','${uid(61)}','${uid(1)}','production','${incomingHash}','{"syntaxDecision":"accepted","applicationDecision":"accepted","functionalDecision":"accepted"}',null)`)
+ const applyCustomer=(company=uid(1),actor=uid(30))=>service(`select public.ediel_apply_reviewed_customer_source_v1('${company}','${uid(61)}','${actor}') b`)
+ const appliedCustomer=(await applyCustomer()).rows[0].b
+ assert.equal(appliedCustomer.applied,true);assert.equal(appliedCustomer.owner,'confirmed-customer-source-v1');assert.deepEqual((await applyCustomer()).rows[0].b,appliedCustomer)
+ assert.equal((await db.query('select party from gridex_requested_changes.confirmed_customer_versions')).rows[0].party.name,'SYNTHETIC CUSTOMER ESTATE')
+ await assert.rejects(()=>applyCustomer(uid(99)),/actor_forbidden/)
+ assert.equal((await service(`select public.ediel_witness_confirmed_customer_source_v1('${uid(1)}','${uid(61)}','${uid(30)}') b`)).rows[0].b.sourceMessageId,uid(61))
+ assert.equal((await db.query('select count(*)::int n from gridex_requested_changes.customer_version_availability')).rows[0].n,1)
+ await db.exec(`update ediel_messages set raw_payload=${quote(receivedWire.replace('E34','E64'))} where id='${uid(61)}'`)
+ await assert.rejects(()=>applyCustomer(),/immutable_original_required/)
+ await db.exec(`update ediel_messages set raw_payload=${quote(receivedWire)} where id='${uid(61)}'`)
+ await assert.rejects(()=>db.exec(`update gridex_requested_changes.confirmed_customer_versions set party='{}' where source_message_id='${uid(61)}'`),/immutable/)
+ console.log('PASS incoming Z06E source-only customer version mechanism: actual raw hash/canonical assessment/life-event binding, immutable dated party, atomic idempotence, separate committed availability, tenant/mutation/foreign rejection (synthetic source/guide/inbound boundary records; not authentic replay)')
+ await db.exec(`insert into gridex_requested_changes.issuer_revocations(target_kind,target_id,source_reference,source_hash) values('representation','${uid(41)}','SYNTHETIC CURRENT REVOCATION','${'e'.repeat(64)}')`)
+ assert.equal((await read(deathApproval.eventId,uid(1),uid(30))).rows[0].b.status,'held');assert.equal((await applyCustomer()).rows[0].b.applied,false)
+ for(const role of ['anon','authenticated','service_role']){await db.exec(`set role ${role}`);await assert.rejects(()=>db.query('select source_bytes from gridex_requested_changes.artifacts'),/permission denied/);await assert.rejects(()=>db.query('select receipt_signing_key from gridex_requested_changes.issuer_keys'),/permission denied/);await db.exec('reset role')}
+ await assert.rejects(()=>db.exec(`update gridex_requested_changes.artifacts set source_bytes='tampered' where id='${quarter.artifactId}'`),/immutable/)
+ console.log('PASS custody/review mechanism: byte/hash archive, separate company-scoped no-default review grants, actual signed-PDF/signature binding, authenticated own HMAC receipt/minute, issuer representation revocation and private immutable rows (all source approvals/issuer keys synthetic; not authentic external/native approval)')
 }finally{await db.close()}

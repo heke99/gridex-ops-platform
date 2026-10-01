@@ -29,6 +29,10 @@ async function resolver(row, error = null) {
   const entry = load(path.join(root, 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'))
   await entry.link((specifier, parent) => {
     if (specifier === '@/lib/supabase/service') return service
+    if (specifier === '@/docs/ediel/masterplan-v2/registers/source_manifest.json') {
+      const manifest = JSON.parse(fs.readFileSync(path.join(root, 'docs/ediel/masterplan-v2/registers/source_manifest.json'), 'utf8'))
+      return new SyntheticModule(['default'], function () { this.setExport('default', manifest) })
+    }
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency: ${specifier}`)
     const filename = specifier.startsWith('@/')
       ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
@@ -137,7 +141,7 @@ test('no activated evidence remains blocking', async () => {
 test('PRODAT evidence keeps its existing technical-versus-semantic identity contract', async () => {
   const row = { ...evidence(), family: 'PRODAT', guide_version: '26.A', guide_revision: '3',
     unh_association_code: 'E2SE6A', valid_from: '2026-04-01', valid_to: null,
-    profile_key: 'PRODAT:Z01:L:26.A:r3', profile: { family: 'PRODAT', messageCode: 'Z01',
+    profile_key: 'PRODAT:Z01:L:26.A:r3', profile: { family: 'PRODAT', messageCode: 'Z01', guideVersion:'26.A', guideRevision:'3',
       transactionSubtype: 'L', canonicalDirection: 'outbound', reasonForTransaction: 'Z22' } }
   const { resolve } = await resolver(row)
   const result = await resolve({ family: 'PRODAT', messageCode: 'Z01', transactionSubtype: 'L',

@@ -9,6 +9,7 @@ import { sendEdielEmail, type SendEdielEmailInput } from '@/lib/email/sendEdielE
 import { SmtpDeliveryUncertainError } from './smtpOutcome'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { OutboundDispatchOwner } from '@/lib/ediel/sources/correctionOutboundDispatch'
+import {transportExceptionBinding,type TransportExceptionAuthorization} from './exception/source'
 
 type ProviderResult = Awaited<ReturnType<typeof sendEdielEmail>> & { dispatchReplay?: boolean; dispatchObservedAt?: string }
 type Receipt = { proceed?: boolean; classification?: string; providerReceipt?: ProviderResult; observedAt?: string }
@@ -23,6 +24,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
   sourceRulePackEvidence?: EdielSourceRulePackEvidence | null
   technicalSyntaxAckEvidence?: TechnicalSyntaxAckEvidence | null
   prodatCommonHeaderRejectionEvidence?: ProdatCommonHeaderRejectionEvidence | null
+  transportException?: TransportExceptionAuthorization | null
 }): Promise<ProviderResult> {
   const { message } = context
   if (!message.company_id) throw new Error('ediel_transport_company_required')
@@ -48,6 +50,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
         sourceRulePackEvidence: context.sourceRulePackEvidence ?? null,
         technicalSyntaxAckEvidence: context.technicalSyntaxAckEvidence ?? null,
         prodatCommonHeaderRejectionEvidence: context.prodatCommonHeaderRejectionEvidence ?? null,
+        transportException: context.transportException ? transportExceptionBinding(context.transportException,message,context.actorUserId) : null,
       }
       const reservation = await call('prepare', { owner: context.owner ?? { kind: 'direct' }, binding })
       if (reservation.proceed !== true) {

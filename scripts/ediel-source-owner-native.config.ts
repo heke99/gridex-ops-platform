@@ -27,5 +27,10 @@ export default defineConfig({
     'scripts/ediel-outbound-ack-replay-native.test.ts',
     'scripts/ediel-prodat-mixed-native.test.ts',
     'scripts/ediel-transport-data-query-plan-native.test.ts',
+    'scripts/ediel-requested-change-native.test.ts',
+    'scripts/ediel-registry-import-native.test.ts',
+    'scripts/ediel-artifact-retention-native.test.ts',
+    'scripts/ediel-customer-retention-native.test.ts',
+    'scripts/ediel-transport-exception-native.test.ts',
   ],testTimeout:30000,hookTimeout:30000,fileParallelism:false},
 })

@@ -43,7 +43,7 @@ import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusines
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 import {finalizeSupplierSwitchExecution} from '@/lib/operations/db'
 import {seedNormalSwitchNativeFixture} from './helpers/ediel-normal-switch-native-fixture'
-import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
 
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 
@@ -62,10 +62,31 @@ function fixtureGsrn(sequence:number):string {
 }
 type NativeWireScope={external:string;sender:string;receiver:string;caseReference:string;gridArea:string;brpEdielId:string;
  customerIdentity:{id:string;qualifier:string;agency:string}}
+/** The synthetic native rows use test_flag=1. Stamp physical UNB 0035 while
+ * constructing their wire, before the actual insertion-scoped source seal. */
+function nativeTestWire(wire:string):string {
+ const {una,segments}=tokenizeEdifact(wire),headers=segments.filter(segment=>segment.tag==='UNB')
+ expect(headers).toHaveLength(1)
+ const header=headers[0],span=segmentSourceSpan(header)
+ expect(span).not.toBeNull()
+ const fields:string[]=[];let field='',released=false
+ for(const char of header.raw){
+  if(released){field+=char;released=false;continue}
+  if(char===una.releaseCharacter){field+=char;released=true;continue}
+  if(char===una.dataElementSeparator){fields.push(field);field='';continue}
+  field+=char
+ }
+ fields.push(field)
+ while(fields.length<10)fields.push('')
+ fields[9]='1'
+ const stamped=wire.slice(0,span!.startOffset)+fields.join(una.dataElementSeparator)+wire.slice(span!.endOffset)
+ expect(tokenizeEdifact(stamped).segments.find(segment=>segment.tag==='UNB')?.elements[9]).toBe('1')
+ return stamped
+}
 /** Substitute declared placeholder addresses only, keeping physical reference
  * and customer namespaces tied to this fixture's actual rendered Z03. */
 function scopedWire(scope:NativeWireScope,wire:string):string {
- return wire.replaceAll('735123456789012345',scope.external)
+ return nativeTestWire(wire.replaceAll('735123456789012345',scope.external)
   .replaceAll('NAD+Z02+54321:160:SVK',`NAD+Z02+${scope.brpEdielId}:160:SVK`)
   .replaceAll('12345:14',`${scope.receiver}:14`).replaceAll('54321:14',`${scope.sender}:14`)
   .replaceAll('12345:ZZ',`${scope.receiver}:ZZ`).replaceAll('54321:ZZ',`${scope.sender}:ZZ`)
@@ -74,7 +95,7 @@ function scopedWire(scope:NativeWireScope,wire:string):string {
   .replaceAll('RFF+Z05:NET-1',`RFF+Z05:${scope.gridArea}`)
   .replaceAll('RFF+Z05:NET\'',`RFF+Z05:${scope.gridArea}'`)
   .replaceAll('NAD+Z02+11111:160:SVK',`NAD+Z02+${scope.brpEdielId}:160:SVK`)
-  .replaceAll('NAD+UD+CUSTOMER-1::89',`NAD+UD+${scope.customerIdentity.id}:${scope.customerIdentity.qualifier}:${scope.customerIdentity.agency}`)
+  .replaceAll('NAD+UD+CUSTOMER-1::89',`NAD+UD+${scope.customerIdentity.id}:${scope.customerIdentity.qualifier}:${scope.customerIdentity.agency}`))
 }
 /** Synthetic entities use the actual signed contract, original and accepted
  * provider owners. The supply INSERT still belongs to the native business RPC. */
@@ -376,10 +397,10 @@ function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMe
  return {...message,id,raw_payload:wire,sender_ediel_id:f.receiver,receiver_ediel_id:f.sender}
 }
 function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
- return observationHandoffMessage('2026-09-30',f.ids.company).raw_payload!
+ return nativeTestWire(observationHandoffMessage('2026-09-30',f.ids.company).raw_payload!
   .replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
   .replaceAll('202607010000','202610010000').replaceAll('202608010000','202610150000')
-  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500')
+  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500'))
 }
 async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point:string){
  const sourceMessageId=randomUUID(),wire=scopedWire(f,closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point))

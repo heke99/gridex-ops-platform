@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { supabaseService } from '@/lib/supabase/service'
+import {currentPreviousCrlException} from '@/lib/ediel/transport/exception/source'
+import {verifyPreviousSignedCrlCryptography} from '@/lib/ediel/transport/exception/previousCrl'
 const execute = promisify(execFile)
 export type EdielCertificateTrustScope = { companyId: string; environment: 'test' | 'production'; receiverEdielId: string }
 export type EdielCertificateTrustAuthority = EdielCertificateTrustScope & {
@@ -31,6 +33,11 @@ export async function verifyEdielCertificateTrust(input: {
   if (!authority.registrationId || !authority.registerVersion || !authority.originalReference || !/^[a-f0-9]{64}$/.test(authority.originalSha256) || !authority.authorizationReference
     || !Number.isFinite(now.getTime()) || !(Date.parse(authority.validFrom) <= now.getTime() && Date.parse(authority.validTo) > now.getTime())) return held('certificate_trust_authority_missing_or_expired')
   if (!bounded(authority.anchors) || !authority.anchors.length || !bounded(authority.intermediates) || !bounded(authority.crls) || !authority.crls.length || typeof input.leafPem !== 'string' || input.leafPem.length > 1_048_576) return held('certificate_trust_originals_missing_or_unbounded')
+  const previous = currentPreviousCrlException(scope,authority.crls)
+  if(previous){
+    if(previous.certificateAuthorityId!==authority.registrationId)return held('certificate_trust_previous_crl_owner_changed')
+    return verifyPreviousSignedCrlCryptography({...input,priorCrlSha256:previous.priorCrlSha256,cdpLocations:previous.cdpLocations})
+  }
   let leaf: X509Certificate, certificates: X509Certificate[]
   try {
     leaf = new X509Certificate(input.leafPem)

@@ -167,6 +167,11 @@ export const ROLE_CATALOG: RoleCatalogItem[] = [
 ]
 
 const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
+  {key:'ediel.retention.submit',label:'Lämna gallringsunderlag',description:'Lämna ett källbundet gallringsbeslut för egna uppgifter. Beslutet behöver separat granskning och aktuell rättslig grund.',area:'Ediel',risk:'high'},
+  {key:'ediel.retention.review',label:'Granska gallringsunderlag',description:'Separat granskning av egna gallringsbeslut. Uppladdaren får inte granska sitt eget beslut.',area:'Ediel',risk:'high'},
+  {key:'ediel.retention.purge',label:'Verkställa gallring',description:'Verkställa ett aktuellt, separat godkänt och tidsmässigt tillämpligt beslut för en bestämd uppgiftsklass.',area:'Ediel',risk:'high'},
+  {key:'ediel.source.review',label:'Granska ändringsunderlag',description:'Separat granskning av egna arkiverade original för dödsfall och avtalad mätning. Kräver aktuell bolagsbehörighet; uppladdaren får inte godkänna sitt eget underlag.',area:'Ediel',risk:'high'},
+  {key:'ediel.service_evidence.review',label:'Granska ESCO-underlag',description:'Separat granskning av eget autentiskt utfärdar- och representationsunderlag för ESCO. Ger inte i sig mandat eller rätt till mätvärden.',area:'Ediel',risk:'high'},
   {
     key: 'tenants.read',
     label: 'Läsa bolag',

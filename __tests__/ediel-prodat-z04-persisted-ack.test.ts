@@ -5,6 +5,8 @@ import {mixedZ04Parts} from './helpers/mixedZ04Fixture'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {createHash} from 'node:crypto'
 import {contrlSourceEnvelope} from '@/lib/ediel/contrlEngine'
+import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
+import {withProdatFixtureInsertContext,prodatFixtureSourceRpc} from './helpers/prodatInboundSourceFixture'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 
 // The persisted test lane declares test_flag=1. Its physical UNB must carry
@@ -31,7 +33,7 @@ const fixtureCompany='00000000-0000-4000-8000-000000000002'
 const fixtureActor='00000000-0000-4000-8000-000000000009'
 const payloadHash=(value:string)=>createHash('sha256').update(value,'utf8').digest('hex')
 function storedOriginal():EdielMessageRow {
- if(!state.original)state.original=structuredClone(state.source!)
+ if(!state.original){state.source=withProdatFixtureInsertContext(state.source!);state.original=structuredClone(state.source)}
  return state.original
 }
 function sourcePack(message:EdielMessageRow){return {
@@ -50,20 +52,73 @@ function syntaxBasis(){
    uciReference:envelope.uciReference,applicationReference:original.application_reference,testIndicator:envelope.testIndicator}}
 }
 vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'configured@example.invalid',host:'smtp.example.invalid',port:465})}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:async(name:string,args:Record<string,unknown>)=>{
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>{
  state.authorityCalls.push({name,args:structuredClone(args)})
  if(name==='gridex_actor_has_company_permission'){
   expect(args.p_actor_user_id).toBe(fixtureActor);expect(args.p_company_id).toBe(fixtureCompany)
   return {data:state.actorActive&&['communication.write','communication.read','ediel_testing.write'].includes(String(args.p_permission)),error:null}
  }
  const message=storedOriginal()
+ if(['gridex_record_prodat_source_validation_v3','gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'].includes(name))return prodatFixtureSourceRpc(name,args)
+ if(name==='ediel_probe_source_rule_pack_capture_v1'){
+  expect(args).toEqual({p_company_id:fixtureCompany,p_message_id:message.id})
+  return state.protectedSourceAvailable?{data:{status:'captured',evidence:sourcePack(message)},error:null}:{data:null,error:new Error('protected original unavailable')}
+ }
+ if(name==='ediel_read_prodat_mixed_reply_v1'){
+  expect(args).toEqual({p_company_id:fixtureCompany,p_source_message_id:message.id,p_actor_user_id:fixtureActor})
+  // No sent original, qualified own market object or native commit exists in
+  // this held fixture. It must not manufacture ERC100 for the sibling.
+  return {data:null,error:null}
+ }
+ if(name==='ediel_create_outbound_ack_atomic_v1'){
+  const draft=args.p_draft as Record<string,unknown>,family=String(args.p_ack_family)
+  expect(args).toMatchObject({p_company_id:fixtureCompany,p_environment:message.environment,p_source_message_id:message.id,p_source_payload_hash:payloadHash(message.raw_payload!),p_actor_user_id:fixtureActor,p_sequence_field:null,p_sequence_value:null})
+  expect(typeof draft.rawPayload).toBe('string')
+  for(const key of ['companyId','environment','actorUserId','relatedMessageId','sourceOperationId','canonicalRulePackId','rulePackSnapshot','executionContextSnapshot','customerId','siteId','meteringPointId'])expect(draft).not.toHaveProperty(key)
+  if(!state.actorActive||!state.protectedSourceAvailable)return {data:null,error:new Error('protected atomic original unavailable')}
+  const tokens=tokenizeEdifact(String(draft.rawPayload)).segments,erc=tokens.filter(t=>t.tag==='ERC')
+  const outcome=family==='CONTRL'?syntaxBasis().syntaxDecision==='accepted'?'positive':'negative':erc.length&&erc.every(t=>t.raw==='ERC+100::260')?'positive':'negative'
+  expect(args.p_outcome).toBe(outcome)
+  if(family==='CONTRL'){expect(state.syntaxFacetAvailable).toBe(true);expect(args.p_common_smtp).toEqual({from:'configured@example.invalid',host:'smtp.example.invalid',port:465})}
+  else expect(args.p_common_smtp).toBeNull()
+  // Declared atomic DB boundary only. Real source/ACK guide validation already
+  // ran above this call; the native companion proves its actual SQL transaction.
+  const mapped=Object.fromEntries(Object.entries(draft).map(([key,value])=>[key.replace(/[A-Z]/g,c=>'_'+c.toLowerCase()),value]))
+  const ack={...mapped,id:`00000000-0000-4000-8000-${String(state.messages.length+100).padStart(12,'0')}`,company_id:fixtureCompany,environment:message.environment,direction:'outbound',message_standard:'edifact',message_family:family,message_code:family,related_message_id:message.id,source_operation_id:`ediel_ack:${message.id}:${family}:message`,ack_outcome:outcome,status:'draft',test_flag:message.test_flag,created_at:new Date(Date.parse('2026-09-30T12:00:00Z')+state.messages.length).toISOString(),parsed_payload:{...(draft.parsedPayload as Record<string,unknown>),ackOutcome:outcome},customer_id:null,site_id:null,metering_point_id:null}
+  Object.assign(ack,{canonical_rule_pack_id:family==='CONTRL'?null:message.canonical_rule_pack_id,
+   rule_profile_version_id:family==='CONTRL'?null:message.rule_profile_version_id,
+   rule_profile_key:family==='CONTRL'?null:message.rule_profile_key,
+   rule_profile_version:family==='CONTRL'?null:message.rule_profile_version,
+   rule_pack_checksum:family==='CONTRL'?null:message.rule_pack_checksum,
+   rule_pack_snapshot:family==='CONTRL'?null:structuredClone(message.rule_pack_snapshot)})
+  state.messages.push(ack)
+  return {data:{version:1,sourceMessage:structuredClone(message),ackMessage:structuredClone(ack),replayed:false},error:null}
+ }
+ if(name==='ediel_read_outbound_ack_replay_v1'){
+  expect(args).toMatchObject({p_company_id:fixtureCompany,p_environment:message.environment,p_source_message_id:message.id,p_actor_user_id:fixtureActor})
+  if(!state.actorActive||!state.protectedSourceAvailable)return {data:null,error:new Error('protected original unavailable')}
+  const ack=state.messages.find(row=>row.company_id===fixtureCompany&&row.environment===message.environment&&row.direction==='outbound'&&row.related_message_id===message.id&&row.message_family===args.p_ack_family)
+  if(!ack)return {data:null,error:null}
+  if(args.p_ack_family==='CONTRL'&&!state.syntaxFacetAvailable)return {data:null,error:new Error('ediel_historical_technical_ack_basis_unavailable')}
+  return {data:{version:1,sourceMessage:structuredClone(message),ackMessage:structuredClone(ack)},error:null}
+ }
  if(name==='ediel_read_prodat_common_header_rejection_v1'){
   expect(args).toEqual({p_company_id:fixtureCompany,p_environment:message.environment,p_source_message_id:message.id})
   // These unresolved guide fixtures intentionally have no separately persisted
   // common-family rejection authority. They may diagnose but cannot enqueue it.
   return {data:null,error:new Error('common_header_original_owner_unavailable')}
  }
- if(name==='ediel_require_technical_syntax_ack_basis_v1'){
+ if(name==='ediel_read_technical_source_endpoint_v1'){
+  expect(args).toEqual({p_source_message_id:message.id})
+  if(!state.protectedSourceAvailable)return {data:null,error:new Error('protected original unavailable')}
+  const b=syntaxBasis();return {data:{kind:'technical_endpoint_only',companyId:b.companyId,environment:b.environment,sourceMessageId:b.sourceMessageId,sourceHash:b.sourceHash,transportEdielId:b.transportEdielId,originalUNB:b.originalUNB,authorizesBusinessEffect:false},error:null}
+ }
+ if(name==='ediel_record_technical_syntax_facet_v1'){
+  const actual=validateEdifactSyntax({...message,status:'received',validation_report:{},syntax_check_status:'not_checked',failure_reason:null})
+  expect(args).toEqual({p_company_id:fixtureCompany,p_source_message_id:message.id,p_source_payload_hash:payloadHash(message.raw_payload!),p_facts_text:JSON.stringify({version:1,owner:'canonical-runtime-syntax-v1',syntaxDecision:actual.ok?'accepted':'rejected',reasonCodes:actual.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code)})})
+  return state.syntaxFacetAvailable?{data:{assessmentId:syntaxBasis().syntaxAssessmentId},error:null}:{data:null,error:new Error('declared technical commit failure')}
+ }
+ if(name==='ediel_require_technical_syntax_ack_basis_v1'||name==='ediel_capture_technical_syntax_ack_basis_v1'){
   expect(args).toEqual({p_company_id:fixtureCompany,p_message_id:message.id})
   return state.protectedSourceAvailable&&state.syntaxFacetAvailable?{data:syntaxBasis(),error:null}:
    {data:null,error:new Error('ediel_historical_technical_ack_basis_unavailable')}
@@ -80,7 +135,7 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:async(name:string,ar
    senderEdielId:sender[0],senderQualifier:sender[1]||null,senderSubAddress:sender[2]||null,
    receiverEdielId:receiver[0],receiverQualifier:receiver[1]||null,receiverSubAddress:receiver[2]||null,receiverMessageSubAddress:receiver[2]||null,
    applicationReference:basis.originalUNB.applicationReference,senderEmail:'configured@example.invalid',receiverEmail:'counterparty@example.invalid',
-   mailbox:'configured@example.invalid',routeKey:'synthetic-configured-technical-route'},error:null}
+   mailbox:'configured@example.invalid',routeKey:'synthetic-configured-technical-route',smtpHost:'smtp.example.invalid',smtpPort:465},error:null}
  }
  if(name==='ediel_prepare_outbound_owner_witness_v1'){
   const input=args.p_input as {companyId:string;environment:string;actorUserId:string;rawPayload:string;relatedMessageId:string;rulePackEvidence:unknown}
@@ -142,7 +197,7 @@ vi.mock('@/lib/ediel/rulebook/validator',async original=>{
   input.mode==='send'?actual.validateRulebookMessageWithRegistry(input):
    {issues:[],fieldRuleSource:'registry',rulePackSnapshot:{profileKey:'PRODAT:Z04:L:26.A:r3',profileVersionId:'00000000-0000-4000-8000-000000000032',version:'26.A:r3',checksum:'a'.repeat(64)}}}
 })
-vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>({profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'})}))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async original=>({...await original<Record<string,unknown>>(),resolveCanonicalRulePack:async()=>{const m=storedOriginal(),pack=originalRuleWitnessFixture({profileKey:String(m.rule_profile_key),sourceHash:String(m.rule_pack_checksum),messageProfileId:String(m.rule_profile_version_id),rulePackId:String(m.canonical_rule_pack_id)});return {...pack,originalVersion:pack.version,originalSnapshot:pack.snapshot}}}))
 vi.mock('@/lib/ediel/core/tenantResolver',()=>({resolveInboundTenantForMessage:async()=>({status:'tenant_resolved',companyId:state.source?.company_id,message:state.source,evidence:{companyId:state.source?.company_id}})}))
 vi.mock('@/lib/ediel/actorTestingEngine',()=>({syncActorTestingForMessage:async()=>{state.effects.push('actor');return null}}))
 vi.mock('@/lib/ediel/inbound/inboundFacilityRecognition',()=>({recognizeInboundFacilityData:async()=>{state.effects.push('facility');return null}}))
@@ -383,19 +438,14 @@ it('holds an incomplete two-object BGM34 response without inventing a sibling ou
  const plan=decision.responsePlan.find(item=>item.family==='APERAK')!
  expect(plan.applicationErrors).toEqual([expect.objectContaining({ercCode:'41',fieldCode:'213',
   prodatOccurrence:expect.objectContaining({objectId:'735123456789012345',registerPosition:2})})])
- const draft=buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:plan.applicationErrors})
- expect(draft.rawPayload).toContain('BGM+++34')
- expect(draft.rawPayload).toContain('FTX+AAO++213::260')
- expect(draft.rawPayload).toContain('RFF+Z07:735123456789012345')
- expect(draft.rawPayload).not.toContain('RFF+Z07:735123456789012352')
- expect(draft.rawPayload).not.toContain('ERC+40::260')
+ expect(() => buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:plan.applicationErrors})).toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
  const input={actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source!.id}
  await processInboundEdielMessage(input)
  // The sibling was never applied by this safe-stop path. A processed BGM34
  // cannot omit its outcome or fabricate success; the real send validator holds it.
  expect(state.messages.map(row=>[row.message_family,row.ack_outcome]),JSON.stringify(state.events)).toEqual([['CONTRL','positive']])
- expect(state.events).toEqual(expect.arrayContaining([expect.objectContaining({
-  message:expect.stringContaining('ACK_PRODAT_OBJECT_OUTCOME_MISSING'),
+ expect(state.events,JSON.stringify(state.events)).toEqual(expect.arrayContaining([expect.objectContaining({
+  message:expect.stringContaining('APERAK_PRODAT_OBJECT_OUTCOME_MISSING'),
   payload:expect.objectContaining({blockedBy:'canonical_inbound_ack_guard',ackFamily:'APERAK',sourceMessageId:original.id}),
  })]))
  expect(state.outbox).toHaveLength(1)
@@ -481,7 +531,8 @@ it('holds both ACKs when the tenant has no qualified outbound route',async()=>{
  await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source!.id})
  expect(state.messages).toEqual([])
  expect(state.outbox).toEqual([])
- expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload)).toEqual([
+ expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload),JSON.stringify(state.events)).toEqual([
+  expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'}),
  ])
@@ -586,7 +637,8 @@ it('holds a required 313 rejection without source-bound evidence or a qualified 
  expect(state.messages).toEqual([])
  expect(state.outbox).toEqual([])
  expect(state.effects).toEqual([])
- expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload)).toEqual([
+ expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload),JSON.stringify(state.events)).toEqual([
+  expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'}),
  ])
@@ -720,7 +772,8 @@ it('holds a header rejection without a qualified tenant ACK route and never ente
  await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id})
  expect(state.messages).toEqual([])
  expect(state.outbox).toEqual([])
- expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload)).toEqual([
+ expect(state.events.filter(event=>String(event.message).includes('skapades inte')).map(event=>event.payload),JSON.stringify(state.events)).toEqual([
+  expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'CONTRL',blockedBy:'canonical_inbound_ack_guard'}),
   expect.objectContaining({ackFamily:'APERAK',blockedBy:'canonical_inbound_ack_guard'}),
  ])
@@ -738,26 +791,28 @@ it('rechecks current tenant membership before any retained ACK/outbox replay eff
  state.actorActive=false
  await processInboundEdielMessage(input)
  expect({messages:state.messages,outbox:state.outbox}).toEqual(retained)
- expect(state.events.filter(row=>String(row.message).includes('ediel_tenant_actor_forbidden')).map(row=>(row.payload as {ackFamily:string}).ackFamily)).toEqual(['CONTRL','APERAK'])
+ expect(state.events.filter(row=>String(row.message).includes('ediel_tenant_actor_forbidden')).map(row=>(row.payload as {ackFamily:string}).ackFamily)).toEqual(['CONTRL','CONTRL','APERAK'])
  expect(state.effects).toEqual([])
 })
 
-it('refuses missing separately committed syntax authority without a fabricated technical reply',async()=>{
+it('a failed actual syntax-owner commit cannot fabricate a technical reply',async()=>{
  state.syntaxFacetAvailable=false
  await processInboundEdielMessage({actorUserId:fixtureActor,edielMessageId:state.source!.id})
  expect(state.messages).toEqual([])
  expect(state.outbox).toEqual([])
  expect(state.effects).toEqual([])
  expect(state.authorityCalls.some(row=>row.name==='ediel_require_technical_syntax_ack_basis_v1')).toBe(true)
- expect(state.authorityCalls.some(row=>row.name.includes('capture_technical')||row.name.includes('record_technical'))).toBe(false)
+ expect(state.authorityCalls.some(row=>row.name==='ediel_record_technical_syntax_facet_v1')).toBe(true)
+ expect(state.authorityCalls.some(row=>row.name==='ediel_capture_technical_syntax_ack_basis_v1')).toBe(false)
 })
 
 it('refuses absent protected actual-original authority before any application ACK write',async()=>{
  state.protectedSourceAvailable=false
- await processInboundEdielMessage({actorUserId:fixtureActor,edielMessageId:state.source!.id})
+ await expect(processInboundEdielMessage({actorUserId:fixtureActor,edielMessageId:state.source!.id})).rejects.toThrow('ediel_source_rule_pack_basis_required')
  expect(state.messages).toEqual([])
  expect(state.outbox).toEqual([])
  expect(state.effects).toEqual([])
  expect(state.ownerWitnesses.size).toBe(0)
- expect(state.sourceReads.length).toBeGreaterThan(0)
+ expect(state.authorityCalls.some(row=>row.name==='ediel_probe_source_rule_pack_capture_v1')).toBe(true)
+ expect(state.sourceReads).toEqual([])
 })

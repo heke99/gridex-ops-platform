@@ -47,6 +47,16 @@
     "20260930173632_ediel_immutable_source_legal_context.sql": "98a186c75e6bef3c8b1609ae15a09679f4599a5452cb141089eff872d4494f13",
     "20260930224443_ediel_outbound_ack_protected_replay.sql": "374112f9efcd18642d02b0bfdaaff32612bd822a623703eb7b83eacab192e860",
     "20260930224540_ediel_source_bound_requested_changes.sql": "7f0a34d11ed5bab4f55fbc427465c644035d8469dec2a1e96d94b15dd74e3334",
-    "20260930224726_ediel_prodat_mixed_own_object_processing.sql": "14cbfc9d62b94e441b396f76d5b39a1357391e07aceaf05c6f069cab22dd3ab5"
+    "20260930224726_ediel_prodat_mixed_own_object_processing.sql": "14cbfc9d62b94e441b396f76d5b39a1357391e07aceaf05c6f069cab22dd3ab5",
+    "20260930231958_ediel_atomic_ack_owner_persistence.sql": "8cdd3bb9cdc6e8b08a68f5e6335e21fe752b82c2cfbd890a9ac5b2f07437ead9",
+    "20260930232100_ediel_requested_change_source_intake_and_review.sql": "ad6d54df17793a204294efd7c50f40c7f6c9c0cf1382266f0313d663ae987490",
+    "20260930235702_ediel_positive_ack_service_scope.sql": "d9732b398dfc86386f6e6406279444e7a3dc775fa01135bd9fecfa7edee30c9e",
+    "20261001000148_ediel_prodat_primary_full_object_capture_and_grant_lock.sql": "fea41bb5b25a8db513a6d788d02953b59108461dd17064812a8511e261f6ee3b",
+    "20261001000600_ediel_registry_txt_preview_and_route_history.sql": "7a9f8dc8a8ab58492baad97621915c51c66a7c24e8d5a19a4d70c5a8cffbc79a",
+    "20261001000926_ediel_service_evidence_archive_review.sql": "43cee9e2fa33c3710b4d15291e4f384433c4b45ecfcb30fdff1955b2be24645f",
+    "20261001000500_ediel_artifact_retention_decision_and_purge.sql": "24a2026b0b37f42d02c242a0f218ab028f938f2affbc0f093355ef32c938468e",
+    "20261001002600_ediel_confirmed_customer_source_versions.sql": "e0134dfa00239bb30d1ff1619cb6a29192726dbb412f7e739ef46c3cc1590e87",
+    "20261001000609_ediel_source_owned_temporary_transport_exceptions.sql": "97133aab330da4ec3b0377445c7be84c6b93ae13f8433b646e1e642faf978c85",
+    "20261001000610_ediel_customer_class_retention.sql": "1b336550c095424908d3d4153bc1fcfce2182fd77c96586c4208bfb96b6ed6d7"
   }
 }

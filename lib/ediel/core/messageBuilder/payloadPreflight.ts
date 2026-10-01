@@ -21,6 +21,7 @@ import type {ProdatDateEventValidationContext,ProdatDateEventRow} from '@/lib/ed
 import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
+import { prodatInterchangeBatchIssues } from '@/lib/ediel/prodat/prodatInterchangeBatch'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -383,6 +384,9 @@ function validateEdifactPayload(params: {
   const { segments, una } = tokens
   const rawSegments = segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
+  if (params.mode === 'send') for (const failure of prodatInterchangeBatchIssues(tokens)) issues.push(issue({
+    severity: 'error', code: failure.code, title: 'PRODAT-batchen måste delas', description: failure.description, segment: failure.segment,
+  }))
   if (params.mode === 'send') for (const failure of prodatFreeTextSendIssues({ raw_payload: rawPayload })) issues.push(issue({ severity: failure.severity, code: failure.code, title: failure.title, description: failure.description, segment: failure.fieldPath }))
   const gasBoundary=params.mode==='send'?gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
   if(gasBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}))

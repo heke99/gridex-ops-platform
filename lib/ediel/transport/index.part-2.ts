@@ -25,6 +25,7 @@ import { resolveSourceQualifiedNegativeFixtureForMessage } from '@/lib/ediel/tes
 import { readProdatTransportRetryBasis } from '@/lib/ediel/recovery/transportRetry'
 import { readAcceptedEdielTransportProjection } from './acceptedProjection'
 import { repairAcceptedEdielMessageProjection } from './acceptedProjectionRepair'
+import {readTransportExceptionAuthorization,plaintextTransportException,withTransportExceptionCertificateScope,type TransportExceptionAuthorization} from './exception/source'
 // Extracted from index.ts; keep public imports on the facade module.
 
 
@@ -334,7 +335,7 @@ export async function withAcceptedInboundVersions(
 
 export async function sendEdielMessageViaSmtp(
   message: EdielMessageRow,
-  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null; dispatchOwner?: OutboundDispatchOwner }
+  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null; dispatchOwner?: OutboundDispatchOwner; temporarySecurityExceptionId?: string | null }
 ): Promise<{
   accepted: string[]
   rejected: string[]
@@ -355,6 +356,15 @@ export async function sendEdielMessageViaSmtp(
   if (['provider_accepted','sent','delivered','acknowledged'].includes(String(message.status))) {
     throw new Error('ediel_historical_transport_receipt_unavailable')
   }
+  // Historical accepted-journal replay above never needs a new exception or
+  // re-enters SMTP. A fresh selector supplies no approval or incident facts.
+  let transportException:TransportExceptionAuthorization|null=null
+  if(params?.temporarySecurityExceptionId){
+    const selected=await readTransportExceptionAuthorization({message,actorUserId,exceptionId:params.temporarySecurityExceptionId})
+    if(selected.status!=='authorized')throw new Error(selected.missing.join(' | '))
+    transportException=selected
+  }
+  const plaintextException=transportException?plaintextTransportException(transportException,message,actorUserId):false
   const formatIssue = wireFormatIdentityIssue({ rawPayload: message.raw_payload, messageStandard: message.message_standard, mimeType: message.mime_type })
   if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
   if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
@@ -434,7 +444,7 @@ export async function sendEdielMessageViaSmtp(
         ? 'none'
         : routeProfile?.encryption_mode) ??
     'none'
-  const effectiveEncryptionMode = applyMessageFamilyEncryptionPolicy({
+  const effectiveEncryptionMode = plaintextException?'none':applyMessageFamilyEncryptionPolicy({
     messageFamily: message.message_family,
     requestedEncryptionMode,
     routeProfile,
@@ -443,7 +453,14 @@ export async function sendEdielMessageViaSmtp(
   // The shared mailbox certificate is our own/private transport material and must never
   // be used as recipientCertificatePem for another Ediel party.
   const effectiveCertificateId = routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
-  await assertRouteTransportSecurity({
+  // Legacy route-level "allow unencrypted production" is never an incident
+  // source. Only an exact private current capability can reserve plaintext.
+  if(message.message_family==='PRODAT'&&message.environment==='production'&&effectiveEncryptionMode!=='smime'&&!plaintextException)
+    throw new Error('transport_exception_actual_approved_plaintext_source_required')
+  if(plaintextException){
+    if(!routeProfile||routeProfile.tls_required!==true||routeProfile.transport_security_mode==='needs_verification')
+      throw new Error('transport_exception_current_verified_tls_route_required')
+  }else await assertRouteTransportSecurity({
     message,
     routeProfile,
     effectiveEncryptionMode,
@@ -465,7 +482,7 @@ export async function sendEdielMessageViaSmtp(
       extension,
     })
   const routeEncryptionMode = effectiveEncryptionMode
-  const mimeMode = resolveSmtpMimeMode(params?.smtpMimeMode, routeEncryptionMode)
+  const mimeMode = resolveSmtpMimeMode(plaintextException?'ediel-singlepart-base64':params?.smtpMimeMode, routeEncryptionMode)
   const normalizedPayload = isEdifactMessage(message) || message.message_standard === 'ai_list'
     ? message.raw_payload ?? ''
     : bodyText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n')
@@ -544,7 +561,7 @@ export async function sendEdielMessageViaSmtp(
 
   const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
-    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,
+    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,transportException,
   })
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
@@ -579,7 +596,7 @@ export async function sendEdielMessageViaSmtp(
       routeReceiverSubaddress(routeProfile) ??
       message.receiver_sub_address ??
       null
-    const outboundRecipientCertificate = await resolveOutboundRecipientCertificate({
+    const outboundRecipientCertificate = await withTransportExceptionCertificateScope(transportException,()=>resolveOutboundRecipientCertificate({
       companyId: message.company_id,
       certificateId: effectiveCertificateId,
       receiverEdielId: routeProfile?.receiver_ediel_id ?? message.receiver_ediel_id ?? null,
@@ -596,7 +613,7 @@ export async function sendEdielMessageViaSmtp(
         (routeProfile as Record<string, unknown> | null)?.sender_ediel_id as string | undefined ??
         message.sender_ediel_id ??
         null,
-    })
+    }))
     const recipientCertificatePems = outboundRecipientCertificate.recipientCertificates.map(certificate => certificate.publicCertificatePem)
     usedReceiverCertificateId = outboundRecipientCertificate.id
     const recipientCertPath = null

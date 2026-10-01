@@ -17,7 +17,7 @@ function certificateSource(certificate: ActorRegistryCertificate) {
 
 /** Decode declared source text while retaining the exact uploaded byte archive.
  * Replacement characters must never silently alter a registry source. */
-export function decodeRegistryUpload(bytes: Buffer, kind: 'companies_xml' | 'csv'): string {
+export function decodeRegistryUpload(bytes: Buffer, kind: 'companies_xml' | 'companies_txt' | 'csv'): string {
   let encoding='utf-8'
   if(kind==='companies_xml') {
     if(bytes[0]===0xff&&bytes[1]===0xfe)encoding='utf-16le'
@@ -32,7 +32,7 @@ export function decodeRegistryUpload(bytes: Buffer, kind: 'companies_xml' | 'csv
 /** The actual admin and API producers share one atomic database apply. Source
  * parsing has no external certificate I/O and does not activate any capability. */
 export async function applyActorRegistryRecords(input: {
-  sourceBytes: string | Buffer; sourceKind: 'companies_xml' | 'csv'; sourceFilename?: string | null;
+  sourceBytes: string | Buffer; sourceKind: 'companies_xml' | 'companies_txt' | 'csv'; sourceFilename?: string | null;
   actorUserId: string; actors: ParsedActorRegistryActor[]
 }): Promise<ActorRegistryImportSummary & { uiRunId: string; routeIds: string[]; activation: string }> {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.actorUserId)) throw new Error('ediel_registry_authenticated_platform_actor_required')

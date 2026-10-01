@@ -10,6 +10,7 @@ import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAu
 import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {transportExceptionBinding,type TransportExceptionAuthorization} from '@/lib/ediel/transport/exception/source'
 
 export type OutboundDispatchOwner={kind:'direct'}|{kind:'worker';outboxId:string;sendAttemptId:string;workerId:string}
 type Receipt={scoped:boolean;unscopedReason?:string;proceed?:boolean;eventId?:string;witnessed?:boolean;facts?:{classification?:string};acceptedReceipt?:unknown;observedAt?:string;observationClock?:string}
@@ -28,7 +29,7 @@ function receipt(value:unknown):Receipt{
  if(!value||typeof value!=='object'||typeof (value as Receipt).scoped!=='boolean')throw Error('outbound_dispatch_invalid_receipt')
  return value as Receipt
 }
-export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,context:{message:EdielMessageRow;actorUserId:string;owner?:OutboundDispatchOwner;mimeMode:string;payload:Buffer;encoding:string;admissionDecision?:Readonly<Record<string,unknown>>|null;businessExpectationPlan?:EdielBusinessExpectationPlan|null;recoveryAuthorization?:ProdatTransportRetryBasis|null;sourceRulePackEvidence?:EdielSourceRulePackEvidence|null;technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence|null;prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence|null}){
+export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,context:{message:EdielMessageRow;actorUserId:string;owner?:OutboundDispatchOwner;mimeMode:string;payload:Buffer;encoding:string;admissionDecision?:Readonly<Record<string,unknown>>|null;businessExpectationPlan?:EdielBusinessExpectationPlan|null;recoveryAuthorization?:ProdatTransportRetryBasis|null;sourceRulePackEvidence?:EdielSourceRulePackEvidence|null;technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence|null;prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence|null;transportException?:TransportExceptionAuthorization|null}){
  const {message}=context
  // The source owner selects the Z08 closure lane. All other families use
  // the shared transport journal; inspect the sealed wire as well as row code.
@@ -59,7 +60,8 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
     mimeMode:context.mimeMode,encoding:context.encoding,payloadBase64:context.payload.toString('base64'),payloadHash:hash(context.payload),payloadLength:context.payload.length,admissionDecision:context.admissionDecision??null,
     businessExpectationPlan:context.businessExpectationPlan??null,recoveryAuthorization:context.recoveryAuthorization??null,
     sourceRulePackEvidence:context.sourceRulePackEvidence??null,technicalSyntaxAckEvidence:context.technicalSyntaxAckEvidence??null,
-    prodatCommonHeaderRejectionEvidence:context.prodatCommonHeaderRejectionEvidence??null}
+    prodatCommonHeaderRejectionEvidence:context.prodatCommonHeaderRejectionEvidence??null,
+    transportException:context.transportException?transportExceptionBinding(context.transportException,message,context.actorUserId):null}
    const reservation=await call('prepare',{owner:context.owner ?? {kind:'direct'},binding})
    scoped=reservation.scoped
    if(!scoped){

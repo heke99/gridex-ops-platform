@@ -1,6 +1,7 @@
 import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
 import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { DEFAULT_UNA, escapeEdifactData, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { prodatInterchangeBatchIssues } from '@/lib/ediel/prodat/prodatInterchangeBatch'
 
 export type EdifactEnvironment = 'test' | 'production'
 
@@ -196,6 +197,8 @@ export class EdifactEnvelopeCodec {
     }
     const una = { ...DEFAULT_UNA, ...(input.una ?? {}) }
     const messageSegments = input.messages.flatMap(encodeMessage)
+    const batchFailure = prodatInterchangeBatchIssues(tokenizeEdifact(messageSegments.map(segment => `${segment}'`).join('')))[0]
+    if (batchFailure) throw new Error(`${batchFailure.code}:${batchFailure.description}`)
     const segments = [
       serializeUnb(input),
       ...messageSegments,

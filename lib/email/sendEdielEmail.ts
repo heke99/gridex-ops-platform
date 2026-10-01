@@ -43,7 +43,7 @@ export async function sendEdielEmail(input: SendEdielEmailInput, entry?: EdielPr
       user: config.user ?? '',
       pass: config.password,
     },
-    tls: { rejectUnauthorized: true },
+    tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' },
   }
   const transporter = nodemailer.createTransport(transportOptions)
 

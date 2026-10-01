@@ -12,6 +12,11 @@ import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
 import * as database from '@/lib/ediel/db'
+import * as atomicAck from '@/lib/ediel/core/atomicAckPersistence'
+import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from '@/lib/ediel/flows/utiltsCanonicalValidation'
+import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceivedStructure'
+import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionPreparation'
+import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
@@ -43,12 +48,15 @@ beforeEach(() => {
 })
 
 async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransaction[]) {
+  vi.stubEnv('EDIEL_SMTP_FROM','native-err@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','native-err@example.invalid');vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_SMTP_HOST','smtp.example.invalid');vi.stubEnv('EDIEL_SMTP_PORT','587');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
   const ids = { company: randomUUID(), actor: randomUUID(), route: randomUUID(), profile: randomUUID(),
     customer: randomUUID(), site: randomUUID(), point: randomUUID(), grid: randomUUID(), request: randomUUID() }
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(ids.company)},'Synthetic native ERR gateway','active');
     INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
       VALUES(${literal(ids.actor)},'authenticated','authenticated',${literal(`err-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
     INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(ids.actor)},${literal(`err-${ids.actor}@example.invalid`)},'Synthetic ERR actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
+    INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(ids.company)},${literal(ids.actor)},'operations','active',now(),'{}','member',true,now(),'operations');
+    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(ids.actor)},${literal(ids.company)},id,key FROM public.permissions WHERE key='communication.write';
     INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from)
       VALUES(${literal(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');
     INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from)
@@ -57,10 +65,10 @@ async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransact
       VALUES(${literal(ids.company)},'test',${literal(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day');
     INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
       VALUES(${literal(ids.company)},'test','Synthetic native legal supplier',${literal(actorEdielId)},${literal(actorEdielId)});
-    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active)
-      VALUES(${literal(ids.route)},${literal(ids.company)},'Native ERR ACK route','ediel_ack','bilateral_test',true);
-    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
-      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ERR ACK profile','test','edifact',${literal(actorEdielId)},'91100','23-DDQ-E66-T',true);
+    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+      VALUES(${literal(ids.route)},${literal(ids.company)},'Native ERR ACK route','ediel_ack','bilateral_test',true,'counterparty@example.invalid');
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port)
+      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ERR ACK profile','test','edifact','edifact',${literal(actorEdielId)},'91100','23-DDQ-E66-T',true,true,'native-err@example.invalid','smtp.example.invalid',587);
     INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${literal(ids.customer)},${literal(ids.company)},${literal(ids.customer)},'Synthetic','private');
     INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${literal(ids.grid)},${literal(ids.company)},${literal(ids.grid)},'91100','test',true,'active');
     INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id)
@@ -335,12 +343,12 @@ it('SC-045 actual header rejection emits one message-scope U-APERAK without inve
 it('committed first ERR and reservation survive an interruption before second ACK, then converge without rewriting', async () => {
   const references = ['RETRY-NATIVE-ERR-A', 'RETRY-NATIVE-ERR-B']
   const f = await seed('54342', references.map(reference => ({ reference, outcome: 'processability_rejected' })))
-  const create = database.createEdielMessage
-  const interruption = vi.spyOn(database, 'createEdielMessage').mockImplementation(async input => {
+  const create = atomicAck.persistAtomicOutboundAck
+  const interruption = vi.spyOn(atomicAck, 'persistAtomicOutboundAck').mockImplementation(async (input,authority) => {
     if (input.messageFamily === 'UTILTS_ERR' && input.parsedPayload?.relatedTransactionReference === references[1]) {
       throw Error('synthetic_interruption_before_second_err_insert')
     }
-    return create(input)
+    return create(input,authority)
   })
   await expect(f.consume()).rejects.toThrow('synthetic_interruption_before_second_err_insert')
   const interrupted = snapshot(f.source.id)
@@ -359,23 +367,47 @@ it('committed first ERR and reservation survive an interruption before second AC
   expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
 })
 
-it('real native gateway distinguishes same-code IDEs once drafts satisfy canonical process semantics', async () => {
+it('actual canonical functional owner and native reservations qualify same/different IDE races atomically without business storage', async () => {
   const references = ['DIRECT-NATIVE-SHARED-IDE-A', 'DIRECT-NATIVE-SHARED-IDE-B']
   const f = await seed('54343', references.map(reference => ({ reference, outcome: 'processability_rejected' })))
-  const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS_ERR', messageCode: 'ERR', direction: 'outbound',
-    referenceDate: '2026-10-01', associationAssignedCode: 'E5SE5A', mode: 'catalog_evidence' })
-  const create = async (reference: string) => {
+  // Preserve the real initial owner object and its current registered witness.
+  // Final native facets and reservation are produced by the actual pipeline
+  // services below; no private receipt or accepted/approved row is seeded.
+  const initial=await initialCanonicalUtiltsDecision(f.source)
+  const qualified=await qualifyReceivedUtiltsStructure({message:f.source,canonicalPolicy:initial.policy,runtime:runUtiltsRuntimeForMessage(f.source,{canonicalPolicy:initial.policy})})
+  expect(qualified.runtime.transactionDispositions.map(x=>[x.transactionId,x.disposition,x.responseType])).toEqual(references.map(id=>[id,'processability_rejected','utilts_err']))
+  await recordFinalCanonicalUtiltsDecision({original:f.source,validated:f.source,initialDecision:initial,runtime:qualified.runtime})
+  const contracts=await prepareUtiltsConsumptionContracts({message:f.source,runtime:qualified.runtime,policy:initial.policy,matches:[],dataRequest:null,fallback:{customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null},allowConsumption:false})
+  const reserved=await persistUtiltsTransactionResults({companyId:f.ids.company,environment:'test',sourceMessageId:f.source.id,messageCode:'E66',rawPayload:f.source.raw_payload!,contracts,transactions:buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:qualified.runtime.facts.transactions,rawSegments:qualified.runtime.facts.rawSegments,dispositions:qualified.runtime.transactionDispositions,matches:[]})})
+  expect(reserved.map(x=>[x.transactionId,x.disposition,x.persistenceStatus])).toEqual(references.map(id=>[id,'processability_rejected','not_applicable']))
+  const before=snapshot(f.source.id);expect(before.acks).toEqual([]);expect(before.series).toEqual([]);expect(before.contracts).toEqual([])
+  expect(before.reservations.map(x=>[x.transaction,x.plan,x.final,x.series])).toEqual(references.map(id=>[id,'utilts_err',null,null]))
+  const countEffects=()=>sql<{witness:number;consumption:number;created:number;atomic:number;namespace:number;series:number;attempts:number}>(`SELECT jsonb_build_object('witness',(SELECT count(*) FROM gridex_ediel_outbound_owner.witnesses WHERE company_id=${literal(f.ids.company)}),'consumption',(SELECT count(*) FROM gridex_ediel_outbound_owner.consumptions WHERE company_id=${literal(f.ids.company)}),'created',(SELECT count(*) FROM public.ediel_message_events WHERE company_id=${literal(f.ids.company)} AND event_type='created'),'atomic',(SELECT count(*) FROM gridex_ediel_ack_replay.creation_receipts WHERE company_id=${literal(f.ids.company)}),'namespace',(SELECT count(*) FROM gridex_ediel_wire_namespace.coverage WHERE company_id=${literal(f.ids.company)}),'series',(SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(f.source.id)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.ids.company)}))`)
+  const effectsBefore=countEffects()
+  const create = async (reference: string,outcome:'positive'|'negative'='negative') => {
     const draft = buildUtiltsErrDraft({ actorUserId: f.ids.actor, sourceMessage: f.source, messageText: 'E87', relatedTransactionReference: reference })
-    // Diagnostic isolation of the duplicate key; consumer cases above use the
-    // unchanged builder directly and independently verify process ownership.
-    draft.processType = policy.processGroup
-    return createCanonicalAckMessage({ actorUserId: f.ids.actor, sourceMessage: f.source, ackFamily: 'UTILTS_ERR', outcome: 'negative', draft })
+    return createCanonicalAckMessage({ actorUserId: f.ids.actor, sourceMessage: f.source, ackFamily: 'UTILTS_ERR', outcome, draft })
   }
-  const first = await create(references[0]), second = await create(references[1])
-  expect(second.id).not.toBe(first.id)
-  expect(second.raw_payload).toContain(`RFF+TN:${references[1]}'`)
-  expect((await create(references[0])).id).toBe(first.id)
-  expect((await create(references[1])).id).toBe(second.id)
-  expect(snapshot(f.source.id).acks).toHaveLength(2)
-  expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled(); expect(sinks.complete).not.toHaveBeenCalled()
+  // Independent late-write failures exercise the genuine ordinary witness,
+  // actual source/namespace capture and inherited native business references.
+  // Source reservation stays committed; all attempted response effects roll back.
+  const fault='ediel_err_atomic_fault_'+f.source.id.replaceAll('-','')
+  for(const table of ['ediel_business_references','ediel_message_events']){
+    sql(`CREATE FUNCTION public.${fault}()RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.company_id=${literal(f.ids.company)}::uuid THEN RAISE EXCEPTION 'native_err_atomic_late_write_failure';END IF;RETURN NEW;END$$;CREATE TRIGGER ${fault} BEFORE INSERT ON public.${table} FOR EACH ROW EXECUTE FUNCTION public.${fault}()`)
+    try{
+      await expect(create(references[0])).rejects.toMatchObject({message:expect.stringContaining('native_err_atomic_late_write_failure')})
+      expect(countEffects()).toEqual(effectsBefore);expect(snapshot(f.source.id)).toEqual(before)
+    }finally{sql(`DROP TRIGGER ${fault} ON public.${table};DROP FUNCTION public.${fault}()`)}
+  }
+  const result=await Promise.all([create(references[0]),create(references[0]),create(references[1]),create(references[1])])
+  expect(result[0].id).toBe(result[1].id);expect(result[2].id).toBe(result[3].id);expect(result[0].id).not.toBe(result[2].id)
+  expect(result[0].raw_payload).toContain(`RFF+TN:${references[0]}'`);expect(result[2].raw_payload).toContain(`RFF+TN:${references[1]}'`)
+  expect(result.every(row=>row.ack_outcome==='negative')).toBe(true)
+  const after=countEffects();expect(after.witness).toBe(effectsBefore.witness+2);expect(after.consumption).toBe(effectsBefore.consumption+2);expect(after.created).toBe(effectsBefore.created+2);expect(after.atomic).toBe(effectsBefore.atomic+2);expect(after.namespace).toBe(effectsBefore.namespace+2);expect(after.series).toBe(0);expect(after.attempts).toBe(effectsBefore.attempts)
+  await expect(create(references[0],'positive')).rejects.toThrow('conflicting_ack_draft_exists')
+  expect((await create(references[0])).id).toBe(result[0].id);expect((await create(references[1])).id).toBe(result[2].id);expect(countEffects()).toEqual(after)
+  expect(snapshot(f.source.id).acks).toHaveLength(2);expect(snapshot(f.source.id).series).toEqual([])
+  sql(`UPDATE public.tenant_actor_roles SET valid_to=now() WHERE company_id=${literal(f.ids.company)} AND actor_id=${literal(f.ids.actor)}`)
+  await expect(create(references[0])).rejects.toThrow();expect(countEffects()).toEqual(after)
+  expect(sinks.meter).not.toHaveBeenCalled();expect(sinks.bill).not.toHaveBeenCalled();expect(sinks.complete).not.toHaveBeenCalled()
 })

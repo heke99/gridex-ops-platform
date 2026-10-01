@@ -12,8 +12,9 @@ const raw=(code,objects,sender='54321',receiver='12345')=>["UNB+UNOC:3+54321:14+
 const q=s=>`'${String(s).replaceAll("'","''")}'`
 const run=(source=id(30),actor=id(2),company=id(1))=>db.query('SELECT public.ediel_process_prodat_mixed_z04_v1($1,$2,$3) b',[company,source,actor])
 try{
- await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE SCHEMA gridex_received_sources;CREATE SCHEMA gridex_ediel_inbound_context;CREATE SCHEMA gridex_ediel_source_rules;CREATE SCHEMA gridex_ediel_transport;CREATE SCHEMA gridex_outbound_dispatch;CREATE SCHEMA gridex_ediel_ack_guide;
+ await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE SCHEMA auth;CREATE SCHEMA gridex_received_sources;CREATE SCHEMA gridex_ediel_inbound_context;CREATE SCHEMA gridex_ediel_source_rules;CREATE SCHEMA gridex_ediel_transport;CREATE SCHEMA gridex_outbound_dispatch;CREATE SCHEMA gridex_ediel_ack_guide;
  CREATE TABLE companies(id uuid PRIMARY KEY);CREATE TABLE user_profiles(id uuid PRIMARY KEY,user_status text);CREATE TABLE company_memberships(company_id uuid,user_id uuid,status text,is_active bool,accepted_at timestamptz);
+ CREATE TABLE auth.users(id uuid PRIMARY KEY);CREATE TABLE admin_users(user_id uuid);CREATE TABLE user_roles(id uuid,user_id uuid,company_id uuid,role_id uuid);CREATE TABLE roles(id uuid);CREATE TABLE role_permissions(role_id uuid,permission_id uuid);CREATE TABLE permissions(id uuid);CREATE TABLE user_permissions(id uuid PRIMARY KEY,user_id uuid,company_id uuid,permission_key text,effect text);
  CREATE TABLE customers(id uuid PRIMARY KEY,company_id uuid,org_number text,personal_number text);
  CREATE TABLE customer_sites(id uuid PRIMARY KEY,company_id uuid,customer_id uuid);
  CREATE TABLE metering_points(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,site_id uuid,ediel_metering_point_id text,grid_owner_ediel_id text,grid_area_code text);
@@ -37,7 +38,7 @@ try{
  CREATE TABLE gridex_outbound_dispatch.originals(message_id uuid,company_id uuid,environment text,payload_hash text,raw_payload text);
  CREATE TABLE gridex_outbound_dispatch.events(attempt_id uuid,company_id uuid,environment text,message_id uuid,kind text,facts jsonb,observed_at timestamptz);
  CREATE FUNCTION gridex_ediel_source_rules.require_v1(uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT '{}'::jsonb$$;
- CREATE FUNCTION gridex_actor_has_company_permission(uuid,uuid,text) RETURNS boolean LANGUAGE sql AS $$SELECT true$$;
+ CREATE FUNCTION gridex_actor_has_company_permission(uuid,uuid,text) RETURNS boolean LANGUAGE sql AS $$SELECT EXISTS(SELECT FROM public.user_permissions WHERE user_id=$1 AND company_id=$2 AND permission_key=$3 AND effect='allow')$$;
  CREATE FUNCTION gridex_ediel_ack_guide.require_v1(public.ediel_messages) RETURNS void LANGUAGE plpgsql AS $$BEGIN RETURN;END$$;
  CREATE FUNCTION public.ediel_apply_supply_source_v1(uuid,uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT '{"applied":false,"reason":"preserved_other_source"}'::jsonb$$;
  CREATE FUNCTION public.ediel_advance_supply_deadlines_v1(uuid,uuid,integer DEFAULT 100) RETURNS jsonb LANGUAGE sql AS $$SELECT '{"updated":0}'::jsonb$$;
@@ -50,7 +51,7 @@ try{
  await db.exec(fn('../supabase/migrations/20260930204937_ediel_shared_accepted_source_basis.sql','gridex_ediel_transport.accepted_source_basis_v1'));
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql',import.meta.url),'utf8'));checks++
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930211830_ediel_supply_source_initial_scope_continuity.sql',import.meta.url),'utf8'));checks++
- await db.exec(`INSERT INTO companies VALUES('${id(1)}');INSERT INTO user_profiles VALUES('${id(2)}','active');INSERT INTO company_memberships VALUES('${id(1)}','${id(2)}','active',true,now());INSERT INTO tenant_ediel_profiles VALUES('${id(70)}','${id(1)}','test','electricity',true,'2000-01-01',NULL);INSERT INTO tenant_actor_roles VALUES('${id(71)}','${id(1)}','test','${id(50)}','electricity_supplier','2000-01-01',NULL);INSERT INTO tenant_actor_identifiers VALUES('${id(72)}','${id(1)}','test','${id(50)}','EdielId','12345','2000-01-01',NULL);`)
+ await db.exec(`INSERT INTO companies VALUES('${id(1)}');INSERT INTO auth.users VALUES('${id(2)}');INSERT INTO user_permissions VALUES('${id(500)}','${id(2)}','${id(1)}','metering.write','allow');INSERT INTO user_profiles VALUES('${id(2)}','active');INSERT INTO company_memberships VALUES('${id(1)}','${id(2)}','active',true,now());INSERT INTO tenant_ediel_profiles VALUES('${id(70)}','${id(1)}','test','electricity',true,'2000-01-01',NULL);INSERT INTO tenant_actor_roles VALUES('${id(71)}','${id(1)}','test','${id(50)}','electricity_supplier','2000-01-01',NULL);INSERT INTO tenant_actor_identifiers VALUES('${id(72)}','${id(1)}','test','${id(50)}','EdielId','12345','2000-01-01',NULL);`)
  const own=[{point:'735123456789012345',li:'LI-A',customer:'PERSON-A',start:'202601011330'},{point:'735123456789012352',li:'LI-B',customer:'PERSON-B',start:'202601011330'},{point:'735123456789012369',li:'LI-FUTURE',customer:'PERSON-FUTURE',start:'209901011330'}]
  for(const [index,o]of own.entries()){
   const n=index*100
@@ -72,7 +73,16 @@ try{
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930224726_ediel_prodat_mixed_own_object_processing.sql',import.meta.url),'utf8'));checks++
  const guides={version:1,owner:'canonical-full-prodat-object-validation-v1',coverage:'full_canonical_guide_objects_only',sharedAccepted:true,reasonCodes:facts.reasonCodes,
   objects:own.map((o,index)=>({objectId:o.point,identityAgency:'9',messageReference:'M',firstLineIndex:index,lineItemReference:o.li,disposition:index===1?'rejected':'accepted',reasons:index===1?facts.reasonCodes:[],negativeFields:index===1?['213']:[]}))}
- const record=(g=guides,company=id(1))=>db.query("SELECT public.gridex_record_prodat_object_validation_v1($1,$2,$3,encode(sha256(convert_to($4,'UTF8')),'hex'),$5,$6) b",[company,'test',id(30),incoming,id(40),JSON.stringify(g)])
+ // Declared synthetic PRIMARY canonical issuer for this mechanical diagnostic.
+ // It appends a new leaf inside the same v3 transaction; actual canonical/registry
+ // source admission is exercised by the separate native fixture and runtime unit.
+ await db.exec(`CREATE FUNCTION gridex_received_sources.append_prodat_validation_v2(uuid,text,uuid,text,text,text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$DECLARE prior gridex_received_sources.validation_assessments%rowtype;next_id uuid:=gen_random_uuid();BEGIN
+ SELECT a.* INTO prior FROM gridex_received_sources.validation_assessments a WHERE a.source_message_id=$3 AND a.company_id=$1 AND a.environment=$2 AND a.source_payload_hash=$4 AND a.facts_text=$5 AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id);
+ IF prior.id IS NULL THEN RAISE EXCEPTION 'declared_primary_original_required';END IF;
+ INSERT INTO gridex_received_sources.validation_assessments VALUES(next_id,$3,$1,$2,$4,$5,encode(sha256(convert_to($5,'UTF8')),'hex'),prior.id);
+ RETURN jsonb_build_object('assessmentId',next_id,'companyId',$1,'environment',$2,'sourceMessageId',$3,'sourcePayloadHash',$4,'factsHash',encode(sha256(convert_to($5,'UTF8')),'hex'),'ignoredFieldsHash',NULL,'sourceDisposition','not_established');END$$;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001000148_ediel_prodat_primary_full_object_capture_and_grant_lock.sql',import.meta.url),'utf8'));checks++
+ const record=(g=guides,company=id(1))=>db.query("SELECT gridex_received_sources.append_prodat_validation_v3($1,$2,$3,encode(sha256(convert_to($4,'UTF8')),'hex'),$5,NULL,$6) b",[company,'test',id(30),incoming,JSON.stringify(facts),JSON.stringify(g)])
  const ackWire=(positive=[own[0],own[2]],negative=true,bgm='34')=>`UNB+UNOC:3+12345:14+54321:14+261001:1200+ACK'UNH+ACK+APERAK:D:96A:UN:E2SE6A'BGM+++${bgm}'${negative?`ERC+41::260'RFF+LI:LI-B'RFF+Z07:${own[1].point}'`:''}${positive.map(o=>`ERC+100::260'RFF+LI:${o.li}'RFF+Z07:${o.point}'`).join('')}UNT+14+ACK'UNZ+1+ACK'`
  const ackGuard=wire=>db.query('SELECT gridex_ediel_ack_guide.require_v1(row_value) FROM (SELECT e AS row_value FROM ediel_messages e WHERE id=$1) scoped',[id(90)])
  await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,related_message_id) VALUES($1,$2,'test','outbound','edifact','APERAK','APERAK',$3,$4)",[id(90),id(1),ackWire(),id(30)])
@@ -80,11 +90,17 @@ try{
  assert.equal((await run()).rows[0].b.applied,false);checks++
  await assert.rejects(record({...guides,objects:guides.objects.map((o,i)=>i===0?{...o,objectId:'foreign'}:o)}),/scope|decision/);checks++
  await assert.rejects(record({...guides,objects:guides.objects.map((o,i)=>i===0?{...o,disposition:null}:o)}),/facet_invalid/);checks++
- await assert.rejects(record(guides,id(999)),/original_required/);checks++
- await record();checks++
+ await assert.rejects(record(guides,id(999)), /original_required/);checks++
+ const recorded=(await record()).rows[0].b;assert.equal(recorded.version,3);assert.ok(recorded.objectFactsHash);const currentCanonicalId=recorded.assessmentId;checks++
+ assert.equal((await db.query("SELECT has_function_privilege('service_role','public.gridex_record_prodat_object_validation_v1(uuid,text,uuid,text,uuid,text)','EXECUTE') allowed")).rows[0].allowed,false);checks++
+ const promoted={...guides,objects:guides.objects.map((o,i)=>i===1?{...o,disposition:'accepted',reasons:[],negativeFields:[]}:o)}
+ await db.exec('SET ROLE service_role');await assert.rejects(db.query("SELECT public.gridex_record_prodat_object_validation_v1($1,'test',$2,encode(sha256(convert_to($3,'UTF8')),'hex'),$4,$5)",[id(1),id(30),incoming,currentCanonicalId,JSON.stringify(promoted)]),/permission denied/);await db.exec('RESET ROLE');checks++
+ const originalLeafCount=(await db.query('SELECT count(*)::int n FROM gridex_received_sources.validation_assessments')).rows[0].n
+ await assert.rejects(record(promoted),/own_decision/);assert.equal((await db.query('SELECT count(*)::int n FROM gridex_received_sources.validation_assessments')).rows[0].n,originalLeafCount);checks++
  const unchanged=async()=>assert.equal((await db.query('SELECT count(*)::int n FROM customer_supply_periods')).rows[0].n,0)
  assert.equal((await run(id(30),id(2),id(999))).rows[0].b.applied,false);checks++;await unchanged()
  await db.exec(`UPDATE user_profiles SET user_status='inactive' WHERE id='${id(2)}'`);assert.equal((await run()).rows[0].b.applied,false);checks++;await unchanged();await db.exec(`UPDATE user_profiles SET user_status='active' WHERE id='${id(2)}'`)
+ await db.exec(`UPDATE user_permissions SET effect='deny'`);assert.equal((await run()).rows[0].b.applied,false);checks++;await unchanged();await db.exec(`UPDATE user_permissions SET effect='allow'`)
  await db.exec(`UPDATE supplier_switch_requests SET status='cancelled_before_start' WHERE id='${id(210)}'`);assert.equal((await run()).rows[0].b.applied,false);checks++;await unchanged();await db.exec(`UPDATE supplier_switch_requests SET status='sent' WHERE id='${id(210)}'`)
  await db.exec(`UPDATE gridex_ediel_transport.attempts SET classification='partial' WHERE message_id='${id(20)}'`);assert.equal((await run()).rows[0].b.applied,false);checks++;await unchanged();await db.exec(`UPDATE gridex_ediel_transport.attempts SET classification='accepted' WHERE message_id='${id(20)}'`)
  // Failing final outbox insertion rolls back preceding periods, switch mutation,
@@ -125,9 +141,9 @@ try{
  const p=result.commits.find(c=>c.switchRequestId===id(10)).supplyPeriodId
  const bounds=async()=>db.query('SELECT gridex_received_sources.supply_period_source_basis_v1($1,$2,$3,$4) b',[id(1),p,'2026-01-01T12:30Z','2026-01-02T00:00Z'])
  assert.equal((await bounds()).rows[0].b.qualified,true);checks++
- await db.query("INSERT INTO gridex_received_sources.validation_assessments VALUES($1,$2,$3,'test',encode(sha256(convert_to($4,'UTF8')),'hex'),$5,encode(sha256(convert_to($5,'UTF8')),'hex'),$6)",[id(41),id(30),id(1),incoming,JSON.stringify(facts),id(40)])
+ await db.query("INSERT INTO gridex_received_sources.validation_assessments VALUES($1,$2,$3,'test',encode(sha256(convert_to($4,'UTF8')),'hex'),$5,encode(sha256(convert_to($5,'UTF8')),'hex'),$6)",[id(41),id(30),id(1),incoming,JSON.stringify(facts),currentCanonicalId])
  assert.equal((await bounds()).rows[0].b,null);checks++;assert.equal((await run()).rows[0].b.applied,false);checks++ // new canonical leaf must have its own exact fresh facet
- await db.query("SELECT public.gridex_record_prodat_object_validation_v1($1,'test',$2,encode(sha256(convert_to($3,'UTF8')),'hex'),$4,$5)",[id(1),id(30),incoming,id(41),JSON.stringify(guides)])
+ await record()
  assert.equal((await run()).rows[0].b.idempotent,true);checks++ // exact new primary facet content can revalidate the existing actual effect
  assert.equal((await bounds()).rows[0].b.qualified,true);checks++
  await ackGuard();checks++

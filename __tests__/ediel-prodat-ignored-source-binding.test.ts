@@ -10,7 +10,7 @@ import type {SourceObjectScope} from '@/lib/ediel/sources/sourceOwnerWire'
 function fixture(){
  const body:Parts[]=[['NAD','FR',['12345','160','SVK']],['NAD','DO',['54321','160','SVK']],line('1','735123456789012345','1','9'),...common('A','Actual'),...characteristic('Z14','L639Q',3),...characteristic('Z16','HT',3),line('2','735123456789012345','2','9'),...characteristic('Z14','EXTRA',3),...characteristic('Z16','LT',3)]
  const wire=raw(body).replace('+S+R+','+12345:14+54321:14+'),ast=tokenizeEdifact(wire),groups=prodatRegisterGroups(ast.segments,ast.una,'Z04').groups,rawSegments=ast.segments.map(s=>s.raw)
- const ignored=(index:number)=>({fieldNumber:'242',sourceRule:'PRODAT26A:P119',occurrence:prodatErrorOccurrence({code:'Z04',rawSegments,una:ast.una},groups[index].segments.map(s=>s.raw),'object',index)!})
+ const ignored=(index:number)=>({fieldNumber:'242',sourceRule:'PRODAT26A:P119' as const,occurrence:prodatErrorOccurrence({code:'Z04',rawSegments,una:ast.una},groups[index].segments.map(s=>s.raw),'object',index)!})
  const scope=timelineFacts(wire).objects[0].object as SourceObjectScope
  return {wire,ignored,scope}
 }

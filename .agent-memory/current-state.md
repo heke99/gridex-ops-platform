@@ -1,3 +1,9 @@
+## Active — 2026-10-01 isolated integration draft #424
+
+Own branch `codex/ediel-master-v2-integration-20261001` is published as draft #424 stacked on the protected #421 branch. Previous public head `1e050bebaea0b05302aa8bbc8beefba275a5eddd` authentically applied 751 migrations on clean replay and a genuine d30fa020 ancestor-upgrade; generated type comparisons failed, and upgrade lock regression required an isolated disposable database. Those receipts do not qualify the current or final candidate. Root integrates source-owned ACK atomicity, full mixed PRODAT facets, independent archive/review, actual customer/source producers, retention classes, ESCO and temporary TR09 reserves. Runtime and literal requirement work remain active. All final native/browser/build/generated artifact/exact-head CI receipts and whole 352-ID approvals are pending.
+
+Recovery ed3f5159 is semantically integrated once against later code; never reapply the package. Existing #421/#423 owners retain their refs, tenantservice #418/#422 remains separate and #310 paused. No force push, main merge, production migration, real communication or market/TGT/AGT traffic. Earlier checkpoint sections below are historical.
+
 ## Current — 2026-09-30 #421 coherent syntax/header code package; final-head CI pending
 
 Supersedes earlier not-executed/probe-only next-action text. Test-only head e0bd3641f617edb92e508bd62c2767730e20fca1 actually ran OPS36702357516/replay109844514929: 439/442, three confirmed mismatches (UNT999 accepted series+contract; OTHER positive CONTRL but no accepted storage; SC045 two APERAKs). Last all-green d30/native439 retained.

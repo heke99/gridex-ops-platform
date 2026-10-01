@@ -5,6 +5,7 @@ import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { buildSafeMasterdataProposal, type EdielMasterdataChangeProposal } from '@/lib/ediel/operationalVerification'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import {applyConfirmedCustomerSource,isConfirmedCustomerSourceCandidate} from '@/lib/ediel/production/confirmedCustomerSource'
 
 export type EdielSafeApplyReviewStatus = 'pending' | 'applied' | 'rejected' | 'no_changes'
 
@@ -104,7 +105,8 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
     const decision = decisionEvent ? eventDecision(decisionEvent) : null
     const eventChanges = getProposalChangesFromEvent(latestProposalEvent)
     const changes = eventChanges.length > 0 ? eventChanges : await buildSafeMasterdataProposal(message)
-    const status: EdielSafeApplyReviewStatus = decision ?? (changes.length > 0 ? 'pending' : 'no_changes')
+    const customerSource=isConfirmedCustomerSourceCandidate(message)
+    const status: EdielSafeApplyReviewStatus = decision ?? (customerSource||changes.length > 0 ? 'pending' : 'no_changes')
 
     items.push({
       message,
@@ -119,7 +121,7 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
             ? 'Ändringen är avvisad av admin.'
             : status === 'no_changes'
               ? 'Inga skillnader mot nuvarande masterdata hittades.'
-              : `${changes.length} masterdataändringar väntar på granskning.`,
+              : customerSource?'En källbunden kundversion väntar på separat livshändelsegranskning.':`${changes.length} masterdataändringar väntar på granskning.`,
     })
   }
 
@@ -136,6 +138,12 @@ export async function approveSafeMasterdataChanges(params: {
   const { getEdielMessageById } = await import('@/lib/ediel/db')
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message?.company_id || !isSafeApplyCandidate(message)) throw new Error('structural_apply_source_required')
+  if(isConfirmedCustomerSourceCandidate(message)){
+    await assertEdielTenantActor({companyId:message.company_id,actorUserId:params.actorUserId,permission:'customers.write'})
+    const receipt=await applyConfirmedCustomerSource({companyId:message.company_id,sourceMessageId:message.id,actorUserId:params.actorUserId})
+    if(!receipt.applied)throw Error(receipt.reason)
+    return {messageId:message.id,status:'applied',appliedCount:receipt.appliedCount,skippedCount:0,summary:'En daterad kundversion har källbunden livshändelsehistorik.'}
+  }
   await assertEdielTenantActor({ companyId: message.company_id, actorUserId: params.actorUserId, permission: 'metering.write' })
   const { data, error } = await supabaseService.rpc('ediel_apply_reviewed_structure_v1', {
     p_company_id: message.company_id, p_source_message_id: message.id, p_actor_user_id: params.actorUserId,

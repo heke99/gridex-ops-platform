@@ -10,7 +10,7 @@ export type TechnicalSyntaxAckRoute=Readonly<{
  route:CommunicationRouteRow;routeRuntime:EdielRouteRuntimeRow
  senderEdielId:string;senderQualifier:string|null;senderSubAddress:string|null
  receiverEdielId:string;receiverQualifier:string|null;receiverSubAddress:string|null;receiverMessageSubAddress:string|null
- applicationReference:string;senderEmail:string;receiverEmail:string;mailbox:string;routeKey:string
+ applicationReference:string;senderEmail:string;receiverEmail:string;mailbox:string;routeKey:string;smtpHost:string;smtpPort:number
  authorizesBusinessEffect:false
 }>
 const routes=new WeakSet<object>()
@@ -39,6 +39,7 @@ export async function readTechnicalSyntaxAckRoute(input:{evidence:TechnicalSynta
   ||value.receiverEdielId!==original.sender[0]||value.receiverQualifier!==(original.sender[1]||null)||value.receiverSubAddress!==(original.sender[2]||null)
   ||value.receiverMessageSubAddress!==value.receiverSubAddress||value.applicationReference!==original.applicationReference
   ||value.senderEmail!==smtp.from||value.mailbox!==smtp.from||!email(value.receiverEmail)
+  ||value.smtpHost!==smtp.host||value.smtpPort!==smtp.port||!Number.isInteger(value.smtpPort)||value.smtpPort<1||value.smtpPort>65535
   ||value.route?.company_id!==e.companyId||value.routeRuntime?.company_id!==e.companyId
   ||value.routeRuntime?.communication_route_id!==value.route.id||value.routeRuntime.environment!==e.environment
   ||!value.route.is_active||!value.routeRuntime.is_enabled)throw new Error('ediel_technical_ack_route_scope_mismatch')

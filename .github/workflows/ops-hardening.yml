@@ -129,6 +129,9 @@ jobs:
           # Preserve authentic post-migration schema evidence even when a later
           # native fixture fails. The stack remains alive in this sourced step.
           SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS="$(psql "$SHADOW_URL" -XAtq -v ON_ERROR_STOP=1 -c "select string_agg(nspname,',' order by nspname) from pg_namespace where nspname='public' or starts_with(nspname,'gridex_');")"
+          [[ -n "$GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS" ]] || exit 1
+          export GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS
           npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
           # Materialize authentic artifacts before any fixture/browser can
           # fail. These comparators remain blocking and use the replay DB.
@@ -139,13 +142,15 @@ jobs:
           GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
           MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
           echo "generated_types_sha256=$GENERATED_HASH"
+          TYPE_COMPARISON_FAILED=0
+          NATIVE_SUITE_FAILED=0
           if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
             echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
-            exit 1
+            TYPE_COMPARISON_FAILED=1
           fi
           if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
             echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
-            exit 1
+            TYPE_COMPARISON_FAILED=1
           fi
 
           python3 scripts/ediel-received-context-upgrade-regression.py
@@ -160,7 +165,9 @@ jobs:
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
-          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-native-junit.xml
+          if ! GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-native-junit.xml; then
+            NATIVE_SUITE_FAILED=1
+          fi
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
@@ -195,6 +202,9 @@ jobs:
           # read as proven parity, so it is checked against injected drift.
           npm run db:parity:selftest -- "$SHADOW_URL"
 
+          GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS="$(psql "$SHADOW_URL" -XAtq -v ON_ERROR_STOP=1 -c "select string_agg(nspname,',' order by nspname) from pg_namespace where nspname='public' or starts_with(nspname,'gridex_');")"
+          [[ -n "$GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS" ]] || exit 1
+          export GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS
           npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
 
           # Activates by itself once a canonical baseline captured from this
@@ -205,6 +215,8 @@ jobs:
           else
             echo "no committed canonical schema baseline yet; snapshot uploaded as evidence"
           fi
+          # Independent receipts are retained, but every comparator stays blocking.
+          [[ "$TYPE_COMPARISON_FAILED" == 0 && "$NATIVE_SUITE_FAILED" == 0 ]] || exit 1
       - name: Redact disposable credentials from native and browser evidence
         if: always()
         shell: bash

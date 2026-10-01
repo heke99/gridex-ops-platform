@@ -215,7 +215,7 @@ for (const environment of ['test','production'] as const) for (const alphabet of
       expect(() => assertRulebookAllowsSend(message)).toThrow(/Z06:242/)
       expect(() => assertEdielSendLock(message)).toThrow(/Z06:242/)
     })
-    for (const code of ['E64','E32','E34']) it(`bounded positive ${code}`, () => {
+    for (const code of ['E64','E32','E34']) it(`bounded field242 positive ${code} retains independent full-message holds`, () => {
       const message = row([line('1','A'),...reason(code),...(code === 'E34' ? [ud()] : product())],environment,alphabet)
       const dateContext=environment==='test'?qualifyDateEventTestRow(message):undefined
       const result=validateEdielMessageRowWithRulebook(message,'send',dateContext)
@@ -229,7 +229,10 @@ for (const environment of ['test','production'] as const) for (const alphabet of
         expect(()=>assertEdielSendLock(message,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
       }else if(environment==='test'){
         expect(result.issues.filter(issue=>issue.scope==='prodat_dependent')).toEqual([])
-        expect(()=>assertRulebookAllowsSend(message,dateContext)).not.toThrow()
+        // This field242 fixture omits whole-message mandatory fields. The
+        // actual canonical guard may not be bypassed by caller override flags.
+        expect(result.issues.some(issue=>issue.code.startsWith('FIELD_')&&(issue.blocking||issue.severity==='error'))).toBe(true)
+        expect(()=>assertRulebookAllowsSend(message,dateContext)).toThrow('Rulebook blockerar skick: FIELD_')
         expect(()=>assertEdielSendLock(message,dateContext)).not.toThrow()
       }else{
         expect(result.issues).toContainEqual(expect.objectContaining({scope:'prodat_dependent',code:'PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED',blocking:true}))

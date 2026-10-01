@@ -6,7 +6,7 @@ import {COMPANY, OTHER, row} from './helpers/receivedSourceInventoryFixtures'
 function fixture() {
   const source = row()
   const original = {id:source.sourceMessageId,company_id:COMPANY,environment:'test',direction:'inbound',message_family:'PRODAT',message_standard:'edifact',
-    raw_payload:source.rawPayload,message_code:source.messageCode,message_received_at:source.sourceReceivedAt,execution_context_snapshot:{receivedProdatContext:source.receivedContext}}
+    raw_payload:String(source.rawPayload),message_code:source.messageCode,message_received_at:source.sourceReceivedAt,execution_context_snapshot:{receivedProdatContext:source.receivedContext}}
   return {original,validated:structuredClone(original),resolvedCompanyId:COMPANY,decision:{syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',
     canonical:{messageReference:'MSG1'},issues:[],validationReport:{rulePackEvidence:originalRuleWitnessFixture({profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)})},
     prodatRegisterValidation:{version:1,owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',objects:[
@@ -74,7 +74,7 @@ test('the same actual runtime ignored-field facet remains outside frozen canonic
  expect(result).not.toBeNull();expect(result!.prodatIgnoredFields).toEqual([])
  expect(result!.factsText).toBe(before!.factsText)
  Object.assign(input.decision.validationReport,{prodatIgnoredFields:[{claimed:true}]})
- expect(build(input)!.prodatIgnoredFields).toEqual([],'editable report cannot replace the actual runtime decision')
+ expect(build(input)!.prodatIgnoredFields,'editable report cannot replace the actual runtime decision').toEqual([])
  Object.assign(input.decision,{prodatIgnoredFields:[{claimed:true}]})
  expect(build(input)).toBeNull()
 })

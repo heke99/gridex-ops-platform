@@ -29,13 +29,18 @@ for (const alphabet of alphabets) for (const environment of ['test','production'
       expect(()=>assertRulebookAllowsSend(message)).toThrow(/Z14:/)
     }
   })
-  it('minimal valid N passes this bounded gate and preserves production readiness',()=>{
+  it('inactive N parents pass their bounded rule while a wrong full-message application remains held',()=>{
     const message=row([['LIN','1'],...characteristic('Z13','Z96')],environment,alphabet)
     expect(validateEdielMessageRowWithRulebook(message,'send').issues.filter(target)).toEqual([])
     expect(preflightEdielMessageRow(message,'send').issues.filter(target)).toEqual([])
-    expect(()=>assertRulebookAllowsSend(message)).not.toThrow()
+    // A bounded N parent example is not an authentic complete send source.
+    expect(()=>assertRulebookAllowsSend(message)).toThrow('canonical_ediel_application_reference_not_allowed:Z14:23-DDQ-PRODAT')
+    // This separate component enforces D/register plus production readiness.
+    // Its bounded success cannot override the full canonical hold above.
     if(environment==='test')expect(()=>assertEdielSendLock(message)).not.toThrow()
     else expect(()=>assertEdielSendLock(message)).toThrow(/Produktionsmeddelande saknar/)
+    // A genuine complete DGI/N sender and source chain belongs to native tests;
+    // this partial LIN fixture cannot certify it by passing the parent gate.
   })
   it('inbound parse does not turn local unknown into this outbound rejection',()=>{
     const message={...row([['LIN','1']],environment,alphabet),direction:'inbound' as const}

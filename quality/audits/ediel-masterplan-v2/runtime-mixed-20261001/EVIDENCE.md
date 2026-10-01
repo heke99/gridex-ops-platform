@@ -22,6 +22,12 @@ Own market effects, normal confirmations, exact source-transition audit, immutab
 
 No F0–F7/masterplan approval is asserted. No main merge, live migration, customer communication or Ediel/counterparty/TGT/AGT traffic occurred.
 
+## Current integrated fixture follow-up
+
+On integration commit `04a8b4dd` plus the seven owned fixture updates, six focused files execute **122/122 passing tests**. These use the real canonical runtime, renderer, guide, ACK kernel and outbox adapter. Their declared external database boundary models the primary v3 hash receipt and atomic ACK API; it is expressly not native authority evidence. The technical route binds the actual configured SMTP from/host/port. Missing original, missing syntax-owner commit, current revoked tenant membership, malformed header and incomplete BGM34 remain holds with zero forbidden effects. No own success is fabricated for the incomplete sibling. The Z14N test proves only the bounded inactive-parent field rule: its incorrect full application reference remains held by the actual canonical guard.
+
+The first run against that same integrated source was red (122 tests, 103 passing, 19 failing) because old fixtures omitted the new atomic ACK transport and SMTP route fields and conflated the bounded Z14 field rule with whole-message authority. After faithful boundary adaptation, all 122 pass. Changed fixture ESLint and diff whitespace checks pass. Whole PRODAT/process criteria and authentic native/browser/replay/CI remain separate proof obligations.
+
 ## Older isolated baseline failures
 
 The preexisting fixtures do not provide current protected source/admission/RBAC owner ports in this isolated 852b + preserved snapshot tree. The recovery integration branch has modern replacements; these titles are retained so the final integrated candidate can verify them explicitly. They are not waived.
@@ -82,3 +88,54 @@ The preexisting fixtures do not provide current protected source/admission/RBAC 
 - timeline consumes actual composed owners without minting a new capability: missing-owner
 
 Migration SHA-256: `14cbfc9d62b94e441b396f76d5b39a1357391e07aceaf05c6f069cab22dd3ab5`.
+
+
+### Primary atomic full-guide and authorization correction (prospective)
+
+Independent integration review identified two actual gaps in 646f10cd: a
+post-hoc service full-object writer could promote a register-accepted object
+without the immutable full-guide primary result, and the metering permission
+resolver read grants without locking their graph before the source/market rows.
+
+Forward migration `20261001000148_ediel_prodat_primary_full_object_capture_and_grant_lock.sql`
+closes the secondary service EXECUTE privilege. The PRODAT v3 primary producer
+captures canonical assessment, ignored-field facet and full-object facet in one
+transaction; the runtime verifies all three hashes and the original tuple before
+issuing its fresh in-process owner seed. Prior v2 assessments remain compatible
+and have UNKNOWN full-object qualification. No historical row is backfilled.
+The complete existing mixed source/market consumer definition is preserved,
+with an authorization graph SHARE lock first, in the same table order as ACK
+replay's authorization prefix. This serializes updates/deletes/inserts affecting
+auth users, profiles, company, membership, admin fallback, role grants, roles,
+role permissions, permissions and direct grants before any source/market lock.
+The locks are broad across authorization tables; this prioritizes correct
+serialization and may delay concurrent authorization administration until this
+short native transaction commits.
+
+Executed verification on this branch with the integration's current genuine
+source-owner fixture inputs:
+
+- 95/95 across mixed-object outcome, received source evidence, register evidence,
+  APERAK label wire and source-owner runtime (33 actual composed-owner tests).
+- 53/53 complete-forward-migration PGlite mechanical assertions, including primary
+  v3 atomic append rollback for malformed own results; service denied secondary
+  promotion with unchanged canonical reason codes; actual current declared
+  permission revocation with active user/member; unchanged original; forbidden
+  sibling effects; private outbox reader and real ACK/outbox consumption; replay.
+  PGlite retains declared synthetic issuer/context/accepted transport fixtures.
+- ESLint on changed production, source-owner fixture and native tests: zero errors.
+- Targeted native TypeScript: no diagnostics in changed files; four pre-existing
+  isolated-branch dependency diagnostics in kernel/shared/orchestrator remain.
+  The composed integration candidate must supply its later fixes and retest.
+
+The native mixed suite now has six independent scenarios: genuine routed ACK
+and private outbox consumption; unsent original hold; final native outbox
+rollback; post-hoc secondary promotion denial; actual direct permission revoke
+with active membership; and competing grant-revoke transaction. The race uses
+two genuine PostgreSQL sessions, proves a waiting authorization SHARE lock and
+no acquired source table lock, commits the revoke, and requires zero market,
+audit, outcome, reply or ACK effects. It is not executed locally: this workspace
+has no local Docker/native Supabase database. Exact-head authentic CI remains a
+required proof, not an inferred approval from the 95 green unit checks.
+
+Forward migration SHA256: `fea41bb5b25a8db513a6d788d02953b59108461dd17064812a8511e261f6ee3b`.

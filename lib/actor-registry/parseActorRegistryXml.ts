@@ -38,7 +38,7 @@ function descendants(n:Node,names:string[]):unknown[] {
 const env=(value:string|null):'test'|'production'=>['test','t','qa'].includes(value?.toLowerCase()??'')?'test':'production'
 const family=(value:string|null)=>value?.toUpperCase()??'PRODAT'
 function routes(company:Node,edielId:string|null,market:ParsedActorRegistryActor['market']):ActorRegistryRoute[]{
-  const result:ActorRegistryRoute[]=descendants(company,['EDIFACTDetails','Route','CommunicationRoute','MessageRoute','Address']).map(value=>{
+  const result:ActorRegistryRoute[]=descendants(company,['EDIFACTDetails','Route','CommunicationRoute','MessageRoute']).map(value=>{
     const r=node(value), partyNode=node(r.PartyId??r.PartyID), interchangeNode=node(r.InterchangePartyId??r.InterchangePartyID), address=node(r.CommunicationAddress)
     const partyId=normalizeEdielId(field(r,['PartyId','PartyID','SenderId','UNBPartyId','EdielId'])??attr(r,['partyId','senderId'])??edielId)
     const interchangePartyId=normalizeEdielId(field(r,['InterchangePartyId','InterchangePartyID','TechnicalPartyId','TransportPartyId'])??attr(r,['interchangePartyId','technicalPartyId'])??partyId)
@@ -83,6 +83,9 @@ export function parseActorRegistryXml(xml:string):ParsedActorRegistryActor[]{
         if(actors.length>=4096)throw new Error('actor_registry_xml_record_limit')
         const keys:Record<string,string|null>={}
         for(const value of descendants(c,['Key'])){const k=node(value),type=attr(k,['Type']);if(type){if(type in keys)throw new Error('actor_registry_xml_duplicate_identifier');keys[type]=text(value)}}
+        const postalCountries=uniqueStrings(descendants(c,['Address']).map(value=>field(node(value),['CountryCode','Country'])))
+        if(postalCountries.length>1)throw new Error('actor_registry_xml_ambiguous_postal_country')
+        const country=attr(c,['CountryCode','Country'])??field(c,['Country','CountryCode'])??postalCountries[0]??countryContext
         const rawMarket=marketContext??attr(c,['Market'])??field(c,['Market']),market=rawMarket==='EL'||rawMarket==='GAS'?rawMarket:null
         const name=field(c,['Name','CompanyName','OrganisationName','OrganizationName','LegalName'])??attr(c,['name','companyName','legalName'])
         const edielId=normalizeEdielId(keys.EdielId??field(c,['EdielId','EdielID','EDIELID','Ediel','PartyId'])??attr(c,['edielId','edielID','partyId']))
@@ -95,8 +98,8 @@ export function parseActorRegistryXml(xml:string):ParsedActorRegistryActor[]{
         const meta=(c as Record<symbol,XMLMetaData>)[XMLParser.getMetaDataSymbol() as symbol]
         const sourceFragment=meta?.startIndex!==undefined&&meta?.endIndex!==undefined?xml.slice(meta.startIndex,meta.endIndex):null
         actors.push({name:name??edielId??orgNumber??'Okänd aktör',market,svkId:cleanString(keys.SvKId),legalName:field(c,['LegalName','RegisteredName']),edielId,orgNumber,eic,
-          countryCode:countryContext??attr(c,['CountryCode','Country'])??field(c,['Country','CountryCode'])??'SE',roles:roles.length?roles:['other'],routes:routes(c,edielId,market),certificates:certificates(c),
-          raw:{sourceFragment,sourceFragmentLength:sourceFragment?.length??null,originalMarket:rawMarket,originalCountry:countryContext??attr(c,['CountryCode','Country'])??field(c,['Country','CountryCode']),originalRoles:rawRoles,extractedWith:'fast_xml_parser_5_11_2_no_entities'}})
+          countryCode:country,roles:roles.length?roles:['other'],routes:routes(c,edielId,market),certificates:certificates(c),
+          raw:{sourceFragment,sourceFragmentLength:sourceFragment?.length??null,originalMarket:rawMarket,originalCountry:country,marketCountry:countryContext,originalRoles:rawRoles,extractedWith:'fast_xml_parser_5_11_2_no_entities'}})
       }
     }
   }

@@ -4,7 +4,7 @@
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-master-v2-integration-20261001",
-  "active_pr": null,
+  "active_pr": 424,
   "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "last_merged_pr": 420,
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Integrate independently owned recovery/runtime/native packages, freeze exact tree, qualify authentic replay and CI; preserve active original PR refs.",
+  "next_action": "Complete all internal source-owned producers and consumers; collect authentic clean/ancestor-upgrade replay, generated artifacts and native/browser results on owned draft #424; freeze and qualify one final exact public head, then literal 352-ID review.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1310,11 +1310,14 @@
     "historic_checkpoint_scope": "all older accepted/native/CI entries retain their original exact SHA and narrower scope; never imply final-candidate verification"
   },
   "integration_20261001": {
-    "base_head": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
-    "ref_owner": "root owns only isolated branch; previous #421 root still writing observed kernelLegacy",
-    "original_prs": "421/423/418/422/310 preserved",
-    "whole_contract_acceptance": "NOT_APPROVED",
-    "traffic": "HELD",
-    "replay": "PENDING_AUTHENTIC_CI"
+    "branch": "codex/ediel-master-v2-integration-20261001",
+    "draft_pr": 424,
+    "public_previous_head": "1e050bebaea0b05302aa8bbc8beefba275a5eddd",
+    "public_previous_tree": "f4ccf1f22e8f62e90110a7f72efb5f3277ccdbd0",
+    "actual_clean_replay": "751 migrations applied; authentic artifact11133162723 retained; generated types comparison failed before native execution",
+    "actual_upgrade_replay": "Genuine d30fa020 ancestor upgraded; third lock regression collided with retained rows; disposable isolated database correction awaiting next actual native CI",
+    "masterplan_status": "NOT_APPROVED; all final same-head receipts and whole literal reviews pending",
+    "protected_refs": "#421/#423/#418/#422/#310/main untouched",
+    "market_traffic": "HELD"
   }
 }

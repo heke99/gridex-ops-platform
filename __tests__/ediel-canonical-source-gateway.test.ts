@@ -7,6 +7,7 @@ const io=vi.hoisted(()=>({actor:vi.fn(),replay:vi.fn(),duplicate:vi.fn(),ackDupl
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.replay}}))
 vi.mock('@/lib/ediel/config',()=>({getEdielRouteRuntimeByCommunicationRouteId:vi.fn()}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.actor}))
+vi.mock('@/lib/ediel/core/atomicAckPersistence',()=>({persistAtomicOutboundAck:(input:CreateEdielMessageInput)=>io.create(input)}))
 vi.mock('@/lib/ediel/core/dedupe',()=>({hasCanonicalAckDuplicate:io.ackDuplicate,findOutboundEdielMessageDuplicate:io.duplicate}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessage:io.create,createCanonicalAckConflictEvent:io.conflict,findSequencedAckForSource:vi.fn().mockResolvedValue(null)}))
 vi.mock('@/lib/ediel/rulebook/validator',()=>({validateRulebookMessageWithRegistry:io.validation}))
@@ -138,9 +139,9 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   await createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})
   expect(io.commonRead).toHaveBeenCalledWith(expect.objectContaining({companyId:company,sourceMessageId:sourceId,expectedRawPayload:source.raw_payload}))
   expect(io.commonRoute).toHaveBeenCalledWith(expect.objectContaining({evidence:e,actorUserId:actor}))
-  expect(io.commonPrepare).toHaveBeenCalledWith(expect.objectContaining({evidence:e,route:expect.objectContaining({route:{id:'actual-ap27-route'}})}))
+  expect(io.commonPrepare).not.toHaveBeenCalled() // Native atomic command owns route-bound witness mint.
   expect(io.sourcePack).not.toHaveBeenCalled();expect(io.route).not.toHaveBeenCalled();expect(io.technicalRoute).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled()
-  expect(io.create).toHaveBeenCalledWith(expect.objectContaining({companyId:company,communicationRouteId:'actual-ap27-route',routeProfileId:'actual-ap27-profile',canonicalRulePackId:null,rulePackSnapshot:null,originalMessageCode:null,customerId:null,meteringPointId:null,executionContextSnapshot:{prodatCommonHeaderNegativeWitnessId:'one-use-common-header-token'}}))
+  expect(io.create).toHaveBeenCalledWith(expect.objectContaining({companyId:company,communicationRouteId:'actual-ap27-route',routeProfileId:'actual-ap27-profile',canonicalRulePackId:null,rulePackSnapshot:null,originalMessageCode:null,customerId:null,meteringPointId:null,executionContextSnapshot:null}))
  })
  it('holds known or foreign source scope and positive or transaction P202 outcomes before common writes',async()=>{
   for(const source of [message({company_id:null}),unknownSource()]){

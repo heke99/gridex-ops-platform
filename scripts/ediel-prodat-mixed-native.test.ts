@@ -1,3 +1,5 @@
+import {spawn,execFile} from 'node:child_process'
+import {promisify} from 'node:util'
 import {randomUUID} from 'node:crypto'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
@@ -87,4 +89,59 @@ it('last native own reply-outbox failure rolls back all own effects and audit be
   expect(sql(`SELECT jsonb_build_object('receipts',(SELECT count(*) FROM gridex_received_sources.prodat_mixed_object_receipts WHERE source_message_id=${literal(f.sourceId)}),'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(f.sourceId)}))`)).toEqual({receipts:0,transitions:0})
   expect(sql(`SELECT to_jsonb(inbound_z04_message_id IS NULL AND status IN('prepared','queued','submitted','sent','waiting','waiting_response','waiting_for_z04','awaiting_confirmation')) FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)}`)).toBe(true)
  }finally{sql(`DROP TRIGGER ${trigger} ON gridex_received_sources.prodat_mixed_reply_outbox;DROP FUNCTION gridex_received_sources.${fn}();`)}
+},120000)
+
+it('the primary full-guide receipt is immutable and a service caller cannot promote its rejected own object afterwards',async()=>{
+ const f=await seed()
+ const receipt=await recordReceivedSourceValidation({original:f.source,validated:f.source,resolvedCompanyId:f.companyId,decision:f.decision});expect(receipt.status).toBe('recorded')
+ if(receipt.status!=='recorded')throw Error('primary receipt required')
+ const full=projectReceivedProdatObjectValidation(f.wire,f.decision)!
+ const promoted={...full,objects:full.objects.map((o,index)=>index===0?{...o,disposition:'accepted',reasons:[],negativeFields:[]}:o)}
+ const forbidden=await rpc('gridex_record_prodat_object_validation_v1',{p_company_id:f.companyId,p_environment:'test',p_source_message_id:f.sourceId,p_source_payload_hash:sql<string>(`SELECT to_jsonb(payload_hash) FROM gridex_received_sources.sources WHERE source_message_id=${literal(f.sourceId)}`),p_assessment_id:receipt.assessmentId,p_facts_text:JSON.stringify(promoted)})
+ expect(forbidden.error?.message).toMatch(/permission|denied|schema cache/i)
+ expect(sql(`SELECT jsonb_build_object('canonical',(SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.sourceId)}),'full',(SELECT count(*) FROM gridex_received_sources.prodat_object_validation_facets WHERE source_message_id=${literal(f.sourceId)}),'dispositions',(SELECT jsonb_path_query_array(facts_text::jsonb,'$.objects[*].disposition') FROM gridex_received_sources.prodat_object_validation_facets WHERE assessment_id=${literal(receipt.assessmentId)}))`)).toEqual({canonical:1,full:1,dispositions:['rejected','accepted']})
+ expect(persisted(f)).toMatchObject({periods:0,positiveObjects:0,replyIntents:0,consumptions:0,acks:[],outbox:[]})
+},120000)
+
+it('actual current permission revocation holds a qualified source even while user and company membership remain active',async()=>{
+ const f=await seed()
+ expect(await recordReceivedSourceValidation({original:f.source,validated:f.source,resolvedCompanyId:f.companyId,decision:f.decision})).toMatchObject({status:'recorded'})
+ // Isolate the genuine direct-grant branch, then revoke only its allow rows.
+ sql(`DELETE FROM public.user_roles WHERE user_id=${literal(f.actorUserId)};UPDATE public.user_permissions SET effect='deny' WHERE user_id=${literal(f.actorUserId)} AND (company_id=${literal(f.companyId)} OR company_id IS NULL);`)
+ expect(sql(`SELECT jsonb_build_object('user',(SELECT user_status FROM public.user_profiles WHERE id=${literal(f.actorUserId)}),'member',(SELECT is_active AND status='active' FROM public.company_memberships WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)}),'permission',public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'metering.write'))`)).toEqual({user:'active',member:true,permission:false})
+ const held=await rpc('ediel_process_prodat_mixed_z04_v1',{p_company_id:f.companyId,p_source_message_id:f.sourceId,p_actor_user_id:f.actorUserId});expect(held.error).toBeNull();expect(held.data).toMatchObject({applied:false,reason:'normal_z04_execution_actor_required'})
+ expect(persisted(f)).toMatchObject({raw:f.wire,periods:0,positiveObjects:0,replyIntents:0,consumptions:0,acks:[],outbox:[]})
+},120000)
+
+it('concurrent actual grant revocation locks before the source and rolls back no sibling, audit, receipt or reply intent',async()=>{
+ const f=await seed(),application=`mixed_grant_race_${randomUUID()}`
+ expect(await recordReceivedSourceValidation({original:f.source,validated:f.source,resolvedCompanyId:f.companyId,decision:f.decision})).toMatchObject({status:'recorded'})
+ sql(`DELETE FROM public.user_roles WHERE user_id=${literal(f.actorUserId)}`)
+ expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(f.actorUserId)},${literal(f.companyId)},'metering.write'))`)).toBe(true)
+ const DB='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+ const writer=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
+ let output='',errors='';writer.stdout.on('data',value=>{output+=String(value)});writer.stderr.on('data',value=>{errors+=String(value)})
+ const writerDone=new Promise<void>((resolve,reject)=>{writer.on('error',reject);writer.on('close',code=>code===0?resolve():reject(Error(errors||`writer exited ${code}`)))})
+ let worker:Promise<{stdout:string;stderr:string}>|undefined
+ try{
+  writer.stdin.write(`BEGIN;UPDATE public.user_permissions SET effect='deny' WHERE user_id=${literal(f.actorUserId)} AND (company_id=${literal(f.companyId)} OR company_id IS NULL);SELECT 'GRANT_LOCKED';\n`)
+  for(let i=0;i<250&&!output.includes('GRANT_LOCKED');i++)await new Promise(resolve=>setTimeout(resolve,20))
+  expect(output,errors).toContain('GRANT_LOCKED')
+  worker=promisify(execFile)('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1','-c',`SET ROLE service_role;SELECT public.ediel_process_prodat_mixed_z04_v1(${literal(f.companyId)},${literal(f.sourceId)},${literal(f.actorUserId)});`],{encoding:'utf8',env:{...process.env,PGAPPNAME:application},timeout:15000})
+  let blocked=false
+  for(let i=0;i<250&&!blocked;i++){
+   blocked=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_locks l JOIN pg_stat_activity a ON a.pid=l.pid WHERE a.application_name=${literal(application)} AND l.relation='public.user_permissions'::regclass AND l.mode='ShareLock' AND NOT l.granted))`)
+   if(!blocked)await new Promise(resolve=>setTimeout(resolve,20))
+  }
+  expect(blocked).toBe(true)
+  expect(sql(`SELECT to_jsonb(NOT EXISTS(SELECT FROM pg_locks l JOIN pg_stat_activity a ON a.pid=l.pid WHERE a.application_name=${literal(application)} AND l.relation='public.ediel_messages'::regclass))`)).toBe(true)
+  expect(persisted(f)).toMatchObject({periods:0,positiveObjects:0,replyIntents:0,consumptions:0})
+  writer.stdin.end('COMMIT;\n');await writerDone
+  const result=JSON.parse((await worker).stdout.trim());expect(result).toMatchObject({applied:false,reason:'normal_z04_execution_actor_required'})
+  expect(persisted(f)).toMatchObject({raw:f.wire,periods:0,positiveObjects:0,replyIntents:0,consumptions:0,acks:[],outbox:[]})
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(f.sourceId)}`)).toBe(0)
+ }finally{
+  if(!writer.stdin.destroyed)writer.stdin.end('ROLLBACK;\n')
+  await writerDone.catch(()=>undefined);if(worker)await worker.catch(()=>undefined)
+ }
 },120000)

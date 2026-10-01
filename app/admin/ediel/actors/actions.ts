@@ -1,6 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import {diffRegistryRecord,readRegistryPreviewSnapshot} from '@/lib/actor-registry/registrySnapshotDiff'
+import {parseActorRegistryTxt} from '@/lib/actor-registry/parseActorRegistryTxt'
 import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
 import { applyActorRegistryRecords, decodeRegistryUpload } from '@/lib/actor-registry/importActorRegistry'
 import type { ParsedActorRegistryActor } from '@/lib/actor-registry/types'
@@ -200,6 +202,9 @@ type ActorImportPreviewSummary = {
   newActors: number
   existingActors: number
   changedActors: number
+  unchangedActors:number
+  snapshotHash:string
+  changes:Array<{edielId:string;actorId:string;fields:string[]}>
   gridOwners: number
   electricitySuppliers: number
   routesSeen: number
@@ -213,12 +218,14 @@ type ActorImportPreviewSummary = {
   issues: ActorImportPreviewIssue[]
 }
 
-async function buildActorImportPreview(records: ActorImportRecord[]): Promise<ActorImportPreviewSummary> {
+async function buildActorImportPreview(records: ActorImportRecord[],actorUserId:string): Promise<ActorImportPreviewSummary> {
+  const snapshot=await readRegistryPreviewSnapshot(actorUserId,records.flatMap(r=>r.edielId?[r.edielId]:[]))
   const summary: ActorImportPreviewSummary = {
     recordsSeen: records.length,
     newActors: 0,
     existingActors: 0,
     changedActors: 0,
+    unchangedActors:0,snapshotHash:snapshot.snapshotHash,changes:[],
     gridOwners: 0,
     electricitySuppliers: 0,
     routesSeen: 0,
@@ -240,12 +247,15 @@ async function buildActorImportPreview(records: ActorImportRecord[]): Promise<Ac
     summary.prodatRoutes += record.routes.filter((route) => route.messageFamily === 'PRODAT').length
     summary.utiltsRoutes += record.routes.filter((route) => route.messageFamily === 'UTILTS').length
 
-    const edielMatch = record.edielId ? await supabaseService.from('platform_actor_identifiers').select('actor_id')
-      .in('identifier_type',['EdielId','ediel_id','edielid']).eq('identifier_value',record.edielId) : {data:[],error:null}
-    if(edielMatch.error)throw edielMatch.error
-    const matchedIds=Array.from(new Set((edielMatch.data??[]).map(row=>String(row.actor_id))))
+    const matches=snapshot.actors.filter(actor=>actor.edielId===record.edielId)
+    const matchedIds=Array.from(new Set(matches.map(actor=>actor.actorId)))
     if(matchedIds.length>1){summary.conflicts+=1;summary.issues.push({recordName:record.name,issueType:'identifier_conflict',severity:'blocking',message:'Ediel-ID matchar flera juridiska aktörer. Hela tillämpningen hålls för granskning.',metadata:{edielId:record.edielId,actorIds:matchedIds}})}
-    if(matchedIds.length===1){summary.existingActors+=1;summary.changedActors+=1}else summary.newActors+=1
+    if(matchedIds.length===1){
+      summary.existingActors+=1
+      const fields=diffRegistryRecord(record,matches[0])
+      if(fields.length){summary.changedActors+=1;summary.changes.push({edielId:record.edielId!,actorId:matchedIds[0],fields})}
+      else summary.unchangedActors+=1
+    }else if(matchedIds.length===0)summary.newActors+=1
 
     if (!record.edielId) {
       summary.missingEdielId += 1
@@ -292,7 +302,7 @@ async function createActorImportPreviewRun(input: {
   parsed: ActorImportRecord[]
   userId: string
 }) {
-  const preview = await buildActorImportPreview(input.parsed)
+  const preview = await buildActorImportPreview(input.parsed,input.userId)
   const run = await supabaseService
     .from('platform_actor_import_runs')
     .insert({
@@ -356,13 +366,12 @@ export async function importPlatformActorsAction(formData: FormData) {
   if (!(file instanceof File) || file.size <= 0) throw new Error('Välj companies.xml eller CSV-fil att importera.')
 
   const fileName = file.name || 'actor-import'
-  if(fileName.toLowerCase().endsWith('.txt')||format==='txt')throw new Error('actor_registry_txt_authentic_source_adapter_required')
-  const importType = format === 'csv' || fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'companies_xml'
+  const importType = format==='txt'||fileName.toLowerCase().endsWith('.txt')?'companies_txt':format === 'csv' || fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'companies_xml'
   const sourceBytes=Buffer.from(await file.arrayBuffer())
   const textContent=decodeRegistryUpload(sourceBytes,importType)
-  const parsed = format === 'csv' || fileName.toLowerCase().endsWith('.csv')
-    ? parseActorCsv(textContent)
-    : parseCompaniesXml(textContent)
+  const txtActors=importType==='companies_txt'?parseActorRegistryTxt(textContent):null
+  const parsed:ActorImportRecord[] = txtActors ? txtActors.map(actor=>({name:actor.name,market:actor.market,countryCode:actor.countryCode,sourceRecord:actor.raw,orgNumber:actor.orgNumber??null,edielId:actor.edielId??null,svkId:actor.svkId??null,eic:actor.eic??null,roles:actor.roles,routes:actor.routes.map(route=>({...route,subaddress:route.subaddress??null,communicationType:route.communicationType??null,communicationAddress:route.communicationAddress??null,ediCharset:route.ediCharset??null,ediSyntax:route.ediSyntax??null,partyId:route.partyId??null,partyIdQualifier:route.partyIdQualifier??null,partyIdResponsible:route.partyIdResponsible??null,interchangePartyId:route.interchangePartyId??null,interchangeIdQualifier:route.interchangeIdQualifier??null}))}))
+    : importType==='csv'?parseActorCsv(textContent):parseCompaniesXml(textContent)
   if (parsed.length === 0) throw new Error('Importfilen innehöll inga aktörer som kunde läsas.')
 
   if (mode !== 'apply') {
@@ -382,15 +391,15 @@ export async function importPlatformActorsAction(formData: FormData) {
     throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
   }
 
-  const preview = await buildActorImportPreview(parsed)
+  const preview = await buildActorImportPreview(parsed,context.userId)
   if (preview.conflicts > 0) {
     await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
     throw new Error('Importen stoppades eftersom förhandsgranskningen hittade konflikt i Ediel-ID/aktörsmatchning. Lös granskningspunkterna innan importen godkänns.')
   }
 
-  const applied = await applyActorRegistryRecords({ sourceBytes, sourceKind: importType as 'companies_xml' | 'csv', sourceFilename: fileName, actorUserId: context.userId,
-    actors: importType === 'companies_xml' ? parseActorRegistryXml(textContent) : parsed.map(record => ({ name: record.name, legalName: record.name, market: record.market, countryCode: record.countryCode, orgNumber: record.orgNumber, edielId: record.edielId, svkId: record.svkId, eic: record.eic,
-      roles: record.roles as ParsedActorRegistryActor['roles'], routes: record.routes.map(route => ({ ...route, market: record.market, environment: 'production' as const })), certificates: [], raw: record.sourceRecord ?? { ...record, sourceKind: 'csv' } })) })
+  const applied = await applyActorRegistryRecords({ sourceBytes, sourceKind: importType as 'companies_xml' | 'companies_txt' | 'csv', sourceFilename: fileName, actorUserId: context.userId,
+    actors: txtActors??(importType === 'companies_xml' ? parseActorRegistryXml(textContent) : parsed.map(record => ({ name: record.name, legalName: record.name, market: record.market, countryCode: record.countryCode, orgNumber: record.orgNumber, edielId: record.edielId, svkId: record.svkId, eic: record.eic,
+      roles: record.roles as ParsedActorRegistryActor['roles'], routes: record.routes.map(route => ({ ...route, market: record.market, environment: 'production' as const })), certificates: [], raw: record.sourceRecord ?? { ...record, sourceKind: 'csv' } }))) })
   await logAdminActionAndUsage({ companyId: null, actorUserId: context.userId, entityType: 'platform_actor_import_run', entityId: applied.uiRunId,
     action: 'actor_import.completed', label: 'Aktörsimport atomärt tillämpad', billable: !applied.reusedExistingRun, billingUnit: 'actor_import',
     metadata: { source, fileName, atomicApplyVersion: 1, result: applied, activation: applied.activation } })

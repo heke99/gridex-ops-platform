@@ -14,8 +14,12 @@ for(const [n,alphabet] of alphabets.entries())describe(`source-owned errors alph
  it('reports missing second LI as41/226 with only its own object and no cached LI',async()=>{
  const msg=source(raw([...head(),...own('1','735123456789012345','CASE-A'),...own('2','735123456789012352',null)],'Z01',alphabet)),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(x=>x.family==='APERAK')!
  expect(p.applicationErrors).toMatchObject([{ercCode:'41',fieldCode:'226',referenceNumber:'735123456789012352',lineItemReference:null}])
- const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})
- expect(draft.rawPayload).toContain('FTX+AAO++226::260');expect(draft.rawPayload).toContain('RFF+Z07:735123456789012352');expect(draft.rawPayload).not.toContain('RFF+LI:');expect(draft.rawPayload).not.toContain('RFF+Z07:735123456789012345');expect(draft.rawPayload).not.toContain('CACHED-UNRELATED')
+ // This error cannot invent the untouched sibling's processed outcome. The
+ // complete original remains the rendering basis; never trim it to one LIN.
+ expect(() => buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})).toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
+ expect(p.applicationErrors?.[0].lineItemReference).toBeNull()
+ expect(p.applicationErrors?.[0].referenceNumber).toBe('735123456789012352')
+ expect(msg.raw_payload).toContain('CASE-A');expect(msg.raw_payload).not.toContain('CACHED-UNRELATED')
  })
  it('reports header207 without C082 extraction or borrowed object references',async()=>{
  const msg=source(raw([...head(true),...own('1','735123456789012345','CASE-A')],'Z01',alphabet)),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(x=>x.family==='APERAK')!

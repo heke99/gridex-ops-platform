@@ -49,20 +49,3 @@ export function projectReceivedProdatObjectValidation(raw:string,decision:Pick<C
         negativeFields:negatives.map(error=>error.fieldCode!).filter(Boolean)}
     })}
 }
-
-import {supabaseService} from '@/lib/supabase/service'
-import {evidenceHash,isEvidenceRecord} from '@/lib/ediel/utilts/durableSourceDiscovery'
-type Rpc=(name:string,args:Record<string,unknown>)=>{abortSignal(signal:AbortSignal):PromiseLike<{data:unknown;error:unknown}>}
-/** Bind the primary-owner result to the fresh canonical assessment. This port
- * stores guide evidence only; it cannot create any positive application result. */
-export async function recordReceivedProdatObjectValidation(input:{companyId:string;environment:string;sourceMessageId:string;sourcePayloadHash:string;
-  assessmentId:string;validation:ReceivedProdatObjectValidation}):Promise<boolean>{
- const facts=JSON.stringify(input.validation)
- try{
-  const {data,error}=await (supabaseService.rpc.bind(supabaseService) as unknown as Rpc)('gridex_record_prodat_object_validation_v1',{
-   p_company_id:input.companyId,p_environment:input.environment,p_source_message_id:input.sourceMessageId,p_source_payload_hash:input.sourcePayloadHash,
-   p_assessment_id:input.assessmentId,p_facts_text:facts}).abortSignal(AbortSignal.timeout(2000))
-  return !error&&isEvidenceRecord(data)&&data.assessmentId===input.assessmentId&&data.companyId===input.companyId&&data.environment===input.environment
-   &&data.sourceMessageId===input.sourceMessageId&&data.sourcePayloadHash===input.sourcePayloadHash&&data.objectFactsHash===evidenceHash(facts)
- }catch{return false}
-}

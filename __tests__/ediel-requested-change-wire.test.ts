@@ -34,12 +34,12 @@ describe('literal source Z09 requested change wire',()=>{
   const rendered=renderProdat(requestedChangeRenderInput({basis:b,senderEdielId:'12345',receiverEdielId:'54321',applicationReference:'23-DDQ-PRODAT',interchangeReference:'DOC',transactionReference:'LI',messageVersion:'26A',generatedAt:new Date('2026-09-30T12:00Z')}))
   const rawPayload=EdifactEnvelopeCodec.encode({sender:'12345',receiver:'54321',interchangeReference:'DOC',applicationReference:'23-DDQ-PRODAT',environment:'production',acknowledgementRequest:true,messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:96A:UN:E2SE6A',businessSegments:rendered.segments}]})
   const parsedPayload={prodatEngine:{...rendered.diagnostics,registerEvidence:createProdatRegisterEvidence({code:'Z09',rawSegments:rendered.segments,facts:requestedChangeRegisterFacts(b)})}}
-  const row={companyId:'company',environment:'production',direction:'outbound',messageFamily:'PRODAT',messageCode:'Z09',sourceOperationId:'event',customerId:'customer',meteringPointId:'point',rawPayload} as const
+  const row={companyId:'company',actorUserId:'executor',messageStandard:'edifact',environment:'production',direction:'outbound',messageFamily:'PRODAT',messageCode:'Z09',sourceOperationId:'event',customerId:'customer',meteringPointId:'point',rawPayload} as const
   const input={companyId:'company',environment:'production',direction:'outbound',family:'PRODAT',code:'Z09',applicationReference:'23-DDQ-PRODAT',version:'26A',rawPayload,parsedPayload,mode:'send',requestedChangeBasis:b,requestedChangeRow:row,admissionAt:'2026-09-30T12:00Z'} as Parameters<typeof validateRulebookMessage>[0]
   const valid=validateRulebookMessage(input);expect(valid.issues).toEqual([]);expect(valid.ok).toBe(true)
   const altered=rendered.segments.flatMap(s=>s.startsWith('DTM+157:')?['DTM+92:202610011300:203',s]:[s])
   const forbiddenRaw=EdifactEnvelopeCodec.encode({sender:'12345',receiver:'54321',interchangeReference:'DOC',applicationReference:'23-DDQ-PRODAT',environment:'production',acknowledgementRequest:true,messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:96A:UN:E2SE6A',businessSegments:altered}]})
   const forbidden=validateRulebookMessage({...input,rawPayload:forbiddenRaw,parsedPayload:{prodatEngine:{...rendered.diagnostics,registerEvidence:createProdatRegisterEvidence({code:'Z09',rawSegments:altered,facts:requestedChangeRegisterFacts(b)})}}})
-  expect(forbidden.ok).toBe(false);expect(forbidden.issues.some(i=>i.fieldNumber==='210'||i.code==='PRODAT_DATE_EVENT_FORBIDDEN'),JSON.stringify(forbidden.issues)).toBe(true)
+  expect(forbidden.ok).toBe(false);expect(forbidden.issues.some(i=>i.code==='PRODAT_DATE_EVENT_FORBIDDEN'),JSON.stringify(forbidden.issues)).toBe(true)
  })
 })

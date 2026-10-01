@@ -1,4 +1,5 @@
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
+import { persistAtomicOutboundAck } from '@/lib/ediel/core/atomicAckPersistence'
 import { readProtectedOutboundAckReplay } from '@/lib/ediel/core/ackPolicy'
 import type { CanonicalRouteRequestType } from '@/lib/ediel/core/routeRegistry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
@@ -29,7 +30,7 @@ import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {createHash} from 'node:crypto'
 import {readEdielTechnicalSourceEndpoint,requireEdielTechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {readTechnicalSyntaxAckRoute} from '@/lib/ediel/ack/technicalSyntaxRoute'
-import {readProdatCommonHeaderRejectionEvidence,prepareProdatCommonHeaderNegativeAckWitness} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
+import {readProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {readProdatCommonHeaderNegativeAckRoute} from '@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute'
 import {qualifyAiListProspectiveOriginal} from '@/lib/ediel/aiListOrigination'
 import {
@@ -323,8 +324,8 @@ export async function createCanonicalAckMessage(params: {
   }
   const duplicate=await readReplay()
   if(duplicate)return returnReplay(duplicate)
-  const persistAck=async(input:CreateEdielMessageInput):Promise<EdielMessageRow>=>{
-    try{return await createEdielMessage(input)}catch(error){
+  const persistAck=async(input:CreateEdielMessageInput,commonSmtp?:{from:string;host:string;port:number}):Promise<EdielMessageRow>=>{
+    try{return returnReplay(await persistAtomicOutboundAck(input,{companyId,environment,actorUserId,sourceMessage:params.sourceMessage,ackFamily:params.ackFamily,sequenceField,sequenceValue:sequenceToken,outcome:params.outcome??input.ackOutcome??null,commonSmtp}))}catch(error){
       if(isPostgresUniqueViolation(error)){
         const existing=await readReplay()
         if(existing)return returnReplay(existing)
@@ -350,7 +351,7 @@ export async function createCanonicalAckMessage(params: {
       direction:'outbound',mode:'send',companyId,environment,applicationReference:route.applicationReference,
       technicalSyntaxAckEvidence:evidence,version:input.messageVersion,parsedPayload:input.parsedPayload})
     if(validation.fieldRuleSource!=='technical_source'||validation.blocking||!validation.technicalSyntaxAckEvidence)throw new Error('canonical_technical_ack_validation_required')
-    return persistAck(input)
+    return persistAck(input,{from:route.senderEmail,host:route.smtpHost,port:route.smtpPort})
   }
 
   if(params.ackFamily==='APERAK' && prodatWire && !isListedProdatDocumentCode(prodatDocumentValue('202',prodatWire.segments,prodatWire.una))) {
@@ -380,8 +381,7 @@ export async function createCanonicalAckMessage(params: {
       prodatCommonHeaderRejectionEvidence:evidence,version:input.messageVersion,parsedPayload:input.parsedPayload})
     if(validation.fieldRuleSource!=='common_header_source' || validation.blocking || validation.prodatCommonHeaderRejectionEvidence!==evidence)
       throw new Error('canonical_common_header_ack_validation_required')
-    const sealed=await prepareProdatCommonHeaderNegativeAckWitness({evidence,route,actorUserId,rawPayload:input.rawPayload!})
-    return persistAck({...input,executionContextSnapshot:{prodatCommonHeaderNegativeWitnessId:sealed.witnessId}})
+    return persistAck(input,{from:route.senderEmail,host:route.smtpHost,port:route.smtpPort})
   }
 
   // A qualified committed own response is replayed above before today's legal role,
@@ -444,19 +444,17 @@ export async function createCanonicalAckMessage(params: {
   })
 
   if (!input.rawPayload || (environment !== 'test' && environment !== 'production')) throw new Error('canonical_ack_owner_scope_required')
-  const sealed = await prepareEdielOutboundOwnerWitness({companyId, actorUserId, environment, rawPayload: input.rawPayload,
-    relatedMessageId: sourceMessage.id, rulePackEvidence: ackSourceQualification.evidence})
 
   const canonicalAckInput: CreateEdielMessageInput = {
     ...input,
-    executionContextSnapshot: {outboundOwnerWitnessId: sealed.witnessId},
+    executionContextSnapshot: null,
     ruleProfileKey: rulePackSnapshot.profileKey,
     ruleProfileVersionId: rulePackSnapshot.profileVersionId,
     ruleProfileVersion: rulePackSnapshot.version,
     rulePackChecksum: rulePackSnapshot.checksum,
     rulePackSnapshot: {
       ...rulePackSnapshot,
-      ...sealed.evidence.snapshot,
+      ...ackSourceQualification.evidence.snapshot,
       resolvedAt: new Date().toISOString(),
       family: params.ackFamily,
       code: String(input.messageCode),

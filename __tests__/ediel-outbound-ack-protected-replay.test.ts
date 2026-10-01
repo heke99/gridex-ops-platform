@@ -6,6 +6,7 @@ const io=vi.hoisted(()=>({rpc:vi.fn(),validation:vi.fn(),actor:vi.fn(),oldDuplic
 vi.mock('@/lib/ediel/rulebook/validator',()=>({validateRulebookMessageWithRegistry:io.validation}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.actor}))
+vi.mock('@/lib/ediel/core/atomicAckPersistence',()=>({persistAtomicOutboundAck:(input:CreateEdielMessageInput)=>io.create(input)}))
 vi.mock('@/lib/ediel/core/dedupe',()=>({hasCanonicalAckDuplicate:io.oldDuplicate,findOutboundEdielMessageDuplicate:vi.fn()}))
 vi.mock('@/lib/ediel/db',()=>({listAckMessagesForSource:vi.fn(),createEdielMessage:io.create,createCanonicalAckConflictEvent:io.conflict,findSequencedAckForSource:io.oldSequence}))
 vi.mock('@/lib/ediel/config',()=>({getEdielRouteRuntimeByCommunicationRouteId:vi.fn()}))
@@ -19,7 +20,7 @@ const company='10000000-0000-4000-8000-000000000001',actor='10000000-0000-4000-8
 // Only fields read by this gateway/port are declared; these rows are mechanical.
 const source=()=>({id:sourceId,company_id:company,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'UTILTS',message_code:'E66',raw_payload:'physical original',parsed_payload:{}} as unknown as EdielMessageRow)
 const ack=(family:'APERAK'|'CONTRL'|'UTILTS_ERR'='APERAK',patch:Partial<EdielMessageRow>={})=>({id:ackId,company_id:company,environment:'test',direction:'outbound',message_standard:'edifact',message_family:family,message_code:family,related_message_id:sourceId,raw_payload:'sealed response',status:'sent',ack_outcome:'negative',parsed_payload:{},...patch} as unknown as EdielMessageRow)
-const draft=(family:'APERAK'|'CONTRL'|'UTILTS_ERR'='APERAK'):CreateEdielMessageInput=>({companyId:company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:family,messageCode:family,rawPayload:'new draft'})
+const draft=(family:'APERAK'|'CONTRL'|'UTILTS_ERR'='APERAK'):CreateEdielMessageInput=>({actorUserId:actor,companyId:company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:family,messageCode:family,rawPayload:'new draft'})
 function protectedRow(actual=source(),response=ack()){io.rpc.mockResolvedValue({data:{version:1,sourceMessage:actual,ackMessage:response},error:null});return response}
 function noEffects(){for(const fn of [io.oldDuplicate,io.oldSequence,io.create,io.conflict,io.route,io.technical,io.source])expect(fn).not.toHaveBeenCalled()}
 beforeEach(()=>{vi.resetAllMocks();io.actor.mockResolvedValue(undefined);io.conflict.mockResolvedValue(undefined);io.oldDuplicate.mockImplementation(async input=>ack(input.ackFamily));io.oldSequence.mockImplementation(async input=>ack(input.ackFamily));io.endpoint.mockResolvedValue({companyId:company})})
