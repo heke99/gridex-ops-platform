@@ -4,7 +4,8 @@ import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusP
 import {copyDeathSelection,type DeathSelection} from './prodatDeathStatus'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
 type Row={id?:string|null;direction?:string|null;company_id?:string|null;environment?:string|null;intent_id?:string|null;communication_route_id?:string|null;message_code?:string|null;message_family?:string|null;raw_payload?:string|null;parsed_payload?:unknown}
-type LifeEventContextBasis={kind:'customer_life_event';companyId:string;environment:'test'|'production';rawPayload:string;sourceEventId:string;sourceRevision:string;sourceDigest:string;businessContext:'death'|'bankruptcy'|'other_masterdata';bilateralCapabilityVerified:boolean;selection:DeathSelection}
+export type CustomerEventCertificationQualification=Readonly<{sourceKind:'independently_classified_fixture';declarationId:string;fixtureRegistrationId:string;runId:string;expectedOutcome:'positive'|'negative';expectedDiagnosticCodes:readonly string[];authorizesBusinessEffect:false}>
+type LifeEventContextBasis={certification?:CustomerEventCertificationQualification;kind:'customer_life_event';companyId:string;environment:'test'|'production';rawPayload:string;sourceEventId:string;sourceRevision:string;sourceDigest:string;businessContext:'death'|'bankruptcy'|'other_masterdata';bilateralCapabilityVerified:boolean;selection:DeathSelection}
 export type DeathStatusValidationContext=Readonly<LifeEventContextBasis&(
  {direction:'outbound';code:'Z09';intentId:string;routeId:string}|{direction:'inbound';code:'Z06';sourceMessageId:string;sourceContextReceiptId:string;sourceContextFactsHash:string})>
 const qualified=new WeakSet<object>()
@@ -12,7 +13,10 @@ function freeze<T>(v:T):T{if(v&&typeof v==='object'){Object.freeze(v);for(const 
 /** Trusted server source resolver only. Pure selection/serialized metadata is
  * deliberately not an authority context and cannot survive a copy/reload. */
 export function bindDeathStatusSourceContext(input:DeathStatusValidationContext):DeathStatusValidationContext{
- if(input.kind!=='customer_life_event'||!input.companyId||!input.sourceEventId||!input.sourceRevision||!/^([a-f0-9]{64})$/.test(input.sourceDigest)||!input.rawPayload||!['test','production'].includes(input.environment)||!['death','bankruptcy','other_masterdata'].includes(input.businessContext)||input.businessContext!=='death'&&!input.bilateralCapabilityVerified
+ const cert=input.certification,uuid=(v:string)=>/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(v)
+ const sourceOnly=Boolean(cert&&cert.sourceKind==='independently_classified_fixture'&&cert.authorizesBusinessEffect===false&&[cert.declarationId,cert.fixtureRegistrationId,cert.runId].every(uuid)&&input.direction==='outbound'&&input.environment==='test'&&input.code==='Z09'&&Array.isArray(cert.expectedDiagnosticCodes)&&cert.expectedDiagnosticCodes.every(v=>typeof v==='string'&&/^[A-Za-z0-9_.:-]{1,128}$/.test(v))&&(cert.expectedOutcome==='positive'?cert.expectedDiagnosticCodes.length===0:cert.expectedOutcome==='negative'&&cert.expectedDiagnosticCodes.length>0&&cert.expectedDiagnosticCodes.length<=256))
+ if(cert&&!sourceOnly)throw new Error('customer_life_event_certification_context_invalid')
+ if(input.kind!=='customer_life_event'||!input.companyId||!input.sourceEventId||!input.sourceRevision||!/^([a-f0-9]{64})$/.test(input.sourceDigest)||!input.rawPayload||!['test','production'].includes(input.environment)||!['death','bankruptcy','other_masterdata'].includes(input.businessContext)||input.businessContext!=='death'&&!input.bilateralCapabilityVerified&&!sourceOnly
   ||input.direction==='outbound'&&(input.code!=='Z09'||!input.intentId||!input.routeId)||input.direction==='inbound'&&(input.code!=='Z06'||!input.sourceMessageId||!/^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(input.sourceContextReceiptId)||!/^[a-f0-9]{64}$/.test(input.sourceContextFactsHash))||!['inbound','outbound'].includes(input.direction))throw new Error('customer_life_event_source_context_invalid')
  const result=freeze({...input,selection:copyDeathSelection(input.selection)})
  qualified.add(result);return result
@@ -30,7 +34,11 @@ export function deathStatusSendIssue(row:Row,context?:DeathStatusValidationConte
   if(context.direction!=='outbound')return {scope:'prodat_dependent',severity:'error',blocking:true,code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',title:'Fel riktning för kundstatuskälla',description:'Mottagen source authority får inte auktorisera en utgående producent.',fieldPath:'CCI++Z17/CAV'}
   try{assertDeathStatusContextMatches(row,context)}catch{return {scope:'prodat_dependent',severity:'error',blocking:true,code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',title:'Kundstatus saknar kvalificerad utgående producent',description:'Aktuell fristående livshändelsekälla matchar inte egna frysta meddelandebytes och scope.',fieldPath:'CCI++Z17/CAV'}}
   const own=tokenizeEdifact(row.raw_payload??'')
-  return validateProdatDeathStatus({code:context.code,rawSegments:own.segments.map(s=>s.raw),una:own.una,direction:'outbound',facts:{deathStatus:context.selection}}).find(i=>i.blocking||i.severity==='error')??null
+  const issues=validateProdatDeathStatus({code:context.code,rawSegments:own.segments.map(s=>s.raw),una:own.una,direction:'outbound',facts:{deathStatus:context.selection}}).filter(i=>i.blocking||i.severity==='error')
+  // The ordinary national validator still reports this field finding. Only
+  // its exact genuine negative fixture may cross this source-only send guard;
+  // the canonical fixture owner separately requires the whole diagnostic set.
+  return issues.find(i=>!(context.certification?.expectedOutcome==='negative'&&i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber==='310'&&context.certification.expectedDiagnosticCodes.includes(i.code)))??null
  }
  const raw=(row.raw_payload??'').trimStart(),advice=parseUna(raw),literal=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
  const r=literal(advice.releaseCharacter),t=literal(advice.segmentTerminator),e=literal(advice.dataElementSeparator)

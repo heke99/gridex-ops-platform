@@ -3,6 +3,7 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 import {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 import {copyDeathSelection,type DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {prepareQualifiedBrpSource,type BrpFieldScope} from '@/lib/ediel/production/brpFieldSource'
+import {certificationCustomerLifeEventContext} from './lifeEventCertificationSource'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {bindDeathStatusSourceContext,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 
@@ -65,6 +66,10 @@ export async function loadCustomerLifeEventValidationContext(message:EdielMessag
  const {data,error}=await supabaseService.rpc('ediel_customer_life_event_message_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
  if(error)throw error
  if(!data)return undefined
+ if(data.certification===true){
+  if(data.intentId!==message.intent_id||message.environment!=='test'||!message.intent_id||!message.communication_route_id||!message.raw_payload)throw new Error('customer_event_certification_message_basis_invalid')
+  return certificationCustomerLifeEventContext({basis:data.basis,companyId:message.company_id,rawPayload:message.raw_payload,intentId:message.intent_id,routeId:message.communication_route_id})
+ }
  if(data.status==='held')throw new Error('customer_life_event_current_source_held')
  if(data.basis?.status!=='authorized'||data.intentId!==message.intent_id||data.basis.companyId!==message.company_id||data.basis.environment!==message.environment||data.basis.rawPayload!==message.raw_payload)throw new Error('customer_life_event_message_basis_invalid')
  const basis:CustomerLifeEventBasis=data.basis
