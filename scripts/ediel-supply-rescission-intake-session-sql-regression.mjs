@@ -35,6 +35,15 @@ const session=String.raw`
  // authenticated user request by supplying that user's claim or actor ID.
  await db.exec('GRANT authenticated TO service_role');await assert.rejects(authenticatedCall('service_role',id(2),methods[1][0],methods[1][1]),/authenticated_session_required/);await db.exec('REVOKE authenticated FROM service_role');checks++;
  assert.equal((await authenticatedCall('service_role',null,'ediel_read_supply_rescission_mandate_v1',[id(1),id(2),hApproved.mandateId])).mandateId,hApproved.mandateId);checks++;
+ // Replay's original RETURN expression performs two actual current-mandate
+ // reads. The terminal guard must follow expression evaluation, not precede
+ // the last read. Keep the complete current-mandate body in the fixture and
+ // activate an ordinary reviewer DENY only after that last-read check begins.
+ const currentMandateDefinition=(await db.query("SELECT pg_get_functiondef('gridex_supply_rescission.mandate_current_v1(uuid,uuid,boolean)'::regprocedure) body")).rows[0].body;
+ await db.exec(currentMandateDefinition.replace('CREATE OR REPLACE FUNCTION gridex_supply_rescission.mandate_current_v1(','CREATE OR REPLACE FUNCTION gridex_supply_rescission.h_intake_last_read_original_v1('));
+ await db.exec("CREATE OR REPLACE FUNCTION gridex_supply_rescission.mandate_current_v1(c uuid,mandate uuid,fresh boolean DEFAULT true) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog SET timezone='UTC' AS $$DECLARE b boolean;BEGIN b:=gridex_supply_rescission.h_intake_last_read_original_v1(c,mandate,fresh);IF b IS TRUE THEN INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES('00000000-0000-0000-0000-000000000003',c,'ediel.supply_rescission.review','deny',true,clock_timestamp()+interval '40 milliseconds',clock_timestamp()+interval '1 day');PERFORM pg_sleep(0.08);END IF;RETURN b;END$$");
+ const lastReadBefore=await intakeCounts();await assert.rejects(authenticatedCall('authenticated',id(3),methods[2][0],methods[2][1]),e=>e.code==='42501'&&/current_intake_actor_forbidden/.test(e.message),'review replay must recheck current actor after the last native RETURN-expression read');assert.deepEqual(await intakeCounts(),lastReadBefore);checks++;
+ await db.exec(currentMandateDefinition);await db.exec('DROP FUNCTION gridex_supply_rescission.h_intake_last_read_original_v1(uuid,uuid,boolean)');
  // The last actual archive INSERT and an early held/rejected review INSERT
  // activate ordinary timed policy DENY. Both must roll back every mutation.
  await db.exec("CREATE FUNCTION public.h_intake_archive_wait() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES(NEW.submitted_by,NEW.company_id,'communication.write','deny',true,clock_timestamp()+interval '40 milliseconds',clock_timestamp()+interval '1 day');PERFORM pg_sleep(0.08);RETURN NEW;END$$;CREATE TRIGGER h_intake_archive_wait AFTER INSERT ON gridex_supply_rescission.artifacts FOR EACH ROW EXECUTE FUNCTION public.h_intake_archive_wait()");

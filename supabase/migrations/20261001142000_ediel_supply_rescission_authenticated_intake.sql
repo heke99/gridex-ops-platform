@@ -21,16 +21,18 @@ DO $$DECLARE item record;p record;after_p record;body text;definition text;guard
   ('public.ediel_read_supply_rescission_artifact_v1(uuid,uuid,uuid,boolean)','read',1)
  ) v(signature,phase,expected_returns) LOOP
   SELECT pr.*,l.lanname INTO p FROM pg_proc pr JOIN pg_language l ON l.oid=pr.prolang WHERE pr.oid=to_regprocedure(item.signature);
-  IF p.oid IS NULL OR p.lanname<>'plpgsql' OR p.prosecdef IS NOT TRUE OR position('gridex_supply_rescission.actor_v1(p_company_id,p_actor_user_id,' IN p.prosrc)=0 OR position('require_intake_session_v1' IN p.prosrc)>0 THEN
+  IF p.oid IS NULL OR p.lanname<>'plpgsql' OR p.prosecdef IS NOT TRUE OR position('gridex_supply_rescission.actor_v1(p_company_id,p_actor_user_id,' IN p.prosrc)=0 OR position('require_intake_session_v1' IN p.prosrc)>0 OR position('gridex_intake_session_result_v1' IN p.prosrc)>0 THEN
    RAISE EXCEPTION 'supply_rescission_intake_forward_owner_shape_changed: %',item.signature;
   END IF;
-  SELECT count(*) INTO returns FROM regexp_matches(p.prosrc,'\mRETURN\M','g');
-  begin_at:=position('BEGIN' IN p.prosrc);
-  IF begin_at=0 OR returns<>item.expected_returns THEN RAISE EXCEPTION 'supply_rescission_intake_forward_return_shape_changed: %',item.signature;END IF;
+  SELECT count(*) INTO returns FROM regexp_matches(p.prosrc,'\mRETURN\M([^;]+);','g');
+  IF position('BEGIN' IN p.prosrc)=0 OR position('DECLARE' IN p.prosrc)=0 OR returns<>item.expected_returns THEN RAISE EXCEPTION 'supply_rescission_intake_forward_return_shape_changed: %',item.signature;END IF;
   guard:=format('PERFORM gridex_supply_rescission.require_intake_session_v1(p_company_id,p_actor_user_id,%L);',item.phase);
-  -- All original returns are outer PL/pgSQL returns. Assert their bounded count
-  -- above, then guard held, rejected, idempotent and final successful returns.
-  body:=regexp_replace(p.prosrc,'\mRETURN\M',guard||' RETURN','g');
+  -- Evaluate each complete original expression before the terminal guard:
+  -- review replay's expression itself performs current-mandate native reads.
+  -- All bounded original expressions contain no statement terminator literals.
+  body:=regexp_replace(p.prosrc,'\mRETURN\M([^;]+);','gridex_intake_session_result_v1 :=\1; '||guard||' RETURN gridex_intake_session_result_v1;','g');
+  body:=overlay(body PLACING 'DECLARE gridex_intake_session_result_v1 jsonb;' FROM position('DECLARE' IN body) FOR 7);
+  begin_at:=position('BEGIN' IN body);
   body:=overlay(body PLACING 'BEGIN '||guard FROM begin_at FOR 5);
   definition:=pg_get_functiondef(p.oid);
   IF position(p.prosrc IN definition)=0 THEN RAISE EXCEPTION 'supply_rescission_intake_forward_definition_changed: %',item.signature;END IF;
