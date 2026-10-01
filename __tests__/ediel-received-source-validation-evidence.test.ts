@@ -72,6 +72,22 @@ for(const family of ['CONTRL','APERAK','UTILTS_ERR']) test(`records the actual f
  input.original.execution_context_snapshot={receivedProdatContext:snapshot.receivedProdatContext}
  assert.equal(build(input),null,'PRODAT insertion provenance cannot stand in for ACK capture')
 })
+test('ordinary UTILTS shares the original canonical ledger before any storage or business approval',()=>{
+ const input=fixture(),snapshot=input.original.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}
+ input.original.message_family='UTILTS';input.validated.message_family='UTILTS'
+ input.original.execution_context_snapshot={receivedUtiltsContext:structuredClone(snapshot.receivedProdatContext)}
+ input.validated.execution_context_snapshot=structuredClone(input.original.execution_context_snapshot)
+ const evidence=build(input);assert.ok(evidence)
+ const facts=JSON.parse(evidence.factsText)
+ assert.equal(facts.sourceDisposition,'not_established');assert.equal(facts.objectDisposition,'not_checked')
+ assert.equal(facts.applicationDecision,'not_applicable');assert.equal(facts.rulePackEvidence,null)
+ Object.assign(input.decision,{prodatRegisterValidation:{}})
+ assert.equal(build(input),null,'UTILTS cannot acquire a PRODAT register handoff')
+})
+test('UTILTS cannot substitute editable or PRODAT provenance for its prospective insertion context',()=>{
+ const input=fixture();input.original.message_family='UTILTS';input.validated.message_family='UTILTS'
+ assert.equal(build(input),null)
+})
 test('an ACK facet never grants a PRODAT structural register handoff',()=>{
  const input=fixture(),snapshot=input.original.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}
  input.original.message_family='APERAK';input.validated.message_family='APERAK';input.original.execution_context_snapshot={receivedAckContext:snapshot.receivedProdatContext}

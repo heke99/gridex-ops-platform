@@ -23,7 +23,7 @@ export function takeReceivedSourceOwnerSeed(receipt: ReceivedSourceValidationRec
 export async function recordReceivedSourceValidation(input: {
   original: EdielMessageRow; validated: EdielMessageRow; resolvedCompanyId: string; decision: CanonicalRuntimeDecision
 }): Promise<ReceivedSourceValidationReceipt> {
-  if (!['PRODAT', 'CONTRL', 'APERAK', 'UTILTS_ERR'].includes(input.original.message_family) || !isEvidenceUuid(input.original.id) || !isEvidenceUuid(input.original.company_id)) {
+  if (!['PRODAT', 'UTILTS', 'CONTRL', 'APERAK', 'UTILTS_ERR'].includes(input.original.message_family) || !isEvidenceUuid(input.original.id) || !isEvidenceUuid(input.original.company_id)) {
     return { status: 'not_requested', sourceDisposition: 'not_established' }
   }
   try {

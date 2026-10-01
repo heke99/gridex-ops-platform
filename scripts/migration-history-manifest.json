@@ -490,6 +490,8 @@
     "20260930145202_ediel_scoped_capability_readiness.sql": "b37a211fd178dd4008bcc8ed5b4a18f7c2f0d4254cd93f3fbfbc0f01e1eaad35",
     "20260930150622_utilts_positive_ack_own_dm_scope.sql": "92949650d20d714d005f797600bcf57f13e46735d7e05db6fa24a0e116f80321",
     "20260930154424_ediel_readiness_current_rule_dependencies.sql": "c84c6a50c27c46c255a112be931e8108012fff4455607125b7e2b12ba65ecfb3",
+    "20260930175725_ediel_source_authorized_transport_retry_cursor.sql": "8a70857a72884a09ff49923a374a2ef91f4c9e71af2a0e4ae9df20a16fe4692a",
+    "20260930183539_ediel_received_utilts_source_ledger.sql": "ee99ac7352b01e666a22d3f3e45563fc23f15908c2cd0bf441d95104febc2762",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
