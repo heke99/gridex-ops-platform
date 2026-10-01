@@ -351,16 +351,14 @@ export async function sendEdielMessageViaSmtp(
   }
   if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message);assertEdielSendLock(message)}
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
-  if(hasReportingPermissionMessage(message)){
-    const reportingContext=await loadTgtReportingValidationContext(message)
-    assertRulebookAllowsSend(message,undefined,reportingContext)
-    assertEdielSendLock(message,undefined,reportingContext)
-  }
-  if(hasProdatDateEventMessage(message)){
-    const dateEventContext=await loadTgtDateEventValidationContext(message)
-    assertRulebookAllowsSend(message,dateEventContext)
-    assertEdielSendLock(message,dateEventContext)
-  }
+  const reportingContext = hasReportingPermissionMessage(message) ? await loadTgtReportingValidationContext(message) : undefined
+  const dateEventContext = hasProdatDateEventMessage(message) ? await loadTgtDateEventValidationContext(message) : undefined
+  const admission = isEdifactMessage(message) ? assertRulebookAllowsSend(message, dateEventContext, reportingContext) : null
+  if (reportingContext || dateEventContext) assertEdielSendLock(message, dateEventContext, reportingContext)
+  const policy = admission?.canonicalPolicy
+  const admissionDecision = policy ? Object.freeze({ version: 1, referenceDate: policy.referenceDate,
+    family: policy.family, code: policy.code, subtype: policy.subtype, profileKey: policy.profileKey,
+    guide: policy.guide, associationAssignedCode: policy.associationAssignedCode, sourceTrace: policy.sourceTrace }) : null
 
   if (!message.receiver_email?.trim()) {
     throw new Error(`Kan inte skicka Ediel-meddelande ${message.id} utan receiver_email.`)
@@ -495,7 +493,7 @@ export async function sendEdielMessageViaSmtp(
 
   const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
-    payload: payloadBytes, encoding: mimeEncoding,
+    payload: payloadBytes, encoding: mimeEncoding, admissionDecision,
   })
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null

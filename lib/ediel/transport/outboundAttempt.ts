@@ -11,7 +11,8 @@ class AcceptedProjection extends Error { constructor(readonly result: ProviderRe
 
 /** Stable no-resend fence covering every ordinary outbound family. SMTP entry is not acceptance. */
 export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, context: {
-  message: EdielMessageRow; actorUserId: string; owner?: OutboundDispatchOwner; mimeMode: string; payload: Buffer; encoding: string
+  message: EdielMessageRow; actorUserId: string; owner?: OutboundDispatchOwner; mimeMode: string; payload: Buffer; encoding: string;
+  admissionDecision?: Readonly<Record<string, unknown>> | null
 }): Promise<ProviderResult> {
   const { message } = context
   if (!message.company_id) throw new Error('ediel_transport_company_required')
@@ -31,6 +32,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
       const binding = {
         ...actual, originalHash: createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'), routeId: message.communication_route_id,
         mimeMode: context.mimeMode, encoding: context.encoding, payloadHash: createHash('sha256').update(context.payload).digest('hex'), payloadLength: context.payload.length,
+        admissionDecision: context.admissionDecision ?? null,
       }
       const reservation = await call('prepare', { owner: context.owner ?? { kind: 'direct' }, binding })
       if (reservation.proceed !== true) {
@@ -53,7 +55,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
     const observation = await call('observe', { result: { accepted: result.accepted, rejected: result.rejected, messageId: result.messageId ?? null, response: result.response ?? null } })
     observed = true
     if (observation.classification !== 'accepted') throw new SmtpDeliveryUncertainError(new Error(`ediel_transport_${observation.classification ?? 'unknown'}`), result.messageId ?? null)
-    return result
+    return { ...result, dispatchObservedAt: observation.observedAt }
   } catch (error) {
     if (error instanceof AcceptedProjection) return error.result
     if (entered) {
