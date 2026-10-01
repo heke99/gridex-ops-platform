@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto'
+import {segmentComposite,observeCompletedEdifactSegments} from '@/lib/ediel/core/edifactTokenizer'
 import {readEdielTechnicalSourceEndpoint} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
@@ -21,7 +22,10 @@ export async function readExistingAckBeforeDraft(input:{
   if(endpoint.sourceMessageId!==source.id||endpoint.environment!==source.environment||endpoint.sourceHash!==createHash('sha256').update(source.raw_payload,'utf8').digest('hex'))throw new Error('canonical_ack_source_scope_mismatch')
   companyId=endpoint.companyId;expectedTechnicalCompanyId=companyId
  }
- await assertEdielTenantActor(source.environment==='test'&&input.ackFamily==='CONTRL'
+ const observed=expectedTechnicalCompanyId&&input.ackFamily==='APERAK'?observeCompletedEdifactSegments(source.raw_payload):null
+ const unh=observed?.segments.find(segment=>segment.tag==='UNH')
+ const commonTechnicalRead=Boolean(observed&&unh&&segmentComposite(unh,2,observed.una)[0]==='PRODAT')
+ await assertEdielTenantActor(source.environment==='test'&&(input.ackFamily==='CONTRL'||commonTechnicalRead)
   ?{companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']}
   :{companyId,actorUserId:input.actorUserId,permission:'communication.write'})
  const existing=await findExistingAckForSource({sourceMessageId:source.id,ackFamily:input.ackFamily,
