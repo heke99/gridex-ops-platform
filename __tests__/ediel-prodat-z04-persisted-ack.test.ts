@@ -6,11 +6,12 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 
 // The message writer, ACK builder, canonical ACK gateway and outbox helper are
 // real. Only the external database transport and unrelated business adapters
-// are replaced; the native companion verifies the SQL constraints.
+// are replaced. This synthetic adapter does not prove native SQL/RLS constraints;
+// the native companion must run in the separate fixed-candidate test phase.
 const state=vi.hoisted(()=>({source:null as EdielMessageRow|null,messages:[] as Record<string,unknown>[],outbox:[] as Record<string,unknown>[],events:[] as Record<string,unknown>[],effects:[] as string[],routeAvailable:true}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
  if(table==='ediel_messages')return {insert(row:Record<string,unknown>){return {select(){return {single:async()=>{const saved={...row,id:`00000000-0000-4000-8000-${String(state.messages.length+100).padStart(12,'0')}`};state.messages.push(saved);return {data:saved,error:null}}}}}},
-   select(){const conditions:Record<string,unknown>={};return {eq(k:string,v:unknown){conditions[k]=v;return this},maybeSingle:async()=>({data:state.messages.find(item=>Object.entries(conditions).every(([k,v])=>item[k]===v))??null,error:null})}}}
+   select(){const conditions:Record<string,unknown>={};const selections:Record<string,unknown[]>={};const matches=()=>state.messages.filter(item=>Object.entries(conditions).every(([k,v])=>item[k]===v)&&Object.entries(selections).every(([k,v])=>v.includes(item[k])));return {eq(k:string,v:unknown){conditions[k]=v;return this},in(k:string,v:unknown[]){selections[k]=v;return this},order:async()=>({data:matches(),error:null}),maybeSingle:async()=>({data:matches()[0]??null,error:null})}}}
  if(table==='ediel_message_events')return {insert(row:Record<string,unknown>){return {select(){return {single:async()=>{state.events.push(row);return {data:row,error:null}}}}}}}
  if(table==='ediel_outbox')return {
    upsert(row:Record<string,unknown>,options:{ignoreDuplicates?:boolean}){return {select(){return {maybeSingle:async()=>{const old=state.outbox.find(item=>item.lock_key===row.lock_key);if(old&&options.ignoreDuplicates)return {data:null,error:null};const saved={...row,id:`00000000-0000-4000-8000-${String(state.outbox.length+200).padStart(12,'0')}`};state.outbox.push(saved);return {data:saved,error:null}}}}}},

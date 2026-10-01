@@ -28,7 +28,8 @@ import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvi
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import type { EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
-import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { parseRulebookWirePayload } from './messageFormatParser'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
@@ -87,11 +88,8 @@ function issue(input: Omit<EdielRulebookIssue, 'blocking'> & { blocking?: boolea
 }
 
 function parse(input: RulebookValidationInput): ParsedRulebookMessage | null {
-  if (input.parsed) return input.parsed
-  if (!input.rawPayload) return null
-  if (input.rawPayload.startsWith('UNA') || input.rawPayload.startsWith('UNB') || input.rawPayload.includes("'")) return parseRulebookMessage(input.rawPayload)
-  if (['AI_LIST', 'BI_LIST'].includes(normalize(input.family)) || /^Ver\d{8};/.test(input.rawPayload)) return parseRulebookListPayload(input.rawPayload)
-  return null
+  if (!input.rawPayload) return input.parsed ?? null
+  return parseRulebookWirePayload({rawPayload:input.rawPayload,family:input.family})
 }
 
 /** A real PRODAT header selects the policy before any row/cached metadata.
