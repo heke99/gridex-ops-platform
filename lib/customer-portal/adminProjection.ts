@@ -101,8 +101,10 @@ export function projectAdminPortalAccount(row: AccountReadRow): AdminCustomerPor
 export function projectAdminPortalClaim(row: ClaimReadRow): AdminCustomerPortalClaimRow {
   const saved = record(row.metadata)
   // A status, current customer record or unversioned historical JSON is not match evidence.
+  const source = own(saved, 'source')
   const metadata = own(saved, 'schemaVersion') === 1
-    && own(saved, 'source') === 'native_account_completion_reconstructed_v1' ? saved : {}
+    && (source === 'native_account_completion_reconstructed_v1'
+      || (source === 'native_self_claim_attempt_v1' && row.status === 'rejected')) ? saved : {}
   const last4 = text(own(metadata, 'personal_number_last4'))
   return {
     id: row.id,

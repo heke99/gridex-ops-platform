@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { AccountCompletionError, completeNativePortalAccount } from '@/lib/customer-portal/accountCompletion'
+import { insertRejectedClaimAttempts } from '@/lib/customer-portal/claimAttemptEvidence'
 
 type CustomerCandidate = {
   id: string
@@ -266,12 +267,11 @@ async function findMatchingInstallations(params: {
   return matches
 }
 
-async function insertClaim(params: {
+async function insertClaimAttempts(attempts: Array<{
   userId: string
   userEmail: string | null
   companyId?: string | null
   customerId?: string | null
-  status: 'approved' | 'rejected'
   personalNumber: string
   inputSnapshot: Record<string, unknown>
   matchSnapshot: Record<string, unknown>
@@ -283,31 +283,13 @@ async function insertClaim(params: {
   }
   matchedSiteId?: string | null
   matchedMeteringPointId?: string | null
-  failureReason?: string | null
-}) {
-  const personalDigits = normalizeDigits(params.personalNumber)
-
-  const { error } = await supabaseService.from('customer_portal_claims').insert({
-    user_id: params.userId,
-    company_id: params.companyId ?? null,
-    user_email: params.userEmail,
-    customer_id: params.customerId ?? null,
-    status: params.status,
-    match_method: 'self_claim_strict_identity',
-    personal_number_last4: personalDigits ? personalDigits.slice(-4) : null,
-    email_matched: params.flags.emailMatched,
-    name_matched: params.flags.nameMatched,
-    personal_number_matched: params.flags.personalNumberMatched,
-    installation_matched: params.flags.installationMatched,
-    matched_site_id: params.matchedSiteId ?? null,
-    matched_metering_point_id: params.matchedMeteringPointId ?? null,
-    failure_reason: params.failureReason ?? null,
-    input_snapshot: params.inputSnapshot,
-    match_snapshot: params.matchSnapshot,
-    reviewed_at: params.status === 'approved' ? new Date().toISOString() : null,
-  })
-
-  if (error) throw error
+  reason: 'no_candidate' | 'ambiguous_strict_match' | 'identity_mismatch'
+}>) {
+  return insertRejectedClaimAttempts(attempts.map(({ personalNumber, ...attempt }) => {
+    const suffix = normalizeDigits(personalNumber).slice(-4)
+    const personalNumberLast4 = suffix.length === 4 ? suffix : null
+    return { ...attempt, personalNumberLast4, inputSnapshot: { ...attempt.inputSnapshot, personalNumberLast4 } }
+  }))
 }
 
 export async function claimPortalCustomerAction(
@@ -381,10 +363,10 @@ export async function claimPortalCustomerAction(
   const rows = (candidates ?? []) as CustomerCandidate[]
 
   if (rows.length === 0) {
-    await insertClaim({
+    await insertClaimAttempts([{
       userId: user.id,
       userEmail: authEmail,
-      status: 'rejected',
+      companyId: scopedCompanyId,
       personalNumber,
       inputSnapshot,
       matchSnapshot: { reason: 'no_customer_with_personal_number' },
@@ -394,8 +376,8 @@ export async function claimPortalCustomerAction(
         personalNumberMatched: false,
         installationMatched: false,
       },
-      failureReason: 'Inget kundkort matchade angivet personnummer.',
-    })
+      reason: 'no_candidate',
+    }])
 
     return { ok: false, message: DEFAULT_ERROR }
   }
@@ -488,13 +470,11 @@ export async function claimPortalCustomerAction(
   )
 
   if (fullMatches.length > 1) {
-    for (const evaluation of fullMatches) {
-      await insertClaim({
+    await insertClaimAttempts(fullMatches.map(evaluation => ({
         userId: user.id,
         userEmail: authEmail,
         companyId: evaluation.customer.company_id,
         customerId: evaluation.customer.id,
-        status: 'rejected',
         personalNumber,
         inputSnapshot,
         matchSnapshot: evaluation.matchSnapshot,
@@ -506,9 +486,8 @@ export async function claimPortalCustomerAction(
         },
         matchedSiteId: evaluation.installationMatch.site?.id ?? null,
         matchedMeteringPointId: evaluation.installationMatch.meteringPoint?.id ?? null,
-        failureReason: 'Flera kundkort matchade alla säkerhetsvillkor. Kopplingen kräver manuell hantering.',
-      })
-    }
+        reason: 'ambiguous_strict_match' as const,
+      })))
 
     return { ok: false, message: DEFAULT_ERROR }
   }
@@ -548,13 +527,11 @@ export async function claimPortalCustomerAction(
     redirect('/portal?kopplad=1')
   }
 
-  for (const evaluation of evaluations) {
-    await insertClaim({
+  await insertClaimAttempts(evaluations.map(evaluation => ({
       userId: user.id,
       userEmail: authEmail,
       companyId: evaluation.customer.company_id,
       customerId: evaluation.customer.id,
-      status: 'rejected',
       personalNumber,
       inputSnapshot,
       matchSnapshot: evaluation.matchSnapshot,
@@ -566,9 +543,8 @@ export async function claimPortalCustomerAction(
       },
       matchedSiteId: evaluation.installationMatch.site?.id ?? null,
       matchedMeteringPointId: evaluation.installationMatch.meteringPoint?.id ?? null,
-      failureReason: 'Ett eller flera säkerhetsvillkor matchade inte.',
-    })
-  }
+      reason: 'identity_mismatch' as const,
+    })))
 
   return { ok: false, message: DEFAULT_ERROR }
 }
