@@ -1,3 +1,23 @@
+## 2026-10-01 — Agreement local protocol gates
+
+Minimal agreement protocol correction is locally qualified: unchanged strict proofSql parses all stdout as one JSON receipt; two seed SELECT set_config calls and third preparation SELECT caused extra rows. Only these two regions become DO/PERFORM; original joins already compile to LF and remain unchanged (literal-backslash hypothesis FALSE_POSITIVE). Native first two whole it statements remain byte-identical; third business checks/argument/authority unchanged. Actual source-generated protocol tests14PASS owner/root/independent peer, with8 protected numeric/bigint mutation checks and quiet-owner mutation still fatal. Protocol command function is explicitly a stub, full native/Auth/business/provider0 until new CI.
+
+Root independently repeated final14/14PASS (3635.347354ms), scripts types/native ESLint/forced CJS ESLint0 after harness-only compiledModule rename, CJS syntax/whitespace/filebudgetPASS. Workflow YAML4jobs/53BashstepsPASS; quality wires14 with isolated pinned PGlite0.5.8 under RUNNER_TEMP, same isolated --ignore-scripts install actually succeeded locally. Locked package/lock, all migrationSQL/generated31/manifests/original75/runtime/API unchanged. Existing genuine6c quality7624/527+build remains unchanged-product evidence; no redundant ordinary unit/app/test compiler rerun for this fixture-only wave.
+
+Stable owner3 manifest f0d10fc6b3a1d70979dfe460019302d1b7e8709014011ff43483392c68dc85b4; root SHA/blob/size all3 matched final source. Independent peer personally14PASS, final3 bytes unchanged before/after. Actual new native0.
+
+## 2026-10-01 — Actual6c exact head/merge/tree CI
+
+Published #422 head6c5cca0edc1e58e90e979a45d3efc093ae91ca33/treef8d852570b6a190132feffee631d906b46176a76, actualcheckoutc7ea594bc7a509aeca17813a82f4839ab59deb93/same tree with parents ae56+6c. Root alone published non-force over0778; pinned418ae56/main53bf unchanged. Genuine OPS36849184084: verify/goldenPASS, source35PASS, quality7624/527+buildPASS, strictcurrentrestore/pinned-oldrollbackALL_PASS/fresholdbackfill8PASS. Corrected lifecycle sourcebinding3 is now terminalPASS10:31:23.6402196Z; agreementatomic5PASS. Next first failure agreementcleanup3, customer_sql/UNKNOWN; private primary text NOT_AVAILABLE. Agreement runtime and all later native/browser NOT_REACHED. Authentic artifact11154154653 generated3 byte-identical tracked31; no hand-edit/newSQL. FullE2E smoke/coverage/certificatePASS; full/staging/nightlySKIPPED. Report continuation/ci-first-failures-6c-outcome-20261001.md; safe receipt13163B SHA76b1ac7807492f9c596959ccc2576e84b9e21eabc8bb522559ae6c7f5f20f703.
+
+| Scope | Actual outcome | Limit |
+| --- | --- | --- |
+| Previous lifecycle fixture correction | native3 terminalPASS | declared synthetic installed SQL/PostgREST scope only |
+| Notification source correction |35PASS +parentgoldenPASS | source-only |
+| Strict upgrade/restore +oldrollback |PASS +ALL_PASS | disposable script scope; no hosted PITR/Storage |
+| Fresh old backfill |outer1/1+fixed8witnessesPASS |18inventorytriples, not18 tests |
+| Next agreementcleanup |3FAIL/customer_sqlUNKNOWN |laternative/browserNOT_REACHED |
+
 ## First-failure correction local bounded gates, 2026-10-01
 
 Root35 source mutation controls,8 actual cleanup PostgreSQL controls and full golden terminalPASS; scriptsTS/scopedlint/budget/workflowPASS. Independent bounded peers accepted scopes. New terminal native pending authentic CI, original75/P0–P8 remain OPEN. Receipt continuation/ci-first-failures-correction-20261001.md.

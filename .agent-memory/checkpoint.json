@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-01T10:21:48.348560+00:00",
+  "updated_at": "2026-10-01T11:05:47.427515+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/tenantservice-api-structure-20260929",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Freeze exact0778 first-failure source/fixture correction, sole non-force publish422, verify actual same-tree merge/current CI, continue isolated next10 and original75.",
+  "next_action": "Freeze exact reviewed agreement protocol tree over published6c, fresh ownership/ref/base checks, sole non-force publish to draft422, verify actual same-tree head/merge and genuine CI first failure; continue separately reconstructed account/purchase/admin integration, native preparation/authentic33 capture, U07 register coverage and every original75/P0–P8 effect chain.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -983,10 +983,10 @@
     "upgrade_restore_job": 110091164679
   },
   "api_masterplan_continuation": {
-    "status": "CI_CORRECTION_FROZEN_LOCAL_GATES_AND_PEERS_PASS_PUBLICATION_PENDING",
+    "status": "AGREEMENT_PROTOCOL_LOCAL_GATES_AND_PEERS_PASS_FREEZE_PUBLICATION_PENDING",
     "sole_publisher": "root",
     "ownership_comment": 5919901521,
-    "last_checked_api_head": "0cf30cce687f7dfc76094fe51201ca14ab0a117c",
+    "last_checked_api_head": "6c5cca0edc1e58e90e979a45d3efc093ae91ca33",
     "last_checked_ops_head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
     "last_checked_main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
     "original_worktree_preserved": "HISTORICAL_RECEIPT_CURRENT_PATHS_NOT_AVAILABLE_AFTER_ENVIRONMENT_INTERRUPTION",
@@ -997,8 +997,8 @@
     "requirements_count": 75,
     "full_acceptance": false,
     "secret_scan": "BLOCKED_AUTH",
-    "last_published_api_head": "0cf30cce687f7dfc76094fe51201ca14ab0a117c",
-    "last_published_tree": "cdb89ea6f09b701016f5203d9d669de2b20cab4c",
+    "last_published_api_head": "6c5cca0edc1e58e90e979a45d3efc093ae91ca33",
+    "last_published_tree": "f8d852570b6a190132feffee631d906b46176a76",
     "local_source_commit_same_tree": "567f58cde80874b24c5a713be49fb5e43960cac6",
     "startup_redaction_local": "PASS_2_EXTRACTED_BASH_TESTS_NODE22",
     "last_actual_ops": {
@@ -1016,7 +1016,7 @@
       "generated_members_adopted_byte_identical": true
     },
     "baseline_sql_byte_comparison": "PASS_653_UNCHANGED",
-    "next_work": "Freeze reviewed CI correction, publish non-force to draft422, inspect genuine native/HTTP/browser/restore; reconstruct missing unpublished next10 from actual public sources with fresh proof, continue exact75.",
+    "next_work": "Freeze exact reviewed agreement protocol tree over published6c, fresh ownership/ref/base checks, sole non-force publish to draft422, verify actual same-tree head/merge and genuine CI first failure; continue separately reconstructed account/purchase/admin integration, native preparation/authentic33 capture, U07 register coverage and every original75/P0–P8 effect chain.",
     "local_integrated_checks": "SEVENTH_FROZEN123_UNIT7176_500_PASS_TYPES118_APP_TESTS_SCRIPTS_PLUS123_TESTS_PASS_LINT0ERROR101WARN_SCOPED_ADAPTER0_MECHANICAL_API3_INTEGRITY678_582_RBAC24_0_RATCHET2371_LE2402_BUDGET1800_PERFORMANCE_CONTRACT_PASS_GENERATED_NEWTAIL_PENDING",
     "public_contract_release": "2026-10-01.1_FROZEN_LOCAL_RUNTIME_HTTP_PASS_NEW_NATIVE_PENDING",
     "public_contract_http_local": "PASS_4_ACTUAL_NEXT_HTTP_CASES_52_IMMUTABLE_ROUTES_50_OLDER_UNCHANGED",
@@ -1159,7 +1159,7 @@
     "original75": "OPEN"
   },
   "ci_first_failure_correction": {
-    "status": "IMPLEMENTED_NOT_VERIFIED",
+    "status": "VERIFIED_DECLARED_NATIVE_AND_SOURCE_SCOPES_ON_ACTUAL6C",
     "qualified_locally": {
       "source_controls": 35,
       "actual_pg_cleanup_controls": 8,
@@ -1170,10 +1170,62 @@
       "file_budget": "PASS"
     },
     "parent_head": "0778df202b8b46d4ae92a51ffcc24cc25176edaa",
-    "native_corrected": "0; pendinggenuineCI",
+    "native_corrected": "ACTUAL6C_TERMINAL3PASS",
     "runtime_schema_grants_changed": false,
     "business_native_it_tail_sha256": "735e4148e2133f1e28712003b44ae968f9850c7ccd1b12119dc10fa925f6cf2a",
     "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ci-first-failures-correction-20261001.md",
+    "original75": "OPEN"
+  },
+  "ci_continuation_6c": {
+    "status": "PARTIAL",
+    "published_head": "6c5cca0edc1e58e90e979a45d3efc093ae91ca33",
+    "tree": "f8d852570b6a190132feffee631d906b46176a76",
+    "checkout": "c7ea594bc7a509aeca17813a82f4839ab59deb93",
+    "ops_run": 36849184084,
+    "attempt": 1,
+    "quality": "7624/527+buildPASS",
+    "source_controls": 35,
+    "parent_golden": "PASS",
+    "sourcebinding": "3terminalPASS",
+    "agreement_atomic": "5PASS",
+    "first_stop": "agreementcleanup3FAIL/customer_sql/UNKNOWN",
+    "private_primary_text": "NOT_AVAILABLE",
+    "later_native_browser": "NOT_REACHED",
+    "current_restore": "PASS",
+    "pinned_old_rollback": "ALL_PASS",
+    "fresh_old_backfill": "outer1/1;8fixedwitnesses;18inventorytriplesPASS",
+    "generated_artifact": 11154154653,
+    "generated_three_byte_identical": true,
+    "full_e2e": "smoke/coverage/certificatePASS;full/staging/nightlySKIPPED",
+    "safe_receipt_sha256": "76b1ac7807492f9c596959ccc2576e84b9e21eabc8bb522559ae6c7f5f20f703",
+    "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ci-first-failures-6c-outcome-20261001.md",
+    "original75": "OPEN"
+  },
+  "agreement_cleanup_protocol_correction": {
+    "status": "IMPLEMENTED_NOT_VERIFIED_FULL_NATIVE",
+    "base_head": "6c5cca0edc1e58e90e979a45d3efc093ae91ca33",
+    "genuine_baseline": "8controlsPASS/2RED_extra_stdout_actualcompiledfixture_and_sharedparser",
+    "newline_hypothesis": "FALSE_POSITIVE_ACTUAL_AST_LF_AND_SQL_PARSE",
+    "minimal_scope": "DO_PERFORM_ONLY_NO_PARSER_OR_BUSINESS_GUARD_CHANGE",
+    "native_current": 0,
+    "sole_publisher": "root",
+    "local_qualified": {
+      "actual_generator_protocol_tests": 14,
+      "owner": "PASS",
+      "root": "PASS_FINAL14",
+      "independent_peer": "PASS_PERSONAL14",
+      "scripts_types": "PASS",
+      "native_lint": "PASS_0",
+      "explicit_cjs_lint": "PASS_0_AFTER_HARNESS_MODULE_NAME_FIX",
+      "workflow": "4JOBS_53BASHSTEPS_PASS",
+      "isolated_dependency": "PGLITE0.5.8_INSTALL_IGNORE_SCRIPTS_PASS",
+      "syntax_diff_budget": "PASS"
+    },
+    "owner_manifest_sha256": "f0d10fc6b3a1d70979dfe460019302d1b7e8709014011ff43483392c68dc85b4",
+    "native_source_sha256": "9108915142641cc3d25fca05b022c457dbec413d7ceb4a457faae4bbd34cbbc6",
+    "test_sha256": "b25f7c0194ec516bcdba9f641902b2529c3683a00aafe782358e1bcdcba7892e",
+    "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/agreement-protocol-integration-20261001.md",
+    "ordinary_tests_not_repeated": "CURRENT6C_7624/527_GENUINE_PASS_PRODUCT_UNCHANGED",
     "original75": "OPEN"
   }
 }

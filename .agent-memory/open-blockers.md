@@ -1,3 +1,13 @@
+## Current agreement boundary — local protocol qualified, native pending
+
+Published6c cleanup3 remains terminalFAIL/customer_sqlUNKNOWN, primary text unavailable. Independently actual-generator/PG-row-output/strict-parser extra-stdout defect is corrected and local14PASS, but new genuine native/Auth/business/provider0. Later native/browser were NOT_REACHED, not externally blocked. Isolated reconstructed account/purchase/admin and U07 register implementation continue. All75/P0–P8OPEN.
+
+## Current full API/tenantservice/OPS masterplan — published6c CI, 2026-10-01
+
+Current first CI stop: agreementcleanup3 customer_sql/UNKNOWN, primary text unavailable. Later native/HTTP/browser NOT_REACHED; protocol correction under active local qualification. Literal-backslash newline claim withdrawn as FALSE_POSITIVE. No broad database/restore blocker: current restore/pinned-old rollback/backfill8 actuallyPASS on6c.
+
+Account/purchase/admin reconstructions still internal implementable work; new native/realAuth/ordinary/provider/browser qualification not inferred from local modeled cores. Purchase missing legacy approval/capture/hash/date forms and uncertain/rejected-intent reconciliation remain INTERNAL pending, not external blockers. Full OPS action semantic denominator148 remains unresolved, all75/P0–P8OPEN. Exact GitGuardianAUTH, earlier general-PRODAT auto-review and issuer/phone/scanner/partner/deployedconsumer/hostedPITR/monitor/pilot/externalowner boundaries keep their scoped meaning.
+
 ## Active exact0778 first-failure correction — local qualification ready, 2026-10-01
 
 Root source-gate35/35, actual cleanup8/8, full golden-path terminalPASS, scripts types, scoped native/new-CJS lint, file budget and workflow4jobs/52Bash syntax PASS. Independent source/cleanup peers accepted bounded scopes; cleanup8 was personally repeated. All three lifecycle business test bodies remain byte-identical. Cleanup retains automatic published legal/parent rows and asserts four mutable tables empty; no guard/status/grant/schema/runtime changes. New source-chain controls are wired. Corrected full native still0 until genuine new CI; published0778 sourcebinding3 remains FAILED afterEach/P0001, laternative NOT_REACHED. Report continuation/ci-first-failures-correction-20261001.md.

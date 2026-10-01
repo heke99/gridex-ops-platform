@@ -21,8 +21,10 @@ function fixture() {
     INSERT INTO public.grid_owners(id,company_id,name) VALUES(${quote(owner)},${quote(company)},'Owned cleanup owner'),(${quote(foreign)},${quote(quiet)},'Quiet cleanup owner');
     CREATE TEMP TABLE agreement_cleanup_protected(table_name text primary key,digest text) ON COMMIT DROP;
     ${protectedTables.map(name => `INSERT INTO agreement_cleanup_protected SELECT ${quote(name)},encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb)::text,'UTF8')),'hex') FROM public.${name} t;`).join('\n')}
-    SELECT set_config('gridex.cleanup.native_command',${quote(JSON.stringify(command))},true);
-    SELECT set_config('gridex.cleanup.quiet_owner_hash',(SELECT encode(sha256(convert_to(to_jsonb(g)::text,'UTF8')),'hex') FROM public.grid_owners g WHERE id=${quote(foreign)}),true);`
+    DO $settings$ BEGIN
+      PERFORM set_config('gridex.cleanup.native_command',${quote(JSON.stringify(command))},true);
+      PERFORM set_config('gridex.cleanup.quiet_owner_hash',(SELECT encode(sha256(convert_to(to_jsonb(g)::text,'UTF8')),'hex') FROM public.grid_owners g WHERE id=${quote(foreign)}),true);
+    END $settings$;`
   const finish = `RESET ROLE;
     ${protectedTables.map(name => `DO $protected$ BEGIN IF (SELECT digest FROM agreement_cleanup_protected WHERE table_name=${quote(name)}) IS DISTINCT FROM
       (SELECT encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb)::text,'UTF8')),'hex') FROM public.${name} t)
@@ -80,7 +82,7 @@ it('real installed writer preserves attached documents and rejects manual public
 
 it('real cleanup claim audit rollback and least-privilege boundaries keep prepared and foreign resources intact', () => {
   const f = fixture()
-  expect(run(f, `SET LOCAL ROLE service_role; SELECT public.gridex_grid_owner_agreement_command_v1(current_setting('gridex.cleanup.native_command')::jsonb);
+  expect(run(f, `SET LOCAL ROLE service_role; DO $prepare$ BEGIN PERFORM public.gridex_grid_owner_agreement_command_v1(current_setting('gridex.cleanup.native_command')::jsonb); END $prepare$;
     RESET ROLE; UPDATE private.gridex_agreement_uploads_v1 SET created_at=clock_timestamp()-interval '1 hour' WHERE company_id=${quote(f.company)};
     CREATE FUNCTION private.cleanup_native_fault_${f.actor.replaceAll('-', '')}() RETURNS trigger LANGUAGE plpgsql AS $fault$ BEGIN IF NEW.company_id=${quote(f.company)}::uuid THEN RAISE EXCEPTION 'owned_cleanup_claim_fault'; END IF; RETURN NEW; END $fault$;
     CREATE TRIGGER cleanup_native_owned_fault BEFORE INSERT ON private.gridex_agreement_cleanup_events_v1 FOR EACH ROW EXECUTE FUNCTION private.cleanup_native_fault_${f.actor.replaceAll('-', '')}();
