@@ -13,7 +13,7 @@ import {
   listEdielTestRunMessages,
   listEdielTestRuns,
 } from "@/lib/ediel/db";
-import {createCanonicalOutboundMessage} from '@/lib/ediel/kernel';
+import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel';
 import {
   evaluateEdielTgtRun,
   getEdielTgtNextAction,

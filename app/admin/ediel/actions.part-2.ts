@@ -32,7 +32,7 @@ import { getEdielTgtTestCaseByCode } from "@/lib/ediel/testing/tgtRegistry"
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact"
 import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority'
-import {createCanonicalOutboundMessage} from '@/lib/ediel/kernel'
+import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel'
 import { getEdielTgtDynamicTestDataForCase, upsertEdielTgtDynamicTestData } from "@/lib/ediel/testing/tgtTestDataStore"
 
 import { validateAckPreflight } from "@/lib/ediel/core/ackPreflight"
