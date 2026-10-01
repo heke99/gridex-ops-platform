@@ -1,7 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
-import type { CustomerRow } from '@/types/customers'
+import type { Database } from '@/supabase/database.types'
 
-type CustomerFields = Pick<CustomerRow, 'name' | 'full_name' | 'company_name' | 'org_number' | 'personal_number'>
+type CustomerFields = Pick<Database['public']['Tables']['customers']['Row'], 'name' | 'full_name' | 'company_name' | 'org_number' | 'personal_number'>
 export type CustomerLifeEventExportProjection = {
   status: 'authorized'
   companyId: string
