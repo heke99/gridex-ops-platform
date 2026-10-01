@@ -10,6 +10,8 @@ export async function prepareEdielOutboundOwnerWitness(input: {
   rawPayload: string
   rulePackEvidence: EdielSourceRulePackEvidence
   relatedMessageId?: string | null
+  sourceQualifiedPositiveFixtureWitnessId?: string
+  sourceQualifiedNegativeFixtureWitnessId?: string
 }): Promise<PreparedOutboundOwnerWitness> {
   const { data, error } = await supabaseService.rpc('ediel_prepare_outbound_owner_witness_v1', { p_input: input })
   const result = data as { version?: unknown; witnessId?: unknown; evidence?: unknown } | null

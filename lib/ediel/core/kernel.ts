@@ -11,18 +11,29 @@ import {
   findSequencedAckForSource,
 } from '@/lib/ediel/db'
 import {
-  hasCanonicalAckDuplicate,
+  hasCanonicalAckDuplicate, findOutboundEdielMessageDuplicate,
 } from '@/lib/ediel/core/dedupe'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {isListedProdatDocumentCode,prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
-import { supabaseService } from '@/lib/supabase/service'
+import { prepareEdielOutboundOwnerWitness } from '@/lib/ediel/core/outboundOwnerWitness'
+import type { EdielSourceRulePackEvidence } from '@/lib/ediel/core/sourceRulePackEvidence'
+import type { RegistryRulePackSnapshot } from '@/lib/ediel/rulebook/fieldRuleRegistry'
+import { readSourceBoundOutboundAckRulePackEvidence, type SourceQualifiedOutboundAck } from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import { assertUtiltsPositiveAckSourceAuthority } from '@/lib/ediel/utilts/positiveAckAuthority'
 import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import type { ProdatDateEventRow, ProdatDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority'
-import { readSourceQualifiedNegativeFixtureDraft, sourceQualifiedNegativeFixtureMatchesDraft, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
+import { readSourceQualifiedNegativeFixtureDraft, sourceQualifiedNegativeFixtureMatchesDraft, prepareSourceQualifiedNegativeFixtureWitness, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
+import { readSourceQualifiedPositiveFixtureDraft, sourceQualifiedPositiveFixtureMatchesDraft, prepareSourceQualifiedPositiveFixtureWitness, type SourceQualifiedPositiveFixture } from '@/lib/ediel/testing/positiveFixtureAuthority'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import {createHash} from 'node:crypto'
+import {readEdielTechnicalSourceEndpoint,requireEdielTechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import {readTechnicalSyntaxAckRoute} from '@/lib/ediel/ack/technicalSyntaxRoute'
+import {readProdatCommonHeaderRejectionEvidence,prepareProdatCommonHeaderNegativeAckWitness} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
+import {readProdatCommonHeaderNegativeAckRoute} from '@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute'
+import {qualifyAiListProspectiveOriginal} from '@/lib/ediel/aiListOrigination'
 import {
-  createCanonicalOutboundMessage,
+  createCanonicalOutboundMessage as createLegacyCanonicalOutboundMessage,
   resolveCanonicalOutboundContext,
 } from './kernelLegacy'
 
@@ -32,7 +43,6 @@ export {
   resolveOutboundMessageVersion,
   resolveInboundAcceptedVersions,
   registerInboundCanonicalMessage,
-  createCanonicalOutboundMessage,
   buildCanonicalReferencesForOutbound,
 } from './kernelLegacy'
 
@@ -72,20 +82,113 @@ function sourceOperationIdFromDraft(draft: CreateEdielMessageInput): string | nu
     ?? sequenceString(draft.parsedPayload?.operationId)
 }
 
-async function canonicalRulePackIdForMessageProfile(profileVersionId: string): Promise<string> {
-  const { data, error } = await supabaseService
-    .from('ediel_message_profiles')
-    .select('rule_pack_id')
-    .eq('id', profileVersionId)
-    .eq('is_enabled', true)
-    .maybeSingle()
+function assertScopedOutboundDuplicate(existing: EdielMessageRow, draft: CreateEdielMessageInput,
+  companyId: string, environment: string, outboundRequestId?: string | null) {
+  const operationId=sourceOperationIdFromDraft(draft)
+  if(existing.company_id!==companyId || existing.environment!==environment || existing.direction!=='outbound'
+    || existing.message_family!==draft.messageFamily || existing.message_code!==String(draft.messageCode)
+    || operationId && existing.source_operation_id!==operationId
+    || outboundRequestId && existing.outbound_request_id!==outboundRequestId)
+    throw new Error('canonical_outbound_existing_operation_scope_conflict')
+  if(existing.raw_payload!==draft.rawPayload)throw new Error('canonical_outbound_existing_operation_wire_conflict')
+}
 
-  if (error) throw error
-  const rulePackId = sequenceString((data as { rule_pack_id?: unknown } | null)?.rule_pack_id)
-  if (!rulePackId) {
-    throw new Error(`canonical_ediel_rule_pack_for_message_profile_missing:${profileVersionId}`)
+function originalValidationEvidence(snapshot: RegistryRulePackSnapshot): EdielSourceRulePackEvidence {
+  const witness = snapshot.originalWitness
+  const rulePack = witness?.rulePack as Record<string, unknown> | undefined
+  const profile = witness?.messageProfile as Record<string, unknown> | undefined
+  if (!rulePack || typeof rulePack.id !== 'string' || !profile || profile.id !== snapshot.profileVersionId || profile.profile_key !== snapshot.profileKey
+      || rulePack.source_hash !== snapshot.checksum || `${rulePack.guide_version}:r${rulePack.guide_revision}` !== snapshot.version) throw new Error('canonical_outbound_original_rule_witness_required')
+  return {rulePackId: rulePack.id, messageProfileId: snapshot.profileVersionId, profileKey: snapshot.profileKey,
+    version: snapshot.version, sourceHash: snapshot.checksum, snapshot: { ...witness, profileKey: snapshot.profileKey,
+      profileVersionId: snapshot.profileVersionId, version: snapshot.version, checksum: snapshot.checksum }}
+}
+
+async function assertOutboundPreparationActor(input:{companyId:string;actorUserId:string;
+  negativeFixture:SourceQualifiedNegativeFixture|null;positiveFixture:SourceQualifiedPositiveFixture|null}) {
+  await assertEdielTenantActor(input.negativeFixture || input.positiveFixture
+    ? {companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']}
+    : {companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
+}
+
+/** Prospective test originals are private, byte-bound capabilities. The same
+ * native token is consumed alongside the ordinary canonical original seal. */
+async function prepareDraftFixtureWitnesses(input:{actorUserId:string;rawPayload:string;
+  negativeFixture:SourceQualifiedNegativeFixture|null;positiveFixture:SourceQualifiedPositiveFixture|null}) {
+  if(input.negativeFixture && input.positiveFixture)throw new Error('canonical_outbound_fixture_outcome_ambiguous')
+  if(input.negativeFixture){
+    const prepared=await prepareSourceQualifiedNegativeFixtureWitness({qualification:input.negativeFixture,actorUserId:input.actorUserId,rawPayload:input.rawPayload})
+    return {sourceQualifiedNegativeFixtureWitnessId:prepared.witnessId}
   }
-  return rulePackId
+  if(input.positiveFixture){
+    const prepared=await prepareSourceQualifiedPositiveFixtureWitness({qualification:input.positiveFixture,actorUserId:input.actorUserId,rawPayload:input.rawPayload})
+    return {sourceQualifiedPositiveFixtureWitnessId:prepared.witnessId}
+  }
+  return {}
+}
+
+function isTechnicalListDraft(draft:CreateEdielMessageInput):boolean {
+  return draft.messageStandard==='ai_list' || ['AI_LIST','BI_LIST'].includes(draft.messageFamily)
+}
+
+/** The technical list shares the public gateway and immutable send journal,
+ * while its original is owned by the private list source receipt. It has no
+ * EDIFACT rule pack, application envelope or business ACK references. */
+async function prepareTechnicalListDraft(draft:CreateEdielMessageInput,actorUserId:string):Promise<CreateEdielMessageInput> {
+  if(draft.messageStandard!=='ai_list' || draft.messageFamily!=='AI_LIST' || draft.messageCode!=='AI')
+    throw new Error('ai_list_outbound_technical_scope_required')
+  const forbidden: (keyof CreateEdielMessageInput)[]=['applicationReference','interchangeReference','externalReference',
+    'correlationReference','transactionReference','originalMessageId','originalTransactionId','originalMessageCode',
+    'relatedMessageId','switchRequestId','gridOwnerDataRequestId','outboundRequestId','partnerExportId',
+    'canonicalRulePackId','ruleProfileKey','ruleProfileVersionId','ruleProfileVersion','rulePackChecksum']
+  if(forbidden.some(key=>draft[key]!==null && draft[key]!==undefined && draft[key]!=='')
+    || draft.rulePackSnapshot && Object.keys(draft.rulePackSnapshot).length>0
+    || draft.executionContextSnapshot && Object.keys(draft.executionContextSnapshot).length>0)
+    throw new Error('ai_list_edifact_or_foreign_link_forbidden')
+  const qualifiedDraft={...draft,actorUserId}
+  await qualifyAiListProspectiveOriginal({draft:qualifiedDraft,actorUserId})
+  return {...qualifiedDraft,canonicalRulePackId:null,ruleProfileKey:null,ruleProfileVersionId:null,
+    ruleProfileVersion:null,rulePackChecksum:null,rulePackSnapshot:null,executionContextSnapshot:null,
+    requiresContrl:false,requiresAperak:false,contrlStatus:'not_required',aperakStatus:'not_required',utiltsErrStatus:'not_required'}
+}
+
+/** Direct consumers, including FileEngine, use the same actual validation and
+ * one-use original witness as rendered drafts. A supplied snapshot/token is
+ * never sufficient to bypass this public boundary. */
+export async function createCanonicalOutboundMessage(params: Parameters<typeof createLegacyCanonicalOutboundMessage>[0] & {
+  reportingContext?:ExpectedContext;dateEventContext?:ProdatDateEventValidationContext
+}) {
+  const draft=params.baseInput,actorUserId=ensureActorUserId(params.actorUserId)
+  if(!draft.companyId || draft.direction!=='outbound' || !draft.rawPayload || !['test','production'].includes(draft.environment ?? '')) throw new Error('canonical_outbound_owner_scope_required')
+  const negativeFixture=readSourceQualifiedNegativeFixtureDraft(draft),positiveFixture=readSourceQualifiedPositiveFixtureDraft(draft)
+  await assertOutboundPreparationActor({companyId:draft.companyId,actorUserId,negativeFixture,positiveFixture})
+  const duplicate=params.duplicateCheck ? await findOutboundEdielMessageDuplicate({
+    ...params.duplicateCheck,requestType:params.requestType,companyId:draft.companyId,environment:draft.environment,
+    sourceOperationId:sourceOperationIdFromDraft(draft),messageFamily:draft.messageFamily,messageCode:String(draft.messageCode),messageVersion:null,
+  }) : null
+  if(duplicate) {
+    assertScopedOutboundDuplicate(duplicate,draft,draft.companyId,draft.environment!,params.duplicateCheck?.outboundRequestId)
+    return duplicate
+  }
+  if(isTechnicalListDraft(draft)) {
+    const baseInput=await prepareTechnicalListDraft(draft,actorUserId)
+    return createLegacyCanonicalOutboundMessage({...params,actorUserId,baseInput,
+      duplicateCheck:params.duplicateCheck?{...params.duplicateCheck,messageFamily:draft.messageFamily,
+        messageCode:String(draft.messageCode),messageVersion:null}:undefined})
+  }
+  const snapshot=await assertOutboundDraftAllowedByCanonicalPolicy({draft,messageVersion:draft.messageVersion,
+    negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext})
+  const evidence=originalValidationEvidence(snapshot)
+  if(draft.canonicalRulePackId && draft.canonicalRulePackId!==evidence.rulePackId)throw new Error('canonical_outbound_selected_rule_pack_mismatch')
+  const fixtureWitnesses=await prepareDraftFixtureWitnesses({actorUserId,rawPayload:draft.rawPayload,negativeFixture,positiveFixture})
+  const sealed=await prepareEdielOutboundOwnerWitness({companyId:draft.companyId,actorUserId,
+    environment:draft.environment as 'test'|'production',rawPayload:draft.rawPayload,rulePackEvidence:evidence,...fixtureWitnesses})
+  return createLegacyCanonicalOutboundMessage({...params,actorUserId,duplicateCheck:params.duplicateCheck
+    ? {...params.duplicateCheck,messageFamily:draft.messageFamily,messageCode:String(draft.messageCode),messageVersion:null}:undefined,
+    baseInput:{...draft,canonicalRulePackId:sealed.evidence.rulePackId,
+    executionContextSnapshot:{outboundOwnerWitnessId:sealed.witnessId,...fixtureWitnesses},ruleProfileKey:sealed.evidence.profileKey,
+    ruleProfileVersionId:sealed.evidence.messageProfileId,ruleProfileVersion:sealed.evidence.version,rulePackChecksum:sealed.evidence.sourceHash,
+    rulePackSnapshot:{...snapshot,...sealed.evidence.snapshot}}})
 }
 
 const FINAL_CANONICAL_ACK_STATUSES = new Set(['sent', 'acknowledged', 'validated'])
@@ -100,6 +203,8 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
   reportingContext?: ExpectedContext
   dateEventContext?: ProdatDateEventValidationContext
   negativeFixture?: SourceQualifiedNegativeFixture | null
+  positiveFixture?: SourceQualifiedPositiveFixture | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }) {
   if (!params.draft.rawPayload) throw new Error('outbound_ediel_raw_payload_required')
 
@@ -122,11 +227,15 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     version: params.messageVersion ?? params.draft.messageVersion ?? null,
     companyId: params.draft.companyId ?? null,
     dateEventRow, reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
+    ackSourceQualification: params.ackSourceQualification,
   })
 
   const blocking = validation.issues.filter((item) => item.severity === 'error' || item.blocking)
   const qualifiedNegative = validation.canonicalPolicy && !blocking.some(issue => issue.code.startsWith('CANONICAL_') || issue.scope === 'prodat_register' || issue.scope === 'prodat_dependent')
     && sourceQualifiedNegativeFixtureMatchesDraft({ draft: params.draft, diagnosticCodes: blocking.map(issue => issue.code), qualification: params.negativeFixture })
+  if(params.negativeFixture && !qualifiedNegative)throw new Error('canonical_outbound_negative_fixture_diagnostics_mismatch')
+  if(params.positiveFixture && !sourceQualifiedPositiveFixtureMatchesDraft({draft:params.draft,qualification:params.positiveFixture,diagnosticCodes:blocking.map(issue=>issue.code)}))
+    throw new Error('canonical_outbound_positive_fixture_diagnostics_mismatch')
   if (blocking.length > 0 && !qualifiedNegative) {
     const first = blocking[0]
     throw new Error(
@@ -137,25 +246,6 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     throw new Error(`outbound_ediel_canonical_policy_evidence_missing:${params.draft.messageFamily}:${params.draft.messageCode}`)
   }
   return validation.rulePackSnapshot
-}
-
-function inheritedSourceRulePackSnapshot(sourceMessage: EdielMessageRow) {
-  const embedded = sourceMessage.rule_pack_snapshot ?? {}
-  const profileKey = String(sourceMessage.rule_profile_key ?? embedded.profileKey ?? '').trim()
-  const profileVersionId = String(sourceMessage.rule_profile_version_id ?? embedded.profileVersionId ?? '').trim()
-  const version = String(sourceMessage.rule_profile_version ?? embedded.version ?? '').trim()
-  const checksum = String(sourceMessage.rule_pack_checksum ?? embedded.checksum ?? '').trim()
-  if (!profileKey || !profileVersionId || !version || !checksum) {
-    throw new Error(`canonical_ack_source_rule_pack_snapshot_missing:${sourceMessage.id}`)
-  }
-  return {
-    profileKey,
-    profileVersionId,
-    version,
-    checksum,
-    inheritedFromSourceMessage: true as const,
-    sourceMessageId: sourceMessage.id,
-  }
 }
 
 /**
@@ -171,42 +261,28 @@ export async function createCanonicalAckMessage(params: {
   draft: CreateEdielMessageInput
 }) {
   const actorUserId = ensureActorUserId(params.actorUserId)
-  await assertUtiltsPositiveAckSourceAuthority({ sourceMessage: params.sourceMessage, draft: params.draft })
-  if (params.sourceMessage.message_family === 'PRODAT' && params.sourceMessage.raw_payload &&
-      (params.ackFamily === 'APERAK' || params.ackFamily === 'CONTRL' && params.outcome !== 'negative')) {
-    const wire=tokenizeEdifact(params.sourceMessage.raw_payload)
-    const physicalCode=prodatDocumentValue('202',wire.segments,wire.una)
-    if (!isListedProdatDocumentCode(physicalCode) ||
-        physicalCode !== params.sourceMessage.message_code) {
-      throw new Error('canonical_ack_prodat_source_code_profile_mismatch')
-    }
-  }
-  const sourceSnapshot = inheritedSourceRulePackSnapshot(params.sourceMessage)
-  const companyId = params.draft.companyId ?? params.sourceMessage.company_id ?? null
-  if (!companyId) throw new Error('canonical_ack_company_required')
-  const canonicalRulePackId = params.sourceMessage.canonical_rule_pack_id ?? null
-  if (!canonicalRulePackId) throw new Error(`canonical_ack_source_rule_pack_id_missing:${params.sourceMessage.id}`)
+  let companyId = params.draft.companyId ?? params.sourceMessage.company_id ?? null
   const environment = params.draft.environment ?? params.sourceMessage.environment
-  const routeContext = await resolveCanonicalOutboundContext({
-  requestType: 'ediel_ack',
-  companyId,
-  environment,
-  messageStandard: params.draft.messageStandard ?? 'edifact',
-  receiverEdielId: params.draft.receiverEdielId ?? params.sourceMessage.sender_ediel_id ?? null,
-  applicationReference: params.draft.applicationReference ?? params.sourceMessage.application_reference ?? null,
-})
-  const routeProfileId = routeContext.routeRuntime?.route_profile_id ?? null
-  if (!routeProfileId) throw new Error(`canonical_ack_route_profile_required:${routeContext.route.id}`)
-
-  const draftWithSourceSnapshot: CreateEdielMessageInput = {
-    ...params.draft,
-    parsedPayload: {
-      ...(params.draft.parsedPayload ?? {}),
-      canonicalSourceRulePackSnapshot: sourceSnapshot,
-      canonicalSourceMessageFamily: params.sourceMessage.message_family,
-      canonicalSourceMessageCode: params.sourceMessage.message_code,
-    },
+  let prodatWire:ReturnType<typeof tokenizeEdifact>|null=null
+  if(params.ackFamily==='APERAK' && params.sourceMessage.message_family==='PRODAT' && params.sourceMessage.raw_payload){
+    try{prodatWire=tokenizeEdifact(params.sourceMessage.raw_payload)}catch{/* A malformed source cannot qualify a fresh common-header application ACK. */}
   }
+  const commonNegative=params.ackFamily==='APERAK' && params.outcome==='negative' && prodatWire
+    && !isListedProdatDocumentCode(prodatDocumentValue('202',prodatWire.segments,prodatWire.una))
+  if(params.ackFamily==='CONTRL'&&!companyId){
+    // A prior own response supplies its immutable tenant scope before any
+    // current endpoint/route lookup. It grants no source business attribution.
+    const prior=await hasCanonicalAckDuplicate({sourceMessageId:params.sourceMessage.id,ackFamily:'CONTRL',outcome:params.outcome})
+    if(prior?.company_id)companyId=prior.company_id
+    else companyId=(await readEdielTechnicalSourceEndpoint(params.sourceMessage.id))?.companyId ?? null
+  }
+  if (!companyId || params.ackFamily!=='CONTRL'&&params.sourceMessage.company_id !== companyId
+      && !(commonNegative && params.sourceMessage.company_id===null) || params.sourceMessage.environment !== environment
+      || params.sourceMessage.direction !== 'inbound') throw new Error('canonical_ack_source_scope_mismatch')
+  await assertEdielTenantActor(environment==='test' && (params.ackFamily==='CONTRL' || commonNegative)
+    ? {companyId,actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']}
+    : {companyId,actorUserId,permission:'communication.write'})
+  const draftWithSourceSnapshot = params.draft
 
   const allowSequencedUtiltsErr =
     params.ackFamily === 'UTILTS_ERR' &&
@@ -257,6 +333,8 @@ export async function createCanonicalAckMessage(params: {
       }))
 
   if (duplicate) {
+    if (duplicate.company_id !== companyId || duplicate.environment !== environment || duplicate.direction !== 'outbound'
+        || duplicate.related_message_id !== params.sourceMessage.id || duplicate.message_family !== params.ackFamily) throw new Error('canonical_ack_duplicate_scope_mismatch')
     const attemptedOutcome = params.outcome ?? null
     const parsedPayload = duplicate.parsed_payload ?? {}
     const existingOutcome =
@@ -292,7 +370,7 @@ export async function createCanonicalAckMessage(params: {
         finalDuplicate,
         blockReason: finalDuplicate && conflictingOutcome ? 'blocked_final_ack_exists' : null,
       },
-    })
+    }).catch(()=>null)
 
     if (conflictingOutcome) {
       throw new Error(
@@ -305,8 +383,79 @@ export async function createCanonicalAckMessage(params: {
     return duplicate
   }
 
+  if(params.ackFamily==='CONTRL'){
+    const evidence=await requireEdielTechnicalSyntaxAckEvidence(companyId,params.sourceMessage.id)
+    if(evidence.environment!==environment || evidence.sourceHash!==createHash('sha256').update(params.sourceMessage.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('canonical_ack_actual_original_mismatch')
+    const route=await readTechnicalSyntaxAckRoute({evidence,actorUserId})
+    const input:CreateEdielMessageInput={...params.draft,actorUserId,companyId,environment,direction:'outbound',messageFamily:'CONTRL',messageCode:'CONTRL',
+      messageStandard:'edifact',transportType:'smtp',communicationRouteId:route.route.id,routeProfileId:route.routeRuntime.route_profile_id,
+      senderEdielId:route.senderEdielId,senderSubAddress:route.senderSubAddress,senderEmail:route.senderEmail,
+      receiverEdielId:route.receiverEdielId,receiverSubAddress:route.receiverSubAddress,receiverEmail:route.receiverEmail,
+      mailbox:route.mailbox,applicationReference:route.applicationReference,relatedMessageId:params.sourceMessage.id,
+      sourceOperationId:`ediel_ack:${params.sourceMessage.id}:CONTRL:message`,ackOutcome:params.outcome ?? params.draft.ackOutcome,
+      canonicalRulePackId:null,ruleProfileKey:null,ruleProfileVersionId:null,ruleProfileVersion:null,rulePackChecksum:null,rulePackSnapshot:null,
+      executionContextSnapshot:null,outboundRequestId:null,switchRequestId:null,gridOwnerDataRequestId:null,partnerExportId:null,
+      customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null}
+    const validation=await validateRulebookMessageWithRegistry({family:'CONTRL',code:'CONTRL',rawPayload:input.rawPayload,
+      direction:'outbound',mode:'send',companyId,environment,applicationReference:route.applicationReference,
+      technicalSyntaxAckEvidence:evidence,version:input.messageVersion,parsedPayload:input.parsedPayload})
+    if(validation.fieldRuleSource!=='technical_source'||validation.blocking||!validation.technicalSyntaxAckEvidence)throw new Error('canonical_technical_ack_validation_required')
+    return createEdielMessage(input)
+  }
+
+  if(params.ackFamily==='APERAK' && prodatWire && !isListedProdatDocumentCode(prodatDocumentValue('202',prodatWire.segments,prodatWire.una))) {
+    if(params.outcome!=='negative' || allowSequencedTransactionAck)throw new Error('canonical_common_header_negative_only')
+    const {sourceMessage,evidence}=await readProdatCommonHeaderRejectionEvidence({companyId,environment,
+      sourceMessageId:params.sourceMessage.id,expectedRawPayload:params.sourceMessage.raw_payload!,actorUserId})
+    const syntax=await requireEdielTechnicalSyntaxAckEvidence(companyId,sourceMessage.id)
+    if(syntax.environment!==environment || syntax.sourceHash!==evidence.sourceHash || syntax.syntaxAssessmentId!==evidence.syntaxAssessmentId
+      || syntax.syntaxDecision!=='accepted' || syntax.originalUNB.interchangeReference!==evidence.identities.transport.interchangeReference
+      || syntax.originalUNB.applicationReference!==evidence.identities.applicationReference
+      || JSON.stringify(syntax.originalUNB.sender)!==JSON.stringify(evidence.identities.transport.senderComponents)
+      || JSON.stringify(syntax.originalUNB.receiver)!==JSON.stringify(evidence.identities.transport.receiverComponents))
+      throw new Error('canonical_common_header_technical_source_mismatch')
+    const route=await readProdatCommonHeaderNegativeAckRoute({evidence,technicalEvidence:syntax,actorUserId})
+    const refs=buildCanonicalAckReferences({sourceMessage,ackFamily:'APERAK'})
+    const input:CreateEdielMessageInput={...params.draft,...refs,actorUserId,companyId,environment,direction:'outbound',messageStandard:'edifact',
+      messageFamily:'APERAK',messageCode:params.draft.messageCode,communicationRouteId:route.route.id,routeProfileId:route.routeRuntime.route_profile_id,
+      senderEdielId:route.senderEdielId,senderSubAddress:route.senderSubAddress,senderEmail:route.senderEmail,
+      receiverEdielId:route.receiverEdielId,receiverSubAddress:route.receiverSubAddress,receiverEmail:route.receiverEmail,
+      mailbox:route.mailbox,applicationReference:evidence.identities.applicationReference,relatedMessageId:sourceMessage.id,
+      sourceOperationId:`ediel_ack:${sourceMessage.id}:APERAK:message`,ackOutcome:'negative',canonicalRulePackId:null,
+      ruleProfileKey:null,ruleProfileVersionId:null,ruleProfileVersion:null,rulePackChecksum:null,rulePackSnapshot:null,
+      executionContextSnapshot:null,outboundRequestId:null,switchRequestId:null,gridOwnerDataRequestId:null,partnerExportId:null,
+      customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null,originalMessageCode:null}
+    const validation=await validateRulebookMessageWithRegistry({family:'APERAK',code:String(input.messageCode),rawPayload:input.rawPayload,
+      direction:'outbound',mode:'send',companyId,environment,applicationReference:input.applicationReference,
+      prodatCommonHeaderRejectionEvidence:evidence,version:input.messageVersion,parsedPayload:input.parsedPayload})
+    if(validation.fieldRuleSource!=='common_header_source' || validation.blocking || validation.prodatCommonHeaderRejectionEvidence!==evidence)
+      throw new Error('canonical_common_header_ack_validation_required')
+    const sealed=await prepareProdatCommonHeaderNegativeAckWitness({evidence,route,actorUserId,rawPayload:input.rawPayload!})
+    return createEdielMessage({...input,executionContextSnapshot:{prodatCommonHeaderNegativeWitnessId:sealed.witnessId}})
+  }
+
+  // A committed own response is replayed above before today's legal role,
+  // route, guide or source-pack guards. Fresh responses consume the protected
+  // actual original, never editable source metadata or a detached snapshot.
+  const ackSourceQualification = await readSourceBoundOutboundAckRulePackEvidence({companyId, environment, sourceMessageId: params.sourceMessage.id})
+  const sourceMessage = ackSourceQualification.sourceMessage
+  if (sourceMessage.raw_payload !== params.sourceMessage.raw_payload || sourceMessage.message_family !== params.sourceMessage.message_family
+      || sourceMessage.message_code !== params.sourceMessage.message_code) throw new Error('canonical_ack_actual_original_mismatch')
+  await assertUtiltsPositiveAckSourceAuthority({sourceMessage, draft: params.draft})
+  if (sourceMessage.message_family === 'PRODAT' && sourceMessage.raw_payload && params.ackFamily === 'APERAK') {
+    const wire = tokenizeEdifact(sourceMessage.raw_payload)
+    const physicalCode = prodatDocumentValue('202', wire.segments, wire.una)
+    if (!isListedProdatDocumentCode(physicalCode) || physicalCode !== sourceMessage.message_code) throw new Error('canonical_ack_prodat_source_code_profile_mismatch')
+  }
+  const canonicalRulePackId = ackSourceQualification.evidence.rulePackId
+  const routeContext = await resolveCanonicalOutboundContext({requestType: 'ediel_ack', companyId, environment,
+    messageStandard: params.draft.messageStandard ?? 'edifact', receiverEdielId: params.draft.receiverEdielId ?? sourceMessage.sender_ediel_id ?? null,
+    applicationReference: params.draft.applicationReference ?? sourceMessage.application_reference ?? null})
+  const routeProfileId = routeContext.routeRuntime?.route_profile_id ?? null
+  if (!routeProfileId) throw new Error(`canonical_ack_route_profile_required:${routeContext.route.id}`)
+
   const baseRefs = buildCanonicalAckReferences({
-    sourceMessage: params.sourceMessage,
+    sourceMessage,
     ackFamily: params.ackFamily,
   })
 
@@ -321,6 +470,7 @@ export async function createCanonicalAckMessage(params: {
 
   const input: CreateEdielMessageInput = {
     ...draftWithSourceSnapshot,
+    direction:'outbound',
     actorUserId,
     companyId,
     communicationRouteId: routeContext.route.id,
@@ -340,16 +490,23 @@ export async function createCanonicalAckMessage(params: {
   const rulePackSnapshot = await assertOutboundDraftAllowedByCanonicalPolicy({
     draft: input,
     messageVersion: input.messageVersion ?? null,
+    ackSourceQualification,
   })
+
+  if (!input.rawPayload || (environment !== 'test' && environment !== 'production')) throw new Error('canonical_ack_owner_scope_required')
+  const sealed = await prepareEdielOutboundOwnerWitness({companyId, actorUserId, environment, rawPayload: input.rawPayload,
+    relatedMessageId: sourceMessage.id, rulePackEvidence: ackSourceQualification.evidence})
 
   const canonicalAckInput: CreateEdielMessageInput = {
     ...input,
+    executionContextSnapshot: {outboundOwnerWitnessId: sealed.witnessId},
     ruleProfileKey: rulePackSnapshot.profileKey,
     ruleProfileVersionId: rulePackSnapshot.profileVersionId,
     ruleProfileVersion: rulePackSnapshot.version,
     rulePackChecksum: rulePackSnapshot.checksum,
     rulePackSnapshot: {
       ...rulePackSnapshot,
+      ...sealed.evidence.snapshot,
       resolvedAt: new Date().toISOString(),
       family: params.ackFamily,
       code: String(input.messageCode),
@@ -423,7 +580,35 @@ export async function finalizeCanonicalOutboundDraft(params: {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const messageFamily = params.draft.messageFamily
   const messageCode = String(params.draft.messageCode)
-  const negativeFixture = readSourceQualifiedNegativeFixtureDraft(params.draft)
+  const companyId=params.draft.companyId ?? params.routeContext.companyId
+  const environment=params.draft.environment ?? params.routeContext.environment
+  if(!companyId || params.draft.direction!=='outbound' || !['test','production'].includes(environment ?? '')
+    || params.routeContext.companyId && params.routeContext.companyId!==companyId
+    || params.routeContext.environment!==environment)throw new Error('canonical_outbound_owner_scope_required')
+  const negativeFixture = readSourceQualifiedNegativeFixtureDraft(params.draft),positiveFixture=readSourceQualifiedPositiveFixtureDraft(params.draft)
+  await assertOutboundPreparationActor({companyId,actorUserId,negativeFixture,positiveFixture})
+  const existing = await findOutboundEdielMessageDuplicate({...params.duplicateCheck,companyId,
+    environment, sourceOperationId: sourceOperationIdFromDraft(params.draft),
+    outboundRequestId: params.outboundRequestId, requestType: params.requestType,
+    messageFamily, messageCode, messageVersion: null})
+  if (existing) {
+    assertScopedOutboundDuplicate(existing,params.draft,companyId,environment,params.outboundRequestId)
+    return existing
+  }
+
+  if(isTechnicalListDraft(params.draft)) {
+    if(params.outboundRequestId)throw new Error('ai_list_edifact_or_foreign_link_forbidden')
+    const baseInput=await prepareTechnicalListDraft({...params.draft,actorUserId,companyId,environment,
+      senderEdielId:params.draft.senderEdielId ?? params.routeContext.senderEdielId,
+      receiverEdielId:params.draft.receiverEdielId ?? params.routeContext.receiverEdielId,
+      receiverEmail:params.draft.receiverEmail ?? params.routeContext.receiverEmail,
+      mailbox:params.draft.mailbox ?? params.routeContext.mailbox,
+      communicationRouteId:params.draft.communicationRouteId ?? params.routeContext.route.id,
+      routeProfileId:params.draft.routeProfileId ?? sequenceString(params.routeContext.routeRuntime?.route_profile_id),
+    },actorUserId)
+    return createLegacyCanonicalOutboundMessage({actorUserId,requestType:params.requestType,
+      duplicateCheck:{...params.duplicateCheck,messageFamily,messageCode,messageVersion:null},baseInput})
+  }
 
   const resolvedVersion = await resolveCanonicalOutboundVersion({
     family: messageFamily,
@@ -484,22 +669,29 @@ export async function finalizeCanonicalOutboundDraft(params: {
     draft: baseInput,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
     reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
-    negativeFixture,
+    negativeFixture,positiveFixture,
   })
   const routeProfileId = sequenceString(baseInput.routeProfileId)
     ?? sequenceString(params.routeContext.routeRuntime?.route_profile_id)
   if (!routeProfileId) {
     throw new Error(`canonical_ediel_route_profile_required:${params.routeContext.route.id}`)
   }
-  const canonicalRulePackId = sequenceString(baseInput.canonicalRulePackId)
-    ?? await canonicalRulePackIdForMessageProfile(rulePackSnapshot.profileVersionId)
+  const originalEvidence = originalValidationEvidence(rulePackSnapshot)
+  const canonicalRulePackId = originalEvidence.rulePackId
+  if (baseInput.canonicalRulePackId && baseInput.canonicalRulePackId !== canonicalRulePackId) throw new Error('canonical_outbound_selected_rule_pack_mismatch')
   const sourceOperationId = sourceOperationIdFromDraft(baseInput)
   if (!sourceOperationId) {
     throw new Error(`canonical_ediel_source_operation_required:${messageFamily}:${messageCode}`)
   }
 
+  if (!baseInput.companyId || !baseInput.rawPayload || (baseInput.environment !== 'test' && baseInput.environment !== 'production')) throw new Error('canonical_outbound_owner_scope_required')
+  const fixtureWitnesses=await prepareDraftFixtureWitnesses({actorUserId,rawPayload:baseInput.rawPayload,negativeFixture,positiveFixture})
+  const sealed = await prepareEdielOutboundOwnerWitness({companyId: baseInput.companyId, actorUserId, environment: baseInput.environment,
+    rawPayload: baseInput.rawPayload, rulePackEvidence: originalEvidence,...fixtureWitnesses})
+
   const canonicalInput: CreateEdielMessageInput = {
     ...baseInput,
+    executionContextSnapshot: {outboundOwnerWitnessId: sealed.witnessId,...fixtureWitnesses},
     routeProfileId,
     canonicalRulePackId,
     sourceOperationId,
@@ -509,6 +701,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
     rulePackChecksum: rulePackSnapshot.checksum,
     rulePackSnapshot: {
       ...rulePackSnapshot,
+      ...sealed.evidence.snapshot,
       resolvedAt: new Date().toISOString(),
       family: messageFamily,
       code: messageCode,
@@ -517,7 +710,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
     },
   }
 
-  return createCanonicalOutboundMessage({
+  return createLegacyCanonicalOutboundMessage({
     actorUserId,
     requestType: params.requestType,
     duplicateCheck: {

@@ -3,7 +3,7 @@
 import {createHash} from 'node:crypto'
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
-const io=vi.hoisted(()=>({actor:vi.fn(),duplicate:vi.fn(),ackDuplicate:vi.fn(),validation:vi.fn(),witness:vi.fn(),legacyCreate:vi.fn(),create:vi.fn(),conflict:vi.fn(),endpoint:vi.fn(),technical:vi.fn(),technicalRoute:vi.fn(),sourcePack:vi.fn(),route:vi.fn()}))
+const io=vi.hoisted(()=>({actor:vi.fn(),duplicate:vi.fn(),ackDuplicate:vi.fn(),validation:vi.fn(),witness:vi.fn(),legacyCreate:vi.fn(),create:vi.fn(),conflict:vi.fn(),endpoint:vi.fn(),technical:vi.fn(),technicalRoute:vi.fn(),sourcePack:vi.fn(),route:vi.fn(),positiveRead:vi.fn(),positiveMatch:vi.fn(),positivePrepare:vi.fn(),negativeRead:vi.fn(),negativeMatch:vi.fn(),negativePrepare:vi.fn(),commonRead:vi.fn(),commonPrepare:vi.fn(),commonRoute:vi.fn(),aiOriginal:vi.fn(),version:vi.fn(),references:vi.fn()}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.actor}))
 vi.mock('@/lib/ediel/core/dedupe',()=>({hasCanonicalAckDuplicate:io.ackDuplicate,findOutboundEdielMessageDuplicate:io.duplicate}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessage:io.create,createCanonicalAckConflictEvent:io.conflict,findSequencedAckForSource:vi.fn().mockResolvedValue(null)}))
@@ -13,9 +13,13 @@ vi.mock('@/lib/ediel/core/ackSourceRulePackEvidence',()=>({readSourceBoundOutbou
 vi.mock('@/lib/ediel/ack/technicalSyntaxAuthority',()=>({readEdielTechnicalSourceEndpoint:io.endpoint,requireEdielTechnicalSyntaxAckEvidence:io.technical}))
 vi.mock('@/lib/ediel/ack/technicalSyntaxRoute',()=>({readTechnicalSyntaxAckRoute:io.technicalRoute}))
 vi.mock('@/lib/ediel/utilts/positiveAckAuthority',()=>({assertUtiltsPositiveAckSourceAuthority:vi.fn()}))
-vi.mock('@/lib/ediel/testing/negativeFixtureAuthority',()=>({readSourceQualifiedNegativeFixtureDraft:()=>null,sourceQualifiedNegativeFixtureMatchesDraft:()=>false}))
-vi.mock('@/lib/ediel/core/versionRegistry',()=>({resolveCanonicalOutboundVersion:vi.fn().mockResolvedValue('D:96A:UN:E2SE6A')}))
-vi.mock('@/lib/ediel/core/referenceRegistry',()=>({buildCanonicalAckReferences:vi.fn(),buildCanonicalOutboundReferences:vi.fn().mockReturnValue({})}))
+vi.mock('@/lib/ediel/testing/negativeFixtureAuthority',()=>({readSourceQualifiedNegativeFixtureDraft:io.negativeRead,sourceQualifiedNegativeFixtureMatchesDraft:io.negativeMatch,prepareSourceQualifiedNegativeFixtureWitness:io.negativePrepare}))
+vi.mock('@/lib/ediel/testing/positiveFixtureAuthority',()=>({readSourceQualifiedPositiveFixtureDraft:io.positiveRead,sourceQualifiedPositiveFixtureMatchesDraft:io.positiveMatch,prepareSourceQualifiedPositiveFixtureWitness:io.positivePrepare}))
+vi.mock('@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority',()=>({readProdatCommonHeaderRejectionEvidence:io.commonRead,prepareProdatCommonHeaderNegativeAckWitness:io.commonPrepare}))
+vi.mock('@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute',()=>({readProdatCommonHeaderNegativeAckRoute:io.commonRoute}))
+vi.mock('@/lib/ediel/aiListOrigination',()=>({qualifyAiListProspectiveOriginal:io.aiOriginal}))
+vi.mock('@/lib/ediel/core/versionRegistry',()=>({resolveCanonicalOutboundVersion:io.version}))
+vi.mock('@/lib/ediel/core/referenceRegistry',()=>({buildCanonicalAckReferences:vi.fn().mockReturnValue({}),buildCanonicalOutboundReferences:io.references}))
 vi.mock('@/lib/ediel/core/kernelLegacy',()=>({createCanonicalOutboundMessage:io.legacyCreate,resolveCanonicalOutboundContext:io.route,resolveCanonicalInboundActor:vi.fn(),resolveOutboundMessageVersion:vi.fn(),resolveInboundAcceptedVersions:vi.fn(),registerInboundCanonicalMessage:vi.fn(),buildCanonicalReferencesForOutbound:vi.fn()}))
 import {createCanonicalAckMessage,createCanonicalOutboundMessage,finalizeCanonicalOutboundDraft,resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 const company='00000000-0000-4000-8000-000000000001',actor='00000000-0000-4000-8000-000000000002',sourceId='00000000-0000-4000-8000-000000000003',operation='00000000-0000-4000-8000-000000000004'
@@ -32,7 +36,7 @@ const evidence=()=>({companyId:company,environment:'test',sourceMessageId:source
 const snapshot=()=>({profileKey:'canonical-z01',profileVersionId:'profile',version:'26.A:r3',checksum:'a'.repeat(64),originalWitness:{rulePack:{id:'pack',source_hash:'a'.repeat(64),guide_version:'26.A',guide_revision:3},messageProfile:{id:'profile',profile_key:'canonical-z01'}}})
 const ackDraft=():CreateEdielMessageInput=>({...draft(),messageFamily:'CONTRL',messageCode:'CONTRL',companyId:null,rawPayload:"UNB+UNOC:3+LOCAL:ZZ:LOCAL-SUB+REMOTE:ZZ:REMOTE-SUB+260930:1201+ACKI++APP+++1'UNH+1+CONTRL:2:2:UN:EDIEL2'UCI+ACTUAL+REMOTE:ZZ:REMOTE-SUB+LOCAL:ZZ:LOCAL-SUB+4'UNT+3+1'UNZ+1+ACKI'"})
 beforeEach(()=>{
- vi.clearAllMocks();io.actor.mockResolvedValue(undefined);io.duplicate.mockResolvedValue(null);io.ackDuplicate.mockResolvedValue(null);io.conflict.mockResolvedValue(undefined)
+ vi.resetAllMocks();io.positiveRead.mockReturnValue(null);io.positiveMatch.mockReturnValue(false);io.negativeRead.mockReturnValue(null);io.negativeMatch.mockReturnValue(false);io.version.mockResolvedValue('D:96A:UN:E2SE6A');io.references.mockReturnValue({});io.aiOriginal.mockResolvedValue({owner:'mechanical declared private original port, not authentic evidence'});io.actor.mockResolvedValue(undefined);io.duplicate.mockResolvedValue(null);io.ackDuplicate.mockResolvedValue(null);io.conflict.mockResolvedValue(undefined)
  io.endpoint.mockResolvedValue({companyId:company});io.technical.mockResolvedValue(evidence());io.technicalRoute.mockResolvedValue({route:{id:'technical-route'},routeRuntime:{route_profile_id:'technical-profile'},senderEdielId:'LOCAL',senderSubAddress:'LOCAL-SUB',receiverEdielId:'REMOTE',receiverSubAddress:'REMOTE-SUB',senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',applicationReference:'APP'})
  io.sourcePack.mockRejectedValue(Error('current business guide must not load for technical CONTRL'))
  io.route.mockResolvedValue({companyId:company,environment:'test'});io.validation.mockResolvedValue({issues:[],blocking:false,fieldRuleSource:'registry',rulePackSnapshot:snapshot()})
@@ -42,7 +46,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
  it('uses protected transport endpoint before legal routing for a tenant-unattributed source',async()=>{
   io.validation.mockResolvedValue({fieldRuleSource:'technical_source',blocking:false,technicalSyntaxAckEvidence:evidence()})
   await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message({company_id:null}),ackFamily:'CONTRL',outcome:'negative',draft:ackDraft()})
-  expect(io.actor).toHaveBeenCalledWith({companyId:company,actorUserId:actor,permission:'communication.send'})
+  expect(io.actor).toHaveBeenCalledWith({companyId:company,actorUserId:actor,permissionAnyOf:['communication.write','ediel_testing.write']})
   expect(io.technicalRoute).toHaveBeenCalledOnce();expect(io.route).not.toHaveBeenCalled();expect(io.sourcePack).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled()
   expect(io.create).toHaveBeenCalledWith(expect.objectContaining({companyId:company,canonicalRulePackId:null,executionContextSnapshot:null,relatedMessageId:sourceId,communicationRouteId:'technical-route',customerId:null,meteringPointId:null}))
  })
@@ -87,5 +91,101 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   io.duplicate.mockResolvedValue(message({direction:'outbound',message_family:'PRODAT',message_code:'Z01',raw_payload:raw+'old',source_operation_id:operation,status:'sent'}))
   await expect(createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft(),duplicateCheck:{sourceType:'manual',sourceId:'intent',messageFamily:'PRODAT',messageCode:'Z01'}})).rejects.toThrow('canonical_outbound_existing_operation_wire_conflict')
   expect(io.validation).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled();expect(io.legacyCreate).not.toHaveBeenCalled()
+ })
+ it('consumes one genuine positive fixture token through the ordinary owner seal and actual draft INSERT',async()=>{
+  const q={kind:'source_qualified_positive_fixture',registrationId:'protected-test-registration',companyId:company}
+  io.positiveRead.mockReturnValue(q);io.positiveMatch.mockReturnValue(true);io.positivePrepare.mockResolvedValue({witnessId:'one-use-positive-token',qualification:q})
+  await createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft()})
+  expect(io.actor).toHaveBeenCalledWith({companyId:company,actorUserId:actor,permissionAnyOf:['communication.write','ediel_testing.write']})
+  expect(io.positivePrepare).toHaveBeenCalledWith({qualification:q,actorUserId:actor,rawPayload:raw})
+  expect(io.witness).toHaveBeenCalledWith(expect.objectContaining({sourceQualifiedPositiveFixtureWitnessId:'one-use-positive-token'}))
+  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',sourceQualifiedPositiveFixtureWitnessId:'one-use-positive-token'}})}))
+  expect(io.positivePrepare.mock.invocationCallOrder[0]).toBeLessThan(io.witness.mock.invocationCallOrder[0])
+ })
+ it('consumes a qualified negative original token only alongside the same ordinary canonical owner seal',async()=>{
+  const q={kind:'source_qualified_negative_fixture',registrationId:'protected-negative-registration',companyId:company}
+  io.negativeRead.mockReturnValue(q);io.negativeMatch.mockReturnValue(true);io.negativePrepare.mockResolvedValue({witnessId:'one-use-negative-token',qualification:q});io.validation.mockResolvedValue({issues:[{severity:'error',code:'SOURCE-DECLARED-NEGATIVE',description:'declared probe diagnostic'}],canonicalPolicy:{family:'PRODAT',code:'Z01',environment:'test',referenceDate:'2026-09-30'},fieldRuleSource:'registry',rulePackSnapshot:snapshot()})
+  await createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft()})
+  expect(io.witness).toHaveBeenCalledWith(expect.objectContaining({sourceQualifiedNegativeFixtureWitnessId:'one-use-negative-token',rulePackEvidence:expect.objectContaining({rulePackId:'pack'})}))
+  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',sourceQualifiedNegativeFixtureWitnessId:'one-use-negative-token'}})}))
+  expect(io.negativePrepare.mock.invocationCallOrder[0]).toBeLessThan(io.witness.mock.invocationCallOrder[0])
+ })
+ it('holds positive fixtures with canonical rejection or unavailable one-use original instead of writing',async()=>{
+  io.positiveRead.mockReturnValue({kind:'source_qualified_positive_fixture'});io.positiveMatch.mockReturnValue(false)
+  await expect(createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft()})).rejects.toThrow('positive_fixture_diagnostics_mismatch')
+  expect(io.positivePrepare).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled();expect(io.legacyCreate).not.toHaveBeenCalled()
+  io.positiveMatch.mockReturnValue(true);io.positivePrepare.mockRejectedValue(Error('actual one-use original unavailable'))
+  await expect(createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft()})).rejects.toThrow('actual one-use original unavailable')
+  expect(io.witness).not.toHaveBeenCalled();expect(io.legacyCreate).not.toHaveBeenCalled()
+ })
+ it('prepares ordinary drafts under write permission independently of later provider SEND authority',async()=>{
+  await createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft()})
+  expect(io.actor).toHaveBeenCalledWith({companyId:company,actorUserId:actor,permission:'communication.write'})
+ })
+ const unknownSource=()=>message({company_id:null,message_code:'UNLISTED',raw_payload:raw.replace('BGM+Z04','BGM+UNLISTED')})
+ const commonDraft=():CreateEdielMessageInput=>({...ackDraft(),companyId:company,messageFamily:'APERAK',messageCode:'27',rawPayload:ackDraft().rawPayload!.replace('CONTRL:2:2:UN:EDIEL2','APERAK:D:96A:UN:E2SE6A')})
+ function commonPorts(source:EdielMessageRow){
+  const sourceHash=createHash('sha256').update(source.raw_payload!,'utf8').digest('hex')
+  const transport={interchangeReference:'ACTUAL',senderComponents:['REMOTE','ZZ','REMOTE-SUB'],receiverComponents:['LOCAL','ZZ','LOCAL-SUB']}
+  const e={kind:'prodat_common_header_rejection',companyId:company,environment:'test',sourceMessageId:sourceId,sourceHash,syntaxAssessmentId:'protected-syntax-assessment',identities:{transport,applicationReference:'APP'}}
+  const syntax={...evidence(),sourceHash,syntaxAssessmentId:e.syntaxAssessmentId,syntaxDecision:'accepted',originalUNB:{interchangeReference:'ACTUAL',applicationReference:'APP',sender:transport.senderComponents,receiver:transport.receiverComponents}}
+  io.commonRead.mockResolvedValue({sourceMessage:source,evidence:e});io.technical.mockResolvedValue(syntax);io.commonRoute.mockResolvedValue({route:{id:'actual-ap27-route'},routeRuntime:{route_profile_id:'actual-ap27-profile'},senderEdielId:'LOCAL',senderSubAddress:'LOCAL-SUB',receiverEdielId:'REMOTE',receiverSubAddress:'REMOTE-SUB',senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',applicationReference:'APP',smtpHost:'smtp.example.invalid',smtpPort:587});io.commonPrepare.mockResolvedValue({witnessId:'one-use-common-header-token',evidence:e});io.validation.mockResolvedValue({fieldRuleSource:'common_header_source',blocking:false,prodatCommonHeaderRejectionEvidence:e});return {e,syntax}
+ }
+ it('routes an unattributed physical P202 rejection through its protected common AP27 route and one-use witness',async()=>{
+  const source=unknownSource(),{e}=commonPorts(source)
+  await createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})
+  expect(io.commonRead).toHaveBeenCalledWith(expect.objectContaining({companyId:company,sourceMessageId:sourceId,expectedRawPayload:source.raw_payload}))
+  expect(io.commonRoute).toHaveBeenCalledWith(expect.objectContaining({evidence:e,actorUserId:actor}))
+  expect(io.commonPrepare).toHaveBeenCalledWith(expect.objectContaining({evidence:e,route:expect.objectContaining({route:{id:'actual-ap27-route'}})}))
+  expect(io.sourcePack).not.toHaveBeenCalled();expect(io.route).not.toHaveBeenCalled();expect(io.technicalRoute).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled()
+  expect(io.create).toHaveBeenCalledWith(expect.objectContaining({companyId:company,communicationRouteId:'actual-ap27-route',routeProfileId:'actual-ap27-profile',canonicalRulePackId:null,rulePackSnapshot:null,originalMessageCode:null,customerId:null,meteringPointId:null,executionContextSnapshot:{prodatCommonHeaderNegativeWitnessId:'one-use-common-header-token'}}))
+ })
+ it('holds known or foreign source scope and positive or transaction P202 outcomes before common writes',async()=>{
+  for(const source of [message({company_id:null}),unknownSource()]){
+   await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'positive',draft:commonDraft()})).rejects.toThrow('source_scope_mismatch')
+  }
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:unknownSource(),ackFamily:'APERAK',outcome:'negative',draft:{...commonDraft(),parsedPayload:{ackScope:'transaction',relatedTransactionReference:'TX'}}})).rejects.toThrow('common_header_negative_only')
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:{...unknownSource(),company_id:'foreign-company'},ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})).rejects.toThrow('source_scope_mismatch')
+  expect(io.commonRoute).not.toHaveBeenCalled();expect(io.commonPrepare).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+ })
+ it('requires the same protected syntax assessment, source hash and complete UNB/APP before common route or writes',async()=>{
+  for(const mutate of [(s:Record<string,unknown>)=>({...s,sourceHash:'wrong'}),(s:Record<string,unknown>)=>({...s,syntaxAssessmentId:'wrong'}),(s:Record<string,unknown>)=>({...s,syntaxDecision:'rejected'}),(s:Record<string,unknown>)=>({...s,originalUNB:{applicationReference:'wrong'}})]){
+   const source=unknownSource(),{syntax}=commonPorts(source);io.technical.mockResolvedValue(mutate(syntax))
+   await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})).rejects.toThrow('technical_source_mismatch')
+  }
+  expect(io.commonRoute).not.toHaveBeenCalled();expect(io.commonPrepare).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+ })
+ it('holds a configured common-route failure before original token preparation and INSERT',async()=>{
+  const source=unknownSource();commonPorts(source);io.commonRoute.mockRejectedValue(Error('actual current AP27 route unavailable'))
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})).rejects.toThrow('actual current AP27 route unavailable')
+  expect(io.commonPrepare).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+ })
+ const aiDraft=():CreateEdielMessageInput=>({...draft(),messageStandard:'ai_list',messageFamily:'AI_LIST',messageCode:'AI',intentId:'00000000-0000-4000-8000-000000000020',rawPayload:'MECHANICAL AI ORIGINAL PORT: actual format/source qualification is separate',routeProfileId:'actual-ai-profile',senderEdielId:'LOCAL',receiverEdielId:'REMOTE',receiverEmail:'remote@example.invalid',communicationRouteId:'actual-ai-route'})
+ it('qualifies actual AI original through the same public direct creator without EDIFACT authority selection',async()=>{
+  const d=aiDraft();await createCanonicalOutboundMessage({actorUserId:actor,requestType:'meter_values',baseInput:d})
+  expect(io.aiOriginal).toHaveBeenCalledWith({actorUserId:actor,draft:expect.objectContaining({...d,actorUserId:actor})})
+  expect(io.validation).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled();expect(io.version).not.toHaveBeenCalled();expect(io.references).not.toHaveBeenCalled()
+  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({intentId:d.intentId,sourceOperationId:operation,companyId:company,routeProfileId:'actual-ai-profile',executionContextSnapshot:null,requiresContrl:false,requiresAperak:false})}))
+ })
+ it('qualifies actual AI original through the rendered gateway with exact server actor, tenant, operation and route',async()=>{
+  const d=aiDraft(),routeContext=await resolveCanonicalOutboundContext({companyId:company,environment:'test',requestType:'meter_values'})
+  await finalizeCanonicalOutboundDraft({actorUserId:actor,requestType:'meter_values',draft:d,routeContext,duplicateCheck:{sourceType:'manual',sourceId:d.intentId,messageFamily:'AI_LIST',messageCode:'AI'}})
+  expect(io.aiOriginal).toHaveBeenCalledWith({actorUserId:actor,draft:expect.objectContaining({...d,companyId:company,actorUserId:actor,environment:'test'})})
+  expect(io.validation).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled();expect(io.version).not.toHaveBeenCalled();expect(io.references).not.toHaveBeenCalled()
+ })
+ it('holds rendered AI tenant/environment conflicts before private qualification or INSERT',async()=>{
+  for(const scope of [{companyId:'foreign-company',environment:'test'},{companyId:company,environment:'production'}]){
+   io.route.mockResolvedValue(scope);const routeContext=await resolveCanonicalOutboundContext({companyId:company,environment:'test',requestType:'meter_values'})
+   await expect(finalizeCanonicalOutboundDraft({actorUserId:actor,requestType:'meter_values',draft:aiDraft(),routeContext,duplicateCheck:{messageFamily:'AI_LIST',messageCode:'AI'}})).rejects.toThrow('owner_scope_required')
+  }
+  expect(io.aiOriginal).not.toHaveBeenCalled();expect(io.legacyCreate).not.toHaveBeenCalled()
+ })
+ it('holds rejected AI original or EDIFACT/foreign links before any draft INSERT',async()=>{
+  io.aiOriginal.mockRejectedValue(Error('actual private AI original rejected'))
+  await expect(createCanonicalOutboundMessage({actorUserId:actor,requestType:'meter_values',baseInput:aiDraft()})).rejects.toThrow('actual private AI original rejected')
+  for(const patch of [{outboundRequestId:'foreign-request'},{applicationReference:'EDIFACT-APP'},{rulePackSnapshot:{forged:true}},{executionContextSnapshot:{outboundOwnerWitnessId:'caller-token'}}]){
+   await expect(createCanonicalOutboundMessage({actorUserId:actor,requestType:'meter_values',baseInput:{...aiDraft(),...patch}})).rejects.toThrow('edifact_or_foreign_link_forbidden')
+  }
+  expect(io.legacyCreate).not.toHaveBeenCalled();expect(io.validation).not.toHaveBeenCalled();expect(io.witness).not.toHaveBeenCalled()
  })
 })
