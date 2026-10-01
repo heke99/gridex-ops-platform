@@ -1,3 +1,4 @@
+import {buildReceivedProdatResponseValidation,type ReceivedProdatResponseValidation} from './receivedProdatResponseValidation'
 import {buildReceivedUtiltsFunctionalValidation,type ReceivedUtiltsFunctionalValidation} from './receivedUtiltsFunctionalValidation'
 import {buildReceivedUtiltsHeaderValidation,type ReceivedUtiltsHeaderValidation} from './receivedUtiltsHeaderValidation'
 import {buildReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from './receivedUtiltsTransactionValidation'
@@ -555,6 +556,17 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
   })
 }
 
+const initialProdatResponseOwners=new WeakMap<object,{sourceIdentity:string;decisionHash:string;facet:ReceivedProdatResponseValidation}>()
+/** A copied receipt or caller-shaped decision cannot authorize a new P response. */
+export function readReceivedCanonicalProdatResponseValidation(decision:object,source:{id:unknown;company_id?:unknown;environment:unknown;direction:unknown;message_family:unknown;message_code:unknown;raw_payload:unknown;message_received_at:unknown;execution_context_snapshot?:unknown}):ReceivedProdatResponseValidation|null {
+ const owner=initialProdatResponseOwners.get(decision)
+ if(!owner||owner.sourceIdentity!==prodatResponseSourceIdentity(source)||owner.decisionHash!==evidenceHash(JSON.stringify(decision)))return null
+ return structuredClone(owner.facet)
+}
+function prodatResponseSourceIdentity(source:{id:unknown;company_id?:unknown;environment:unknown;direction:unknown;message_family:unknown;message_code:unknown;raw_payload:unknown;message_received_at:unknown;execution_context_snapshot?:unknown}) {
+ return evidenceHash(JSON.stringify({id:source.id,companyId:source.company_id,environment:source.environment,direction:source.direction,family:source.message_family,code:source.message_code,
+  raw:source.raw_payload,receivedAt:source.message_received_at,executionContext:source.execution_context_snapshot}))
+}
 const initialUtiltsOwners=new WeakMap<CanonicalRuntimeDecision,{sourceIdentity:string;decisionHash:string;policy:CanonicalEdielPolicy;hasWitness:boolean}>()
 function immutableUtiltsSourceIdentity(message:EdielMessageRow):string {
   return evidenceHash(JSON.stringify({id:message.id,companyId:message.company_id,environment:message.environment,direction:message.direction,
@@ -644,6 +656,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       fieldRuleSource: 'canonical_policy',
     }
     const resolved={ ...base, sourceRules, decisionTrace, validationReport }
+    if(base.policy.family==='PRODAT'){const facet=buildReceivedProdatResponseValidation(message,resolved);if(facet)initialProdatResponseOwners.set(resolved,{sourceIdentity:prodatResponseSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),facet})}
     if(base.policy.family==='UTILTS'&&base.syntaxDecision==='accepted')initialUtiltsOwners.set(resolved,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),policy:base.policy,hasWitness:true})
     return resolved
   } catch (error) {
