@@ -2,6 +2,8 @@ import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 import {copyDeathSelection,type DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
+import {prepareQualifiedBrpSource,type BrpFieldScope} from '@/lib/ediel/production/brpFieldSource'
+import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {bindDeathStatusSourceContext,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 
 export type CustomerLifeEventBasis={status:'authorized';companyId:string;environment:'test'|'production';eventId:string;sourceVersion:string;sourceDigest:string;sourceReference:string;
@@ -10,10 +12,24 @@ export type CustomerLifeEventBasis={status:'authorized';companyId:string;environ
  interchangeReference:string;messageReference:string;documentReference:string;transactionReference:string;informationKnownAt:string}
 export type CustomerLifeEventHeld={status:'held';missing:string[]}
 export async function readCustomerLifeEventSource(input:{companyId:string;eventId:string;actorUserId:string}):Promise<CustomerLifeEventBasis|CustomerLifeEventHeld>{
- const {data,error}=await supabaseService.rpc('ediel_customer_life_event_source_v1',{p_company_id:input.companyId,p_event_id:input.eventId,p_actor_user_id:input.actorUserId})
+ const read=async()=>{
+  const {data,error}=await supabaseService.rpc('ediel_customer_life_event_source_v1',{p_company_id:input.companyId,p_event_id:input.eventId,p_actor_user_id:input.actorUserId})
+  if(error)throw error
+  if(!data||!['authorized','held'].includes(data.status))throw new Error('customer_life_event_source_result_invalid')
+  return data as CustomerLifeEventBasis|CustomerLifeEventHeld
+ }
+ const current=await read()
+ if(current.status!=='held'||!current.missing.includes('same_dated_structural_owner_brp_candidate'))return current
+ const{data,error}=await supabaseService.rpc('ediel_customer_life_event_brp_scope_v1',{p_company_id:input.companyId,p_event_id:input.eventId,p_actor_user_id:input.actorUserId})
  if(error)throw error
- if(!data||!['authorized','held'].includes(data.status))throw new Error('customer_life_event_source_result_invalid')
- return data
+ if(data?.status==='held')return data
+ if(data?.status!=='authorized'||data.companyId!==input.companyId||data.eventId!==input.eventId||!Array.isArray(data.scopes)||!data.scopes.length)throw new Error('customer_life_event_brp_scope_invalid')
+ for(const scope of data.scopes){
+  if(scope.companyId!==input.companyId||!['test','production'].includes(scope.environment)||scope.contractId!==null||![scope.customerId,scope.siteId,scope.meteringPointId,scope.supplyPeriodId].every(isEvidenceUuid)||!Number.isFinite(Date.parse(scope.at)))throw new Error('customer_life_event_brp_scope_invalid')
+  const result=await prepareQualifiedBrpSource({...scope,actorUserId:input.actorUserId} as BrpFieldScope)
+  if(result.status==='held')return result
+ }
+ return read()
 }
 export async function reserveCustomerLifeEventSource(input:{companyId:string;eventId:string;actorUserId:string;intentId:string;outboundRequestId:string}):Promise<{status:'reserved';messageId:string|null;outboundRequestId:string}|CustomerLifeEventHeld>{
  const {data,error}=await supabaseService.rpc('ediel_reserve_customer_life_event_v1',{p_company_id:input.companyId,p_event_id:input.eventId,p_actor_user_id:input.actorUserId,p_intent_id:input.intentId,p_outbound_request_id:input.outboundRequestId})
