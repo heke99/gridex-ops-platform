@@ -17,6 +17,56 @@ function version():StructuralVersion{return {sourceMessageId:id(6),payloadHash:'
 function data(versions=[version()]){return {timeline:{...emptySourceDecisionTimeline(),status:'inspected',boundedReadComplete:true,ledgerStartedAt:at('20260901'),snapshotId:id(11),readsetHash:'c'.repeat(64)},versions,closures:[],closureBlockers:[],correctionContextBlockers:[],unresolvedSources:false,sources:[]}}
 beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers();vi.setSystemTime(new Date('2026-11-02T12:00:00Z'));mocks.read.mockResolvedValue(data());mocks.owned.mockReturnValue({...input});mocks.rpc.mockImplementation(async name=>({data:name==='ediel_read_structural_effect_scope_v1'?{applied:true}:{qualified:true,...input,initialSourceMessageId:id(6)},error:null}))})
 describe('actual owned dated customer structure consumer',()=>{
+ function inheritedMeterAndRegisters(inheritMeter:boolean,inheritRegisters:boolean){
+  const baseline=version()
+  const exchange=structuredClone(baseline)
+  exchange.sourceMessageId=id(12);exchange.assessmentId=id(13)
+  exchange.wire.messageCode='Z10';exchange.wire.businessCase='meter_exchange';exchange.wire.documentReference='METER-EXCHANGE'
+  exchange.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610030000',utc:at('20261003')}
+  exchange.wire.meterNumber='NEW';exchange.wire.oldMeterNumber='ACTUAL';exchange.wire.registers=[{position:1,registerId:'NEWREG'}]
+  exchange.measurements={measurementMethod:'Z04',reportingFrequency:'D',productCode:'L639Q',settlementMethod:'Z32',balanceResponsibleId:'11111'}
+  const change=structuredClone(exchange)
+  change.sourceMessageId=id(14);change.assessmentId=id(15)
+  change.wire.messageCode='Z06';change.wire.businessCase='change_without_reading';change.wire.documentReference='LATER-METHOD-CHANGE'
+  change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')}
+  change.wire.meterNumber=inheritMeter?null:'NEW';change.wire.oldMeterNumber=null
+  change.wire.registers=[{position:1,registerId:inheritRegisters?null:'NEWREG'}]
+  // Every measurement has its own later source, so none can accidentally
+  // bring the earlier meter/register source into the applied-receipt check.
+  change.measurements={measurementMethod:'Z02',reportingFrequency:'D',productCode:'L639Q',settlementMethod:'Z32',balanceResponsibleId:'22222'}
+  return [baseline,exchange,change]
+ }
+ it.each([
+  {label:'meter',inheritMeter:true,inheritRegisters:false},
+  {label:'registers',inheritMeter:false,inheritRegisters:true},
+  {label:'meter and registers',inheritMeter:true,inheritRegisters:true},
+ ])('does not expose inherited $label from an unapplied earlier source',async({inheritMeter,inheritRegisters})=>{
+  mocks.read.mockResolvedValue(data(inheritedMeterAndRegisters(inheritMeter,inheritRegisters)))
+  mocks.rpc.mockImplementation(async(name,args)=>({data:name==='ediel_read_structural_effect_scope_v1'
+   ?{applied:args.p_source_message_id===id(14)}
+   :{qualified:true,...input,initialSourceMessageId:id(6)},error:null}))
+  expect(await readQualifiedCustomerStructure(input)).toEqual({status:'unavailable',reason:'dated_structure_applied_source_missing'})
+  expect(mocks.rpc).toHaveBeenCalledWith('ediel_read_structural_effect_scope_v1',expect.objectContaining({
+   p_source_message_id:id(12),p_assessment_id:id(13),p_snapshot_id:id(11),p_readset_hash:'c'.repeat(64),
+   p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_customer_id:input.customerId,
+   p_site_id:input.siteId,p_point_id:input.meteringPointId,p_period_id:id(8),p_at:at('20261004'),
+   p_object_id:'735123456789012345',p_identity_agency:'9',
+  }))
+ })
+ it('keeps qualified inherited meter and registers when both actual source receipts are applied',async()=>{
+  mocks.read.mockResolvedValue(data(inheritedMeterAndRegisters(true,true)))
+  expect(await readQualifiedCustomerStructure(input)).toMatchObject({status:'selected',fields:{measurementMethod:'Z02',balanceResponsibleId:'22222'},
+   selection:{states:[{sourceMessageId:id(14),meterNumber:'NEW',registerIds:['NEWREG'],meterSourceMessageId:id(12),registerSourceMessageId:id(12)}]}})
+  const sourceIds=mocks.rpc.mock.calls.filter(([name])=>name==='ediel_read_structural_effect_scope_v1').map(([,args])=>args.p_source_message_id)
+  expect(sourceIds).toEqual([id(14),id(12)])
+ })
+ it('does not expose inherited source values when their actual receipt read fails',async()=>{
+  mocks.read.mockResolvedValue(data(inheritedMeterAndRegisters(true,true)))
+  mocks.rpc.mockImplementation(async(name,args)=>name==='ediel_read_structural_effect_scope_v1'&&args.p_source_message_id===id(12)
+   ?{data:null,error:{message:'source receipt unavailable'}}
+   :{data:name==='ediel_read_structural_effect_scope_v1'?{applied:true}:{qualified:true,...input,initialSourceMessageId:id(6)},error:null})
+  await expect(readQualifiedCustomerStructure(input)).rejects.toThrow('dated_structure_applied_source_unconfirmed')
+ })
  it('keeps quarter method and daily reporting distinct and rechecks the exact native owned period',async()=>{
   const result=await readQualifiedCustomerStructure(input)
   expect(result).toMatchObject({status:'selected',fields:{measurementMethod:'Z04',reportingFrequency:'D',productCode:'L639Q'}})
