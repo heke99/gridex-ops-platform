@@ -24,10 +24,12 @@ import {
   type EdielCanonicalAckState,
 } from '@/lib/ediel/core/ackPolicy'
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
-import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
-import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
+import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
+import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
 export type {
   AckFamily,
@@ -443,13 +445,17 @@ type UtiltsErrSourceGroup = {
   supplierSegment: string | null
 }
 
+/** Decode with the actual source alphabet, then serialize the observed segment
+ * with the established outgoing alphabet. Released data stays data. */
+function utiltsSourceSegment(segment: EdifactTokenizedSegment, una: EdifactServiceStringAdvice): string {
+  const observed = { ...segment, raw: segmentUntrimmedRaw(segment) }
+  return [segment.tag, ...segment.elements.slice(1).map((_, index) =>
+    segmentComposite(observed, index + 1, una).map(escapeEdifactValue).join(':'))].join('+')
+}
+
 function edifactSegmentsFromRaw(rawPayload?: string | null): string[] {
-  return String(rawPayload ?? '')
-    .replace(/\r?\n/g, '')
-    .replace(/^UNA.{6}'/i, '')
-    .split("'")
-    .map((segment) => segment.trim())
-    .filter(Boolean)
+  const wire = tokenizeEdifact(rawPayload)
+  return wire.segments.map(segment => utiltsSourceSegment(segment, wire.una))
 }
 
 function segmentByPrefix(segments: readonly string[], prefix: string): string | null {
@@ -476,29 +482,6 @@ function edifactElement(segment: string | null | undefined, index: number): stri
   return value.length > 0 ? value : null
 }
 
-function firstCompositeComponent(value: string | null | undefined): string | null {
-  const trimmed = value?.trim()
-  if (!trimmed) return null
-  return trimmed.split(':')[0]?.trim() || null
-}
-
-function compositeComponent(value: string | null | undefined, index: number): string | null {
-  const trimmed = value?.trim()
-  if (!trimmed) return null
-  const part = trimmed.split(':')[index]?.trim() ?? ''
-  return part.length > 0 ? part : null
-}
-
-function referenceValueFromSegment(segment: string | null | undefined, qualifier: string): string | null {
-  const composite = edifactElement(segment, 1)
-  const normalizedQualifier = qualifier.toUpperCase()
-  const parts = composite?.split(':') ?? []
-  const actualQualifier = parts[0]?.trim().toUpperCase() ?? ''
-  if (actualQualifier !== normalizedQualifier) return null
-
-  const value = parts.slice(1).join(':').trim()
-  return value.length > 0 ? value : null
-}
 
 function sequencedAckReference(params: {
   ackFamily: AckFamily
@@ -514,70 +497,50 @@ function sequencedAckReference(params: {
 }
 
 function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourceGroup[] {
-  const segments = edifactSegmentsFromRaw(sourceMessage.raw_payload)
-  const groups: string[][] = []
-  let current: string[] | null = null
-
-  for (const segment of segments) {
-    if (segment.toUpperCase().startsWith('IDE+24')) {
-      if (current) groups.push(current)
-      current = [segment]
-      continue
-    }
-
-    if (!current) continue
-    if (segment.toUpperCase().startsWith('UNT+') || segment.toUpperCase().startsWith('UNZ+')) continue
-    current.push(segment)
+  const wire = tokenizeEdifact(sourceMessage.raw_payload)
+  const headers = wire.segments.filter(segment => segment.tag === 'UNH')
+  if (headers.length !== 1 || segmentComposite(headers[0], 2, wire.una)[0] !== 'UTILTS') {
+    throw new Error('utilts_err_source_message_scope_unavailable')
   }
-
-  if (current) groups.push(current)
-
-  const sourceGroups = groups.length > 0 ? groups : [segments]
-
-  return sourceGroups.map((group) => {
-    const ide = segmentByPrefix(group, 'IDE+24')
-    const tn = segmentByPrefix(group, 'RFF+TN')
-    const loc172 = segmentByPrefix(group, 'LOC+172')
-    const loc239 = segmentByPrefix(group, 'LOC+239')
-
+  const groups = canonicalUtiltsTransactions(wire.segments.slice(headers[0].index), wire.una, 0)
+  const seen = new Set<string>()
+  return groups.map(transaction => {
+    const reference = transaction.transactionId
+    if (transaction.identityQualifier !== '24' || reference === null) throw new Error('utilts_err_source_transaction_reference_unavailable')
+    if (seen.has(reference)) throw new Error('utilts_err_source_transaction_reference_ambiguous')
+    seen.add(reference)
+    // Only this IDE's initial identity window can supply its fields. A SEQ's
+    // nested data and another IDE never repair missing group identity data.
+    const header = transaction.segments.slice(0, transaction.segments.findIndex(segment => segment.tag === 'SEQ') < 0
+      ? undefined : transaction.segments.findIndex(segment => segment.tag === 'SEQ'))
+    const group = header.map(segment => utiltsSourceSegment(segment, wire.una))
+    const location = (qualifier: string) => {
+      const own = header.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, wire.una)[0] === qualifier)
+      if (own.length > 1) throw new Error('utilts_err_source_location_ambiguous')
+      const segment = own[0]
+      const value = segment ? segmentComposite({ ...segment, raw: segmentUntrimmedRaw(segment) }, 2, wire.una)[0] : ''
+      return value === '' ? null : value
+    }
     return {
       segments: group,
-      transactionId:
-        referenceValueFromSegment(tn, 'TN') ??
-        compositeComponent(edifactElement(ide, 2), 1) ??
-        firstCompositeComponent(edifactElement(ide, 2)),
-      meterPointId: firstCompositeComponent(edifactElement(loc172, 2)),
-      gridAreaId: firstCompositeComponent(edifactElement(loc239, 2)),
+      transactionId: reference,
+      meterPointId: location('172'),
+      gridAreaId: location('239'),
       productIdSegment: segmentByPrefix(group, 'PIA+'),
       deliveryPeriodSegment: segmentByPrefix(group, 'DTM+324'),
       reasonSegment: segmentByPrefix(group, 'STS+7'),
-      settlementResponsibleSegment:
-        segmentByPrefixWithValue(group, 'NAD+DDK') ?? segmentByPrefix(group, 'NAD+DDK'),
-      supplierSegment:
-        segmentByPrefixWithValue(group, 'NAD+DDQ') ?? segmentByPrefix(group, 'NAD+DDQ'),
+      settlementResponsibleSegment: segmentByPrefixWithValue(group, 'NAD+DDK') ?? segmentByPrefix(group, 'NAD+DDK'),
+      supplierSegment: segmentByPrefixWithValue(group, 'NAD+DDQ') ?? segmentByPrefix(group, 'NAD+DDQ'),
     }
   })
 }
 
-
 export function getUtiltsAckTransactionTargets(sourceMessage: EdielMessageRow): UtiltsAckTransactionTarget[] {
   if (String(sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return []
-
-  const seen = new Set<string>()
-  return parseUtiltsSourceGroups(sourceMessage)
-    .map((group, index) => {
-      const reference =
-        resolveUtiltsTransactionId(sanitizeEdifactToken(group.transactionId), index)
-      if (seen.has(reference)) return null
-      seen.add(reference)
-      return {
-        reference,
-        transactionId: group.transactionId,
-        meterPointId: group.meterPointId,
-        gridAreaId: group.gridAreaId,
-      }
-    })
-    .filter((target): target is UtiltsAckTransactionTarget => Boolean(target))
+  return parseUtiltsSourceGroups(sourceMessage).map(group => ({
+    reference: group.transactionId!, transactionId: group.transactionId,
+    meterPointId: group.meterPointId, gridAreaId: group.gridAreaId,
+  }))
 }
 
 
@@ -778,27 +741,28 @@ function buildUtiltsErrSegments(params: {
   messageText?: string | null
   relatedTransactionReference?: string | null
 }) {
-  const refs = parseEdifactRefs(params.sourceMessage)
+  const wire = tokenizeEdifact(params.sourceMessage.raw_payload)
+  const documents = wire.segments.filter(segment => segment.tag === 'BGM')
+  if (documents.length !== 1) throw new Error('utilts_err_source_document_scope_unavailable')
+  const document = { ...documents[0], raw: segmentUntrimmedRaw(documents[0]) }
+  const sourceCode = segmentComposite(document, 1, wire.una)[0]
+  const sourceDocumentReference = segmentComposite(document, 2, wire.una)[0]
+  if (!sourceCode || !sourceDocumentReference) throw new Error('utilts_err_source_document_reference_unavailable')
   const sourceSegments = edifactSegmentsFromRaw(params.sourceMessage.raw_payload)
   const sourceMks = segmentByPrefix(sourceSegments, 'MKS+')
   const sourceSubordinateNad = sourceSg2SubordinateNadSegment(params.sourceMessage, sourceSegments)
-  const rawCodes = sanitizeSegmentText(params.messageText) || 'E14'
-  const codes = rawCodes
-    .split(/[|,;\s]+/)
-    .map((token) => token.split('@')[0])
-    .map((code) => sanitizeEdifactToken(code.toUpperCase(), 8))
-    .filter((code): code is string => Boolean(code && /^E[0-9A-Z]+$/.test(code)))
-
+  const rawCodes = params.messageText || 'E14'
+  const codes = rawCodes.split(/[|,;\s]+/).map(token => token.split('@')[0]).map(code => code.toUpperCase())
+    .filter(code => /^E[0-9A-Z]+$/.test(code))
   const uniqueCodes = codes.length > 0 ? codes : ['E14']
   const allSourceGroups = parseUtiltsSourceGroups(params.sourceMessage)
-  const requestedTransaction = sanitizeEdifactToken(params.relatedTransactionReference)
-  const sourceGroups = requestedTransaction
-    ? allSourceGroups.filter((group) => sanitizeEdifactToken(group.transactionId) === requestedTransaction)
-    : allSourceGroups
-  if (requestedTransaction && sourceGroups.length === 0) {
-    throw new Error(`Kan inte skapa UTILTS_ERR: transaktion ${requestedTransaction} saknas i källmeddelandet.`)
+  const requestedTransaction = params.relatedTransactionReference ?? null
+  const sourceGroups = requestedTransaction === null ? allSourceGroups
+    : allSourceGroups.filter(group => group.transactionId === requestedTransaction)
+  if (sourceGroups.length !== 1) {
+    throw new Error(requestedTransaction === null ? 'utilts_err_source_transaction_scope_required'
+      : `Kan inte skapa UTILTS_ERR: transaktion ${requestedTransaction} saknas eller är tvetydig i källmeddelandet.`)
   }
-  const sourceCode = sanitizeEdifactToken(String(params.sourceMessage.message_code ?? 'UTILTS'), 8) ?? 'UTILTS'
   const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: 'UTILTS' })
 
   const segments: Array<string | null> = [
@@ -887,12 +851,10 @@ function buildUtiltsErrSegments(params: {
     segments.push(`STS+E01::260+41+${code}::260`)
 
     if (group?.transactionId) {
-      segments.push(`RFF+TN:${sanitizeEdifactToken(group.transactionId) ?? group.transactionId}`)
+      segments.push(`RFF+TN:${escapeEdifactValue(group.transactionId)}`)
     }
 
-    if (refs.documentReference) {
-      segments.push(`RFF+${sourceCode}:${refs.documentReference}`)
-    }
+    segments.push(`RFF+${escapeEdifactValue(sourceCode)}:${escapeEdifactValue(sourceDocumentReference)}`)
   })
 
   return segments.filter(Boolean) as string[]
@@ -1029,6 +991,17 @@ function buildAckDraft(params: {
     senderSubAddress: parties.senderSubAddress ?? undefined,
     receiverSubAddress: parties.receiverSubAddress ?? undefined,
   })
+
+  if (params.ackFamily === 'UTILTS_ERR') {
+    const references = (raw: string) => {
+      const wire = tokenizeEdifact(raw)
+      return wire.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, wire.una)[0] === 'TN')
+        .map(segment => segmentComposite({ ...segment, raw: segmentUntrimmedRaw(segment) }, 1, wire.una)[1])
+    }
+    if (JSON.stringify(references(segments.join("'") + "'")) !== JSON.stringify(references(envelope.raw))) {
+      throw new Error('utilts_err_source_reference_serialization_changed')
+    }
+  }
 
   const fileName = inferEdielFileName({
     family: params.ackFamily,
