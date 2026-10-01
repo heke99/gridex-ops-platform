@@ -79,3 +79,12 @@ export async function recordUtiltsTechnicalReception(source: EdielMessageRow, ac
     execution: { actorUserId, phase: 'prepare' } })
   await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId, source.id, { actorUserId, phase: 'prepare' })
 }
+
+/** The receiving company holds exactly the catalog receiver role this message
+ * is addressed to when it arrives (source-edition receiverRoles). */
+export function setUtiltsReceiverRole(sql: Sql, lit: Lit, company: string, actor: string, code: string) {
+  const role = ({ E30: 'grid_owner', E73: 'grid_owner', S01: 'grid_owner', E72: 'metering_collector', S06: 'imbalance_settlement_responsible' } as Record<string, string>)[code] ?? 'electricity_supplier'
+  sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${lit(company)} AND actor_id=${lit(actor)} AND role_code<>${lit(role)} AND valid_to IS NULL;
+   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) SELECT ${lit(company)},'test',${lit(actor)},${lit(role)},clock_timestamp()
+    WHERE NOT EXISTS(SELECT FROM public.tenant_actor_roles WHERE company_id=${lit(company)} AND actor_id=${lit(actor)} AND role_code=${lit(role)} AND valid_to IS NULL);`)
+}
