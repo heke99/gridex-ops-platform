@@ -218,7 +218,9 @@ export async function findExistingAckForSource(params: {
     if(params.transactionReference && ['transaction','object'].includes(correlation.scope)
       && !correlation.acknowledgedReferences.includes(params.transactionReference))continue
     if(original.status==='held')throw new Error('ediel_existing_ack_original_basis_unavailable')
-    const outcome=correlation.classification.outcome
+    const outcome=params.transactionReference && correlation.scope==='object'
+      ? correlation.scopedOutcomes?.find(result=>result.reference===params.transactionReference)?.outcome
+      : correlation.classification.outcome
     if(outcome!=='positive'&&outcome!=='negative')throw new Error('ediel_existing_ack_original_outcome_unavailable')
     if(params.outcome!==undefined&&outcome!==params.outcome)continue
     // A read projection only. The returned actual original keeps status/raw/ID;

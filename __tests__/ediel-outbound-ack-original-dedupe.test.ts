@@ -22,6 +22,15 @@ describe('existing outbound original ACK controls deduplication',()=>{
   io.rpc.mockResolvedValue(response([original(false)]))
   expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',outcome:'negative'})).toMatchObject({ack_outcome:'negative'})
  })
+ it('preserves each own object outcome in one immutable mixed PRODAT APERAK',async()=>{
+  const raw=EdifactEnvelopeCodec.encode({sender:'B',receiver:'A',environment:'test',acknowledgementRequest:false,applicationReference:'23-DDQ-PRODAT',interchangeReference:'ACK-I',messages:[{messageReference:'ACK-M',messageTypeToken:'APERAK:D:96A:UN:E2SE6A',businessSegments:['BGM+12+ACK-D+34','NAD+FR+B:160:SVK','NAD+DO+A:160:SVK','RFF+ACW:SOURCE-D','ERC+100::260','FTX+ACB+++Accepted','RFF+LI:OWN-POSITIVE','ERC+42::260','FTX+ACB+++Rejected','RFF+LI:OWN-NEGATIVE']}]})
+  const item=original();item.message={...item.message,raw_payload:raw};item.payloadHash=createHash('sha256').update(raw).digest('hex')
+  io.rpc.mockResolvedValue(response([item]))
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',transactionReference:'OWN-POSITIVE',outcome:'positive'})).toMatchObject({id:'ack',ack_outcome:'positive',status:'failed'})
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',transactionReference:'OWN-POSITIVE',outcome:'negative'})).toBeNull()
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',transactionReference:'OWN-NEGATIVE',outcome:'negative'})).toMatchObject({id:'ack',ack_outcome:'negative'})
+  expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'object',transactionReference:'OWN-NEGATIVE',outcome:'positive'})).toBeNull()
+ })
  it('does not collapse another physical transaction into the requested scope',async()=>{
   io.rpc.mockResolvedValue(response([original(true,'SIBLING'),original(false,'OWN')]))
   expect(await findExistingAckForSource({sourceMessageId:source,ackFamily:'APERAK',ackScope:'transaction',transactionReference:'OWN',outcome:'positive'})).toBeNull()

@@ -18,6 +18,9 @@ export type InboundAckSourceCorrelation = {
   lookupReferences: AckSourceLookupReference[]
   scope: 'interchange' | 'message' | 'transaction' | 'object'
   acknowledgedReferences: string[]
+  /** Whole-message classification does not describe each object in a mixed
+   * processed PRODAT APERAK. These results use each physical ERC/LI group. */
+  scopedOutcomes?: {reference: string; outcome: 'positive' | 'negative'}[]
 }
 export type AckSourceQualification<T extends AckCorrelationMessage> =
   | {status: 'unique'; sourceMessage: T; correlation: InboundAckSourceCorrelation; candidateIds: string[]; reason: null}
@@ -42,7 +45,7 @@ function readWire(message: AckCorrelationMessage, allowTechnicalWithoutApplicati
     || wire.environment !== message.environment) throw Error('ack_correlation_wire_context_invalid')
   return wire
 }
-function classify(wire: Wire): InboundAckSourceCorrelation['classification'] {
+function classify(wire: Wire, scopedErrorCodes?: string[]): InboundAckSourceCorrelation['classification'] {
   const unh = parts(wire, first(wire, 'UNH'), 2), bgm = first(wire, 'BGM')
   if (unh[0] === 'UTILTS' && component(wire, bgm, 1) === 'ERR') {
     if (!wire.segments.some(segment => segment.tag === 'STS' && component(wire, segment, 1) === 'E01' && component(wire, segment, 2) === '41')) throw Error('utilts_err_outcome_invalid')
@@ -51,7 +54,26 @@ function classify(wire: Wire): InboundAckSourceCorrelation['classification'] {
   const family = unh[0] === 'CONTRL' || unh[0] === 'APERAK' ? unh[0] : 'OTHER'
   return classifyCanonicalInboundAck({messageFamily: family, messageCode: component(wire, bgm, 1), messageFunctionCode: component(wire, bgm, 3),
     applicationReference: wire.applicationReference, messageTypeVersion: {syntaxIdentifier:null,directoryVersion:unh[1] ?? null,release:unh[2] ?? null,controllingAgency:unh[3] ?? null,associationAssignedCode:unh[4] ?? null},
-    errorCodes: values(wire, 'ERC', 1), references: {UCI_ACTION: values(wire, 'UCI', 4)}})
+    errorCodes: scopedErrorCodes ?? values(wire, 'ERC', 1), references: {UCI_ACTION: values(wire, 'UCI', 4)}})
+}
+function prodatObjectOutcomes(wire: Wire, objectReferences: string[]): NonNullable<InboundAckSourceCorrelation['scopedOutcomes']> {
+  const errors = new Map<string, string[]>()
+  let ownErc: string | null = null
+  for (const segment of wire.segments) {
+    if (segment.tag === 'ERC') ownErc = component(wire, segment, 1) || null
+    if (segment.tag === 'RFF' && component(wire, segment, 1) === 'LI') {
+      const reference = parts(wire, segment, 1)[1] ?? ''
+      if (!reference || !ownErc) throw Error('ack_object_result_unavailable')
+      errors.set(reference, [...(errors.get(reference) ?? []), ownErc])
+    }
+  }
+  return [...new Set(objectReferences)].map(reference => {
+    const ownErrors = errors.get(reference)
+    if (!ownErrors?.length) throw Error('ack_object_result_unavailable')
+    const result = classify(wire, ownErrors)
+    if (result.outcome !== 'positive' && result.outcome !== 'negative') throw Error('ack_object_result_unavailable')
+    return {reference, outcome: result.outcome}
+  })
 }
 export function readInboundAckSourceCorrelation(message: AckCorrelationMessage): InboundAckSourceCorrelation {
   if (message.direction !== 'inbound') throw Error('ack_correlation_not_inbound')
@@ -83,7 +105,9 @@ export function readPhysicalAckSourceCorrelation(message: AckCorrelationMessage)
     scope = objects.length ? 'object' : 'message'; acknowledgedReferences = objects
     lookupReferences = [{type:'BGM_REF',value:original}, ...objects.map(value => ({type:'RFF_LI' as const,value}))]
   }
-  return {classification, scope, acknowledgedReferences, lookupReferences}
+  const scopedOutcomes = classification.family === 'APERAK' && classification.profile === 'PRODAT_16_B' && scope === 'object'
+    ? prodatObjectOutcomes(wire, acknowledgedReferences) : undefined
+  return {classification, scope, acknowledgedReferences, lookupReferences, ...(scopedOutcomes ? {scopedOutcomes} : {})}
 }
 function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrelation): boolean {
   const ackUnb = first(ack, 'UNB'), sourceUnb = first(source, 'UNB')
