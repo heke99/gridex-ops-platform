@@ -3,12 +3,13 @@ import {expect,it} from 'vitest'
 import {createTenantSupportCase} from '@/lib/customer-cases/support'
 import {createCustomerCase,updateCustomerCaseStatus} from '@/lib/customer-cases/db'
 import {enqueue} from '@/lib/customer-operations/automation.part-1'
+import {preparePositiveSiteDraftAgreement} from '../customer-site-positive-continuation-20261001.fixture'
 
 type SupportBoundaryNativeDependencies={
  sql:<T>(query:string)=>T
  literal:(value:unknown)=>string
  limitedActor:(companyIds:string[])=>string
- seed:()=>Promise<{companyId:string}>
+ seed:()=>Promise<{companyId:string;actorUserId:string}>
 }
 // Registration occurs at the original caller's position. SQL/auth/seed helpers
 // and the contiguous original proof body are preserved without mocks.
@@ -25,13 +26,33 @@ function supportOpsActor(companyId:string,canWrite=true){
  expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(userId)},${literal(companyId)},'cases.write'))`)).toBe(canWrite)
  return {kind:'ops' as const,userId,sessionId}
 }
-function supportBusinessFixture(companyId:string){
+async function supportBusinessFixture(companyId:string,catalogActorUserId:string){
  const customerId=randomUUID(),contractId=randomUUID(),underlayId=randomUUID(),invoiceId=randomUUID()
  const infoId=randomUUID(),permissionId=randomUUID(),outboundId=randomUUID(),exportId=randomUUID(),switchId=randomUUID(),priorJobId=randomUUID()
  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name)
   VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Support boundary');
-  INSERT INTO public.customer_contracts(id,company_id,customer_id,status)
-  VALUES(${literal(contractId)},${literal(companyId)},${literal(customerId)},'draft');
+  UPDATE public.companies SET legal_name='Synthetic Site Supplier AB',org_number='5590001235',
+    address_line_1='Testgatan 1',postal_code='12345',city='Teststad',country_code='SE',
+    support_email='support@example.invalid',phone='0101234567',website='https://example.invalid'
+  WHERE id=${literal(companyId)};`)
+ // Real publication readiness for this disposable tenant. These profiles
+ // are inert; no provider dispatch or signing is performed by this fixture.
+ sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
+   VALUES(${literal(companyId)},'production','Synthetic support supplier','12345','12345');
+   INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name)
+   VALUES(${literal(companyId)},'production','54321','Synthetic BRP');
+   INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family)
+   VALUES(${literal(companyId)},'production','Synthetic inert support PRODAT','PRODAT'),
+     (${literal(companyId)},'production','Synthetic inert support UTILTS','UTILTS');
+   INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+   SELECT ${literal(catalogActorUserId)},${literal(companyId)},id,key FROM public.permissions
+   WHERE key IN ('contracts.create','contracts.publish','pricing.write','pricing.publish') ON CONFLICT DO NOTHING;`)
+ // A cancellable draft has the same required canonical version bindings as
+ // a real contract. Reuse the actual offer/legal/publication owners without
+ // signing or creating customer acceptance. Never bypass installed triggers.
+ await preparePositiveSiteDraftAgreement({company:companyId,customer:customerId,contract:contractId,
+   actor:catalogActorUserId,site:null,point:null,start:new Date().toISOString().slice(0,10)})
+ sql(`
   INSERT INTO public.billing_underlays(id,company_id,customer_id,contract_id,customer_contract_id,total_kwh,total_sek_ex_vat,underlay_month,underlay_year)
   VALUES(${literal(underlayId)},${literal(companyId)},${literal(customerId)},${literal(contractId)},${literal(contractId)},100,125,9,2026);
   INSERT INTO public.customer_invoices(id,company_id,customer_id,customer_contract_id,billing_underlay_id,status,amount_ex_vat,vat_amount,amount_inc_vat)
@@ -61,7 +82,7 @@ function supportBusinessSnapshot(companyId:string){
   `${literal(table)},(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]'::jsonb) FROM public.${table} t WHERE company_id=${literal(companyId)})`).join(',')})`)
 }
 it('generic private support preserves the prior financial lifecycle and operation graph while capturing one canonical case command',async()=>{
- const f=await seed(),business=supportBusinessFixture(f.companyId),key=randomUUID(),actor=supportOpsActor(f.companyId)
+ const f=await seed(),business=await supportBusinessFixture(f.companyId,f.actorUserId),key=randomUUID(),actor=supportOpsActor(f.companyId)
  const readonly=supportOpsActor(f.companyId,false),before=supportBusinessSnapshot(f.companyId)
  for(const table of ['billing_underlays','customer_invoices','customer_invoice_lines','customer_contracts','supplier_switch_requests','customer_operation_jobs']) expect(before[table]).toHaveLength(1)
  const input={companyId:f.companyId,customerId:business.customerId,title:'Synthetic native support case',channel:'admin' as const,
@@ -112,7 +133,7 @@ it('generic private support preserves the prior financial lifecycle and operatio
  console.log('SUPPORT_PRIVATE_FINANCIAL_LIFECYCLE_BOUNDARY_NATIVE_PASS nonempty_prior_graph_unchanged=true live_session=true readonly_denied=true one_private_command=true no_implicit_stop=true')
 })
 it('the separate explicit withdrawal writer retains business stops and immutable lifecycle evidence',async()=>{
- const f=await seed(),business=supportBusinessFixture(f.companyId),actor=supportOpsActor(f.companyId)
+ const f=await seed(),business=await supportBusinessFixture(f.companyId,f.actorUserId),actor=supportOpsActor(f.companyId)
  const before=supportBusinessSnapshot(f.companyId),now=sql<string>('SELECT to_jsonb(clock_timestamp())')
  // Exercise the real legacy domain writer, separate from generic support.
  // This is producer/effect proof, not acceptance of its non-atomic caller gate.
@@ -128,11 +149,15 @@ it('the separate explicit withdrawal writer retains business stops and immutable
   'billing',(SELECT readiness_status FROM public.billing_underlays WHERE id=${literal(business.underlayId)}),
   'billingCase',(SELECT billing_blocked_by_case_id FROM public.billing_underlays WHERE id=${literal(business.underlayId)}),
   'contract',(SELECT status FROM public.customer_contracts WHERE id=${literal(business.contractId)}),
+  'contractCase',(SELECT billing_blocked_by_case_id FROM public.customer_contracts WHERE id=${literal(business.contractId)}),
+  'contractReason',(SELECT status_reason_code FROM public.customer_contracts WHERE id=${literal(business.contractId)}),
+  'contractEnded',(SELECT ended_at IS NOT NULL FROM public.customer_contracts WHERE id=${literal(business.contractId)}),
   'switch',(SELECT status FROM public.supplier_switch_requests WHERE id=${literal(business.switchId)}),
   'switchBlocked',(SELECT lifecycle_blocked FROM public.supplier_switch_requests WHERE id=${literal(business.switchId)}),
   'decisions',(SELECT count(*) FROM public.customer_lifecycle_decisions WHERE company_id=${literal(f.companyId)} AND source_customer_case_id=${literal(created.id)} AND decision_type='withdrawal' AND billing_blocked))`))
  .toEqual({info:'cancelled',metering:'cancelled',outbound:'cancelled',export:'cancelled',billing:'blocked',billingCase:created.id,
-  contract:'cancelled_by_customer',switch:'cancelled_before_start',switchBlocked:true,decisions:1})
+  contract:'cancelled',contractCase:created.id,contractReason:'customer_withdrawal',contractEnded:true,
+  switch:'cancelled_before_start',switchBlocked:true,decisions:1})
  const after=supportBusinessSnapshot(f.companyId)
  expect(after.customer_invoices).toEqual(before.customer_invoices);expect(after.customer_invoice_lines).toEqual(before.customer_invoice_lines)
  expect(after.invoice_documents).toEqual(before.invoice_documents);expect(after.customer_operation_jobs).toEqual(before.customer_operation_jobs)

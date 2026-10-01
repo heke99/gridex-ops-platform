@@ -5,7 +5,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export async function receiveSourceOwnerZ04(input: {
-  id: string; companyId: string; customerId: string; siteId: string; pointId: string
+  id: string; companyId: string; customerId: string; siteId: string; pointId: string; switchId: string
   rawPayload: string; parsedPayload: EdielMessageRow['parsed_payload']
   receivedAt: string; senderEdielId: string; receiverEdielId: string
 }) {
@@ -19,7 +19,7 @@ export async function receiveSourceOwnerZ04(input: {
   expect(packError).toBeNull(); expect(pack).toBeTruthy()
   const { data, error } = await supabaseService.from('ediel_messages').insert({
     id: input.id, company_id: input.companyId, customer_id: input.customerId,
-    site_id: input.siteId, metering_point_id: input.pointId, environment: 'test',
+    site_id: input.siteId, metering_point_id: input.pointId, switch_request_id: input.switchId, environment: 'test',
     direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT',
     message_code: 'Z04', status: 'received', raw_payload: input.rawPayload,
     parsed_payload: input.parsedPayload, message_received_at: input.receivedAt,

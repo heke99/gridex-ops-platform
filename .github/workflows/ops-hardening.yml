@@ -83,6 +83,8 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" node --test scripts/grid-owner-agreement-runtime-company-projection-20261001.postgres.test.cjs
       - name: Agreement Page and guard company rendering controls
         run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" npx vitest run --config scripts/grid-owner-agreement-runtime-company-render-20261001.config.ts --reporter=verbose
+      - name: Customer-case actual contract state controls
+        run: NODE_PATH="$RUNNER_TEMP/agreement-protocol-deps/node_modules" npx vitest run --config scripts/customer-case-contract-stop-schema-20261001.config.ts --reporter=verbose
       - run: npm test
       - run: npm run api:docs
       - run: npm run api:compatibility

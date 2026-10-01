@@ -332,7 +332,8 @@ export function assessWithdrawal(input: WithdrawalAssessmentInput): WithdrawalAs
 async function updateTableSafely(
   table: string,
   patch: Record<string, unknown>,
-  filters: Array<{ column: string; value: string | string[]; op?: 'eq' | 'in' }>
+  filters: Array<{ column: string; value: string | string[]; op?: 'eq' | 'in' }>,
+  allowLegacySchemaErrors = true
 ) {
   let query = supabaseService.from(table).update(patch)
   for (const filter of filters) {
@@ -341,7 +342,7 @@ async function updateTableSafely(
       : query.eq(filter.column, String(filter.value))
   }
   const { error } = await query
-  if (error && !['42P01', '42703', 'PGRST205', '23514'].includes(error.code ?? '')) throw error
+  if (error && (!allowLegacySchemaErrors || !['42P01', '42703', 'PGRST205', '23514'].includes(error.code ?? ''))) throw error
 }
 
 export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow, actorUserId: string | null) {
@@ -417,7 +418,12 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
     await updateTableSafely(
       'customer_contracts',
       {
-        status: caseRow.withdrawal_scenario === 'before_prodat_sent' ? 'cancelled_by_customer' : 'manual_review',
+        // The contract has its own installed lifecycle. Manual review is a
+        // case/billing hold, while before-send withdrawal is a cancellation
+        // with the terminal evidence required by the contract state machine.
+        ...(caseRow.withdrawal_scenario === 'before_prodat_sent' ? {
+          status: 'cancelled', ended_at: now, status_reason_code: 'customer_withdrawal',
+        } : {}),
         billing_blocked_by_case_id: caseRow.id,
         updated_by: actorUserId,
         updated_at: now,
@@ -425,7 +431,8 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
       [
         { column: 'id', value: caseRow.customer_contract_id },
         { column: 'company_id', value: caseRow.company_id },
-      ]
+      ],
+      false
     )
   }
 

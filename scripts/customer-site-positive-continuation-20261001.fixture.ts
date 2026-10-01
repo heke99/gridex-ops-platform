@@ -115,7 +115,13 @@ export function createHeldPositiveSiteRoutes(f: PositiveSiteFixture) {
   return receiver
 }
 
-export async function signPositiveSiteAgreement(f: PositiveSiteFixture) {
+export type CanonicalDraftFixture = {
+  company: string; customer: string; actor: string; contract: string; start: string
+  site: string | null; point: string | null
+}
+// Reuse the real canonical offer/legal/publication owners to prepare a draft.
+// This helper creates no customer signature, dispatch or acceptance evidence.
+export async function preparePositiveSiteDraftAgreement(f: CanonicalDraftFixture) {
   sql(`INSERT INTO public.company_email_settings(company_id,sender_name,sender_email,verification_status,verified_at,sender_mode,is_active)
       VALUES(${quote(f.company)},'Synthetic Site Supplier','sender@example.invalid','verified',now(),'verified_domain',true);
     INSERT INTO public.company_email_templates(company_id,template_key,name,subject,body_html,body_text,is_active) VALUES
@@ -160,11 +166,16 @@ export async function signPositiveSiteAgreement(f: PositiveSiteFixture) {
   sql(`INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_offer_id,status,metadata,created_by,
     requested_start_date,starts_at,contract_publication_version_id,contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,price_book_id,
     legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot)
-    SELECT ${quote(f.contract)},${quote(f.company)},${quote(f.customer)},${quote(f.site)},${quote(f.site)},${quote(f.point)},${quote(offer)},'draft',
+    SELECT ${quote(f.contract)},${quote(f.company)},${quote(f.customer)},${f.site === null ? 'NULL' : quote(f.site)},${f.site === null ? 'NULL' : quote(f.site)},${f.point === null ? 'NULL' : quote(f.point)},${quote(offer)},'draft',
     '{"test_center":{"kind":"invoice_test_customer"}}',${quote(f.actor)},${quote(f.start)},${quote(f.start)},v.id,p.contract_product_id,v.contract_product_version_id,
     v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,v.offer_reference,p.commercial_snapshot,l.rendered_snapshot
     FROM public.contract_publication_versions v JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
     JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id WHERE v.id=${quote(publication)} AND v.status='published'; SELECT to_jsonb(true);`)
+  return { publication, legal }
+}
+
+export async function signPositiveSiteAgreement(f: PositiveSiteFixture) {
+  const { publication, legal } = await preparePositiveSiteDraftAgreement(f)
   const signed = await signInvoiceTestContractCanonically({ companyId: f.company, customerId: f.customer, contractId: f.contract, actorUserId: f.actor })
   expect(signed).toMatchObject({ status: 'signed', signature_snapshot_sha256: expect.stringMatching(/^[a-f0-9]{64}$/) })
   const facts = sql<{ signedAt: string; number: string; offer: string; signature: string; tenantHash: string; legal: AgreementPdfLegalVersion[] }>(`SELECT jsonb_build_object(
