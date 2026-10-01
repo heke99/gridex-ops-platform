@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export type ServicePermissionOriginInput = {
   providerCompanyId: string; assignmentId: string; actorUserId: string;
@@ -16,6 +17,15 @@ export type ServicePermissionOriginBasis = {
     reportStart?: string; reportEnd?: string | null; gridArea?: string | null; permissionEnd?: string }[]
 }
 export type HeldPermissionOrigin = { status: 'held'; missing: string[] }
+export type ServicePermissionExecutionPhase = 'prepare' | 'send'
+export type ServicePermissionRecoveryOrigin = {
+  /** The immediate failed original remains the new recovery operation's source. */
+  originalMessage: EdielMessageRow;
+  /** Only the native qualified lineage may select this terminal service source. */
+  sourceMessage: EdielMessageRow;
+  basis: ServicePermissionOriginBasis; sourceIntentId: string; sourceActorUserId: string;
+  allowedObjects: {point:string|null;li:string|null;customerIdentity:string|null;reason:string|null}[]
+}
 
 function args(input: ServicePermissionOriginInput) {
   return { p_company_id: input.providerCompanyId, p_assignment_id: input.assignmentId,
@@ -37,26 +47,39 @@ export async function reserveServicePermissionOrigin(input: ServicePermissionOri
 
 /** A correction keeps its own intent and operation. Only the qualified private
  * recovery link may select the original's current service authority. */
-export async function loadServicePermissionRecoveryOrigin(input: {companyId:string;operationId:string;actorUserId:string}):Promise<{originalMessage:import('@/lib/ediel/types').EdielMessageRow;basis:ServicePermissionOriginBasis;sourceIntentId:string;sourceActorUserId:string}|undefined>{
+export async function loadServicePermissionRecoveryOrigin(input: {companyId:string;operationId:string;actorUserId:string;phase?:ServicePermissionExecutionPhase}):Promise<ServicePermissionRecoveryOrigin|undefined>{
  const {assertEdielTenantActor}=await import('./authorization')
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['ediel.send','communication.send']})
+ const phase=input.phase??'prepare'
+ if(phase==='prepare')await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
+ else if(phase==='send')await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['ediel.send','communication.send']})
+ else throw new Error('ediel_service_recovery_phase_invalid')
  const {data:recovery,error}=await supabaseService.rpc('ediel_prodat_recovery_operation_basis_v1',{p_company_id:input.companyId,p_operation_id:input.operationId,p_actor_user_id:input.actorUserId})
  if(error)throw error
  if(recovery===null)return undefined
- if(!recovery||recovery.operationId!==input.operationId||typeof recovery.originalMessageId!=='string'||!Array.isArray(recovery.allowedObjects)||recovery.allowedObjects.length===0)throw new Error('ediel_service_recovery_operation_unqualified')
- const {data:original,error:originalError}=await supabaseService.from('ediel_messages').select('*').eq('company_id',input.companyId).eq('id',recovery.originalMessageId).maybeSingle()
- if(originalError)throw originalError
- if(!original||original.company_id!==input.companyId||original.id!==recovery.originalMessageId||original.direction!=='outbound'||original.message_family!=='PRODAT')throw new Error('ediel_service_recovery_original_not_owned')
- if(!['Z13','Z18'].includes(original.message_code)||!original.parsed_payload?.sourcePermissionBasis)return undefined
- const {data:source,error:sourceError}=await supabaseService.rpc('ediel_service_permission_message_basis_v1',{p_company_id:input.companyId,p_message_id:original.id,p_actor_user_id:input.actorUserId})
+ if(!recovery||recovery.operationId!==input.operationId||typeof recovery.originalMessageId!=='string'||typeof recovery.sourceOriginMessageId!=='string'||!Array.isArray(recovery.allowedObjects)||recovery.allowedObjects.length===0)throw new Error('ediel_service_recovery_operation_unqualified')
+ const ownMessage=async(id:string):Promise<EdielMessageRow>=>{
+  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('company_id',input.companyId).eq('id',id).maybeSingle()
+  if(error)throw error
+  if(!data||data.company_id!==input.companyId||data.id!==id||data.direction!=='outbound'||data.message_family!=='PRODAT')throw new Error('ediel_service_recovery_original_not_owned')
+  return data as EdielMessageRow
+ }
+ const original=await ownMessage(recovery.originalMessageId)
+ const sourceMessage=recovery.sourceOriginMessageId===original.id?original:await ownMessage(recovery.sourceOriginMessageId)
+ if(sourceMessage.environment!==original.environment||sourceMessage.message_code!==original.message_code||sourceMessage.customer_id!==original.customer_id)throw new Error('ediel_service_recovery_origin_scope_invalid')
+ if(!['Z13','Z18'].includes(sourceMessage.message_code))return undefined
+ const {data:source,error:sourceError}=await supabaseService.rpc('ediel_service_permission_message_basis_v1',{p_company_id:input.companyId,p_message_id:sourceMessage.id,p_actor_user_id:input.actorUserId,p_phase:phase})
  if(sourceError)throw sourceError
+ // Ordinary TGT originals have no service binding. Parsed claims cannot select
+ // a service origin, and a failed private qualification is never a fallback.
+ if(source===null)return undefined
  const basis=source?.basis as ServicePermissionOriginBasis|undefined
- if(!basis||basis.status!=='authorized'||basis.companyId!==input.companyId||basis.code!==original.message_code||source.intentId!==original.intent_id||JSON.stringify(basis)!==JSON.stringify(original.parsed_payload.sourcePermissionBasis))throw new Error('ediel_service_recovery_origin_stale')
+ if(!basis||basis.status!=='authorized'||basis.companyId!==input.companyId||basis.customerId!==sourceMessage.customer_id||basis.environment!==sourceMessage.environment||basis.code!==sourceMessage.message_code||!source.intentId||!source.actorUserId||source.intentId!==sourceMessage.intent_id||JSON.stringify(basis)!==JSON.stringify(sourceMessage.parsed_payload?.sourcePermissionBasis))throw new Error('ediel_service_recovery_origin_stale')
  const {resolveSwedishProdatCustomerIdentity}=await import('@/lib/ediel/prodat/customerIdentity')
  const customer=resolveSwedishProdatCustomerIdentity(basis.customer)
  const expectedReason=basis.code==='Z13'?(basis.mode==='V'?'S17':'S18'):basis.terminationReason
- if(!customer.id||!expectedReason||recovery.allowedObjects.some((object:{point:string|null;li:string|null;customerIdentity:string|null;reason:string|null})=>object.customerIdentity!==customer.id||object.reason!==expectedReason||!basis.objects.some(own=>own.point===object.point)||basis.code==='Z18'&&object.li!==basis.li))throw new Error('ediel_service_recovery_object_scope_invalid')
- return {originalMessage:original as import('@/lib/ediel/types').EdielMessageRow,basis,sourceIntentId:source.intentId,sourceActorUserId:source.actorUserId}
+ const expectedLi=basis.code==='Z18'?basis.li:sourceMessage.transaction_reference
+ if(!customer.id||!expectedReason||!expectedLi||recovery.allowedObjects.some((object:{point:string|null;li:string|null;customerIdentity:string|null;reason:string|null})=>object.customerIdentity!==customer.id||object.reason!==expectedReason||object.li!==expectedLi||!basis.objects.some(own=>own.point===object.point)))throw new Error('ediel_service_recovery_object_scope_invalid')
+ return {originalMessage:original,sourceMessage,basis,sourceIntentId:source.intentId,sourceActorUserId:source.actorUserId,allowedObjects:recovery.allowedObjects}
 }
 
 /** Send/readiness follows a recovery only after its exact new raw hash has a
@@ -70,5 +93,5 @@ export async function loadServicePermissionMessageOrigin(message:import('@/lib/e
  if(recovery===null)return undefined
  const {createHash}=await import('node:crypto')
  if(!recovery||recovery.operationId!==message.source_operation_id||recovery.originalMessageId!==message.original_message_id||!message.raw_payload||recovery.correctedPayloadHash!==createHash('sha256').update(message.raw_payload,'utf8').digest('hex'))throw new Error('ediel_service_recovery_message_unqualified')
- return loadServicePermissionRecoveryOrigin({companyId:message.company_id,operationId:recovery.operationId,actorUserId})
+ return loadServicePermissionRecoveryOrigin({companyId:message.company_id,operationId:recovery.operationId,actorUserId,phase:'send'})
 }

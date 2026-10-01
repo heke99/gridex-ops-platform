@@ -118,5 +118,6 @@ try{
  const exactMethodRaw="UNH+1+PRODAT:D:96B:UN:E2SE6A'LIN+1'CCI++Z04'CAV+Z04'LIN+2'CCI++Z04'CAV+Z04'UNT+8+1'"
  await db.query('UPDATE ediel_messages SET raw_payload=$1 WHERE id=$2',[exactMethodRaw,uid(900)]);await methodWire();checks++
  for(const raw of [exactMethodRaw.replace("LIN+2'CCI++Z04'CAV+Z04'","LIN+2'"),exactMethodRaw.replace("CAV+Z04'","CAV+Z03'"),exactMethodRaw.replace("LIN+2'", "CCI++Z04'CAV+Z04'LIN+2'"),exactMethodRaw.replace("LIN+2'CCI++Z04'CAV+Z04'",'')]){await db.query('UPDATE ediel_messages SET raw_payload=$1 WHERE id=$2',[raw,uid(900)]);await assert.rejects(methodWire(),/authentic_requested_method_required/);checks++}
+ if(process.env.EDIEL_SERVICE_ORIGIN_PROBE_MODULE){const probe=await import(pathToFileURL(process.env.EDIEL_SERVICE_ORIGIN_PROBE_MODULE).href);await probe.default({db,uid,json,command})}
  console.log(`PASS ${checks} targeted service administration PostgreSQL checks; synthetic owner/helper fixtures, not native/legal evidence`)
 }finally{await db.close()}
