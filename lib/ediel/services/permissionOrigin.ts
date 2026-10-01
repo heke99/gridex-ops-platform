@@ -54,7 +54,7 @@ export async function loadServicePermissionRecoveryOrigin(input: {companyId:stri
  const {assertEdielTenantActor}=await import('./authorization')
  const phase=input.phase??'prepare'
  if(phase==='prepare')await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
- else if(phase==='send')await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['ediel.send','communication.send']})
+ else if(phase==='send')await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
  else throw new Error('ediel_service_recovery_phase_invalid')
  const {data:recovery,error}=await supabaseService.rpc('ediel_prodat_recovery_operation_basis_v1',{p_company_id:input.companyId,p_operation_id:input.operationId,p_actor_user_id:input.actorUserId})
  if(error)throw error
@@ -90,7 +90,7 @@ export async function loadServicePermissionRecoveryOrigin(input: {companyId:stri
 export async function loadServicePermissionMessageOrigin(message:import('@/lib/ediel/types').EdielMessageRow,actorUserId:string){
  if(!message.company_id||message.direction!=='outbound'||message.message_family!=='PRODAT'||!['Z13','Z18'].includes(message.message_code)||!message.source_operation_id)return undefined
  const {assertEdielTenantActor}=await import('./authorization')
- await assertEdielTenantActor({companyId:message.company_id,actorUserId,permissionAnyOf:['ediel.send','communication.send']})
+ await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'communication.send'})
  const {data:recovery,error}=await supabaseService.rpc('ediel_prodat_recovery_original_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
  if(error)throw error
  if(recovery===null)return undefined

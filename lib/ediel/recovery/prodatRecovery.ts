@@ -6,6 +6,7 @@ import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
 import { finalizeRecoveryDraft, queueRecoveryDraft } from '@/lib/ediel/intent/prodatRecoveryGateway'
 import { readRecoveryOperationBasis } from './sourceContext'
+import {loadRecoveryMeteringMethodContext,assertRecoveryMeteringMethodRoute} from './meteringMethodContext'
 import { loadProdatDateEventValidationContext, recoveryDateEventScope } from '@/lib/ediel/production/dateEventContext'
 import { loadRecoveryReportingContext } from './reportingContext'
 import { loadServicePermissionRecoveryOrigin } from '@/lib/ediel/services/permissionOrigin'
@@ -89,6 +90,8 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
       receiverEdielId: canonical.receiver, preferredRouteId: original.communication_route_id, applicationReference: canonical.applicationReference })
     const basis = await readRecoveryOperationBasis({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId })
     if (!basis || basis.originalMessageId !== original.id) throw new Error('prodat_recovery_current_basis_required')
+    const methodContext=canonical.messageCode==='Z09'?await loadRecoveryMeteringMethodContext({companyId:input.companyId,operationId:authorization.operationId,actorUserId:input.actorUserId,rawPayload:input.correctedRawPayload}):undefined
+    if(methodContext){if(methodContext.originalMessageId!==original.id||methodContext.customerId!==original.customer_id||methodContext.environment!==original.environment)throw Error('prodat_recovery_metering_method_origin_conflict');assertRecoveryMeteringMethodRoute(methodContext,route)}
     const dateEventContext = recoveryDateEventScope(await loadProdatDateEventValidationContext(original, input.actorUserId), basis)
     const reporting = await loadRecoveryReportingContext({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId })
     const reportingContext = reporting.context
@@ -133,6 +136,7 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
       senderEdielId: canonical.sender, senderSubAddress: canonical.senderSubAddress, receiverEdielId: canonical.receiver, receiverSubAddress: canonical.receiverSubAddress,
       parsedPayload: { ...buildCanonicalParsedPayload(canonical), recoveryOperationId: authorization.operationId,
         ...(serviceOrigin ? { serviceAssignmentId: serviceOrigin.basis.assignmentId } : {}),
+        ...(methodContext?{meteringMethodChangeEventId:methodContext.eventId}:{}),
         ...(dateEventContext?.source.kind === 'tgt' ? { testRunId: dateEventContext.source.runId,stepNo: dateEventContext.source.stepNo } : {}),
         ...(reportingContext?.source.kind === 'tgt' ? { testRunId: reportingContext.source.scope.runId,stepNo: reportingContext.source.scope.stepNo } : {}),
         ...(dateEventContext || reportingContext ? { prodatEngine: { registerEvidence: createProdatRegisterEvidence({ code: canonical.messageCode,rawSegments: wire.segments.map(s => s.raw),una: wire.una,facts: protectedFacts }) } } : {}) },

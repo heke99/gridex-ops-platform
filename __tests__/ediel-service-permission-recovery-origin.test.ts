@@ -33,3 +33,18 @@ it('holds foreign failed object, wrong LI and changed current source basis',asyn
 it('does no source read after current tenant actor revocation',async()=>{
  io.actor.mockRejectedValue(Error('forbidden'));await expect(loadServicePermissionRecoveryOrigin(scope)).rejects.toThrow('forbidden');expect(io.rpc).not.toHaveBeenCalled();expect(io.from).not.toHaveBeenCalled()
 })
+
+it('send follows the same qualified source with a separate current send grant',async()=>{
+ await loadServicePermissionRecoveryOrigin({...scope,phase:'send'})
+ expect(io.actor).toHaveBeenCalledWith({companyId:scope.companyId,actorUserId:scope.actorUserId,permission:'communication.send'})
+ expect(io.rpc).toHaveBeenCalledWith('ediel_service_permission_message_basis_v1',{p_company_id:scope.companyId,p_message_id:original.id,p_actor_user_id:scope.actorUserId,p_phase:'send'})
+})
+it('uses the privately qualified terminal service origin while retaining the immediate failed original',async()=>{
+ const source={...original,id:id(20)},immediate={...original,id:id(5),intent_id:id(21),parsed_payload:{sourcePermissionBasis:{forged:true}}}
+ io.rpc.mockImplementation(async(name:string)=>({data:name==='ediel_prodat_recovery_operation_basis_v1'?{...recovery,sourceOriginMessageId:source.id}:{basis,intentId:source.intent_id,actorUserId:id(7)},error:null}))
+ io.from.mockImplementation(()=>{let selected:string;const query={select:()=>query,eq:(key:string,value:string)=>{if(key==='id')selected=value;return query},maybeSingle:async()=>({data:selected===source.id?source:immediate,error:null})};return query})
+ const result=await loadServicePermissionRecoveryOrigin({...scope,phase:'send'})
+ expect(result?.originalMessage.id).toBe(immediate.id);expect(result?.sourceMessage.id).toBe(source.id)
+ expect(result?.sourceIntentId).toBe(source.intent_id)
+ expect(io.rpc).toHaveBeenCalledWith('ediel_service_permission_message_basis_v1',{p_company_id:scope.companyId,p_message_id:source.id,p_actor_user_id:scope.actorUserId,p_phase:'send'})
+})

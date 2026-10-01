@@ -1,5 +1,4 @@
 import {createHash} from 'node:crypto'
-import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {EdielProviderEntry,SendEdielEmailInput} from '@/lib/email/sendEdielEmail'
 
 /** Explicit private-journal unit fixture. Production wrappers/callback ordering
@@ -15,6 +14,12 @@ export function transportJournalFixture(options:{repairFailure?:()=>Error|null;o
   if(name==='gridex_ediel_negative_fixture_read_v1'||name==='gridex_ediel_positive_fixture_read_v1'){
    const context=args.p_context as Record<string,unknown>|undefined
    if(!context?.companyId||!context.actorUserId||!(context.messageId||context.runId&&context.stepNo&&context.rawPayload))throw Error('fixture_absent_registration_scope_required')
+   return{data:null,error:null}
+  }
+  if(name==='ediel_registry_dispatch_source_v1'){
+   if(!args.p_company_id||!args.p_communication_route_id||!args.p_route_profile_id||!['test','production'].includes(String(args.p_environment))||args.p_message_family!=='PRODAT'||!(typeof args.p_application_reference==='string'||args.p_application_reference===null))throw Error('fixture_absent_registry_route_scope_required')
+   // This finite reporting route has no privately qualified registry original.
+   // Absence creates no route grant; canonical route and source guards stay real.
    return{data:null,error:null}
   }
   if(['ediel_customer_masterdata_message_basis_v1','ediel_customer_life_event_message_basis_v1','ediel_production_contract_message_basis_v1','ediel_brp_change_message_basis_v1','ediel_metering_method_change_message_basis_v1','ediel_prodat_recovery_original_basis_v1'].includes(name)){

@@ -402,7 +402,7 @@ export async function sendEdielMessageViaSmtp(
     : undefined
   const dateEventContext = hasProdatDateEventMessage(message) ? await loadProdatDateEventValidationContext(message, actorUserId) : undefined
   const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({ message, actorUserId })
-  const admission = isEdifactMessage(message) ? await assertRegistryRulebookAllowsSend(message, dateEventContext, reportingContext, negativeFixture,deathStatusContext,ackSourceQualification??undefined,customerMasterdataContext,requestedChangeBasis??undefined) : null
+  const admission = isEdifactMessage(message) ? await assertRegistryRulebookAllowsSend(message, dateEventContext, reportingContext, negativeFixture,deathStatusContext,ackSourceQualification??undefined,customerMasterdataContext,requestedChangeBasis??undefined,actorUserId) : null
   if (reportingContext || dateEventContext || deathStatusContext || customerMasterdataContext || ackSourceQualification || commonHeaderEvidence || requestedChangeBasis) assertEdielSendLock(message, dateEventContext, reportingContext,ackSourceQualification,deathStatusContext,commonHeaderEvidence,customerMasterdataContext,requestedChangeBasis??undefined)
   const technicalSyntaxAckEvidence = admission?.technicalSyntaxAckEvidence ?? null
   const prodatCommonHeaderRejectionEvidence=admission?.prodatCommonHeaderRejectionEvidence ?? null

@@ -4,6 +4,8 @@ import { evaluateIntentValidation, getEdielMessageIntentById, updateIntentLifecy
 import { queuePreparedEdielMessage } from '@/lib/ediel/flows/shared'
 import type { EdielMessageIntent } from './types'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import {loadRecoveryMeteringMethodContext,assertRecoveryMeteringMethodRoute} from '@/lib/ediel/recovery/meteringMethodContext'
+import {prepareRecoveryCustomerMasterdataContext} from '@/lib/ediel/production/customerMasterdataSource'
 
 type DraftParams = Parameters<typeof finalizeCanonicalOutboundDraft>[0]
 async function reserve(input: { companyId: string; operationId: string; actorUserId: string; intentId: string; outboundRequestId: string }) {
@@ -22,6 +24,17 @@ export async function finalizeRecoveryDraft(input: { companyId: string; operatio
   const reservation = await reserve(scope)
   const params = { ...input.params, outboundRequestId: reservation.outboundRequestId, draft: { ...input.params.draft, intentId: input.intent.id, outboundRequestId: reservation.outboundRequestId },
     duplicateCheck: { ...input.params.duplicateCheck, sourceType: 'manual', sourceId: input.intent.id } }
+  if(['Z01','Z03'].includes(input.intent.messageCode)){
+    const draft=params.draft,routeId=draft.communicationRouteId??input.params.routeContext.route.id
+    if(!draft.customerId||!draft.rawPayload||(draft.environment!=='test'&&draft.environment!=='production'))throw Error('prodat_recovery_customer_source_scope_required')
+    const context=await prepareRecoveryCustomerMasterdataContext({companyId:input.companyId,operationId:input.operationId,actorUserId:input.actorUserId,intentId:input.intent.id,routeId,customerId:draft.customerId,environment:draft.environment,rawPayload:draft.rawPayload})
+    // Source preview/parsed selectors from the caller are replaced only by the
+    // fresh native credential for this reserved intent and exact correction.
+    params.customerMasterdataContext=context
+    const parsed=draft.parsedPayload&&typeof draft.parsedPayload==='object'&&!Array.isArray(draft.parsedPayload)?draft.parsedPayload:{}
+    params.draft={...draft,parsedPayload:{...parsed,customerMasterdataSourceContextId:context?.projection.sourceContextId??null}}
+  }
+  if(input.intent.messageCode==='Z09'){const raw=params.draft.rawPayload;if(!raw)throw Error('prodat_recovery_physical_source_required');const context=await loadRecoveryMeteringMethodContext({companyId:input.companyId,operationId:input.operationId,actorUserId:input.actorUserId,rawPayload:raw});if(context)assertRecoveryMeteringMethodRoute(context,params.routeContext)}
   let message: EdielMessageRow
   try { message = await finalizeCanonicalOutboundDraft(params) } catch (error) {
     if (!(error && typeof error === 'object' && 'code' in error && error.code === '23505')) throw error

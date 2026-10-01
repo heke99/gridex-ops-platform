@@ -46,3 +46,21 @@ export async function loadCustomerMasterdataValidationContext(message:EdielMessa
  const projection=checkedProjection(data,{companyId:message.company_id,customerId:message.customer_id,asOf:data.asOf,...(data.environment===null?{}:{environment:message.environment})})
  return bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:message.company_id,customerId:message.customer_id,environment:message.environment,rawPayload:message.raw_payload,intentId:message.intent_id,routeId:message.communication_route_id,projection})
 }
+
+/** The reserved native correction selects the terminal customer's original
+ * dated proof. It creates a new current actor/operation preparation and checks
+ * the corrected bytes; a copied old context or raw UD flag cannot grant it. */
+export async function prepareRecoveryCustomerMasterdataContext(input:{companyId:string;operationId:string;actorUserId:string;intentId:string;routeId:string;customerId:string;environment:'test'|'production';rawPayload:string}):Promise<CustomerMasterdataValidationContext|undefined>{
+ if(![input.companyId,input.operationId,input.actorUserId,input.intentId,input.routeId,input.customerId].every(isEvidenceUuid)||!input.rawPayload)throw Error('customer_masterdata_recovery_scope_required')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as(name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
+ const{data,error}=await rpc('ediel_prepare_customer_masterdata_recovery_v1',{p_company_id:input.companyId,p_operation_id:input.operationId,p_actor_user_id:input.actorUserId,p_intent_id:input.intentId,p_route_id:input.routeId})
+ if(error)throw error
+ if(data===null)return undefined // Native physical wire contains no UD object.
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('customer_masterdata_recovery_binding_invalid')
+ const value=data as Partial<SourceQualifiedCustomerMasterdataProjection>&{missing?:string[];recoveryBinding?:Record<string,unknown>}
+ if((data as {status?:unknown}).status==='held')throw Error(`customer_masterdata_recovery_source_held:${Array.isArray(value.missing)?value.missing.join(','):'unknown'}`)
+ const binding=value.recoveryBinding
+ if(!binding||binding.operationId!==input.operationId||binding.actorUserId!==input.actorUserId||binding.intentId!==input.intentId||binding.routeId!==input.routeId||binding.environment!==input.environment||![binding.originalMessageId,binding.sourceOriginMessageId].every(isEvidenceUuid)||binding.payloadHash!==createHash('sha256').update(input.rawPayload).digest('hex')||typeof value.asOf!=='string')throw Error('customer_masterdata_recovery_binding_invalid')
+ const projection=checkedProjection(value,{companyId:input.companyId,customerId:input.customerId,asOf:value.asOf,...(value.environment===null?{}:{environment:input.environment})})
+ return bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:input.companyId,customerId:input.customerId,environment:input.environment,rawPayload:input.rawPayload,intentId:input.intentId,routeId:input.routeId,projection})
+}

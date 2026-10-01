@@ -1,0 +1,16 @@
+import{beforeEach,expect,it,vi}from'vitest'
+import{createHash}from'node:crypto'
+const io=vi.hoisted(()=>({rpc:vi.fn(),source:vi.fn(),route:vi.fn()}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
+vi.mock('@/lib/ediel/production/meteringMethodChangeSource',()=>({readMeteringMethodChangeSource:io.source,assertMeteringMethodChangeCanonicalRoute:io.route}))
+import{loadRecoveryMeteringMethodContext}from'@/lib/ediel/recovery/meteringMethodContext'
+const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
+const input={companyId:id(1),actorUserId:id(2),operationId:id(3),rawPayload:'physical corrected'}
+const scope={companyId:id(1),recoveryOperationId:id(3),eventId:id(4),originalMessageId:id(5),sourceOriginMessageId:id(6),correctedPayloadHash:createHash('sha256').update(input.rawPayload).digest('hex')}
+const basis={...scope,status:'authorized',environment:'test',sourceDigest:'a'.repeat(64),contractRevision:'genuine-version',brpEdielId:'12345',effectiveAt:'2026-11-01T11:34:00Z',method:'Z04',reason:'E64',customerId:id(7),meteringPointId:id(8)}
+beforeEach(()=>{vi.resetAllMocks();io.rpc.mockImplementation(async(name:string)=>({data:name.endsWith('scope_v1')?scope:basis,error:null}));io.source.mockResolvedValue(basis)})
+it('discovers native terminal event, prepares its existing current BRP/source and rechecks native correction bytes',async()=>{expect(await loadRecoveryMeteringMethodContext(input)).toEqual(basis);expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['ediel_metering_method_recovery_scope_v1','ediel_metering_method_recovery_source_v1']);expect(io.source).toHaveBeenCalledExactlyOnceWith({companyId:id(1),eventId:id(4),actorUserId:id(2)});expect(io.rpc.mock.invocationCallOrder[0]).toBeLessThan(io.source.mock.invocationCallOrder[0]);expect(io.source.mock.invocationCallOrder[0]).toBeLessThan(io.rpc.mock.invocationCallOrder[1])})
+it('does not infer F/G from client payload when native private source is absent',async()=>{io.rpc.mockResolvedValue({data:null,error:null});expect(await loadRecoveryMeteringMethodContext(input)).toBeUndefined();expect(io.source).not.toHaveBeenCalled()})
+it.each([{companyId:id(99)},{recoveryOperationId:id(99)},{eventId:'caller-event'},{correctedPayloadHash:'b'.repeat(64)}])('rejects changed native discovery %j',async changed=>{io.rpc.mockResolvedValue({data:{...scope,...changed},error:null});await expect(loadRecoveryMeteringMethodContext(input)).rejects.toThrow('scope_invalid');expect(io.source).not.toHaveBeenCalled()})
+it.each(['sourceDigest','contractRevision','brpEdielId','effectiveAt','method','reason','customerId','meteringPointId'])('holds current event %s drift before new carrier preparation',async field=>{io.source.mockResolvedValue({...basis,[field]:'changed'});await expect(loadRecoveryMeteringMethodContext(input)).rejects.toThrow('current_source_changed')})
+it('holds retired issuer/intake/current source and preserves native actor denial',async()=>{io.source.mockResolvedValueOnce({status:'held',missing:['current_issuer']});await expect(loadRecoveryMeteringMethodContext(input)).rejects.toThrow('source_held:current_issuer');const error=Error('current_actor_denied');io.rpc.mockResolvedValueOnce({data:null,error});await expect(loadRecoveryMeteringMethodContext(input)).rejects.toBe(error)})
