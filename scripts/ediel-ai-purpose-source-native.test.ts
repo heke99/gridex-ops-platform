@@ -7,6 +7,10 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:effects.smtp}
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {supabaseService} from '@/lib/supabase/service'
+import {attachNetworkRegistrySourceFixture} from './helpers/ediel-network-registry-native-fixture'
+import {archiveNetworkRegistrySource,reviewNetworkRegistrySource} from '@/lib/ediel/production/networkRegistrySource'
+import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
+import {prepareAndQueueAiList} from '@/lib/ediel/flows/aiListFlow'
 import {createAiPurposeSourceFixture} from './helpers/ediel-ai-purpose-native-fixture'
 import {createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
@@ -16,10 +20,12 @@ it('actual immutable purpose archive, separate scoped original review and curren
  const path=process.env.GRIDEX_AI_PURPOSE_FIXTURE_PATH
  if(process.env.GRIDEX_AI_PURPOSE_VERIFY_AFTER_BROWSER==='1'){
   if(!path)throw Error('local_browser_fixture_path_required')
-  const f=JSON.parse(readFileSync(path,'utf8')) as {companyId:string;browserSourceHash:string;reviewerId:string;nativeArtifactId:string}
+  const f=JSON.parse(readFileSync(path,'utf8')) as {companyId:string;browserSourceHash:string;reviewerId:string;nativeArtifactId:string;nativeAiMessageId:string;networkBrowserSourceHash:string;networkReviewerId:string}
   const rows=sql<{submittedBy:string;reviewedBy:string;hash:string;decisionId:string}[]>(`SELECT jsonb_agg(jsonb_build_object('submittedBy',a.submitted_by,'reviewedBy',r.reviewer_user_id,'hash',encode(sha256(a.source_bytes),'hex'),'decisionId',o.decision_id)) FROM gridex_ai_purpose_sources.artifacts a JOIN gridex_ai_purpose_sources.origins o ON o.artifact_id=a.id JOIN gridex_ai_purpose_sources.reviews r ON r.id=o.review_id WHERE a.company_id=${literal(f.companyId)} AND a.source_hash=${literal(f.browserSourceHash)}`)
   expect(rows).toHaveLength(1);expect(rows[0]).toMatchObject({reviewedBy:f.reviewerId,hash:f.browserSourceHash});expect(rows[0].submittedBy).not.toBe(rows[0].reviewedBy)
-  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_family='AI_LIST'`)).toBe(0)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_family='AI_LIST'`)).toBe(1)
+  const network=sql<{hash:string;reviewer:string}[]>(`SELECT jsonb_agg(jsonb_build_object('hash',encode(sha256(a.source_bytes),'hex'),'reviewer',r.reviewer_user_id)) FROM gridex_network_registry_sources.artifacts a JOIN gridex_network_registry_sources.origins o ON o.artifact_id=a.id JOIN gridex_network_registry_sources.reviews r ON r.id=o.review_id WHERE a.company_id=${literal(f.companyId)} AND a.source_hash=${literal(f.networkBrowserSourceHash)}`);expect(network).toHaveLength(1);expect(network[0]).toEqual({hash:f.networkBrowserSourceHash,reviewer:f.networkReviewerId})
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ai_processing.outbound_origins WHERE intent_id=(SELECT intent_id FROM public.ediel_messages WHERE id=${literal(f.nativeAiMessageId)} AND company_id=${literal(f.companyId)})`)).toBe(1)
   return
  }
  for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v)
@@ -36,14 +42,23 @@ it('actual immutable purpose archive, separate scoped original review and curren
  const retry=await reviewAiPurposeSource({...artifact,...reviewScope,decision:'approve',reason:'Synthetic idempotent reread',clause:f.clause});expect(retry).toEqual(approved)
  const foreign=randomUUID();sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(foreign)},'Disposable foreign AI purpose company','active')`);const outsider=await createBilateralSourceOperator(foreign,['communication.read','customers.read','contracts.read'])
  await expect(readAiPurposeSourceBytes({companyId:foreign,actorUserId:outsider.id,artifactId:artifact.artifactId})).rejects.toBeTruthy()
- if(path){const browserBytes=f.pdf('interactive browser legal original'),browser=f.submission('SYNTHETIC BROWSER LEGAL PURPOSE',browserBytes);writeFileSync(path,JSON.stringify({companyId:f.companyId,submitterEmail:f.uploader.email,reviewerEmail:f.reviewer.email,reviewerId:f.reviewer.id,readerEmail:f.reader.email,outsiderEmail:outsider.email,nativeArtifactId:artifact.artifactId,browserSourceHash:createHash('sha256').update(browserBytes).digest('hex'),browser,clause:f.clause,sourceText:browserBytes.toString()}),{mode:0o600})}
+ let nativeAiMessageId:string|undefined,networkBrowser:Record<string,unknown>|undefined
+ if(path){
+  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+  const network=await attachNetworkRegistrySourceFixture(f),registry=await archiveNetworkRegistrySource({...network.submission('SYNTHETIC actual browser network registry',network.pdf('browser network')),companyId:f.companyId,actorUserId:network.uploader.id})
+  expect((await reviewNetworkRegistrySource({...registry,companyId:f.companyId,actorUserId:network.reviewer.id,decision:'approve',reason:'Synthetic actual browser registry independent review',clause:network.clause})).status).toBe('authorized')
+  const route=randomUUID(),profile=randomUUID();sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email) VALUES(${literal(route)},${literal(f.companyId)},'Disposable browser AI history','meter_values',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code) VALUES(${literal(profile)},${literal(f.companyId)},${literal(route)},'Disposable browser AI history','test','ai_list',${literal(f.sender)},${literal(f.receiver)},'',true,'unencrypted','recipient@example.invalid','recipient@example.invalid','AI_LIST','AI')`)
+  const queued=await prepareAndQueueAiList({actorUserId:f.uploader.id,companyId:f.companyId,listType:'AI',customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,receiverEdielId:f.receiver,fromDate:'2026-10-03',toDate:'2026-10-10',communicationRouteId:route,environment:'test'});expect(queued.status).toBe('queued');nativeAiMessageId=queued.id
+  const networkBytes=network.pdf('interactive network original');networkBrowser={networkBrowser:network.submission('SYNTHETIC BROWSER NETWORK REGISTRY',networkBytes,'2'),networkSourceText:networkBytes.toString(),networkBrowserSourceHash:createHash('sha256').update(networkBytes).digest('hex'),networkNativeArtifactId:registry.artifactId,networkSubmitterEmail:network.uploader.email,networkReviewerEmail:network.reviewer.email,networkReviewerId:network.reviewer.id,networkClause:network.clause}
+ }
+ if(path){const browserBytes=f.pdf('interactive browser legal original'),browser=f.submission('SYNTHETIC BROWSER LEGAL PURPOSE',browserBytes);writeFileSync(path,JSON.stringify({companyId:f.companyId,submitterEmail:f.uploader.email,reviewerEmail:f.reviewer.email,reviewerId:f.reviewer.id,readerEmail:f.reader.email,outsiderEmail:outsider.email,nativeArtifactId:artifact.artifactId,nativeAiMessageId,...networkBrowser,browserSourceHash:createHash('sha256').update(browserBytes).digest('hex'),browser,clause:f.clause,sourceText:browserBytes.toString()}),{mode:0o600})}
  sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,valid_from,valid_to,is_active) VALUES(NULL,${literal(f.reviewer.id)},'ediel.ai_purpose.review','deny',now()-interval '1 day',now()+interval '1 day',true)`);expect((await current()).status).toBe('held')
  sql(`UPDATE public.user_permission_overrides SET valid_to=now()-interval '1 second' WHERE user_id=${literal(f.reviewer.id)} AND permission_key='ediel.ai_purpose.review'`);expect((await current()).status).toBe('authorized')
  // Browser fixture must remain current; ordinary native execution separately
  // proves immutable source revocation blocks every new consumer.
  if(!path){sql(`INSERT INTO gridex_ai_purpose_sources.revocations(target_kind,target_id,source_reference,source_hash) VALUES('representation',${literal(f.representationId)},'SYNTHETIC legal representation revocation',${literal(createHash('sha256').update('SYNTHETIC revocation').digest('hex'))})`);expect((await current()).status).toBe('held');expect((await readAiPurposeSourceArtifact({...scope,artifactId:artifact.artifactId})).status).toBe('held')}
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ai_processing.decisions WHERE company_id=${literal(f.companyId)}`)).toBe(1)
- // Full AI queue also requires the distinct network-registry producer; this
- // purpose fixture neither seeds that authority nor calls a real destination.
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_family='AI_LIST'`)).toBe(0)
+ // Browser uses the actual distinct network archive/review producer; ordinary
+ // purpose-only execution leaves it absent. Neither calls a real destination.
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_family='AI_LIST'`)).toBe(path?1:0)
 },120000)

@@ -3,6 +3,7 @@ import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolic
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import {buildAperakDraft} from '@/lib/ediel/ack'
+import {renderProdatAperakDiagnosticRaw} from './helpers/prodatAperakDiagnosticRenderFixture'
 import {input,characteristic,raw,line} from './fixtures/prodat-register'
 import {deathRaw,deathBody,deathSelection} from './fixtures/prodat-death-status'
 import {payload as gasPayload} from './fixtures/prodat-gas'
@@ -15,10 +16,14 @@ function check(wire:string,code:string,subtype:string,fields:string[],facts?:Pro
  return projectProdatDiagnostics(issues)
 }
 it('keeps owner310 supplied-content42 under local U and ignores independently false extras',()=>{
- const wire=deathRaw('Z06',deathBody('E34',characteristic('Z17','BAD')))
+ const wire=raw([...head(),...deathBody('E34',characteristic('Z17','BAD'))],'Z06')
  const p=check(wire,'Z06','E',['310']);expect(p.disposition.kind).toBe('continue');expect(p.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'310',referenceNumber:'A',lineItemReference:'LI-A'}])
- expect(buildAperakDraft({sourceMessage:source(wire,'Z06'),outcome:'negative',applicationErrors:p.applicationErrors}).rawPayload).toContain('FTX+AAO++310::260')
- expect(check(wire,'Z06','E',['310'],{deathStatus:deathSelection('not_death')}).applicationErrors).toEqual([])
+ const params={sourceMessage:source(wire,'Z06'),outcome:'negative' as const,applicationErrors:p.applicationErrors}
+ expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expect(renderProdatAperakDiagnosticRaw(params)).toContain('FTX+AAO++310::260')
+ const notDeath=deathSelection('not_death')
+ const scopedNotDeath={...notDeath,objects:notDeath.objects.map(object=>({...object,legalSupplier:{...object.legalSupplier,id:'54321',qualifier:'160',agency:'SVK'},legalGridOwner:{...object.legalGridOwner,id:'12345',qualifier:'160',agency:'SVK'}}))}
+ expect(check(wire,'Z06','E',['310'],{deathStatus:scopedNotDeath}).applicationErrors).toEqual([])
 })
 it('keeps GAS320 known required absence41 and present invalid42 independent of unqualified240',()=>{
  expect(check(gasPayload('Z04','Z22',[],'gas'),'Z04','L',['320','240']).applicationErrors).toMatchObject([{ercCode:'41',fieldCode:'320'}])
@@ -39,10 +44,14 @@ it('preserves known numeric invoicee errors beside a genuine aggregate parent ho
 })
 it('keeps repeated-register topology258 and sequence314 distinct with exact own register',()=>{
  for(const [second,want] of [[line('2','A','3'),'258'],[line('7','A','2'),'314']] as const){
-  const wire=raw([line('1','A','1'),['RFF',['LI','OWN']],second],'Z04'),p=check(wire,'Z04','L',['258','314'])
+  const wire=raw([...head(),line('1','A','1'),['RFF',['LI','OWN']],second],'Z04'),p=check(wire,'Z04','L',['258','314'])
   expect(p.disposition.kind).toBe('continue');expect(p.applicationErrors).toEqual(expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:want,prodatOccurrence:expect.objectContaining({lineNumber:want==='314'?'7':'2',registerPosition:2,objectId:'A'})})]))
-  const draft=buildAperakDraft({sourceMessage:source(wire,'Z04'),outcome:'negative',applicationErrors:p.applicationErrors})
-  expect(draft.rawPayload).toContain(`FTX+AAO++${want}::260`);expect(draft.rawPayload).not.toContain('CACHED-UNRELATED')
+  const params={sourceMessage:source(wire,'Z04'),outcome:'negative' as const,applicationErrors:p.applicationErrors}
+  const ownError=p.applicationErrors.find(error=>error.fieldCode===want)!
+  if(ownError.referenceNumber&&ownError.lineItemReference){expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')}
+  else{expect(buildAperakDraft(params).rawPayload).toContain(`FTX+AAO++${want}::260`)}
+  const diagnostic=renderProdatAperakDiagnosticRaw(params)
+  expect(diagnostic).toContain(`FTX+AAO++${want}::260`);expect(diagnostic).not.toContain('CACHED-UNRELATED')
  }
 })
 it('keeps qualifier faults on field310 with local U, not a generic unknown error',()=>{

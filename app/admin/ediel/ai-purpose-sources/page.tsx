@@ -4,7 +4,7 @@ import AiPurposeWorkspace from './workspace'
 export const dynamic='force-dynamic'
 export default async function AiPurposeSourcesPage({searchParams}:{searchParams:Promise<{artifactId?:string}>}){
  const access=await requireAdminPageAccess({allOf:['communication.read','customers.read','contracts.read']})
- if(!access.companyId)return <main className="p-6"><h1 className="text-2xl font-semibold">AI/BI:s ändamålsunderlag</h1><p>Välj ett bolag med behörighet att läsa kommunikation, kunder och avtal.</p></main>
+ if(!access.companyId||!['communication.read','customers.read','contracts.read'].every(p=>access.permissions.includes(p)))return <main className="p-6"><h1 className="text-2xl font-semibold">AI/BI:s ändamålsunderlag</h1><p>Välj ett bolag med behörighet att läsa kommunikation, kunder och avtal.</p></main>
  const db=await createSupabaseServerClient(),profiles=await db.from('tenant_ediel_profiles').select('environment').eq('company_id',access.companyId).eq('market','electricity').eq('is_enabled',true)
  if(profiles.error)return <main className="p-6"><h1 className="text-2xl font-semibold">AI/BI:s ändamålsunderlag</h1><p role="alert">Bolagets aktuella Ediel-profiler kunde inte läsas.</p></main>
  const environments=[...new Set((profiles.data??[]).map(p=>p.environment).filter((e):e is 'test'|'production'=>e==='test'||e==='production'))],params=await searchParams

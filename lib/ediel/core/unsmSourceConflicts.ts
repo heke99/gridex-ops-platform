@@ -14,6 +14,11 @@ export const prodatAperakDualReferenceConflict = {
     locator: 'P26A/16B p105 SG4/RFF; p100 SG1/ACW; p103–104 own ERC/FTX',
     z07Condition: 'Obligatorisk om anläggnings-id finns för kvitterad anläggning i PRODAT.',
     liCondition: 'Obligatorisk om ärendereferens finns för kvitterad anläggning i PRODAT.',
+    ercApplicability: {
+      positiveCode: '100',
+      negativeCodes: ['40', '41', '42'],
+      sourceFinding: 'P16B p103: godkänd ERC100 följs av FTX,RFF; p104 skiljer endast FTX för godkänd/avvisad; p105 har ingen negativ-ERC-avgränsning för de två RFF-villkoren.',
+    },
   },
   resolution: 'EXTERNAL_NORMATIVE_CLARIFICATION_REQUIRED',
 } as const

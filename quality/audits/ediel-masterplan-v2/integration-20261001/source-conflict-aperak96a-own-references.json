@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "status": "OBSERVED_SOURCE_CONFLICT_PENDING_NORMATIVE_CLARIFICATION",
-  "reviewedHead": "d286cbce7756ffb946388d78a29615857d7c7a31",
+  "reviewedHead": "882ec9f3",
   "directLiteralIds": [
     "ACK-02",
     "AT-ACK-02",
     "ENV-09",
     "AT-ENV-09"
   ],
-  "scope": "Actual APERAK:D:96A:UN:E2SE6A BGM34 own ERC object with both original point-id and original LI, emitted as two SG4/RFF. No claim that all APERAK, all PRODAT or other families are blocked.",
+  "scope": "Actual APERAK:D:96A:UN:E2SE6A BGM34 own ERC100 (positive) or ERC40/41/42 (negative) object with both original point-id and original LI, emitted as two SG4/RFF. This includes genuine positive Z04 supply/native ACK cases with both source facts. No claim that all APERAK, header BGM27, single-reference responses or other families are blocked.",
   "nationalSource": {
     "libraryFileId": "libfile_4cabcf14c30481919e1b106b219745fb",
     "fileId": "file_00000000ff9882109886f2d67409d2bf",
@@ -54,7 +54,30 @@
         "locator": "SG3/FTX; A903–A905",
         "finding": "Each actual ERC followed by FTX; positive100 text OK."
       }
-    ]
+    ],
+    "ercApplicability": {
+      "positive": [
+        "100"
+      ],
+      "negative": [
+        "40",
+        "41",
+        "42"
+      ],
+      "finding": "The p105 conditions do not restrict their application to rejected objects. P103 explicitly illustrates positive ERC100 followed by FTX,RFF; p104 distinguishes the FTX alternatives for positive100 and rejected40/41/42, while p105 states the same conditional original-reference obligations without an ERC qualifier.",
+      "locators": [
+        {
+          "page": 103,
+          "locator": "SG3/ERC; A902 positive example",
+          "literal": "Första anläggningen, godkänd: ERC+100::260' FTX, RFF"
+        },
+        {
+          "page": 104,
+          "locator": "SG3/FTX approved object",
+          "literal": "Obligatorisk för godkänd anläggning (ERC-kod = 100)."
+        }
+      ]
+    }
   },
   "fullDirectorySource": {
     "path": "quality/sources/ediel-unsm-original/d96a.zip",
@@ -75,9 +98,13 @@
   },
   "local": {
     "status": "PASS_BOUNDED",
-    "testsPassed": 7,
+    "testsPassed": 11,
     "testsFailed": 0,
     "fullNames": [
+      "P16B and original96A exact own-reference source conflict keeps exact dual-own-reference hold for actual own ERC100 without treating positive100 as an exception",
+      "P16B and original96A exact own-reference source conflict keeps exact dual-own-reference hold for actual own ERC40 without treating positive100 as an exception",
+      "P16B and original96A exact own-reference source conflict keeps exact dual-own-reference hold for actual own ERC41 without treating positive100 as an exception",
+      "P16B and original96A exact own-reference source conflict keeps exact dual-own-reference hold for actual own ERC42 without treating positive100 as an exception",
       "P16B and original96A exact own-reference source conflict reports both conditional national references and exact nested original directory cardinality separately",
       "P16B and original96A exact own-reference source conflict keeps the actual send consumer blocking without authorizing persistence or transport effects",
       "P16B and original96A exact own-reference source conflict does not invent an all-APERAK block for the directory-valid single own reference",
@@ -86,9 +113,9 @@
       "P16B and original96A exact own-reference source conflict does not promote different original document into the exact source-conflict scope",
       "P16B and original96A exact own-reference source conflict does not promote absent original conditional LI into the exact source-conflict scope"
     ],
-    "receipt": "/tmp/gridex-aperak-source-conflict.json",
-    "receiptSha256": "03524f2df3ddfba91f11f8b475a00624e3517217effb01887b7d6d2f06c5b5fd",
-    "limits": "Pure actual fullgrammar/sendpreflight hold plus read-only original scope diagnostic. No DB mock was used; no assertion that native owner persistence/SMTP/HTTP was executed."
+    "receipt": "/tmp/gridex-prodat-text-frozen-grammar-port3.json",
+    "receiptSha256": "6f5d4c042f2f694185651f08afd531bfa134d9b929aa277ee0bf4c7ee8e9c350",
+    "limits": "11 pure actual fullgrammar/sendpreflight/read-only original scope diagnostic cases including positive100 and negative40/41/42. Remaining89 of the same unit receipt exercise actual canonical decisions, field owners and diagnostic renderer; successful diagnostic render is not ACK creation approval. No native persistence/SMTP/HTTP was executed."
   },
   "native": {
     "status": "NOT_EXECUTED_ON_FROZEN_CANDIDATE",
@@ -97,7 +124,7 @@
   "wholeCriterion": {
     "status": "NOT_APPROVED",
     "missing": [
-      "Qualified normative resolution for the exact P16B national and fullD96A cardinality contradiction",
+      "Qualified normative resolution for exact P16B national versus fullD96A cardinality, including positive100 and negative40/41/42 own outcomes with both conditional original references",
       "Physical P PDF byte materialization/recomputed hash",
       "Frozen-candidate native no-write and exact-head CI receipts"
     ]
@@ -106,7 +133,7 @@
     {
       "kind": "EXTERNAL",
       "specificFact": "Two conditional own SG4/RFF references required by P16B p105 versus selected original D96A nested SG4 C1/RFF M1",
-      "impact": "Only own object ACK needing both original Z07 and LI remains held; no compatibility exception enabled",
+      "impact": "Positive100 and negative40/41/42 own object ACKs needing both original Z07 and LI remain held, including positive Z04 supply fixture downstream; no compatibility exception enabled. Header/single-reference outcomes are outside this exact conflict.",
       "owner": "Normative source authority",
       "nextAction": "Obtain source-qualified clarification/amendment for actual D96A/E2SE6A mapping; do not borrow04A or add an ERC100 outcome."
     },

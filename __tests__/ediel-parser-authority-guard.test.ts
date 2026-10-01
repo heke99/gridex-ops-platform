@@ -41,11 +41,11 @@ describe('Ediel parser authority guard', () => {
     withConsumerFixture((root, utilts) => {
       const source = fs.readFileSync(utilts, 'utf8')
       fs.writeFileSync(utilts, source.replaceAll(
-        'segmentComposite(segment, 1, una)',
+        /segmentComposite\(\{\.\.\.segment,raw:segmentUntrimmedRaw\(segment\)\},1,una\)/g,
         'splitComposite(segment.elements[1], una)',
       ))
       expect(scanParserAuthority(root)).toContain(
-        'lib/ediel/utilts.ts: must consume segmentComposite(segment, 1, una)',
+        'lib/ediel/utilts.ts: must consume segmentComposite of the canonical segment or its untrimmed raw source',
       )
     })
   })

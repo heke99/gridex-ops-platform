@@ -208,13 +208,14 @@ try{
  create table gridex_outbound_dispatch.attempts(id uuid primary key,company_id uuid,message_id uuid,binding jsonb);
  create table gridex_outbound_dispatch.events(attempt_id uuid,kind text);
  create table gridex_received_sources.sources(source_message_id uuid primary key,company_id uuid,environment text,origin text,raw_payload text,payload_hash text,source_received_at timestamptz,captured_at timestamptz default clock_timestamp(),received_context jsonb,CONSTRAINT received_source_hash_check CHECK(raw_payload IS NULL AND payload_hash IS NULL OR raw_payload IS NOT NULL AND payload_hash=encode(sha256(convert_to(raw_payload,'UTF8')),'hex')));
- create trigger no_evidence_update_delete before update or delete on gridex_received_sources.sources for each row execute function gridex_received_sources.reject_mutation();
+ create trigger received_sources_no_update_delete before update or delete on gridex_received_sources.sources for each row execute function gridex_received_sources.reject_mutation();
  alter table ediel_messages add parsed_payload jsonb default '{}',add validation_report jsonb default '{}',add metadata jsonb default '{}',add updated_at timestamptz;
  create function gridex_received_sources.synthetic_content_guard() returns trigger language plpgsql as $$begin if new.raw_payload is distinct from old.raw_payload then raise exception 'SYNTHETIC immutable existing public content guard';end if;return new;end$$;
  create trigger synthetic_existing_guard before update on ediel_messages for each row execute function gridex_received_sources.synthetic_content_guard();
  update ediel_messages set direction='inbound',parsed_payload='{"customer":"SYNTHETIC"}',validation_report='{"source":"SYNTHETIC"}',metadata='{"rawCopy":"SYNTHETIC"}' where id='${uid(7)}';
  insert into gridex_received_sources.sources(source_message_id,company_id,environment,origin,raw_payload,payload_hash) select id,company_id,environment,'database_insert',raw_payload,encode(sha256(convert_to(raw_payload,'UTF8')),'hex') from ediel_messages where id='${uid(7)}';
  insert into ediel_message_payloads(id,company_id,ediel_message_id,payload_kind,raw_payload,encrypted_payload,metadata) values('${uid(60)}','${uid(1)}','${uid(7)}','raw_edifact','SYNTHETIC COPY','SYNTHETIC CIPHER','{}');`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001000699_ediel_retention_source_trigger_prerequisite.sql',import.meta.url),'utf8'))
  await db.exec(readFileSync(new URL('../supabase/migrations/20261001000700_ediel_message_content_and_mime_retention.sql',import.meta.url),'utf8'))
  await grant(uid(2),['communication.write'])
  const blobSubmit=(kind,target,document,receipt=null)=>authenticatedCall(uid(2),`select public.ediel_submit_blob_retention_v1('${uid(1)}','${uid(2)}','${kind}','${target}',${quote(document.toString('base64'))},${receipt===null?'NULL':quote(receipt)}) b`)

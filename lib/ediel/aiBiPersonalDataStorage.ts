@@ -26,7 +26,7 @@ export async function requireAiBiPersonalDataStorage(input:{companyId?:string|nu
   if(!canonicalPayload)throw new Error('ai_bi_personal_storage_complete_source_required')
   if(!isEvidenceUuid(input.companyId)||!isEvidenceUuid(input.actorUserId)||(input.environment!=='test'&&input.environment!=='production'))throw new Error('ai_bi_personal_storage_tenant_actor_required')
   const companyId=input.companyId,actorUserId=input.actorUserId,environment=input.environment
-  const processingDecision=await requireAiBiProcessingDecision({companyId,actorUserId,listType:types[0]})
+  const processingDecision=await requireAiBiProcessingDecision({companyId,actorUserId,environment,listType:types[0]})
   const tenant=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId,environment,asOf:new Date().toISOString(),requireExactCounts:true})
   if(!tenant.identity.roleCodes.includes('electricity_supplier')||headers.some(header=>header.supplierEdielId!==tenant.identity.legalEdielId))throw new Error('ai_bi_header_supplier_tenant_mismatch')
   for(const headerLine of headerLines){

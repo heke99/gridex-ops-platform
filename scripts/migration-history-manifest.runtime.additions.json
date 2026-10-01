@@ -77,6 +77,9 @@
     "20261001022426_ediel_blob_retention_review_reads.sql": "cb1a7fb53c1cb56d65805cfc5cf5e1de91c8e197ad9d254673e9c0d27d1fb7e6",
     "20261001022427_ediel_retention_public_owner_transfer_cleanup.sql": "d2abde72627e48ad9822493dbc8f7e7cbb375ce429ff8eeab48311016f617da7",
     "20261001000461_ediel_retention_public_owner_transfer_prerequisite.sql": "e472135360b67ea67fe1bb9cd84665e1d6e8dcb48ec61fbb283fa179b85b762d",
-    "20261001012305_ediel_customer_record_class_retention.sql": "b78d093f625a476a990b3786e8a02c87d41176586f673c172bf21a8830488db2"
+    "20261001012305_ediel_customer_record_class_retention.sql": "b78d093f625a476a990b3786e8a02c87d41176586f673c172bf21a8830488db2",
+    "20261001023514_ediel_network_registry_original_source_owner.sql": "4fc20e9ef58d215903bef7de5e3b5d67d8c6a8eb8f53e281a2900d5444c1a2ca",
+    "20261001000699_ediel_retention_source_trigger_prerequisite.sql": "fdbcf517b3cb9618fb1573869c9f60b57611e697d91bddb7e8b885746a098436",
+    "20261001023824_ediel_fresh_business_incident_immutable_ack_origin.sql": "073ba24a01b033ac2ce8167ba9da01c065d76a4d226f736598db46c9e11d4dc4"
   }
 }

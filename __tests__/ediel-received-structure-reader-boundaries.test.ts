@@ -42,7 +42,7 @@ function row(id = 'source-1', meter = 'meter-tenant-a', objectId = point) {
   return { id, company_id: COMPANY, environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04',
     metering_point_id: meter, raw_payload: wire, immutable_payload_hash: sha(wire), message_received_at: '2026-06-20T09:00:00Z' }
 }
-const matched = (transactionReference = 'GRIDEX2607E66001', externalMeteringPointId = point, meteringPointId = 'meter-tenant-a') => ({ transactionReference, externalMeteringPointId, meteringPointId, externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null })
+const matched = (transactionReference = 'GRIDEX2607E66001', externalMeteringPointId = point, meteringPointId = 'meter-tenant-a') => ({ transactionReference, externalMeteringPointId, meteringPointId, externalGridAreaId: 'TES', matchStatus: 'matched' as const, customerId: null, siteId: null, gridOwnerId: null })
 let incoming: ReturnType<typeof observationHandoffMessage>
 let sourceRows: ReturnType<typeof row>[]
 let dbError: unknown
@@ -128,8 +128,12 @@ it('the actual inbound processor cannot link point history when LOC+175 occurs a
   incoming.raw_payload = incoming.raw_payload!
     .replace("SEQ++1'", "SEQ++1'\nLOC+175+735999260731000007::9'")
     .replace("UNT+35+1'", "UNT+36+1'")
-  await execute()
-  expect(report().status).toBe('not_requested')
+  await expect(execute()).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+  const evidence=await readReceivedStructuralSources({message:incoming,transactionMatches:[matched()]})
+  expect(evidence.status).toBe('not_requested')
+  expect(io.update).not.toHaveBeenCalled()
+  expect(io.ack).not.toHaveBeenCalled()
+  expect(io.persist).not.toHaveBeenCalled()
   expect(io.scoped).not.toHaveBeenCalled()
   expect(io.from).not.toHaveBeenCalled()
   expect(io.ingest).not.toHaveBeenCalled()
@@ -138,8 +142,12 @@ it('the actual inbound processor cannot link point history when another LOC+172 
   incoming.raw_payload = incoming.raw_payload!
     .replace("SEQ++1'", `SEQ++1'\nLOC+172+${secondPoint}::9'`)
     .replace("UNT+35+1'", "UNT+36+1'")
-  await execute()
-  expect(report().status).toBe('not_requested')
+  await expect(execute()).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+  const evidence=await readReceivedStructuralSources({message:incoming,transactionMatches:[matched()]})
+  expect(evidence.status).toBe('not_requested')
+  expect(io.update).not.toHaveBeenCalled()
+  expect(io.ack).not.toHaveBeenCalled()
+  expect(io.persist).not.toHaveBeenCalled()
   expect(io.scoped).not.toHaveBeenCalled()
   expect(io.from).not.toHaveBeenCalled()
   expect(io.ingest).not.toHaveBeenCalled()

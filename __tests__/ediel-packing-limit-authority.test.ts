@@ -20,11 +20,18 @@ describe('packing limits have distinct authority from syntax', () => {
     expect(edielPayloadSizeRecommendation(10 * 1024 * 1024 + 1)?.severity).toBe('warning')
     expect(edielPayloadSizeRecommendation(1024)?.code).toBeUndefined()
   })
-  it('holds outgoing UTILTS above one MB but warns incoming without creating syntax codes', () => {
+  it('keeps one MB outgoing/incoming packing severity independent of actual whole syntax rejection', () => {
     const payload = raw('UTILTS', [`ZZZ+${'A'.repeat(1024 * 1024)}`])
-    expect(preflight(payload, 'send').issues.find(issue => issue.code === 'UTILTS_CONSERVATIVE_PACKING_LIMIT')?.severity).toBe('error')
-    expect(preflight(payload, 'parse').issues.find(issue => issue.code === 'UTILTS_CONSERVATIVE_PACKING_LIMIT')?.severity).toBe('warning')
-  })
+    const outgoing=preflight(payload,'send'),incoming=preflight(payload,'parse')
+    expect(outgoing.issues.find(issue => issue.code === 'UTILTS_CONSERVATIVE_PACKING_LIMIT')?.severity).toBe('error')
+    expect(incoming.issues.find(issue => issue.code === 'UTILTS_CONSERVATIVE_PACKING_LIMIT')?.severity).toBe('warning')
+    for(const result of [outgoing,incoming]){
+      expect(result.blocking).toBe(true)
+      expect(result.issues.some(issue=>issue.code==='UNSM_MESSAGE_STRUCTURE_INVALID'&&issue.severity==='error')).toBe(true)
+    }
+    // Real megabyte tokenization/full-directory validation is exercised here;
+    // the default five-second unit timeout is not a wire acceptance budget.
+  },45000)
   it('counts actual transaction occurrences for the conservative 999 outgoing limit', () => {
     const payload = raw('UTILTS', Array.from({ length: 1000 }, (_, index) => `IDE+24+T${index}`))
     expect(preflight(payload, 'send').issues.find(issue => issue.code === 'UTILTS_CONSERVATIVE_PACKING_LIMIT')?.description).toContain('1000 transaktioner')

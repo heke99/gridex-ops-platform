@@ -1,6 +1,7 @@
 import {it,expect,vi} from 'vitest'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
+import {renderProdatAperakDiagnosticRaw} from './helpers/prodatAperakDiagnosticRenderFixture'
 import {raw,line,characteristic,type Parts} from '@/__tests__/fixtures/prodat-register'
 import {head,own,source} from '@/__tests__/fixtures/prodat-identity'
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>({profileKey:'synthetic',sourceHash:'evidence',messageProfileId:'profile',rulePackId:'pack'})}))
@@ -9,8 +10,10 @@ it('observes source-owned missing invoicee child in qualified actual Z03',async(
  for(const name of ['Invoicee','']){
  const body:Parts[]=[...head(),...own('1','735123456789012345','CASE-A')];body.splice(6,0,...characteristic('Z04','Z01'));body.push(['NAD','Z02',['54321','160','SVK'],'','','','','','','SE'],['NAD','IV',['IVID','','89'],'',name,'Street','City','','12345','SE'])
  const wire=raw(body,'Z03'),msg=source(wire,'Z03'),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(p=>p.family==='APERAK')
- const draft=buildAperakDraft({sourceMessage:msg,outcome:p?.outcome === 'negative' ? 'negative' : 'positive',applicationErrors:p?.applicationErrors})
- if(name)expect(d.applicationDecision).toBe('accepted');else {expect(p?.applicationErrors?.map(e=>[e.ercCode,e.fieldCode])).toEqual([['41','251']]);expect(draft.rawPayload).toContain('FTX+AAO++251::260')}
+ const params={sourceMessage:msg,outcome:p?.outcome === 'negative' ? 'negative' as const : 'positive' as const,applicationErrors:p?.applicationErrors}
+ expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ const diagnostic=renderProdatAperakDiagnosticRaw(params)
+ if(name){expect(d.applicationDecision).toBe('accepted');expect(diagnostic).toContain('ERC+100::260')}else {expect(p?.applicationErrors?.map(e=>[e.ercCode,e.fieldCode])).toEqual([['41','251']]);expect(diagnostic).toContain('FTX+AAO++251::260')}
  }
 })
 it('observes subtype owner metadata for error only in second physical LIN',async()=>{
@@ -19,25 +22,27 @@ it('observes subtype owner metadata for error only in second physical LIN',async
  expect(d.issues.find(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber==='217')?.prodatDiagnostic).toMatchObject({occurrence:{messageReference:'M',lineIndex:1,lineNumber:'2',objectId:'735123456789012352',lineItemReference:'B'}})
  const planError=d.responsePlan.flatMap(p=>p.applicationErrors??[]).find(e=>e.fieldCode==='217');
  expect(planError?.prodatFieldDiagnostic).toMatchObject({occurrence:{messageReference:'M',lineIndex:1,lineNumber:'2',objectId:'735123456789012352',identityAgency:'9',registerPosition:1,lineItemReference:'B'}});
- const draft=buildAperakDraft({sourceMessage:source(wire,'Z06'),outcome:'negative',applicationErrors:[planError!]});
- expect(draft.rawPayload).toContain('RFF+LI:B');expect(draft.rawPayload).not.toContain('RFF+LI:A');
+ // The exact own second-object error does not authorize an unprocessed first
+ // sibling. The actual full renderer refuses an incomplete BGM34 response.
+ expect(()=>buildAperakDraft({sourceMessage:source(wire,'Z06'),outcome:'negative',applicationErrors:[planError!]})).toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING');
+ expect(planError?.lineItemReference).toBe('B');expect(planError?.lineItemReference).not.toBe('A');
 })
 
-for(const [field,element,invalid] of [['250',2,['ID','','WRONG']],['251',4,'N'.repeat(36)],['253',8,'1'.repeat(10)],['317',6,'C'.repeat(36)],['318',9,'lower']] as const){
+for(const [field,element,invalid] of [['250',2,['ID','','BAD']],['251',4,'N'.repeat(36)],['253',8,'1'.repeat(10)],['317',6,'C'.repeat(36)],['318',9,'se']] as const){
  it(`distinguishes supplied IV child ${field} absence from invalid content`,async()=>{
   for(const [value,kind,erc] of [['','missing','41'],[invalid,'invalid','42']] as const){
    const party:Array<Parts[number]>=['NAD','IV',['IVID','','89'],'','Invoicee','Street','City','','12345','SE'];party[element]=value;
    const body:Parts[]=[...head(),...own('1','735123456789012345','CASE-A')];body.splice(6,0,...characteristic('Z04','Z01'));body.push(['NAD','Z02',['54321','160','SVK'],'','','','','','','SE'],party);
    const d=await resolveCanonicalRuntimeDecisionWithRegistry(source(raw(body,'Z03'),'Z03'));
-   expect(d.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field&&i.prodatDiagnostic.errorKind===kind)).toBe(true);
-   if(field==='317'&&kind==='invalid'){
-    expect(d).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}});
-    expect(d.issues.map(i=>i.prodatDiagnostic)).toEqual(expect.arrayContaining([expect.objectContaining({kind:'field',fieldNumber:'317',failureEvidence:expect.arrayContaining([expect.objectContaining({content:value})]),occurrence:expect.objectContaining({objectId:'735123456789012345',lineItemReference:'CASE-A'})})]));
-    expect(d.responsePlan.flatMap(p=>p.applicationErrors??[]).some(e=>e.fieldCode==='317')).toBe(false);
-    expect(d.responsePlan.some(p=>p.family==='APERAK'&&p.outcome==='positive')).toBe(false);
-   }else{
-   expect(d.responsePlan.find(p=>p.family==='APERAK')?.applicationErrors).toEqual(expect.arrayContaining([expect.objectContaining({fieldCode:field,ercCode:erc})]));
+   if(kind==='invalid'&&['251','253','317'].includes(field)){
+    expect(d.syntaxDecision).toBe('rejected');
+    expect(d.issues.some(i=>i.code==='UNSM_ELEMENT_LENGTH_INVALID')).toBe(true);
+    expect(d.responsePlan).toEqual([expect.objectContaining({family:'CONTRL',outcome:'negative'})]);
+    expect(d.responsePlan.some(p=>p.family==='APERAK')).toBe(false);
+    continue;
    }
+   expect(d.issues.some(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field&&i.prodatDiagnostic.errorKind===kind), JSON.stringify({field,kind,syntax:d.syntaxDecision,issues:d.issues,responsePlan:d.responsePlan})).toBe(true);
+   expect(d.responsePlan.find(p=>p.family==='APERAK')?.applicationErrors).toEqual(expect.arrayContaining([expect.objectContaining({fieldCode:field,ercCode:erc})]));
   }
  });
 }

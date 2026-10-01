@@ -69,3 +69,22 @@ retention owner has neither. This confirms that the public fix does not imply
 Auth/Storage grantability. Authentic role/ACL diagnostics and a whole genuine
 clean/upgrade replay remain required; runtime auth actor locking is unresolved
 until those native grants or a separately qualified owner port are implemented.
+
+## Actual captured-source trigger name dependency
+
+Authentic clean110194926478 and upgrade110194926304 at`c163` passed00500 and
+00610, then00700 line68 rejected its DROP because original20260922095911
+names this specific trigger`received_sources_no_update_delete`. The generic
+`no_evidence_update_delete` name belongs to other evidence tables.
+
+CLI-created25430 is ordered00699 before unchanged00700. It validates the exact
+installed source trigger's function, BEFORE UPDATE/DELETE ROW mask, non-internal
+identity, zero arguments and enabled O/A mode, then renames it with ALTER TRIGGER.
+The same OID and complete catalog row except its name must remain unchanged.
+No trigger is disabled. The bounded red/green regression proves the old DROP
+name fails first, preserves UPDATE/DELETE refusal before and after the rename,
+and permits unchanged00700's later named replacement. The full existing SQL
+retention mechanism script now uses the original source-table trigger name and
+applies00699 before actual00700; all its archive/customer/blob/read phases pass.
+These remain synthetic SQL mechanisms. Genuine replay/runtime/browser evidence
+is pending; the separate Auth owner dependency is not solved by this rename.

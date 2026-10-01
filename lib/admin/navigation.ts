@@ -181,6 +181,8 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'ediel.bilateral_prodat_sources', label: 'Bilaterala PRODAT-underlag', href: '/admin/ediel/bilateral-prodat-sources', description: 'Original och separat granskning av eget meddelandescope', requiredPermissions: ['communication.read'] },
       { key: 'ediel.customer_record_retention', label: 'Klassbunden gallring', href: '/retention/customer-records', description: 'Separata gallringsunderlag för kundens uppgiftsklasser', requiredPermissions: ['ediel.retention.submit'] },
       { key: 'ediel.message_content_retention', label: 'Meddelande- och MIME-gallring', href: '/retention/message-content', description: 'Separata källbundna gallringsunderlag för meddelandebyte', requiredPermissions: ['ediel.retention.submit'] },
+      { key: 'ediel.network_registry_sources', label: 'Nätregisterunderlag', href: '/admin/ediel/network-registry-sources', description: 'Daterade nätoriginal och separat granskning', requiredPermissions: ['communication.read', 'customers.read', 'contracts.read'] },
+      { key: 'ediel.business_incidents', label: 'Affärsfel efter kvittens', href: '/admin/ediel/business-incidents', description: 'Nya observationer med bevarade originalkvittensers scope', requiredPermissions: ['communication.read'] },
       { key: 'ediel.ai_list', label: 'AI-lista', href: '/admin/ediel/ai-list', description: 'AI/BI-listor och avvikelsekontroll', requiredPermissions: ['communication.read', 'customers.read'] },
       { key: 'ediel.agt', label: 'Aktörstester', href: '/admin/ediel/agt', description: 'AGT-status och testpaket', pageKey: 'platform.actor_testing', platformOnly: true },
     ],

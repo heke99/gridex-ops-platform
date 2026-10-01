@@ -72,9 +72,9 @@ function incoming(held = false, mixed = false, date = '2026-10-01') {
 }
 const accepted = (id: string) => ({ transactionId: id, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' })
 const failed = { transactionId: 'GRIDEX2607E66001', disposition: 'processability_rejected', responseType: 'utilts_err', persistenceStatus: 'failed', issueCodes: ['UTILTS_PERSISTENCE_FAILED'] }
-it('persists an own observation unit guide rejection before drafting its negative ACK',async()=>{
+it('persists an own QTY unit guide rejection before drafting its negative ACK',async()=>{
   const message=incoming()
-  message.raw_payload=recountEdifactUnt(message.raw_payload!.replace("SEQ++1'","SEQ++1'\nMEA+AAZ++MWH'"))
+  message.raw_payload=recountEdifactUnt(message.raw_payload!.replace("QTY+136:500'","QTY+136:500:MWH'"))
   io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
   results=[{transactionId:'GRIDEX2607E66001',disposition:'guide_rejected',responseType:'negative_aperak',persistenceStatus:'not_applicable'}]
   await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
@@ -458,11 +458,11 @@ it('holds E66 point consumption when a LOC+175 appears after SEQ in the same phy
     .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
   const runtime = runUtiltsRuntimeForMessage(message)
   expect(runtime.facts.transactions[0].regulatingObjectPresent).toBe(true)
-  expect(runtime.transactionDispositions[0].disposition).toBe('accepted')
+  expect(runtime.transactionDispositions[0]).toMatchObject({disposition:'syntax_rejected',responseType:'negative_contrl'})
   io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
-  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
-  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
-  expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+  expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
+  expect(io.ack).not.toHaveBeenCalled()
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
@@ -472,9 +472,9 @@ it('holds E66 point consumption when a second LOC+172 appears after SEQ in the s
     .replace("SEQ++1'", "SEQ++1'\nLOC+172+735999260731000014::9'")
     .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
   io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
-  await processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })
-  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
-  expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
+  await expect(processInboundUtiltsMessage({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+  expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
+  expect(io.ack).not.toHaveBeenCalled()
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
@@ -489,10 +489,9 @@ it('holds an S01 point IDE with a second LOC+172 after SEQ before a market ACK',
     .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
   io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
-  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
-  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
-  expect(result.internalReviewRequired).toBe(true)
-  expect(persisted).toMatchObject([{ disposition: 'internal_review', responseType: 'none', quantities: [] }])
+  await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+  expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
+  expect(io.ack).not.toHaveBeenCalled()
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
@@ -515,16 +514,12 @@ it.each(['object-first', 'point-first'] as const)('holds both S01 %s object and 
   const unh = lines.findIndex(line => line.startsWith('UNH+'))
   lines[unt] = `UNT+${unt - unh + 1}+1'`
   message.raw_payload = lines.join('\n')
-  expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition)).toEqual(['accepted', 'accepted'])
+  expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition)).toEqual(['syntax_rejected', 'syntax_rejected'])
   io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
-  const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })
-  expect(result.internalReviewRequired).toBe(true)
-  const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
-  expect(persisted).toMatchObject([
-    { disposition: 'internal_review', responseType: 'none', quantities: [] },
-    { disposition: 'internal_review', responseType: 'none', quantities: [] },
-  ])
+  await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: 'actor', edielMessageId: message.id })).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+  expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
+  expect(io.ack).not.toHaveBeenCalled()
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
@@ -711,12 +706,13 @@ it('prior held reading, exempt energy and E19-rejected sibling retain three inde
  message.raw_payload=lines.join('\n');io.get.mockResolvedValue(qualifyUtiltsFixtureSource(message))
  results=[{transactionId:'GRIDEX2607E66001',disposition:'internal_review',responseType:'none',persistenceStatus:'not_applicable'},
   accepted('GRIDEX2607E66002'),{transactionId:'GRIDEX2607E66003',disposition:'processability_rejected',responseType:'utilts_err',persistenceStatus:'not_applicable'}]
- await processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})
+ await expect(processInboundUtiltsMessage({actorUserId:'actor',edielMessageId:message.id})).rejects.toThrow('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID')
  const persisted=io.rpc.mock.calls.find(([name])=>name==='gridex_persist_utilts_consumption_v1')![1].p_transactions
  expect(persisted).toMatchObject([{disposition:'internal_review',quantities:[]},
   {disposition:'accepted',quantities:[{value:'7'}]},{disposition:'processability_rejected',responseType:'utilts_err'}])
  expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='APERAK')).toHaveLength(1)
- expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='UTILTS_ERR')).toHaveLength(1)
+ expect(io.ack.mock.calls.filter(([call])=>call.ackFamily==='UTILTS_ERR')).toHaveLength(0)
+ expect(io.complete).not.toHaveBeenCalled()
  expect(io.meter).not.toHaveBeenCalled();expect(io.bill).not.toHaveBeenCalled()
 })
 

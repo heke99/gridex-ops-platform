@@ -179,6 +179,7 @@ jobs:
           export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
           export GRIDEX_BILATERAL_FIXTURE_PATH="$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json"
           export GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH="$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json"
+          export GRIDEX_AI_PURPOSE_FIXTURE_PATH="$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json"
           export GRIDEX_REGULATED_FIXTURE_PATH="$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json"
           export GRIDEX_RCS_FIXTURE_PATH="$RUNNER_TEMP/ediel-requested-change-browser-fixture.json"
           export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
@@ -204,6 +205,10 @@ jobs:
             NATIVE_SUITE_FAILED=1
           fi
           [[ -s "$GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          if ! npx vitest run --config scripts/ediel-ai-purpose-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-ai-purpose-native-junit.xml; then
+            NATIVE_SUITE_FAILED=1
+          fi
+          [[ -s "$GRIDEX_AI_PURPOSE_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
           # Missing prerequisites still fail this gate. Other independently
           # produced native/browser receipts remain collectible on the same head.
           [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || unset GRIDEX_EDIEL_CASE_FIXTURE_PATH
@@ -211,8 +216,9 @@ jobs:
           [[ -s "$GRIDEX_REGULATED_FIXTURE_PATH" ]] || unset GRIDEX_REGULATED_FIXTURE_PATH
           [[ -s "$GRIDEX_BILATERAL_FIXTURE_PATH" ]] || unset GRIDEX_BILATERAL_FIXTURE_PATH
           [[ -s "$GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH" ]] || unset GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH
+          [[ -s "$GRIDEX_AI_PURPOSE_FIXTURE_PATH" ]] || unset GRIDEX_AI_PURPOSE_FIXTURE_PATH
           npx playwright install --with-deps chromium
-          if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs e2e/browser/ediel-bilateral-customer-source-local.spec.mjs e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
+          if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs e2e/browser/ediel-bilateral-customer-source-local.spec.mjs e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs e2e/browser/ediel-ai-purpose-local.spec.mjs e2e/browser/ediel-network-registry-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
             NATIVE_SUITE_FAILED=1
           fi
           if [[ -s "${GRIDEX_EDIEL_CASE_FIXTURE_PATH:-}" ]]; then
@@ -241,6 +247,12 @@ jobs:
               NATIVE_SUITE_FAILED=1
             fi
           fi
+          if [[ -s "${GRIDEX_AI_PURPOSE_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_AI_PURPOSE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-ai-purpose-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-ai-purpose-after-browser-junit.xml; then
+              NATIVE_SUITE_FAILED=1
+            fi
+          fi
+          rm -f "${GRIDEX_AI_PURPOSE_FIXTURE_PATH:-}"
           rm -f "${GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH:-}"
           rm -f "${GRIDEX_BILATERAL_FIXTURE_PATH:-}"
           rm -f "${GRIDEX_REGULATED_FIXTURE_PATH:-}"
@@ -288,8 +300,9 @@ jobs:
             --root rem002-requested-change-native-junit.xml --root rem002-requested-change-after-browser-junit.xml \
             --root rem002-regulated-supply-native-junit.xml --root rem002-regulated-supply-after-browser-junit.xml \
             --root rem002-bilateral-customer-native-junit.xml --root rem002-bilateral-customer-after-browser-junit.xml \
-            --root rem002-bilateral-prodat-native-junit.xml --root rem002-bilateral-prodat-after-browser-junit.xml
-          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json" "$RUNNER_TEMP/ediel-requested-change-browser-fixture.json" "$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json"
+            --root rem002-bilateral-prodat-native-junit.xml --root rem002-bilateral-prodat-after-browser-junit.xml \
+            --root rem002-ai-purpose-native-junit.xml --root rem002-ai-purpose-after-browser-junit.xml
+          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json" "$RUNNER_TEMP/ediel-requested-change-browser-fixture.json" "$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json" "$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json"
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -310,6 +323,8 @@ jobs:
             rem002-bilateral-customer-after-browser-junit.xml
             rem002-bilateral-prodat-native-junit.xml
             rem002-bilateral-prodat-after-browser-junit.xml
+            rem002-ai-purpose-native-junit.xml
+            rem002-ai-purpose-after-browser-junit.xml
             e2e-artifacts/
           if-no-files-found: error
 

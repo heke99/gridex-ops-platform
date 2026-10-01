@@ -321,6 +321,7 @@ const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
     area: 'Dokument',
     risk: 'high',
   },
+  {key:'ediel.network_registry.review',label:'Granska nätregisterunderlag',description:'Separat bolagsbunden granskning av daterat original, autentisk nätutfärdare och representation.',area:'Ediel',risk:'high'},
   {
     key: 'ediel.ai_purpose.review',
     label: 'Granska AI-ändamålsunderlag',

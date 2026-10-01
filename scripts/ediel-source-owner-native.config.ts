@@ -40,5 +40,7 @@ export default defineConfig({
     'scripts/ediel-bilateral-prodat-profile-native.test.ts',
     'scripts/ediel-ai-purpose-source-native.test.ts',
     'scripts/ediel-customer-record-retention-native.test.ts',
+    'scripts/ediel-ai-network-original-native.test.ts',
+    'scripts/ediel-fresh-business-incident-native.test.ts',
   ],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })

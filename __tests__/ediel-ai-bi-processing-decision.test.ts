@@ -54,3 +54,9 @@ it('names native physical columns through the shared positional adapter',()=>{
  expect(projectAiBiStoredRawColumns({physical_columns:columns})).toMatchObject({grid_area:'NET',customer_identity:'199001011234',customer_name:'Person'})
  expect(()=>projectAiBiStoredRawColumns({physical_columns:columns.slice(1)})).toThrow('ai_bi_stored_columns_invalid')
 })
+
+it('uses the exact protected environment decision port and rejects a foreign environment receipt',async()=>{
+ io.rpc.mockResolvedValue({data:{status:'authorized',decision:{id:sourceMessageId,companyId,listType:'AI',environment:'production',purpose:'ediel_list_reconciliation',revision:1,gdprBasis:'SYNTHETIC',retentionDays:30,retentionUntil:'2026-11-01',sourceReference:'SYNTHETIC',sourceSha256:'a'.repeat(64),ownerRegistryId:sourceMessageId,ownerRegistryVersion:'SYNTHETIC'}},error:null})
+ await expect(requireAiBiProcessingDecision({...scope,environment:'test'})).rejects.toThrow('ai_bi_processing_decision_invalid')
+ expect(io.rpc).toHaveBeenCalledWith('ediel_ai_bi_processing_decision_v2',{p_company_id:companyId,p_actor_user_id:actorUserId,p_list_type:'AI',p_environment:'test'})
+})

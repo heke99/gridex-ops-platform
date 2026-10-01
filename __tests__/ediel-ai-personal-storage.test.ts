@@ -29,7 +29,7 @@ it('never fixes padded headers, malformed full records or mixed AI/BI containers
 it('requires actual canonical supplier identity rather than mailbox company or transport hints',async()=>{
  io.decision.mockResolvedValue({id:decisionId});io.tenant.mockResolvedValue({identity:{legalEdielId:'99999',roleCodes:['electricity_supplier']}})
  await expect(requireAiBiPersonalDataStorage(input)).rejects.toThrow('ai_bi_header_supplier_tenant_mismatch')
- expect(io.rpc).not.toHaveBeenCalled()
+ expect(io.rpc).not.toHaveBeenCalled();expect(io.decision).toHaveBeenCalledWith({companyId,actorUserId,environment:'test',listType:'AI'})
 })
 it('keeps missing authenticated network-register version held even after a synthetic legal-decision mock',async()=>{
  io.decision.mockResolvedValue({id:decisionId});io.tenant.mockResolvedValue({identity:{legalEdielId:'12345',roleCodes:['electricity_supplier']}})

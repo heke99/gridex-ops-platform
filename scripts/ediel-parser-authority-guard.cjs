@@ -52,9 +52,11 @@ const REQUIRED_CONTRACTS = [
     file: 'lib/ediel/utilts.ts',
     mustContain: [
       'tokenizeEdifact(rawPayload)',
-      'segmentComposite(segment, 1, una)',
       'extractQty(qtySegment, tokenized.una)',
       'extractDateFromDtm(dtm137Segment, tokenized.una)',
+    ],
+    mustMatch: [
+      ['segmentComposite of the canonical segment or its untrimmed raw source', /\bsegmentComposite\s*\(\s*(?:segment|\{\s*\.\.\.segment\s*,\s*raw\s*:\s*segmentUntrimmedRaw\s*\(\s*segment\s*\)\s*\})\s*,\s*1\s*,\s*una\s*\)/],
     ],
     forbidden: [
       // Legacy elements have already decoded release characters. Parsing them
@@ -82,6 +84,9 @@ function scanParserAuthority(root = process.cwd()) {
       if (!source.includes(token)) {
         violations.push(`${contract.file}: must consume ${token}`)
       }
+    }
+    for (const [label, pattern] of contract.mustMatch ?? []) {
+      if (!pattern.test(source)) violations.push(`${contract.file}: must consume ${label}`)
     }
     for (const [label, pattern] of contract.forbidden) {
       if (pattern.test(source)) {

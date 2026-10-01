@@ -13,6 +13,16 @@ const source = wire(sourceBody, 'PRODAT:D:97A:UN:E2SE6A')
 const ack = (body = ackBody) => wire(body, 'APERAK:D:96A:UN:E2SE6A', '22222', '11111')
 
 describe('P16B and original96A exact own-reference source conflict', () => {
+  it.each(['100','40','41','42'])('keeps exact dual-own-reference hold for actual own ERC%s without treating positive100 as an exception', code => {
+    const body=ackBody.map(segment=>segment==='ERC+100::260'?`ERC+${code}::260`:segment)
+    const rawAck=ack(body)
+    expect(diagnoseProdatAperakOwnReferenceConflict(rawAck,source)).toHaveLength(1)
+    expect(validateUnsmGrammar(rawAck).syntaxOk).toBe(false)
+    expect(preflightEdielPayload({rawPayload:rawAck,messageStandard:'edifact',mode:'send'}).blocking).toBe(true)
+    expect(prodatAperakDualReferenceConflict.national.ercApplicability.positiveCode).toBe('100')
+    expect(prodatAperakDualReferenceConflict.national.ercApplicability.sourceFinding).toContain('p105 har ingen negativ-ERC-avgränsning')
+  })
+
   it('reports both conditional national references and exact nested original directory cardinality separately', () => {
     expect(prodatAperakDualReferenceConflict.directory.locator).toContain('SG4 C1 / RFF M1')
     expect(prodatAperakDualReferenceConflict.national.z07Condition).toContain('anläggnings-id finns')
