@@ -101,6 +101,51 @@ try{
  await db.exec('DROP TRIGGER synthetic_late_policy_deny ON gridex_received_sources.production_contract_events')
  await assert.rejects(()=>db.exec(`UPDATE gridex_contract_source_intake.artifacts SET claims='{}' WHERE id=${q(master.artifactId)}`),/immutable/);checks++
  for(const role of ['anon','authenticated','service_role']){check((await db.query(`SELECT has_table_privilege(${q(role)},'gridex_contract_source_intake.artifacts','INSERT') a`)).rows[0].a,false);check((await db.query(`SELECT has_function_privilege(${q(role)},'public.ediel_review_contract_original_source_v1(uuid,uuid,uuid,jsonb)','EXECUTE') a`)).rows[0].a,role==='authenticated')}
+
+ // WIP: no terminal-authority migration is installed yet. These five cases
+ // intentionally fail on the preserved original implementation.
+ // Actual actor_v1 and all public bodies remain installed. Only the finite
+ // permission port and labelled waits below are synthetic. A deny becomes
+ // current during the wait; no actor=true substitute or historical fallback.
+ await db.exec(`CREATE TABLE public.synthetic_terminal_denies(company_id uuid,user_id uuid,permission text,valid_from timestamptz);
+ CREATE OR REPLACE FUNCTION public.gridex_actor_has_company_permission(a uuid,c uuid,k text) RETURNS boolean LANGUAGE sql AS $$SELECT EXISTS(SELECT FROM public.synthetic_grants WHERE company_id=c AND user_id=a AND permission=k AND allowed) AND NOT EXISTS(SELECT FROM public.synthetic_terminal_denies WHERE company_id=c AND user_id=a AND permission=k AND valid_from<=clock_timestamp())$$;
+ CREATE FUNCTION public.synthetic_terminal_wait(a uuid,k text) RETURNS void LANGUAGE plpgsql AS $$BEGIN INSERT INTO public.synthetic_terminal_denies VALUES(${q(id(1))},a,k,clock_timestamp()+interval '20 milliseconds');PERFORM pg_sleep(0.04);END$$;`)
+ const terminalLeaks=[],terminalBaseline=process.env.GRIDEX_INTAKE_TERMINAL_BASELINE==='1'
+ const terminalTables=['gridex_contract_source_intake.artifacts','gridex_contract_source_intake.reviews','gridex_contract_source_intake.qualifications','public.audit_logs','gridex_customer_masterdata.signed_declarations','gridex_metering_method_changes.contract_request_declarations','gridex_metering_method_changes.events','gridex_received_sources.production_contract_events','public.synthetic_terminal_denies']
+ const terminalCounts=async()=>Promise.all(terminalTables.map(async tab=>(await db.query('SELECT count(*)::int n FROM '+tab)).rows[0].n))
+ const lateReject=async(label,operation)=>{
+  const before=await terminalCounts();let error
+  if(terminalBaseline)await db.exec('BEGIN')
+  try{await operation()}catch(e){error=e}
+  if(terminalBaseline)await db.exec('ROLLBACK')
+  if(!error){terminalLeaks.push(label);console.log(JSON.stringify({status:'BASELINE_RETURNED_AFTER_TIMED_DENY',label}));return}
+  assert.ok(error.code==='42501'||/policy_changed_at_native_approval/.test(error.message),label+': '+error.message);checks++
+  check(await terminalCounts(),before)
+ }
+ const injectWait=async(signature,needle,actorId,permission)=>{
+  const f=(await db.query(`SELECT prosrc,pg_get_functiondef(oid) definition FROM pg_proc WHERE oid=${q(signature)}::regprocedure`)).rows[0]
+  assert.equal(f.prosrc.split(needle).length,2,signature+' exact wait point')
+  const body=f.prosrc.replace(needle,`PERFORM public.synthetic_terminal_wait(${q(id(actorId))},${q(permission)});`+needle)
+  await db.exec(f.definition.replace(f.prosrc,body));return async()=>db.exec(f.definition)
+ }
+ await actor(3)
+ // Held/rejected review inserts both the review and audit before returning.
+ await db.exec(`CREATE FUNCTION public.synthetic_terminal_audit_wait() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.action='ediel.contract_original.reviewed' AND NEW.entity_id=${q(bad.artifactId)} THEN PERFORM public.synthetic_terminal_wait(${q(id(3))},'ediel.source.review');END IF;RETURN NEW;END$$;CREATE TRIGGER synthetic_terminal_audit_wait AFTER INSERT ON public.audit_logs FOR EACH ROW EXECUTE FUNCTION public.synthetic_terminal_audit_wait();`)
+ for(const decision of ['hold','reject'])await lateReject('contract review '+decision+' after audit',()=>call('ediel_review_contract_original_source_v1',[id(1),id(3),bad.artifactId,{...review(bad),decision}]))
+ await db.exec('DROP TRIGGER synthetic_terminal_audit_wait ON public.audit_logs;DROP FUNCTION public.synthetic_terminal_audit_wait()')
+ // The final source-row read follows the stored reviewer check. Exercise both
+ // fresh qualification and established replay at that actual query boundary.
+ let restoreWait=await injectWait('gridex_contract_source_intake.current_v1(uuid,text,uuid)',"EXECUTE format('SELECT to_jsonb(r)",3,'ediel.source.review')
+ await lateReject('contract fresh qualified final source wait',()=>call('ediel_review_contract_original_source_v1',[id(1),id(3),bad.artifactId,review(bad)]))
+ await lateReject('contract qualified replay final source wait',()=>call('ediel_review_contract_original_source_v1',[id(1),id(3),master.artifactId,review(master)]))
+ await restoreWait()
+ // Current reader may differ from the original reviewer. Its own read
+ // permission must remain current after the actual selected source-row wait.
+ await actor(2);restoreWait=await injectWait('gridex_contract_source_intake.current_v1(uuid,text,uuid)',"EXECUTE format('SELECT to_jsonb(r)",2,'contracts.read')
+ await lateReject('contract read final source wait',()=>call('ediel_read_contract_original_source_v1',[id(1),id(2),master.artifactId]))
+ await restoreWait()
+ check(terminalLeaks,[])
+
  await db.exec(`INSERT INTO gridex_contract_source_intake.revocations(target_kind,target_id,source_reference,source_hash,actor_user_id) VALUES('key',${q(id(60))},'SYNTHETIC revoked issuer',${q('d'.repeat(64))},${q(id(3))})`)
  await actor(2);check((await call('ediel_read_contract_original_source_v1',[id(1),id(2),master.artifactId])).status,'held')
  await actor(3);const held=await call('ediel_review_contract_original_source_v1',[id(1),id(3),bad.artifactId,review(bad)]);check(held.status,'held');check(held.missing,['current_authentic_issuer_receipt_and_legal_representation'])
