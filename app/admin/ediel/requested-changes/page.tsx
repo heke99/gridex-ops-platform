@@ -8,10 +8,11 @@ export default async function RequestedChangesPage({searchParams}:{searchParams:
  if(!access.companyId||!['communication.read','customers.read'].every(p=>access.permissions.includes(p)))return <main className="p-6"><h1 className="text-xl font-semibold">Ändringsunderlag</h1><p>Välj ett bolag där du har behörighet att läsa kommunikation och kunder.</p></main>
  const db=await createSupabaseServerClient(),companyId=access.companyId
  // Current authenticated RLS and explicit selected-company scope both apply.
- const [periods,customers,points]=await Promise.all([
-  db.from('customer_supply_periods').select('id,customer_id,metering_point_id,contract_id,customer_contract_id,start_date,end_date').eq('company_id',companyId).order('start_date',{ascending:false}).limit(100),
-  db.from('customers').select('id,customer_reference,full_name,name,first_name,last_name,personal_number,org_number,billing_street,billing_city,billing_postal_code,billing_country').eq('company_id',companyId).limit(100),
-  db.from('metering_points').select('id,ediel_metering_point_id').eq('company_id',companyId).limit(100),
+ const periods=await db.from('customer_supply_periods').select('id,customer_id,metering_point_id,contract_id,customer_contract_id,start_date,end_date').eq('company_id',companyId).order('start_date',{ascending:false}).limit(100)
+ const customerIds=[...new Set((periods.data??[]).map(p=>p.customer_id).filter((id):id is string=>Boolean(id)))],pointIds=[...new Set((periods.data??[]).map(p=>p.metering_point_id).filter((id):id is string=>Boolean(id)))]
+ const [customers,points]=await Promise.all([
+  customerIds.length?db.from('customers').select('id,customer_reference,full_name,name,first_name,last_name,personal_number,org_number,billing_street,billing_city,billing_postal_code,billing_country').eq('company_id',companyId).in('id',customerIds):Promise.resolve({data:[],error:null}),
+  pointIds.length?db.from('metering_points').select('id,ediel_metering_point_id').eq('company_id',companyId).in('id',pointIds):Promise.resolve({data:[],error:null}),
  ])
  if(periods.error||customers.error||points.error)return <main className="p-6"><h1 className="text-xl font-semibold">Ändringsunderlag</h1><p role="alert">Bolagets underlag kunde inte läsas. Försök igen när behörighet och anslutning har kontrollerats.</p></main>
  const choices:SourceChoice[]=[]

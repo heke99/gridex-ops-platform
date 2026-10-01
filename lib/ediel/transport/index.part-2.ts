@@ -2,6 +2,7 @@ import {captureEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePac
 import {loadRecoveryReportingValidationContext} from '@/lib/ediel/recovery/reportingContext'
 import {assertRequestedChangeSendSource} from '@/lib/ediel/production/requestedChangeSource'
 import {assertBrpChangeSendSource} from '@/lib/ediel/production/brpChangeSource'
+import {assertMeteringMethodChangeSendSource} from '@/lib/ediel/production/meteringMethodChangeSource'
 import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeText'
 import { assertEdifactLatin1Representable, encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
 import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
@@ -18,13 +19,13 @@ import {loadServiceReportingValidationContext} from '@/lib/ediel/services/report
 import {hasProdatDateEventMessage} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {loadProdatDateEventValidationContext} from '@/lib/ediel/production/dateEventContext'
 import {assertRulebookAllowsSend, assertRegistryRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
-import { prepareEdielBusinessExpectationPlan, registerEdielBusinessExpectations } from '@/lib/ediel/businessExpectations'
+import { prepareEdielBusinessExpectationPlan, prepareEdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
 import {assertEdielSendLock} from './sendLock'
 import { inspectCmsRecipientCertificateSet } from './cmsRecipientSet'
 import { resolveSourceQualifiedNegativeFixtureForMessage } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import { readProdatTransportRetryBasis } from '@/lib/ediel/recovery/transportRetry'
 import { readAcceptedEdielTransportProjection } from './acceptedProjection'
-import { repairAcceptedEdielMessageProjection } from './acceptedProjectionRepair'
+import { repairAcceptedEdielMessageProjection, repairObservedEdielSmtpProjection } from './acceptedProjectionRepair'
 import {readTransportExceptionAuthorization,plaintextTransportException,withTransportExceptionCertificateScope,type TransportExceptionAuthorization} from './exception/source'
 // Extracted from index.ts; keep public imports on the facade module.
 
@@ -33,7 +34,7 @@ import {readTransportExceptionAuthorization,plaintextTransportException,withTran
 
 
 
-import { updateEdielMessageStatus, createEdielMessageEvent } from '@/lib/ediel/db'
+import { createEdielMessageEvent } from '@/lib/ediel/db'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
 
 
@@ -370,6 +371,7 @@ export async function sendEdielMessageViaSmtp(
   if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
   await assertBrpChangeSendSource(message, actorUserId)
   const requestedChangeBasis = isEdifactMessage(message) ? await assertRequestedChangeSendSource(message, actorUserId) : null
+  await assertMeteringMethodChangeSendSource(message, actorUserId)
   await assertUtiltsPositiveAckAuthorityForSend(message)
   assertAiListOutboundMessage(message)
   await assertScopedEdielProductionCapability(message)
@@ -412,6 +414,7 @@ export async function sendEdielMessageViaSmtp(
     family: policy.family, code: policy.code, subtype: policy.subtype, profileKey: policy.profileKey,
     guide: policy.guide, associationAssignedCode: policy.associationAssignedCode, sourceTrace: policy.sourceTrace }) : null
   const businessExpectationPlan = policy ? prepareEdielBusinessExpectationPlan(message, policy) : null
+  const technicalExpectationPlan = policy ? prepareEdielTechnicalExpectationPlan(message, policy) : null
 
   if (!message.company_id) throw new Error('ediel_transport_company_required')
   const recoveryAuthorization = params?.dispatchOwner?.kind === 'worker'
@@ -561,7 +564,7 @@ export async function sendEdielMessageViaSmtp(
 
   const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
-    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,transportException,
+    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,transportException,
   })
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
@@ -874,17 +877,13 @@ export async function sendEdielMessageViaSmtp(
     // read. Consume its journal under the same atomic repair lock, preserving
     // a later acknowledgement instead of writing a stale sent projection.
     try {
-      const projection = await readAcceptedEdielTransportProjection({ companyId: message.company_id,
-        environment: message.environment, actorUserId, messageId: message.id })
-      if (!projection) throw new Error('ediel_accepted_projection_receipt_unavailable')
-      const repaired = await repairAcceptedEdielMessageProjection({ message, actorUserId, projection })
+      const repaired = await repairObservedEdielSmtpProjection({ message, actorUserId, observedAt: dispatchObservedAt, smtpMessageId: result.messageId ?? null })
       return { accepted: repaired.providerReceipt.accepted, rejected: [], messageId: repaired.providerReceipt.messageId,
         dispatchObservedAt: repaired.observedAt }
     } catch (error) { throw new SmtpDeliveryUncertainError(error, result.messageId ?? null) }
   }
   try {
-    if (businessExpectationPlan && message.company_id) await registerEdielBusinessExpectations({ companyId: message.company_id,
-      environment: message.environment, messageId: message.id, actorUserId })
+    await repairObservedEdielSmtpProjection({ message, actorUserId, observedAt: dispatchObservedAt, smtpMessageId: result.messageId ?? null })
     await supabaseService
       .from('ediel_messages')
       .update({
@@ -897,16 +896,11 @@ export async function sendEdielMessageViaSmtp(
         updated_at: new Date().toISOString(),
       })
       .eq('id', message.id)
+      .eq('company_id', message.company_id)
+      .eq('environment', message.environment)
       .then(({ error }) => {
         if (error) throw error
       })
-
-    await updateEdielMessageStatus({
-      actorUserId,
-      edielMessageId: message.id,
-      status: 'sent',
-      messageSentAt: result.dispatchObservedAt,
-    })
 
     await createEdielMessageEvent({
       actorUserId,

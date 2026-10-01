@@ -15,6 +15,7 @@ import {
 } from '@/lib/ediel/core/dedupe'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {isListedProdatDocumentCode,prodatDocumentValue} from '@/lib/ediel/prodat/prodatDocumentFields'
 import { prepareEdielOutboundOwnerWitness } from '@/lib/ediel/core/outboundOwnerWitness'
 import type { EdielSourceRulePackEvidence } from '@/lib/ediel/core/sourceRulePackEvidence'
@@ -372,7 +373,9 @@ export async function createCanonicalAckMessage(params: {
       senderEdielId:route.senderEdielId,senderSubAddress:route.senderSubAddress,senderEmail:route.senderEmail,
       receiverEdielId:route.receiverEdielId,receiverSubAddress:route.receiverSubAddress,receiverEmail:route.receiverEmail,
       mailbox:route.mailbox,applicationReference:evidence.identities.applicationReference,relatedMessageId:sourceMessage.id,
-      sourceOperationId:`ediel_ack:${sourceMessage.id}:APERAK:message`,ackOutcome:'negative',canonicalRulePackId:null,
+      sourceOperationId:`ediel_ack:${sourceMessage.id}:APERAK:message`,ackOutcome:'negative',
+      externalReference:params.draft.externalReference ?? refs.externalReference,transactionReference:params.draft.transactionReference ?? refs.transactionReference,
+      correlationReference:params.draft.correlationReference ?? refs.correlationReference,canonicalRulePackId:null,
       ruleProfileKey:null,ruleProfileVersionId:null,ruleProfileVersion:null,rulePackChecksum:null,rulePackSnapshot:null,
       executionContextSnapshot:null,outboundRequestId:null,switchRequestId:null,gridOwnerDataRequestId:null,partnerExportId:null,
       customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null,originalMessageCode:null}
@@ -409,14 +412,12 @@ export async function createCanonicalAckMessage(params: {
     ackFamily: params.ackFamily,
   })
 
-  const refs = allowSequencedUtiltsErr || allowSequencedTransactionAck
-    ? {
+  const refs = {
         ...baseRefs,
         externalReference: draftWithSourceSnapshot.externalReference ?? baseRefs.externalReference,
         transactionReference: draftWithSourceSnapshot.transactionReference ?? baseRefs.transactionReference,
         correlationReference: draftWithSourceSnapshot.correlationReference ?? baseRefs.correlationReference,
       }
-    : baseRefs
 
   const input: CreateEdielMessageInput = {
     ...draftWithSourceSnapshot,

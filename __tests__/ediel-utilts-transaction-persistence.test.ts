@@ -64,7 +64,7 @@ describe('UTILTS transaction persistence payload', () => {
     expect(payload[0]?.transactionId).toBe('transaction-1')
   })
 
-  it('fallback ACK targets keep null IDE+24 groups via transaction-N synthesis', () => {
+  it('does not turn a missing physical IDE+24 into an ACK target', () => {
     const message = {
       message_family: 'UTILTS',
       raw_payload:
@@ -73,13 +73,7 @@ describe('UTILTS transaction persistence payload', () => {
         "LOC+172+735999000000000001'QTY+220:1.5'UNT+5+1'UNZ+1+REF1'",
     } as EdielMessageRow
 
-    expect(getUtiltsAckTransactionTargets(message)).toEqual([
-      expect.objectContaining({
-        reference: 'transaction-1',
-        transactionId: null,
-        meterPointId: '735999000000000001',
-      }),
-    ])
+    expect(getUtiltsAckTransactionTargets(message)).toEqual([])
   })
 
   it('tenant match builder synthesizes the same null-id fallback used by persistence/ACK', () => {

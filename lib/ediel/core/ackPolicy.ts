@@ -2,7 +2,7 @@
 
 import type { EdielAckStatus, EdielMessageRow } from '@/lib/ediel/types'
 import { getEdielRouteRuntimeByCommunicationRouteId } from '@/lib/ediel/config'
-import { listAckMessagesForSource } from '@/lib/ediel/db'
+import {readOutboundAckOriginals} from './outboundAckOriginals'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
 import {
   canonicalAckRequirementsForFamilyCode,
@@ -233,36 +233,39 @@ export async function getAutomaticAckPolicy(sourceMessage: EdielMessageRow): Pro
   }
 }
 
-function inferAckOutcomeFromRow(row: EdielMessageRow): AckOutcome | null {
-  if (row.ack_outcome === 'positive' || row.ack_outcome === 'negative') return row.ack_outcome
-  const payload = row.parsed_payload ?? {}
-  const payloadOutcome = payload.ackOutcome === 'positive' || payload.ackOutcome === 'negative' ? payload.ackOutcome : null
-  if (payloadOutcome) return payloadOutcome
-
-  if (row.message_family === 'CONTRL') {
-    if (row.syntax_check_status === 'ok' || row.syntax_check_status === 'warning') return 'positive'
-    if (row.syntax_check_status === 'failed') return 'negative'
-    return null
-  }
-  if (row.message_family === 'APERAK' || row.message_family === 'UTILTS_ERR') {
-    if (row.functional_check_status === 'ok' || row.functional_check_status === 'warning') return 'positive'
-    if (row.functional_check_status === 'failed') return 'negative'
-  }
-  return null
-}
-
 export async function findExistingAckForSource(params: {
   sourceMessageId: string
   ackFamily: AckFamily
   outcome?: AckOutcome
+  ackScope?: 'interchange'|'message'|'transaction'|'object'
+  transactionReference?: string
+  acknowledgedReferences?: readonly string[]
 }): Promise<EdielMessageRow | null> {
-  const rows = await listAckMessagesForSource({ sourceMessageId: params.sourceMessageId, ackFamily: params.ackFamily })
-  return rows.find((row: EdielMessageRow) => {
-    const status = String(row.status ?? '').trim().toLowerCase()
-    if (status === 'cancelled' || status === 'failed') return false
-    if (params.outcome === undefined) return true
-    return inferAckOutcomeFromRow(row) === params.outcome
-  }) ?? null
+  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily)
+  const references=[...new Set([...(params.acknowledgedReferences??[]),...(params.transactionReference?[params.transactionReference]:[])])]
+  for(const original of originals){
+    const {correlation}=original
+    const wholeCoverage=correlation.wholeSourceOutcome!==undefined && ['message','interchange'].includes(correlation.scope)
+    if(params.ackScope && correlation.scope!==params.ackScope && !wholeCoverage)continue
+    if(references.length && ['transaction','object'].includes(correlation.scope)
+      && !references.every(reference=>correlation.acknowledgedReferences.includes(reference)))continue
+    if(references.length && !['transaction','object'].includes(correlation.scope) && !wholeCoverage)continue
+    if(original.status==='held')throw new Error('ediel_existing_ack_original_basis_unavailable')
+    const outcomes=references.length && correlation.scope==='object'
+      ? references.map(reference=>correlation.scopedOutcomes?.find(result=>result.reference===reference)?.outcome)
+      : [wholeCoverage?correlation.wholeSourceOutcome:correlation.classification.outcome]
+    if(outcomes.some(outcome=>outcome!=='positive'&&outcome!=='negative'))throw new Error('ediel_existing_ack_original_outcome_unavailable')
+    if(params.outcome!==undefined && !outcomes.every(outcome=>outcome===params.outcome))continue
+    // This is only an aggregate of the requested own groups. The caller keeps
+    // their separate physical scoped results when checking immutable conflicts.
+    const outcome=outcomes.some(value=>value==='negative')?'negative':'positive'
+    if(outcome!=='positive'&&outcome!=='negative')throw new Error('ediel_existing_ack_original_outcome_unavailable')
+    if(params.outcome!==undefined&&outcome!==params.outcome)continue
+    // A read projection only. The returned actual original keeps status/raw/ID;
+    // mutable public outcome/cache fields cannot reinterpret its response.
+    return {...original.message,ack_outcome:outcome,parsed_payload:{...original.message.parsed_payload,ackOutcome:outcome}}
+  }
+  return null
 }
 
 function isPending(status: EdielAckStatus | null | undefined): boolean {

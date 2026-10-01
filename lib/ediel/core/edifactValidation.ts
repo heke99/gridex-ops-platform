@@ -1,6 +1,10 @@
 import { segmentComposite, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 
+// Separate full business-directory authority; envelope-only callers keep their
+// bounded service contract and cannot silently inherit national table grammar.
+export { validateUnsmGrammar, type UnsmGrammarResult } from './unsmGrammar'
+
 export type EdifactEnvelopeIssueCode =
   | 'missing_unb' | 'missing_unh' | 'missing_unt' | 'missing_unz'
   | 'unt_count_mismatch' | 'unt_unh_reference_mismatch' | 'unz_unb_reference_mismatch'

@@ -77,9 +77,12 @@ function nativeTestWire(wire:string):string {
   field+=char
  }
  fields.push(field)
- while(fields.length<10)fields.push('')
+ while(fields.length<12)fields.push('')
+ // Preserve the existing technical acknowledgement request separately.
  fields[9]='1'
+ fields[11]='1'
  const stamped=wire.slice(0,span!.startOffset)+fields.join(una.dataElementSeparator)+wire.slice(span!.endOffset)
+ expect(tokenizeEdifact(stamped).segments.find(segment=>segment.tag==='UNB')?.elements[11]).toBe('1')
  expect(tokenizeEdifact(stamped).segments.find(segment=>segment.tag==='UNB')?.elements[9]).toBe('1')
  return stamped
 }

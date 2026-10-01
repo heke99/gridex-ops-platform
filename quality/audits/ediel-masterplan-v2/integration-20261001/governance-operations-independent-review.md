@@ -1,0 +1,11 @@
+# 27 whole-literal GOV/OPS/SC reviews
+
+The companion JSON preserves each of the 27 original criteria and records actual code-file hashes, test boundaries, findings and per-row missing evidence. Review base is `c84dd3592cf282a19026623a3ad64d71041b02ac`; it is not the final frozen integration candidate. No row is declared approved from broad green tests. Root must compare reviewed source hashes to the final candidate and attach that exact candidate's authentic replay, generated artifacts, native/HTTP, interactive browser, build and CI receipts.
+
+Executed source governance: 98/98. Executed ten focused GOV/OPS unit files: 65/65, with their declared isolated ports. New SC-072 real-source integration: 3/3. The actual codec constant is corrupted only in memory, independently exchanging sender/recipient and ACK-request/test positions. Actual encoding, actual decoding and unmocked service syntax remain green for both wrong mappings; the immutable independent T24.A6 section4.2 pp24–25 literal oracle rejects both. Product field-position exports are never used as the oracle. The original normative document SHA is `5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951`.
+
+The discovered OPS-02 internal gap is specific: Z01 correctly waits for Z02 independently of CONTRL, but persisted next-action text lacks a complete reason/time/responsibility/blocker projection across actual events and timers. Changing it into serial CONTRL gating would break the source requirement. The follow-up must retain independent technical watches, derive from actual process outcomes and expose only authorized operations.
+
+OPS-04 remains externally blocked: no competent agreed-counterparty production test, current production context or permission to conduct real traffic exists in this session. The user expressly prohibits market/TGT/AGT traffic. Synthetic native issuer/provider facts prove mechanics only. OPS-03 similarly cannot claim formal Ediel approval from catalog validity, unit tests or CI. Future energy sharing remains held before 2027-01-01 and after that date until its separate legal/process/register activation is actually established.
+
+No generated types/schema/fingerprint were edited, no hosted database was accessed, and no customer or market traffic was emitted.

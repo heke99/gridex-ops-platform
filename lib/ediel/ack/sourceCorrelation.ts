@@ -18,6 +18,10 @@ export type InboundAckSourceCorrelation = {
   lookupReferences: AckSourceLookupReference[]
   scope: 'interchange' | 'message' | 'transaction' | 'object'
   acknowledgedReferences: string[]
+  /** Whole-message classification does not describe each object in a mixed
+   * processed PRODAT APERAK. These results use each physical ERC/LI group. */
+  scopedOutcomes?: {reference: string; outcome: 'positive' | 'negative'}[]
+  wholeSourceOutcome?: 'positive' | 'negative'
 }
 export type AckSourceQualification<T extends AckCorrelationMessage> =
   | {status: 'unique'; sourceMessage: T; correlation: InboundAckSourceCorrelation; candidateIds: string[]; reason: null}
@@ -34,14 +38,15 @@ function values(wire: Wire, tag: string, element: number, qualifier?: string): s
 function references(wire: Wire, qualifier: string) { return values(wire, 'RFF', 1, qualifier) }
 function one(values: string[]) { return values.length === 1 && values[0] ? values[0] : null }
 function exact(a: readonly string[], b: readonly string[]) { return JSON.stringify(a) === JSON.stringify(b) }
-function readWire(message: AckCorrelationMessage): Wire {
+function readWire(message: AckCorrelationMessage, allowTechnicalWithoutApplication = false): Wire {
   if (!message.raw_payload || !validateEdifactEnvelope(message.raw_payload).ok) throw Error('ack_correlation_envelope_invalid')
   const wire = EdifactEnvelopeCodec.decode(message.raw_payload)
   if (wire.segments.filter(segment => segment.tag === 'UNB').length !== 1 || wire.segments.filter(segment => segment.tag === 'UNH').length !== 1
-    || !wire.sender || !wire.receiver || !wire.applicationReference || wire.environment !== message.environment) throw Error('ack_correlation_wire_context_invalid')
+    || !wire.sender || !wire.receiver || (!wire.applicationReference && !(allowTechnicalWithoutApplication && component(wire, first(wire,'UNH'),2)==='CONTRL'))
+    || wire.environment !== message.environment) throw Error('ack_correlation_wire_context_invalid')
   return wire
 }
-function classify(wire: Wire): InboundAckSourceCorrelation['classification'] {
+function classify(wire: Wire, scopedErrorCodes?: string[]): InboundAckSourceCorrelation['classification'] {
   const unh = parts(wire, first(wire, 'UNH'), 2), bgm = first(wire, 'BGM')
   if (unh[0] === 'UTILTS' && component(wire, bgm, 1) === 'ERR') {
     if (!wire.segments.some(segment => segment.tag === 'STS' && component(wire, segment, 1) === 'E01' && component(wire, segment, 2) === '41')) throw Error('utilts_err_outcome_invalid')
@@ -50,11 +55,35 @@ function classify(wire: Wire): InboundAckSourceCorrelation['classification'] {
   const family = unh[0] === 'CONTRL' || unh[0] === 'APERAK' ? unh[0] : 'OTHER'
   return classifyCanonicalInboundAck({messageFamily: family, messageCode: component(wire, bgm, 1), messageFunctionCode: component(wire, bgm, 3),
     applicationReference: wire.applicationReference, messageTypeVersion: {syntaxIdentifier:null,directoryVersion:unh[1] ?? null,release:unh[2] ?? null,controllingAgency:unh[3] ?? null,associationAssignedCode:unh[4] ?? null},
-    errorCodes: values(wire, 'ERC', 1), references: {UCI_ACTION: values(wire, 'UCI', 4)}})
+    errorCodes: scopedErrorCodes ?? values(wire, 'ERC', 1), references: {UCI_ACTION: values(wire, 'UCI', 4)}})
+}
+function prodatObjectOutcomes(wire: Wire, objectReferences: string[]): NonNullable<InboundAckSourceCorrelation['scopedOutcomes']> {
+  const errors = new Map<string, string[]>()
+  let ownErc: string | null = null
+  for (const segment of wire.segments) {
+    if (segment.tag === 'ERC') ownErc = component(wire, segment, 1) || null
+    if (segment.tag === 'RFF' && component(wire, segment, 1) === 'LI') {
+      const reference = parts(wire, segment, 1)[1] ?? ''
+      if (!reference || !ownErc) throw Error('ack_object_result_unavailable')
+      errors.set(reference, [...(errors.get(reference) ?? []), ownErc])
+    }
+  }
+  return [...new Set(objectReferences)].map(reference => {
+    const ownErrors = errors.get(reference)
+    if (!ownErrors?.length) throw Error('ack_object_result_unavailable')
+    const result = classify(wire, ownErrors)
+    if (result.outcome !== 'positive' && result.outcome !== 'negative') throw Error('ack_object_result_unavailable')
+    return {reference, outcome: result.outcome}
+  })
 }
 export function readInboundAckSourceCorrelation(message: AckCorrelationMessage): InboundAckSourceCorrelation {
   if (message.direction !== 'inbound') throw Error('ack_correlation_not_inbound')
-  const wire = readWire(message), classification = classify(wire)
+  return readPhysicalAckSourceCorrelation(message)
+}
+/** Physical projection shared by inbound correlation and a protected outbound
+ * original read. Direction and original authority remain each caller's gate. */
+export function readPhysicalAckSourceCorrelation(message: AckCorrelationMessage): InboundAckSourceCorrelation {
+  const wire = readWire(message,true), classification = classify(wire)
   if (classification.outcome !== 'positive' && classification.outcome !== 'negative') throw Error(classification.reason ?? 'ack_correlation_outcome_invalid')
   if (message.message_family && message.message_family !== classification.family) throw Error('ack_correlation_stored_family_mismatch')
   let scope: InboundAckSourceCorrelation['scope'], acknowledgedReferences: string[], lookupReferences: AckSourceLookupReference[]
@@ -77,7 +106,13 @@ export function readInboundAckSourceCorrelation(message: AckCorrelationMessage):
     scope = objects.length ? 'object' : 'message'; acknowledgedReferences = objects
     lookupReferences = [{type:'BGM_REF',value:original}, ...objects.map(value => ({type:'RFF_LI' as const,value}))]
   }
-  return {classification, scope, acknowledgedReferences, lookupReferences}
+  const scopedOutcomes = classification.family === 'APERAK' && classification.profile === 'PRODAT_16_B' && scope === 'object'
+    ? prodatObjectOutcomes(wire, acknowledgedReferences) : undefined
+  const wholeSourceOutcome = classification.family === 'CONTRL' ? classification.outcome
+    : scope === 'message' && classification.family === 'APERAK' && classification.outcome === 'negative'
+      && (classification.profile === 'UTILTS_25_A' && classification.code === '313'
+        || classification.profile === 'PRODAT_16_B' && component(wire, first(wire, 'BGM'), 3) === '27') ? 'negative' : undefined
+  return {classification, scope, acknowledgedReferences, lookupReferences, ...(scopedOutcomes ? {scopedOutcomes} : {}), ...(wholeSourceOutcome ? {wholeSourceOutcome} : {})}
 }
 function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrelation): boolean {
   const ackUnb = first(ack, 'UNB'), sourceUnb = first(source, 'UNB')
@@ -94,7 +129,7 @@ function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrela
       && values(ack, 'UCM', 1).every(reference => reference === component(source, first(source, 'UNH'), 1))
   }
   if (correlation.classification.family === 'UTILTS_ERR' || correlation.classification.profile === 'UTILTS_25_A') {
-    if (sourceType !== 'UTILTS' || component(source, first(source, 'BGM'), 1) === 'ERR') return false
+    if (sourceType !== 'UTILTS' || (component(source, first(source, 'BGM'), 1) === 'ERR' && correlation.classification.family === 'UTILTS_ERR')) return false
     const sourceIde = values(source, 'IDE', 2)
     if (!correlation.acknowledgedReferences.every(reference => sourceIde.includes(reference))) return false
     if (correlation.classification.family === 'APERAK') {

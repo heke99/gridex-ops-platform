@@ -6,7 +6,7 @@ import type { ProdatDateEventObject, ProductionContractDateEventSource } from '@
 export type ProductionContractBasis = {
   status: 'authorized'; companyId: string; environment: 'test' | 'production'; eventId: string; eventKind: 'signed' | 'ceased';
   sourceDigest: string; sourceVersion: string; sourceReference: string; legalActorId: string; legalSenderId: string; legalReceiverId: string;
-  contractId: string; customerId: string; meteringPointId: string; pointId: string; identityAgency: '9' | '89'; gridArea: string;
+  contractId: string; customerId: string; siteId: string; meteringPointId: string; pointId: string; identityAgency: '9' | '89'; gridArea: string;
   contractReference: string; contractRevision: string; boundaryAt: string;
 }
 export type ProductionContractHeld = { status: 'held'; missing: string[] }

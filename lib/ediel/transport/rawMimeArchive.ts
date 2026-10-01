@@ -29,6 +29,8 @@ export function exactRfcMessageId(raw: Buffer): string {
 export async function archiveTransportRawMime(raw: Buffer, context: TransportMimeArchiveContext): Promise<TransportMimeArchive> {
   if (!/^[0-9a-f-]{36}$/i.test(context.companyId) || !/^[0-9a-f-]{36}$/i.test(context.messageId)) throw new Error('ediel_mime_archive_scope_invalid')
   const rfcMessageId = exactRfcMessageId(raw)
+  const available = await supabaseService.rpc('ediel_require_source_bytes_available_v1', {p_company_id:context.companyId,p_source_message_id:context.messageId})
+  if (available.error) throw available.error
   const mimeSha256 = hash(raw)
   if (isSmimeRawMime(raw)) {
     const archived = await archiveSmimeRawMime(raw, context)

@@ -32,5 +32,8 @@ export default defineConfig({
     'scripts/ediel-artifact-retention-native.test.ts',
     'scripts/ediel-customer-retention-native.test.ts',
     'scripts/ediel-transport-exception-native.test.ts',
-  ],testTimeout:30000,hookTimeout:30000,fileParallelism:false},
+    'scripts/ediel-service-evidence-native.test.ts',
+    'scripts/ediel-regulated-supply-ground-native.test.ts',
+    'scripts/ediel-blob-retention-native.test.ts',
+  ],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })

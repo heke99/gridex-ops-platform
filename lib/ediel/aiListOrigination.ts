@@ -6,10 +6,11 @@ import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceRead
 import {getGridOwnerById} from '@/lib/masterdata/db'
 import type {CustomerSiteRow} from '@/lib/masterdata/types'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
+import {readConfirmedCustomerHistory} from '@/lib/ediel/production/confirmedCustomerHistory'
 
 export type AiListOriginRequest={companyId:string;actorUserId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;fromDate:string;toDate:string}
 export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>){
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.write'})
  const {data:decision,error:decisionError}=await supabaseService.rpc('gridex_ai_export_decision_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId}).abortSignal(AbortSignal.timeout(2000))
  if(decisionError||decision?.status!=='authorized'||decision?.decision?.purpose!=='ediel_list_export')throw new Error('ai_list_export_decision_required')
  const {data:siteData,error:siteError}=await supabaseService.from('customer_sites').select('*').eq('id',input.siteId).eq('company_id',input.companyId).eq('customer_id',input.customerId).abortSignal(AbortSignal.timeout(2000)).maybeSingle()
@@ -29,7 +30,9 @@ export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awai
  if(periodError||count===null||count>1000||periods?.length!==count)throw new Error('ai_list_supply_history_read_incomplete')
  const {data:snapshot,error:snapshotError}=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:input.companyId,p_environment:input.environment,p_cutoff:cutoffAt}).abortSignal(AbortSignal.timeout(2000))
  if(snapshotError)throw new Error('ai_list_source_history_read_unconfirmed')
- const history=projectAiListHistory({...input,legalSupplier:tenant.identity.legalEdielId,legalNetwork:gridOwner.ediel_id,cutoffAt},(periods??[]) as AiListSupplyPeriod[],inspectStructuralReadset({companyId:input.companyId,environment:input.environment,cutoffAt},snapshot))
+ const scope={...input,legalSupplier:tenant.identity.legalEdielId,legalNetwork:gridOwner.ediel_id,cutoffAt},readset=inspectStructuralReadset({companyId:input.companyId,environment:input.environment,cutoffAt},snapshot)
+ const customers=await readConfirmedCustomerHistory({scope,actorUserId:input.actorUserId,readset})
+ const history=projectAiListHistory(scope,(periods??[]) as AiListSupplyPeriod[],readset,customers)
  return {request:input,site,history,gridOwner}
 }
 

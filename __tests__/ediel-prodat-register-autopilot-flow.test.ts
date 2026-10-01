@@ -1,10 +1,12 @@
+import { tgtCompany, tgtOtherCompany, tgtActor, tgtRun, tgtDraftInput, tgtSourcePort } from './fixtures/ediel-tgt-orchestration-source-port'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow, EdielTestRunRow } from '@/lib/ediel/types'
 import type { EdielTgtExpectedStep, EdielTgtRunEvaluation, EdielTgtTestCaseDefinition } from '@/lib/ediel/testing/tgtRegistry'
 const io = vi.hoisted(() => ({ from: vi.fn(), runs: vi.fn(), messages: vi.fn(), links: vi.fn(), byIds: vi.fn(),
   create: vi.fn(), attach: vi.fn(), evaluate: vi.fn(), next: vi.fn(), runtime: vi.fn(), source: vi.fn(),
-  staticSource: vi.fn(), readFacts: vi.fn(), build: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }))
+  staticSource: vi.fn(), readFacts: vi.fn(), build: vi.fn(), canonical: vi.fn(), rpc: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/ediel/core/kernel', () => ({ createCanonicalOutboundMessage: io.canonical }))
 vi.mock('@/lib/ediel/db', () => ({ listEdielTestRuns: io.runs, listEdielMessages: io.messages,
   listEdielTestRunMessages: io.links, listEdielMessagesByIds: io.byIds,
   createEdielMessage: io.create, attachEdielMessageToTestRun: io.attach }))
@@ -16,37 +18,40 @@ vi.mock('@/lib/ediel/testing/tgtRegisterFacts', async (importOriginal) => ({...(
 vi.mock('@/lib/ediel/testing/tgtEdifact', () => ({ buildEdielTgtDraft: io.build }))
 import { runTgtAutopilotForRun, createMockPortalMessageForNextStep, autoAttachImportedMessageToActiveTgtRun } from '@/lib/ediel/testing/tgtAutopilot'
 
-const args = { actorUserId: 'operator', companyId: 'tenant-a', testRunId: 'run-a' }
+const args = { actorUserId: tgtActor, companyId: tgtCompany, testRunId: tgtRun }
 const step: EdielTgtExpectedStep = { stepNo: 4, actor: 'gridex', direction: 'outbound', family: 'PRODAT', code: 'Z04', required: true, title: 'Register exchange', description: 'Synthetic register workflow' }
 let run: EdielTestRunRow
 let evaluation: EdielTgtRunEvaluation
 let draft: { step: EdielTgtExpectedStep; validationIssues: Array<{ severity: string; title: string; description: string }>; messageInput: Record<string, unknown> }
 let route: { data: Record<string, unknown> | null; error: Error | null }
+let sourcePort: ReturnType<typeof tgtSourcePort>
 let filters: Array<[string, unknown]>
-const incoming = (overrides: Partial<EdielMessageRow> = {}) => ({ id: 'inbound', company_id: 'tenant-a', environment: 'test', test_flag: 1,
+const incoming = (overrides: Partial<EdielMessageRow> = {}) => ({ id: 'inbound', company_id: tgtCompany, environment: 'test', test_flag: 1,
   direction: 'inbound', message_family: 'PRODAT', message_code: 'Z04', status: 'received', ack_outcome: null, ...overrides }) as EdielMessageRow
 
 beforeEach(() => {
-  vi.clearAllMocks()
-  run = { id: 'run-a', company_id: 'tenant-a', test_suite: 'PRODAT', role_code: 'supplier', test_case_code: '1.2.5', status: 'running', notes: 'source-bound' } as EdielTestRunRow
+  vi.resetAllMocks()
+  sourcePort = tgtSourcePort(); io.rpc.mockImplementation(sourcePort.rpc)
+  io.canonical.mockImplementation(async (input) => { sourcePort.assertOpaqueCanonicalInput(input); return io.create(input.baseInput) })
+  run = { id: tgtRun, company_id: tgtCompany, test_suite: 'PRODAT', role_code: 'supplier', test_case_code: '1.2.5', status: 'running', notes: 'source-bound' } as EdielTestRunRow
   evaluation = { testRun: run, definition: { suite: 'PRODAT', roleCode: 'supplier', testCaseCode: '1.2.5', expectedSteps: [step] } as EdielTgtTestCaseDefinition,
     matches: [], passedSteps: 0, requiredSteps: 1, missingRequiredSteps: 1, hasMismatch: false, computedStatus: 'in_progress' }
-  draft = { step, validationIssues: [], messageInput: { companyId: 'tenant-a', mailbox: 'test-mail', validationReport: { preserved: true } } }
+  draft = { step, validationIssues: [], messageInput: tgtDraftInput({ mailbox: 'test-mail', validationReport: { preserved: true } }) }
   io.runs.mockResolvedValue([run]); io.messages.mockResolvedValue([]); io.links.mockResolvedValue([]); io.byIds.mockResolvedValue([])
   io.evaluate.mockImplementation(() => evaluation); io.next.mockReturnValue({ kind: 'create_file', stepNo: 4, description: 'next' })
   io.source.mockResolvedValue(null); io.staticSource.mockReturnValue({ sourceNote: 'fixture' }); io.readFacts.mockReturnValue({ market: 'electricity', registerObjects: [] })
-  io.runtime.mockResolvedValue({ companyId: 'tenant-a', actorEdielId: '92825', testPortalEdielId: '10000', senderSubaddress: 'DDQ', defaultReceiverSubaddress: 'DDQ', testPortalEmail: 'test@example.invalid' })
+  io.runtime.mockResolvedValue({ companyId: tgtCompany, actorEdielId: '92825', testPortalEdielId: '10000', senderSubaddress: 'DDQ', defaultReceiverSubaddress: 'DDQ', testPortalEmail: 'test@example.invalid' })
   io.build.mockImplementation(() => draft); io.create.mockResolvedValue({ id: 'draft-a' }); io.attach.mockResolvedValue(undefined)
   route = { data: null, error: null }; filters = []
   const query = { select: vi.fn(() => query), eq: vi.fn((key: string, value: unknown) => { filters.push([key, value]); return query }), maybeSingle: vi.fn(async () => route) }
-  io.from.mockReturnValue(query)
+  io.from.mockImplementation((table) => sourcePort.actorQuery(table) ?? query)
 })
 
 // Real orchestration with external DB/source/builder boundaries mocked. No
 // network send or live database call is available from these tests.
 describe('register autopilot orchestration and transport boundary', () => {
   it.each(['missing', 'other-tenant'])('rejects a %s run before runtime or draft construction', async (kind) => {
-    io.runs.mockResolvedValue(kind === 'missing' ? [] : [{ ...run, company_id: 'tenant-b' }])
+    io.runs.mockResolvedValue(kind === 'missing' ? [] : [{ ...run, company_id: tgtOtherCompany }])
     await expect(runTgtAutopilotForRun(args)).rejects.toThrow('TGT-run saknas')
     expect(io.runtime).not.toHaveBeenCalled(); expect(io.create).not.toHaveBeenCalled()
   })
@@ -55,9 +60,16 @@ describe('register autopilot orchestration and transport boundary', () => {
     const current = { ...stale, status: 'received' }
     io.messages.mockResolvedValue([stale, incoming({ id: 'other' })]); io.links.mockResolvedValue([{ ediel_message_id: 'linked' }]); io.byIds.mockResolvedValue([current])
     await runTgtAutopilotForRun(args)
-    expect(io.runs).toHaveBeenCalledWith({ scope: 'tenant', companyId: 'tenant-a' })
-    expect(io.byIds).toHaveBeenCalledWith(['linked'], { companyId: 'tenant-a' })
+    expect(io.runs).toHaveBeenCalledWith({ scope: 'tenant', companyId: tgtCompany })
+    expect(io.byIds).toHaveBeenCalledWith(['linked'], { companyId: tgtCompany })
     expect(io.evaluate).toHaveBeenCalledWith(run, [current, expect.objectContaining({ id: 'other' })], { explicitMessageIds: ['linked'] })
+  })
+  it.each(['membership','permission','original'])('holds absent current %s evidence before canonical persistence', async kind => {
+    if(kind==='membership')sourcePort.state.activeMembership=false
+    if(kind==='permission')sourcePort.state.writePermission=false
+    if(kind==='original')sourcePort.state.hasOriginal=false
+    await expect(runTgtAutopilotForRun(args)).rejects.toThrow(kind==='membership'?'ediel_tenant_actor_forbidden':kind==='permission'?'ediel_tenant_permission_forbidden':'ediel_positive_fixture_original_required')
+    expect(io.canonical).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
   })
   it('does not construct drafts for unmapped, completed or actionless runs', async () => {
     evaluation.definition = null
@@ -83,11 +95,11 @@ describe('register autopilot orchestration and transport boundary', () => {
     run.route_profile_id = 'profile-a'; run.encryption_mode = 'none'
     route.data = { communication_route_id: 'route-a', mailbox: 'bound-mail', encryption_mode: 'none', certificate_id: 'cert-a' }
     expect((await runTgtAutopilotForRun(args)).action).toBe('created_gridex_draft')
-    expect(filters).toEqual([['id', 'profile-a'], ['company_id', 'tenant-a']])
+    expect(filters).toEqual([['id', 'profile-a'], ['company_id', tgtCompany]])
     expect(io.create).toHaveBeenCalledWith(expect.objectContaining({ communicationRouteId: 'route-a', mailbox: 'bound-mail', validationReport: {
-      preserved: true, lockedSendContext: expect.objectContaining({ testRunId: 'run-a', routeProfileId: 'profile-a', communicationRouteId: 'route-a', certificateId: 'cert-a' }),
+      preserved: true, lockedSendContext: expect.objectContaining({ testRunId: tgtRun, routeProfileId: 'profile-a', communicationRouteId: 'route-a', certificateId: 'cert-a' }),
     } }))
-    expect(io.attach).toHaveBeenCalledWith({ companyId: 'tenant-a', testRunId: 'run-a', edielMessageId: 'draft-a', stepNo: 4, expectedDirection: 'outbound', expectedFamily: 'PRODAT', expectedCode: 'Z04' })
+    expect(io.attach).toHaveBeenCalledWith({ companyId: tgtCompany, testRunId: tgtRun, edielMessageId: 'draft-a', stepNo: 4, expectedDirection: 'outbound', expectedFamily: 'PRODAT', expectedCode: 'Z04' })
   })
   it('propagates route lookup errors before persistence', async () => {
     run.route_profile_id = 'profile-a'; route.error = new Error('route lookup failed')
@@ -100,9 +112,9 @@ describe('register autopilot orchestration and transport boundary', () => {
     expect(io.create.mock.calls[0][0]).not.toHaveProperty('communicationRouteId')
     expect(io.create.mock.calls[0][0].validationReport).toEqual({ preserved: true })
   })
-  it('blocks builder errors but retains warnings; uses static source only when no dynamic source exists', async () => {
+  it('holds an unregistered builder error; an independently registered warning fixture preserves dynamic source facts', async () => {
     draft.validationIssues = [{ severity: 'error', title: 'Missing register evidence', description: 'Unknown readings' }]
-    expect(await runTgtAutopilotForRun(args)).toMatchObject({ action: 'blocked', description: expect.stringContaining('Missing register evidence') })
+    expect(await runTgtAutopilotForRun(args)).toMatchObject({action:'blocked',description:expect.stringContaining('TGT-utkastet är blockerat: Missing register evidence')})
     expect(io.create).not.toHaveBeenCalled()
     expect(io.readFacts).toHaveBeenCalledWith(expect.objectContaining({ testData: { sourceNote: 'fixture' } }))
     draft.validationIssues[0].severity = 'warning'
@@ -125,6 +137,7 @@ describe('register autopilot orchestration and transport boundary', () => {
   })
   it('does not attempt PRODAT register-fact extraction for a CONTRL step', async () => {
     evaluation.definition!.expectedSteps = [{ ...step, family: 'CONTRL', code: 'CONTRL' }]
+    draft.messageInput = { ...draft.messageInput, messageFamily: 'CONTRL', messageCode: 'CONTRL' }
     await runTgtAutopilotForRun(args)
     expect(io.readFacts).not.toHaveBeenCalled()
     expect(io.build).toHaveBeenCalledWith(expect.objectContaining({ registerFacts: undefined }))
@@ -150,12 +163,12 @@ describe('explicit internal simulation of register-flow portal steps', () => {
     const result = await createMockPortalMessageForNextStep(args)
     expect(result).toMatchObject({ action: 'created_mock_portal_message', messageId: 'draft-a', stepNo: 4 })
     const input = io.create.mock.calls[0][0]
-    expect(input).toMatchObject({ companyId: 'tenant-a', actorUserId: 'operator', direction: 'inbound', environment: 'test', testFlag: 1, transportType: 'manual_upload',
+    expect(input).toMatchObject({ companyId: tgtCompany, actorUserId: tgtActor, direction: 'inbound', environment: 'test', testFlag: 1, transportType: 'manual_upload',
       mailbox: 'tgt-mock-portal', status: 'received', relatedMessageId: 'prior', requiresContrl: false, requiresAperak: false,
-      parsedPayload: expect.objectContaining({ mockOnly: true, testRunId: 'run-a' }), validationReport: expect.objectContaining({ mockOnly: true, warning: expect.stringContaining('inte skickas') }),
+      parsedPayload: expect.objectContaining({ mockOnly: true, testRunId: tgtRun }), validationReport: expect.objectContaining({ mockOnly: true, warning: expect.stringContaining('inte skickas') }),
     })
     expect(input.rawPayload).toContain('UNZ+1+'); expect(input.subject).toContain('[MOCK]')
-    expect(io.attach).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'tenant-a', expectedFamily: family, expectedDirection: 'inbound' }))
+    expect(io.attach).toHaveBeenCalledWith(expect.objectContaining({ companyId: tgtCompany, expectedFamily: family, expectedDirection: 'inbound' }))
     expect(io.create).toHaveBeenCalledTimes(1)
   })
   it('retains negative outcome and no fabricated related record when there is no previous message', async () => {
@@ -168,8 +181,8 @@ describe('explicit internal simulation of register-flow portal steps', () => {
 })
 
 describe('linking imported register messages to tenant-owned test runs', () => {
-  it.each([{ company_id: 'tenant-b' }, { environment: 'production' }, { test_flag: 0 }])('rejects out-of-scope evidence %j before a database lookup', async overrides => {
-    await expect(autoAttachImportedMessageToActiveTgtRun({ companyId: 'tenant-a', edielMessage: incoming(overrides as Partial<EdielMessageRow>) })).rejects.toThrow()
+  it.each([{ company_id: tgtOtherCompany }, { environment: 'production' }, { test_flag: 0 }])('rejects out-of-scope evidence %j before a database lookup', async overrides => {
+    await expect(autoAttachImportedMessageToActiveTgtRun({ companyId: tgtCompany, edielMessage: incoming(overrides as Partial<EdielMessageRow>) })).rejects.toThrow()
     expect(io.runs).not.toHaveBeenCalled(); expect(io.attach).not.toHaveBeenCalled()
   })
   it('links only a matching inbound portal step on the explicit active case', async () => {
@@ -177,26 +190,26 @@ describe('linking imported register messages to tenant-owned test runs', () => {
     evaluation.definition!.expectedSteps = [step, portal] as EdielTgtExpectedStep[]
     const other = { ...run, id: 'other-run', test_case_code: '1.2.6' }
     io.runs.mockResolvedValue([other, { ...run, id: 'closed', status: 'passed' }, run])
-    const result = await autoAttachImportedMessageToActiveTgtRun({ companyId: 'tenant-a', edielMessage: incoming(), explicitTestCaseCode: ' 1.2.5 ' })
-    expect(result).toMatchObject({ action: 'linked_imported_message', testRunId: 'run-a', messageId: 'inbound' })
+    const result = await autoAttachImportedMessageToActiveTgtRun({ companyId: tgtCompany, edielMessage: incoming(), explicitTestCaseCode: ' 1.2.5 ' })
+    expect(result).toMatchObject({ action: 'linked_imported_message', testRunId: tgtRun, messageId: 'inbound' })
     expect(io.attach).toHaveBeenCalledTimes(1)
-    expect(io.attach).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'tenant-a', testRunId: 'run-a', expectedCode: 'Z04' }))
+    expect(io.attach).toHaveBeenCalledWith(expect.objectContaining({ companyId: tgtCompany, testRunId: tgtRun, expectedCode: 'Z04' }))
   })
   it.each([{ direction: 'outbound' }, { message_family: 'CONTRL' }, { message_code: 'Z06' }])('does not link a mismatched message %j', async overrides => {
     evaluation.definition!.expectedSteps = [{ ...step, actor: 'portal', direction: 'inbound' }]
-    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: 'tenant-a', edielMessage: incoming(overrides as Partial<EdielMessageRow>) })).toBeNull()
+    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: tgtCompany, edielMessage: incoming(overrides as Partial<EdielMessageRow>) })).toBeNull()
     expect(io.attach).not.toHaveBeenCalled()
   })
   it('does not fall back to another case when explicit source identity has no matching run', async () => {
     evaluation.definition!.expectedSteps = [{ ...step, actor: 'portal', direction: 'inbound' }]
-    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: 'tenant-a', edielMessage: incoming(), explicitTestCaseCode: '2.1.1' })).toBeNull()
+    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: tgtCompany, edielMessage: incoming(), explicitTestCaseCode: '2.1.1' })).toBeNull()
     expect(io.attach).not.toHaveBeenCalled()
     evaluation.definition = null
-    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: 'tenant-a', edielMessage: incoming() })).toBeNull()
+    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: tgtCompany, edielMessage: incoming() })).toBeNull()
   })
   it('does not attach an explicitly wrong ACK outcome to a portal step', async () => {
     evaluation.definition!.expectedSteps = [{ ...step, actor: 'portal', direction: 'inbound', family: 'APERAK', code: 'APERAK', outcome: 'positive' }]
-    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: 'tenant-a', edielMessage: incoming({ message_family: 'APERAK', message_code: 'APERAK', ack_outcome: 'negative' }) })).toBeNull()
+    expect(await autoAttachImportedMessageToActiveTgtRun({ companyId: tgtCompany, edielMessage: incoming({ message_family: 'APERAK', message_code: 'APERAK', ack_outcome: 'negative' }) })).toBeNull()
     expect(io.attach).not.toHaveBeenCalled()
   })
 })

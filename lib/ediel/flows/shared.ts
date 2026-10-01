@@ -119,11 +119,8 @@ export async function findOrCreateSwitchOutbound(params: {
     })
 
     if (existing) {
-      // outbound_requests persists the intended environment in payload; there
-      // is no environment column on this row. Missing provenance cannot reuse
-      // an operation across the test/production boundary.
-      const existingEnvironment = existing.payload?.environment
-      if (!normalizeEdielEnvironment(params.environment) || existingEnvironment !== params.environment
+      const existingPayload: Record<string, unknown> = existing.payload && typeof existing.payload === 'object' && !Array.isArray(existing.payload) ? existing.payload : {}
+      if (!normalizeEdielEnvironment(params.environment) || existingPayload.environment !== params.environment
         || existing.operation_id !== params.switchRequestId || existing.customer_id !== params.customerId
         || existing.site_id !== params.siteId || existing.metering_point_id !== params.meteringPointId) {
         throw new Error('switch_outbound_owned_operation_required')

@@ -177,15 +177,39 @@ jobs:
           unset GRIDEX_E2E_BROWSER_BASE_URL
           export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
           export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
+          export GRIDEX_REGULATED_FIXTURE_PATH="$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json"
+          export GRIDEX_RCS_FIXTURE_PATH="$RUNNER_TEMP/ediel-requested-change-browser-fixture.json"
           export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
           # Only generated disposable credentials enter this unuploaded file.
           node -e 'const fs=require("node:fs");const s=JSON.parse(fs.readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8"));fs.writeFileSync(process.env.RUNNER_TEMP+"/e035-native-sensitive.json",JSON.stringify({...s,password:process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD}),{mode:0o600})'
           npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-native-junit.xml
           [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
+          if ! npx vitest run --config scripts/ediel-requested-change-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-requested-change-native-junit.xml; then
+            NATIVE_SUITE_FAILED=1
+          fi
+          [[ -s "$GRIDEX_RCS_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          if ! npx vitest run --config scripts/ediel-regulated-supply-ground-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-regulated-supply-native-junit.xml; then
+            NATIVE_SUITE_FAILED=1
+          fi
+          [[ -s "$GRIDEX_REGULATED_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
           npx playwright install --with-deps chromium
-          npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
+          if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
+            NATIVE_SUITE_FAILED=1
+          fi
           GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-after-browser-junit.xml
+          if [[ -s "$GRIDEX_RCS_FIXTURE_PATH" ]]; then
+            if ! GRIDEX_RCS_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-requested-change-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-requested-change-after-browser-junit.xml; then
+              NATIVE_SUITE_FAILED=1
+            fi
+          fi
           rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
+          if [[ -s "$GRIDEX_REGULATED_FIXTURE_PATH" ]]; then
+            if ! GRIDEX_REGULATED_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-regulated-supply-ground-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-regulated-supply-after-browser-junit.xml; then
+              NATIVE_SUITE_FAILED=1
+            fi
+          fi
+          rm -f "$GRIDEX_REGULATED_FIXTURE_PATH"
+          rm -f "$GRIDEX_RCS_FIXTURE_PATH"
           unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
           rm -f "$RUNNER_TEMP/e035-native-status.json"
 
@@ -225,8 +249,10 @@ jobs:
             --local-secrets "$RUNNER_TEMP/e035-native-sensitive.json" \
             --root e2e-artifacts --root rem002-clean-replay.log \
             --root rem002-native-junit.xml --root rem002-case-native-junit.xml \
-            --root rem002-case-after-browser-junit.xml
-          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json"
+            --root rem002-case-after-browser-junit.xml \
+            --root rem002-requested-change-native-junit.xml --root rem002-requested-change-after-browser-junit.xml \
+            --root rem002-regulated-supply-native-junit.xml --root rem002-regulated-supply-after-browser-junit.xml
+          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json" "$RUNNER_TEMP/ediel-requested-change-browser-fixture.json" "$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json"
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -239,6 +265,10 @@ jobs:
             rem002-native-junit.xml
             rem002-case-native-junit.xml
             rem002-case-after-browser-junit.xml
+            rem002-requested-change-native-junit.xml
+            rem002-requested-change-after-browser-junit.xml
+            rem002-regulated-supply-native-junit.xml
+            rem002-regulated-supply-after-browser-junit.xml
             e2e-artifacts/
           if-no-files-found: error
 

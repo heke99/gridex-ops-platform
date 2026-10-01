@@ -13,6 +13,7 @@ vi.mock('@/lib/ediel/production/dateEventContext', () => ({ loadProdatDateEventV
 vi.mock('@/lib/ediel/businessExpectations', () => ({ registerEdielBusinessExpectations: io.register,
   prepareEdielBusinessExpectationPlan: io.current }))
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport/index.part-2'
+import { repairObservedEdielSmtpProjection } from '@/lib/ediel/transport/acceptedProjectionRepair'
 
 const companyId='10000000-0000-4000-8000-000000000001', messageId='20000000-0000-4000-8000-000000000001'
 const actorUserId='30000000-0000-4000-8000-000000000001', raw='DECLARED SYNTHETIC ALREADY ACCEPTED ORIGINAL'
@@ -33,8 +34,19 @@ it('repairs frozen accepted clock before current route, service, guide or provid
  const result=await sendEdielMessageViaSmtp(message(),{actorUserId})
  expect(result).toEqual({accepted:['original@example.invalid'],rejected:[],messageId:'<frozen@example.invalid>',dispatchObservedAt:observedAt})
  expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','gridex_ediel_repair_accepted_transport_projection_v1'])
- expect(io.register).toHaveBeenCalledWith({companyId,environment:'test',messageId,actorUserId})
+ expect(io.register).not.toHaveBeenCalled()
  expect(io.current).not.toHaveBeenCalled();expect(io.provider).not.toHaveBeenCalled();expect(io.status).not.toHaveBeenCalled()
+})
+it('projects a late provider acceptance through the same atomic owner while retaining current ACK status',async()=>{
+ const result=await repairObservedEdielSmtpProjection({message:message(),actorUserId,observedAt,smtpMessageId:'<frozen@example.invalid>'})
+ expect(result).toMatchObject({projectionStatus:'acknowledged',observedAt})
+ expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','gridex_ediel_repair_accepted_transport_projection_v1'])
+ expect(io.status).not.toHaveBeenCalled();expect(io.register).not.toHaveBeenCalled();expect(io.provider).not.toHaveBeenCalled()
+})
+it.each([{observedAt:'2026-09-29T10:00:00.124Z',smtpMessageId:'<frozen@example.invalid>'},
+ {observedAt,smtpMessageId:'<different@example.invalid>'}])('holds a late result outside its actual private receipt %j',async basis=>{
+ await expect(repairObservedEdielSmtpProjection({message:message(),actorUserId,...basis})).rejects.toThrow('receipt_changed')
+ expect(io.rpc).toHaveBeenCalledTimes(1);expect(io.status).not.toHaveBeenCalled();expect(io.register).not.toHaveBeenCalled()
 })
 it('does not repair a stale caller row with bytes different from the private original',async()=>{
  const source=message();source.raw_payload='CHANGED'

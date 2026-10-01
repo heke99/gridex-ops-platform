@@ -22,7 +22,7 @@ const context = { params: Promise.resolve({ messageId }) }
 describe('authorized immutable transport copy download', () => {
   beforeEach(() => {
     vi.clearAllMocks(); mock.auth.mockResolvedValue({ guard: { companyId, userId: actorUserId } })
-    mock.rpc.mockResolvedValue(response()); mock.storage.mockReturnValue({ download: mock.download })
+    mock.rpc.mockImplementation(async(name:string)=>name==='ediel_require_source_bytes_available_v1'?{data:null,error:null}:response()); mock.storage.mockReturnValue({ download: mock.download })
     mock.download.mockResolvedValue({ data: new Blob([payload]), error: null })
   })
   it('reauthorizes the selected tenant, reads the private archive and returns exactly those bytes', async () => {
@@ -74,6 +74,12 @@ describe('authorized immutable transport copy download', () => {
     mock.rpc.mockResolvedValue({ data: null, error: new Error('secret owner record') })
     const result = await GET(request(`?attemptId=${attemptId}`), context)
     expect(result.status).toBe(403); expect(await result.text()).not.toContain('secret')
+    expect(mock.download).not.toHaveBeenCalled()
+  })
+  it('retains immutable journal history but returns no bytes after native retention tombstones the original',async()=>{
+    mock.rpc.mockImplementation(async(name:string)=>name==='ediel_require_source_bytes_available_v1'?{data:null,error:Error('private retention receipt')}:response())
+    const result=await GET(request(`?attemptId=${attemptId}`),context)
+    expect(result.status).toBe(409);expect(await result.text()).not.toContain('private retention')
     expect(mock.download).not.toHaveBeenCalled()
   })
 })

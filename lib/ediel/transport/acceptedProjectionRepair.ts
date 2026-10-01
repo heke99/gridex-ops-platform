@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { registerEdielBusinessExpectations } from '@/lib/ediel/businessExpectations'
-import { repairAcceptedEdielTransportProjection, type AcceptedEdielTransportProjection } from './acceptedProjection'
+import { readAcceptedEdielTransportProjection, repairAcceptedEdielTransportProjection, type AcceptedEdielTransportProjection } from './acceptedProjection'
 
 /** Repair consumes the private journal again under its database lock. The
  * supplied receipt and mutable message row never authorize provider entry. */
@@ -20,9 +19,22 @@ export async function repairAcceptedEdielMessageProjection(input: {
     environment: message.environment, actorUserId: input.actorUserId, messageId: message.id })
   if (!repaired || repaired.originalHash !== projection.originalHash || repaired.attemptId !== projection.attemptId
     || Date.parse(repaired.observedAt) !== Date.parse(projection.observedAt)) throw new Error('ediel_accepted_projection_receipt_changed')
-  if (repaired.businessExpectationPlan) {
-    await registerEdielBusinessExpectations({ companyId: message.company_id, environment: message.environment,
-      messageId: message.id, actorUserId: input.actorUserId })
-  }
   return repaired
+}
+
+/** The provider result is only a selector for the private journal. Native
+ * repair locks the message and all owned source projections in one transaction. */
+export async function repairObservedEdielSmtpProjection(input: {
+  message: EdielMessageRow
+  actorUserId: string
+  observedAt: string
+  smtpMessageId: string | null
+}): Promise<AcceptedEdielTransportProjection> {
+  const { message } = input
+  if (!message.company_id || !Number.isFinite(Date.parse(input.observedAt))) throw new Error('ediel_transport_observation_clock_required')
+  const projection = await readAcceptedEdielTransportProjection({ companyId: message.company_id,
+    environment: message.environment, actorUserId: input.actorUserId, messageId: message.id })
+  if (!projection || Date.parse(projection.observedAt) !== Date.parse(input.observedAt)
+    || projection.providerReceipt.messageId !== input.smtpMessageId) throw new Error('ediel_accepted_projection_receipt_changed')
+  return repairAcceptedEdielMessageProjection({ message, actorUserId: input.actorUserId, projection })
 }

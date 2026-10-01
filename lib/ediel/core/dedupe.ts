@@ -246,11 +246,11 @@ export async function hasCanonicalAckDuplicate(params: {
   sourceMessageId: string
   ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
+  ackScope?: 'interchange'|'message'|'transaction'|'object'
+  acknowledgedReferences?: readonly string[]
 }): Promise<EdielMessageRow | null> {
   const exact = await findExistingAckForSource({
-    sourceMessageId: params.sourceMessageId,
-    ackFamily: params.ackFamily,
-    outcome: params.outcome,
+    ...params,
   })
 
   if (exact) return exact
@@ -258,8 +258,7 @@ export async function hasCanonicalAckDuplicate(params: {
   if (params.outcome) {
     const conflictingOutcome = params.outcome === 'positive' ? 'negative' : 'positive'
     const conflict = await findExistingAckForSource({
-      sourceMessageId: params.sourceMessageId,
-      ackFamily: params.ackFamily,
+      ...params,
       outcome: conflictingOutcome,
     })
 

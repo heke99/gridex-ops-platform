@@ -3,10 +3,10 @@ import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS,validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
-const copy=['LOC+172+POINT::9','LOC+239+AAA:SVK:260','NAD+DDK+BRP:SVK:260','NAD+DDQ+SUPPLIER:SVK:260','PIA+1+V1:PT:SVK:260','DTM+324:202609290000202609300000:719','STS+7++E03::260']
+const copy=['LOC+172+POINT::9','LOC+239+AAA:SVK:260','NAD+DDK+52102:SVK:260','NAD+DDQ+52101:SVK:260','PIA+1+V1:PT:SVK:260','DTM+324:202609290000202609300000:719','STS+7++E03::260']
 function envelope(segments:string[],original=false){return EdifactEnvelopeCodec.encode({sender:original?'GRID':'SUPPLIER',receiver:original?'SUPPLIER':'GRID',interchangeReference:original?'ORIGINAL-I':'ERR-I',environment:'test',applicationReference:'23-DDQ-E66-T',acknowledgementRequest:true,messages:[{messageReference:original?'ORIGINAL-M':'ERR-M',messageTypeToken:'UTILTS:D:02B:UN:E5SE5A',businessSegments:segments}]})}
-const original=()=>envelope(['BGM+E66::260+ORIGINAL-D+9+AB','DTM+137:202609301000:203','DTM+735:?+0100:406','MKS+23+E02::260','NAD+MS+GRID:SVK:260','NAD+MR+SUPPLIER:SVK:260','NAD+DDQ','IDE+24+ORIGINAL-T',...copy],true)
-const err=(code='E51')=>envelope(['BGM+ERR::260+ERR-D+9+AB','DTM+137:202609301200:203','DTM+735:?+0100:406','MKS+23+E02::260','NAD+MS+SUPPLIER:SVK:260','NAD+MR+GRID:SVK:260','NAD+DDQ','IDE+24+ERR-T',...copy,`STS+E01::260+41+${code}::260`,'RFF+TN:ORIGINAL-T','RFF+E66:ORIGINAL-D'])
+const original=()=>envelope(['BGM+E66::260+ORIGINAL-D+9+AB','DTM+137:202609301000:203','DTM+735:?+0100:406','MKS+23+E02::260','NAD+MS+52100:SVK:260','NAD+MR+52101:SVK:260','NAD+DDQ','IDE+24+ORIGINAL-T',...copy],true)
+const err=(code='E51')=>envelope(['BGM+ERR::260+ERR-D+9+AB','DTM+137:202609301200:203','DTM+735:?+0100:406','MKS+23+E02::260','NAD+MS+52101:SVK:260','NAD+MR+52100:SVK:260','NAD+DDQ','IDE+24+ERR-T',...copy,`STS+E01::260+41+${code}::260`,'RFF+TN:ORIGINAL-T','RFF+E66:ORIGINAL-D'])
 const policy=resolveCanonicalEdielPolicy({family:'UTILTS_ERR',messageCode:'ERR',direction:'outbound',referenceDate:'2026-10-01',associationAssignedCode:'E5SE5A',applicationReference:'23-DDQ-E66-T'})
 function guide(raw=err(),source:string|undefined=original()){const wire=tokenizeEdifact(raw);return validateCanonicalAckGuide({policy,rawSegments:wire.segments.map(t=>t.raw),una:wire.una,sourceRawPayload:source})}
 describe('same-source UTILTS ERR guide, original and own physical transactions',()=>{
@@ -21,7 +21,7 @@ describe('same-source UTILTS ERR guide, original and own physical transactions',
   [err().replace("PIA+1+V1:PT:SVK:260'",''),'ACK_UTILTS_ERR_ORIGINAL_COPY_MISMATCH'],
   [err().replace('MKS+23+E02','MKS+23+E03'),'ACK_UTILTS_ERR_ORIGINAL_MARKET_MISMATCH'],
   [err().replace("NAD+DDQ'","NAD+DDK'"),'ACK_UTILTS_ERR_ORIGINAL_ROLE_MISMATCH'],
-  [err().replace('NAD+MR+GRID','NAD+MR+SIBLING'),'ACK_UTILTS_ERR_ORIGINAL_LEGAL_PARTY_MISMATCH'],
+  [err().replace('NAD+MR+52100','NAD+MR+52199'),'ACK_UTILTS_ERR_ORIGINAL_LEGAL_PARTY_MISMATCH'],
   [err().replace('202609301200','202602301200'),'ACK_UTILTS_ERR_DOCUMENT_DATE_INVALID'],
   [err().replace('735:?+0100:406','735:?+0200:406'),'ACK_UTILTS_ERR_OFFSET_INVALID'],
   [err().replace('RFF+TN:ORIGINAL-T',"SEQ+1'QTY+136:1'RFF+TN:ORIGINAL-T"),'ACK_UTILTS_ERR_SEGMENT_FORBIDDEN'],

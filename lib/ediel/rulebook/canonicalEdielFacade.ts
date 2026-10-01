@@ -1,3 +1,4 @@
+export {canonicalMessageCode,canonicalLogicalMessageCodeProjection} from '@/lib/ediel/core/messageIdentity'
 export { EDIEL_ENERGY_SHARING_CAPABILITY } from '@/lib/ediel/rulebook/guideRegistry'
 import {AUTHORITATIVE_EDIEL_GUIDES} from '@/lib/ediel/rulebook/guideRegistry'
 import {
@@ -216,4 +217,20 @@ import {PRODAT_26A_FIELD_MATRIX} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 export function canonicalProdatFieldWireDescriptor(fieldNumber:string):Readonly<{fieldNumber:string;fieldKey:string;segmentPath:string}>|null {
  const row=PRODAT_26A_FIELD_MATRIX.find(item=>item.fieldNumber===fieldNumber)
  return row?Object.freeze({fieldNumber:row.fieldNumber,fieldKey:row.fieldKey,segmentPath:row.segmentPath}):null
+}
+
+/** Frozen P26.A field217 code table: Z04=15 minutes, Z02=Hour.
+ * Z01 Profile and Z03 administrator choice do not establish exact resolution;
+ * field222 reporting frequency is a distinct domain and is never consulted. */
+export function canonicalProdatMeasurementResolution(value:string|null|undefined):'15'|'60'|null {
+ return value==='Z04'?'15':value==='Z02'?'60':null
+}
+
+import {canonicalProdatRequestedMethod} from '@/lib/ediel/prodat/canonicalRenderSemantics'
+import {canonicalProdatTransactionReason} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+/** Read-only projection of the existing subtype/reason and render authorities. */
+export function canonicalProdatMethodChangeTuple(subtype:'F'|'G'){
+ const method=canonicalProdatRequestedMethod(subtype),reason=canonicalProdatTransactionReason(subtype,'Z09')
+ if(!method||!reason)throw new Error('canonical_method_change_tuple_missing')
+ return Object.freeze({subtype,reason,method})
 }

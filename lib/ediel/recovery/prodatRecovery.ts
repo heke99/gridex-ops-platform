@@ -105,7 +105,7 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
       businessProcess: type === 'metering_access' ? 'metering_permission' : type === 'supplier_switch' ? 'supplier_switch' : 'customer_masterdata',direction: 'outbound',
       senderEdielId: canonical.sender,senderSubaddress: canonical.senderSubAddress,receiverEdielId: canonical.receiver,receiverSubaddress: canonical.receiverSubAddress,
       applicationReference: canonical.applicationReference,routeProfileId,communicationRouteId: route.route.id,customerId: original.customer_id,
-      customerSiteId: original.site_id,meteringPointId: original.metering_point_id,operationId: authorization.operationId,interchangeReference: canonical.interchangeReference,
+      customerSiteId: original.site_id,meteringPointId: original.metering_point_id,supplierSwitchRequestId: original.switch_request_id,operationId: authorization.operationId,interchangeReference: canonical.interchangeReference,
       messageReference: canonical.messageReference,transactionReference: canonical.transactionReference,idempotencyKey: `prodat-recovery:${authorization.operationId}`,
       payload: { actorRole,recoveryOperationId: authorization.operationId,originalMessageId: original.id },actorUserId: input.actorUserId,
       routeProfile: { applicationReference: route.applicationReference,actorRole } })
@@ -124,7 +124,7 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
       messageFamily: 'PRODAT', messageCode: canonical.messageCode, messageVersion: canonical.version, processType: type, environment: original.environment,
       testFlag: original.environment === 'test' ? 1 : 0, status: 'draft', transportType: 'smtp', rawPayload: input.correctedRawPayload,
       originalMessageId: original.id, originalMessageCode: original.message_code, sourceOperationId: authorization.operationId,
-      customerId: original.customer_id, siteId: original.site_id, meteringPointId: original.metering_point_id, gridOwnerId: original.grid_owner_id,
+      customerId: original.customer_id, siteId: original.site_id, meteringPointId: original.metering_point_id, gridOwnerId: original.grid_owner_id,switchRequestId: original.switch_request_id,
       outboundRequestId: outbound.id, externalReference: canonical.documentReference, interchangeReference: canonical.interchangeReference,
       transactionReference: canonical.transactionReference, applicationReference: canonical.applicationReference,
       senderEdielId: canonical.sender, senderSubAddress: canonical.senderSubAddress, receiverEdielId: canonical.receiver, receiverSubAddress: canonical.receiverSubAddress,

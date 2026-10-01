@@ -1,13 +1,14 @@
 import {beforeEach,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
+import {ownerSource} from './helpers/sourceOwnerFixtures'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
 import {persistAtomicOutboundAck} from '@/lib/ediel/core/atomicAckPersistence'
 // Mechanical port DTO and whitelist assertions. Native source/witness/race
 // qualification is independently exercised by SQL/native fixtures.
-const source={id:'source',company_id:'tenant',environment:'test',direction:'inbound',message_family:'UTILTS',message_code:'E66',raw_payload:'original physical bytes'} as EdielMessageRow
-const ack={id:'ack',company_id:'tenant',environment:'test',direction:'outbound',message_standard:'edifact',message_family:'APERAK',related_message_id:'source',raw_payload:'own bytes',ack_outcome:'positive',parsed_payload:{relatedTransactionReference:'OWN'}} as EdielMessageRow
+const source:EdielMessageRow={...ownerSource(),id:'source',company_id:'tenant',environment:'test',direction:'inbound',message_family:'UTILTS',message_code:'E66',raw_payload:'original physical bytes'}
+const ack:EdielMessageRow={...source,id:'ack',company_id:'tenant',environment:'test',direction:'outbound',message_standard:'edifact',message_family:'APERAK',related_message_id:'source',raw_payload:'own bytes',ack_outcome:'positive',parsed_payload:{relatedTransactionReference:'OWN'}}
 const authority={sourceMessage:source,companyId:'tenant',environment:'test',actorUserId:'actor',ackFamily:'APERAK' as const,sequenceField:'relatedTransactionReference' as const,sequenceValue:'OWN',outcome:'positive' as const}
 const draft={actorUserId:'spoofed',companyId:'foreign',direction:'outbound',messageStandard:'edifact',messageFamily:'APERAK',messageCode:'APERAK',environment:'test',rawPayload:'own bytes',relatedMessageId:'foreign-source',outboundRequestId:'foreign-business',canonicalRulePackId:'foreign-pack',sourceOperationId:'foreign-op',executionContextSnapshot:{outboundOwnerWitnessId:'fake'},rulePackSnapshot:{fake:true},senderEmail:'reply@example.invalid',parsedPayload:{relatedTransactionReference:'OWN'}} as CreateEdielMessageInput
 beforeEach(()=>{io.rpc.mockReset();io.rpc.mockResolvedValue({data:{version:1,sourceMessage:source,ackMessage:ack},error:null})})

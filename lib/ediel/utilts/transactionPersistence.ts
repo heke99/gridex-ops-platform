@@ -1,7 +1,7 @@
 import { canonicalUtiltsDecimal } from './exactDecimal'
 import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
 import { canonicalUtiltsTransactions } from './canonicalObservationScope'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import type {
@@ -31,6 +31,7 @@ export type UtiltsTransactionPersistenceItem = {
   meteringPointId: string | null
   externalMeteringPointId: string | null
   gridAreaId: string | null
+  productId?: string | null
   periodStart: string | null
   periodEnd: string | null
   registrationDate: string | null
@@ -147,6 +148,8 @@ export function buildUtiltsTransactionPersistencePayload(input: {
 }): UtiltsTransactionPersistenceItem[] {
   const seriesKind = utiltsSeriesKind(input.messageCode)
   const timezone = parseEdifactTimezoneOffsetFromSegments(input.rawSegments)
+  const wire = input.rawSegments?.length ? tokenizeEdifact(input.rawSegments.map(segment => segment.endsWith("'") ? segment : segment + "'").join('\n')) : null
+  const physical = wire ? canonicalUtiltsTransactions(wire.segments.slice(wire.segments.findIndex(segment => segment.tag === 'UNH')), wire.una, 0) : []
   // The source fields are local wall-clock times. Without the wire's DTM+735,
   // do not invent a UTC instant for durable series evidence.
   const instant = (value: string | null | undefined) => timezone ? localEdifactDateTimeToUtc(value, timezone) : null
@@ -160,6 +163,11 @@ export function buildUtiltsTransactionPersistencePayload(input: {
     const match =
       byTransactionReference(input.matches, disposition.transactionId) ??
       byTransactionReference(input.matches, transactionId)
+    const own = physical.find(value => value.transactionId === disposition.transactionId || value.transactionId === transactionId)
+    const firstSequence = own?.segments.find(segment => segment.tag === 'SEQ')?.index ?? Infinity
+    const products = own?.segments.filter(segment => segment.tag === 'LIN' && segment.index < firstSequence) ?? []
+    const product = wire && products.length === 1 ? segmentComposite(products[0], 3, wire.una) : []
+    const productId = product.length === 4 && product[1] === '' && product[2] === '' && product[3] === '9' ? product[0] || null : null
     // LOC+175 names a regulating object, never a metering point. A grid-area
     // or stale transaction match must not turn that IDE into a point identity.
     const regulatingObject = Boolean(transaction?.regulatingObjectPresent || transaction?.regulatingObjectId)
@@ -173,8 +181,9 @@ export function buildUtiltsTransactionPersistencePayload(input: {
       meteringPointId: regulatingObject ? null : match?.meteringPointId ?? null,
       externalMeteringPointId: regulatingObject ? null : match?.externalMeteringPointId ?? transaction?.meterPointId ?? null,
       gridAreaId: match?.externalGridAreaId ?? transaction?.gridAreaId ?? null,
-      periodStart: transaction?.deliveryPeriodStart ?? null,
-      periodEnd: transaction?.deliveryPeriodEnd ?? null,
+      productId,
+      periodStart: instant(transaction?.deliveryPeriodStart),
+      periodEnd: instant(transaction?.deliveryPeriodEnd),
       registrationDate: instant(transaction?.registrationTime),
       latestUpdateDate: instant(transaction?.latestUpdateTime),
       resolution: transaction?.resolution ?? null,

@@ -1,3 +1,4 @@
+import type {QualifiedCustomerStructure} from '@/lib/ediel/sources/qualifiedCustomerStructure'
 import { supabaseService } from '@/lib/supabase/service'
 import type {
   CommunicationRouteRow,
@@ -86,6 +87,7 @@ export type CustomerExportContext = {
   site: CustomerSiteRow | null
   meteringPoint: MeteringPointRow | null
   contract: CustomerContractRow | null
+  qualifiedStructure?:QualifiedCustomerStructure
 }
 
 function preferPrimaryContact(contacts: CustomerContactRow[]): CustomerContactRow | null {
@@ -100,86 +102,37 @@ function preferPrimaryContact(contacts: CustomerContactRow[]): CustomerContactRo
   )
 }
 
-async function getCustomerRow(customerId: string): Promise<CustomerRow | null> {
-  const { data, error } = await supabaseService
-    .from('customers')
-    .select('*')
-    .eq('id', customerId)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as CustomerRow | null) ?? null
+async function getCustomerRow(customerId:string,companyId?:string):Promise<CustomerRow|null>{
+ let q=supabaseService.from('customers').select('*').eq('id',customerId)
+ if(companyId)q=q.eq('company_id',companyId)
+ const {data,error}=await q.maybeSingle();if(error)throw error;return (data??null) as CustomerRow|null
 }
-
-async function getCustomerContacts(customerId: string): Promise<CustomerContactRow[]> {
-  const { data, error } = await supabaseService
-    .from('customer_contacts')
-    .select('*')
-    .eq('customer_id', customerId)
-    .order('is_primary', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(20)
-
-  if (error) throw error
-  return (data ?? []) as CustomerContactRow[]
+async function getCustomerContacts(customerId:string,companyId?:string):Promise<CustomerContactRow[]>{
+ let q=supabaseService.from('customer_contacts').select('*').eq('customer_id',customerId)
+ if(companyId)q=q.eq('company_id',companyId)
+ const {data,error}=await q.order('is_primary',{ascending:false}).order('created_at',{ascending:false}).limit(20);if(error)throw error;return (data??[]) as CustomerContactRow[]
 }
-
-async function getSite(siteId?: string | null): Promise<CustomerSiteRow | null> {
-  if (!siteId) return null
-
-  const { data, error } = await supabaseService
-    .from('customer_sites')
-    .select('*')
-    .eq('id', siteId)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as CustomerSiteRow | null) ?? null
+async function getSite(siteId?:string|null,companyId?:string):Promise<CustomerSiteRow|null>{
+ if(!siteId)return null
+ let q=supabaseService.from('customer_sites').select('*').eq('id',siteId)
+ if(companyId)q=q.eq('company_id',companyId)
+ const {data,error}=await q.maybeSingle();if(error)throw error;return (data??null) as CustomerSiteRow|null
 }
-
-async function getMeteringPoint(
-  meteringPointId?: string | null
-): Promise<MeteringPointRow | null> {
-  if (!meteringPointId) return null
-
-  const { data, error } = await supabaseService
-    .from('metering_points')
-    .select('*')
-    .eq('id', meteringPointId)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as MeteringPointRow | null) ?? null
+async function getMeteringPoint(meteringPointId?:string|null,companyId?:string):Promise<MeteringPointRow|null>{
+ if(!meteringPointId)return null
+ let q=supabaseService.from('metering_points').select('*').eq('id',meteringPointId)
+ if(companyId)q=q.eq('company_id',companyId)
+ const {data,error}=await q.maybeSingle();if(error)throw error;return (data??null) as MeteringPointRow|null
 }
-
-async function getLatestContract(params: {
-  customerId: string
-  siteId?: string | null
-}): Promise<CustomerContractRow | null> {
-  if (params.siteId) {
-    const { data, error } = await supabaseService
-      .from('customer_contracts')
-      .select('*')
-      .eq('customer_id', params.customerId)
-      .eq('site_id', params.siteId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (error) throw error
-    if (data) return data as CustomerContractRow
-  }
-
-  const { data, error } = await supabaseService
-    .from('customer_contracts')
-    .select('*')
-    .eq('customer_id', params.customerId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as CustomerContractRow | null) ?? null
+async function getLatestContract(params:{customerId:string;siteId?:string|null;companyId?:string}):Promise<CustomerContractRow|null>{
+ if(params.siteId){
+  let q=supabaseService.from('customer_contracts').select('*').eq('customer_id',params.customerId).eq('site_id',params.siteId)
+  if(params.companyId)q=q.eq('company_id',params.companyId)
+  const {data,error}=await q.order('created_at',{ascending:false}).limit(1).maybeSingle();if(error)throw error;if(data)return data as CustomerContractRow
+ }
+ let q=supabaseService.from('customer_contracts').select('*').eq('customer_id',params.customerId)
+ if(params.companyId)q=q.eq('company_id',params.companyId)
+ const {data,error}=await q.order('created_at',{ascending:false}).limit(1).maybeSingle();if(error)throw error;return (data??null) as CustomerContractRow|null
 }
 
 function normalizeCompanyId(value: unknown): string | null {
@@ -251,16 +204,22 @@ export function requireContextCompanyId(
 }
 
 export async function getCustomerExportContext(params: {
+  edielStructure?:{companyId:string;actorUserId:string;environment:'test'|'production';periodStart:string;periodEnd:string}
   customerId: string
   siteId?: string | null
   meteringPointId?: string | null
 }): Promise<CustomerExportContext> {
+  if(params.edielStructure){
+    const {assertEdielTenantActor}=await import('@/lib/ediel/services/authorization')
+    await assertEdielTenantActor({companyId:params.edielStructure.companyId,actorUserId:params.edielStructure.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
+  }
   const [customer, contacts, site, meteringPoint, contract] = await Promise.all([
-    getCustomerRow(params.customerId),
-    getCustomerContacts(params.customerId),
-    getSite(params.siteId),
-    getMeteringPoint(params.meteringPointId),
+    getCustomerRow(params.customerId,params.edielStructure?.companyId),
+    getCustomerContacts(params.customerId,params.edielStructure?.companyId),
+    getSite(params.siteId,params.edielStructure?.companyId),
+    getMeteringPoint(params.meteringPointId,params.edielStructure?.companyId),
     getLatestContract({
+      companyId:params.edielStructure?.companyId,
       customerId: params.customerId,
       siteId: params.siteId ?? null,
     }),
@@ -273,7 +232,14 @@ export async function getCustomerExportContext(params: {
     contract,
   })
 
+  let qualifiedStructure:QualifiedCustomerStructure|undefined
+  if(params.edielStructure){
+    if(tenant.companyId!==params.edielStructure.companyId||tenant.tenantIssues.length||!site||!meteringPoint||site.customer_id!==params.customerId||meteringPoint.customer_id!==params.customerId||(meteringPoint.customer_site_id??meteringPoint.site_id)!==site.id)throw new Error('dated_structure_export_scope_mismatch')
+    const {readQualifiedCustomerStructure}=await import('@/lib/ediel/sources/qualifiedCustomerStructure')
+    qualifiedStructure=await readQualifiedCustomerStructure({...params.edielStructure,customerId:params.customerId,siteId:site.id,meteringPointId:meteringPoint.id})
+  }
   return {
+    ...(qualifiedStructure?{qualifiedStructure}:{}),
     companyId: tenant.companyId,
     tenantIssues: tenant.tenantIssues,
     customer,
@@ -358,7 +324,8 @@ export function buildSitePayload(site: CustomerSiteRow | null): Record<string, u
 }
 
 export function buildMeteringPointPayload(
-  meteringPoint: MeteringPointRow | null
+  meteringPoint: MeteringPointRow | null,
+  qualifiedStructure?:QualifiedCustomerStructure
 ): Record<string, unknown> {
   return {
     metering_point: meteringPoint
@@ -369,8 +336,9 @@ export function buildMeteringPointPayload(
           site_facility_id: meteringPoint.site_facility_id ?? null,
           ediel_reference: meteringPoint.ediel_reference ?? null,
           status: meteringPoint.status,
-          measurement_type: meteringPoint.measurement_type,
-          reading_frequency: meteringPoint.reading_frequency,
+          measurement_type: qualifiedStructure?.status==='selected'?qualifiedStructure.fields.measurementMethod:null,
+          reading_frequency: qualifiedStructure?.status==='selected'?qualifiedStructure.fields.reportingFrequency:null,
+          structural_source:qualifiedStructure??{status:'unavailable',reason:'dated_structure_not_requested'},
           grid_owner_id: meteringPoint.grid_owner_id ?? null,
           price_area_code: meteringPoint.price_area_code ?? null,
           start_date: meteringPoint.start_date ?? null,

@@ -5,6 +5,7 @@ import type {EdielRulebookIssue} from './rulebook'
 import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS,prodatAperakFieldWireLabel} from '@/lib/ediel/prodat/prodatAperakText'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {utiltsErrSourceCopyViolations} from '@/lib/ediel/utilts/errSourceCopy'
+import {UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,validUtiltsLegalIdentity} from '@/lib/ediel/utilts/headerIdentityGuide'
 
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 /** Source projection port for native admission. The TS guide consumer below
@@ -24,8 +25,8 @@ export const CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS=Object.freeze({
  documentIdMax:35,allowedFunctions:Object.freeze(['5','9']),allowedAcknowledgementRequests:Object.freeze(['AB','NA']),
  documentDate:Object.freeze({...CANONICAL_ACK_GUIDE_CONSTRAINTS.common.documentDate,noFuture:true}),fixedOffset:CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.fixedOffset,
  marketCodes:Object.freeze(['23','27']),phaseCodes:Object.freeze(['E02','E03','E04']),agency:'260',
- legalAgencies:CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.legalAgencies,svkAgency:'260',svkQualifier:'SVK',
- subordinateRoles:Object.freeze(['DDK','DDQ','DDX','DEA','DEC','DER','DGG','DGI','EZ','MDR','PQ']),
+ identity:UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,legalAgencies:UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS.legalAgencies,svkAgency:'260',svkQualifier:UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS.edielQualifier,
+ subordinateRoles:UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS.ancillaryRoles,
  transactionQualifier:'24',ownTransactionIdMax:35,originalTransactionIdMax:70,responseQualifier:'E01',responseStatus:'41',referenceQualifier:'TN',
  allowedReasons:Object.freeze(['E10','E14','E16','E18','E29','E47','E49','E50','E51','E55','E61','E62','E73','E87','E90','E97','E98']),
  originalMessageCodes:Object.freeze(['E30','E31','E66','E72','E73','E74','S01','S02','S03','S04','S05','S06','S07']),
@@ -80,7 +81,7 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   if(markets.length!==1||!cfg.marketCodes.includes(value(wire,market,1))||!cfg.phaseCodes.includes(value(wire,market,2))||segmentComposite(market,2,wire.una)[2]!==cfg.agency)add('ACK_UTILTS_ERR_MARKET_PHASE_INVALID','UTILTS-ERR ska kopiera originalets marknad och skede.','MKS/501/502')
   for(const qualifier of ['MS','MR']){
    const parties=header.filter(t=>t.tag==='NAD'&&value(wire,t,1)===qualifier),party=segmentComposite(parties[0],2,wire.una)
-   if(parties.length!==1||!party[0]||party[0].length>35||!cfg.legalAgencies.includes(party[2]??'')||(party[2]===cfg.svkAgency&&party[1]!==cfg.svkQualifier))add('ACK_UTILTS_ERR_LEGAL_PARTY_INVALID','UTILTS-ERR ska ange egna juridiska kvittensparter och rätt kvalifikatorer.','NAD/207/208')
+   if(parties.length!==1||!party[0]||party[0].length>35||!validUtiltsLegalIdentity({id:party[0],qualifier:party[1]??'',agency:party[2]??''}))add('ACK_UTILTS_ERR_LEGAL_PARTY_INVALID','UTILTS-ERR ska ange egna juridiska kvittensparter och rätt kvalifikatorer.','NAD/207/208')
   }
   const subordinate=header.filter(t=>t.tag==='NAD'&&!['MS','MR'].includes(value(wire,t,1)))
   if(subordinate.length!==1||!cfg.subordinateRoles.includes(value(wire,subordinate[0],1))||segmentComposite(subordinate[0],2,wire.una).some(Boolean))add('ACK_UTILTS_ERR_SUBORDINATE_ROLE_INVALID','UTILTS-ERR ska ange originalets underordnade avsändarroll.','NAD/509')

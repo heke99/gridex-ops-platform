@@ -22,6 +22,7 @@ import {validateProdatInvoicee} from '@/lib/ediel/rulebook/prodatInvoiceePolicy'
 import {validateProdatEndUserAddress} from '@/lib/ediel/rulebook/prodatEndUserAddressPolicy'
 import { prodatSendMessageScopeIssue } from '@/lib/ediel/prodat/prodatSendMessageScope'
 import { prodatInterchangeBatchIssues } from '@/lib/ediel/prodat/prodatInterchangeBatch'
+import { validateUnsmGrammar } from '@/lib/ediel/core/edifactValidation'
 import { validateProdatSubtypePayload } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -384,6 +385,12 @@ function validateEdifactPayload(params: {
   const { segments, una } = tokens
   const rawSegments = segments.map(segment => segment.raw)
   const issues: EdielPayloadPreflightIssue[] = []
+  const grammar = validateUnsmGrammar(tokens)
+  for (const failure of grammar.issues) issues.push(issue({
+    severity: failure.code === 'UNSM_DIRECTORY_SOURCE_UNAVAILABLE' && params.mode === 'send' ? 'error' : failure.severity,
+    code: failure.code, title: 'Full versionsbunden UNSM-grammatik', description: failure.description,
+    segment: segments.find(segment => segment.index === failure.segmentIndex),
+  }))
   if (params.mode === 'send') for (const failure of prodatInterchangeBatchIssues(tokens)) issues.push(issue({
     severity: 'error', code: failure.code, title: 'PRODAT-batchen måste delas', description: failure.description, segment: failure.segment,
   }))

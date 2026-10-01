@@ -9,6 +9,7 @@
 import { getGridOwnerById, getMeteringPointById, getCustomerSiteById } from '@/lib/masterdata/db'
 import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/operations/db'
 import { allocateProdatSwitchWireReferences } from '@/lib/ediel/prodat'
+import { prepareAndQueueSwitchCancellation } from '@/lib/ediel/flows/prodatSwitchCancellation'
 import { renderAndQueueNormalSwitch } from '@/lib/ediel/intent/switchRenderGateway'
 import { linkEdielMessage } from '@/lib/ediel/db'
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from '@/lib/legal/authorizationChain'
@@ -16,7 +17,7 @@ import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
 import { resolveDecisionBackedOutboundContext } from '@/lib/ediel/flows/routeDecisionContext'
 import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
-import type { EdielEnvironment } from '@/lib/ediel/types'
+import type { EdielEnvironment, EdielMessageRow } from '@/lib/ediel/types'
 import {
   ensureActorUserId,
   findOrCreateSwitchOutbound,
@@ -104,13 +105,20 @@ function blockedSwitchFlowCode(code: Exclude<ProdatSwitchCode, 'Z03'>): never {
 
 export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchParams & {
   messageCode: ProdatSwitchCode
-}) {
+}): Promise<EdielMessageRow> {
   if (params.messageCode !== 'Z03') return blockedSwitchFlowCode(params.messageCode)
 
   const actorUserId = ensureActorUserId(params.actorUserId)
   const { supabase, switchRequest, site, meteringPoint, gridOwner } = await loadSwitchContext(params.switchRequestId)
   const companyId = switchRequest.company_id ?? site.company_id ?? null
   if (!companyId) throw new Error('PRODAT Z03 stoppades: switchärendet och anläggningen saknar company_id.')
+
+  const subtype = normalizeSwitchSubtype(switchRequest)
+  if (subtype === 'C') {
+    const withdrawal = await prepareAndQueueSwitchCancellation({ companyId, switchRequestId: switchRequest.id, actorUserId, preferredRouteId: params.communicationRouteId, environment: params.environment })
+    if (withdrawal.status === 'held') throw new Error(`PRODAT Z03C stoppades: ${withdrawal.missing.join(', ')}`)
+    return withdrawal.message
+  }
 
   const contractId =
     switchRequest.customer_contract_id
@@ -126,7 +134,6 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     throw new Error(`PRODAT Z03 stoppades av canonical switch-gate: ${switchGate.error.message}`)
   }
 
-  const subtype = normalizeSwitchSubtype(switchRequest)
   const reasonForTransaction = reasonForSubtype(subtype)
   const canonicalRule = await resolveCanonicalRulePack({
     family: 'PRODAT',
@@ -154,7 +161,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
     actorUserId,
     payload: {
       requestType: switchRequest.request_type,
-      cancellation_requested: subtype === 'C',
+      cancellation_requested: false,
       move_in: subtype === 'LK',
       transactionSubtype: subtype,
       reasonForTransaction,

@@ -11,7 +11,7 @@ import {
   persistUtiltsTransactionResults,
   resolveUtiltsTransactionId,
 } from '@/lib/ediel/utilts/transactionPersistence'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -63,7 +63,7 @@ async function persistNonBillingTransactions(params: {
     transactions: buildUtiltsTransactionPersistencePayload({
       messageCode: params.messageCode,
       transactions: params.runtime.facts.transactions,
-      rawSegments: params.runtime.facts.rawSegments,
+      rawSegments: utiltsRuntimeSegments(params.runtime.facts),
       dispositions: params.runtime.transactionDispositions,
       // Non-billing outcomes deliberately persist only protocol/business
       // identity. They never acquire tenant customer/metering-point links here.

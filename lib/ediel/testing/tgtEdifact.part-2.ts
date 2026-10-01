@@ -718,7 +718,7 @@ export function buildUnb(params: {
     ? `${params.receiverEdielId}:ZZ:${params.receiverSubAddress}`
     : `${params.receiverEdielId}:ZZ`;
 
-  return `UNB+UNOC:3+${sender}+${receiver}+${params.refs.createdDate}:${params.refs.createdTime}+${params.refs.interchangeRef}++${params.applicationReference}++1`;
+  return `UNB+UNOC:3+${sender}+${receiver}+${params.refs.createdDate}:${params.refs.createdTime}+${params.refs.interchangeRef}++${params.applicationReference}++1++1`;
 }
 
 export function buildUnh(

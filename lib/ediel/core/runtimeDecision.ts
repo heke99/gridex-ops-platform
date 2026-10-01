@@ -1,7 +1,7 @@
 import {buildReceivedUtiltsFunctionalValidation,type ReceivedUtiltsFunctionalValidation} from './receivedUtiltsFunctionalValidation'
 import {buildReceivedUtiltsHeaderValidation,type ReceivedUtiltsHeaderValidation} from './receivedUtiltsHeaderValidation'
 import {buildReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from './receivedUtiltsTransactionValidation'
-import {readSourceBoundAckRulePackEvidence} from './ackSourceRulePackEvidence'
+import {readSourceBoundAckRulePackEvidence,sourceBoundAckCanonicalPolicy} from './ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
 import { classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
 import type {ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
@@ -322,6 +322,23 @@ function resolveUtiltsDecision(params: {
   return { applicationDecision: 'accepted', functionalDecision: 'accepted', businessOutcome, utiltsFunctionalValidation, utiltsHeaderValidation, utiltsTransactionValidation }
 }
 
+function canonicalPolicyProjection(policy: CanonicalEdielPolicy | null) {
+  return policy ? {
+      family: policy.family,
+      code: policy.code,
+      subtype: policy.subtype,
+      referenceDate: policy.referenceDate,
+      timeAnchors: policy.timeAnchors ?? null,
+      profileKey: policy.profileKey,
+      guide: policy.guide,
+      applicationReference: policy.applicationReference,
+      ackRule: policy.ackRule,
+      semantics: policy.semantics,
+      prodatDependentConditions: policy.prodatDependentConditions,
+      sourceTrace: policy.sourceTrace,
+  } : null
+}
+
 function buildResult(params: {
   utiltsFunctionalValidation?: ReceivedUtiltsFunctionalValidation
   utiltsHeaderValidation?: ReceivedUtiltsHeaderValidation
@@ -354,20 +371,7 @@ function buildResult(params: {
     sourceRules: params.sourceRules,
     decisionTrace: params.decisionTrace,
     syntax: params.syntax,
-    canonicalPolicy: params.policy ? {
-      family: params.policy.family,
-      code: params.policy.code,
-      subtype: params.policy.subtype,
-      referenceDate: params.policy.referenceDate,
-      timeAnchors: params.policy.timeAnchors ?? null,
-      profileKey: params.policy.profileKey,
-      guide: params.policy.guide,
-      applicationReference: params.policy.applicationReference,
-      ackRule: params.policy.ackRule,
-      semantics: params.policy.semantics,
-      prodatDependentConditions: params.policy.prodatDependentConditions,
-      sourceTrace: params.policy.sourceTrace,
-    } : null,
+    canonicalPolicy: canonicalPolicyProjection(params.policy),
     utiltsBusinessOutcome: params.utiltsBusinessOutcome,
   }
   return {
@@ -407,6 +411,16 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
   }
   const issues: CanonicalDecisionIssue[] = canonical.parserWarnings.map(textIssue)
   issues.push(...syntax.issues.map(syntaxIssueToCanonical))
+
+  // Missing selected international source is an authority hold, not a proven
+  // wire syntax error. It must precede both positive and negative CONTRL plans
+  // and all application, functional, reservation and storage owners.
+  if ('grammarQualification' in syntax && syntax.grammarQualification === 'unavailable') {
+    return buildResult({ canonical, policy: null, utiltsBusinessOutcome: null,
+      syntaxDecision: 'manual_review', applicationDecision: 'not_applicable', functionalDecision: 'not_applicable',
+      responsePlan: [], issues, sourceRules: ['UNSM_SELECTED_DIRECTORY_SOURCE_REQUIRED'],
+      decisionTrace: ['Fysisk selected UNSM-directory saknar kvalificerad källgrammatik; behandlingen hålls före kvittens och affärseffekter.'], syntax })
+  }
 
   const syntaxAccepted = syntax.ok
   const syntaxIssueText = syntax.issues.map((item) => item.description).filter(Boolean).join(' | ') || null
@@ -521,17 +535,14 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
     prodatProcessingDisposition = prodat.prodatProcessingDisposition
     applicationDecision = prodat.applicationDecision
     functionalDecision = prodat.functionalDecision
-  } else if ((canonical.family === 'APERAK' || canonical.family === 'CONTRL') && policy) {
+  } else if ((canonical.family === 'APERAK' || canonical.family === 'CONTRL' || canonical.family === 'UTILTS_ERR') && policy) {
     const guideIssues=validateCanonicalAckGuide({policy,rawSegments:canonical.rawSegments,una:canonical.una})
     issues.push(...guideIssues.map(finding=>issue({layer:'application',severity:finding.severity,code:finding.code,title:finding.title,description:finding.description,source:policy.guide.documentName})))
     applicationDecision=guideIssues.some(finding=>finding.blocking||finding.severity==='error')?'rejected':'accepted'
     functionalDecision=applicationDecision==='accepted'?'manual_review':'not_applicable'
     decisionTrace.push('Nationell kvittensanvisning prövad; faktisk originalkorrelation och fryst källpaket återstår i beständig auktoritet.')
-  } else if (canonical.family === 'UTILTS_ERR' && policy) {
-    utiltsBusinessOutcome = resolveUtiltsInboundBusinessOutcome(policy)
-    applicationDecision = 'accepted'
-    functionalDecision = 'accepted'
   }
+
 
   return buildResult({
     utiltsFunctionalValidation,
@@ -591,17 +602,19 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message: EdielMessageRow): Promise<CanonicalRuntimeDecision> {
   const base = resolveCanonicalRuntimeDecision(message)
   if (base.syntaxDecision === 'rejected' || !base.policy) return base
-  if (base.policy.family === 'APERAK' || base.policy.family === 'CONTRL') {
+  if (base.policy.family === 'APERAK' || base.policy.family === 'CONTRL' || base.policy.family === 'UTILTS_ERR') {
     if(base.applicationDecision !== 'accepted')return base
     try {
-      const {sourceMessage,evidence}=await readSourceBoundAckRulePackEvidence(message)
-      const guideIssues=validateCanonicalAckGuide({policy:base.policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una,sourceRawPayload:sourceMessage.raw_payload})
-      const issues=[...base.issues,...guideIssues.map(finding=>issue({layer:'application',severity:finding.severity,code:finding.code,title:finding.title,description:finding.description,source:base.policy!.guide.documentName}))]
+      const qualification=await readSourceBoundAckRulePackEvidence(message),{sourceMessage,evidence}=qualification
+      const policy=sourceBoundAckCanonicalPolicy({qualification,policy:base.policy})
+      const guideIssues=validateCanonicalAckGuide({policy,rawSegments:base.canonical.rawSegments,una:base.canonical.una,sourceRawPayload:sourceMessage.raw_payload})
+      const issues=[...base.issues,...guideIssues.map(finding=>issue({layer:'application',severity:finding.severity,code:finding.code,title:finding.title,description:finding.description,source:policy.guide.documentName}))]
       const rejected=guideIssues.some(finding=>finding.blocking||finding.severity==='error')
       const applicationDecision:CanonicalDecisionState=rejected?'rejected':'accepted',functionalDecision:CanonicalDecisionState=rejected?'not_applicable':'accepted'
-      const decisionTrace=[...base.decisionTrace,`Original ${sourceMessage.id}; oförändrat källpaket ${evidence.rulePackId}/${evidence.sourceHash}.`]
+      const decisionTrace=[...base.decisionTrace,`Original ${sourceMessage.id}; oförändrat källpaket ${evidence.rulePackId}/${evidence.sourceHash}; originaledition ${policy.guide.guideRevision}.`]
+      const sourceRules=[...base.sourceRules,`RULE_PACK_EVIDENCE:${evidence.profileKey}:${evidence.sourceHash}`]
       const rulePackEvidence={profileKey:evidence.profileKey,messageProfileId:evidence.messageProfileId,rulePackId:evidence.rulePackId,sourceHash:evidence.sourceHash,version:evidence.version,snapshot:{rulePack:evidence.snapshot.rulePack,messageProfile:evidence.snapshot.messageProfile,guideSources:evidence.snapshot.guideSources}}
-      return {...base,applicationDecision,functionalDecision,issues,decisionTrace,validationReport:{...base.validationReport,applicationDecision,functionalDecision,issues,decisionTrace,rulePackEvidence,ackOriginalMessageId:sourceMessage.id,fieldRuleSource:'canonical_policy'}}
+      return {...base,policy,applicationDecision,functionalDecision,issues,decisionTrace,sourceRules,validationReport:{...base.validationReport,canonicalPolicy:canonicalPolicyProjection(policy),applicationDecision,functionalDecision,issues,decisionTrace,sourceRules,rulePackEvidence,ackOriginalMessageId:sourceMessage.id,fieldRuleSource:'canonical_policy'}}
     } catch(error) {
       const failureDisposition=classifyEdielFailure(error),description=error instanceof Error?error.message:String(error)
       const issues=[...base.issues,issue({layer:'application',severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description,source:'readSourceBoundAckRulePackEvidence'})]

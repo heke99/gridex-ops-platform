@@ -201,10 +201,6 @@ function payloadOutcomeOrNull(
   return value === 'positive' || value === 'negative' ? value : null
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
 function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
 }
@@ -583,28 +579,14 @@ export async function findSequencedAckForSource(params: {
   sequenceField: 'relatedTransactionReference' | 'utiltsErrSequenceToken' | 'aperakSequenceToken'
   sequenceValue: string
 }): Promise<EdielMessageRow | null> {
-  const sequenceValue = params.sequenceValue.trim()
-  if (!sequenceValue) return null
-
-  let query = supabaseService
-    .from('ediel_messages')
-    .select('*')
-    .eq('direction', 'outbound')
-    .eq('related_message_id', params.sourceMessageId)
-    .eq('message_family', params.ackFamily)
-    .eq(`parsed_payload->>${params.sequenceField}`, sequenceValue)
-    .not('status', 'in', '(cancelled,failed)')
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  if (params.outcome) {
-    query = query.eq('ack_outcome', params.outcome)
-  }
-
-  const { data, error } = await query
-  if (error) throw error
-
-  return ((data ?? [])[0] as EdielMessageRow | undefined) ?? null
+  const reference=params.sequenceValue
+  if(!reference.trim())return null
+  // Historical error-code sequencing does not identify an original IDE. Hold
+  // callers until they supply a physical source reference; never query caches.
+  if(params.sequenceField==='utiltsErrSequenceToken')throw new Error('ediel_ack_physical_transaction_reference_required')
+  const {findExistingAckForSource}=await import('@/lib/ediel/core/ackPolicy')
+  return findExistingAckForSource({sourceMessageId:params.sourceMessageId,ackFamily:params.ackFamily,
+    outcome:params.outcome ?? undefined,ackScope:'transaction',transactionReference:reference})
 }
 
 export async function listAckMessagesForSource(params: {

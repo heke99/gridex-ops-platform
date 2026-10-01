@@ -1,6 +1,6 @@
 // lib/ediel/core/syntaxValidator.ts
 
-import { validateEdifactEnvelope, type EdifactValidationIssue } from '@/lib/ediel/core/edifactValidation'
+import { validateEdifactEnvelope, validateUnsmGrammar, type UnsmGrammarResult, type EdifactValidationIssue } from '@/lib/ediel/core/edifactValidation'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 
@@ -27,6 +27,8 @@ export type EdielSyntaxValidationResult = {
   issues: EdielSyntaxIssue[]
   declaredUntCount: number | null
   actualMessageSegmentCount: number | null
+  grammarQualification: UnsmGrammarResult['qualification']
+  grammarSources: UnsmGrammarResult['sources']
 }
 
 
@@ -72,6 +74,10 @@ export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxVali
   // A lexical rejection cannot safely be reparsed for national/header facts.
   const facts = envelope.issues.some(item => item.code === 'syntax_tokenization_failed')
     ? null : parseEdifactMessageFacts(message.raw_payload)
+  const grammar: UnsmGrammarResult = facts ? validateUnsmGrammar(message.raw_payload ?? '')
+    : { qualification: 'not_applicable', syntaxOk: false, issues: [], sources: [] }
+  issues.push(...grammar.issues.map(item => ({ code: item.code, severity: item.severity,
+    title: 'Full versionsbunden UNSM-grammatik', description: item.description })))
   if (facts && !facts.bgm && !isActualContrl(message, facts)) {
     issues.push({ code: 'missing_bgm', severity: 'error', title: 'BGM saknas',
       description: 'Meddelandet saknar BGM-segment. APERAK/PRODAT/UTILTS ska ha BGM enligt anvisning.' })
@@ -100,9 +106,11 @@ export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxVali
   }
 
   return {
-    ok: !issues.some((issue) => issue.severity === 'error'),
+    ok: grammar.qualification !== 'unavailable' && !issues.some((issue) => issue.severity === 'error'),
     issues,
     declaredUntCount: envelope.declaredUntCount,
     actualMessageSegmentCount: envelope.actualMessageSegmentCount,
+    grammarQualification: grammar.qualification,
+    grammarSources: grammar.sources,
   }
 }

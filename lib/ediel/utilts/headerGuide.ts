@@ -4,6 +4,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine.part-1'
 import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from '@/lib/ediel/utilts/timezone'
 import {utiltsApplicationErrorText} from './aperakSourceText'
+import {UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,validUtiltsEdielIdentity,validUtiltsGs1Identity} from './headerIdentityGuide'
 
 /** Single source of physical message-header guide findings, also used to
  * qualify header-level ACK serialization. An IDE can never supply a header. */
@@ -17,12 +18,13 @@ export function resolveUtiltsHeaderGuideIssues(
   const end = parsed.segments.findIndex((segment, index) => index > start && (segment.tag === 'IDE' || segment.tag === 'UNT'))
   const wire = { ...parsed, segments: parsed.segments.slice(Math.max(start, 0), end < 0 ? undefined : end) }
   const nadIssues: UtiltsValidationIssue[] = []
-  const ancillaryRoles = new Set(['DDK', 'DDQ', 'DDX', 'DEA', 'DEC', 'DER', 'DGG', 'DGI', 'EZ', 'MDR', 'PQ'])
+  const identityGuide = UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS
+  const ancillaryRoles = new Set(identityGuide.ancillaryRoles)
   for (const segment of wire.segments) {
     if (segment.tag === 'IDE' || segment.tag === 'UNT') break
     if (segment.tag !== 'NAD') continue
     const role = segmentComposite(segment, 1, wire.una)[0]?.trim() ?? ''
-    if (role !== 'MS' && role !== 'MR') {
+    if (!identityGuide.legalRoles.includes(role)) {
       if (!ancillaryRoles.has(role)) nadIssues.push({
         severity: 'error', kind: 'application',
         code: role ? 'UTILTS_ANCILLARY_ROLE_INVALID' : 'UTILTS_ANCILLARY_ROLE_MISSING',
@@ -39,8 +41,8 @@ export function resolveUtiltsHeaderGuideIssues(
     const partyId = parts[0]?.trim() ?? ''
     const qualifier = parts[1]?.trim() ?? ''
     const agency = parts[2]?.trim() ?? ''
-    const badAgency = !['260', '9', '305'].includes(agency)
-    const badQualifier = agency === '260' && qualifier !== 'SVK'
+    const badAgency = !identityGuide.legalAgencies.includes(agency)
+    const badQualifier = agency === '260' && qualifier !== identityGuide.edielQualifier
     if (badAgency || badQualifier) {
       const missing = badAgency ? !agency : !qualifier
       const path = badAgency ? 'C082/3055' : 'C082/1131'
@@ -55,7 +57,7 @@ export function resolveUtiltsHeaderGuideIssues(
         aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:badAgency ? 2 : 1},
       })
     }
-    if (qualifier === 'SVK' && !/^\d{5}$/.test(partyId)) {
+    if (qualifier === identityGuide.edielQualifier && !validUtiltsEdielIdentity(partyId)) {
       const missing = !partyId
       nadIssues.push({
         severity: 'error', kind: 'application',
@@ -70,8 +72,7 @@ export function resolveUtiltsHeaderGuideIssues(
     // UG-122-24: agencies 9/305 identify GS1 parties. Their GLN is 13
     // digits, including the final modulo-10 check digit. Keep this separate
     // from the five-digit national Ediel-id under qualifier SVK.
-    if (['9', '305'].includes(agency) && (!/^\d{13}$/.test(partyId) ||
-      [...partyId].reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 1 : 3), 0) % 10 !== 0)) {
+    if (identityGuide.gs1Agencies.includes(agency) && !validUtiltsGs1Identity(partyId)) {
       const missing = !partyId
       nadIssues.push({
         severity: 'error', kind: 'application',

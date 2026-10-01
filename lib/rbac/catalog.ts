@@ -167,6 +167,10 @@ export const ROLE_CATALOG: RoleCatalogItem[] = [
 ]
 
 const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
+  {key:'ediel.retention.source_bytes',label:'Gallra meddelandets original',description:'Verkställa separat granskat klassbeslut för egna meddelandens ursprungsdata. Kräver explicit aktuell behörighet även i arkiverat bolag; ger ingen operativ behörighet.',area:'Ediel',risk:'high'},
+  {key:'ediel.retention.customer_fields',label:'Gallra kunduppgifter',description:'Verkställa separat granskat klassbeslut för egna kunduppgifter. Kräver explicit aktuell behörighet även i arkiverat bolag; ger ingen operativ behörighet.',area:'Ediel',risk:'high'},
+  {key:'ediel.retention.original_bytes',label:'Gallra originalkopior',description:'Verkställa separat granskat klassbeslut för egna originalkopiors byte. Kräver explicit aktuell behörighet även i arkiverat bolag; ger ingen operativ behörighet.',area:'Ediel',risk:'high'},
+  {key:'ediel.retention.mime_bytes',label:'Gallra MIME-kopior',description:'Verkställa separat granskat klassbeslut för egna arkiverade MIME-byte. Kräver explicit aktuell behörighet även i arkiverat bolag; ger ingen operativ behörighet.',area:'Ediel',risk:'high'},
   {key:'ediel.retention.submit',label:'Lämna gallringsunderlag',description:'Lämna ett källbundet gallringsbeslut för egna uppgifter. Beslutet behöver separat granskning och aktuell rättslig grund.',area:'Ediel',risk:'high'},
   {key:'ediel.retention.review',label:'Granska gallringsunderlag',description:'Separat granskning av egna gallringsbeslut. Uppladdaren får inte granska sitt eget beslut.',area:'Ediel',risk:'high'},
   {key:'ediel.retention.purge',label:'Verkställa gallring',description:'Verkställa ett aktuellt, separat godkänt och tidsmässigt tillämpligt beslut för en bestämd uppgiftsklass.',area:'Ediel',risk:'high'},

@@ -1288,22 +1288,24 @@
   "ediel_full_code_phase_20260930": {
     "status": "IN_PROGRESS",
     "baseline_local_and_remote": "885137de838481be6cda58f9af45df6c1655edfe",
-    "current_integrated_local": "fc2e2311",
+    "current_integrated_local": "bd40962b9201bc4438e1e21362fd704bf8fbb72f",
     "last_published_remote": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
     "last_published_local_equivalent": "0c39065f",
     "formal_acceptance_statuses": "unchanged",
     "latest_code_packets": [
-      "d6bd145f DSN actual source observations and current API/UI",
-      "43fde3d5 shared immutable accepted transport receipt",
-      "fdaf43bb P15 current supply continuity",
-      "5d25da6e/fbbe4cda normal atomic switch and actual initial source scope",
-      "61856b69/fc2e2311 source-approved physical BRP change"
+      "protected exact inbound dedupe/current tenant source",
+      "current actual gateway original witnesses and opaque fixture ports",
+      "source-guided APERAK/ERR native consumers and opaque historical versions",
+      "qualified AI prospective original/send journal and environment phases",
+      "P119 ignored fields/P15 dated structure consumers",
+      "normal switch/C withdrawal actual request payload scope"
     ],
     "latest_quick_checks": {
-      "dsn_typescript": "49 passing assertions, five files",
-      "dsn_embedded_sql": "23 passing explicitly synthetic checks",
-      "dsn_lint": "zero errors/warnings",
-      "full_application_typecheck": "PASS serialized Node22, 4096MB after BRP typed query fix; baseline default2048MB attempt OOM is not a code result"
+      "inbound_original_scope": "6 PASS; bounded independent review no open Critical/Important",
+      "targeted_policy_sources": "20 PASS across four files; 47 PASS across five files",
+      "full_application_typecheck": "last EXIT2 process facade/payload typing; scoped corrections integrated, rerun pending",
+      "migration_integrity": "743 files/647 groups PASS before newest migrations; exact hash registration pending",
+      "embedded_sql": "explicitly synthetic scoped mechanics only; no native/authentic proof"
     },
     "external_state": "draft, no merge or production/counterparty traffic; #418/#422 contracts read only and #310 untouched",
     "final_test_phase": "NOT_RUN fixed final candidate: full unit/native clean+upgrade replay/type-schema parity/security/browser/manual; mandatory CI preserved",
@@ -1319,5 +1321,14 @@
     "masterplan_status": "NOT_APPROVED; all final same-head receipts and whole literal reviews pending",
     "protected_refs": "#421/#423/#418/#422/#310/main untouched",
     "market_traffic": "HELD"
+  },
+  "protected_source_owner_latest": {
+    "public_head": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+    "public_tree": "ce0a89e92b355d8ee06ad26779aed67d6fbe47df",
+    "semantic_baseline_public_head": "cb7924a72c282b6d45025844a3f3ed82b4dfb1e1",
+    "semantic_baseline_local_head": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
+    "baseline_tree_byte_identical": true,
+    "branch_mutated": false,
+    "integration_status": "MERGED_WITH_SOURCE_AWARE_RESOLUTION_FINAL_SCOPE_FORWARD_AND_VERIFICATION_PENDING"
   }
 }

@@ -847,6 +847,16 @@ export async function processInboundEdielMessage(params: {
     return message;
   }
 
+  // An unknown physical directory is held before any technical receipt or
+  // tenant/runtime attribution, including when no technical endpoint exists.
+  const selectedSyntax=validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null});
+  if(selectedSyntax.grammarQualification==='unavailable') {
+    await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'manual_note',eventStatus:'warning',
+      message:'Selected UNSM-directory saknar kvalificerad full källgrammatik; inbound hålls före kvittens och affärseffekter.',
+      payload:{reason:'ediel_unsm_directory_source_unavailable',issues:selectedSyntax.issues}});
+    return message;
+  }
+
   // Syntax belongs to the actual wire and transport endpoint. It precedes
   // legal tenant routing and grants no business attribution or guide approval.
   if(message.message_family!=='CONTRL') {
@@ -855,7 +865,7 @@ export async function processInboundEdielMessage(params: {
       if(endpoint) {
         if(endpoint.environment!==message.environment || endpoint.sourceHash!==createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('technical_source_wire_scope_mismatch');
         await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
-        const syntax=validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null});
+        const syntax=selectedSyntax;
         await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
           syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code)});
         await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id);

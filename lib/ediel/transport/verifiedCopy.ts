@@ -19,6 +19,8 @@ export async function readVerifiedEdielTransportCopy(input: { companyId: string;
       || !/^[a-f0-9]{64}$/.test(copy.mimeSha256) || !Number.isSafeInteger(copy.mimeLength) || copy.mimeLength < 1 || copy.mimeLength > 32 * 1024 * 1024
       || copy.mimeArchiveRef !== `storage://ediel-files/${path}` || copy.archiveReadbackRequired !== true || !copy.enteredAt
       || !uuid.test(copy.mimePayloadSnapshotId)) throw new EdielTransportCopyUnavailableError('ediel_transport_copy_binding_invalid')
+  const available = await supabaseService.rpc('ediel_require_source_bytes_available_v1', {p_company_id:input.companyId,p_source_message_id:input.messageId})
+  if (available.error) throw new EdielTransportCopyUnavailableError('ediel_transport_copy_retention_tombstoned')
   const { data, error } = await supabaseService.storage.from('ediel-files').download(path)
   if (error || !data || data.size !== copy.mimeLength) throw new EdielTransportCopyUnavailableError('ediel_transport_copy_archive_unavailable')
   const bytes = Buffer.from(await data.arrayBuffer())

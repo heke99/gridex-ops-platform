@@ -1,294 +1,36 @@
+import { createHash } from 'node:crypto'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
-import { tenantDb } from '@/lib/supabase/tenantDb'
-import { registerEdielBusinessExpectations, type EdielBusinessExpectation } from '@/lib/ediel/businessExpectations'
+import { supabaseService } from '@/lib/supabase/service'
 
-function clean(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function upper(value: unknown): string | null {
-  const cleaned = clean(value)
-  return cleaned ? cleaned.toUpperCase() : null
-}
-
-type DbError = { message?: string; code?: string } | null
-
-type FilterQuery<T> = {
-  eq: (column: string, value: unknown) => FilterQuery<T>
-  limit: (count: number) => FilterQuery<T>
-  select: (columns?: string) => FilterQuery<T>
-  maybeSingle: () => PromiseLike<{ data: T | null; error: DbError }>
-  then: PromiseLike<{ data: T[] | null; error: DbError }>['then']
-}
-
-function asFilterQuery<T>(value: unknown): FilterQuery<T> {
-  return value as FilterQuery<T>
-}
-
-export type CustomerInfoPostSendStatus =
-  | 'waiting_for_contrl'
-  | 'waiting_for_aperak'
-  | 'waiting_for_z02'
-
+export type CustomerInfoPostSendStatus = 'waiting_for_contrl' | 'waiting_for_aperak' | 'waiting_for_z02'
 export function customerInfoPostSendStatus(
   _message: Pick<EdielMessageRow, 'requires_contrl' | 'contrl_status' | 'requires_aperak' | 'aperak_status'>,
 ): CustomerInfoPostSendStatus {
-  // Z01 business state waits for the business response directly. CONTRL is a
-  // separate technical SLA on ediel_messages and must never serialize Z02.
+  void _message
   return 'waiting_for_z02'
 }
 
-function nextActionForCustomerInfo(_status: CustomerInfoPostSendStatus): string {
-  return 'Invänta Z02 eller negativ APERAK från nätägaren. CONTRL bevakas parallellt från faktisk Z01-sändtid.'
-}
+type SourceProjection = { status: 'source_projection'; companyId: string; environment: string; messageId: string;
+  originalHash: string; observedAt: string; authorizesProviderEntry: false }
 
-function addMinutes(value: string, minutes: number): string {
-  const base = Date.parse(value)
-  if (!Number.isFinite(base)) throw new Error('ediel_post_send_timestamp_invalid')
-  return new Date(base + minutes * 60 * 1000).toISOString()
-}
-
-async function projectSentMessageDeadlines(params: {
-  message: EdielMessageRow
-  companyId: string
-  sentAt: string
-  actorUserId: string
-  businessExpectations: EdielBusinessExpectation[]
-}): Promise<void> {
-  const db = tenantDb(params.companyId)
-  const technicalDueAt = params.message.requires_contrl === true && params.message.contrl_status !== 'received'
-    ? addMinutes(params.sentAt, EDIEL_ACK_DEADLINE_MINUTES)
-    : null
-  const isZ01 = upper(params.message.message_family) === 'PRODAT' && upper(params.message.message_code) === 'Z01'
-  const frozenZ02 = params.businessExpectations.filter(value => value.source_message_id === params.message.id && value.expected_code === 'Z02')
-  if (isZ01 && (frozenZ02.length !== 1 || !frozenZ02[0].due_at)) throw new Error('ediel_post_send_frozen_business_expectation_required')
-  const businessResponseDueAt = isZ01 ? frozenZ02[0].due_at : null
-
-  const updateQuery = asFilterQuery<{ id: string }>(
-    db.from('ediel_messages').update({
-      message_sent_at: params.sentAt,
-      contrl_due_at: technicalDueAt,
-      business_response_due_at: businessResponseDueAt,
-      ack_due_at: technicalDueAt,
-      updated_by: params.actorUserId,
-      updated_at: new Date().toISOString(),
-    }),
-  )
-  const { data, error } = await updateQuery
-    .eq('id', params.message.id)
-    .select('id')
-    .maybeSingle()
-  if (error) throw error
-  if (!data) throw new Error('ediel_post_send_deadline_projection_lost')
-}
-
-async function projectOutboundRequest(params: {
-  companyId: string
-  outboundRequestId: string
-  sentAt: string
-  actorUserId: string
-}): Promise<void> {
-  const db = tenantDb(params.companyId)
-  const readQuery = asFilterQuery<{ id: string; status: string | null; sent_at: string | null }>(
-    db.from('outbound_requests').select('id,status,sent_at'),
-  )
-  const { data: row, error: readError } = await readQuery
-    .eq('id', params.outboundRequestId)
-    .maybeSingle()
-  if (readError) throw readError
-  if (!row) throw new Error('ediel_post_send_outbound_request_missing_or_cross_tenant')
-
-  const status = clean(row.status)
-  const alreadySentAt = clean(row.sent_at)
-  if (status === 'failed' || status === 'cancelled') {
-    throw new Error(`ediel_post_send_outbound_request_terminal_${status}`)
-  }
-  if (!['queued', 'prepared', 'sent', 'acknowledged'].includes(String(status))) {
-    throw new Error(`ediel_post_send_outbound_request_unexpected_${status ?? 'null'}`)
-  }
-  if (alreadySentAt && ['sent', 'acknowledged'].includes(String(status))) return
-
-  const nextStatus = status === 'acknowledged' ? 'acknowledged' : 'sent'
-  const updateQuery = asFilterQuery<{ id: string }>(
-    db.from('outbound_requests').update({
-      status: nextStatus,
-      sent_at: alreadySentAt ?? params.sentAt,
-      failure_reason: null,
-      updated_by: params.actorUserId,
-      updated_at: new Date().toISOString(),
-    }),
-  )
-  const { data, error } = await updateQuery
-    .eq('id', params.outboundRequestId)
-    .select('id')
-    .maybeSingle()
-  if (error) throw error
-  if (!data) throw new Error('ediel_post_send_outbound_request_projection_lost')
-}
-
-async function projectGridOwnerDataRequest(params: {
-  companyId: string
-  gridOwnerDataRequestId: string
-  sentAt: string
-  actorUserId: string
-}): Promise<void> {
-  const db = tenantDb(params.companyId)
-  const readQuery = asFilterQuery<{ id: string; status: string | null; sent_at: string | null }>(
-    db.from('grid_owner_data_requests').select('id,status,sent_at'),
-  )
-  const { data: row, error: readError } = await readQuery
-    .eq('id', params.gridOwnerDataRequestId)
-    .maybeSingle()
-  if (readError) throw readError
-  if (!row) throw new Error('ediel_post_send_grid_owner_data_request_missing_or_cross_tenant')
-
-  const status = clean(row.status)
-  const alreadySentAt = clean(row.sent_at)
-  if (status === 'failed' || status === 'cancelled') {
-    throw new Error(`ediel_post_send_grid_owner_data_request_terminal_${status}`)
-  }
-  if (!['pending', 'sent', 'received'].includes(String(status))) {
-    throw new Error(`ediel_post_send_grid_owner_data_request_unexpected_${status ?? 'null'}`)
-  }
-  if (alreadySentAt && ['sent', 'received'].includes(String(status))) return
-
-  const nextStatus = status === 'received' ? 'received' : 'sent'
-  const updateQuery = asFilterQuery<{ id: string }>(
-    db.from('grid_owner_data_requests').update({
-      status: nextStatus,
-      sent_at: alreadySentAt ?? params.sentAt,
-      failed_at: null,
-      failure_reason: null,
-      updated_by: params.actorUserId,
-      updated_at: new Date().toISOString(),
-    }),
-  )
-  const { data, error } = await updateQuery
-    .eq('id', params.gridOwnerDataRequestId)
-    .select('id')
-    .maybeSingle()
-  if (error) throw error
-  if (!data) throw new Error('ediel_post_send_grid_owner_data_request_projection_lost')
-}
-
-async function projectCustomerInfoRequest(params: {
-  message: EdielMessageRow
-  companyId: string
-  sentAt: string
-  actorUserId: string
-}): Promise<void> {
-  if (upper(params.message.message_family) !== 'PRODAT' || upper(params.message.message_code) !== 'Z01') return
-
-  const db = tenantDb(params.companyId)
-  const readQuery = asFilterQuery<{ id: string; status: string | null; sent_at: string | null }>(
-    db.from('customer_info_requests').select('id,status,sent_at'),
-  )
-  const { data: rows, error: readError } = await readQuery
-    .eq('ediel_message_id', params.message.id)
-    .limit(2)
-  if (readError) throw readError
-  const matches = Array.isArray(rows) ? rows : []
-  if (matches.length === 0) return
-  if (matches.length > 1) throw new Error('ediel_post_send_customer_info_request_not_unique')
-
-  const row = matches[0]
-  const status = clean(row.status)
-  const alreadySentAt = clean(row.sent_at)
-  const preSendStatuses = new Set(['ready_to_send', 'z01_prepared', 'sent_to_grid_owner', 'sent', 'waiting_response'])
-  const progressedStatuses = new Set([
-    'waiting_for_contrl', 'waiting_for_aperak', 'waiting_for_z02', 'z02_received',
-    'ready_for_switch', 'completed', 'negative_aperak', 'manual_review_required',
-    'failed', 'cancelled', 'rejected',
-  ])
-
-  if (progressedStatuses.has(String(status))) {
-    if (alreadySentAt) return
-    const updateQuery = asFilterQuery<{ id: string }>(
-      db.from('customer_info_requests').update({
-        sent_at: params.sentAt,
-        updated_by: params.actorUserId,
-        updated_at: new Date().toISOString(),
-      }),
-    )
-    const { data, error } = await updateQuery
-      .eq('id', row.id)
-      .select('id')
-      .maybeSingle()
-    if (error) throw error
-    if (!data) throw new Error('ediel_post_send_customer_info_sent_at_projection_lost')
-    return
-  }
-
-  if (!preSendStatuses.has(String(status))) {
-    throw new Error(`ediel_post_send_customer_info_request_unexpected_${status ?? 'null'}`)
-  }
-
-  const nextStatus = customerInfoPostSendStatus(params.message)
-  const updateQuery = asFilterQuery<{ id: string }>(
-    db.from('customer_info_requests').update({
-      status: nextStatus,
-      sent_at: alreadySentAt ?? params.sentAt,
-      blocker_code: null,
-      blocker_reason: null,
-      blocker_details: null,
-      next_required_action: nextActionForCustomerInfo(nextStatus),
-      updated_by: params.actorUserId,
-      updated_at: new Date().toISOString(),
-    }),
-  )
-  const { data, error } = await updateQuery
-    .eq('id', row.id)
-    .select('id')
-    .maybeSingle()
-  if (error) throw error
-  if (!data) throw new Error('ediel_post_send_customer_info_projection_lost')
-}
-
+/** One native transaction reads the genuine frozen receipt/plan, locks every
+ * actual source consumer and preserves current ACK/business/terminal results.
+ * Caller timestamps and a mutable message status never authorize this repair. */
 export async function projectSentEdielSourceState(params: {
-  message: EdielMessageRow
-  sentAt?: string | null
-  actorUserId: string
+  message: Pick<EdielMessageRow, 'id' | 'company_id' | 'environment' | 'direction' | 'raw_payload'>; sentAt?: string | null; actorUserId: string
 }): Promise<void> {
-  const companyId = clean(params.message.company_id)
-  if (!companyId) throw new Error('ediel_post_send_company_scope_required')
-  let sentAt = clean(params.sentAt) ?? clean(params.message.message_sent_at)
-  if (!sentAt) throw new Error('ediel_post_send_timestamp_required')
-  let businessExpectations: EdielBusinessExpectation[] = []
-
-  if (params.message.direction === 'outbound' && params.message.message_standard === 'edifact' && upper(params.message.message_family) === 'PRODAT'
-      && ['Z01', 'Z13', 'Z18'].includes(upper(params.message.message_code) ?? '')) {
-    // Repair reads the already accepted private journal and its prepared policy;
-    // a mutable sentAt projection never supplies timer authority.
-    businessExpectations = await registerEdielBusinessExpectations({ companyId, environment: params.message.environment,
-      messageId: params.message.id, actorUserId: params.actorUserId })
-    const anchors = [...new Set(businessExpectations.map(value => clean(value.metadata.anchorAt)))]
-    if (anchors.length !== 1 || !anchors[0] || !Number.isFinite(Date.parse(anchors[0]))) throw new Error('ediel_post_send_frozen_dispatch_anchor_required')
-    sentAt = anchors[0]
-  }
-
-  await projectSentMessageDeadlines({
-    message: params.message,
-    companyId,
-    sentAt,
-    actorUserId: params.actorUserId,
-    businessExpectations,
-  })
-
-  const outboundRequestId = clean(params.message.outbound_request_id)
-  if (outboundRequestId) {
-    await projectOutboundRequest({ companyId, outboundRequestId, sentAt, actorUserId: params.actorUserId })
-  }
-
-  const gridOwnerDataRequestId = clean(params.message.grid_owner_data_request_id)
-  if (gridOwnerDataRequestId) {
-    await projectGridOwnerDataRequest({ companyId, gridOwnerDataRequestId, sentAt, actorUserId: params.actorUserId })
-  }
-
-  await projectCustomerInfoRequest({
-    message: params.message,
-    companyId,
-    sentAt,
-    actorUserId: params.actorUserId,
-  })
+  const { message } = params
+  if (!message.company_id || message.direction !== 'outbound' || !message.raw_payload
+    || !['test', 'production'].includes(message.environment)) throw new Error('ediel_post_send_source_scope_required')
+  const originalHash = createHash('sha256').update(message.raw_payload, 'utf8').digest('hex')
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'ediel_project_accepted_source_state_v1', input: {
+    p_company_id: string; p_environment: string; p_actor_user_id: string; p_message_id: string; p_expected_original_hash: string
+  }) => PromiseLike<{ data: SourceProjection | null; error: { message: string } | null }>
+  const { data, error } = await rpc('ediel_project_accepted_source_state_v1', { p_company_id: message.company_id,
+    p_environment: message.environment, p_actor_user_id: params.actorUserId, p_message_id: message.id, p_expected_original_hash: originalHash })
+  if (error) throw error
+  if (!data || data.status !== 'source_projection' || data.companyId !== message.company_id || data.environment !== message.environment
+    || data.messageId !== message.id || data.originalHash !== originalHash || data.authorizesProviderEntry !== false
+    || !Number.isFinite(Date.parse(data.observedAt))) throw new Error('ediel_post_send_frozen_source_projection_invalid')
+  if (params.sentAt && Date.parse(params.sentAt) !== Date.parse(data.observedAt)) throw new Error('ediel_post_send_frozen_dispatch_anchor_changed')
 }

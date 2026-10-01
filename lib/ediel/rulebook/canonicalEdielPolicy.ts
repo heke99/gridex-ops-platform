@@ -15,6 +15,7 @@ import {
 export type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import {
   resolveEdielGuideAcceptance,
+  AUTHORITATIVE_EDIEL_GUIDES,
   type AuthoritativeEdielGuide,
   type EdielGuideFamily,
 } from '@/lib/ediel/rulebook/guideRegistry'
@@ -424,4 +425,23 @@ export function resolveCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyIn
       { authority: 'acknowledgement', document: selectedGuide.documentName, section: `${family} acknowledgement rules` },
     ],
   } satisfies CanonicalEdielPolicy)
+}
+
+/** Project an ACK from the protected original's named guide scope. The caller
+ * must obtain its actual evidence through the source-owner capability port.
+ * This function defines source semantics; it cannot register an original or
+ * grant transport/business authority. Today's guide is never substituted. */
+export function resolveCanonicalInheritedAckPolicy(input:{policy:CanonicalEdielPolicy;originalFamily:string;guideVersion:string;guideRevision:string;originalVersion:string;originalCode:string}):CanonicalEdielPolicy{
+ const family=input.policy.family
+ if(!['APERAK','CONTRL','UTILTS_ERR'].includes(family)||!input.originalVersion)throw new Error('canonical_ack_original_scope_required')
+ if(family==='CONTRL')return input.policy
+ if(!['PRODAT','UTILTS'].includes(input.originalFamily)||(family==='UTILTS_ERR'&&input.originalFamily!=='UTILTS'))throw new Error('canonical_ack_original_family_mismatch')
+ const identifier=(value:string)=>value.replace(/[^A-Z0-9]/gi,'').toUpperCase()
+ const originalGuide=AUTHORITATIVE_EDIEL_GUIDES.find(guide=>guide.family===input.originalFamily&&identifier(guide.guideRevision)===identifier(input.guideVersion))
+ const expectedRevision=input.originalFamily==='PRODAT'?getCanonicalProdatProfile(input.originalCode)?.guideRevision:/-(\d+)$/.exec(originalGuide?.guideRevision??'')?.[1]
+ if(!originalGuide||!expectedRevision||input.guideRevision!==expectedRevision)throw new Error('canonical_ack_original_guide_scope_unqualified')
+ const template=resolveCanonicalEdielPolicy({family,messageCode:family==='UTILTS_ERR'?'ERR':'APERAK',direction:input.policy.direction,
+  referenceDate:originalGuide.effectiveFrom,associationAssignedCode:originalGuide.associationAssignedCode,applicationReference:input.policy.applicationReference,mode:'parse'})
+ return deepFreeze({...template,referenceDate:input.policy.referenceDate,timeAnchors:input.policy.timeAnchors,
+  sourceTrace:[...template.sourceTrace,{authority:'guide',document:originalGuide.documentName,section:`Original registered scope ${input.originalVersion}; unchanged protected source edition.`}]})
 }

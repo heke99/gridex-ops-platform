@@ -3,7 +3,8 @@
 import {createHash} from 'node:crypto'
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
-const io=vi.hoisted(()=>({actor:vi.fn(),replay:vi.fn(),duplicate:vi.fn(),ackDuplicate:vi.fn(),validation:vi.fn(),witness:vi.fn(),legacyCreate:vi.fn(),create:vi.fn(),conflict:vi.fn(),endpoint:vi.fn(),technical:vi.fn(),technicalRoute:vi.fn(),sourcePack:vi.fn(),route:vi.fn(),positiveRead:vi.fn(),positiveMatch:vi.fn(),positivePrepare:vi.fn(),negativeRead:vi.fn(),negativeMatch:vi.fn(),negativePrepare:vi.fn(),commonRead:vi.fn(),commonPrepare:vi.fn(),commonRoute:vi.fn(),aiOriginal:vi.fn(),version:vi.fn(),references:vi.fn()}))
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+const io=vi.hoisted(()=>({actor:vi.fn(),replay:vi.fn(),duplicate:vi.fn(),ackDuplicate:vi.fn(),validation:vi.fn(),witness:vi.fn(),legacyCreate:vi.fn(),create:vi.fn(),conflict:vi.fn(),endpoint:vi.fn(),technical:vi.fn(),technicalRoute:vi.fn(),sourcePack:vi.fn(),route:vi.fn(),positiveRead:vi.fn(),positiveMatch:vi.fn(),positivePrepare:vi.fn(),negativeRead:vi.fn(),negativeMatch:vi.fn(),negativePrepare:vi.fn(),commonRead:vi.fn(),commonPrepare:vi.fn(),commonRoute:vi.fn(),aiOriginal:vi.fn(),version:vi.fn(),references:vi.fn(),ackReferences:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.replay}}))
 vi.mock('@/lib/ediel/config',()=>({getEdielRouteRuntimeByCommunicationRouteId:vi.fn()}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.actor}))
@@ -22,11 +23,11 @@ vi.mock('@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority',()=>({readProdatC
 vi.mock('@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute',()=>({readProdatCommonHeaderNegativeAckRoute:io.commonRoute}))
 vi.mock('@/lib/ediel/aiListOrigination',()=>({qualifyAiListProspectiveOriginal:io.aiOriginal}))
 vi.mock('@/lib/ediel/core/versionRegistry',()=>({resolveCanonicalOutboundVersion:io.version}))
-vi.mock('@/lib/ediel/core/referenceRegistry',()=>({buildCanonicalAckReferences:vi.fn().mockReturnValue({}),buildCanonicalOutboundReferences:io.references}))
+vi.mock('@/lib/ediel/core/referenceRegistry',()=>({buildCanonicalAckReferences:io.ackReferences,buildCanonicalOutboundReferences:io.references}))
 vi.mock('@/lib/ediel/core/kernelLegacy',()=>({createCanonicalOutboundMessage:io.legacyCreate,resolveCanonicalOutboundContext:io.route,resolveCanonicalInboundActor:vi.fn(),resolveOutboundMessageVersion:vi.fn(),resolveInboundAcceptedVersions:vi.fn(),registerInboundCanonicalMessage:vi.fn(),buildCanonicalReferencesForOutbound:vi.fn()}))
 import {createCanonicalAckMessage,createCanonicalOutboundMessage,finalizeCanonicalOutboundDraft,resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 const company='00000000-0000-4000-8000-000000000001',actor='00000000-0000-4000-8000-000000000002',sourceId='00000000-0000-4000-8000-000000000003',operation='00000000-0000-4000-8000-000000000004'
-const raw="UNB+UNOC:3+REMOTE:ZZ:REMOTE-SUB+LOCAL:ZZ:LOCAL-SUB+260930:1200+ACTUAL++APP+++1'UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z04+SOURCE+9'UNT+3+1'UNZ+1+ACTUAL'"
+const raw="UNB+UNOC:3+REMOTE:ZZ:REMOTE-SUB+LOCAL:ZZ:LOCAL-SUB+260930:1200+ACTUAL++APP++++1'UNH+1+PRODAT:D:96A:UN:E2SE6A'BGM+Z04+SOURCE+9'UNT+3+1'UNZ+1+ACTUAL'"
 function message(patch:Partial<EdielMessageRow>={}):EdielMessageRow{return {
  id:sourceId,company_id:company,direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z04',message_version:null,process_type:null,environment:'test',test_flag:1,status:'received',transport_type:'smtp',mailbox:null,mailbox_message_id:null,
  sender_ediel_id:null,sender_name:null,sender_sub_address:null,receiver_ediel_id:null,receiver_name:null,receiver_sub_address:null,sender_email:null,receiver_email:null,subject:null,file_name:null,mime_type:null,
@@ -37,9 +38,9 @@ function message(patch:Partial<EdielMessageRow>={}):EdielMessageRow{return {
 const draft=():CreateEdielMessageInput=>({actorUserId:actor,companyId:company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z01',sourceOperationId:operation,rawPayload:raw,routeProfileId:'route-profile'})
 const evidence=()=>({companyId:company,environment:'test',sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw,'utf8').digest('hex')})
 const snapshot=()=>({profileKey:'canonical-z01',profileVersionId:'profile',version:'26.A:r3',checksum:'a'.repeat(64),originalWitness:{rulePack:{id:'pack',source_hash:'a'.repeat(64),guide_version:'26.A',guide_revision:3},messageProfile:{id:'profile',profile_key:'canonical-z01'}}})
-const ackDraft=():CreateEdielMessageInput=>({...draft(),messageFamily:'CONTRL',messageCode:'CONTRL',companyId:null,rawPayload:"UNB+UNOC:3+LOCAL:ZZ:LOCAL-SUB+REMOTE:ZZ:REMOTE-SUB+260930:1201+ACKI++APP+++1'UNH+1+CONTRL:2:2:UN:EDIEL2'UCI+ACTUAL+REMOTE:ZZ:REMOTE-SUB+LOCAL:ZZ:LOCAL-SUB+4'UNT+3+1'UNZ+1+ACKI'"})
+const ackDraft=():CreateEdielMessageInput=>({...draft(),messageFamily:'CONTRL',messageCode:'CONTRL',companyId:null,rawPayload:"UNB+UNOC:3+LOCAL:ZZ:LOCAL-SUB+REMOTE:ZZ:REMOTE-SUB+260930:1201+ACKI++APP++++1'UNH+1+CONTRL:2:2:UN:EDIEL2'UCI+ACTUAL+REMOTE:ZZ:REMOTE-SUB+LOCAL:ZZ:LOCAL-SUB+4'UNT+3+1'UNZ+1+ACKI'"})
 beforeEach(()=>{
- vi.resetAllMocks();io.positiveRead.mockReturnValue(null);io.positiveMatch.mockReturnValue(false);io.negativeRead.mockReturnValue(null);io.negativeMatch.mockReturnValue(false);io.version.mockResolvedValue('D:96A:UN:E2SE6A');io.references.mockReturnValue({});io.aiOriginal.mockResolvedValue({owner:'mechanical declared private original port, not authentic evidence'});io.actor.mockResolvedValue(undefined);io.replay.mockResolvedValue({data:null,error:null});io.duplicate.mockResolvedValue(null);io.ackDuplicate.mockResolvedValue(null);io.conflict.mockResolvedValue(undefined)
+ vi.resetAllMocks();io.ackReferences.mockReturnValue({});io.positiveRead.mockReturnValue(null);io.positiveMatch.mockReturnValue(false);io.negativeRead.mockReturnValue(null);io.negativeMatch.mockReturnValue(false);io.version.mockResolvedValue('D:96A:UN:E2SE6A');io.references.mockReturnValue({});io.aiOriginal.mockResolvedValue({owner:'mechanical declared private original port, not authentic evidence'});io.actor.mockResolvedValue(undefined);io.replay.mockResolvedValue({data:null,error:null});io.duplicate.mockResolvedValue(null);io.ackDuplicate.mockResolvedValue(null);io.conflict.mockResolvedValue(undefined)
  io.endpoint.mockResolvedValue({companyId:company});io.technical.mockResolvedValue(evidence());io.technicalRoute.mockResolvedValue({route:{id:'technical-route'},routeRuntime:{route_profile_id:'technical-profile'},senderEdielId:'LOCAL',senderSubAddress:'LOCAL-SUB',receiverEdielId:'REMOTE',receiverSubAddress:'REMOTE-SUB',senderEmail:'local@example.invalid',receiverEmail:'remote@example.invalid',mailbox:'local@example.invalid',applicationReference:'APP'})
  io.sourcePack.mockRejectedValue(Error('current business guide must not load for technical CONTRL'))
  io.route.mockResolvedValue({companyId:company,environment:'test'});io.validation.mockResolvedValue({issues:[],blocking:false,fieldRuleSource:'registry',rulePackSnapshot:snapshot()})
@@ -59,9 +60,43 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message({company_id:null}),ackFamily:'CONTRL',outcome:'negative',draft:ackDraft()})).toBe(old)
   expect(io.endpoint).toHaveBeenCalledOnce();expect(io.actor).toHaveBeenCalledOnce();expect(io.replay).toHaveBeenCalledOnce();expect(io.ackDuplicate).not.toHaveBeenCalled();expect(io.conflict).not.toHaveBeenCalled();expect(io.technical).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })
+ const objectDraft=(results:{reference:string;positive:boolean}[]):CreateEdielMessageInput=>({...draft(),messageFamily:'APERAK',messageCode:'12',
+  parsedPayload:{ackScope:'message',relatedTransactionReference:'caller-cache-sibling',ackOutcome:'caller-cache'},
+  rawPayload:EdifactEnvelopeCodec.encode({sender:'LOCAL',receiver:'REMOTE',applicationReference:'APP',environment:'test',
+   interchangeReference:'OWNACK',acknowledgementRequest:false,messages:[{messageReference:'OWNACKMSG',messageTypeToken:'APERAK:D:96A:UN:E2SE6A',
+    businessSegments:['BGM+12+OWNACKDOC+34','NAD+FR+LOCAL:160:SVK','NAD+DO+REMOTE:160:SVK','RFF+ACW:SOURCE',
+     ...results.flatMap(own=>[`ERC+${own.positive?'100':'42'}::260`,`RFF+LI:${own.reference}`])]}]})})
+ function oldObjectAck(ownDraft:CreateEdielMessageInput,outcome:'positive'|'negative'){
+  return message({id:'protected-own-object-ack',direction:'outbound',related_message_id:sourceId,message_family:'APERAK',message_code:'12',
+   raw_payload:ownDraft.rawPayload!,status:'failed',ack_outcome:outcome})
+ }
+ it('uses actual own LI scope before today\'s guide despite changed caller sequence caches',async()=>{
+  const own=objectDraft([{reference:'OWN-LI',positive:true}]),old=oldObjectAck(own,'positive');io.ackDuplicate.mockResolvedValue(old)
+  expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'positive',draft:own})).toBe(old)
+  expect(io.ackDuplicate).toHaveBeenCalledWith({sourceMessageId:sourceId,ackFamily:'APERAK',outcome:undefined,ackScope:'object',acknowledgedReferences:['OWN-LI']})
+  expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+ })
+ it('preserves an exact mixed original without reinterpreting all objects as negative',async()=>{
+  const own=objectDraft([{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}]),old=oldObjectAck(own,'negative');io.ackDuplicate.mockResolvedValue(old)
+  expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'negative',draft:own})).toBe(old)
+  expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+ })
+ it('holds changed own group outcomes even when the whole mixed classification agrees',async()=>{
+  const desired=objectDraft([{reference:'OWN-POS',positive:true},{reference:'OWN-NEG',positive:false}])
+  const opposite=objectDraft([{reference:'OWN-POS',positive:false},{reference:'OWN-NEG',positive:true}]);io.ackDuplicate.mockResolvedValue(oldObjectAck(opposite,'negative'))
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'APERAK',outcome:'negative',draft:desired})).rejects.toThrow('blocked_final_ack_exists')
+  expect(io.sourcePack).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
+ })
+ it('recovers a concurrent technical INSERT only from the same protected original scope',async()=>{
+  const old=message({id:'committed-own-contrl',direction:'outbound',message_family:'CONTRL',message_code:'CONTRL',related_message_id:sourceId,status:'failed',ack_outcome:'negative'})
+  io.ackDuplicate.mockResolvedValueOnce(null).mockResolvedValueOnce(old);io.validation.mockResolvedValue({fieldRuleSource:'technical_source',blocking:false,technicalSyntaxAckEvidence:evidence()})
+  io.create.mockRejectedValue({code:'23505',message:'declared same-source insertion race'})
+  expect(await createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(),ackFamily:'CONTRL',outcome:'negative',draft:{...ackDraft(),companyId:company}})).toBe(old)
+  expect(io.create).toHaveBeenCalledOnce();expect(io.sourcePack).not.toHaveBeenCalled()
+ })
  it('refuses altered source bytes or evidence environment before technical route or writes',async()=>{
   for(const patch of [{raw_payload:raw+'altered'},{environment:'production' as const}]){
-   await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(patch),ackFamily:'CONTRL',outcome:'negative',draft:{...ackDraft(),companyId:company,environment:patch.environment??'test'}})).rejects.toThrow('canonical_ack_actual_original_mismatch')
+   await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:message(patch),ackFamily:'CONTRL',outcome:'negative',draft:{...ackDraft(),companyId:company,environment:patch.environment??'test',rawPayload:patch.environment==='production' ? ackDraft().rawPayload!.replace("++APP++++1'","++APP'") : ackDraft().rawPayload}})).rejects.toThrow('canonical_ack_actual_original_mismatch')
   }
   expect(io.technicalRoute).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })
@@ -126,7 +161,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   expect(io.actor).toHaveBeenCalledWith({companyId:company,actorUserId:actor,permission:'communication.write'})
  })
  const unknownSource=()=>message({company_id:null,message_code:'UNLISTED',raw_payload:raw.replace('BGM+Z04','BGM+UNLISTED')})
- const commonDraft=():CreateEdielMessageInput=>({...ackDraft(),companyId:company,messageFamily:'APERAK',messageCode:'27',rawPayload:ackDraft().rawPayload!.replace('CONTRL:2:2:UN:EDIEL2','APERAK:D:96A:UN:E2SE6A')})
+ const commonDraft=():CreateEdielMessageInput=>({...ackDraft(),companyId:company,messageFamily:'APERAK',messageCode:'12',rawPayload:"UNB+UNOC:3+LOCAL:ZZ:LOCAL-SUB+REMOTE:ZZ:REMOTE-SUB+260930:1201+ACKI++APP++++1'UNH+1+APERAK:D:96A:UN:E2SE6A'BGM+12+ACK-D+27'NAD+FR+LOCAL:160:SVK'NAD+DO+REMOTE:160:SVK'RFF+ACW:SOURCE'ERC+42::260'UNT+7+1'UNZ+1+ACKI'"})
  function commonPorts(source:EdielMessageRow){
   const sourceHash=createHash('sha256').update(source.raw_payload!,'utf8').digest('hex')
   const transport={interchangeReference:'ACTUAL',senderComponents:['REMOTE','ZZ','REMOTE-SUB'],receiverComponents:['LOCAL','ZZ','LOCAL-SUB']}
@@ -147,7 +182,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   for(const source of [message({company_id:null}),unknownSource()]){
    await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'positive',draft:commonDraft()})).rejects.toThrow('source_scope_mismatch')
   }
-  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:unknownSource(),ackFamily:'APERAK',outcome:'negative',draft:{...commonDraft(),parsedPayload:{ackScope:'transaction',relatedTransactionReference:'TX'}}})).rejects.toThrow('common_header_negative_only')
+  await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:unknownSource(),ackFamily:'APERAK',outcome:'negative',draft:{...commonDraft(),rawPayload:commonDraft().rawPayload!.replace('BGM+12+ACK-D+27', 'BGM+12+ACK-D+34').replace("UNT+7+1'","RFF+LI:TX'UNT+8+1'"),parsedPayload:{ackScope:'transaction',relatedTransactionReference:'TX'}}})).rejects.toThrow('common_header_negative_only')
   await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:{...unknownSource(),company_id:'foreign-company'},ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})).rejects.toThrow('source_scope_mismatch')
   expect(io.commonRoute).not.toHaveBeenCalled();expect(io.commonPrepare).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })

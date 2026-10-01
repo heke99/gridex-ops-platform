@@ -12,7 +12,7 @@ export function isConfirmedCustomerSourceCandidate(message:EdielMessageRow):bool
  const source=parseProdatMessage(message.raw_payload??'')
  return source.messageCode==='Z06'&&source.lineItems.some(item=>item.reasonForTransaction==='E34')
 }
-export type ConfirmedCustomerSourceResult={applied:true;sourceMessageId:string;appliedCount:1;owner:'confirmed-customer-source-v1';payloadHash:string;eventId:string;objects:{meteringPointId:string;siteId:string;effectiveAt:string;sourceReceivedAt:string}[]}|{applied:false;reason:string}
+export type ConfirmedCustomerSourceResult=({applied:true;sourceMessageId:string;appliedCount:1;owner:'confirmed-customer-source-v1';payloadHash:string;objects:{meteringPointId:string;siteId:string;effectiveAt:string;sourceReceivedAt:string}[]}&({eventId:string;authority?:never}|{eventId:null;authority:{kind:'bilateral';artifactId:string}}))|{applied:false;reason:string}
 /** These two separate awaited RPCs are essential: a same-transaction append
  * cannot witness that its version was actually committed and available. */
 export async function applyConfirmedCustomerSource(input:{companyId:string;sourceMessageId:string;actorUserId:string}):Promise<ConfirmedCustomerSourceResult>{
@@ -20,7 +20,8 @@ export async function applyConfirmedCustomerSource(input:{companyId:string;sourc
  const{data,error}=await rpc()('ediel_apply_reviewed_customer_source_v1',args);if(error)throw error
  const r=record(data)
  if(r?.applied===false&&typeof r.reason==='string')return r as ConfirmedCustomerSourceResult
- if(r?.applied!==true||r.owner!=='confirmed-customer-source-v1'||r.sourceMessageId!==input.sourceMessageId||r.appliedCount!==1||!Array.isArray(r.objects)||r.objects.length!==1||typeof r.eventId!=='string'||! /^[a-f0-9]{64}$/.test(String(r.payloadHash)))throw Error('customer_source_receipt_invalid')
+ const authority=record(r?.authority),qualifiedAuthority=typeof r?.eventId==='string'&&!authority||r?.eventId===null&&authority?.kind==='bilateral'&&typeof authority.artifactId==='string'
+ if(r?.applied!==true||r.owner!=='confirmed-customer-source-v1'||r.sourceMessageId!==input.sourceMessageId||r.appliedCount!==1||!Array.isArray(r.objects)||r.objects.length!==1||!qualifiedAuthority||! /^[a-f0-9]{64}$/.test(String(r.payloadHash)))throw Error('customer_source_receipt_invalid')
  const{data:witness,error:witnessError}=await rpc()('ediel_witness_confirmed_customer_source_v1',args);if(witnessError)throw witnessError
  const w=record(witness)
  if(w?.owner!=='confirmed-customer-source-availability-v1'||w.sourceMessageId!==input.sourceMessageId||w.payloadHash!==r.payloadHash||typeof w.availableAt!=='string'||!Number.isFinite(Date.parse(w.availableAt)))throw Error('customer_source_availability_unconfirmed')

@@ -1,6 +1,6 @@
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
-import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite,segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { utiltsQuantityUnitGuideIssues } from '@/lib/ediel/utilts/quantityUnitScope'
 import {utiltsDecimalGuideIssues,utiltsPrecisionFunctionalIssues} from '@/lib/ediel/utilts/quantityPrecision'
 import {takeQualifiedUtiltsRuntimeOwner} from '@/lib/ediel/utilts/qualifyReceivedStructure'
@@ -28,6 +28,7 @@ import {
   decideUtiltsRuntimeAckPlan,
   normalizeUtiltsRuntimePayload,
   parseUtiltsRuntimeFacts,
+  utiltsRuntimeSegments,
   resolveUtiltsTransactionDispositions,
   runUtiltsRuntimeForMessage as runLegacyUtiltsRuntimeForMessage,
   type UtiltsRuntimeFacts,
@@ -162,11 +163,11 @@ function qualifier(value: string | null | undefined): string {
 }
 
 function issueReference(issue: UtiltsValidationIssue): string {
-  return String(issue.referenceNumber ?? issue.lineItemReference ?? '').trim()
+  return String(issue.referenceNumber ?? issue.lineItemReference ?? '')
 }
 
 function transactionReference(transaction: UtiltsRuntimeTransaction, index: number): string {
-  return String(transaction.transactionId ?? '').trim() || `TX-${index + 1}`
+  return String(transaction.transactionId ?? '') || `TX-${index + 1}`
 }
 
 function issueBelongsToTransaction(
@@ -176,7 +177,7 @@ function issueBelongsToTransaction(
   transactionCount: number,
 ): boolean {
   const reference = issueReference(issue)
-  const transactionId = String(transaction.transactionId ?? '').trim()
+  const transactionId = String(transaction.transactionId ?? '')
   if (!reference) return transactionCount === 1
   if (transactionId && reference === transactionId) return true
   return reference === transactionReference(transaction, index)
@@ -185,7 +186,7 @@ function issueBelongsToTransaction(
 function rawTransactionGroups(facts: UtiltsRuntimeFacts): string[][] {
   const groups: string[][] = []
   let current: string[] | null = null
-  for (const segment of facts.rawSegments) {
+  for (const segment of utiltsRuntimeSegments(facts)) {
     if (/^IDE\+/i.test(segment)) {
       if (current) groups.push(current)
       current = [segment]
@@ -374,9 +375,9 @@ export function applyUtiltsResolutionFormatPolicyToRuntimeResult(input: {
 }): UtiltsRuntimeResult {
   const issues = input.result.validation.issues.filter((issue) => {
     if (issue.code !== 'UTILTS_DST_INTERVAL_COUNT_MISMATCH') return true
-    const reference = String(issue.referenceNumber ?? issue.lineItemReference ?? '').trim()
+    const reference = String(issue.referenceNumber ?? issue.lineItemReference ?? '')
     const transaction = input.result.facts.transactions.find((entry) =>
-      reference ? String(entry.transactionId ?? '').trim() === reference : false,
+      reference ? String(entry.transactionId ?? '') === reference : false,
     ) ?? (input.result.facts.transactions.length === 1 ? input.result.facts.transactions[0] : null)
 
     // Defensive compatibility for any older validator that still reduces the
@@ -569,7 +570,7 @@ function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, resu
   for (const segment of wire.segments) {
     if (segment.tag === 'IDE') {
       inHeader = segmentComposite(segment, 1, wire.una)[0] === '24'
-      reference = inHeader ? segmentComposite(segment, 2, wire.una)[0]?.trim() || null : null
+      reference = inHeader ? segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)}, 2, wire.una)[0] || null : null
     } else if (segment.tag === 'SEQ' || segment.tag === 'UNT') {
       inHeader = false
     }
@@ -706,7 +707,7 @@ function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRun
 }
 
 function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<Record<string, unknown>> {
-  const timezone = parseEdifactTimezoneOffsetFromSegments(facts.rawSegments)
+  const timezone = parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(facts))
   const transactions = facts.transactions.length > 0 ? facts.transactions : []
 
   return transactions.flatMap((transaction) => {
@@ -756,7 +757,7 @@ function canonicalE66PersistenceTransactions(facts: UtiltsRuntimeFacts): Array<R
 function applyCanonicalE66PersistencePayload(result: UtiltsRuntimeResult): UtiltsRuntimeResult {
   if (String(result.facts.messageCode ?? '').trim().toUpperCase() !== 'E66') return result
 
-  const timezone = parseEdifactTimezoneOffsetFromSegments(result.facts.rawSegments)
+  const timezone = parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(result.facts))
   const transactions = canonicalE66PersistenceTransactions(result.facts)
   const topEnergyQuantities = result.facts.quantities.filter((quantity) => qualifier(quantity.qualifier) === '136')
   const firstTransaction = result.facts.transactions[0] ?? null
@@ -806,7 +807,9 @@ function runUtiltsRuntimeForMessageCore(
   // the existing wire validator before either guide or functional execution.
   let syntaxIssues: UtiltsValidationIssue[]
   try {
-    syntaxIssues = validateEdifactSyntax(message).issues
+    const syntax = validateEdifactSyntax(message)
+    if (syntax.grammarQualification === 'unavailable') throw new Error('ediel_unsm_directory_source_unavailable')
+    syntaxIssues = syntax.issues
       .filter(issue => issue.code !== 'syntax_check_failed' && issue.code !== 'message_failed')
       .map(issue => ({ ...issue, kind: 'syntax', edielErrorCode: '7' }))
   } catch (error) {

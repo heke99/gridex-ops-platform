@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-const io = vi.hoisted(() => ({ from: vi.fn(), upload: vi.fn(), download: vi.fn(), insert: vi.fn(), source: {} as Record<string, unknown> }))
+const io = vi.hoisted(() => ({ rpc:vi.fn(),from: vi.fn(), upload: vi.fn(), download: vi.fn(), insert: vi.fn(), source: {} as Record<string, unknown> }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
-  from: io.from, storage: { from: () => ({ upload: io.upload, download: io.download }) },
+  rpc:io.rpc,from: io.from, storage: { from: () => ({ upload: io.upload, download: io.download }) },
 } }))
 vi.mock('@/lib/ediel/transport/smimeTransportArchive', () => ({ isSmimeRawMime: () => false, archiveSmimeRawMime: vi.fn() }))
 import { archiveTransportRawMime } from '@/lib/ediel/transport/rawMimeArchive'
@@ -12,6 +12,7 @@ const raw = Buffer.from("Message-ID: <original@example.test>\r\nContent-Type: ap
 describe('raw MIME exact storage authority', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    io.rpc.mockResolvedValue({data:null,error:null})
     io.source = { id: context.messageId, company_id: context.companyId, direction: 'outbound' }
     io.upload.mockResolvedValue({ error: null })
     io.download.mockResolvedValue({ data: { arrayBuffer: async () => Uint8Array.from(raw).buffer }, error: null })
@@ -54,5 +55,11 @@ describe('raw MIME exact storage authority', () => {
     const ambiguous = Buffer.from(raw.toString().replace('Content-Type:', 'Message-ID: <other@example.test>\r\nContent-Type:'))
     await expect(archiveTransportRawMime(ambiguous, context)).rejects.toThrow('ediel_mime_message_id_invalid')
     expect(io.upload).not.toHaveBeenCalled()
+  })
+  it('cannot reconstruct archived bytes after the actual native retention guard revokes them',async()=>{
+    io.rpc.mockResolvedValue({data:null,error:Error('ediel_original_bytes_retention_tombstoned')})
+    await expect(archiveTransportRawMime(raw,context)).rejects.toThrow('retention_tombstoned')
+    expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_require_source_bytes_available_v1',{p_company_id:context.companyId,p_source_message_id:context.messageId})
+    expect(io.upload).not.toHaveBeenCalled();expect(io.insert).not.toHaveBeenCalled()
   })
 })

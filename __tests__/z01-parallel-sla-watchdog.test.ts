@@ -1,26 +1,60 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { raw } from './fixtures/prodat-register'
+import { source as messageSource, head, own } from './fixtures/prodat-identity'
+const boundary = vi.hoisted(() => ({ rpc: vi.fn(), db: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: boundary.rpc } }))
+vi.mock('@/lib/supabase/tenantDb', () => ({ tenantDb: boundary.db }))
+import { projectSentEdielSourceState } from '@/lib/ediel/outbox/projectSentSources'
+import { prepareEdielBusinessExpectationPlan } from '@/lib/ediel/businessExpectations'
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 
 import { canonicalZ01BusinessResponseDeadlineMinutes } from '@/lib/ediel/rulebook/deadlinePolicy'
 
 function read(relative: string): string {
   return fs.readFileSync(path.join(process.cwd(), relative), 'utf8')
 }
+beforeEach(() => vi.resetAllMocks())
 
 describe('PRODAT Z01 parallel response SLA watchdog', () => {
   it('takes the 30-minute business deadline from the canonical handbook catalog', () => {
     expect(canonicalZ01BusinessResponseDeadlineMinutes()).toBe(30)
   })
 
-  it('starts technical and business clocks from the actual persisted send time', () => {
-    const source = read('lib/ediel/outbox/projectSentSources.ts')
-    expect(source).toContain('message_sent_at: params.sentAt')
-    expect(source).toContain('contrl_due_at: technicalDueAt')
-    expect(source).toContain('business_response_due_at: businessResponseDueAt')
-    expect(source).toContain('ack_due_at: technicalDueAt')
-    expect(source).toContain('canonicalZ01BusinessResponseDeadlineMinutesProjection()')
-    expect(source).toContain('EDIEL_ACK_DEADLINE_MINUTES')
+  it('actually projects both clocks from the accepted native journal anchor, never the caller repair clock', async () => {
+    // Explicit synthetic private journal/RPC port, with actual policy planning
+    // and actual source projection. No SMTP, issuer or native DB claim.
+    const message = { ...messageSource(raw([...head(),...own('1','735123456789012345','OWN')],'Z01')),
+      id:'journal-source', company_id:'tenant-journal', direction:'outbound', requires_contrl:true,
+      contrl_status:'pending', requires_aperak:false, aperak_status:'not_required',
+      outbound_request_id:null, grid_owner_data_request_id:null } as EdielMessageRow
+    const policy = resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z01',subtypeOrReasonCode:'L',
+      direction:'outbound',referenceDate:'2026-09-30',mode:'catalog_evidence'})
+    const plan = prepareEdielBusinessExpectationPlan(message,policy)!
+    expect(plan).toMatchObject({offset:30,unit:'minutes',anchor:'actual_accepted_smtp_observed_at',remoteReceiptKnown:false})
+    const anchorAt = '2026-09-30T12:00:00.000Z'
+    const dueAt = new Date(Date.parse(anchorAt)+plan.offset!*60*1000).toISOString()
+    boundary.rpc.mockImplementation(async (name,args) => {
+      expect(name).toBe('gridex_ediel_business_expectations_v1')
+      expect(args.p_input).toEqual({companyId:'tenant-journal',environment:'test',messageId:'journal-source',actorUserId:'operative-actor',action:'register'})
+      return {error:null,data:[{id:'immutable-watch',source_message_id:message.id,expected_code:'Z02',due_at:dueAt,status:'pending',metadata:{anchorAt,plan}}]}
+    })
+    const writes: Array<{table:string;values:Record<string,unknown>}> = []
+    boundary.db.mockImplementation(companyId => {
+      expect(companyId).toBe('tenant-journal')
+      return {from:(table:string) => {
+        const q = {update:(values:Record<string,unknown>)=>{writes.push({table,values});return q},select:()=>q,eq:()=>q,limit:()=>q,
+          maybeSingle:async()=>({data:{id:message.id},error:null}),then:(resolve:(value:unknown)=>unknown)=>Promise.resolve({data:[],error:null}).then(resolve)}
+        return q
+      }}
+    })
+    await projectSentEdielSourceState({message,sentAt:'2026-10-05T09:00:00.000Z',actorUserId:'operative-actor'})
+    expect(writes).toEqual([{table:'ediel_messages',values:expect.objectContaining({
+      message_sent_at:anchorAt,contrl_due_at:dueAt,business_response_due_at:dueAt,ack_due_at:dueAt,
+    })}])
+    expect(writes.some(value => ['ediel_outbox','outbound_requests'].includes(value.table))).toBe(false)
   })
 
   it('models customer business waiting on Z02 while CONTRL is monitored in parallel', () => {

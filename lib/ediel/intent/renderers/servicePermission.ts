@@ -26,13 +26,16 @@ export async function buildServicePermissionDraft(input: {
   if (text(customer.org_number) && text(customer.personal_number)) throw new Error('ediel_permission_customer_legal_identity_ambiguous')
   const identity = resolveSwedishProdatCustomerIdentity(customer)
   const name = text(customer.company_name) ?? text(customer.full_name) ?? [text(customer.first_name), text(customer.last_name)].filter(Boolean).join(' ')
-  const country = text(customer.country) ?? text(customer.country_code)
+  // The native origin returns the actual public.customers row. Its postal
+  // fields are billing_*; retain explicit historic source aliases on replay.
+  const country = text(customer.country) ?? text(customer.country_code) ?? text(customer.billing_country)
   if (!identity.id || !identity.qualifier || !name || country !== 'SE') throw new Error('ediel_permission_actual_customer_identity_required')
   const version = await resolveCanonicalOutboundVersion({ family: 'PRODAT', code: b.code, standard: 'edifact', environment: b.environment, routeDefaultMessageVersion: route.defaultMessageVersion })
   if (!version) throw new Error('ediel_permission_canonical_version_required')
   const token = prodatMessageTypeToken(version)
   const external = text(i.payload.externalReference)
   const li = b.code === 'Z18' ? b.li : i.transactionReference
+  if (b.code === 'Z13' && !text(b.agreementReference)) throw new Error('ediel_permission_source_agreement_reference_required')
   if (!external || !li || !b.objects.length) throw new Error('ediel_permission_persisted_wire_references_required')
   const all: string[] = []
   const diagnostics = []
@@ -47,7 +50,7 @@ export async function buildServicePermissionDraft(input: {
         senderEdielId: route.senderEdielId, receiverEdielId: route.receiverEdielId,
         legalSenderId: b.legalSenderId, legalReceiverId: b.legalReceiverId,
         customerName: name, customerId: identity.id, customerIdCodeListQualifier: identity.qualifier,
-        customerCountry: country, customerAddress: text(customer.street), customerPostalCode: text(customer.postal_code), customerCity: text(customer.city),
+        customerCountry: country, customerAddress: text(customer.street) ?? text(customer.billing_street), customerPostalCode: text(customer.postal_code) ?? text(customer.billing_postal_code), customerCity: text(customer.city) ?? text(customer.billing_city),
         meterPointId: object.point ?? '', gridAreaId: object.gridArea,
         reasonForTransaction: b.mode === 'V' ? 'S17' : 'S18',
         reportStartDate: b.code === 'Z13' ? object.reportStart : null,
@@ -58,7 +61,7 @@ export async function buildServicePermissionDraft(input: {
         permissionEndReason: b.code === 'Z18' ? b.terminationReason : null,
         permissionId: b.code === 'Z18' ? object.permissionId : null,
         permissionEndDate: b.code === 'Z18' ? object.permissionEnd : null,
-        powerOfAttorneyReference: text(i.payload.authorizationReference),
+        powerOfAttorneyReference: b.code === 'Z13' ? text(b.agreementReference) : null,
         dependentConditionFacts: reportingFacts ? {market:'electricity',reportingPermission:reportingFacts} : {market:'electricity'},
       } })
     const line = rendered.segments.findIndex(segment => segment === 'LIN+1' || segment.startsWith('LIN+1+'))

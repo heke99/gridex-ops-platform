@@ -2,6 +2,7 @@ import { canonicalUtiltsObservationRequirements, getCanonicalUtiltsProfile } fro
 import type { UtiltsRuntimeFacts, UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine'
 import { expectedObservationCountForResolution } from '@/lib/ediel/utilts/resolution'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
+import {segmentComposite,segmentUntrimmedRaw,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 
 function issue(code: string, title: string, description: string, reference?: string | null, field = '512'): UtiltsValidationIssue {
   return {
@@ -35,9 +36,12 @@ export function isSingletonE30Reading(facts: UtiltsRuntimeFacts, index: number):
     || transaction.quantities.length !== 1 || transaction.quantities[0].qualifier !== '220') return false
   const reading = observed.observations[0]
   if (reading.quantities.length !== 1 || reading.quantities[0].qualifier !== '220' || !reading.quantities[0].value) return false
-  const dates = reading.segments.filter(segment => segment.tag === 'DTM' && segment.raw.startsWith('DTM+597:'))
-  if (dates.length !== 1 || !/^DTM\+597:\d{12}:203$/.test(dates[0].raw)) return false
-  const minute = dates[0].raw.slice(8,20),year=Number(minute.slice(0,4)),month=Number(minute.slice(4,6)),day=Number(minute.slice(6,8)),
+  const dates = reading.segments.filter(segment=>segment.tag==='DTM').map(segment=>{
+    const token=tokenizeEdifact(facts.runtimeSegments?.[segment.index]??segment.raw).segments[0]
+    return token ? segmentComposite({...token,raw:segmentUntrimmedRaw(token)},1) : []
+  }).filter(parts=>parts[0]==='597')
+  if (dates.length !== 1 || dates[0].length!==3 || !/^\d{12}$/.test(dates[0][1]) || dates[0][2]!=='203') return false
+  const minute = dates[0][1],year=Number(minute.slice(0,4)),month=Number(minute.slice(4,6)),day=Number(minute.slice(6,8)),
     hour=Number(minute.slice(8,10)),clockMinute=Number(minute.slice(10,12))
   const parsed=new Date(Date.UTC(year,month-1,day,hour,clockMinute))
   return parsed.getUTCFullYear()===year&&parsed.getUTCMonth()===month-1&&parsed.getUTCDate()===day

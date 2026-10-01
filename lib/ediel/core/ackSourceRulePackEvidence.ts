@@ -1,5 +1,7 @@
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {resolveCanonicalInheritedAckPolicy,type CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 
 export type SourceBoundAckRulePackEvidence=Readonly<{
  rulePackId:string;messageProfileId:string;profileKey:string;version:string;sourceHash:string;snapshot:Readonly<Record<string,unknown>>
@@ -8,6 +10,7 @@ declare const outboundAckQualificationBrand: unique symbol
 export type SourceQualifiedOutboundAck=Readonly<{
  sourceMessage:EdielMessageRow;evidence:SourceBoundAckRulePackEvidence;[outboundAckQualificationBrand]:true
 }>
+const sourceOwnerReads=new WeakSet<object>()
 const qualifiedOutboundSources=new WeakMap<SourceQualifiedOutboundAck,{companyId:string;environment:string}>()
 function freezeJson<T>(value:T):T {
  if(value&&typeof value==='object'){for(const child of Object.values(value))freezeJson(child);Object.freeze(value)}
@@ -26,7 +29,8 @@ export async function readSourceBoundAckRulePackEvidence(message:EdielMessageRow
  const result=record(data),source=record(result?.sourceMessage),pack=record(result?.sourceRulePackEvidence),snapshot=record(pack?.snapshot)
  if(result?.version!==1||!source||!uuid(source.id)||source.company_id!==message.company_id||source.environment!==message.environment||source.direction!=='outbound'||typeof source.raw_payload!=='string'||!source.raw_payload||!source.message_sent_at||!source.immutable_rendered_at)throw new Error('ack_actual_original_unavailable')
  if(!pack||!uuid(pack.rulePackId)||!uuid(pack.messageProfileId)||typeof pack.profileKey!=='string'||!pack.profileKey||typeof pack.version!=='string'||!pack.version||typeof pack.sourceHash!=='string'||!/^[a-f0-9]{64}$/.test(pack.sourceHash)||!snapshot)throw new Error('historical_rule_pack_basis_unavailable')
- return {sourceMessage:source as unknown as EdielMessageRow,evidence:Object.freeze({rulePackId:pack.rulePackId,messageProfileId:pack.messageProfileId,profileKey:pack.profileKey,version:pack.version,sourceHash:pack.sourceHash,snapshot:Object.freeze({...snapshot})})}
+ const qualification=freezeJson({sourceMessage:structuredClone(source) as unknown as EdielMessageRow,evidence:structuredClone(pack) as SourceBoundAckRulePackEvidence})
+ sourceOwnerReads.add(qualification);return qualification
 }
 function qualifyOutboundSource(data:unknown,companyId:string,environment:string):SourceQualifiedOutboundAck {
  const result=record(data),source=record(result?.sourceMessage),pack=record(result?.sourceRulePackEvidence),snapshot=record(pack?.snapshot)
@@ -34,7 +38,7 @@ function qualifyOutboundSource(data:unknown,companyId:string,environment:string)
  if(!pack||!uuid(pack.rulePackId)||!uuid(pack.messageProfileId)||typeof pack.profileKey!=='string'||!pack.profileKey||typeof pack.version!=='string'||!pack.version||typeof pack.sourceHash!=='string'||!/^[a-f0-9]{64}$/.test(pack.sourceHash)||!snapshot
   ||snapshot.profileKey!==pack.profileKey||snapshot.profileVersionId!==pack.messageProfileId||snapshot.version!==pack.version||snapshot.checksum!==pack.sourceHash)throw new Error('historical_rule_pack_basis_unavailable')
  const qualification=freezeJson({sourceMessage:structuredClone(source) as unknown as EdielMessageRow,evidence:structuredClone(pack) as SourceBoundAckRulePackEvidence}) as SourceQualifiedOutboundAck
- qualifiedOutboundSources.set(qualification,{companyId,environment})
+ qualifiedOutboundSources.set(qualification,{companyId,environment});sourceOwnerReads.add(qualification)
  return qualification
 }
 /** Pre-persistence kernel port. The protected RPC locks and returns the actual
@@ -67,4 +71,18 @@ export async function readPersistedOutboundAckRulePackEvidence(message:EdielMess
 export function sourceQualifiedOutboundAck(input:{qualification?:SourceQualifiedOutboundAck|null;companyId?:string|null;environment?:string|null}):SourceQualifiedOutboundAck|null {
  const basis=input.qualification?qualifiedOutboundSources.get(input.qualification):null
  return basis&&basis.companyId===input.companyId&&basis.environment===input.environment?input.qualification!:null
+}
+
+/** The actual native-read object is the only source of inherited guide scope.
+ * JSON snapshots, mutable row projections and copies cannot mint this port. */
+export function sourceBoundAckCanonicalPolicy(input:{qualification:{sourceMessage:EdielMessageRow;evidence:SourceBoundAckRulePackEvidence};policy:CanonicalEdielPolicy}):CanonicalEdielPolicy{
+ const q=input.qualification
+ if(!sourceOwnerReads.has(q))throw new Error('ack_source_owner_qualification_required')
+ const pack=record(q.evidence.snapshot.rulePack),profile=record(q.evidence.snapshot.messageProfile),sources=q.evidence.snapshot.guideSources
+ if(!pack||!profile||!Array.isArray(sources)||pack.id!==q.evidence.rulePackId||profile.id!==q.evidence.messageProfileId||profile.rule_pack_id!==pack.id
+  ||pack.source_hash!==q.evidence.sourceHash||typeof pack.family!=='string'||typeof pack.guide_version!=='string'||typeof pack.guide_revision!=='string')throw new Error('historical_rule_pack_guide_scope_unavailable')
+ const raw=tokenizeEdifact(q.sourceMessage.raw_payload),unh=raw.segments.filter(s=>s.tag==='UNH'),bgm=raw.segments.filter(s=>s.tag==='BGM')
+ const physicalFamily=segmentComposite(unh[0],2,raw.una)[0],originalCode=segmentComposite(bgm[0],1,raw.una)[0]
+ if(unh.length!==1||(input.policy.family!=='CONTRL'&&(bgm.length!==1||physicalFamily!==pack.family))||(input.policy.family==='UTILTS_ERR'&&originalCode==='ERR'))throw new Error('canonical_ack_original_family_mismatch')
+ return resolveCanonicalInheritedAckPolicy({policy:input.policy,originalFamily:pack.family,guideVersion:pack.guide_version,guideRevision:pack.guide_revision,originalVersion:q.evidence.version,originalCode})
 }

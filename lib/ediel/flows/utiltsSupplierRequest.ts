@@ -1,3 +1,4 @@
+import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
 import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
@@ -18,7 +19,6 @@ import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   assertCanonicalSupplierUtiltsOutboundAllowed,
   canonicalSupplierUtiltsApplicationReference,
-  canonicalUtiltsResolutionClass,
   type UtiltsRequestedMessageCode,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
@@ -123,7 +123,6 @@ export async function prepareAndQueueUtiltsE73(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
-  const resolution = canonicalUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
 
   // Route/actor selection happens first. The selected route may carry an exact
   // field-311 Application Reference, but it is NOT authoritative by itself: the
@@ -160,6 +159,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     applicationReference: routeContext.applicationReference,
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,legalSupplier:routeContext.senderEdielId,legalNetwork:routeContext.receiverEdielId})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -216,8 +217,11 @@ export async function prepareAndQueueUtiltsE73(params: {
       transactionReason: `Request missing ${requestedMessageCode}`,
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
-      readingFrequency: meteringPoint?.reading_frequency ?? null,
-      resolution,
+      readingFrequency: sourceStructure.fields.reportingFrequency,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
+      resolution:sourceStructure.resolution,
     },
   })
 

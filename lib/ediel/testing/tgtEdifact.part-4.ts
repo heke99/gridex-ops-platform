@@ -501,7 +501,7 @@ export function buildEdielTgtDraft(
       messageCode: step.code,
       messageVersion,
       processType:
-        params.reportingContext ? getCanonicalProdatProfile(step.code)!.processGroup : step.family === "PRODAT" ? "tgt_prodat_portal_test" : "tgt_ack_test",
+        step.family === "PRODAT" ? getCanonicalProdatProfile(step.code)!.processGroup : "tgt_ack_test",
       environment: "test",
       testFlag: 1,
       status: hasErrors ? "draft" : "prepared",

@@ -7,7 +7,7 @@ import type {EdielMessageIntent} from '@/lib/ediel/intent/types'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 function fixture(){
- const basis:BrpChangeBasis={status:'authorized',companyId:id(1),environment:'test',eventId:id(2),supplyPeriodId:id(3),supplyStateVersion:4,supplySourceMessageId:id(4),customerId:id(5),meteringPointId:id(6),legalActorId:id(7),legalSenderId:'12345',legalReceiverId:'54321',brpActorId:id(8),brpEdielId:'11111',pointId:'735123456789012345',identityAgency:'9',gridArea:'TES',effectiveAt:'2027-01-01T00:00:00+01:00',registryGroundId:id(9),registryVersion:'SYNTHETIC-REGISTRY',registrySha256:'a'.repeat(64),sourceReference:'SYNTHETIC MARKET DECISION',sourceVersion:'fixture',sourceDigest:'b'.repeat(64)}
+ const basis:BrpChangeBasis={status:'authorized',companyId:id(1),environment:'test',eventId:id(2),supplyPeriodId:id(3),supplyStateVersion:4,supplySourceMessageId:id(4),customerId:id(5),siteId:id(22),meteringPointId:id(6),legalActorId:id(7),legalSenderId:'12345',legalReceiverId:'54321',brpActorId:id(8),brpEdielId:'11111',pointId:'735123456789012345',identityAgency:'9',gridArea:'TES',effectiveAt:'2027-01-01T00:00:00+01:00',registryGroundId:id(9),registryVersion:'SYNTHETIC-REGISTRY',registrySha256:'a'.repeat(64),sourceReference:'SYNTHETIC MARKET DECISION',sourceVersion:'fixture',sourceDigest:'b'.repeat(64)}
  const intent:EdielMessageIntent={id:id(10),companyId:id(1),environment:'test',market:'electricity',messageFamily:'PRODAT',messageCode:'Z09',businessProcess:'customer_masterdata',direction:'outbound',senderEdielId:'99111',receiverEdielId:'54321',applicationReference:'23-DDQ-PRODAT',routeProfileId:id(11),communicationRouteId:id(12),customerId:id(5),meteringPointId:basis.pointId,operationId:id(2),interchangeReference:'SYNTHETIC-BRP-UNB',messageReference:'1',transactionReference:'SYNTHETIC-BRP-LI',idempotencyKey:'SYNTHETIC-BRP-EVENT',payload:{actorRole:'supplier',brpChangeEventId:id(2)},validationStatus:'validated',renderStatus:'not_rendered',outboxStatus:'not_queued'}
  const route={companyId:id(1),environment:'test',actor:{tenantIdentity:{legalActorId:id(7)},legalActorEdielId:'12345',marketRoles:['electricity_supplier']},senderEdielId:'99111',receiverEdielId:'54321',senderSubAddress:null,receiverSubAddress:null,receiverMessageSubAddress:null,applicationReference:'23-DDQ-PRODAT',route:{id:id(12)},routeRuntime:{route_profile_id:id(11)},mailbox:null,receiverEmail:'dso@example.invalid'} as Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
  return{basis,intent,routeContext:route,actorUserId:id(20),outboundRequestId:id(21)}
@@ -25,6 +25,7 @@ it('builds canonical source-owned Z09B216/262 without UD, supply dates or meteri
  expect(draft.rawPayload).not.toContain('DTM+93:')
  expect(draft.rawPayload).not.toContain('CCI++Z04')
  expect(draft.sourceOperationId).toBe(fixture().basis.eventId)
+ expect(draft.siteId).toBe(fixture().basis.siteId)
 })
 it('holds foreign tenant, legal actor, recipient and non-supplier route before rendering',async()=>{
  const f=fixture()

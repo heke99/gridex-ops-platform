@@ -69,7 +69,7 @@ try{
  await db.exec(`UPDATE supplier_switch_requests SET status='sent',site_id=NULL,customer_site_id='${id(104)}' WHERE id='${id(110)}';UPDATE ediel_messages SET status='acknowledged' WHERE id IN('${id(20)}','${id(120)}','${id(220)}')`)
  await db.exec(`UPDATE gridex_ediel_transport.attempts SET classification='partial' WHERE message_id='${id(20)}'`);assert.equal((await run()).rows[0].b.applied,false);checks++;await db.exec(`UPDATE gridex_ediel_transport.attempts SET classification='accepted' WHERE message_id='${id(20)}'`);
  const result=(await run()).rows[0].b;assert.equal(result.applied,true);assert.equal(result.commits.length,3);checks++
- assert.equal(result.periods[0].market_start_at,'2026-01-01T12:30:00+00:00');checks++
+ assert.equal(result.periods.find(p=>p.metering_point_id===id(5)).market_start_at,'2026-01-01T12:30:00+00:00');checks++
  assert.ok(result.periods.every(p=>p.status==='confirmed_by_grid_owner'));checks++
  assert.equal((await run()).rows[0].b.idempotent,true);checks++;await assert.rejects(db.query('SELECT * FROM public.activate_customer_supply_v1($1,$2,$3,NULL,$4,NULL)',[id(1),id(210),id(30),id(2)]),/not_due/);checks++
  await assert.rejects(activate(id(30),id(2),'2026-01-02'),/current_confirmation_changed/);checks++
@@ -77,6 +77,7 @@ try{
  await assert.rejects(activate(),/current_confirmation_changed/);checks++
  await db.exec(`UPDATE supplier_switch_requests SET customer_site_id=NULL WHERE id='${id(10)}';UPDATE customer_contracts SET status=\'cancelled\' WHERE id='${id(6)}'`)
  await assert.rejects(activate(),/current_confirmation_changed/);checks++
+ await db.exec(`UPDATE customer_contracts SET status='signed' WHERE id='${id(6)}'`)
  await db.exec('BEGIN')
  const ordered=(await db.query('SELECT c.period_id,c.contract_id FROM gridex_received_sources.normal_switch_confirmations c ORDER BY c.market_start_at,c.period_id')).rows
  await db.query('UPDATE customer_contracts SET status=\'cancelled\' WHERE id=$1',[ordered[0].contract_id]);
@@ -87,6 +88,12 @@ try{
  await db.exec(`UPDATE customer_contracts SET status='signed' WHERE id='${id(6)}'`)
  const first=(await activate()).rows[0];assert.ok(first.supply_period_id);checks++
  assert.deepEqual((await activate()).rows[0],first);checks++
+ await db.exec(fn('../supabase/migrations/20260930221158_ediel_source_qualified_switch_correction_binding.sql','gridex_received_sources.supply_period_source_at_v1'))
+ const at=async(company,instant)=>(await db.query('SELECT gridex_received_sources.supply_period_source_at_v1($1,$2,$3) b',[company,first.supply_period_id,instant])).rows[0].b
+ assert.equal((await at(id(1),'2026-01-01T12:30Z')).basisKind,'exact_source_point');checks++
+ assert.equal(await at(id(1),'2026-01-01T12:29:59.999999Z'),null);checks++
+ assert.equal(await at(id(99),'2026-01-01T12:30Z'),null);checks++
+ assert.equal(await at(id(1),'infinity'),null);checks++
  const bounds=await db.query('SELECT gridex_received_sources.supply_period_source_basis_v1($1,$2,$3,$4) b',[id(1),first.supply_period_id,'2026-01-01T12:30Z','2026-01-02T00:00Z']);assert.equal(bounds.rows[0].b.qualified,true);assert.equal(bounds.rows[0].b.activated,true);assert.equal(bounds.rows[0].b.dsoEdielId,'54321');assert.equal(bounds.rows[0].b.sourceObjects[0].identityAgency,'9');assert.ok(bounds.rows[0].b.originalAcceptedAt);checks++
  assert.equal((await db.query('SELECT gridex_received_sources.supply_period_source_basis_v1($1,$2,$3,$4) b',[id(1),first.supply_period_id,'2026-01-01T12:29Z','2026-01-02T00:00Z'])).rows[0].b,null);checks++
  await db.exec(`UPDATE customer_contracts SET signed_version='changed' WHERE id='${id(6)}'`)
