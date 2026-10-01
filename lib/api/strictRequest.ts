@@ -74,6 +74,15 @@ function payloadHash(payload: unknown): string {
   return createHash('sha256').update(canonicalJson(payload)).digest('hex')
 }
 
+/**
+ * Operations whose business mutation is itself repeatable for the same idempotency key, so a
+ * failed attempt may be retried with the same key without creating duplicates.
+ */
+const RETRYABLE_AFTER_FAILURE_OPERATIONS = new Set([
+  '/api/v1/customer/move-out',
+  '/api/v1/customer/support/cases',
+])
+
 export async function claimPortalWriteIdempotency(input: {
   companyId: string
   clientId: string
@@ -132,7 +141,7 @@ export async function claimPortalWriteIdempotency(input: {
   }
   if (
     String(existing.data.status) === 'failed' &&
-    input.operation === '/api/v1/customer/move-out'
+    RETRYABLE_AFTER_FAILURE_OPERATIONS.has(input.operation)
   ) {
     const retried = await supabaseService
       .from('customer_portal_write_idempotency')

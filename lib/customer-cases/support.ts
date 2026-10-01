@@ -2,7 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createCustomerCase, listCustomerCases } from '@/lib/customer-cases/db'
 import type { CustomerCaseListRow, CustomerCasePriority, CustomerCaseRow } from '@/lib/customer-cases/types'
 
-type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'operations_automation'
+type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'phone' | 'operations_automation'
 
 export type TenantSupportCustomerOption = { id: string; label: string }
 

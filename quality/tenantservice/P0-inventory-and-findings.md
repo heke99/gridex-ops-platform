@@ -129,3 +129,34 @@
 - Versioned billing profile with revision id on the item. Needs a migration.
 - Show the impact in the UI (P5).
 - Resend to a new address as a separate delivery decision.
+
+## P4a (web/phone/support)
+**Done (no schema change):**
+- `lib/customer-service/supportConversation.ts` is built on `customer_cases` and `customer_case_events`.
+- Entry types are kept apart:
+  - customer message;
+  - staff reply;
+  - internal note;
+  - phone interaction (internal; the summary is published only through an explicit staff reply of kind `phone_summary`).
+- Visibility is fail-closed: an entry is public only if its event type is on the allowlist **and** `payload.visibility='customer'`. Filters run in the DB before limiting, and visibility is checked again after the query.
+- Public DTOs use explicit field lists. Staff identity is not exposed.
+- Public `case_reference` is a hash. The reference alone grants nothing; every lookup is bounded to tenant + customer.
+- Phone verification:
+  - the method is recorded (unverified / strong e-ID / portal confirmation / callback to registered number);
+  - `unverified` gives no customer access (limited intake);
+  - a representative or mandate reference can be recorded.
+- OPS actions: reply, internal note, phone interaction. All require `cases.write`, act under the employee's own identity, and refuse the submit when the tenant was switched in another tab (`expected_company_id`).
+- Idempotency:
+  - the same key gives no duplicate case or first message;
+  - a retry after a crash completes the missing steps;
+  - `/api/v1/customer/support/cases` may be retried after `failed` with the same key.
+- New scopes `customer_support.read` / `customer_support.write`. They are explicit and are **not** implied by `customer_portal.*`.
+- API handlers are in `lib/customer-service/supportApiHandlers.ts`.
+
+**Deliberately not mounted:** the public API surface is locked to OpenAPI release 2026-08-22.2 with immutable artefacts. The route files `app/api/v1/customer/support/**` are added together with the next contract release (P6), so no undocumented endpoint becomes reachable.
+
+**Remaining (P4b, needs a migration + isolated DB):**
+- Unique DB constraint for the support idempotency key (F9).
+- Dedicated `channel` column and interaction table if reporting needs them.
+- Private attachments with quarantine and scanning: **not built.** No attachment endpoint exists. Unknown scan status must never count as approved.
+- Action-bound, expiring verification proof stored in the DB.
