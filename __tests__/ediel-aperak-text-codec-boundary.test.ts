@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
-import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact,segmentComposite,segmentUntrimmedRaw} from '@/lib/ediel/core/edifactTokenizer'
 // Business segments are serialized in the default alphabet. The codec
 // transcodes framing and data into the requested output service alphabet.
 for(const [suffix,decoded] of [['plain','plain'],["plain'",'plain'],["plain'''",'plain'],["tail?'","tail'"],["tail?''","tail'"],["tail?'''","tail'"],["tail??'",'tail?'],["tail???'","tail?'"],["tail????'",'tail??']] as const){
@@ -24,4 +24,11 @@ it('transcodes default-serialized data into compatible partial UNA framing',()=>
  const general=tokenizeEdifact(encode(['FTX+AAO+++END'],{componentDataElementSeparator:'*',dataElementSeparator:';'}))
  expect(segmentComposite(general.segments.find(s=>s.tag==='UNH')!,2,general.una)).toEqual(['APERAK','D','96A','UN','E2SE2B'])
  expect(segmentComposite(general.segments.find(s=>s.tag==='FTX')!,4,general.una)).toEqual(['END'])
+})
+for(const una of [undefined,{releaseCharacter:'!',segmentTerminator:'~'}])it('preserves final logical source reference and text spaces through envelope transcode',()=>{
+ const raw=encode(["RFF+TN:OWN?+REF ","FTX+AAO+++INCORRECT DATA tail "],una),wire=tokenizeEdifact(raw)
+ for(const [tag,index,expected] of [['RFF',1,['TN','OWN+REF ']],['FTX',4,['INCORRECT DATA tail ']]] as const){
+  const token=wire.segments.find(segment=>segment.tag===tag)!
+  expect(segmentComposite({...token,raw:segmentUntrimmedRaw(token)},index,wire.una)).toEqual(expected)
+ }
 })
