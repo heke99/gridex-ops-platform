@@ -69,6 +69,8 @@ jobs:
       - run: npx vitest run --config scripts/customer-account-role-preservation-20261001.config.ts --reporter=verbose
       - name: Pinned baseline raw-write oracle controls
         run: node --test scripts/tenantservice-baseline-raw-write-oracle-20261001.test.cjs
+      - name: Canonical inbound notification source-chain controls
+        run: node --test scripts/customer-application-inbound-notification-source-20261001.test.cjs
       - run: npm test
       - run: npm run api:docs
       - run: npm run api:compatibility

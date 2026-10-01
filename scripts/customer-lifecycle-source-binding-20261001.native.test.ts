@@ -14,6 +14,7 @@ function financeFingerprint() {
 let originalFinance: Record<string, string>
 let f: { company: string; quiet: string; customer: string; quietCustomer: string; contract: string; quietContract: string; caseId: string; fault: string }
 let quietBefore: unknown
+let retainedBefore: unknown
 beforeAll(() => { originalFinance = financeFingerprint() })
 afterAll(() => { expect(financeFingerprint()).toEqual(originalFinance) })
 beforeEach(() => {
@@ -25,11 +26,22 @@ beforeEach(() => {
     VALUES(${quote(f.caseId)},${quote(f.company)},${quote(f.customer)},${quote(f.contract)},'withdrawal','Synthetic sourced withdrawal',true,clock_timestamp(),'{"receivedChannel":"phone","notes":"Synthetic owned staff note"}');
     SELECT to_jsonb(count(*)) FROM public.customer_cases WHERE id=${quote(f.caseId)};`)
   quietBefore = quietGraph()
+  retainedBefore = retainedCompanyLegalGraph()
 })
 function quietGraph() {
   return proofSql(`SELECT jsonb_build_object('customer',(SELECT to_jsonb(c) FROM public.customers c WHERE id=${quote(f.quietCustomer)}),'contract',(SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${quote(f.quietContract)}),'decisions',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY id),'[]'::jsonb) FROM public.customer_lifecycle_decisions d WHERE company_id=${quote(f.quiet)}));`)
 }
 function currentCase() { return proofSql<CustomerCaseRow>(`SELECT to_jsonb(c) FROM public.customer_cases c WHERE id=${quote(f.caseId)};`) }
+// The real company INSERT automatically publishes legal texts. Retain those
+// synthetic companies and their exact legal graph until disposable stack
+// teardown, with every production guard still installed.
+function retainedCompanyLegalGraph() {
+  return proofSql(`SELECT jsonb_build_object(
+    'companies',(SELECT encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]'::jsonb)::text,'UTF8')),'hex') FROM public.companies c WHERE c.id IN (${quote(f.company)},${quote(f.quiet)})),
+    'legalTexts',(SELECT encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.id),'[]'::jsonb)::text,'UTF8')),'hex') FROM public.legal_text_versions t WHERE t.company_id IN (${quote(f.company)},${quote(f.quiet)})),
+    'legalBundles',(SELECT encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]'::jsonb)::text,'UTF8')),'hex') FROM public.legal_bundles b WHERE b.company_id IN (${quote(f.company)},${quote(f.quiet)})),
+    'legalBundleItems',(SELECT encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(i) ORDER BY i.id),'[]'::jsonb)::text,'UTF8')),'hex') FROM public.legal_bundle_items i JOIN public.legal_bundles b ON b.id=i.legal_bundle_id WHERE b.company_id IN (${quote(f.company)},${quote(f.quiet)})));`)
+}
 afterEach(() => {
   expect(quietGraph()).toEqual(quietBefore)
   proofSql(`DROP TRIGGER IF EXISTS ${f.fault} ON public.customer_lifecycle_decisions;
@@ -39,7 +51,14 @@ afterEach(() => {
   proofSql(`DELETE FROM public.customer_cases WHERE company_id IN (${quote(f.company)},${quote(f.quiet)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_cases')
   proofSql(`DELETE FROM public.customer_contracts WHERE id IN (${quote(f.contract)},${quote(f.quietContract)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_contracts')
   proofSql(`DELETE FROM public.customers WHERE id IN (${quote(f.customer)},${quote(f.quietCustomer)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_customers')
-  proofSql(`DELETE FROM public.companies WHERE id IN (${quote(f.company)},${quote(f.quiet)}); SELECT to_jsonb(true);`, 'lifecycle_cleanup_companies')
+  expect(proofSql(`SELECT jsonb_build_object(
+    'companies',(SELECT count(*) FROM public.companies WHERE id IN (${quote(f.company)},${quote(f.quiet)})),
+    'decisions',(SELECT count(*) FROM public.customer_lifecycle_decisions WHERE company_id IN (${quote(f.company)},${quote(f.quiet)})),
+    'cases',(SELECT count(*) FROM public.customer_cases WHERE company_id IN (${quote(f.company)},${quote(f.quiet)})),
+    'contracts',(SELECT count(*) FROM public.customer_contracts WHERE company_id IN (${quote(f.company)},${quote(f.quiet)})),
+    'customers',(SELECT count(*) FROM public.customers WHERE company_id IN (${quote(f.company)},${quote(f.quiet)})));`, 'lifecycle_cleanup_companies'))
+    .toEqual({ companies: 2, decisions: 0, cases: 0, contracts: 0, customers: 0 })
+  expect(retainedCompanyLegalGraph()).toEqual(retainedBefore)
 })
 
 it('actual PostgREST exported producer creates one durable withdrawal and replays after title edit', async () => {

@@ -1,3 +1,11 @@
+## First-failure correction local bounded gates, 2026-10-01
+
+Root35 source mutation controls,8 actual cleanup PostgreSQL controls and full golden terminalPASS; scriptsTS/scopedlint/budget/workflowPASS. Independent bounded peers accepted scopes. New terminal native pending authentic CI, original75/P0–P8 remain OPEN. Receipt continuation/ci-first-failures-correction-20261001.md.
+
+## Actual0778 bounded correction outcomes, 2026-10-01
+
+Manual-mail native6, current restore, pinned-old rollback ALL_PASS, fresh-old backfill8 and quality7624/527+build PASS; authentic31 generation byte parity PASS. Remaining native/sourcebinding cleanup3 and stale golden gate FAIL; later OPS chains NOT_REACHED, full/staging/nightly E2E SKIPPED. Full original masterplan remains OPEN. Receipt continuation/ci-native-correction-0778-outcome-20261001.md.
+
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
 

@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-01T09:20:37.745695+00:00",
+  "updated_at": "2026-10-01T10:21:48.348560+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/tenantservice-api-structure-20260929",
@@ -30,7 +30,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Freeze reviewed CI correction, publish non-force to draft422, inspect genuine native/HTTP/browser/restore; reconstruct missing unpublished next10 from actual public sources with fresh proof, continue exact75.",
+  "next_action": "Freeze exact0778 first-failure source/fixture correction, sole non-force publish422, verify actual same-tree merge/current CI, continue isolated next10 and original75.",
   "latest_verified_delivery": {
     "main_sha": "62ca24a16298f14a32fe39b78ab93fdf6f05cbe3",
     "merged_prs": [
@@ -1138,5 +1138,42 @@
       },
       "independent_review": "PASS_REQUIREMENTS_AND_SITE_PEERS_REPORT_TRIGGER_CORRECTION_ADOPTED"
     }
+  },
+  "ci_continuation_0778": {
+    "status": "PARTIAL",
+    "published_head": "0778df202b8b46d4ae92a51ffcc24cc25176edaa",
+    "tree": "61964676807b680d8133496c4b9cd6bd68cc444a",
+    "checkout": "4b699b7db45b8a4098e7da7e0ed122b8ea80b113",
+    "ops_run": 36843544066,
+    "manual_native": "6PASS",
+    "current_restore": "PASS",
+    "pinned_old_rollback": "ALL_PASS",
+    "fresh_old_backfill": "8PASS",
+    "quality": "7624/527+buildPASS",
+    "sourcebinding": "3body checkpoints;3terminalFAIL afterEach/P0001",
+    "verify": "FAIL stale legacy TS enqueue gate",
+    "later_native": "NOT_REACHED",
+    "full_e2e": "smoke/coverage/certificatePASS; full/staging/nightlySKIPPED",
+    "generated_three_byte_identical": true,
+    "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ci-native-correction-0778-outcome-20261001.md",
+    "original75": "OPEN"
+  },
+  "ci_first_failure_correction": {
+    "status": "IMPLEMENTED_NOT_VERIFIED",
+    "qualified_locally": {
+      "source_controls": 35,
+      "actual_pg_cleanup_controls": 8,
+      "full_golden_path": "PASS",
+      "scripts_types": "PASS",
+      "scoped_lint": "PASS new/native;1unchanged historical child warning",
+      "workflow": "4jobs/52BashPASS",
+      "file_budget": "PASS"
+    },
+    "parent_head": "0778df202b8b46d4ae92a51ffcc24cc25176edaa",
+    "native_corrected": "0; pendinggenuineCI",
+    "runtime_schema_grants_changed": false,
+    "business_native_it_tail_sha256": "735e4148e2133f1e28712003b44ae968f9850c7ccd1b12119dc10fa925f6cf2a",
+    "report": "quality/audits/tenantservice-api-ops-20260928/continuation-20260930/ci-first-failures-correction-20261001.md",
+    "original75": "OPEN"
   }
 }

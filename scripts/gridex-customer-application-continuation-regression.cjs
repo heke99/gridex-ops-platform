@@ -3,6 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 const { readSourceFamily } = require('./lib/read-source-family.cjs')
+const { hasCanonicalInboundLifecycleNotificationChain } = require('./lib/customer-application-inbound-notification-source-20261001.cjs')
 
 const root = process.cwd()
 const read = (file) => readSourceFamily(root, file).replace(/"/g, "'")
@@ -80,7 +81,15 @@ expect(worker.includes("case 'dispatch_lifecycle_notification':") && worker.incl
 expect(read('lib/customers/customerOperationEvents.ts').includes('enqueueCustomerLifecycleNotification'), 'customer operation events enqueue lifecycle notifications')
 expect(
   inboundStateFacade.includes('applyLegacyInboundBusinessStateMachine') &&
-    inboundStateImplementation.includes('enqueueCustomerLifecycleNotification'),
+    hasCanonicalInboundLifecycleNotificationChain({
+      facade: inboundStateFacade,
+      legacy: inboundStateImplementation,
+      adapter: readSourceFamily(root, 'lib/ediel/flows/inboundSwitchLifecycleAtomic.ts'),
+      schema: readSourceFamily(root, 'supabase/schema.sql'),
+      inbound: readSourceFamily(root, 'supabase/migrations/20261001000738_inbound_switch_lifecycle_required_intent_atomic.sql'),
+      lifecycle: readSourceFamily(root, 'supabase/migrations/20260930230204_customer_operation_lifecycle_intent_atomic.sql'),
+      worker: readSourceFamily(root, 'lib/customer-operations/automation.ts'),
+    }),
   'Ediel business outcomes enqueue lifecycle notifications behind the canonical inbound facade',
 )
 expect(continuation.includes('power_of_attorney_required_notification_not_queued'), 'missing POA notification creation fails the continuation job for retry')

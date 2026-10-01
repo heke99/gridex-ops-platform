@@ -1,3 +1,11 @@
+## First-failure correction local bounded gates, 2026-10-01
+
+Root35 source mutation controls,8 actual cleanup PostgreSQL controls and full golden terminalPASS; scriptsTS/scopedlint/budget/workflowPASS. Independent bounded peers accepted scopes. New terminal native pending authentic CI, original75/P0–P8 remain OPEN. Receipt continuation/ci-first-failures-correction-20261001.md.
+
+## Actual0778 bounded correction outcomes, 2026-10-01
+
+Manual-mail native6, current restore, pinned-old rollback ALL_PASS, fresh-old backfill8 and quality7624/527+build PASS; authentic31 generation byte parity PASS. Remaining native/sourcebinding cleanup3 and stale golden gate FAIL; later OPS chains NOT_REACHED, full/staging/nightly E2E SKIPPED. Full original masterplan remains OPEN. Receipt continuation/ci-native-correction-0778-outcome-20261001.md.
+
 ## 2026-09-27 — bounded #415 delivery
 PRODAT required header205 missing/invalid/duplicate whole-message ACK BGM27, original ACW, persisted tenant ACK/outbox and retry; jsonb evidence order fixed. Exact-head `eee4a3fe` four workflows/native371/371/schema/types; merged main/Vercel READY `bd3e131e`. This is not full F3 or market activation.
 
