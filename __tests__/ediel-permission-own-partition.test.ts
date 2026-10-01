@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import {applyPermissionMarketSource, type PermissionObjectDisposition} from '@/lib/ediel/permissions/permissionMarketTransition'
+import {applyPermissionMarketSource, type PermissionObjectDisposition, type PermissionMarketTransitionResult} from '@/lib/ediel/permissions/permissionMarketTransition'
 import {applyInboundZ15PermissionState} from '@/lib/ediel/flows/prodatPermissionLifecycle'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {applyInboundProdatZ14ToMeteringPermission} from '@/lib/onboarding/inboundEdielLinking'
@@ -20,7 +20,7 @@ const partition=()=>({version:1,applied:true,permissionId:id(10) as string|null,
  sourceMessageId:id(30),sourceCode:'Z14',canonicalAssessmentId:id(1030),sourcePayloadHash:'a'.repeat(64),
  manifest:[{object:scope(0),status:'applied',permissionId:id(10),reason:null},
   {object:scope(1,null),status:'rejected',reason:'own_application_not_accepted'}] as PermissionObjectDisposition[],
- permissionResults:[{applied:true,permissionId:id(10),status:'partially_approved'}]})
+ permissionResults:[{applied:true,permissionId:id(10),status:'partially_approved'}] as NonNullable<PermissionMarketTransitionResult['permissionResults']>})
 beforeEach(()=>{vi.clearAllMocks();io.rpc.mockResolvedValue({data:partition(),error:null})
  io.from.mockImplementation((table:string)=>{const query={select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),maybeSingle:vi.fn().mockResolvedValue({data:table==='ediel_messages'?source():{id:id(10),company_id:id(1),status:'partially_approved'},error:null})};return query})})
 
