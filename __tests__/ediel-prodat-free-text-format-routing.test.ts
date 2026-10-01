@@ -8,7 +8,10 @@ import { head } from './fixtures/prodat-identity'
 const io = vi.hoisted(() => ({ effects: [] as string[] }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: () => { io.effects.push('db'); throw new Error('UNEXPECTED_DATABASE_BOUNDARY') },
-  rpc: () => { io.effects.push('rpc'); throw new Error('UNEXPECTED_RPC_BOUNDARY') },
+  rpc: (name: string) => {
+    if (name === 'gridex_ediel_accepted_transport_projection_v1') { io.effects.push('receipt_read'); return Promise.resolve({ data: null, error: null }) }
+    io.effects.push('rpc'); throw new Error('UNEXPECTED_RPC_BOUNDARY')
+  },
 } }))
 vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: () => {
   io.effects.push('provider'); throw new Error('UNEXPECTED_PROVIDER_BOUNDARY')
@@ -63,8 +66,10 @@ for (const alphabet of alphabets) for (const standard of ['xml', 'ai_list'] as c
     const result = preflightEdielPayload({ rawPayload, messageStandard: standard, mode: 'send', parsedPayload: row.parsed_payload })
     expect(result.blocking).toBe(true)
     expect(result.issues.some(issue => issue.code.includes('PRODAT_FTX_SEND_CONFORMANCE'))).toBe(true)
-    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('PRODAT_FTX_SEND_CONFORMANCE')
-    expect(io.effects).toEqual([])
+    // Existing-outcome lookup is read-only. A mismatched physical wire is
+    // then held before current guide selection, mutation or provider entry.
+    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+    expect(io.effects).toEqual(['receipt_read'])
     expect(row.raw_payload).toBe(rawPayload)
   })
   it(`malformed actual EDIFACT is not a ready ${standard} fallback: ${alphabet.join('')}`, async () => {
@@ -72,8 +77,8 @@ for (const alphabet of alphabets) for (const standard of ['xml', 'ai_list'] as c
     const row = message(rawPayload, standard)
     expect(() => prodatFreeTextSendIssues(row)).toThrow('edifact_dangling_release_character')
     expect(() => preflightEdielPayload({ rawPayload, messageStandard: standard, mode: 'send' })).toThrow('edifact_dangling_release_character')
-    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('edifact_dangling_release_character')
-    expect(io.effects).toEqual([])
+    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+    expect(io.effects).toEqual(['receipt_read'])
     expect(row.raw_payload).toBe(rawPayload)
   })
 }
@@ -82,7 +87,7 @@ for (const standard of ['xml', 'ai_list'] as const) it(`default EDIFACT without 
   expect(rawPayload.startsWith('UNB+')).toBe(true)
   const row = message(rawPayload, standard)
   expect(prodatFreeTextSendIssues(row).map(issue => issue.code)).toContain('PRODAT_FTX_SEND_CONFORMANCE')
-  await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('PRODAT_FTX_SEND_CONFORMANCE')
-  expect(io.effects).toEqual([])
+  await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+  expect(io.effects).toEqual(['receipt_read'])
   expect(row.raw_payload).toBe(rawPayload)
 })

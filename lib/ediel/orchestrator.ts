@@ -1,5 +1,11 @@
+import {loadRecoveryReportingValidationContext} from '@/lib/ediel/recovery/reportingContext'
+import {resolveSourceQualifiedNegativeFixtureForMessage, sourceQualifiedNegativeFixtureAllowsPreflight} from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
-import {loadTgtDateEventValidationContext} from '@/lib/ediel/testing/tgtDateEventContext'
+import {loadProdatDateEventValidationContext} from '@/lib/ediel/production/dateEventContext'
+import {loadServiceReportingValidationContext} from '@/lib/ediel/services/reporting'
+import {readAcceptedEdielTransportProjection} from '@/lib/ediel/transport/acceptedProjection'
+import {repairAcceptedEdielMessageProjection} from '@/lib/ediel/transport/acceptedProjectionRepair'
+import {projectSentEdielSourceState} from '@/lib/ediel/outbox/projectSentSources'
 // lib/ediel/orchestrator.ts
 
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
@@ -32,6 +38,7 @@ import {
   pollAndIngestEdielMailbox,
 } from '@/lib/ediel/flows/inboundProcessing'
 import { prepareAndQueueAiList } from '@/lib/ediel/flows/aiListFlow'
+export { prepareAndQueueProductionContractZ09 } from '@/lib/ediel/flows/prodatProductionContract'
 import {
   prepareAndQueueEdielZ03,
   prepareAndQueueEdielZ04,
@@ -229,28 +236,25 @@ export async function sendQueuedEdielMessage(params: {
     throw new Error(`Meddelande ${message.id} är inte outbound.`)
   }
 
-  const alreadyFinalStatus = ['sent', 'acknowledged', 'validated'].includes(
-    String(message.status ?? '').toLowerCase()
-  )
-  if (alreadyFinalStatus) {
-    await createEdielMessageEvent({
-      actorUserId,
-      edielMessageId: message.id,
-      eventType: 'manual_note',
-      eventStatus: 'success',
-      message: 'Meddelandet är redan slutligt skickat/kvitterat. Ingen omsändning gjordes.',
-      payload: {
-        idempotency: 'already_sent_success',
-        status: message.status,
-        phase: 'send_queued_ediel_message',
-      },
-    }).catch(() => null)
-    return message
+  if (!message.company_id) throw new Error('ediel_transport_company_required')
+  const established = await readAcceptedEdielTransportProjection({ companyId: message.company_id,
+    environment: message.environment, actorUserId, messageId: message.id })
+  if (established) {
+    const repaired = await repairAcceptedEdielMessageProjection({ message, actorUserId, projection: established })
+    await projectSentEdielSourceState({ message, actorUserId, sentAt: repaired.observedAt })
+    return await getEdielMessageById(message.id, { companyId: message.company_id }) ?? message
+  }
+  if (['provider_accepted','sent','delivered','acknowledged'].includes(String(message.status))) {
+    throw new Error('ediel_historical_transport_receipt_unavailable')
   }
 
-  const dateEventContext=await loadTgtDateEventValidationContext(message)
-  const reportingContext=await loadTgtReportingValidationContext(message)
+  const dateEventContext=await loadProdatDateEventValidationContext(message,actorUserId)
+  const recoveryReporting = await loadRecoveryReportingValidationContext(message, actorUserId)
+  const reportingContext=recoveryReporting?.status === 'qualified' ? recoveryReporting.context : message.parsed_payload?.sourcePermissionBasis
+    ? await loadServiceReportingValidationContext(message,actorUserId)
+    : await loadTgtReportingValidationContext(message)
   const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext)
+  const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({message, actorUserId})
   await createEdielMessageEvent({
     actorUserId,
     edielMessageId: message.id,
@@ -356,7 +360,7 @@ export async function sendQueuedEdielMessage(params: {
     }
   }
 
-  if (preflight.blocking) {
+  if (preflight.blocking && !sourceQualifiedNegativeFixtureAllowsPreflight({message, preflight, qualification: negativeFixture})) {
     await updateEdielMessageStatus({
       actorUserId,
       edielMessageId: message.id,

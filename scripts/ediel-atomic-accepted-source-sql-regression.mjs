@@ -50,6 +50,10 @@ try{
  await db.exec(readFileSync(centralPath,'utf8'))
  await db.exec(migration('20260930204937_ediel_shared_accepted_source_basis.sql'))
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930223407_ediel_atomic_accepted_source_projection.sql',import.meta.url),'utf8'));checks++
+ await db.exec('ALTER TABLE ediel_messages ADD COLUMN processing_status text')
+ const currentRepair=migration('20260930220932_ediel_source_read_send_permission_contract.sql')
+ await db.exec(currentRepair.slice(currentRepair.indexOf('CREATE OR REPLACE FUNCTION public.gridex_ediel_accepted_transport_projection_v1'),currentRepair.indexOf('CREATE OR REPLACE FUNCTION public.ediel_brp_change_message_basis_v1')))
+ await db.exec(migration('20260930233357_ediel_atomic_accepted_message_and_source_repair.sql'));checks++
  const source=await seed('Z01',3,'2026-09-30T12:00:00Z'),clock='2026-09-30T12:00:00.000Z'
  const technicalPlan={version:1,ruleId:'TM-CONTRL',offset:30,unit:'minutes',anchor:'actual_accepted_smtp_observed_at',timerKind:'internal_sender_watch',remoteReceiptKnown:false,policy:plan('Z01').policy}
  await db.exec(`UPDATE ediel_messages SET message_family='PRODAT',message_code='Z01',status='sent',customer_id='${uid(4)}',site_id='${uid(5)}',metering_point_id='${uid(6)}',outbound_request_id='${uid(7)}',grid_owner_data_request_id='${uid(8)}',requires_contrl=true,contrl_status='pending';
@@ -87,6 +91,26 @@ try{
  await db.exec(`UPDATE ediel_messages SET status='sent',contrl_status='pending',contrl_due_at=NULL,ack_due_at=NULL;UPDATE gridex_ediel_transport.attempts SET binding=binding-'technicalExpectationPlan'`);await assert.rejects(project(),/frozen_technical_plan_required/);checks++
  await db.exec(`UPDATE ediel_messages SET contrl_due_at='2026-09-30 12:40+00',ack_due_at='2026-09-30 12:40+00'`);assert.equal((await project()).technicalDeadlineBasis,'retained_legacy_projection_not_reverified');assert.equal((await state()).m.ack_due_at.toISOString(),'2026-09-30T12:40:00.000Z');checks++
  await db.query("UPDATE gridex_ediel_transport.attempts SET binding=binding||jsonb_build_object('technicalExpectationPlan',$1::jsonb)",[{...technicalPlan,offset:31}]);await assert.rejects(project(),/technical_expectation_source_plan_required/);checks++
+ // Execute the real message repair, private receipt and source projection
+ // together. These fixtures remain synthetic; this is not native/concurrency evidence.
+ await db.query("UPDATE gridex_ediel_transport.attempts SET binding=binding||jsonb_build_object('technicalExpectationPlan',$1::jsonb)",[technicalPlan])
+ const repair=async()=>{await db.exec('SET ROLE service_role');try{return(await db.query('SELECT gridex_ediel_repair_accepted_transport_projection_v1($1,$2,$3,$4) r',[company,'test',actor,source.mid])).rows[0].r}finally{await db.exec('RESET ROLE')}}
+ for(const current of ['dispatching','acknowledged','failed','cancelled','rejected','completed']){
+  await db.query("UPDATE ediel_messages SET status=$1,processing_status=$1,contrl_status='received',contrl_due_at=NULL,ack_due_at=NULL,message_sent_at=NULL",[current])
+  const repaired=await repair(),s=await state()
+  assert.equal(repaired.projectionStatus,current==='dispatching'?'sent':current)
+  assert.equal(s.m.processing_status,current==='dispatching'?'sent':current)
+  assert.equal(s.m.message_sent_at.toISOString(),clock);assert.equal(s.m.ack_due_at,null);checks++
+ }
+ await db.exec(`UPDATE ediel_messages SET status='dispatching',processing_status='dispatching',message_sent_at=NULL;UPDATE outbound_requests SET status='queued',sent_at=NULL;UPDATE grid_owner_data_requests SET status='pending',sent_at=NULL;UPDATE customer_info_requests SET status='z01_prepared',company_id='${uid(99)}',sent_at=NULL`)
+ const beforeFailure=await state(),expectationsBefore=(await db.query('SELECT * FROM ediel_business_expectations ORDER BY id')).rows
+ await assert.rejects(repair(),/owned_info_request_required/)
+ assert.deepEqual(await state(),beforeFailure);assert.deepEqual((await db.query('SELECT * FROM ediel_business_expectations ORDER BY id')).rows,expectationsBefore);checks++
+ await db.exec(`UPDATE customer_info_requests SET company_id='${company}';UPDATE gridex_ediel_transport.attempts SET classification='unknown'`)
+ const beforeMissingReceipt=await state();assert.equal(await repair(),null);assert.deepEqual(await state(),beforeMissingReceipt);checks++
+ await db.exec(`UPDATE gridex_ediel_transport.attempts SET classification='accepted'`)
+ assert.equal((await db.query("SELECT has_function_privilege('service_role','gridex_ediel_transport.repair_message_projection_v1(uuid,text,uuid,uuid)','EXECUTE') a")).rows[0].a,false);checks++
+ assert.equal((await db.query("SELECT has_function_privilege('authenticated','gridex_ediel_repair_accepted_transport_projection_v1(uuid,text,uuid,uuid)','EXECUTE') a")).rows[0].a,false);checks++
  for(const permission of ['communication.read','communication.write','ediel_testing.write']){await db.exec('TRUNCATE fixture_permissions');await db.query('INSERT INTO fixture_permissions VALUES($1)',[permission]);await assert.rejects(project(),/actor_forbidden/);checks++}
  assert.equal((await db.query("SELECT has_function_privilege('authenticated','ediel_project_accepted_source_state_v1(uuid,text,uuid,uuid,text)','EXECUTE') a")).rows[0].a,false);checks++
  console.log(`PASS ${checks} atomic accepted-source PostgreSQL checks; actual receipt/expectation/projection functions, actual central plan validator with named synthetic source-owner port, native/concurrency/authentic proof deferred`)
