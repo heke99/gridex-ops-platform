@@ -118,7 +118,10 @@ export async function findOrCreateSwitchOutbound(params: {
       requestType: 'supplier_switch',
     })
 
-    if (existing) return existing
+    if (existing) {
+      if(existing.operation_id!==params.switchRequestId||existing.environment!==params.environment||existing.customer_id!==params.customerId||existing.site_id!==params.siteId||existing.metering_point_id!==params.meteringPointId)throw new Error('switch_outbound_owned_operation_required')
+      return existing
+    }
   } else {
     await cancelSupplierSwitchOutboundAttemptsForReplacement({
       actorUserId: params.actorUserId,
@@ -137,6 +140,7 @@ export async function findOrCreateSwitchOutbound(params: {
     requestType: 'supplier_switch',
     sourceType: 'supplier_switch_request',
     sourceId: params.switchRequestId,
+    operationId: params.switchRequestId,
     externalReference: params.externalReference,
     replaceOpenSupplierSwitchAttempt: Boolean(params.forceCreateNewAttempt),
     authorizationDocumentId: (params.payload?.authorization_document_id as string | null | undefined) ?? null,
