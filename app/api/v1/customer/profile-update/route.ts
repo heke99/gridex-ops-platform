@@ -1,4 +1,3 @@
-import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
@@ -19,6 +18,7 @@ import {
   normalizeContactPhone,
   planPrimaryContactSync,
 } from '@/lib/customer-service/contactChange'
+import { ContactChangeTransactionError, applyCustomerContactChange } from '@/lib/customer-service/contactChangeTransaction'
 import {
   parseCustomerProfileUpdateRequest,
   type CustomerProfileUpdateRequest,
@@ -97,20 +97,7 @@ async function updateCanonicalCustomerProfile(input: {
       ? { ...asRecord(before.metadata), portal_timezone: input.profile.timezone }
       : undefined,
   })
-  const changes = changedFields(before, update)
-  if (Object.keys(changes).length === 0) return true
-
-  // Optimistic lock against a concurrent OPS or API save between read and write.
-  const result = await supabaseService
-    .from('customers')
-    .update({ ...update, updated_at: new Date().toISOString() })
-    .eq('company_id', input.companyId)
-    .eq('id', input.customerId)
-    .eq('updated_at', before.updated_at as string)
-    .select('id')
-    .maybeSingle()
-  if (result.error) throw result.error
-  if (!result.data?.id) throw new ApiInputError('Kunden ändrades samtidigt. Hämta profilen och försök igen.', 'profile_version_conflict', 409)
+  if (Object.keys(changedFields(before, update)).length === 0) return true
 
   // Same primary-contact rule as the OPS customer card.
   const contactPatch = planPrimaryContactSync({
@@ -119,45 +106,27 @@ async function updateCanonicalCustomerProfile(input: {
     email,
     phone,
   })
-  let contactChanges: Record<string, { from: unknown; to: unknown }> = {}
-  if (Object.keys(contactPatch).length > 0) {
-    const contact = await tenantSelect(input.companyId, 'customer_contacts', 'id,email,phone')
-      .eq('customer_id', input.customerId)
-      .eq('is_primary', true)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle()
-    if (contact.error) throw contact.error
-    const primaryContact = contact.data as JsonRecord | null
-    if (primaryContact?.id) {
-      contactChanges = changedFields(primaryContact, contactPatch)
-      if (Object.keys(contactChanges).length > 0) {
-        const contactUpdate = await tenantUpdate(input.companyId, 'customer_contacts', contactPatch)
-          .eq('id', String(primaryContact.id))
-          .eq('customer_id', input.customerId)
-        if (contactUpdate.error) throw contactUpdate.error
-      }
-    }
-  }
 
-  // Revision trace; fail-closed like the OPS path. The actor is the linked portal account acting
-  // through the tenant API client, never a fabricated OPS user.
-  const audit = await tenantInsert(input.companyId, 'audit_logs', {
-    actor_user_id: null,
-    entity_type: 'customer',
-    entity_id: input.customerId,
-    action: 'customer_profile_updated',
-    old_values: Object.fromEntries(Object.entries(changes).map(([key, value]) => [key, value.from])),
-    new_values: Object.fromEntries(Object.entries(changes).map(([key, value]) => [key, value.to])),
-    metadata: {
+  // One transaction: version lock, customer, primary contact, fail-closed audit and outbox. The
+  // actor is the linked portal account acting through the tenant API client, never an OPS user.
+  try {
+    await applyCustomerContactChange({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      actor: { kind: 'customer_portal', apiClientId: input.apiClientId, portalIdentityId: input.portalIdentityId },
       channel: 'customer_api',
-      actor_type: 'customer_portal_account',
-      api_client_id: input.apiClientId,
-      portal_identity_id: input.portalIdentityId,
-      primary_contact_changes: contactChanges,
-    },
-  })
-  if (audit.error) throw audit.error
+      expectedUpdatedAt: String(before.updated_at),
+      customerPatch: update,
+      contactPatch,
+    })
+  } catch (error) {
+    if (error instanceof ContactChangeTransactionError) {
+      if (error.code === 'version_conflict') throw new ApiInputError(error.message, 'profile_version_conflict', 409)
+      if (error.code === 'not_found') throw new ApiInputError(error.message, 'resource_not_found', 404)
+      if (error.code === 'customer_archived') throw new ApiInputError(error.message, 'customer_archived', 409)
+    }
+    throw error
+  }
   return true
 }
 

@@ -72,9 +72,44 @@ describe('OPS and API adapters use the shared rules', () => {
     expect(ops).not.toMatch(/getNullableString\(formData, "status"\) \?\? "draft"/)
   })
 
-  it('API writes a fail-closed audit row with machine/portal actor and version lock (F10)', () => {
-    expect(api).toContain("tenantInsert(input.companyId, 'audit_logs'")
-    expect(api).toContain("actor_type: 'customer_portal_account'")
-    expect(api).toContain("profile_version_conflict")
+  it('both adapters write through the single P2b transaction, never sequential table writes (F10)', () => {
+    for (const source of [ops, api]) {
+      expect(source).toContain('applyCustomerContactChange(')
+      expect(source).not.toMatch(/tenant(Update|Insert)\([^)]*"?'?(customers|customer_contacts|audit_logs)/)
+    }
+    expect(api).toContain("kind: 'customer_portal'")
+    expect(api).toContain('profile_version_conflict')
+    expect(ops).toContain('kind: "staff"')
+  })
+})
+
+describe('P2b transaction migration', () => {
+  const sql = readFileSync('supabase/migrations/20261001210000_customer_contact_change_transaction.sql', 'utf8')
+
+  it('is SECURITY INVOKER, pinned search_path, executable only by service_role', () => {
+    expect(sql).toContain('SECURITY INVOKER')
+    expect(sql).toContain("SET search_path TO ''")
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.gridex_customer_contact_change_v1\([^)]*\)\s+FROM PUBLIC, anon, authenticated/)
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.gridex_customer_contact_change_v1\([^)]*\)\s+TO service_role/)
+  })
+
+  it('locks the tenant-scoped row, checks version and authorizes staff in that company', () => {
+    expect(sql).toContain('WHERE id=p_customer_id AND company_id=p_company_id FOR UPDATE')
+    expect(sql).toContain("MESSAGE='contact_change_version_conflict'")
+    expect(sql).toContain("gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'masterdata.write')")
+  })
+
+  it('writes audit, domain event and outbox in the same function, idempotent per company and key', () => {
+    for (const table of ['public.audit_logs', 'public.domain_events', 'public.event_outbox']) {
+      expect(sql).toContain(`INSERT INTO ${table}`)
+    }
+    expect(sql).toContain("'customer.contact_changed:'||p_company_id||':'||p_idempotency_key")
+    // Only changed field names leave the database through the outbox payload.
+    expect(sql).toContain("'changed_fields'")
+  })
+
+  it('repairs the invoice_email replay drift idempotently and deletes nothing', () => {
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS invoice_email text')
+    expect(sql).not.toMatch(/\b(DELETE|DROP|TRUNCATE)\b/)
   })
 })

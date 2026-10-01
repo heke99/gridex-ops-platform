@@ -1,11 +1,11 @@
 // Extracted from profile-actions.ts; keep public imports on the facade module.
-import { tenantUpdate } from "@/lib/supabase/tenantQuery"
 import { revalidatePath } from "next/cache"
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 import { supabaseService } from "@/lib/supabase/service"
+import { ContactChangeTransactionError, applyCustomerContactChange } from "@/lib/customer-service/contactChangeTransaction"
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
 import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 import { queueTenantTemplateEmail } from "@/lib/tenant/emailTemplates"
@@ -14,7 +14,6 @@ import type { CustomerActionState } from "./customer-action-state"
 import {
   CustomerContactChangeError,
   assertProfileEditableStatus,
-  changedFields,
   normalizeContactEmail,
   normalizeContactPhone,
   planPrimaryContactSync,
@@ -324,50 +323,6 @@ export async function saveCustomerProfileImpl(
     typeof before.company_id === "string" ? before.company_id : null,
   );
 
-  let updateQuery = tenantUpdate(companyId, "customers", {
-      customer_type: customerType,
-      status,
-      first_name: firstName,
-      last_name: lastName,
-      full_name: fullName,
-      company_name: companyName,
-      personal_number: personalNumber,
-      org_number: orgNumber,
-      email,
-      phone,
-      apartment_number: apartmentNumber,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", customerId);
-  if (expectedUpdatedAt) {
-    // Optimistic lock: a concurrent save between read and write updates zero rows.
-    updateQuery = updateQuery.eq("updated_at", expectedUpdatedAt);
-  }
-  const { data: updated, error: updateError } = await updateQuery
-    .select("*")
-    .maybeSingle();
-
-  if (updateError) throw updateError;
-  if (!updated) {
-    throw new CustomerActionError(
-      "version_conflict",
-      "Kunden har ändrats av någon annan samtidigt. Ladda om och gör ändringen igen.",
-    );
-  }
-
-  const { data: existingPrimaryContact, error: contactLookupError } =
-    await supabaseService
-      .from("customer_contacts")
-      .select("*")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .eq("is_primary", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-  if (contactLookupError) throw contactLookupError;
-
   const primaryContactName =
     customerType === "private"
       ? [firstName, lastName].filter(Boolean).join(" ").trim() || null
@@ -381,53 +336,43 @@ export async function saveCustomerProfileImpl(
     email,
     phone,
   });
-  let contactChanges: Record<string, { from: unknown; to: unknown }> = {};
 
-  if (existingPrimaryContact) {
-    contactChanges = changedFields(
-      existingPrimaryContact as Record<string, unknown>,
-      contactPatch,
-    );
-    if (Object.keys(contactChanges).length > 0) {
-      const { error: contactUpdateError } = await tenantUpdate(companyId, "customer_contacts", contactPatch)
-        .eq("id", existingPrimaryContact.id)
-        .eq("customer_id", customerId);
-
-      if (contactUpdateError) throw contactUpdateError;
-    }
-  } else if (primaryContactName || email || phone) {
-    contactChanges = changedFields({}, { name: primaryContactName, email, phone });
-    const { error: contactInsertError } = await supabaseService
-      .from("customer_contacts")
-      .insert({
-        company_id: companyId,
-        customer_id: customerId,
-        type: "primary",
-        name: primaryContactName,
+  // One transaction (tenantservice P2b): version lock, customer, primary contact, audit and
+  // outbox. Without a form version the version read above is the lock, so a concurrent save
+  // between read and write is still rejected.
+  try {
+    await applyCustomerContactChange({
+      companyId,
+      customerId,
+      actor: { kind: "staff", userId: actorUserId },
+      channel: "ops",
+      expectedUpdatedAt: expectedUpdatedAt ?? (typeof stored.updated_at === "string" ? stored.updated_at : null),
+      customerPatch: {
+        customer_type: customerType,
+        status,
+        first_name: firstName,
+        last_name: lastName,
+        full_name: fullName,
+        company_name: companyName,
+        personal_number: personalNumber,
+        org_number: orgNumber,
         email,
         phone,
-        title: null,
-        is_primary: true,
-      });
-
-    if (contactInsertError) throw contactInsertError;
+        apartment_number: apartmentNumber,
+      },
+      contactPatch,
+    });
+  } catch (error) {
+    if (error instanceof ContactChangeTransactionError) {
+      throw new CustomerActionError(
+        error.code === "customer_archived" ? "customer_archived_profile_locked" : error.code === "not_authorized" ? "forbidden" : error.code,
+        error.code === "version_conflict"
+          ? "Kunden har ändrats av någon annan samtidigt. Ladda om och gör ändringen igen."
+          : error.message,
+      );
+    }
+    throw error;
   }
-
-  await insertAuditLog({
-    actorUserId,
-    entityType: "customer",
-    entityId: customerId,
-    action: "customer_profile_updated",
-    companyId,
-    oldValues: before,
-    newValues: updated,
-    metadata: {
-      companyId,
-      syncedPrimaryContact: Object.keys(contactChanges).length > 0,
-      primaryContactChanges: contactChanges,
-      channel: "ops",
-    },
-  });
 
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath(`/admin/customers/${customerId}/profile`);

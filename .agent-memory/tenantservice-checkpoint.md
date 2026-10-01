@@ -1,6 +1,6 @@
 # Tenantservice side track: checkpoint
 
-Status: IN_PROGRESS. Last updated 2026-10-01 ~20:30 UTC.
+Status: IN_PROGRESS. Last updated 2026-10-01 ~20:40 UTC.
 
 Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that file.
 
@@ -24,9 +24,7 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - **#428:** F16, support cases no longer trigger operational stops. `3a1d351`. Read-only check: `gridex-ops-dev` had 0 affected support cases. The production DB is not reachable from this session.
 
 ## Open PRs
-- **#429:** Ediel source-owner native suite runs in a run-relative calendar. Branch `claude/ediel-native-relative-dates`. It also updates the correction-context native expectation to F16.
-  - Root cause: the fixed 2026-10-01 supply start vs the replay-time ledger epoch (see the comment on #426).
-  - Merge when `clean-migration-replay` is green, then merge main into #425.
+- None besides #425. **#429 merged** (`a94557c`, Ediel native run-relative calendar); main merged into #425 at `4cd6d74`.
 
 ## Done on #425 (verified locally: vitest 396 files / 6303 tests, typecheck, lint, api:docs, build)
 | Item | Commit(s) |
@@ -44,13 +42,14 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 | P6 reference client | `b08fdb9` |
 | F9 unique idempotency migration | `19b9251` |
 | P7/P8 docs | `d2e45b9` |
+| P2b migration `20261001210000_customer_contact_change_transaction.sql` (RPC `gridex_customer_contact_change_v1`; repairs `customers.invoice_email` replay drift; staff authorized via `gridex_actor_has_company_permission(...,'masterdata.write')`) | `19b8c7f`, `5a708ce`, `71c56c7` |
+| P2b adapters: OPS `profile-actions.part-1.ts` + API `profile-update/route.ts` call `lib/customer-service/contactChangeTransaction.ts` (uncommitted until types regenerate) | pending |
 
 ## Next actions (in order)
-1. Wait for #429 green, merge it (squash), then merge main into #425 and push.
-2. **P2b:** one DB transaction (SECURITY DEFINER RPC with server-derived actor) covering profile change, primary contact, audit and outbox.
-   - Forward migration plus regenerated types. Types are generated from the CI clean replay artifact (`rem002-database.types.ts`); download it with `actions_get download_workflow_run_artifact`. Never edit types by hand.
-3. **P1c:** independent end-customer proof. **Needs a user decision** on each tenant's identity provider. Keep as an open item unless the user decides.
-4. When everything is green and done, mark #425 ready and squash-merge. Then verify the Vercel production deploy of the merge SHA.
+1. Wait for `clean-migration-replay` on `71c56c7`. It will fail `db:types` (function + column added). Download artifact `rem002-database.types.ts` from that run, copy to `supabase/database.types.ts`, update sha256 in `scripts/supabase-types-manifest.json`, then remove `as never` in `contactChangeTransaction.ts`, typecheck, commit adapters + types, push.
+2. Behaviour note: OPS profile save now requires `masterdata.write` in the DB (before: only operate-company; UI already hid the edit for others). Audit rows now hold only changed fields.
+3. **P1c:** needs a user decision (tenant identity provider). Open item.
+4. When everything is green: mark #425 ready, squash-merge, verify the Vercel production deploy of the merge SHA.
 
 ## Do not touch
 - #310.

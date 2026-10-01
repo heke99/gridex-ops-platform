@@ -72,6 +72,11 @@ where coalesce(nullif(trim(c.invoice_email), ''), null) is null
 group by c.company_id;
 ```
 
+**Migration `20261001210000_customer_contact_change_transaction.sql` (P2b):**
+- Adds `customers.invoice_email` only if missing (live databases already have it; clean replay did not). Adds the RPC. Deletes nothing.
+- Rollback: `drop function public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text)` and redeploy the previous app. Keep the column.
+- Behaviour: OPS profile saves are authorized in the database by `masterdata.write` in the customer's company.
+
 **F16 follow-up:**
 - In `gridex-ops-dev`, 0 support cases had blocked customers (read-only check 2026-10-01).
 - Production: the same query must run against the production database, which was not available in this session.
@@ -82,7 +87,6 @@ group by c.company_id;
 
 ## Open (not done in this change)
 - **P1c:** independent end-customer proof (per-tenant JWKS/OIDC, aud/iss/exp/jti). Needs a decision on which identity provider each tenant uses.
-- **P2b:** one DB transaction (RPC) for profile change + contact + audit + outbox. Today these are sequential calls with fail-closed audit.
 - Private attachments with quarantine and scanning.
 - Per-customer/IP quotas for the support API.
 - Browser verification (mobile/keyboard) and live RLS/grant verification. Both are blocked in this session.
