@@ -1,4 +1,5 @@
 import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { canonicalDeadlineForMessage, canonicalProdatSubtypeForMessage, canonicalZ01BusinessResponseDeadlineMinutesProjection } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { supabaseService } from '@/lib/supabase/service'
@@ -14,6 +15,13 @@ export type EdielBusinessExpectationPlan = Readonly<{
 /** Prepare once from the chosen canonical policy, before SMTP. The journal must
  * seal this projection; registration never resolves a different later policy. */
 export function prepareEdielBusinessExpectationPlan(message: EdielMessageRow, policy: CanonicalEdielPolicy): EdielBusinessExpectationPlan | null {
+  const physical = tokenizeEdifact(message.raw_payload)
+  // Current producers and the durable registration contract are one physical
+  // message per source. A manual multi-message source must not pass SMTP and
+  // discover only afterwards that its response watches cannot be registered.
+  const hasBusinessExpectation = physical.segments.some(segment => segment.tag === 'BGM'
+    && ['Z01', 'Z13', 'Z18'].includes(segmentComposite(segment, 1, physical.una)[0]))
+  if (hasBusinessExpectation && physical.segments.filter(segment => segment.tag === 'UNH').length !== 1) throw new Error('ediel_expectation_multiple_message_scope_not_supported')
   const canonical = parseCanonicalMessageRow(message)
   if (canonical.family !== 'PRODAT' || !['Z01', 'Z13', 'Z18'].includes(canonical.messageCode ?? '')) return null
   if (message.direction !== 'outbound' || policy.direction !== 'outbound' || policy.family !== 'PRODAT'

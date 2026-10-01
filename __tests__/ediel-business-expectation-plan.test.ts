@@ -27,4 +27,9 @@ describe('source owned business expectation preparation', () => {
     const m = { ...permissionAckMessage('Z13'), direction: 'outbound', message_code: 'Z18' } as EdielMessageRow
     expect(() => prepareEdielBusinessExpectationPlan(m, policy('Z18', 'V'))).toThrow(/policy_source_mismatch/)
   })
+  it('holds a manually supplied multi-message expectation before provider entry', () => {
+    const m = { ...permissionAckMessage('Z13'), direction: 'outbound' } as EdielMessageRow
+    m.raw_payload = m.raw_payload!.replace(/UNZ[^']*'/, "UNH+SECOND+PRODAT:D:97A:UN:E2SE6A'BGM+Z18+SECOND-DOC'UNT+3+SECOND'UNZ+2+I'")
+    expect(() => prepareEdielBusinessExpectationPlan(m, policy('Z13', 'V'))).toThrow(/multiple_message_scope_not_supported/)
+  })
 })
