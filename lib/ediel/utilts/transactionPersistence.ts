@@ -1,5 +1,5 @@
 import { canonicalUtiltsDecimal } from './exactDecimal'
-import { utiltsPhysicalQuantityUnit } from './quantityUnitScope'
+import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
 import { canonicalUtiltsTransactions } from './canonicalObservationScope'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { supabaseService } from '@/lib/supabase/service'
@@ -215,7 +215,8 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
         const observation=transaction.observations.find(observation=>observation.quantities.includes(source)) ?? null
         const unit=utiltsPhysicalQuantityUnit(transaction,observation,source,wire.una)
         const consumed = input.contracts[index].observations.some(observation=>observation.sourceOrdinal===quantityIndex)
-        if(item.disposition === 'accepted' && (unit!==item.unit || (consumed && !unit))) consumptionConflict('physical_quantity_unit')
+        const consumerUnit=input.messageCode==='E30' ? utiltsE30StandardEnergyUnit(transaction,source,wire.una) : unit
+        if(item.disposition === 'accepted' && (unit!==item.unit || (consumed && !consumerUnit))) consumptionConflict('physical_quantity_unit')
         return {...quantity,value:canonicalUtiltsDecimal(source.value,wire.una.decimalMark)}
       }) : item.quantities, consumptionContract: input.contracts[index] })),
   })
