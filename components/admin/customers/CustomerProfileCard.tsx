@@ -58,6 +58,7 @@ type CustomerProfile = {
  archived_at?: string | null
  archive_reason?: string | null
  data_retention_note?: string | null
+ updated_at?: string | null
 }
 
 function inputClassName() {
@@ -141,6 +142,7 @@ export default function CustomerProfileCard({
 
  <form action={saveAction} className="mt-6 grid gap-4 md:grid-cols-2">
  <input type="hidden" name="customer_id" value={customer.id} />
+ {customer.updated_at ? <input type="hidden" name="expected_updated_at" value={customer.updated_at} /> : null}
  <div className="md:col-span-2">
  <ActionBanner state={saveState} />
  </div>

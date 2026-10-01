@@ -88,7 +88,7 @@ beforeEach(() => {
 })
 
 describe('support cases have no operational side effects', () => {
-  for (const channel of ['customer_portal', 'api', 'admin'] as const) {
+  for (const channel of ['customer_portal', 'api', 'admin', 'phone'] as const) {
     it(`a ${channel} support case leaves billing, onboarding and outbound untouched`, async () => {
       const { createTenantSupportCase } = await import('@/lib/customer-cases/support')
       const created = await createTenantSupportCase({
@@ -105,4 +105,29 @@ describe('support cases have no operational side effects', () => {
       expect(db.customer_case_events.some((row) => row.event_type === 'operational_stop_applied')).toBe(false)
     })
   }
+})
+
+describe('support case idempotency under concurrency (F9)', () => {
+  it('a unique-index conflict replays the winning case instead of failing or duplicating', async () => {
+    const { createTenantSupportCase } = await import('@/lib/customer-cases/support')
+    const caseDb = await import('@/lib/customer-cases/db')
+    // The concurrent winner commits between our pre-check and our insert.
+    const spy = vi.spyOn(caseDb, 'createCustomerCase').mockImplementationOnce(async () => {
+      db.customer_cases.push({ id: 'winner-case', company_id: TENANT_A, customer_id: CUSTOMER_A1, status: 'open', billing_blocked: false,
+        metadata: { support_case: true, support_idempotency_key: 'race-key' }, created_at: new Date().toISOString() })
+      throw Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' })
+    })
+    const result = await createTenantSupportCase({ companyId: TENANT_A, customerId: CUSTOMER_A1, title: 'Fråga', channel: 'api', idempotencyKey: 'race-key' })
+    spy.mockRestore()
+    expect(result).toMatchObject({ reused: true, case: { id: 'winner-case' } })
+    expect(db.customer_cases).toHaveLength(1)
+  })
+
+  it('the migration enforces one case per company, customer and key and keeps duplicates', async () => {
+    const { readFileSync } = await import('node:fs')
+    const sql = readFileSync('supabase/migrations/20261001200000_support_case_idempotency_unique.sql', 'utf8')
+    expect(sql).toContain("on public.customer_cases (company_id, customer_id, (metadata->>'support_idempotency_key'))")
+    expect(sql).toContain("where metadata->>'support_idempotency_key' is not null")
+    expect(sql).not.toMatch(/\bdelete\b/i)
+  })
 })

@@ -2,7 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createCustomerCase, listCustomerCases } from '@/lib/customer-cases/db'
 import type { CustomerCaseListRow, CustomerCasePriority, CustomerCaseRow } from '@/lib/customer-cases/types'
 
-type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'operations_automation'
+type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'phone' | 'operations_automation'
 
 export type TenantSupportCustomerOption = { id: string; label: string }
 
@@ -126,7 +126,7 @@ export async function createTenantSupportCase(input: CreateTenantSupportCaseInpu
     if (existing) return { case: existing, reused: true }
   }
 
-  const row = await createCustomerCase({
+  const create = () => createCustomerCase({
     companyId: input.companyId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
@@ -147,6 +147,18 @@ export async function createTenantSupportCase(input: CreateTenantSupportCaseInpu
       ...(input.metadata ?? {}),
     },
   })
+  let row: CustomerCaseRow
+  try {
+    row = await create()
+  } catch (error) {
+    // A concurrent request with the same key won the unique index
+    // (customer_cases_support_idempotency_key_uidx): replay its case instead of failing.
+    if (idempotencyKey && (error as { code?: string } | null)?.code === '23505') {
+      const existing = await findIdempotentSupportCase({ companyId: input.companyId, customerId: input.customerId, idempotencyKey })
+      if (existing) return { case: existing, reused: true }
+    }
+    throw error
+  }
 
   return { case: row, reused: false }
 }
