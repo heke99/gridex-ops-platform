@@ -72,6 +72,7 @@ export async function runInboundEdielMailEngine(
     envInt("EDIEL_INBOUND_MAILBOX_CONCURRENCY", 3),
     (mailbox) => pollEdielMailbox({
       mailbox,
+      actorUserId:input.actorUserId??null,
       workerId,
       maxMessages:
         input.messageLimitPerMailbox ??
