@@ -1,3 +1,4 @@
+import type {EdielMessageRow} from '@/lib/ediel/types'
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({rpc:vi.fn(),rulePack:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
@@ -16,6 +17,21 @@ describe('one canonical protected technical CONTRL admission',()=>{
   const own={...input(),technicalSyntaxAckEvidence}
   for(const result of [validateRulebookMessage(own),await validateRulebookMessageWithRegistry(own)])expect(result).toMatchObject({ok:true,blocking:false,family:'CONTRL',fieldRuleSource:'technical_source',rulePackSnapshot:null})
   expect(io.rulePack).not.toHaveBeenCalled();expect(io.rpc).toHaveBeenCalledTimes(1)
+ })
+ it('requalifies a persisted ACK from the actual native row without trusting the caller related pointer',async()=>{
+  const id='30000000-0000-4000-8000-000000000001',messageRow={id,created_at:'2026-09-30T12:01:00Z',company_id:company,environment:'test',direction:'outbound',message_family:'CONTRL',raw_payload:raw(),related_message_id:'forged-caller-source'} as unknown as EdielMessageRow
+  io.rpc.mockResolvedValue({data:{version:1,ackMessage:{...messageRow,related_message_id:source},technicalSyntaxAckEvidence:basis()},error:null})
+  const result=await validateRulebookMessageWithRegistry({...input(),messageRow})
+  expect(result).toMatchObject({ok:true,fieldRuleSource:'technical_source',rulePackSnapshot:null})
+  expect(io.rpc).toHaveBeenCalledWith('ediel_read_persisted_technical_contrl_basis_v1',{p_company_id:company,p_environment:'test',p_ack_message_id:id})
+  expect(io.rulePack).not.toHaveBeenCalled()
+ })
+ it('holds absent historical technical authority without read-time capture or business fallback',async()=>{
+  const id='30000000-0000-4000-8000-000000000001',messageRow={id,created_at:'2026-09-30T12:01:00Z',company_id:company,environment:'test',direction:'outbound',message_family:'CONTRL',raw_payload:raw()} as unknown as EdielMessageRow
+  io.rpc.mockResolvedValue({data:null,error:new Error('ediel_historical_technical_ack_basis_unavailable')})
+  expect((await validateRulebookMessageWithRegistry({...input(),messageRow})).ok).toBe(false)
+  expect(io.rpc.mock.calls.every(([name])=>String(name).includes('read'))).toBe(true)
+  expect(io.rulePack).not.toHaveBeenCalled()
  })
  it('refuses a structural copy or another tenant/environment despite genuine envelope facts',async()=>{
   const technicalSyntaxAckEvidence=await requireEdielTechnicalSyntaxAckEvidence(company,source)

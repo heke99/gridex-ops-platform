@@ -1,4 +1,4 @@
-import {technicalSyntaxAckQualification,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
 import {readSourceBoundAckRulePackEvidence,readPersistedOutboundAckRulePackEvidence,sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
@@ -460,7 +460,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
  * and a business pack are deliberately absent. Native provider-entry repeats
  * the exact immutable original/global-correlation/current-endpoint checks. */
 function qualifyTechnicalContrl(input:RulebookValidationInput,result:RulebookValidationResult):RulebookValidationResult {
-  const evidence=technicalSyntaxAckQualification({evidence:input.technicalSyntaxAckEvidence,companyId:input.companyId ?? '',environment:input.environment==='production'?'production':'test'})
+  const evidence=input.environment==='test'||input.environment==='production' ? technicalSyntaxAckQualification({evidence:input.technicalSyntaxAckEvidence,companyId:input.companyId ?? '',environment:input.environment}) : null
   const unavailable=()=>({...result,ok:false,blocking:true,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:'CONTRL kräver den faktiska oföränderliga syntaxauktoriteten för samma företag och miljö.'})],rulePackSnapshot:null})
   if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='CONTRL'||!result.canonicalPolicy||!input.rawPayload||!result.parsed)return unavailable()
   const envelope=validateEdifactEnvelope(input.rawPayload)
@@ -508,6 +508,16 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   if (!parsed || result.blocking) return result
   const dir = direction(input)
   if (!dir) return { ...result, ok: false, blocking: true, issues: [...result.issues, issue({ severity: 'error', code: 'CANONICAL_EVIDENCE_DIRECTION_REQUIRED', title: 'Riktning saknas', description: 'Rule-pack evidence kräver explicit inbound/outbound-riktning.' })] }
+
+  if(familyValue==='CONTRL'&&input.mode==='send'&&input.messageRow){
+    try{
+      if(!input.companyId||(input.environment!=='test'&&input.environment!=='production')||!input.rawPayload)throw new Error('ediel_technical_ack_basis_required')
+      const {evidence}=await readPersistedEdielTechnicalContrlBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload})
+      return qualifyTechnicalContrl({...input,technicalSyntaxAckEvidence:evidence},result)
+    }catch(error){
+      return {...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:error instanceof Error?error.message:String(error)})]}
+    }
+  }
 
   if (isSourceBoundAckFamily(familyValue)) {
     // ACK/error messages do not choose a second business rule pack. Outbound
