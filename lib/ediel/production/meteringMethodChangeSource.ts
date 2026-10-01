@@ -3,14 +3,22 @@ import {canonicalProdatMethodChangeTuple} from '@/lib/ediel/rulebook/canonicalEd
 import {supabaseService} from '@/lib/supabase/service'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 import {createHash} from 'node:crypto'
+import {prepareQualifiedBrpSource,type BrpFieldBasis} from './brpFieldSource'
 export type MeteringMethodChangeSendBasis=Readonly<{kind:'agreement'|'certification'|'not_applicable'}>
-export type MeteringMethodChangeBasis={status:'authorized';companyId:string;environment:'test'|'production';eventId:string;supplyPeriodId:string;supplyStateVersion:number;supplySourceMessageId:string;customerId:string;siteId:string;meteringPointId:string;legalActorId:string;legalSenderId:string;legalReceiverId:string;pointId:string;identityAgency:'9'|'89';gridArea:string;effectiveAt:string;subtype:'F'|'G';reason:string;method:string;contractId:string;contractRevision:string;sourceReference:string;sourceVersion:string;sourceDigest:string}
+export type MeteringMethodChangeBasis={status:'authorized';companyId:string;environment:'test'|'production';eventId:string;supplyPeriodId:string;supplyStateVersion:number;supplySourceMessageId:string;customerId:string;siteId:string;meteringPointId:string;legalActorId:string;legalSenderId:string;legalReceiverId:string;pointId:string;identityAgency:'9'|'89';gridArea:string;effectiveAt:string;subtype:'F'|'G';reason:string;method:string;contractId:string;contractRevision:string;sourceReference:string;sourceVersion:string;sourceDigest:string;brpEdielId:string;brpSource?:BrpFieldBasis}
 export type MeteringMethodChangeHeld={status:'held';missing:string[]}
 export async function readMeteringMethodChangeSource(input:{companyId:string;eventId:string;actorUserId:string}):Promise<MeteringMethodChangeBasis|MeteringMethodChangeHeld>{
+ const{data:scope,error:scopeError}=await supabaseService.rpc('ediel_metering_method_change_scope_v1',{p_company_id:input.companyId,p_event_id:input.eventId,p_actor_user_id:input.actorUserId})
+ if(scopeError)throw scopeError
+ if(!scope||!['authorized','held'].includes(scope.status))throw Error('metering_method_change_source_result_invalid')
+ if(scope.status==='held')return scope
+ if(scope.companyId!==input.companyId||scope.eventId!==input.eventId)throw Error('metering_method_change_source_scope_invalid')
+ const brp=await prepareQualifiedBrpSource({companyId:input.companyId,contractId:scope.contractId,actorUserId:input.actorUserId,environment:scope.environment,customerId:scope.customerId,siteId:scope.siteId,meteringPointId:scope.meteringPointId,at:scope.effectiveAt,supplyPeriodId:scope.supplyPeriodId})
+ if(brp.status==='held')return brp
  const{data,error}=await supabaseService.rpc('ediel_metering_method_change_source_v1',{p_company_id:input.companyId,p_event_id:input.eventId,p_actor_user_id:input.actorUserId})
  if(error)throw error
  if(!data||!['authorized','held'].includes(data.status))throw Error('metering_method_change_source_result_invalid')
- if(data.status==='authorized'){if(data.companyId!==input.companyId||data.eventId!==input.eventId||!['F','G'].includes(data.subtype)||!['test','production'].includes(data.environment)||![data.customerId,data.siteId,data.meteringPointId,data.legalActorId,data.contractId,data.supplyPeriodId,data.supplySourceMessageId].every(isEvidenceUuid)||!['9','89'].includes(data.identityAgency)||!Number.isSafeInteger(data.supplyStateVersion)||data.supplyStateVersion<1)throw Error('metering_method_change_source_scope_invalid');const tuple=canonicalProdatMethodChangeTuple(data.subtype);if(tuple.reason!==data.reason||tuple.method!==data.method)throw Error('metering_method_change_canonical_tuple_mismatch')}
+ if(data.status==='authorized'){if(data.companyId!==input.companyId||data.eventId!==input.eventId||!['F','G'].includes(data.subtype)||!['test','production'].includes(data.environment)||![data.customerId,data.siteId,data.meteringPointId,data.legalActorId,data.contractId,data.supplyPeriodId,data.supplySourceMessageId].every(isEvidenceUuid)||!['9','89'].includes(data.identityAgency)||!Number.isSafeInteger(data.supplyStateVersion)||data.supplyStateVersion<1||data.brpEdielId!==brp.brpEdielId)throw Error('metering_method_change_source_scope_invalid');const tuple=canonicalProdatMethodChangeTuple(data.subtype);if(tuple.reason!==data.reason||tuple.method!==data.method)throw Error('metering_method_change_canonical_tuple_mismatch')}
  return data
 }
 export async function reserveMeteringMethodChangeSource(input:{companyId:string;eventId:string;actorUserId:string;intentId:string;outboundRequestId:string}):Promise<{status:'reserved';messageId:string|null;outboundRequestId:string}|MeteringMethodChangeHeld>{

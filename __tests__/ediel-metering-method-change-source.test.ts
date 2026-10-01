@@ -7,7 +7,7 @@ import type {EdielMessageIntent} from '@/lib/ediel/intent/types'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 function fixture(){
- const basis:MeteringMethodChangeBasis={status:'authorized',companyId:id(1),environment:'test',eventId:id(2),supplyPeriodId:id(3),supplyStateVersion:4,supplySourceMessageId:id(4),customerId:id(5),meteringPointId:id(6),legalActorId:id(7),legalSenderId:'12345',legalReceiverId:'54321',siteId:id(8),subtype:'F',reason:'E64',method:'Z04',contractId:id(9),contractRevision:'SYNTHETIC-REVISION',pointId:'735123456789012345',identityAgency:'9',gridArea:'TES',effectiveAt:'2027-01-01T00:00:00+01:00',sourceReference:'SYNTHETIC MARKET DECISION',sourceVersion:'fixture',sourceDigest:'b'.repeat(64)}
+ const basis:MeteringMethodChangeBasis={status:'authorized',companyId:id(1),environment:'test',eventId:id(2),supplyPeriodId:id(3),supplyStateVersion:4,supplySourceMessageId:id(4),customerId:id(5),meteringPointId:id(6),legalActorId:id(7),legalSenderId:'12345',legalReceiverId:'54321',siteId:id(8),subtype:'F',reason:'E64',method:'Z04',contractId:id(9),contractRevision:'SYNTHETIC-REVISION',pointId:'735123456789012345',identityAgency:'9',gridArea:'TES',effectiveAt:'2027-01-01T00:00:00+01:00',sourceReference:'SYNTHETIC MARKET DECISION',sourceVersion:'fixture',sourceDigest:'b'.repeat(64),brpEdielId:'11111'}
  const intent:EdielMessageIntent={id:id(10),companyId:id(1),environment:'test',market:'electricity',messageFamily:'PRODAT',messageCode:'Z09',businessProcess:'customer_masterdata',direction:'outbound',senderEdielId:'99111',receiverEdielId:'54321',applicationReference:'23-DDQ-PRODAT',routeProfileId:id(11),communicationRouteId:id(12),customerId:id(5),meteringPointId:basis.pointId,operationId:id(2),interchangeReference:'SYNTHFG001',messageReference:'1',transactionReference:'SYNTHETIC-METHOD-LI',idempotencyKey:'SYNTHETIC-BRP-EVENT',payload:{actorRole:'supplier',meteringMethodChangeEventId:id(2)},validationStatus:'validated',renderStatus:'not_rendered',outboxStatus:'not_queued'}
  const route={companyId:id(1),environment:'test',actor:{tenantIdentity:{legalActorId:id(7)},legalActorEdielId:'12345',marketRoles:['electricity_supplier']},senderEdielId:'99111',receiverEdielId:'54321',senderSubAddress:null,receiverSubAddress:null,receiverMessageSubAddress:null,applicationReference:'23-DDQ-PRODAT',route:{id:id(12)},routeRuntime:{route_profile_id:id(11)},mailbox:null,receiverEmail:'dso@example.invalid'} as Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
  return{basis,intent,routeContext:route,actorUserId:id(20),outboundRequestId:id(21)}
@@ -36,4 +36,12 @@ it('holds foreign tenant, legal actor, recipient and non-supplier route before r
 it('retains fixed Ediel UTC+1 effective minute in summer',async()=>{
  const f=fixture();f.basis.effectiveAt='2027-07-01T00:00:00+01:00'
  expect((await buildMeteringMethodChangeDraft(f)).draft.rawPayload).toContain('DTM+157:202707010000:203')
+})
+
+it('renders the complete national field profile, including own source BRP',async()=>{
+ const f=fixture();f.basis.environment='production';f.intent.environment='production';f.routeContext.environment='production';const{draft}=await buildMeteringMethodChangeDraft(f)
+ const [{resolveCanonicalEdielPolicy},{validateCanonicalPolicyFields},{tokenizeEdifact}]=await Promise.all([import('@/lib/ediel/rulebook/canonicalEdielPolicy'),import('@/lib/ediel/rulebook/canonicalPolicyFieldValidator'),import('@/lib/ediel/core/edifactTokenizer')])
+ const tokenized=tokenizeEdifact(draft.rawPayload!)
+ const policy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z09',subtypeOrReasonCode:'F',direction:'outbound',referenceDate:'2026-09-30',applicationReference:'23-DDQ-PRODAT',prodatDependentFacts:{market:'electricity'},mode:'parse'})
+ expect(validateCanonicalPolicyFields({policy,rawSegments:tokenized.segments.map(segment=>segment.raw),una:tokenized.una})).toEqual([])
 })

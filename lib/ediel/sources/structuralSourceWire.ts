@@ -29,6 +29,8 @@ export type StructuralSourceWire = {
 
 export type StructuralMeasurementProjection = Readonly<{
   productCode:string|null;measurementMethod:string|null;reportingFrequency:string|null;settlementMethod:string|null
+  /** Same source-owned chronology; optional for previously stored projections. */
+  balanceResponsibleId?:string|null
 }>
 
 /** Lossless additional source fields. This is not a new approval marker: the
@@ -44,7 +46,7 @@ export function readStructuralMeasurementProjection(raw:string,scope:SourceObjec
   const usable=(field:string,value:string|null)=>ignoredFields.some(item=>item.fieldNumber===field&&item.occurrence.objectId===scope.objectId&&item.occurrence.identityAgency===scope.identityAgency
     &&item.occurrence.messageReference===scope.messageReference&&item.occurrence.lineIndex===group.lineIndex)?null:value
   return Object.freeze({productCode:usable('242',first.timeSeriesProduct),measurementMethod:usable('217',first.measuringMethod),reportingFrequency:usable('222',first.reportingFrequency),
-    settlementMethod:usable('254',prodatCharacteristicValue('254',group.effectiveSegments,ast.una))})
+    settlementMethod:usable('254',prodatCharacteristicValue('254',group.effectiveSegments,ast.una)),balanceResponsibleId:usable('262',first.balanceResponsibleId)})
 }
 
 /** Original-wire structure only, never an approval or a completeness claim. */

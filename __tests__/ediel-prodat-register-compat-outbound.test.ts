@@ -6,9 +6,10 @@ import {
 } from '@/lib/ediel/prodat/compatAdapter'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 
-const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('unexpected database access')}),getCustomerExportContext:vi.fn(),assertEdielTenantActor:vi.fn(),readContractRequestedMethodSource:vi.fn()}))
+const io=vi.hoisted(()=>({from:vi.fn(()=>{throw new Error('unexpected database access')}),getCustomerExportContext:vi.fn(),assertEdielTenantActor:vi.fn(),readContractRequestedMethodSource:vi.fn(),prepareQualifiedBrpSource:vi.fn()}))
 vi.mock('@/lib/cis/db-shared',async importOriginal=>({...await importOriginal<typeof import('@/lib/cis/db-shared')>(),getCustomerExportContext:io.getCustomerExportContext}))
 vi.mock('@/lib/ediel/production/contractRequestedMethodSource',async importOriginal=>({...await importOriginal<typeof import('@/lib/ediel/production/contractRequestedMethodSource')>(),readContractRequestedMethodSource:io.readContractRequestedMethodSource}))
+vi.mock('@/lib/ediel/production/brpFieldSource',()=>({prepareQualifiedBrpSource:io.prepareQualifiedBrpSource}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.assertEdielTenantActor}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:io.from}}))
 type Input=Parameters<typeof buildProdatZ04FromSwitch>[0]
@@ -22,7 +23,7 @@ const input=():Input=>({actorUserId:'actor',senderEdielId:'12345',receiverEdielI
  meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'},
 // Synthetic partial database rows: fields unused by this adapter are omitted.
 } as unknown as Input)
-beforeEach(()=>{vi.clearAllMocks();io.assertEdielTenantActor.mockResolvedValue(undefined);io.readContractRequestedMethodSource.mockResolvedValue({status:'authorized',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',requestedMethod:'Z04'});const p=input();io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null})})
+beforeEach(()=>{vi.clearAllMocks();io.assertEdielTenantActor.mockResolvedValue(undefined);io.readContractRequestedMethodSource.mockResolvedValue({status:'authorized',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',legalActorId:'legal',requestedMethod:'Z04'});io.prepareQualifiedBrpSource.mockResolvedValue({status:'authorized',sourceKind:'signed_contract_brp_declaration',companyId:'company',environment:'test',contractId:'contract',customerId:'customer',siteId:'site',meteringPointId:'meter',pointId:id,identityAgency:'9',legalSenderId:'12345',legalReceiverId:'54321',legalActorId:'legal',brpEdielId:'11111'});const p=input();io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null})})
 
 // Saved switch context is a distinct real caller of the shared renderer. Only
 // external database access is disabled; engine, envelope and preflight are real.
@@ -37,19 +38,33 @@ describe('saved switch compatibility respects operational direction',()=>{
   const parsed=parseProdatMessage(draft.rawPayload!)
   expect(parsed.lineItems.map(line=>[line.meteringPointId,line.lineSequenceNumber,line.registerIndex])).toEqual([[id,'1',null]])
   expect(draft).toMatchObject({direction:'outbound',messageCode:'Z03',environment:'test',status:'draft',testFlag:1,switchRequestId:'switch',customerId:'customer',siteId:'site',meteringPointId:'meter'})
-  expect(io.getCustomerExportContext).toHaveBeenCalledWith({customerId:'customer',siteId:'site',meteringPointId:'meter'})
+  expect(io.getCustomerExportContext).toHaveBeenCalledWith({companyId:'company',customerId:'customer',siteId:'site',meteringPointId:'meter',actorUserId:'actor',asOf:'2026-09-30T23:00:00.000Z'})
   expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Source Customer')
   expect(draft.rawPayload).not.toContain('USER:')
   expect(draft.rawPayload).toContain("CCI++Z04'CAV+Z04'")
+  expect(draft.rawPayload).toContain('NAD+Z02+11111:160:SVK')
   expect(io.readContractRequestedMethodSource).toHaveBeenCalledWith({companyId:'company',contractId:'contract',actorUserId:'actor',environment:'test'})
   expect(io.assertEdielTenantActor).toHaveBeenCalledWith({companyId:'company',actorUserId:'actor',permissionAnyOf:['communication.write','ediel_testing.write']})
   const own=(draft.parsedPayload?.prodatEngine as {registerEvidence?:{facts?:{endUserAddressObjects?:unknown[]}}})?.registerEvidence?.facts?.endUserAddressObjects
   expect(own).toEqual([expect.objectContaining({meteringPointId:id,endUser:{id:'199001011234',qualifier:'SE2',agency:'260'},source:expect.objectContaining({companyId:'company',kind:'caller_selection'})})])
   expect(io.from).not.toHaveBeenCalled()
  })
+ it('uses protected literal end-user name and address components separately from the installation address',async()=>{
+  const p=input(),lines=['End-user street','','Box 12'],invoicee=selectedInvoiceeFact(id,'company','9','199001011234',lines,'SE2','45678','Owned Town','FI')
+  p.switchRequest.validation_snapshot={portalData:{...source(),registers:[],dependentConditionFacts:{market:'electricity',invoiceeObjects:[invoicee]}}}
+  io.getCustomerExportContext.mockResolvedValue({companyId:'company',tenantIssues:[],customer:{id:'customer',company_id:'company',personal_number:'199001011234',full_name:'Source Legal Customer'},site:{...p.site,country:'SE'},meteringPoint:{...p.meteringPoint,grid_area_code:'TES'},contacts:[],contract:null,
+   customerLifeEvent:{status:'authorized',companyId:'company',customerId:'customer',sourceMessageId:'source',customerVersion:2,effectiveVersionCount:1,customerFields:{},endUserMasterdata:{name:['Source','Legal Customer'],street:lines,postCode:'45678',city:'Owned Town',country:'FI'}}})
+  const draft=await buildProdatZ03FromSwitch(p)
+  expect(draft.rawPayload).toContain('NAD+UD+199001011234:SE2:260++Source:Legal Customer+End-user street::Box 12+Owned Town++45678+FI')
+  expect(draft.rawPayload).not.toContain('Source:Legal Customer+Street')
+ })
  it('holds missing new-agreement declaration even when portal and prior DSO method look usable',async()=>{
   io.readContractRequestedMethodSource.mockResolvedValue({status:'held',missing:['unique_authentic_new_agreement_requested_method_declaration']})
   await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow('prodat_new_agreement_requested_method_held')
+ })
+ it('holds missing actual new-agreement BRP declaration despite a saved BRP preview',async()=>{
+  io.prepareQualifiedBrpSource.mockResolvedValue({status:'held',missing:['unique_authentic_signed_contract_brp_declaration']})
+  await expect(buildProdatZ03FromSwitch(input())).rejects.toThrow('prodat_new_agreement_brp_held')
  })
  it('rejects unrelated signed-declaration scope rather than substituting its method',async()=>{
   io.readContractRequestedMethodSource.mockResolvedValue({status:'authorized',companyId:'company',environment:'test',contractId:'contract',customerId:'other',siteId:'site',meteringPointId:'meter',requestedMethod:'Z04'})
