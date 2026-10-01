@@ -24,23 +24,28 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{
   ?{company_id:company,user_id:actor,status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'}:{id:actor,user_status:'active'}})};return q}
 }}))
 
-function source(reason='Z96',identity='',duplicateLi=false,alternate=false){
- const body=(n:string,status:string)=>[`LIN+${n}${identity?'++'+identity:''}`,'CCI++Z13',`CAV+${reason}`,'CCI++Z23',`CAV+${status}`,`RFF+LI:REQUEST-${duplicateLi?'1':n}`]
+function source(reason='Z96',identity='',duplicateLi=false,alternate=false,single=false){
+ const body=(n:string,status:string,li=n)=>[`LIN+${n}${identity?'++'+identity:''}`,'CCI++Z13',`CAV+${reason}`,'CCI++Z23',`CAV+${status}`,`RFF+LI:REQUEST-${duplicateLi?'1':li}`]
  const rawPayload=EdifactEnvelopeCodec.encode({sender:'12345',senderQualifier:'14',receiver:'54321',receiverQualifier:'14',environment:'test',applicationReference:'23-DGI-PRODAT',interchangeReference:'SOURCE',acknowledgementRequest:true,createdAt:new Date('2026-09-30T12:00:00Z'),
   ...(alternate?{una:{componentDataElementSeparator:';',dataElementSeparator:'*',releaseCharacter:'?',segmentTerminator:'!'}}:{}),
   messages:[{messageReference:'M',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:['BGM+Z14+D+9+AB','DTM+137:202609301200:203','DTM+ZZZ:1:805',
-   'NAD+FR+12345:160:SVK+++++++SE','NAD+DO+54321:160:SVK+++++++SE',...body('1','A76'),...body('2','INVALID')]}]})
+   'NAD+FR+12345:160:SVK+++++++SE','NAD+DO+54321:160:SVK+++++++SE',...(single?body('1','X99','2'):[...body('1','A76'),...body('2','X99')])]}]})
  return {id:'00000000-0000-4000-8000-000000000001',company_id:company,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z14',
   raw_payload:rawPayload,message_received_at:'2026-09-30T12:00:00Z',created_at:'2026-09-30T12:00:00Z',status:'received',sender_ediel_id:'12345',receiver_ediel_id:'54321',
   application_reference:'23-DGI-PRODAT',parsed_payload:{},validation_report:{}} as EdielMessageRow
 }
 function errors(message:EdielMessageRow){return resolveCanonicalRuntimeDecision(message).responsePlan.flatMap(plan=>plan.applicationErrors??[]).filter(error=>error.fieldCode==='322')}
-function own(message=io.source){const wire=tokenizeEdifact(message.raw_payload!);return {objectId:null,identityAgency:null,
- firstLineIndex:wire.segments.filter(segment=>segment.tag==='LIN')[1].index,lineItemReference:'REQUEST-2'}}
+function own(message=io.source){const wire=tokenizeEdifact(message.raw_payload!),lins=wire.segments.filter(segment=>segment.tag==='LIN');return {objectId:null,identityAgency:null,
+ firstLineIndex:lins[lins.length-1].index,lineItemReference:'REQUEST-2'}}
 beforeEach(()=>{io.source=source();io.originals=[];io.reads=0})
 
 it.each([false,true])('a genuine own N322 diagnostic prepares and renders only its nullable physical LIN/LI scope (alternate UNA %s)',async alternate=>{
- io.source=source('Z96','',false,alternate)
+ // BGM34 answers every physical object: with an untouched valid sibling the
+ // plan's own negative alone cannot complete the reply and is refused.
+ const mixed=source('Z96','',false,alternate);io.source=mixed
+ await expect(prepareSourceAckDraft({actorUserId:actor,sourceMessage:mixed,ackFamily:'APERAK',outcome:'negative',applicationErrors:errors(mixed)})).rejects.toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
+ expect(prodatAckObjectScopes({sourceWire:tokenizeEdifact(mixed.raw_payload!),messageCode:'Z14',outcome:'negative',applicationErrors:errors(mixed)})).toEqual([own(mixed)])
+ io.source=source('Z96','',false,alternate,true)
  const applicationErrors=errors(io.source)
  expect(applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'322',referenceNumber:null,referenceQualifier:null,lineItemReference:'REQUEST-2'}])
  expect(prodatAckObjectScopes({sourceWire:tokenizeEdifact(io.source.raw_payload!),messageCode:'Z14',outcome:'negative',applicationErrors})).toEqual([own()])
@@ -53,6 +58,7 @@ it.each([false,true])('a genuine own N322 diagnostic prepares and renders only i
  expect(readPhysicalAckSourceCorrelation(ack,io.source).prodatObjectOutcomes).toEqual([{...own(),outcome:'negative'}])
 })
 it('retains an old failed physical negative before fresh rendering, preserving its exact nullable tuple',async()=>{
+ io.source=source('Z96','',false,false,true)
  const applicationErrors=errors(io.source),draft=await prepareSourceAckDraft({actorUserId:actor,sourceMessage:io.source,ackFamily:'APERAK',outcome:'negative',applicationErrors})
  if(draft.kind!=='draft')throw Error('expected real draft')
  const retained={...io.source,id:'00000000-0000-4000-8000-000000000088',direction:'outbound',message_family:'APERAK',raw_payload:draft.draft.rawPayload,status:'failed',ack_outcome:'positive'} as EdielMessageRow
@@ -65,7 +71,7 @@ it('retains an old failed physical negative before fresh rendering, preserving i
 })
 it('distinct omitted identities retain their own physical indices rather than becoming one null object',()=>{
  // The actual validator owns both independent received invalid status values.
- const both=source();both.raw_payload=both.raw_payload!.replace('CAV+A76','CAV+INVALID')
+ const both=source();both.raw_payload=both.raw_payload!.replace('CAV+A76','CAV+X99')
  const scopes=prodatAckObjectScopes({sourceWire:tokenizeEdifact(both.raw_payload!),messageCode:'Z14',outcome:'negative',applicationErrors:errors(both)})
  expect(scopes.map(scope=>[scope.objectId,scope.identityAgency,scope.lineItemReference])).toEqual([[null,null,'REQUEST-1'],[null,null,'REQUEST-2']])
  expect(new Set(scopes.map(scope=>scope.firstLineIndex)).size).toBe(2)
