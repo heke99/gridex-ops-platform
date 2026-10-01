@@ -6,8 +6,10 @@ const f=vi.hoisted(()=>({company:'ed170000-0000-4000-8000-000000000001',customer
   pending:false,state:null as null|{status:'success'|'error';message:string},hookIndex:0,values:[] as string[],formAction:vi.fn(),ownersError:false,
 }))
 vi.mock('react',async original=>({...await original<typeof import('react')>(),
+  useCallback:(callback:unknown)=>callback,
   useActionState:()=>[f.state,f.formAction,f.pending],useState:(initial:string)=>{const i=f.hookIndex++;if(f.values[i]===undefined)f.values[i]=initial;return [f.values[i],(value:string)=>{f.values[i]=value}]},
 }))
+vi.mock('@/components/admin/AdminUnsavedChanges',()=>({useUnsavedChanges:()=>undefined}))
 vi.mock('@/lib/admin/guards',()=>({requireAdminPageKeyAccess:f.guard,requireAdminActionAccess:f.guard}))
 vi.mock('@/lib/auth/requirePermissionServer',()=>({requirePermissionServer:f.guard}))
 vi.mock('@/lib/tenant/scope',()=>({getOperationalCompanyScope:f.scope,assertUserCanOperateCompany:async()=>undefined}))

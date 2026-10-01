@@ -58,7 +58,8 @@ python3 - "$TENANTSERVICE_CANDIDATE_ROOT" "$TENANTSERVICE_TEMP" <<'PY'
 import hashlib,json,pathlib,sys
 root,temporary=map(pathlib.Path,sys.argv[1:])
 names=('scripts/tenantservice-restore-bootstrap-acl.sh','scripts/tenantservice-restore-bootstrap-acl.cjs',
-       'scripts/tenantservice-restore-catalog-diagnostic.cjs','scripts/sql/tenantservice-restore-data-fingerprint.sql')
+       'scripts/tenantservice-restore-catalog-diagnostic.cjs','scripts/sql/tenantservice-restore-data-fingerprint.sql',
+       'scripts/tenantservice-restore-schema-diagnostic.cjs','scripts/sql/gridex-db-parity-introspect.sql')
 manifest={}
 for name in names:
     data=(root/name).read_bytes(); manifest[name]=hashlib.sha256(data).hexdigest()
@@ -76,7 +77,8 @@ tenantservice_baseline_bootstrap_source_guard(){
 import hashlib,json,pathlib,sys
 root,temporary=map(pathlib.Path,sys.argv[1:])
 names={'scripts/tenantservice-restore-bootstrap-acl.sh','scripts/tenantservice-restore-bootstrap-acl.cjs',
-       'scripts/tenantservice-restore-catalog-diagnostic.cjs','scripts/sql/tenantservice-restore-data-fingerprint.sql'}
+       'scripts/tenantservice-restore-catalog-diagnostic.cjs','scripts/sql/tenantservice-restore-data-fingerprint.sql',
+       'scripts/tenantservice-restore-schema-diagnostic.cjs','scripts/sql/gridex-db-parity-introspect.sql'}
 try:
     manifest=json.loads((temporary/'bootstrap-source.json').read_text())
     valid=set(manifest)==names and all(hashlib.sha256((root/name).read_bytes()).hexdigest()==manifest[name] for name in names)
@@ -310,7 +312,7 @@ PY
     echo 'TENANTSERVICE_BASELINE_ROLLBACK_DATA_OR_OWNER_ACL_FINGERPRINT_MISMATCH' >&2; exit 1
   fi
   echo 'TENANTSERVICE_BASELINE_ROLLBACK_OLD_BUSINESS_AUTH_ISSUED_OWNER_ACL_FINGERPRINT_PASS'
-  python3 - "$TENANTSERVICE_TEMP/catalog-before.json" "$TENANTSERVICE_TEMP/catalog-restored.json" <<'PY'
+  if ! python3 - "$TENANTSERVICE_TEMP/catalog-before.json" "$TENANTSERVICE_TEMP/catalog-restored.json" <<'PY'
 import json,pathlib,sys
 documents=[json.loads(pathlib.Path(p).read_text()) for p in sys.argv[1:]]
 for document in documents:
@@ -318,6 +320,11 @@ for document in documents:
 if documents[0]!=documents[1]: raise SystemExit('TENANTSERVICE_BASELINE_ROLLBACK_OLD_CATALOG_PARITY_MISMATCH')
 print('TENANTSERVICE_BASELINE_ROLLBACK_OLD_SCHEMA_FUNCTION_RLS_ACL_PARITY_PASS')
 PY
+  then
+    node "$TENANTSERVICE_CANDIDATE_ROOT/scripts/tenantservice-restore-schema-diagnostic.cjs" \
+      "$TENANTSERVICE_TEMP/catalog-before.json" "$TENANTSERVICE_TEMP/catalog-restored.json" || true
+    exit 1
+  fi
   tenantservice_baseline_sql "$TENANTSERVICE_RESTORE_URL" "$TENANTSERVICE_TEMP/old-schema-proof.sql"
   tenantservice_baseline_fingerprints "$TENANTSERVICE_RESTORE_URL" post-proof
   cmp -s "$TENANTSERVICE_TEMP/issued-before.sha256" "$TENANTSERVICE_TEMP/issued-post-proof.sha256"

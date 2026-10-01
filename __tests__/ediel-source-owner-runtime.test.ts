@@ -2,7 +2,24 @@ import {beforeEach,expect,it,vi} from 'vitest'
 import {OWNER,ownerId,ownerRows,ownerSource} from './helpers/sourceOwnerFixtures'
 const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false}))
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:async()=>({profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3',sourceHash:'a'.repeat(64),messageProfileId:'00000000-0000-4000-8000-000000000011',rulePackId:'00000000-0000-4000-8000-000000000012'})}))
-vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
+vi.mock('@/lib/supabase/service',async()=>{
+ const database=(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)
+ return {supabaseService:{...database,rpc:(name:string,args:Record<string,unknown>)=>{
+  if(name!=='gridex_apply_inbound_switch_lifecycle_v1')return database.rpc(name,args)
+  io.calls.push({name,args})
+  expect(args).toEqual({p_source_message_id:OWNER.source,p_actor_user_id:ownerId(50)})
+  // Only the controlled persistence boundary changes. Real canonical/party/
+  // facility readers still evaluate the independently mutable evidence rows.
+  // PostgreSQL-core/native tests own the transaction and full graph proof.
+  if(io.failTable==='customer_supply_periods')return Promise.resolve({data:null,error:new Error('injected database failure')})
+  const sw=io.rows.supplier_switch_requests[0],sp=io.rows.customer_supply_periods[0]
+  Object.assign(sw,{status:'accepted',confirmed_start_date:'2026-10-01'})
+  Object.assign(sp,{status:'confirmed_by_grid_owner'})
+  return Promise.resolve({data:{outcome:'supplier_switch_accepted',tenantMessage:'Confirmed',reviewRequired:false,
+   updated:['supplier_switch_requests','customer_supply_periods'],metadata:{},switchRequestId:sw.id,
+   supplyPeriodId:sp.id,caseId:null,replayed:false},error:null})
+ }}}
+})
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
@@ -37,10 +54,10 @@ it('uses a real fully accepted canonical register source as the positive oracle'
 it('composes the real canonical, tenant, selected-party and committed Z04 owners, then witnesses separately',async()=>{
  const state=await record();const receipt=await apply(state)
  expect(receipt).toMatchObject({status:'recorded',sourceDisposition:'accepted',assessmentId:ownerId(31),witnessId:ownerId(32)})
- expect(io.calls.map(x=>x.name)).toEqual(['gridex_record_source_validation_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
+ expect(io.calls.map(x=>x.name)).toEqual(['gridex_record_source_validation_v1','gridex_apply_inbound_switch_lifecycle_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
  const fact=objectFacts();expect(fact.objects).toHaveLength(1)
  expect(fact.objects[0]).toMatchObject({disposition:'accepted',reasons:[],object:{messageIndex:0,messageReference:'M',objectId:OWNER.external,identityAgency:'9'},business:{owner:'inbound-z04-switch-confirmation-v1',switchRequestId:OWNER.switch,supplyPeriodId:OWNER.supply,effectiveFrom:{fieldNumber:'210',marketMinute:'202610010000',utc:'2026-09-30T23:00:00.000Z'}},party:{receiver:{evidence:{completeness:'exact_count'}},parties:{legalSender:'12345',legalReceiver:'54321',transportSender:'12345',transportReceiver:'54321'}}})
- expect(await state.session!.finish()).toEqual(receipt);expect(io.calls).toHaveLength(3)
+ expect(await state.session!.finish()).toEqual(receipt);expect(io.calls).toHaveLength(4)
 })
 it('cannot rehydrate approval capability from copied canonical receipt JSON',async()=>{const {receipt}=await record();expect(createReceivedSourceOwnerSession(JSON.parse(JSON.stringify(receipt)))).toBeNull()})
 it('a caller-provided commit-shaped object cannot impersonate the successful business path',async()=>{
@@ -72,6 +89,7 @@ it('binds the committed message to the immutable original rather than its mutabl
 })
 it('a failed supply write cannot create any accepted assessment',async()=>{
  const s=await record();io.failTable='customer_supply_periods';await expect(apply(s)).rejects.toThrow('injected database failure')
+ expect(io.rows.supplier_switch_requests[0].status).toBe('draft');expect(io.rows.customer_supply_periods[0].status).toBe('draft')
  expect(await s.session!.finish()).toMatchObject({sourceDisposition:'not_established'});expect(objectFacts()?.objects[0].disposition).toBe('unavailable')
 })
 it('retires the in-process capability after callback completion',async()=>{

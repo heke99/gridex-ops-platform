@@ -3,6 +3,7 @@ import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   buildPortalDatabasePage,
   decodePortalCursor,
@@ -228,12 +229,10 @@ async function portalTablePage(input: {
 }
 
 export function portalQueryErrorMetadata(error: unknown): Record<string, unknown> {
-  const maybe = error as { code?: string; message?: string; details?: string; hint?: string } | null
   return {
-    code: maybe?.code ?? null,
-    message: maybe?.message ?? String(error ?? 'unknown_error'),
-    details: maybe?.details ?? null,
-    hint: maybe?.hint ?? null,
+    ...technicalErrorDiagnostic(error),
+    details: null,
+    hint: null,
   }
 }
 

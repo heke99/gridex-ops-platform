@@ -290,7 +290,7 @@ PY
   psql "$TENANTSERVICE_RESTORE_URL" -X -At -v ON_ERROR_STOP=1 -v 'schemas={public,private,auth,storage,gridex_received_sources}' \
     -f "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/gridex-db-parity-introspect.sql" \
     > "$TENANTSERVICE_TEMP/catalog-after.json"
-  python3 - "$TENANTSERVICE_TEMP/catalog-before.json" "$TENANTSERVICE_TEMP/catalog-after.json" <<'PY'
+  if ! python3 - "$TENANTSERVICE_TEMP/catalog-before.json" "$TENANTSERVICE_TEMP/catalog-after.json" <<'PY'
 import json,pathlib,sys
 before,after=(json.loads(pathlib.Path(p).read_text()) for p in sys.argv[1:])
 for document in (before,after):
@@ -300,6 +300,11 @@ if before != after:
     raise SystemExit('restored schema/ACL catalog mismatch: '+','.join(differences))
 print('TENANTSERVICE_RESTORE_SCHEMA_FUNCTION_RLS_ACL_PARITY_PASS')
 PY
+  then
+    node "$TENANTSERVICE_CANDIDATE_ROOT/scripts/tenantservice-restore-schema-diagnostic.cjs" \
+      "$TENANTSERVICE_TEMP/catalog-before.json" "$TENANTSERVICE_TEMP/catalog-after.json" || true
+    exit 1
+  fi
   tenantservice_sql "$TENANTSERVICE_RESTORE_URL" "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-upgrade-postcheck.sql"
   tenantservice_sql "$TENANTSERVICE_RESTORE_URL" "$TENANTSERVICE_CANDIDATE_ROOT/scripts/sql/tenantservice-restore-proof.sql"
   # The positive/negative authorization proof is rolled back; data must still

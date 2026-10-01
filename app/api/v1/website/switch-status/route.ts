@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: error.status, startedAt, errorCode: error.code })
       return customerPortalJson({ error: { code: error.code, message: error.code === 'application_not_found' ? 'The application could not be found.' : 'The supplier-switch status request could not be processed.', field: error.field, request_id: requestId } }, { status: error.status })
     }
-    console.error('[website-switch-status] failed', { requestId, error })
+    console.error('[website-switch-status] failed', { requestId, error: technicalErrorDiagnostic(error) })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'switch_status_unavailable' })
     return customerPortalJson({ error: { code: 'switch_status_unavailable', message: 'Supplier-switch status is temporarily unavailable.', request_id: requestId } }, { status: 500 })
   }

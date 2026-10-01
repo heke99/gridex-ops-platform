@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import { supabaseService } from '@/lib/supabase/service'
 import { evaluateBillingMonthInvoiceReadiness, lockBillingPeriodForInvoiceExport } from '@/lib/billing/invoiceReadiness'
 import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway/auth'
@@ -339,7 +340,7 @@ async function recordExportAttempt(input: {
     finished_at: new Date().toISOString(),
   })
   if (error && !missingRelation(error)) {
-    console.error('[invoice-export] failed to record export attempt', { itemId: input.itemId, error })
+    console.error('[invoice-export] failed to record export attempt', { itemId: input.itemId, error: technicalErrorDiagnostic(error) })
   }
 }
 
@@ -400,7 +401,7 @@ async function raiseInvoiceCorrectionTask(input: {
     created_by: input.actorUserId ?? null,
     updated_by: input.actorUserId ?? null,
   })
-  if (error) console.warn('[invoice-export] kunde inte skapa korrigeringstask', { itemId: input.itemId, error })
+  if (error) console.warn('[invoice-export] kunde inte skapa korrigeringstask', { itemId: input.itemId, error: technicalErrorDiagnostic(error) })
 }
 
 async function sendSingleInvoiceExportItemUnlocked(input: {
@@ -840,7 +841,7 @@ export async function processDueInvoiceExportRetries(input: {
       .eq('id', group.exportRunId)
       .maybeSingle()
     if (runError || !run) {
-      console.error('[invoice-export-retry] export run missing', { exportRunId: group.exportRunId, error: runError })
+      console.error('[invoice-export-retry] export run missing', { exportRunId: group.exportRunId, error: technicalErrorDiagnostic(runError) })
       continue
     }
     const runRow = run as Record<string, unknown>

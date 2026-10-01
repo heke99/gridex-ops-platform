@@ -53,47 +53,66 @@ function classifyHttpStatus(status: number): Pick<InvoiceExportErrorClassificati
   return { outcome: 'failed', errorCode: 'provider_unknown_status', retryable: false }
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  provider_auth_failed: 'Fakturaleverantörens autentisering misslyckades.',
+  provider_endpoint_not_found: 'Fakturaleverantörens adress är inte tillgänglig.',
+  provider_conflict: 'Fakturaleverantören rapporterade en konflikt som behöver granskas.',
+  provider_rate_limited: 'Fakturaleverantörens anropsgräns har nåtts.',
+  provider_timeout: 'Fakturaleverantören svarade inte i tid.',
+  provider_rejected_payload: 'Fakturaleverantören avvisade fakturan.',
+  provider_server_error: 'Fakturaleverantören har ett tillfälligt tekniskt fel.',
+  provider_unknown_status: 'Fakturaleverantören svarade med en oväntad status.',
+  provider_unreachable: 'Fakturaleverantören kunde inte nås.',
+  connection_not_configured: 'Fakturakopplingen är inte färdigkonfigurerad.',
+  token_endpoint_error: 'Fakturaleverantörens autentisering har ett tillfälligt tekniskt fel.',
+  token_auth_failed: 'Fakturaleverantörens autentisering misslyckades.',
+  export_unknown_error: 'Fakturaexporten kunde inte slutföras på grund av ett tekniskt fel.',
+}
+
+function diagnostic(input: Omit<InvoiceExportErrorClassification, 'message' | 'responseExcerpt'>): InvoiceExportErrorClassification {
+  // The provider response can echo a complete invoice, contact details or
+  // credentials. Future attempt diagnostics retain classification/status only;
+  // this does not rewrite existing invoice or provider evidence.
+  return { ...input, message: ERROR_MESSAGES[input.errorCode] ?? ERROR_MESSAGES.export_unknown_error, responseExcerpt: null }
+}
+
 export function classifyInvoiceExportError(error: unknown): InvoiceExportErrorClassification {
   const message = error instanceof Error ? error.message : 'Okänt exportfel'
 
   if (error instanceof CapwayApiError) {
     if (error.kind === 'network' || error.kind === 'timeout') {
-      return {
+      return diagnostic({
         outcome: 'failed_retryable',
         errorCode: error.kind === 'timeout' ? 'provider_timeout' : 'provider_unreachable',
-        message,
         httpStatus: null,
-        responseExcerpt: error.responseExcerpt,
         retryable: true,
-      }
+      })
     }
     if (error.httpStatus !== null) {
       const classified = classifyHttpStatus(error.httpStatus)
-      return {
+      return diagnostic({
         ...classified,
-        message,
         httpStatus: error.httpStatus,
-        responseExcerpt: error.responseExcerpt,
-      }
+      })
     }
   }
 
   // Connection configuration missing (resolveCapwayConnectionConfig) or token
   // endpoint failures surfaced as plain errors with a known message shape.
   if (/inte färdigkonfigurerad/i.test(message)) {
-    return { outcome: 'configuration_error', errorCode: 'connection_not_configured', message, httpStatus: null, responseExcerpt: null, retryable: false }
+    return diagnostic({ outcome: 'configuration_error', errorCode: 'connection_not_configured', httpStatus: null, retryable: false })
   }
   const tokenMatch = message.match(/Capway token kunde inte hämtas \((\d{3})\)/)
   if (tokenMatch) {
     const status = Number(tokenMatch[1])
     if (status >= 500) {
-      return { outcome: 'failed_retryable', errorCode: 'token_endpoint_error', message, httpStatus: status, responseExcerpt: null, retryable: true }
+      return diagnostic({ outcome: 'failed_retryable', errorCode: 'token_endpoint_error', httpStatus: status, retryable: true })
     }
-    return { outcome: 'configuration_error', errorCode: 'token_auth_failed', message, httpStatus: status, responseExcerpt: null, retryable: false }
+    return diagnostic({ outcome: 'configuration_error', errorCode: 'token_auth_failed', httpStatus: status, retryable: false })
   }
   if (error instanceof Error && /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|socket hang up|network/i.test(message)) {
-    return { outcome: 'failed_retryable', errorCode: 'provider_unreachable', message, httpStatus: null, responseExcerpt: null, retryable: true }
+    return diagnostic({ outcome: 'failed_retryable', errorCode: 'provider_unreachable', httpStatus: null, retryable: true })
   }
 
-  return { outcome: 'failed', errorCode: 'export_unknown_error', message, httpStatus: null, responseExcerpt: null, retryable: false }
+  return diagnostic({ outcome: 'failed', errorCode: 'export_unknown_error', httpStatus: null, retryable: false })
 }

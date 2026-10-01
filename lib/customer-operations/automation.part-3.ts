@@ -10,6 +10,7 @@ import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 import { createSupplierSwitchRequest, findCustomerSiteById, findOpenSupplierSwitchRequestForSite, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, syncOperationTasksFromReadiness } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { startSupplierSwitch } from '@/lib/operations/businessActions/startSupplierSwitch'
+import { checkSupplierSwitchReadiness } from '@/lib/customer-operations/switchReadiness'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
@@ -76,6 +77,40 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   const jobPayload = record(job.payload)
   const requestedStartDate = clean(jobPayload.requested_start_date) ?? site.move_in_date ?? null
   const requestType: SupplierSwitchRequestType = site.move_in_date ? 'move_in' : 'switch'
+  let contractId: string | null = null
+  if (!existing) {
+    const exactReadiness = await checkSupplierSwitchReadiness({
+      companyId: job.company_id,
+      customerId: job.customer_id,
+      siteId,
+    })
+    contractId = clean(exactReadiness.readinessSnapshot.contract_id)
+    if (!exactReadiness.ready || !contractId) {
+      const blockers = exactReadiness.blockers.length
+        ? exactReadiness.blockers
+        : [{ code: 'contract_missing', message: 'Leverantörsbytet saknar exakt signerat canonical-avtal.', source: 'contract' }]
+      await emitCustomerOperationEvent({
+        companyId: job.company_id,
+        customerId: job.customer_id,
+        actorUserId,
+        eventType: 'supplier_switch.blocked',
+        title: 'Leverantörsbyte kräver komplett avtalsberedskap',
+        message: blockers.map(blocker => blocker.message).join(', '),
+        customerSiteId: siteId,
+        meteringPointId: candidate.id,
+        customerOperationJobId: job.id,
+        operationId,
+        status: 'needs_review',
+        severity: 'warning',
+        actionRequired: true,
+        actionUrl: `/admin/customers/${job.customer_id}?tab=supplier-switch`,
+        payload: { readiness: exactReadiness.readinessSnapshot, blockers, operation_id: operationId },
+        idempotencyKey: `supplier-switch-exact-readiness-blocked:${job.id}`,
+      })
+      return { status: 'needs_review', result: { readiness: exactReadiness.readinessSnapshot, blockers,
+        reason: blockers[0].code, reason_code: blockers[0].code } }
+    }
+  }
   const request = existing ?? await createSupplierSwitchRequest(supabaseService, {
     readiness,
     site,
@@ -83,6 +118,7 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     requestType,
     requestedStartDate,
     companyId: job.company_id,
+    contractId,
     automationOrigin: 'customer_operation_job',
     automationKey: `customer-operation:${job.customer_id}:${siteId}:${candidate.id}`,
   })

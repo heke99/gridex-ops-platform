@@ -1,3 +1,5 @@
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
+
 const REDACTED = '[REDACTED]'
 const MAX_STRING_LENGTH = 1_000
 const MAX_ARRAY_ITEMS = 25
@@ -94,20 +96,5 @@ export function sanitizeLogMetadata(metadata: Record<string, unknown> = {}): Rec
 }
 
 export function safeLogError(error: unknown): { code: string | null; message: string } {
-  const record = error && typeof error === 'object'
-    ? error as { code?: unknown; message?: unknown }
-    : null
-  const code = typeof record?.code === 'string' && record.code.trim()
-    ? redactLogText(record.code.trim())
-    : null
-  const message = error instanceof Error
-    ? error.message
-    : typeof record?.message === 'string'
-      ? record.message
-      : String(error ?? 'unknown_error')
-
-  return {
-    code,
-    message: redactLogText(message || 'unknown_error'),
-  }
+  return technicalErrorDiagnostic(error)
 }

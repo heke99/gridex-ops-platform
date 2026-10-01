@@ -1,0 +1,1043 @@
+{
+  "schemaVersion": 1,
+  "classificationDate": "2026-10-01",
+  "basis": "Manual source review of every frozen 148 page route and current page-root implementation; actor predicates resolved by companion generator, source evidence is not runtime acceptance.",
+  "pages": [
+    {
+      "pageRoute": "/admin/agreements/grid-owners",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Active companies, grid owners, routes and up to 250 grid-owner agreements.",
+      "stateDisposition": "Direct read errors throw; agreement creation/editing is delegated to the rendered form.",
+      "specificWorkGap": "Confirm each agreement form actor/target-company and persisted receipt; populated and empty rows need real browser evidence."
+    },
+    {
+      "pageRoute": "/admin/analytics/deviations",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected-company deviation rows, requested month and CSV dataset.",
+      "stateDisposition": "Missing company returns a message; table and download are separate read paths.",
+      "specificWorkGap": "Qualify real A/B CSV bytes and current read-only actor; workspace fallback must not be mistaken for a confirmed empty export."
+    },
+    {
+      "pageRoute": "/admin/analytics/forecast",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected-company forecast periods, bidding zones, owners and CSV dataset.",
+      "stateDisposition": "Missing company returns a message; month/filter, missing forecasts and confidence are rendered.",
+      "specificWorkGap": "Qualify real dataset/filter output and error/empty distinction; CSV links now request a download but actual browser download remains open."
+    },
+    {
+      "pageRoute": "/admin/analytics",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected-company monthly metrics and analytics summaries.",
+      "stateDisposition": "Missing company returns a message; month selection and summary tables use imported loaders.",
+      "specificWorkGap": "Qualify each loaded branch under real selected-company changes and loader failure; summary count alone proves no action."
+    },
+    {
+      "pageRoute": "/admin/analytics/reports",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected-company reports selected from ANALYTICS_REPORTS via ReportsList.",
+      "stateDisposition": "Missing company returns a message; generated report links are delegated to ReportsList.",
+      "specificWorkGap": "Resolve each whitelist report to its concrete download bytes, actor and period; the dynamic child links have no whole-page runtime receipt."
+    },
+    {
+      "pageRoute": "/admin/audit",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Audit rows filtered by selected company for ordinary actors and global for platform actors.",
+      "stateDisposition": "Ordinary missing-company reads return empty; missing schema/column can also produce empty rows.",
+      "specificWorkGap": "Distinguish legitimate no-audit state from unavailable schema in real UI; qualify displayed audit fields and foreign-company exclusion."
+    },
+    {
+      "pageRoute": "/admin/billing/ai-parser",
+      "resourceScope": "SELECTED_COMPANY_CONDITIONAL_EMPTY",
+      "resourceDisposition": "AI extraction rows queried only when a fresh user's operational company exists.",
+      "stateDisposition": "No company produces no extraction rows; query failure is displayed from its message.",
+      "specificWorkGap": "Fresh-user/guard/company equality is not explicit here; qualify current-context mismatch and safe error text before declaring the read path complete."
+    },
+    {
+      "pageRoute": "/admin/billing/export-center",
+      "resourceScope": "REDIRECT",
+      "resourceDisposition": "Canonical /admin/billing workspace.",
+      "stateDisposition": "Redirect-only route; no independent business control.",
+      "specificWorkGap": "Qualify redirect destination and inherited billing authority; do not count the legacy route as a separate export command."
+    },
+    {
+      "pageRoute": "/admin/billing/import",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected-company import batches and uploaded/pasted underlay data.",
+      "stateDisposition": "Write/export plus current company equality controls file, textarea and submit; URL notices report persisted partial or complete outcomes.",
+      "specificWorkGap": "Actual action regressions exist; database/batch listing errors and real file/draft/pending/browser outcomes remain separate qualification gaps."
+    },
+    {
+      "pageRoute": "/admin/billing/integrations",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected-company test provider connections and webhook reprocessing.",
+      "stateDisposition": "Fresh Auth equals guard and ordinary company equals selected scope; read-only controls are disabled and action results retained.",
+      "specificWorkGap": "Real provider transport is unqualified; controlled action tests do not certify native persistence, reprocess fairness or actual mounted form behavior."
+    },
+    {
+      "pageRoute": "/admin/billing/invoices/[id]",
+      "resourceScope": "TARGET_IN_SELECTED_COMPANY",
+      "resourceDisposition": "Scoped review item and issued invoice with immutable address/revision snapshot.",
+      "stateDisposition": "Current Auth/guard/company agreement precedes load; lifecycle states and historical missing evidence are explicit.",
+      "specificWorkGap": "Qualify foreign deep links and live-versus-issued snapshot display using real actors; provider/PDF bytes and physical documents stay outside source proof."
+    },
+    {
+      "pageRoute": "/admin/billing/invoices/[id]/redelivery",
+      "resourceScope": "TARGET_IN_SELECTED_COMPANY",
+      "resourceDisposition": "Scoped issued invoice, current effective destination and matching active owner.",
+      "stateDisposition": "Export grant, dispatched state, email and blockers govern recording; dirty/error/pending/completed lock is delegated to RedeliveryDecisionForm.",
+      "specificWorkGap": "New U12 proof prepares real current-owner browser/native checks but has zero executions; no actual redelivery/provider completion is implied."
+    },
+    {
+      "pageRoute": "/admin/billing",
+      "resourceScope": "SELECTED_COMPANY_CONDITIONAL_EMPTY",
+      "resourceDisposition": "Selected-company monthly invoice review rows and ready invoice send action.",
+      "stateDisposition": "Missing company returns empty rows; send form is visible for eligible rows without a page-level export-disabled condition.",
+      "specificWorkGap": "Qualify current Auth/guard/company equality and read-only send-control behavior; approval/send server action authority and actual provider effect are separate."
+    },
+    {
+      "pageRoute": "/admin/billing/partner-invoices",
+      "resourceScope": "REDIRECT",
+      "resourceDisposition": "Canonical /admin/billing workspace.",
+      "stateDisposition": "Redirect-only compatibility destination.",
+      "specificWorkGap": "Qualify redirect/inherited canonical workspace; no extra partner-invoice command is created by this alias."
+    },
+    {
+      "pageRoute": "/admin/billing/quality",
+      "resourceScope": "SELECTED_COMPANY_CONDITIONAL_EMPTY",
+      "resourceDisposition": "Selected-company customers, sites, points, contracts, POA, underlays and export diagnostics.",
+      "stateDisposition": "No company yields empty arrays; read failures are collected for the quality view.",
+      "specificWorkGap": "Qualify current Auth/guard/company match, loader-error redaction and linked-resource chains; diagnostics do not certify corrected data."
+    },
+    {
+      "pageRoute": "/admin/billing/underlays/[id]",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "safeListRows underlays/pricing followed by local row-ID selection.",
+      "stateDisposition": "Optional company filter and bounded list reads can yield empty/missing rows; helper fallback is involved.",
+      "specificWorkGap": "Prove ordinary NULL-scope cannot reach an unfiltered read; use a real foreign deep link and exact ID query/effect evidence, not import reachability."
+    },
+    {
+      "pageRoute": "/admin/billing/underlays",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Up to 80 underlay rows through safeListRows with optional company.",
+      "stateDisposition": "Empty rows and helper failure fallback are not separately qualified by this page.",
+      "specificWorkGap": "Qualify ordinary NULL-scope reachability, company equality and unavailable-versus-empty UI state; no confirmed leak is inferred from an optional filter."
+    },
+    {
+      "pageRoute": "/admin/companies/[id]",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Explicit company, governance summary, legal/contract tabs and lifecycle controls.",
+      "stateDisposition": "Missing company, lifecycle blockers, action banners and conditional test-data deletion are rendered.",
+      "specificWorkGap": "Resolve every rendered tab/form into current target-company authorization and qualified persistence; destructive graph blockers require native proof."
+    },
+    {
+      "pageRoute": "/admin/companies/[id]/users",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Company-specific users, invitations and access/governance records.",
+      "stateDisposition": "Missing/load-error states and inline action wrappers expose invitation/profile/access controls.",
+      "specificWorkGap": "Qualify global identity preservation versus tenant access, invitations and role changes with real actor/target context; each wrapper remains an action callsite."
+    },
+    {
+      "pageRoute": "/admin/companies",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "All companies and governance counts with create, invite and lifecycle controls.",
+      "stateDisposition": "ActionBanner, lifecycle transition eligibility and protected/test-only delete states are explicit.",
+      "specificWorkGap": "Qualify each transition and creation/invitation outcome including unchanged original data; global list presence is not mutation evidence."
+    },
+    {
+      "pageRoute": "/admin/company-actor-status",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Selected-company actor-testing readiness summary.",
+      "stateDisposition": "A permission guard is followed by explicit canonical platform-only redirect; missing summary and canActivateLive=false are shown.",
+      "specificWorkGap": "Qualify nullable selected-company summary and rendered readiness states; ordinary read permissions do not grant this effective platform-only page."
+    },
+    {
+      "pageRoute": "/admin/company-settings",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected company/legal settings and responsible users' tenant access.",
+      "stateDisposition": "Users-write/invite govern safe forms; login email uses actual Auth identity; production selector is approval-disabled.",
+      "specificWorkGap": "Four browser cases are prepared but not executed here; qualify drafts, matched-row saves, identity preservation and missing-company/legal states."
+    },
+    {
+      "pageRoute": "/admin/contracts",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Tenant contract offers, pricing/readiness and channel lifecycle.",
+      "stateDisposition": "Actual page guard is contracts.read; platform actor must choose a validated company; missing company produces ActionBanner.",
+      "specificWorkGap": "Catalog key permissions differ from actual guard; enumerate rendered branch commands and qualify target permissions, readiness, archive/publish effects separately."
+    },
+    {
+      "pageRoute": "/admin/controltower",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Operational counts, exception queues and optionally cases/support.",
+      "stateDisposition": "Ordinary missing company returns a message; cases/support use separate read capabilities.",
+      "specificWorkGap": "Qualify each permitted metric/error fallback and child control; a broad page anyOf does not authorize every resource or command."
+    },
+    {
+      "pageRoute": "/admin/customer-applications",
+      "resourceScope": "PAGE_ALIAS",
+      "resourceDisposition": "Website applications canonical implementation.",
+      "stateDisposition": "Re-export of /admin/website-applications; same actor/resource/state implementation.",
+      "specificWorkGap": "Qualify alias URL and actual canonical implementation once; do not invent a second application approval command."
+    },
+    {
+      "pageRoute": "/admin/customer-cases",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected-company cases and current OPS support-read session/visibility.",
+      "stateDisposition": "Literal cases.read; ordinary write requires matching guard/operational company, writable membership and cases.write.",
+      "specificWorkGap": "Qualify paginated/filter/session/message/attachment branches using current actor and revision; quarantine status is not protected-download release."
+    },
+    {
+      "pageRoute": "/admin/customer-info-requests",
+      "resourceScope": "SELECTED_COMPANY_CONDITIONAL_EMPTY",
+      "resourceDisposition": "Selected-company customer information requests and linked options.",
+      "stateDisposition": "Any customer/POA/metering read opens page; missing company yields empty lists and a message.",
+      "specificWorkGap": "Qualify fresh-user/guard equality and command-specific write controls; each create/request action needs its own selected-customer resource binding."
+    },
+    {
+      "pageRoute": "/admin/customers/[id]/contracts/[contractId]/signature",
+      "resourceScope": "TARGET_IN_SELECTED_COMPANY",
+      "resourceDisposition": "Explicit customer and contract after loadCustomerTenantContext/assertContractTenant.",
+      "stateDisposition": "Contract read or write opens page; sendability depends on unsigned draft/pending/failed signature state.",
+      "specificWorkGap": "Qualify read-only actor control state, real foreign customer/contract combinations and exact signature effect; returned HTML/error notice is not delivery proof."
+    },
+    {
+      "pageRoute": "/admin/customers/[id]",
+      "resourceScope": "TARGET_IN_SELECTED_COMPANY",
+      "resourceDisposition": "Customer card with exact customer-company boundary and selected site/point/tab resources.",
+      "stateDisposition": "Customers.read or masterdata.read; missing/foreign/portal-test customer is explained; contract/case/tab capabilities are separate.",
+      "specificWorkGap": "Every delegated card/form needs current command-specific authority, nested resource binding and error/draft/effect receipts; facade breadth is not action coverage."
+    },
+    {
+      "pageRoute": "/admin/customers/duplicates",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Duplicate-customer groups from selected/global read scope.",
+      "stateDisposition": "Read-only group view explicitly performs no automatic merge; empty groups are shown.",
+      "specificWorkGap": "Qualify NULL-scope reachability, duplicate criteria and foreign exclusion; no merge action exists merely because duplicate rows render."
+    },
+    {
+      "pageRoute": "/admin/customers/imports",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Customer import batches and their rows, with conditional company filter.",
+      "stateDisposition": "Customer write/read/masterdata read opens page; query errors throw; created/failed row states appear.",
+      "specificWorkGap": "Prove ordinary scope cannot become unfiltered; qualify row ownership through batch IDs and importer write controls versus read-only page grants."
+    },
+    {
+      "pageRoute": "/admin/customers/intake",
+      "resourceScope": "SELECTED_COMPANY_CONDITIONAL_EMPTY",
+      "resourceDisposition": "Selected-company onboarding options and CustomerIntakeForm.",
+      "stateDisposition": "Customers.write or masterdata.read opens page; missing-company/offer readiness is delegated to intake form.",
+      "specificWorkGap": "Qualify masterdata-read actor submit denial/disabled state, current tenant options and complete intake/rollback; page entry permission alone is not write authority."
+    },
+    {
+      "pageRoute": "/admin/customers",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Selected/global customer list with current saved revision and related resources.",
+      "stateDisposition": "Facade resolves to page.part-2; ordinary selected/guard/operational scope mismatch or absence returns an explicit message.",
+      "specificWorkGap": "Qualify actual current revision, pagination/filter, read-only actor and related-resource scoping; generated list/type references alone are not rendered evidence."
+    },
+    {
+      "pageRoute": "/admin/customers/segments",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Customer segmentation from customer IDs and linked contracts/sites/switches.",
+      "stateDisposition": "Missing ordinary company redirects; customer/report read opens filters and derived segment rows.",
+      "specificWorkGap": "Qualify derived-ID joins, 250-row bounds, segmentation and current context; each link must retain selected tenant on deep navigation."
+    },
+    {
+      "pageRoute": "/admin/customers/tenant-test",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "RLS/security report views.",
+      "stateDisposition": "Database failures fall back to empty rows; table shows report flags only.",
+      "specificWorkGap": "An empty report is not a successful tenant-isolation run; qualify report availability and actual current low-role database tests separately."
+    },
+    {
+      "pageRoute": "/admin/data-quality",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Quality issues, webhook diagnostics and customer email domains.",
+      "stateDisposition": "Company filter is added only for non-null scope; empty/failed statuses are presented.",
+      "specificWorkGap": "Prove ordinary missing-scope reachability and safe error state; optional filtering is a source gap, not a demonstrated cross-tenant exploit."
+    },
+    {
+      "pageRoute": "/admin/ediel/actors",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Actors, settings, addresses, market roles, routes, issues and import runs.",
+      "stateDisposition": "Some direct read errors collapse to empty; import and actor editing forms are rendered.",
+      "specificWorkGap": "Qualify import preview/apply branches, relation ownership, partial errors and actual preserved registry data; source import counts are not effect receipts."
+    },
+    {
+      "pageRoute": "/admin/ediel/agt/[testCaseCode]",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Canonical AGT test case, optional company, runs and evidence.",
+      "stateDisposition": "Invalid case, runtime issues, run statuses and generated evidence destinations vary by selected case.",
+      "specificWorkGap": "Resolve dynamic testcase/evidence bindings and current company/role eligibility; real wire, portal and artifact bytes remain unqualified."
+    },
+    {
+      "pageRoute": "/admin/ediel/agt",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "AGT catalogue/runtime, optional selected company and runs.",
+      "stateDisposition": "Runtime issues and current run states govern launch controls.",
+      "specificWorkGap": "Qualify case-specific setup/launch/evidence and honest failure states; listing many cases does not verify those normative test cases."
+    },
+    {
+      "pageRoute": "/admin/ediel/ai-list",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global customers/sites/points/messages used by AI import/matching.",
+      "stateDisposition": "Primary database errors throw; filtering, uploads and customer-binding controls are present.",
+      "specificWorkGap": "Qualify each import/match/create command against exact customer/point/company and persisted rows; generated parsing guesses are not canonical acceptance."
+    },
+    {
+      "pageRoute": "/admin/ediel/anvisningar",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Static guideline and specification registry.",
+      "stateDisposition": "Reference/document links only; no claim that guideline behavior executed.",
+      "specificWorkGap": "Qualify link/navigation accessibility; business conformance requires separate actual normative case evidence, not this source-reference page."
+    },
+    {
+      "pageRoute": "/admin/ediel/auto-readiness",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Actor readiness, certifications and AGT runs.",
+      "stateDisposition": "Raw load errors and blocked/partial/manual/ready categories are displayed.",
+      "specificWorkGap": "Qualify unavailable data versus readiness status and any delegated launch control; a ready label cannot certify external transport or acceptance."
+    },
+    {
+      "pageRoute": "/admin/ediel/automation",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Automation dashboard and up to 50 decision traces.",
+      "stateDisposition": "Empty trace/dashboard states and action controls are delegated.",
+      "specificWorkGap": "Qualify actual automation command fairness, selected resources and final persisted outcome; trace count is not operation completion."
+    },
+    {
+      "pageRoute": "/admin/ediel/certificates",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Certificate registry, search and update job results.",
+      "stateDisposition": "Registry/job states and unavailable/empty responses are shown.",
+      "specificWorkGap": "Qualify refresh persistence and actual certificate/provider material separately; registry rows cannot prove a physical certificate is usable."
+    },
+    {
+      "pageRoute": "/admin/ediel/certification",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Certification dashboard, role packs and evidence forms.",
+      "stateDisposition": "Child status/evidence controls present certification readiness.",
+      "specificWorkGap": "Resolve each child role/case binding and actual report evidence; no certification approval is inferred from dashboard summaries."
+    },
+    {
+      "pageRoute": "/admin/ediel/control-tower",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global failed/negative/duplicate/unresolved Ediel counts and links.",
+      "stateDisposition": "Platform guard precedes broad Ediel page key; fallback counts and dead ordinary branches exist.",
+      "specificWorkGap": "Qualify global diagnostics and unavailable-versus-zero counts; ordinary page-key grants do not bypass the earlier platform guard."
+    },
+    {
+      "pageRoute": "/admin/ediel/mail-readiness",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Mail readiness diagnostics.",
+      "stateDisposition": "Read-only diagnostic result shows mail readiness conditions.",
+      "specificWorkGap": "Qualify diagnostic source failure separately from true readiness; actual SMTP/IMAP, credentials and received raw bytes remain independent blockers."
+    },
+    {
+      "pageRoute": "/admin/ediel/mailboxes",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global Ediel mailbox registry.",
+      "stateDisposition": "Query failure can become empty rows; TLS/security and polling state are shown.",
+      "specificWorkGap": "Qualify real mailbox configuration/save and safe unavailable state; displayed security/poll values do not prove transport execution."
+    },
+    {
+      "pageRoute": "/admin/ediel/masterdata-reconciliation",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Imported masterdata reconciliation report.",
+      "stateDisposition": "Read-only report and dynamic discrepancy links.",
+      "specificWorkGap": "Qualify reconciliation inputs and exact foreign-resource links; displayed reconciliation status is not evidence that an import corrected canonical records."
+    },
+    {
+      "pageRoute": "/admin/ediel/messages/[id]",
+      "resourceScope": "PLATFORM_TARGET_RESOURCE",
+      "resourceDisposition": "Global message ID, ACKs, events, related records and send readiness.",
+      "stateDisposition": "Missing message/read errors/readiness and inbound receipt projections are displayed; ordinary live branch follows platform guard.",
+      "specificWorkGap": "Qualify raw-byte/resource binding, current readiness and each send/reprocess call; ACK display alone is not business acceptance."
+    },
+    {
+      "pageRoute": "/admin/ediel/messages",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global messages and message/ACK sendability.",
+      "stateDisposition": "Status filters, empty rows and canSend-dependent controls are rendered.",
+      "specificWorkGap": "Qualify each message family/ACK policy, current actor and actual delivery/rollback; imported handlers do not prove mounted controls executed."
+    },
+    {
+      "pageRoute": "/admin/ediel/operational-cases",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Company-scoped operational cases, selected case/events and legacy Ediel relations.",
+      "stateDisposition": "Missing ordinary company is explained; invalid filters/IDs return notFound; write requires matching current company/cases.write.",
+      "specificWorkGap": "Qualify source-specific legacy case branches and exact event/customer links; this is not automatically duplicate coverage of the newer customer-cases command."
+    },
+    {
+      "pageRoute": "/admin/ediel/outbox",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Up to 100 global Ediel outbox records.",
+      "stateDisposition": "Prepared, sent and error projections drive delegated controls.",
+      "specificWorkGap": "Qualify dispatcher-owned original bytes and actual outcome; sent count/source status does not certify physical send or original receipt."
+    },
+    {
+      "pageRoute": "/admin/ediel",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Ediel dashboard, actor profiles and production/test readiness.",
+      "stateDisposition": "Platform guard renders dashboard; dead tenant branches and caught profile load failures remain.",
+      "specificWorkGap": "Qualify missing/unavailable actor profile separately from disabled test/live status; no go-live or normative certification is implied."
+    },
+    {
+      "pageRoute": "/admin/ediel/portal-feedback",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Up to 100 portal-feedback rows and feedback entry controls.",
+      "stateDisposition": "Empty feedback and optional company fields are displayed.",
+      "specificWorkGap": "Qualify exact submitted company and persisted feedback/attachments; imported portal feedback is not genuine external portal qualification."
+    },
+    {
+      "pageRoute": "/admin/ediel/readiness",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Active company choices, actor-role readiness and locks.",
+      "stateDisposition": "Required company/actor/role forms and empty readiness/lock states are shown.",
+      "specificWorkGap": "Qualify each role's revision/current eligibility and lock persistence; never infer permission from the platform dropdown alone."
+    },
+    {
+      "pageRoute": "/admin/ediel/route-readiness",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Route/actor/contact matrix and new company-route inputs.",
+      "stateDisposition": "Load-error and ActionBanner states plus next actions are rendered.",
+      "specificWorkGap": "Resolve every materialize/review/ignore/manual branch to exact company/actor/route and qualified partial counts; no automatic-send approval is inferred."
+    },
+    {
+      "pageRoute": "/admin/ediel/routes/legacy",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Compatibility route editor with conditional selected-company routes and shared masterdata.",
+      "stateDisposition": "Direct query errors throw; dynamic send/actor readiness and legacy forms remain active.",
+      "specificWorkGap": "This route is not a redirect; trace actual legacy forms and compare canonical commands before deduplication, including selected/global scope ambiguity."
+    },
+    {
+      "pageRoute": "/admin/ediel/routes",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global actor routes and route-policy forms.",
+      "stateDisposition": "Empty actors/issues and direct/helper error states are shown.",
+      "specificWorkGap": "Qualify route mode/recipient/current actor, persisted receipt and pending/error state; listing route policy is not actual endpoint readiness."
+    },
+    {
+      "pageRoute": "/admin/ediel/rule-profiles",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Import/version rule matrix and template controls.",
+      "stateDisposition": "Empty imports/versions and normative rule labels appear.",
+      "specificWorkGap": "Qualify preview/apply/publish effects for each actual template/version; static normative registry matches are not conformance receipts."
+    },
+    {
+      "pageRoute": "/admin/ediel/settings",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Actor settings, message rules and runtime snapshots, optionally selected company.",
+      "stateDisposition": "Read errors throw; configuration, secret-reference and revision controls are shown.",
+      "specificWorkGap": "Qualify exact company/global settings target, safe secrets and concurrent save receipts; displayed runtime snapshot does not certify transport."
+    },
+    {
+      "pageRoute": "/admin/ediel/system-tests/cases/[id]",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Explicit system testcase, chosen company, runs/messages/artifacts.",
+      "stateDisposition": "Case/run state and caught empty artifact data vary with company and case.",
+      "specificWorkGap": "Resolve all dynamic case/artifact links and setup/execute policy; genuine original portal/wire fixtures remain unexecuted here."
+    },
+    {
+      "pageRoute": "/admin/ediel/system-tests",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Selected/query company, certificate choices and system test cases.",
+      "stateDisposition": "Company-dependent launch controls, setup banners and filters appear.",
+      "specificWorkGap": "Qualify actual system runner, inbox/ACK/artifact capture and role suitability; rendered cases cannot substitute for genuine case outcomes."
+    },
+    {
+      "pageRoute": "/admin/ediel/test-center/invoice-test",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Validated company/customer test workspace and invoice/document projections.",
+      "stateDisposition": "Option validity and loader errors are explicit; test-only document/partner controls are delegated.",
+      "specificWorkGap": "Qualify exact synthetic-resource graph and bytes separately from original issued records; no physical PDF/provider success is implied."
+    },
+    {
+      "pageRoute": "/admin/ediel/test-center/metering-to-invoice",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Chosen test company/customer, period, scenario and uploaded metering input.",
+      "stateDisposition": "Loader error disables every input/submit; run status and trace link vary.",
+      "specificWorkGap": "Qualify original raw input, real metering-to-invoice command and zero foreign/original effects; one displayed trace is not whole pipeline acceptance."
+    },
+    {
+      "pageRoute": "/admin/ediel/test-center/metering-to-invoice/trace/[edielMessageId]",
+      "resourceScope": "PLATFORM_TARGET_RESOURCE",
+      "resourceDisposition": "Explicit Ediel message/underlay trace with validated billing month.",
+      "stateDisposition": "Invalid month throws; readonly parsing/report sections and externally blocked label are shown.",
+      "specificWorkGap": "Qualify cross-ID/company/period binding and actual trace source bytes; controlled transport labels do not approve external dispatch."
+    },
+    {
+      "pageRoute": "/admin/ediel/test-center",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Active company/role test options and current run summaries.",
+      "stateDisposition": "Company/role-dependent test forms and status projections are rendered.",
+      "specificWorkGap": "Qualify exact setup/run command and retained evidence for every requested role; test environment label is not a completed normative outcome."
+    },
+    {
+      "pageRoute": "/admin/ediel/unresolved",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Up to 100 unresolved Ediel records.",
+      "stateDisposition": "Empty records are shown as a good state; resolve controls are delegated.",
+      "specificWorkGap": "Qualify missing-source versus genuine no-unresolved result and exact resolution effect; imported action names are not business completion."
+    },
+    {
+      "pageRoute": "/admin/electricity-suppliers",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Shared electricity-supplier registry and import/provenance records.",
+      "stateDisposition": "Global list, fallback and registry action states are delegated.",
+      "specificWorkGap": "Qualify importer/source ownership, revocation and preserved canonical data; no supplier-contact/network operation is authorized by this inventory."
+    },
+    {
+      "pageRoute": "/admin/events",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Company timeline RPC with customer/operation/severity/action filters.",
+      "stateDisposition": "Missing company returns explicit message; readonly event/timeline filters render.",
+      "specificWorkGap": "Qualify actual RPC cursor/filter/privacy output and unavailable/empty states; timeline entries are not evidence that referenced commands succeeded."
+    },
+    {
+      "pageRoute": "/admin/external-contract-intakes",
+      "resourceScope": "PAGE_ALIAS",
+      "resourceDisposition": "Website applications canonical implementation.",
+      "stateDisposition": "Default imported component is the same /admin/website-applications implementation.",
+      "specificWorkGap": "Explicitly resolves frozen unresolved_symbol to imported default page; qualify URL alias, never count another intake command from this facade."
+    },
+    {
+      "pageRoute": "/admin/facility-requests",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Facility queue and grid-owner requests, company-filtered when present.",
+      "stateDisposition": "Legacy-schema fallback, queue statuses and send/manual resolve controls are present.",
+      "specificWorkGap": "Qualify ordinary NULL-scope reachability, request-specific write authority and honest partial/legacy outcomes before any tenant or effect completion claim."
+    },
+    {
+      "pageRoute": "/admin/inbound-mail/[id]",
+      "resourceScope": "PLATFORM_TARGET_RESOURCE",
+      "resourceDisposition": "Inbound message ID, raw/parse/match metadata, attachments and jobs.",
+      "stateDisposition": "Read failure throws; source/matching and job/attachment controls depend on the row.",
+      "specificWorkGap": "Qualify exact attachment/object/job relation and current replay authority; protected download release and external inbox bytes need their own actual evidence."
+    },
+    {
+      "pageRoute": "/admin/inbound-mail/diagnostics",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global inbound-mail pipeline diagnostics.",
+      "stateDisposition": "Read-only schema/probe/statistics and error states.",
+      "specificWorkGap": "Qualify failed diagnostic source versus healthy pipeline; diagnostic rows do not prove IMAP ingest or queue consumption."
+    },
+    {
+      "pageRoute": "/admin/inbound-mail",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global mailboxes/messages, parse and poll runs.",
+      "stateDisposition": "Primary query errors throw; poll history can fall back to empty; config/reprocess controls appear.",
+      "specificWorkGap": "Qualify each mailbox secret reference and parse/poll/retry command under current operator; safe raw errors and complete durable outcome remain open."
+    },
+    {
+      "pageRoute": "/admin/integrations/routes",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Shared route options and global integration routing policy.",
+      "stateDisposition": "Platform guard makes ordinary tenant branches unreachable; empty/options/forms are rendered.",
+      "specificWorkGap": "Qualify exact route target, current authority and persisted policy outcome; broad communication read page-key definitions do not change effective platform-only entry."
+    },
+    {
+      "pageRoute": "/admin/manual-mailboxes",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Manual-mailbox registry and configuration.",
+      "stateDisposition": "Empty, TLS, polling and raw last-error fields appear.",
+      "specificWorkGap": "Qualify safe last-error text and matched configuration saves; real mailbox transport/credential availability remains separate."
+    },
+    {
+      "pageRoute": "/admin/manual-requests",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global grid-owner requests, manual inbound and email-outbox projections.",
+      "stateDisposition": "Empty queues and raw last-error/provider status fields appear.",
+      "specificWorkGap": "Qualify request/current owner, source evidence and processing outcomes; email-outbox status alone is not actual external communication proof."
+    },
+    {
+      "pageRoute": "/admin/messages/[id]",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Message-by-ID helper and related customer/grid-owner references.",
+      "stateDisposition": "Unknown message returns notFound; optional scope is forwarded to the loader.",
+      "specificWorkGap": "Prove ordinary NULL-scope cannot expose a foreign ID and related links preserve ownership; qualify actual detail error/missing states."
+    },
+    {
+      "pageRoute": "/admin/messages",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Ediel/outbound/grid-owner messages and derived customer/grid-owner links.",
+      "stateDisposition": "Company filtering is conditional; list/filter and read-error states are composed from multiple sources.",
+      "specificWorkGap": "Qualify missing-scope reachability, source errors and each linked resource; global fallback reachability is not a demonstrated leak."
+    },
+    {
+      "pageRoute": "/admin/metering",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Selected-company CIS metering rows and metering-ingest form.",
+      "stateDisposition": "Literal metering.read page gate; child form and missing/empty rows are delegated.",
+      "specificWorkGap": "Qualify NULL-scope reads and child metering.write control state/ingest effect; page read grant is not authorization for write."
+    },
+    {
+      "pageRoute": "/admin/network-owners/[id]/contact-channels",
+      "resourceScope": "PLATFORM_TARGET_RESOURCE",
+      "resourceDisposition": "Explicit shared grid-owner ID and its contact channels.",
+      "stateDisposition": "Global registry channel list and empty state are rendered.",
+      "specificWorkGap": "Qualify owner existence, canonical channel commands and exact matched-row persistence; hidden owner ID must not stand in for server binding."
+    },
+    {
+      "pageRoute": "/admin/network-owners",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Shared grid-owner registry, import runs, certificates and sources.",
+      "stateDisposition": "Independent loader results expose partial errors and empty tables.",
+      "specificWorkGap": "Qualify import refresh/certificate effects and saved counts through actual commands; one allSettled result cannot certify all registry families."
+    },
+    {
+      "pageRoute": "/admin/operations/automation",
+      "resourceScope": "SELECTED_COMPANY_CONDITIONAL_EMPTY",
+      "resourceDisposition": "Selected-company automation batches and period/metering controls.",
+      "stateDisposition": "Missing company yields empty rows and disables buttons; command-specific grants are not uniformly reflected by page anyOf.",
+      "specificWorkGap": "Qualify three command branches under writer/reader/current company, partial errors and durable counts; no-company disabled alone is insufficient proof."
+    },
+    {
+      "pageRoute": "/admin/operations/grid-owner-requests/[id]",
+      "resourceScope": "TARGET_IN_SELECTED_COMPANY",
+      "resourceDisposition": "Grid-owner request ID; ordinary actor's company is checked before related site/document/messages.",
+      "stateDisposition": "Unknown/foreign request returns notFound; readonly diagnostics and delegated controls depend on current row.",
+      "specificWorkGap": "Qualify related customer/site/document company chain and each actual retry/resolve authority; resource comparison is source evidence only."
+    },
+    {
+      "pageRoute": "/admin/operations/integrity",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Operational integrity data and blockers for scoped customer IDs.",
+      "stateDisposition": "Global platform/selected ordinary scope, helper fallback and first-blocker statuses.",
+      "specificWorkGap": "Qualify linked resource ownership, unavailable versus empty, limits and deduplication; diagnostics cannot certify repairs without command receipts."
+    },
+    {
+      "pageRoute": "/admin/operations",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Scoped site/CIS operations, POA, metering, switches and ready exports.",
+      "stateDisposition": "Missing/gap/readiness states and delegated operational controls are rendered.",
+      "specificWorkGap": "Qualify each child command's actor/resource/outcome and ordinary NULL-scope exclusion; broad workspace access is not whole-operation acceptance."
+    },
+    {
+      "pageRoute": "/admin/operations/perioder",
+      "resourceScope": "SELECTED_COMPANY_CONDITIONAL_EMPTY",
+      "resourceDisposition": "Selected-company period readiness and queue rows.",
+      "stateDisposition": "No company yields empty queues and disables period-run submit.",
+      "specificWorkGap": "Qualify exact period permission, current company and durable partial/complete effect; empty queues do not prove a period run completed."
+    },
+    {
+      "pageRoute": "/admin/operations/ready-to-execute",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Ready switch requests, selected-company routes/sites.",
+      "stateDisposition": "Primary read errors throw and empty-ready state is displayed.",
+      "specificWorkGap": "Qualify NULL-scope reachability and current write/dispatch eligibility; readiness is not proof of actual sender bytes or delivery."
+    },
+    {
+      "pageRoute": "/admin/operations/switches/[id]",
+      "resourceScope": "TARGET_IN_SELECTED_COMPANY",
+      "resourceDisposition": "Explicit switch request with ordinary company check before site/customer/Ediel/events/outbound children.",
+      "stateDisposition": "Unknown/foreign ID returns notFound; readiness, cancel and send controls are conditional.",
+      "specificWorkGap": "Qualify nested related-company checks, current lifecycle/actor and exact cancel/send atomic effects; source state alone is not acceptance."
+    },
+    {
+      "pageRoute": "/admin/operations/switches",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Switch requests and linked sites/customers/points from company-aware helpers.",
+      "stateDisposition": "Filters, empty switch rows and direct site errors appear.",
+      "specificWorkGap": "Qualify ordinary NULL-scope reachability and every rendered switch command; displayed pending/failed status is not dispatcher/ACK evidence."
+    },
+    {
+      "pageRoute": "/admin/operations/sync",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Conditional-company customer/site/contract/POA consistency data.",
+      "stateDisposition": "Read errors throw; sync, repair and refresh controls compose different writers.",
+      "specificWorkGap": "Qualify each permission and current target plus matched data/effect; broad read page keys do not authorize all repairs."
+    },
+    {
+      "pageRoute": "/admin/operations/tasks",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Tasks with related scoped sites/POA and blocker/resolution projections.",
+      "stateDisposition": "Empty tasks, blocker-first and likely-resolved states drive controls.",
+      "specificWorkGap": "Qualify task transition/heal/delete authority and actual outcome including already-resolved cases; source diagnosis is not successful repair."
+    },
+    {
+      "pageRoute": "/admin/outbound/missing-billing-underlays",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Sites, points, underlays and missing billing candidates.",
+      "stateDisposition": "Missing-point/underlay rows and queue controls are rendered.",
+      "specificWorkGap": "Qualify ordinary missing-scope boundary, customer/point chain and create/price/prepare permissions/effects for each candidate."
+    },
+    {
+      "pageRoute": "/admin/outbound/missing-meter-values",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Sites, points, values and missing metering candidates.",
+      "stateDisposition": "Empty missing rows and request/ingest controls are rendered.",
+      "specificWorkGap": "Qualify current metering actor, exact requested point/company/period and actual request/ingest effect; missing-data count is not a command receipt."
+    },
+    {
+      "pageRoute": "/admin/outbound",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Outbound requests, Ediel links and ready export rows.",
+      "stateDisposition": "Queue/ready/failed states and dispatch/approve/retry controls vary by source.",
+      "specificWorkGap": "Qualify branch-specific resource/permission and original bytes; no queue projection alone certifies external delivery or full effect."
+    },
+    {
+      "pageRoute": "/admin/outbound/ready-switches",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Ready switch requests and route readiness.",
+      "stateDisposition": "Empty-ready state and dispatch controls are displayed.",
+      "specificWorkGap": "Qualify exact switch point/company/current eligibility, read-only state and real send/rollback; page switching.read alone does not grant dispatch."
+    },
+    {
+      "pageRoute": "/admin/outbound/unresolved",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Unresolved routes/grid-owner requests and linked sites.",
+      "stateDisposition": "Unresolved reason/filter states and resolution/dispatch controls are composed.",
+      "specificWorkGap": "Qualify each actual source family and target binding, missing-scope reachability and truthful partial outcome."
+    },
+    {
+      "pageRoute": "/admin",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Dashboard summaries and selected/global operational metrics.",
+      "stateDisposition": "Broad permission anyOf, tenantReady and caught count failures can render zero/default metrics.",
+      "specificWorkGap": "Qualify per-metric read grants and unavailable-versus-zero; summary counts and navigable links are not executed business actions."
+    },
+    {
+      "pageRoute": "/admin/partner-exports",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Company-aware partner export runs and generator controls.",
+      "stateDisposition": "Empty/export statuses and delegated controls appear.",
+      "specificWorkGap": "Qualify actual export grant, dataset/company and persisted artifact/output under current actor; listed runs do not prove external partner acceptance."
+    },
+    {
+      "pageRoute": "/admin/platform/actor-testing/[companyId]/evidence",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Explicit company actor-testing evidence, raw/CSV/PDF destinations.",
+      "stateDisposition": "Missing company summary returns a message; evidence output links depend on available artifacts.",
+      "specificWorkGap": "Qualify actual attachment headers/bytes and Next navigation/download behavior; no framework RED or fix has been executed for these evidence links."
+    },
+    {
+      "pageRoute": "/admin/platform/actor-testing/[companyId]",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Explicit company testing summary and GoLiveChecklist.",
+      "stateDisposition": "Missing summary is explained; checklist may prepare production and platform activation controls.",
+      "specificWorkGap": "Qualify current readiness/approval and complete persisted effects; do not actually activate production as part of source inventory."
+    },
+    {
+      "pageRoute": "/admin/platform/actor-testing",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "All-company actor-testing summaries.",
+      "stateDisposition": "Child stats/table compose summaries and company navigation.",
+      "specificWorkGap": "Qualify summary loader availability and each target link; company count does not verify its actor tests."
+    },
+    {
+      "pageRoute": "/admin/platform/analytics",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global company/month analytics.",
+      "stateDisposition": "Metrics/charts/filter status comes from global summary helpers.",
+      "specificWorkGap": "Qualify per-company data and fallback errors, period/filter outputs and current platform authority; chart count is not dataset acceptance."
+    },
+    {
+      "pageRoute": "/admin/platform/api-clients",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Global or validated selected-company API clients/logs with create/rotate/revoke scopes.",
+      "stateDisposition": "Invalid company selection falls back; status/client lifecycle controls are present.",
+      "specificWorkGap": "Qualify target-company scope, current grant/revocation, secret display and pending/error persisted receipts; listed clients are not API adoption."
+    },
+    {
+      "pageRoute": "/admin/platform/companies/[companyId]/analytics",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Explicit company's validated metrics, growth, forecast and deviations.",
+      "stateDisposition": "Missing summary is explained; forecast recalculation and website metric publishing forms are rendered.",
+      "specificWorkGap": "Qualify current target and distinct recalculate/publish effects, unavailable/empty state and permission; metrics display is not publication receipt."
+    },
+    {
+      "pageRoute": "/admin/platform/companies/[companyId]/testing",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Explicit company governance, tests, runs and probes.",
+      "stateDisposition": "Missing company returns a message; child testing status and actions are composed.",
+      "specificWorkGap": "Qualify actual safe test setup/cleanup, current graph and probe outcomes; no test-only label certifies unchanged original records."
+    },
+    {
+      "pageRoute": "/admin/platform/contract-trace",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Validated company and contract-trace search across current graph.",
+      "stateDisposition": "Contracts.read guard is followed by explicit canonical platform-only check; search/invalid company/no-hit/error states are readonly.",
+      "specificWorkGap": "Qualify every trace resource/source and safe failure output; ordinary contracts.read does not grant access despite the initial guard."
+    },
+    {
+      "pageRoute": "/admin/platform/customers/archived",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global archived/deleted/test customers with company references.",
+      "stateDisposition": "Empty/load states and restore/delete controls depend on lifecycle.",
+      "specificWorkGap": "Qualify current protected-original blockers and exact restore/delete graph effects; absence from list is not verified deletion."
+    },
+    {
+      "pageRoute": "/admin/platform/data-cleanup",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global cleanup candidates and protected original/test data.",
+      "stateDisposition": "Delete is offered only when canHardDelete and isTestData; empty/protected rows are explicit.",
+      "specificWorkGap": "Qualify server-enforced blockers, current graph/revisions and transaction rollback; UI eligibility alone cannot certify safe removal."
+    },
+    {
+      "pageRoute": "/admin/platform/ediel/messages",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Global Ediel messages with optional company/direction/environment/family/status filters.",
+      "stateDisposition": "Filter and empty rows are readonly with dynamic message/evidence navigation.",
+      "specificWorkGap": "Qualify real filter output, current platform actor and source/trace links; filtered count is not completed normative operation."
+    },
+    {
+      "pageRoute": "/admin/platform/ediel/routes",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global Ediel route rows.",
+      "stateDisposition": "Database errors throw; readonly route cards and status view.",
+      "specificWorkGap": "Qualify route source availability and real consistency; this view's rows are not route verification or send capability."
+    },
+    {
+      "pageRoute": "/admin/platform/ediel/rules",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global message rules.",
+      "stateDisposition": "Database errors throw; normative rule list and empty state.",
+      "specificWorkGap": "Qualify safe failures and links; actual normative conformance requires its own executed cases."
+    },
+    {
+      "pageRoute": "/admin/platform/ediel/runtime",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global runtime rule groups.",
+      "stateDisposition": "Database errors throw; runtime capability cards/empty state are readonly.",
+      "specificWorkGap": "Qualify runtime source integrity and real command consumption; a capability card is not actual wire behavior."
+    },
+    {
+      "pageRoute": "/admin/platform/ediel/versions",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global Ediel message-rule version catalogue.",
+      "stateDisposition": "Database errors throw; version labels and empty rows are displayed.",
+      "specificWorkGap": "Qualify active/version resolution and safe error state; source version labels do not prove accepted external release."
+    },
+    {
+      "pageRoute": "/admin/platform/go-live/[companyId]",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Explicit company's readiness, governance and API-client policy.",
+      "stateDisposition": "Four load results have explicit failure states; check-readiness submit depends on readiness load success.",
+      "specificWorkGap": "Qualify actual current approval and stored policy, selected child commands and cache outcomes; no production activation or genuine endpoint acceptance is implied."
+    },
+    {
+      "pageRoute": "/admin/platform/go-live/[companyId]/route-wizard",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Explicit existing company, setup summary and route-wizard runs.",
+      "stateDisposition": "Company read failure throws, missing company explained; required routing inputs and run status are shown.",
+      "specificWorkGap": "Qualify submitted company/actor/channel binding, error drafts and matched route receipt; hidden company field is not server authorization."
+    },
+    {
+      "pageRoute": "/admin/platform/go-live",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "All-company go-live summaries.",
+      "stateDisposition": "Child cards and statuses expose company destinations.",
+      "specificWorkGap": "Qualify unavailable data versus current blockers/approval and exact navigation; summary ready status does not prove live external traffic."
+    },
+    {
+      "pageRoute": "/admin/platform/legal-readiness",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global tenant legal profiles/readiness and grouped failures.",
+      "stateDisposition": "Ready/missing/failure groups and legal-master navigation are readonly.",
+      "specificWorkGap": "Qualify source failure/redaction and exact per-company version/acceptance; displayed legal readiness is not verified consent/qualification."
+    },
+    {
+      "pageRoute": "/admin/platform/legal-templates",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global legal-master templates and immutable version/lifecycle controls.",
+      "stateDisposition": "Draft/published/archived, banners and publish/edit/archive forms are present.",
+      "specificWorkGap": "Qualify each version command, current platform actor and durable receipt; published label is not proof of unchanged historical acceptance."
+    },
+    {
+      "pageRoute": "/admin/platform/security",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global RBAC and security dashboard.",
+      "stateDisposition": "Readonly report flags and security status summaries.",
+      "specificWorkGap": "Qualify actual low-role probes and report availability; a dashboard success flag is not current security/native/browser evidence."
+    },
+    {
+      "pageRoute": "/admin/platform/usage",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global tenant usage/month/pricing summaries.",
+      "stateDisposition": "Readonly metrics, empty and helper fallback states.",
+      "specificWorkGap": "Qualify actual company/period metrics and privacy/error policy; usage totals do not demonstrate source command outcomes."
+    },
+    {
+      "pageRoute": "/admin/platform/white-labels",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "White-label platforms and related non-deleted companies.",
+      "stateDisposition": "Empty state instructs platform creation elsewhere; relationship listings are readonly.",
+      "specificWorkGap": "Qualify exact membership/tenant ownership and navigation; no additional create command is inferred from explanatory text."
+    },
+    {
+      "pageRoute": "/admin/platform/work-queue",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global tenant work queue with q/type/status filters.",
+      "stateDisposition": "platform.* page key enforces canonical platform authority; queue/priority statuses and child actions vary.",
+      "specificWorkGap": "Qualify each item-specific current command and safe errors; allOf profile permissions do not override the actual platform-prefix guard."
+    },
+    {
+      "pageRoute": "/admin/price-area-localities",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Shared postal/locality bidding-zone registry and imports.",
+      "stateDisposition": "Row/import states and delegated registry controls.",
+      "specificWorkGap": "Qualify source ownership, canonical locality/zone and import outcome; displayed geography is not import qualification."
+    },
+    {
+      "pageRoute": "/admin/pricing/campaigns",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Campaign/version rows through safeListRows, optionally selected company.",
+      "stateDisposition": "PricingTable delegates status/empty rows; optional company filter remains.",
+      "specificWorkGap": "Qualify selected/global campaign relation and unavailable-versus-empty; child table links/controls are not independent business command receipts."
+    },
+    {
+      "pageRoute": "/admin/pricing/components",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Price-component/base rows through safeListRows.",
+      "stateDisposition": "Delegated pricing table and helper empty/error fallback.",
+      "specificWorkGap": "Qualify actual component data/schema availability and selected/global intent; ordinary pricing roles do not open this platform-only page."
+    },
+    {
+      "pageRoute": "/admin/pricing/market-sources",
+      "resourceScope": "SELECTED_COMPANY_REQUIRED",
+      "resourceDisposition": "Current selected company's stored market-source policy/observation.",
+      "stateDisposition": "Fresh Auth/guard and company equality, pricing-write capability and load-error disable forms; stored observation is distinguished from live fetch.",
+      "specificWorkGap": "Controlled source-action tests exist; qualify real current writer/reader save/error/draft and persisted row/cache receipt, without external market fetch claims."
+    },
+    {
+      "pageRoute": "/admin/pricing",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Selected-company offers, rules and pricing controls.",
+      "stateDisposition": "Company-dependent queries yield empty when absent; offer/component/rule commands are composed.",
+      "specificWorkGap": "Qualify each concrete pricing command, current target, exact grant and durable version/rollback; platform page authority does not erase business readiness requirements."
+    },
+    {
+      "pageRoute": "/admin/pricing/period-locks",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Period lock rows through optional-company safeListRows.",
+      "stateDisposition": "Delegated pricing table and empty/helper fallback.",
+      "specificWorkGap": "Qualify real lock source and table navigation/control bindings; no lock transition is inferred from a rendered status row."
+    },
+    {
+      "pageRoute": "/admin/pricing/portfolio-prices",
+      "resourceScope": "REDIRECT",
+      "resourceDisposition": "Canonical /admin/pricing/portfolio-settlements with preserved companyId query.",
+      "stateDisposition": "Redirect-only compatibility page.",
+      "specificWorkGap": "Qualify query preservation and target's additional superadmin RPC; no separate portfolio pricing mutation follows from the alias."
+    },
+    {
+      "pageRoute": "/admin/pricing/portfolio-settlements",
+      "resourceScope": "PLATFORM_TARGET_COMPANY",
+      "resourceDisposition": "Validated active company, portfolio, price-plan versions, settlements and estimates.",
+      "stateDisposition": "Platform guard plus gridex_portfolio_actor_is_superadmin=true; missing company redirects and direct query errors throw.",
+      "specificWorkGap": "Qualify extra database authority, calculate/review/approve/lock/correct branches and current target graph; source-selected fallback company is not outcome evidence."
+    },
+    {
+      "pageRoute": "/admin/pricing/price-plans",
+      "resourceScope": "PLATFORM_SELECTED_OPTIONAL",
+      "resourceDisposition": "Plan/version rows through optional-company safeListRows.",
+      "stateDisposition": "Delegated pricing table and empty/helper fallback.",
+      "specificWorkGap": "Qualify version/current-company relation and actual delegated navigation or command; listed plans are not published offers."
+    },
+    {
+      "pageRoute": "/admin/pricing/spot-prices",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global spot-price monthly summaries and import runs; selected scope only labels header.",
+      "stateDisposition": "Platform page uses explicit null-company safeListRows for both global spot tables.",
+      "specificWorkGap": "Qualify import completeness, month/zone results and unavailable-versus-empty; do not misclassify header company as a query tenant filter."
+    },
+    {
+      "pageRoute": "/admin/roles",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global roles, permissions, role_permissions and policy recommendations.",
+      "stateDisposition": "Direct errors throw; drift/recommendation and remediation controls are rendered.",
+      "specificWorkGap": "Qualify current platform actor, exact role/resource and persisted positive/negative grant semantics; recommendation count is not enforced remediation."
+    },
+    {
+      "pageRoute": "/admin/system-health",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Critical errors, webhook/provider counts and Ediel queues with operator controls.",
+      "stateDisposition": "Literal admin.dashboard.read; count helpers can fall back to zero, raw queue/last-error states and resume/sweep forms vary.",
+      "specificWorkGap": "Qualify current actor and actual item/tenant command outcome; source-health counts do not prove worker fairness or repaired queue."
+    },
+    {
+      "pageRoute": "/admin/system/auth-diagnostics",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global Auth/user fixture diagnostics.",
+      "stateDisposition": "Readonly probes, row errors and empty fixtures are displayed.",
+      "specificWorkGap": "Qualify actual GoTrue/current sessions and safe diagnostic errors; displayed Auth flags cannot substitute for native authentication proof."
+    },
+    {
+      "pageRoute": "/admin/system/tenant-integrity",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global companies, integrity findings and backfill runs.",
+      "stateDisposition": "Empty/error/last-error states and company-target repair forms are rendered.",
+      "specificWorkGap": "Qualify all current constraints/RLS, exact target and repair rollback/quiet foreign graph; hidden company input and report count are not native backfill receipt."
+    },
+    {
+      "pageRoute": "/admin/users/[id]",
+      "resourceScope": "PLATFORM_TARGET_RESOURCE",
+      "resourceDisposition": "Global Auth/governance user, role assignments and permission overrides.",
+      "stateDisposition": "Missing user returns notFound; UI role/override controls explicitly check roles.manage/permissions.manage.",
+      "specificWorkGap": "Qualify current UI capability versus actual platform bypass policy and canonical user/tenant changes; no Auth identity mutation or assignment effect is assumed."
+    },
+    {
+      "pageRoute": "/admin/users",
+      "resourceScope": "PLATFORM_GLOBAL",
+      "resourceDisposition": "Global users/governance with invitation/profile/role/lifecycle forms.",
+      "stateDisposition": "UI canWrite/canManage uses users.write/roles.manage; action banners and empty states appear.",
+      "specificWorkGap": "Qualify each actual user/role/invitation command, selected membership and global identity preservation; global list read is not verified command coverage."
+    },
+    {
+      "pageRoute": "/admin/webhooks/deliveries",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Scoped subscriptions/deliveries and payload detail.",
+      "stateDisposition": "Integration read or write opens page; test/resend/ignore buttons are present without write-disabled conditions.",
+      "specificWorkGap": "Qualify ordinary NULL-scope and read-only button policy, exact subscription/delivery/company plus current guard/action denial and truthful delivery outcome."
+    },
+    {
+      "pageRoute": "/admin/website-applications/[id]",
+      "resourceScope": "TARGET_IN_SELECTED_COMPANY",
+      "resourceDisposition": "Explicit application and source-table selector with operational chain.",
+      "stateDisposition": "Any customer read/write or billing read; missing/foreign application notFound; source flags and review states vary.",
+      "specificWorkGap": "Qualify source-table whitelist and every linked customer/site/contract ownership plus approval/compaction actions; mixed source IDs must remain distinct."
+    },
+    {
+      "pageRoute": "/admin/website-applications",
+      "resourceScope": "OPTIONAL_COMPANY_FILTER",
+      "resourceDisposition": "Current website applications and external-contract intakes through scoped source wrappers.",
+      "stateDisposition": "Any customer read/write or billing read; statuses, manual review, facility errors and action controls vary.",
+      "specificWorkGap": "Qualify ordinary NULL-scope reachability, source-specific duplicate IDs and read-only mutation controls; aliases share this implementation, not new business commands."
+    },
+    {
+      "pageRoute": "/admin/whitelabel/actor-testing/[companyId]",
+      "resourceScope": "WHITELABEL_TARGET_MEMBERSHIP",
+      "resourceDisposition": "Explicit company allowed by userCanManageActorTestingForCompany(actor,company,false).",
+      "stateDisposition": "whitelabel.read plus actual resource relation; checklist cannot activate live but may prepare production.",
+      "specificWorkGap": "Qualify current white-label ownership/revocation and preparation commands; read grant and client company ID are not production authority."
+    },
+    {
+      "pageRoute": "/admin/whitelabel/actor-testing",
+      "resourceScope": "WHITELABEL_MEMBERSHIP",
+      "resourceDisposition": "Company summaries for actual listWhiteLabelPlatformIdsForUser memberships.",
+      "stateDisposition": "No owned platform IDs yields empty; stats/table link to white-label target pages.",
+      "specificWorkGap": "Qualify revoked and foreign platform membership plus actual child navigation; membership enumeration is source evidence only."
+    },
+    {
+      "pageRoute": "/admin/whitelabel/companies",
+      "resourceScope": "WHITELABEL_MEMBERSHIP",
+      "resourceDisposition": "Company summaries scoped to actor's white-label platform IDs.",
+      "stateDisposition": "Empty membership and common stats/table are rendered.",
+      "specificWorkGap": "Distinct navigation page reuses existing summaries; qualify resource relation, not another fictional actor-testing command."
+    },
+    {
+      "pageRoute": "/admin/whitelabel/go-live",
+      "resourceScope": "WHITELABEL_MEMBERSHIP",
+      "resourceDisposition": "Go-live statuses for actor's actual white-label platform IDs.",
+      "stateDisposition": "Empty memberships and shared stats/table navigate to actor-testing; no live-activation form exists here.",
+      "specificWorkGap": "Qualify current ownership and readiness/error display; this status page cannot be counted as a production activation command."
+    },
+    {
+      "pageRoute": "/admin/work-queue",
+      "resourceScope": "SELECTED_OR_PLATFORM_GLOBAL",
+      "resourceDisposition": "Company work queue with event/job action and customer links.",
+      "stateDisposition": "Failed/critical/blocker states and safe/helper versus raw error description sources coexist.",
+      "specificWorkGap": "Qualify current item ownership, retry/read permissions, source unavailable states and actual job effect; whole queue count is not runtime action coverage."
+    }
+  ]
+}

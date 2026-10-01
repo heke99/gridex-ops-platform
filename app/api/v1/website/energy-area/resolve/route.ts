@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { deriveEnergyResolutionReadiness } from '@/lib/energy/resolutionBinding'
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
       { status, headers: { 'Cache-Control': 'no-store' } },
     )
   } catch (error) {
-    console.error('[website-energy-area-resolve] failed', { requestId, error })
+    console.error('[website-energy-area-resolve] failed', { requestId, error: technicalErrorDiagnostic(error) })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 500, startedAt, errorCode: 'energy_area_resolution_failed', metadata: { request_id: requestId } })
     return customerPortalJson({ error: { code: 'energy_area_resolution_failed', message: 'Elområdet kunde inte lösas just nu.', request_id: requestId, correlation_id: requestId, retryable: true }, error_code: 'energy_area_resolution_failed', correlation_id: requestId, retryable: true }, { status: 500 })
   }

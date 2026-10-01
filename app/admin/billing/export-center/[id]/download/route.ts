@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import {
   BillingExportNotFoundError,
   buildBillingExportFile,
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
     if (error instanceof BillingExportNotFoundError) {
       return new NextResponse('Exportkörningen hittades inte.', { status: 404 })
     }
-    console.error('[billing-export-download] Failed to build export', error)
+    console.error('[billing-export-download] Failed to build export', technicalErrorDiagnostic(error))
     return new NextResponse('Kunde inte skapa exportfil.', { status: 500 })
   }
 }

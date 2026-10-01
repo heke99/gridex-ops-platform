@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { technicalErrorDiagnostic } from '@/lib/logging/technicalError'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import {
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
         { status: error.status },
       )
     }
-    console.error('[website-legal-bundle] failed', { requestId, error })
+    console.error('[website-legal-bundle] failed', { requestId, error: technicalErrorDiagnostic(error) })
     await logIntegrationApiRequest({
       client: auth.client,
       request,

@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useCallback, useState } from 'react'
+import { useUnsavedChanges } from '@/components/admin/AdminUnsavedChanges'
 import { recordInvoiceRedeliveryDecisionFormAction } from '../redelivery-actions'
 
 type Props = {
@@ -13,8 +14,11 @@ export default function RedeliveryDecisionForm(props: Props) {
   const [reason, setReason] = useState('')
   const completed = state?.status === 'success'
   const disabled = pending || completed || !props.canRecord
+  const dirty = !completed && (accountId !== '' || reason !== '')
+  const discard = useCallback(() => { setAccountId(''); setReason('') }, [])
+  useUnsavedChanges(dirty, discard)
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} data-dirty-form={dirty ? 'true' : undefined} className="space-y-4">
       {['companyId', 'customerId', 'invoiceId', 'expectedRevision', 'expectedOverrideRevision', 'idempotencyKey'].map(key => (
         <input key={key} type="hidden" name={key} value={String(props[key as keyof Props])} />
       ))}

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { unstable_rethrow } from 'next/navigation'
 import { contractDatabaseErrorMessage } from '@/lib/contracts/lifecycleErrors'
-import { redactLogText, safeLogError, sanitizeLogMetadata } from '@/lib/logging/redaction'
+import { safeLogError } from '@/lib/logging/redaction'
 import { supabaseService } from '@/lib/supabase/service'
 
 type DatabaseLikeError = {
@@ -18,6 +19,22 @@ type ErrorContext = {
 }
 
 const SCHEMA_DRIFT_CODES = new Set(['42P01', '42703', '42883', 'PGRST200', 'PGRST201', 'PGRST204', 'PGRST205'])
+const TECHNICAL_ACTIONS = new Set([
+  'update_company_settings', 'update_company_user_access', 'save_company_profile', 'review_company_legal_profile',
+  'tenant_canonical_contract_channel', 'list_contract_offers', 'diagnose_contract_offer', 'save_contract_offer',
+  'archive_contract_offer', 'copy_contract_offer', 'delete_contract_offer', 'close_contract_offer',
+  'update_contract_channel', 'pause_contract_offer', 'publish_contract_version', 'contract_channel_publish_failed',
+  'unpublish_contract_channel', 'set_contract_channel_permission', 'cleanup_unused_contract_drafts',
+])
+
+function technicalUuid(value: unknown): string | null {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value : null
+}
+
+function technicalContext(context: ErrorContext) {
+  return { action: TECHNICAL_ACTIONS.has(context.action) ? context.action : 'action_error',
+    companyId: technicalUuid(context.companyId), userId: technicalUuid(context.userId) }
+}
 
 function errorRecord(error: unknown): DatabaseLikeError {
   return error && typeof error === 'object' ? error as DatabaseLikeError : {}
@@ -34,10 +51,15 @@ function rawMessage(error: unknown): string {
   return typeof message === 'string' ? message.trim() : ''
 }
 
-function safeOptionalText(value: unknown): string | null {
-  return typeof value === 'string' && value.trim()
-    ? redactLogText(value.trim())
-    : null
+function technicalMetadata(metadata: Record<string, unknown> = {}): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const key of ['offerId', 'contractProductId', 'sourceOfferId', 'assignmentId']) {
+    const value = metadata[key]
+    if (value === null || technicalUuid(value)) result[key] = value
+  }
+  if (typeof metadata.channel === 'string' && ['internal', 'website', 'api'].includes(metadata.channel)) result.channel = metadata.channel
+  if (typeof metadata.allowed === 'boolean') result.allowed = metadata.allowed
+  return result
 }
 
 export function isDeploymentMigrationDrift(error: unknown): boolean {
@@ -51,18 +73,15 @@ function correlationReference(): string {
 }
 
 function logTechnicalError(error: unknown, context: ErrorContext, reference: string) {
-  const record = errorRecord(error)
   const safeError = safeLogError(error)
   console.error('[safe-action-error]', {
     reference,
-    action: context.action,
-    companyId: context.companyId ?? null,
-    userId: context.userId ?? null,
+    ...technicalContext(context),
     code: safeError.code,
     message: safeError.message,
-    details: safeOptionalText(record.details),
-    hint: safeOptionalText(record.hint),
-    metadata: sanitizeLogMetadata(context.metadata ?? {}),
+    details: null,
+    hint: null,
+    metadata: technicalMetadata(context.metadata),
   })
 }
 
@@ -71,6 +90,7 @@ function withReference(message: string, reference: string): string {
 }
 
 export function toSafeCompanyProfileError(error: unknown, context: ErrorContext): string {
+  unstable_rethrow(error)
   const reference = correlationReference()
   logTechnicalError(error, context, reference)
   const message = rawMessage(error)
@@ -94,7 +114,7 @@ export function toSafeCompanyProfileError(error: unknown, context: ErrorContext)
     return withReference('Bolaget hittades inte.', reference)
   }
   if (/Kundnummerprefix|Bolagsnamn krävs|Ogiltig bolagsstatus|måste vara en giltig/i.test(message)) {
-    return withReference(message, reference)
+    return withReference('Bolagsuppgifterna kunde inte valideras. Kontrollera fälten och försök igen.', reference)
   }
   return withReference('Bolagsuppgifterna kunde inte behandlas på grund av ett internt fel.', reference)
 }
@@ -110,7 +130,8 @@ function safeContractErrorWithReference(
     return withReference('Avtalet kunde inte behandlas eftersom databasen inte är synkroniserad med den här versionen.', reference)
   }
   const lifecycleMessage = contractDatabaseErrorMessage(error)
-  if (lifecycleMessage) return withReference(lifecycleMessage, reference)
+  if (lifecycleMessage) return withReference(lifecycleMessage.trim() === message
+    ? 'Avtalsåtgärden blockerades av en domänregel.' : lifecycleMessage, reference)
   if (/contract_permission_denied|Du saknar behörigheten|\bForbidden\b|\bUnauthorized\b/i.test(message)) {
     return withReference('Du saknar behörighet att genomföra den här avtalsåtgärden.', reference)
   }
@@ -130,12 +151,13 @@ function safeContractErrorWithReference(
     return withReference('Avtalets juridikpaket är ofullständigt eller innehåller olösta variabler.', reference)
   }
   if (/måste vara|krävs|ogiltig|hittades inte|finns redan/i.test(message) && !/digest|schema|column|function/i.test(message)) {
-    return withReference(message, reference)
+    return withReference('Avtalsuppgifterna kunde inte valideras. Kontrollera fälten och försök igen.', reference)
   }
   return withReference('Avtalet kunde inte behandlas på grund av ett internt fel.', reference)
 }
 
 export function toSafeContractError(error: unknown, context: ErrorContext): string {
+  unstable_rethrow(error)
   const reference = correlationReference()
   logTechnicalError(error, context, reference)
   return safeContractErrorWithReference(error, context, reference)
@@ -145,16 +167,16 @@ export async function toSafeContractErrorPersisted(
   error: unknown,
   context: ErrorContext,
 ): Promise<string> {
+  unstable_rethrow(error)
   const reference = correlationReference()
   logTechnicalError(error, context, reference)
-  const record = errorRecord(error)
-  const metadata = sanitizeLogMetadata(context.metadata ?? {})
-  const originalMetadata = context.metadata ?? {}
+  const metadata = technicalMetadata(context.metadata)
+  const safeContext = technicalContext(context)
   const offerId =
-    typeof originalMetadata.offerId === 'string' ? originalMetadata.offerId : null
+    typeof metadata.offerId === 'string' ? metadata.offerId : null
   const contractProductId =
-    typeof originalMetadata.contractProductId === 'string'
-      ? originalMetadata.contractProductId
+    typeof metadata.contractProductId === 'string'
+      ? metadata.contractProductId
       : null
   const safeError = safeLogError(error)
 
@@ -163,15 +185,15 @@ export async function toSafeContractErrorPersisted(
       .from('contract_lifecycle_operation_errors')
       .insert({
         reference,
-        company_id: context.companyId ?? null,
-        actor_user_id: context.userId ?? null,
-        action: context.action,
+        company_id: safeContext.companyId,
+        actor_user_id: safeContext.userId,
+        action: safeContext.action,
         offer_id: offerId,
         contract_product_id: contractProductId,
         sqlstate: safeError.code,
         error_message: safeError.message,
-        error_detail: safeOptionalText(record.details),
-        error_hint: safeOptionalText(record.hint),
+        error_detail: null,
+        error_hint: null,
         metadata,
       })
     if (persistError) {
@@ -183,6 +205,7 @@ export async function toSafeContractErrorPersisted(
       })
     }
   } catch (persistError) {
+    unstable_rethrow(persistError)
     const safePersistError = safeLogError(persistError)
     console.error('[safe-action-error-persistence-failed]', {
       reference,

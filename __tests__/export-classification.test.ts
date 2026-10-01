@@ -101,9 +101,10 @@ describe('classifyInvoiceExportError', () => {
     expect(unknown.retryable).toBe(false)
   })
 
-  it('preserves the provider response excerpt for auditing', () => {
+  it('retains technical classification for future attempts without copying arbitrary provider response text', () => {
     const classification = classifyInvoiceExportError(httpError(400, '{"detail":"Ogiltig faktura"}'))
-    expect(classification.responseExcerpt).toBe('{"detail":"Ogiltig faktura"}')
+    expect(classification.responseExcerpt).toBeNull()
+    expect(classification).toMatchObject({ httpStatus: 400, errorCode: 'provider_rejected_payload', message: 'Fakturaleverantören avvisade fakturan.' })
   })
 })
 

@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
+import { technicalErrorDiagnostic } from "@/lib/logging/technicalError";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
 import { assertOutboundAllowed } from "@/lib/platform/outboundFreeze";
@@ -293,7 +294,7 @@ async function createBlockedBillingCasesForItems(params: {
         .eq("id", item.id);
       if (itemUpdateError) throw itemUpdateError;
     } catch (error) {
-      console.warn("Billing blocker task could not be created", error);
+      console.warn("Billing blocker task could not be created", technicalErrorDiagnostic(error));
     }
   }
 }

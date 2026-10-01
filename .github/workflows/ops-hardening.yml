@@ -146,6 +146,9 @@ jobs:
           npx vitest run --config scripts/webhook-fair-claim-continuation-native.config.ts
           npx vitest run --config scripts/residual-tenant-queues-20260930-native.config.ts
           npx vitest run --config scripts/partner-queue-continuation-20260930-native.config.ts
+          # This proof owns an initially empty eligible Ediel resume queue.
+          # Run it after the other global fair-queue proofs and before producers.
+          npx vitest run --config scripts/ediel-resume-tenant-progress-20261001-native.config.ts --reporter=verbose
           npx vitest run --config scripts/contract-authority-continuation-native.config.ts
           npx vitest run --config scripts/customer-operation-lifecycle-atomic-20260930.native.config.ts
           npx vitest run --config scripts/ediel-source-owner-native.config.ts
@@ -158,11 +161,22 @@ jobs:
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-site-command-native.sql
           npx vitest run --config scripts/customer-site-command-native.config.ts
           npx vitest run --config scripts/customer-site-continuation-20260930.native.config.ts
+          # Actual signed legal/PDF/POA and canonical held-route prerequisites;
+          # no sender is called by the positive continuation proof.
+          npx vitest run --config scripts/customer-site-positive-continuation-20260930.native.config.ts
+          # Only the outer SMTP transport is controlled. Canonical preparation,
+          # dispatch witness, CONTRL/APERAK classification and atomic ACK owners
+          # execute against this actual local reconstructed database.
+          npx vitest run --config scripts/customer-inbound-lifecycle-atomic-20261001.native.config.ts
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-ops-capabilities-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-authoritative-writer-fences-native.sql
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-support-command-native.sql
           npx vitest run --config scripts/customer-support-continuation-20260930-native.config.ts
           npx vitest run --config scripts/support-sensitive-contact-20260930-native.config.ts
+          # Actual intake/Storage lineage and signed controlled verdicts remain
+          # quarantined: an approved release provider is absent by default.
+          npx vitest run --config scripts/support-attachment-scan-20260930-native.config.ts
+          npx vitest run --config scripts/support-attachment-consumer-20261001-native.config.ts
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-billing-command-native.sql
           npx vitest run --config scripts/customer-billing-concurrency-native.config.ts
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/invoice-redelivery-decision-20260930-native.sql
@@ -258,6 +272,24 @@ jobs:
           unset GRIDEX_BILLING_REVISION_VIEWS_FIXTURE_PATH
           rm -f "$GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH"
           unset GRIDEX_BILLING_RECIPIENT_LOCAL_E2E GRIDEX_BILLING_RECIPIENT_FIXTURE_PATH GRIDEX_BILLING_RECIPIENT_PASSWORD
+          # Real GoTrue and isolated Next attachment denial journey, after both
+          # issued billing fixtures; private trust/session material is never uploaded.
+          export GRIDEX_SUPPORT_NEXT_FIXTURE="$RUNNER_TEMP/support-attachment-next-denial-20261001.json"
+          GRIDEX_SUPPORT_NEXT_PHASE=seed npx vitest run --config scripts/support-attachment-next-denial-20261001.native.config.ts
+          GRIDEX_SUPPORT_NEXT_BROWSER=1 npx playwright test --config=e2e/browser/support-attachment-next-denial-20261001.config.mjs --project=chromium
+          GRIDEX_SUPPORT_NEXT_PHASE=postcheck npx vitest run --config scripts/support-attachment-next-denial-20261001.native.config.ts
+          rm -f "$GRIDEX_SUPPORT_NEXT_FIXTURE"
+          unset GRIDEX_SUPPORT_NEXT_FIXTURE
+          # Independent real OPS redelivery form and qualified saved decision;
+          # every browser phase verifies its own persisted financial boundaries.
+          export GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH="$RUNNER_TEMP/invoice-redelivery-navigation-fixture.json"
+          export GRIDEX_REDELIVERY_NAVIGATION_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
+          GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-seed npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
+          [[ -s "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH" ]] || exit 1
+          GRIDEX_REDELIVERY_NAVIGATION_LOCAL_E2E=1 npx playwright test e2e/browser/invoice-redelivery-unsaved-navigation-20261001.spec.mjs --config=playwright.config.mjs --project=chromium
+          GRIDEX_REDELIVERY_NAVIGATION_PHASE=browser-postcheck npx vitest run --config scripts/invoice-redelivery-unsaved-navigation-20261001-native.config.ts
+          rm -f "$GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH"
+          unset GRIDEX_REDELIVERY_NAVIGATION_FIXTURE_PATH GRIDEX_REDELIVERY_NAVIGATION_PASSWORD
           # Actual customer events HTTP -> v2 RPC on this same disposable stack.
           export GRIDEX_EVENT_V2_LOCAL_E2E=1
           export GRIDEX_EVENT_V2_FIXTURE_PATH="$RUNNER_TEMP/customer-event-v2-fixture.json"
@@ -390,6 +422,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
@@ -422,6 +455,18 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/tenantservice-baseline-rollback-20261001.sh 2>&1 | tee tenantservice-baseline-rollback.log
+      - name: Qualify backfill against a separate fresh pinned old schema
+        if: always() && !cancelled()
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          CI: 'true'
+          GRIDEX_BACKFILL_NATIVE_ALLOW_NEW_STACK: '1'
+        run: |
+          set -euo pipefail
+          # Both prior restore wrappers have disposed their own stacks. The
+          # backfill wrapper refuses any existing project/port before creation.
+          node node_modules/vitest/vitest.mjs run --config scripts/canonical-multitenant-backfill-20261001-native.config.ts --reporter=verbose 2>&1 | tee tenantservice-backfill-native.log
       - name: Upload sanitized upgrade and restore proof
         if: always()
         uses: actions/upload-artifact@v4
@@ -430,4 +475,5 @@ jobs:
           path: |
             tenantservice-upgrade-restore.log
             tenantservice-baseline-rollback.log
+            tenantservice-backfill-native.log
           if-no-files-found: error

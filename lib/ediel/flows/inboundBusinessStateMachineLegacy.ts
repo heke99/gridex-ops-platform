@@ -5,7 +5,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { gridexBusinessMessageLabel } from '@/lib/ediel/businessLabels'
 import { decideProdatLifecycle } from '@/lib/ediel/stateMachines/prodatLifecycle'
 import { applyInboundZ15PermissionState } from '@/lib/ediel/flows/prodatPermissionLifecycle'
-import { enqueueCustomerLifecycleNotification } from '@/lib/customer-notifications/notificationOrchestrator'
+import { applyInboundSwitchLifecycleAtomically, hasStoredInboundSupplierSwitchSource } from './inboundSwitchLifecycleAtomic'
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
 
 export type InboundBusinessOutcome =
@@ -98,59 +98,6 @@ async function recordEvent(input: {
       reviewRequired: input.result.reviewRequired,
       ...input.result.metadata,
     },
-  })
-}
-
-async function ensureSupplyPeriodFromSwitch(input: {
-  message: EdielMessageRow
-  status: 'active' | 'confirmed_by_grid_owner' | 'ended'
-}) {
-  const companyId = input.message.company_id ?? text(readPayloadRecord(input.message).resolved_company_id) ?? null
-  const customerId = input.message.customer_id ?? null
-  const meteringPointId = input.message.metering_point_id ?? null
-  if (!companyId || !customerId || !meteringPointId) return null
-
-  const parsed = readPayloadRecord(input.message)
-  const startDate = dateOnly(parsed.start_date) ?? dateOnly(parsed.startDate) ?? dateOnly(parsed.supply_start_date)
-  if (!startDate) throw new Error('supply_period_start_date_required')
-  const endDate = input.status === 'ended'
-    ? dateOnly(parsed.end_date) ?? dateOnly(parsed.endDate) ?? dateOnly(parsed.supply_end_date)
-    : null
-
-  const { data: existing, error: existingError } = await supabaseService
-    .from('customer_supply_periods')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('metering_point_id', meteringPointId)
-    .eq('customer_id', customerId)
-    .lte('start_date', startDate)
-    .or(`end_date.is.null,end_date.gte.${startDate}`)
-    .limit(1)
-    .maybeSingle()
-
-  if (existingError) throw existingError
-
-  if ((existing as { id?: string } | null)?.id) {
-    const id = (existing as { id: string }).id
-    await strictUpdate('customer_supply_periods', {
-      status: input.status,
-      end_date: endDate ?? undefined,
-      source_message_id: input.message.id,
-      updated_at: new Date().toISOString(),
-    }, { id, company_id: companyId })
-    return id
-  }
-
-  return strictInsert('customer_supply_periods', {
-    company_id: companyId,
-    customer_id: customerId,
-    metering_point_id: meteringPointId,
-    contract_id: text(readPayloadRecord(input.message).contract_id) ?? null,
-    start_date: startDate,
-    end_date: endDate,
-    source: 'ediel_inbound_state_machine',
-    source_message_id: input.message.id,
-    status: input.status,
   })
 }
 
@@ -345,6 +292,21 @@ export async function applyInboundBusinessStateMachine(input: {
   onSourceSwitchCommitted?: SourceSwitchCommitObserver
 }): Promise<InboundBusinessStateResult> {
   const outcome = outcomeForMessage(input.message)
+  // Matched switch acceptance/rejection has one transaction owner. The caller
+  // supplies no outcome/resource/payload authority; persisted sealed source is
+  // revalidated before fresh processing and permanent replay.
+  if (outcome === 'supplier_switch_accepted'
+    || ((outcome === 'business_rejection' || outcome === 'technical_rejection')
+      && await hasStoredInboundSupplierSwitchSource(input.message.id))) {
+    const receipt = await applyInboundSwitchLifecycleAtomically({
+      sourceMessageId: input.message.id,
+      actorUserId: input.actorUserId,
+    })
+    if (!receipt.replayed && receipt.supplyPeriodId) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, {
+      message: input.message, switchRequestId: receipt.switchRequestId, supplyPeriodId: receipt.supplyPeriodId,
+    })
+    return receipt
+  }
   const updated: string[] = []
   let reviewRequired = [
     'business_rejection',
@@ -386,28 +348,6 @@ export async function applyInboundBusinessStateMachine(input: {
       inbound_z04_message_id: input.message.id,
       updated_at: new Date().toISOString(),
     }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
-  }
-
-  if (outcome === 'supplier_switch_accepted' && input.matchedSwitchRequestId) {
-    const payload = readPayloadRecord(input.message)
-    if (await strictUpdate('supplier_switch_requests', {
-      status: 'accepted',
-      external_reference: input.message.external_reference ?? undefined,
-      inbound_z04_message_id: input.message.id,
-      confirmed_start_date:
-        dateOnly(payload.actual_start_date)
-        ?? dateOnly(payload.start_date)
-        ?? dateOnly(payload.startDate)
-        ?? undefined,
-      updated_at: new Date().toISOString(),
-    }, { id: input.matchedSwitchRequestId, company_id: companyId })) updated.push('supplier_switch_requests')
-    // Z04 confirms the market change; it does not activate supply before the
-    // effective date. The supply period remains confirmed_by_grid_owner.
-    const supplyPeriodId = await ensureSupplyPeriodFromSwitch({ message: input.message, status: 'confirmed_by_grid_owner' })
-    if (supplyPeriodId) updated.push('customer_supply_periods')
-    if (supplyPeriodId) await publishSourceSwitchCommit(input.onSourceSwitchCommitted, {
-      message: input.message, switchRequestId: input.matchedSwitchRequestId, supplyPeriodId,
-    })
   }
 
   if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
@@ -571,10 +511,8 @@ export async function applyInboundBusinessStateMachine(input: {
   if (outcome !== 'ignored') await recordEvent({ actorUserId: input.actorUserId, message: input.message, result })
 
   const workflowState =
-    outcome === 'supplier_switch_accepted' ? 'switch_confirmed'
-      : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'completed'
-        : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'switch_rejected'
-          : outcome === 'manual_review_required' || outcome === 'unexpected_direction_review' ? 'manual_review'
+    outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'completed'
+        : outcome === 'manual_review_required' || outcome === 'unexpected_direction_review' ? 'manual_review'
             : null
   if (!supplyActivationCommitted && workflowState && companyId && input.message.customer_id) {
     await transitionCorrelatedCustomerApplicationWorkflow({
@@ -584,7 +522,7 @@ export async function applyInboundBusinessStateMachine(input: {
       operationId: text(readPayloadRecord(input.message).operation_id),
       state: workflowState,
       eventCode: `workflow.ediel.${outcome}`,
-      reasonCode: workflowState === 'switch_rejected' || workflowState === 'manual_review' ? outcome : null,
+      reasonCode: workflowState === 'manual_review' ? outcome : null,
       idempotencyKey: `workflow.ediel:${input.message.id}:${outcome}`,
       snapshotPatch: {
         next_action: workflowState === 'completed' ? 'none' : workflowState,
@@ -595,29 +533,5 @@ export async function applyInboundBusinessStateMachine(input: {
     })
   }
 
-  const notificationEvent =
-    outcome === 'supplier_switch_accepted' ? 'supplier_switch.accepted'
-      : outcome === 'supplier_switch_completed' || outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started' ? 'supply_period.activated'
-        : outcome === 'business_rejection' || outcome === 'technical_rejection' ? 'supplier_switch.rejected'
-          : null
-  if (!supplyActivationCommitted && notificationEvent && companyId && input.message.customer_id) {
-    await enqueueCustomerLifecycleNotification({
-      companyId,
-      customerId: input.message.customer_id,
-      eventType: notificationEvent,
-      sourceEventId: `ediel:${input.message.id}:${outcome}`,
-      siteId: input.message.site_id ?? null,
-      meteringPointId: input.message.metering_point_id ?? null,
-      contractId: text(readPayloadRecord(input.message).contract_id),
-      payload: {
-        ediel_message_id: input.message.id,
-        supplier_switch_request_id: input.matchedSwitchRequestId ?? null,
-        outcome,
-        ...result.metadata,
-      },
-    }).catch((error) => {
-      console.warn('[inbound-business-state] lifecycle notification enqueue skipped', error)
-    })
-  }
   return result
 }

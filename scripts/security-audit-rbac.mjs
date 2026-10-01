@@ -315,6 +315,20 @@ mustContain(incidentAction, "current.status !== 'delivery_uncertain'");
 mustContain(incidentAction, "companyId: current.company_id");
 mustContain(incidentAction, "unstable_rethrow(error)");
 
+const agreementDocumentRoute = "app/admin/agreements/grid-owners/documents/route.ts";
+mustContain(agreementDocumentRoute, "const context = await requirePlatformAdminAccess()");
+mustContain(agreementDocumentRoute, "parseGridOwnerAgreementDocumentKey(documentPath, agreementBucket)");
+mustContain(agreementDocumentRoute, "agreementBucket === 'customer-support-quarantine'");
+mustContain(agreementDocumentRoute, "parsed.bucket !== agreementBucket");
+mustContain(agreementDocumentRoute, "authClient.auth.getUser()");
+mustContain(agreementDocumentRoute, "authError || !authData.user || authData.user.id !== context.userId");
+mustContain(agreementDocumentRoute, ".from('grid_owner_access_agreements')");
+mustContain(agreementDocumentRoute, ".select('id,document_path')");
+mustContain(agreementDocumentRoute, ".eq('document_path', documentPath)");
+mustContain(agreementDocumentRoute, "agreement.document_path !== documentPath");
+mustContain(agreementDocumentRoute, "createSignedUrl(parsed.path, 60)");
+mustContain(agreementDocumentRoute, "unstable_rethrow(error)");
+
 const redeliveryPage = "app/admin/billing/invoices/[id]/redelivery/page.tsx";
 mustContain(redeliveryPage, "requireAdminPageKeyAccess('billing.workspace')");
 mustContain(redeliveryPage, "getOperationalCompanyScope(guard.userId)");

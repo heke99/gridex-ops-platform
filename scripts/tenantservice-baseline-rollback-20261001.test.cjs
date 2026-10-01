@@ -24,8 +24,9 @@ test('plan validates pinned old sources and exact trusted restore helper without
     const region = helpers.slice(helpers.indexOf('tenantservice_local_docker(){\n'), helpers.indexOf('tenantservice_private_cleanup(){\n'))
     assert.ok(result.stdout.includes('HELPER_SHA256='+sha(region)))
     assert.ok(result.stdout.includes('HELPER_SOURCE_SHA256='+sha(helpers)))
-    for (const name of ['tenantservice-restore-bootstrap-acl.sh','tenantservice-restore-bootstrap-acl.cjs']) {
-      assert.ok(result.stdout.includes('BOOTSTRAP_SOURCE_SHA256 script='+name+' sha256='+sha(readFileSync(resolve(__dirname,name)))))
+    for (const name of ['tenantservice-restore-bootstrap-acl.sh','tenantservice-restore-bootstrap-acl.cjs',
+      'tenantservice-restore-schema-diagnostic.cjs','sql/gridex-db-parity-introspect.sql']) {
+      assert.ok(result.stdout.includes('BOOTSTRAP_SOURCE_SHA256 script='+name.split('/').at(-1)+' sha256='+sha(readFileSync(resolve(__dirname,name)))))
     }
     assert.match(result.stdout, /baseline_migrations=653/)
     assert.match(result.stdout, /TENANTSERVICE_BASELINE_ROLLBACK_PLAN_ONLY_NATIVE_NOT_EXECUTED/)
@@ -163,7 +164,8 @@ function runBootstrap(scenario) {
     mkdirSync(join(candidate,'scripts','sql'),{recursive:true});mkdirSync(runner)
     const temporary=mkdtempSync(join(runner,'tenantservice-upgrade-restore.'))
     const paths=['scripts/tenantservice-restore-bootstrap-acl.sh','scripts/tenantservice-restore-bootstrap-acl.cjs',
-      'scripts/tenantservice-restore-catalog-diagnostic.cjs','scripts/sql/tenantservice-restore-data-fingerprint.sql']
+      'scripts/tenantservice-restore-catalog-diagnostic.cjs','scripts/sql/tenantservice-restore-data-fingerprint.sql',
+      'scripts/tenantservice-restore-schema-diagnostic.cjs','scripts/sql/gridex-db-parity-introspect.sql']
     for(const path of paths) writeFileSync(join(candidate,path),readFileSync(join(root,path)))
     const source=readFileSync(script,'utf8')
     const capture=source.match(/# BEGIN_BASELINE_BOOTSTRAP_SOURCE\n([\s\S]*?)# END_BASELINE_BOOTSTRAP_SOURCE/)?.[1]
