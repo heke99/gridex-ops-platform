@@ -63,6 +63,13 @@ export function validateApplicationReferencePolicy(
   const ruleKeys: string[] = []
 
   const family = upper(input.messageFamily)
+  if(family==='AI_LIST'){
+    const provided=input.applicationReference?.trim()||null
+    return {ok:provided===null,expectedApplicationReference:'',providedApplicationReference:provided,
+      ruleKeys:provided?['AI_TECHNICAL_LIST_NO_APPLICATION_REFERENCE']:[],blockingReasons:provided?[{
+        code:'ai_list_application_reference_forbidden',message:'En teknisk AI-lista har ingen EDIFACT Application Reference.',severity:'block',field:'applicationReference',
+      }]:[]}
+  }
   const isAck = family === 'APERAK' || family === 'CONTRL'
 
   if (isAck && !input.correlatedApplicationReference) {

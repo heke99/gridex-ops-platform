@@ -2,19 +2,18 @@ import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 // lib/ediel/flows/aiListFlow.ts
 
 import { getGridOwnerById } from '@/lib/masterdata/db'
-import { buildAiListOutboundDraft } from '@/lib/ediel/aiList'
-import { linkEdielMessage, updateEdielMessageStatus } from '@/lib/ediel/db'
+import {randomUUID} from 'node:crypto'
+import {createEdielMessageIntent} from '@/lib/ediel/intent/intentEngine'
+import {renderAndQueueAiList} from '@/lib/ediel/intent/aiListGateway'
+import type {CreateAiListMessageIntentInput} from '@/lib/ediel/intent/types'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
-import {assertAiListOutboundType} from '@/lib/ediel/aiListFormat'
-import {projectAiListHistory,type AiListSupplyPeriod} from '@/lib/ediel/aiListHistory'
-import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import {assertAiListOutboundType,AI_LIST_SOURCE_PROFILE} from '@/lib/ediel/aiListFormat'
 import {resolveCanonicalTenantEdielIdentityWithEvidence} from '@/lib/ediel/tenant/tenantEdielIdentity'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type {CustomerSiteRow} from '@/lib/masterdata/types'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import {
   ensureActorUserId,
-  finalizeOutboundDraft,
   makeServerClient,
   resolveOutboundRuntimeEnvironment,
 } from '@/lib/ediel/flows/shared'
@@ -69,70 +68,10 @@ export async function prepareAndQueueAiList(params: {
   const cutoffAt=new Date().toISOString()
   const tenant=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:params.companyId,environment,asOf:cutoffAt,requireExactCounts:true})
   if(!tenant.identity.roleCodes.includes('electricity_supplier')||tenant.identity.legalEdielId!==routeContext.senderEdielId||params.supplierEdielId&&params.supplierEdielId!==tenant.identity.legalEdielId||!gridOwner?.ediel_id||gridOwner.ediel_id!==routeContext.receiverEdielId||params.receiverEdielId!==routeContext.receiverEdielId)throw new Error('ai_list_verified_supplier_network_context_required')
-  // Complete all-status supply history; an active-only query would omit ended
-  // periods. This is a scope index, never authority for historical field values.
-  let periodsQuery=supabase.from('customer_supply_periods').select('id,company_id,customer_id,metering_point_id,start_date,end_date,actual_start_date,actual_end_date',{count:'exact'}).eq('company_id',params.companyId).eq('customer_id',params.customerId)
-  if(params.meteringPointId)periodsQuery=periodsQuery.eq('metering_point_id',params.meteringPointId)
-  const {data:periods,error:periodError,count:periodCount}=await periodsQuery.limit(1001).abortSignal(AbortSignal.timeout(2000))
-  if(periodError||periodCount===null||periodCount>1000||periods?.length!==periodCount)throw new Error('ai_list_supply_history_read_incomplete')
-  const {data:snapshot,error:snapshotError}=await supabase.rpc('gridex_source_object_snapshot_v1',{p_company_id:params.companyId,p_environment:environment,p_cutoff:cutoffAt}).abortSignal(AbortSignal.timeout(2000))
-  if(snapshotError)throw new Error('ai_list_source_history_read_unconfirmed')
-  const historyScope={companyId:params.companyId,environment,customerId:params.customerId,siteId:params.siteId,meteringPointId:params.meteringPointId,legalSupplier:tenant.identity.legalEdielId,legalNetwork:gridOwner.ediel_id,fromDate:params.fromDate,toDate:params.toDate,cutoffAt}
-  const history=projectAiListHistory(historyScope,(periods??[]) as AiListSupplyPeriod[],inspectStructuralReadset({companyId:params.companyId,environment,cutoffAt},snapshot))
-  if(params.balanceResponsibleEdielId&&history.details.some(detail=>detail.balansansvarsId!==params.balanceResponsibleEdielId))throw new Error('ai_list_balance_party_override_not_authorized')
-
-  const draft = await buildAiListOutboundDraft({
-    actorUserId,
-    companyId: params.companyId,
-    listType: params.listType,
-    senderEdielId: routeContext.senderEdielId,
-    senderName: routeContext.senderName,
-    receiverEdielId: routeContext.receiverEdielId,
-    receiverName: routeContext.receiverName,
-    receiverEmail: params.receiverEmail ?? routeContext.receiverEmail,
-    communicationRouteId: routeContext.route.id,
-    customerId: params.customerId,
-    siteId: params.siteId,
-    meteringPointId: params.meteringPointId ?? null,
-    gridOwnerId: site.grid_owner_id,
-    fromDate: params.fromDate,
-    toDate: params.toDate,
-    details: history.details,
-    environment,
-    mailbox: routeContext.mailbox,
-    routeDefaultMessageVersion: routeContext.defaultMessageVersion,
-  })
-
-  draft.parsedPayload={...draft.parsedPayload,historyEvidence:history.evidence}
-
-  const message = await finalizeOutboundDraft({
-    actorUserId,
-    requestType: 'meter_values',
-    routeContext,
-    draft,
-    duplicateCheck: {
-      receiverEdielId: routeContext.receiverEdielId,
-      messageFamily: draft.messageFamily,
-      messageCode: String(draft.messageCode),
-      messageVersion: draft.messageVersion ?? null,
-    },
-  })
-
-  await linkEdielMessage({
-    actorUserId,
-    edielMessageId: message.id,
-    customerId: params.customerId,
-    siteId: params.siteId,
-    meteringPointId: params.meteringPointId ?? null,
-    gridOwnerId: site.grid_owner_id,
-    communicationRouteId: routeContext.route.id,
-  })
-
-  await updateEdielMessageStatus({
-    actorUserId,
-    edielMessageId: message.id,
-    status: 'queued',
-  })
-
-  return message
+  const routeProfileId=routeContext.routeRuntime?.route_profile_id??routeContext.routeDecision.edielRouteProfileId
+  if(!routeProfileId)throw new Error('ai_list_canonical_route_profile_required')
+  const requestId=randomUUID()
+  const request:CreateAiListMessageIntentInput={actorUserId,companyId:params.companyId,environment,market:'electricity',messageFamily:'AI_LIST',messageCode:'AI',businessProcess:'reconciliation',direction:'outbound',senderEdielId:routeContext.senderEdielId,receiverEdielId:routeContext.receiverEdielId,applicationReference:'',interchangeReference:'',messageReference:'',transactionReference:null,routeProfileId,communicationRouteId:routeContext.route.id,customerId:params.customerId,customerSiteId:params.siteId,meteringPointId:params.meteringPointId??null,idempotencyKey:`ai-list-request:${requestId}`,payload:{owner:'ai-list-export-request-v1',fromDate:params.fromDate,toDate:params.toDate,sourceSha256:AI_LIST_SOURCE_PROFILE.sourceSha256,technicalVersion:AI_LIST_SOURCE_PROFILE.technicalVersion,requestId,...(params.balanceResponsibleEdielId?{expectedBalanceResponsibleEdielId:params.balanceResponsibleEdielId}:{})}}
+  const intent=await createEdielMessageIntent(request)
+  return renderAndQueueAiList({companyId:params.companyId,actorUserId,intentId:intent.id,routeContext})
 }

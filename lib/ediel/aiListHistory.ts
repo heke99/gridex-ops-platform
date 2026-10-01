@@ -7,7 +7,8 @@ import {reviewedBusinessFor,type StructuralReadset} from '@/lib/ediel/sources/st
 
 export type AiListSupplyPeriod={id:string;company_id:string;customer_id:string;metering_point_id:string;start_date:string;end_date:string|null;actual_start_date?:string|null;actual_end_date?:string|null}
 export type AiListHistoryScope={companyId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;legalSupplier:string;legalNetwork:string;fromDate:string;toDate:string;cutoffAt:string}
-export type AiListHistoricalProjection={details:AiListDetailRow[];evidence:{version:1;owner:'ai-reviewed-source-history-v1';snapshotId:string;readsetHash:string;cutoffAt:string;sourceMessageIds:string[];supplyPeriodIds:string[]}}
+export type AiListHistoricalProjection={details:AiListDetailRow[];evidence:{version:1;owner:'ai-reviewed-source-history-v1';snapshotId:string;readsetHash:string;cutoffAt:string;sourceMessageIds:string[];supplyPeriodIds:string[];rowSources:AiListRowSource[]}}
+export type AiListRowSource={sourceMessageId:string;baselineSourceMessageId:string;addressSourceMessageId:string;supplyPeriodId:string}
 function hold(reason:string):never{throw new Error(`ai_list_history_unavailable:${reason}`)}
 const minuteForDay=(day:string)=>`${aiListDate(day)}0000`
 const max=(a:string,b:string)=>a>b?a:b
@@ -22,7 +23,7 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
   const timeline=readset.timeline
   if(timeline.status!=='inspected'||!timeline.boundedReadComplete||readset.unresolvedSources||!timeline.snapshotId||!timeline.readsetHash||!timeline.ledgerStartedAt||timeline.cutoffAt!==scope.cutoffAt)hold('bounded_source_read_unconfirmed')
   if(periods.length>1000||new Set(periods.map(period=>period.id)).size!==periods.length)hold('supply_period_read_incomplete')
-  const details:AiListDetailRow[]=[],sourceIds=new Set<string>(),periodIds=new Set<string>()
+  const rowSources:AiListRowSource[]=[],details:AiListDetailRow[]=[],sourceIds=new Set<string>(),periodIds=new Set<string>()
   for(const period of periods){
     if(period.company_id!==scope.companyId||period.customer_id!==scope.customerId)hold('supply_period_tenant_mismatch')
     if(scope.meteringPointId&&period.metering_point_id!==scope.meteringPointId)continue
@@ -60,7 +61,7 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
     const baselineObject=baselineSource&&parsedProdatObjects(parseProdatMessage(baselineSource.rawPayload)).find(item=>item.meteringPointId===object.objectId&&item.identityAgency===object.identityAgency)
     const customer=baselineObject?.registers[0]
     if(!customer?.endUserId||!customer.endUserName||!['SE1','SE2'].includes(customer.endUserIdQualifier??''))hold('dated_customer_identity_missing')
-    let previous=baselineObject!.registers[0]
+    let previous=baselineObject!.registers[0],addressSourceMessageId=baseline.sourceMessageId
     for(let index=0;index<selected.states.length;index++){
       const state=selected.states[index],version=readset.versions.find(item=>item.sourceMessageId===state.sourceMessageId)
       const source=readset.sources.find(item=>item.sourceMessageId===state.sourceMessageId)
@@ -69,12 +70,13 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
       if(!parsed?.balanceResponsibleId||!parsed.gridAreaId)hold('dated_grid_or_balance_party_missing')
       // Z10 excludes installation fields. Preserve the last permitted original
       // source for address; never use supplied forbidden extras on that object.
-      if(version.wire.messageCode!=='Z10')previous=parsed
+      if(version.wire.messageCode!=='Z10'){previous=parsed;addressSourceMessageId=state.sourceMessageId}
       const next=selected.states[index+1],rowStart=max(start,version.wire.effectiveFrom.marketMinute.slice(0,8))
       const rowEnd=next?min(end,prodatNowDate203(new Date(next.effectiveFrom)).slice(0,8)):end
       sourceIds.add(state.sourceMessageId)
       if(rowEnd<=start)continue
       if(rowStart>=rowEnd)hold('dated_row_boundary_invalid')
+      rowSources.push({sourceMessageId:state.sourceMessageId,baselineSourceMessageId:baseline.sourceMessageId,addressSourceMessageId,supplyPeriodId:period.id})
       details.push({anlaggningsId:object.objectId!,kodlista:object.identityAgency!,natavrakningsomrade:parsed.gridAreaId,
         balansansvarsId:parsed.balanceResponsibleId,elanvandarId:customer.endUserId,elanvandarNamn:customer.endUserName,
         anlaggningsAdress:previous.installationAddress,postnummer:previous.installationPostcode,ort:previous.installationCity,
@@ -86,5 +88,5 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
     if(selected.closure)sourceIds.add(selected.closure.sourceMessageId)
     periodIds.add(period.id)
   }
-  return {details,evidence:{version:1,owner:'ai-reviewed-source-history-v1',snapshotId:timeline.snapshotId,readsetHash:timeline.readsetHash,cutoffAt:scope.cutoffAt,sourceMessageIds:[...sourceIds].sort(),supplyPeriodIds:[...periodIds].sort()}}
+  return {details,evidence:{version:1,owner:'ai-reviewed-source-history-v1',snapshotId:timeline.snapshotId,readsetHash:timeline.readsetHash,cutoffAt:scope.cutoffAt,sourceMessageIds:[...sourceIds].sort(),supplyPeriodIds:[...periodIds].sort(),rowSources}}
 }

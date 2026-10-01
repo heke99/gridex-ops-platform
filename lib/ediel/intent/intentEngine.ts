@@ -4,6 +4,7 @@
 // persists intents, enforces idempotency and runs the pre-render validation
 // gate. It never renders or queues EDIFACT/XML.
 
+import {AI_LIST_SOURCE_PROFILE,aiListDate} from '@/lib/ediel/aiListFormat'
 import { supabaseService } from '@/lib/supabase/service'
 import { collectPlaceholderViolations } from '@/lib/ediel/intent/noPlaceholderGuard'
 import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
@@ -143,6 +144,7 @@ export function evaluateIntentValidation(
   // 1) Required metadata.
   const missing: string[] = []
   for (const field of REQUIRED_METADATA_FIELDS) {
+    if(input.messageFamily==='AI_LIST'&&['applicationReference','interchangeReference','messageReference'].includes(field.key))continue
     if (!str((input as Record<string, unknown>)[field.key as string])) missing.push(field.label)
   }
   checks.required_metadata = missing.length === 0
@@ -244,6 +246,18 @@ export function evaluateIntentValidation(
         details: { supportStatus: support },
       })
     }
+  } else if(family==='AI_LIST'){
+    const payload=record(input.payload)
+    let dates=false
+    try{dates=aiListDate(String(payload?.fromDate??''))<aiListDate(String(payload?.toDate??''))}catch{/* Exact malformed dates block the request. */}
+    checks.message_code_supported=input.messageCode==='AI'&&(input.direction??'outbound')==='outbound'&&input.businessProcess==='reconciliation'
+    checks.ai_technical_request=payload?.owner==='ai-list-export-request-v1'&&dates
+      &&payload?.sourceSha256===AI_LIST_SOURCE_PROFILE.sourceSha256&&payload?.technicalVersion===AI_LIST_SOURCE_PROFILE.technicalVersion
+      &&Boolean(str(payload?.requestId))&&Boolean(str(input.customerId))&&Boolean(str(input.customerSiteId))
+    checks.ai_no_edifact_references=!str(input.applicationReference)&&!str(input.interchangeReference)&&!str(input.messageReference)&&!str(input.transactionReference)
+    if(!checks.message_code_supported||!checks.ai_technical_request||!checks.ai_no_edifact_references)blockingReasons.push({
+      code:'ai_list_intent_request_invalid',message:'AI-intent måste ange ett eget kund- och platsbundet tekniskt listuppdrag utan EDIFACT-referenser.',severity:'block',
+    })
   } else {
     checks.message_code_supported = true
   }
