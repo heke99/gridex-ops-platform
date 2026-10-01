@@ -15,7 +15,7 @@ export function tgtCanonicalDraftRouteRequest(input:{messageFamily:string;messag
  if(input.messageFamily==='UTILTS'){
   const profile=canonicalUtiltsProfileForMessage(input.messageCode)
   if(!profile)throw Error('ediel_tgt_canonical_route_process_unavailable')
-  return profile.scope==='error'?'ediel_ack':profile.scope==='aggregate'?'billing_underlay':'meter_values'
+  return profile.scope==='error'?'ediel_ack':profile.scope==='grid_area'?'billing_underlay':'meter_values'
  }
  if(['CONTRL','APERAK','UTILTS_ERR'].includes(input.messageFamily))return 'ediel_ack'
  throw Error('ediel_tgt_canonical_route_process_unavailable')
