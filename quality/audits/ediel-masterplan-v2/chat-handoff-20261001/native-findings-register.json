@@ -1,91 +1,103 @@
 {
-  "scope": "Local mirror of OPS hardening clean-migration-replay + source-owner native suite on the composed candidate; evidence files native-suite-<sha>.json in this directory.",
-  "baseline": {
-    "b6401b75": "369/502 failing",
-    "297e96ae": "373/505 (+134600/142520/142530/probes; only new probe fixture failures)",
-    "a16fa76c": "280/385 after canonical fixture fixes (93 fixed, 0 new)"
+ "scope": "Local mirror of OPS hardening clean-migration-replay + source-owner native suite on the composed candidate; evidence files native-suite-<sha>.json in this directory.",
+ "baseline": {
+  "b6401b75": "369/502 failing",
+  "297e96ae": "373/505 (+134600/142520/142530/probes; only new probe fixture failures)",
+  "a16fa76c": "280/385 after canonical fixture fixes (93 fixed, 0 new)"
+ },
+ "fixed": [
+  {
+   "id": "NATIVE-FIX-01",
+   "cause": "Canonical replay lacks legacy-seeded permission catalog keys",
+   "fix": "setup adds catalog keys only (b1be6949)"
   },
-  "fixed": [
-    {
-      "id": "NATIVE-FIX-01",
-      "cause": "Canonical replay lacks legacy-seeded permission catalog keys",
-      "fix": "setup adds catalog keys only (b1be6949)"
-    },
-    {
-      "id": "NATIVE-FIX-02",
-      "cause": "ux_companies_normalized_org collision from constant organisation number",
-      "fix": "unique Luhn org number per fixture company"
-    },
-    {
-      "id": "NATIVE-FIX-03",
-      "cause": "Fixture cleanup deleted retention-protected contract originals",
-      "fix": "expect 083000 storage guard refusal"
-    },
-    {
-      "id": "NATIVE-FIX-04",
-      "cause": "Canonical user_profiles has no disabled_at; pg_proc oid compared as string",
-      "fix": "a16fa76c"
-    },
-    {
-      "id": "NATIVE-FIX-05",
-      "cause": "Draft POA with empty scopes then signed scopes violates immutable signed_scope_snapshot (since 20260720); authorization chain needs coverage",
-      "fix": "1479de85"
-    },
-    {
-      "id": "PRODUCT-FIX-142540",
-      "severity": "high",
-      "cause": "supplier_switch_requests check/trigger allowed only L/LK and rewrote switch to L/Z22, so explicit national H/Z25 (031053 owners, prodatSwitch.ts) was unreachable",
-      "fix": "20261001142540 preserves explicit consistent H/Z25"
-    },
-    {
-      "id": "PRODUCT-FIX-142530",
-      "severity": "high",
-      "cause": "062832 origin-current omitted the 043917 Z13 requestTiming proof; every Z13 origin was stale",
-      "fix": "20261001142530"
-    }
-  ],
-  "open": [
-    {
-      "id": "NATIVE-OPEN-01",
-      "tests": "ediel-utilts-consumption-native (~120), utilts-err-gateway, utilts-s02",
-      "error": "ediel_inbound_legal_context_required / ediel_source_rule_pack_basis_required",
-      "rootCause": "Fixture seeds no tenant_actor_identifiers/tenant_ediel_profiles/roles/relations for the receiving company and reuses the global Ediel id 21660; canonical legal-context owner (20260930173632) requires a globally unique legal id, one profile, role and transport relation; fixture UNB also lacks test indicator 0035.",
-      "status": "REMAINING_FIXTURE_WORK"
-    },
-    {
-      "id": "NATIVE-OPEN-02",
-      "tests": "ediel-bilateral-prodat-h-original-native (19)",
-      "rootCause": "PRODAT 26.A r3 registry contains no bilateral Z03/Z04/Z05 H profiles; they must originate from an authentic bilateral agreement source. Not synthesized into the shared rule pack.",
-      "status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED"
-    },
-    {
-      "id": "NATIVE-OPEN-03",
-      "tests": "remaining service-evidence/correction-context/document-reference/z04 clusters",
-      "rootCause": "not yet analyzed after fixture fixes",
-      "status": "REMAINING_ANALYSIS"
-    },
-    {
-      "id": "UNIT-OPEN-01",
-      "tests": "100 pre-existing ediel unit failures (PRODAT remaining-d/energy-product/prior-flow/APERAK 96A preflight etc.)",
-      "rootCause": "Composed flows now require tenant membership reads, full-directory APERAK grammar and additional RPC ports that older unit fixtures do not provide; one probe showed technical CONTRL branch blocked by mocked from() (UNEXPECTED_DB).",
-      "status": "REMAINING_FIXTURE_WORK"
-    },
-    {
-      "id": "NATIVE-OPEN-04",
-      "tests": "ediel-outbound-ack-replay-native (all 3 cases incl. the new 134600/142520 actor/phase probe)",
-      "error": "23502 canonical_ediel_company_required",
-      "rootCause": "gridex_validate_ediel_message_contract requires company_id on every canonical-family message, while these fixtures insert an unattributed technical inbound source (company_id NULL). Product code (ackDraftSource/kernel) still models null-company technical sources; the schema and the TS model disagree. Needs an owner decision whether null-company technical sources remain supported. A company-attributed source with the same unlisted wire instead fails canonical_inbound_rule_profile_resolution_failed, so the technical-only path cannot be exercised natively until this is decided. The 142520 gates are therefore verified by unit tests and applied-migration review only.",
-      "status": "REMAINING_DECISION"
-    },
-    {
-      "id": "UNIT-OPEN-02",
-      "tests": "PRODAT unit cluster (prior-flow, field-identity, permission-ack, aperak-text, remaining-d, energy-product \u2026)",
-      "rootCauses": [
-        "P16B_APERAK96A_OWN_Z07_LI_CARDINALITY: own APERAK with both RFF+Z07 and RFF+LI in one ERC violates D.96A SG4 C1; product holds the wire fail-closed (lib/ediel/core/unsmSourceConflicts.ts, EXTERNAL_NORMATIVE_CLARIFICATION_REQUIRED). Tests expecting a rendered draft are updated to the held outcome where the conflict is exact.",
-        "Composed inbound syntax applies full UNSM directory grammar; fixtures that inject out-of-place segments or over-length codes (e.g. CAV 'INVALID') now stop as syntax rejections before application, so expected application ERC41/42 never occurs. Fixtures must use grammar-valid placement/lengths to exercise application rules."
-      ],
-      "status": "REMAINING_FIXTURE_WORK_AND_EXTERNAL_CLARIFICATION"
-    }
-  ],
-  "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
+  {
+   "id": "NATIVE-FIX-02",
+   "cause": "ux_companies_normalized_org collision from constant organisation number",
+   "fix": "unique Luhn org number per fixture company"
+  },
+  {
+   "id": "NATIVE-FIX-03",
+   "cause": "Fixture cleanup deleted retention-protected contract originals",
+   "fix": "expect 083000 storage guard refusal"
+  },
+  {
+   "id": "NATIVE-FIX-04",
+   "cause": "Canonical user_profiles has no disabled_at; pg_proc oid compared as string",
+   "fix": "a16fa76c"
+  },
+  {
+   "id": "NATIVE-FIX-05",
+   "cause": "Draft POA with empty scopes then signed scopes violates immutable signed_scope_snapshot (since 20260720); authorization chain needs coverage",
+   "fix": "1479de85"
+  },
+  {
+   "id": "PRODUCT-FIX-142540",
+   "severity": "high",
+   "cause": "supplier_switch_requests check/trigger allowed only L/LK and rewrote switch to L/Z22, so explicit national H/Z25 (031053 owners, prodatSwitch.ts) was unreachable",
+   "fix": "20261001142540 preserves explicit consistent H/Z25"
+  },
+  {
+   "id": "PRODUCT-FIX-142530",
+   "severity": "high",
+   "cause": "062832 origin-current omitted the 043917 Z13 requestTiming proof; every Z13 origin was stale",
+   "fix": "20261001142530"
+  },
+  {
+   "id": "UNIT-FIX-20261001",
+   "severity": "medium",
+   "cause": "About 100 PRODAT/Ediel unit failures came from tests written before the composed owners: stricter full UNSM grammar (an..3/an..35, segment order), BGM34 every-object rule, renamed/added native ports, the actor gate, and P16B.",
+   "fix": "Commits 7b792216..707fef84. Fixtures were moved to directory-valid positions and values. Stale assertions now follow the newest integrated owner tests. Declared unit ports report absence or no effect and fabricate nothing. Full unit suite: 0 of 9104 failing."
+  },
+  {
+   "id": "PRODUCT-FIX-TGT-Z09-ACTOR-ORDER",
+   "severity": "medium",
+   "cause": "Both TGT consumers read the classified customer-event certification original before the current tenant actor check. The autopilot also applied the life-event source context to unclassified Z09 drafts, which the manual consumer does not do.",
+   "fix": "14ac2d65: assertEdielTenantActor (communication.write|ediel_testing.write) now runs before the read, and the autopilot follows the same classified-only contract as the manual consumer."
+  }
+ ],
+ "open": [
+  {
+   "id": "NATIVE-OPEN-01",
+   "tests": "ediel-utilts-consumption-native (~120), utilts-err-gateway, utilts-s02",
+   "error": "ediel_inbound_legal_context_required / ediel_source_rule_pack_basis_required",
+   "rootCause": "Fixture seeds no tenant_actor_identifiers/tenant_ediel_profiles/roles/relations for the receiving company and reuses the global Ediel id 21660; canonical legal-context owner (20260930173632) requires a globally unique legal id, one profile, role and transport relation; fixture UNB also lacks test indicator 0035.",
+   "status": "REMAINING_FIXTURE_WORK"
+  },
+  {
+   "id": "NATIVE-OPEN-02",
+   "tests": "ediel-bilateral-prodat-h-original-native (19)",
+   "rootCause": "PRODAT 26.A r3 registry contains no bilateral Z03/Z04/Z05 H profiles; they must originate from an authentic bilateral agreement source. Not synthesized into the shared rule pack.",
+   "status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED"
+  },
+  {
+   "id": "NATIVE-OPEN-03",
+   "tests": "remaining service-evidence/correction-context/document-reference/z04 clusters",
+   "rootCause": "not yet analyzed after fixture fixes",
+   "status": "REMAINING_ANALYSIS"
+  },
+  {
+   "id": "NATIVE-OPEN-04",
+   "tests": "ediel-outbound-ack-replay-native (all 3 cases incl. the new 134600/142520 actor/phase probe)",
+   "error": "23502 canonical_ediel_company_required",
+   "rootCause": "gridex_validate_ediel_message_contract requires company_id on every canonical-family message, while these fixtures insert an unattributed technical inbound source (company_id NULL). Product code (ackDraftSource/kernel) still models null-company technical sources; the schema and the TS model disagree. Needs an owner decision whether null-company technical sources remain supported. A company-attributed source with the same unlisted wire instead fails canonical_inbound_rule_profile_resolution_failed, so the technical-only path cannot be exercised natively until this is decided. The 142520 gates are therefore verified by unit tests and applied-migration review only.",
+   "status": "REMAINING_DECISION"
+  },
+  {
+   "id": "P16B-TEST-HOLD",
+   "decision": "Owner/user decision 2026-10-01: tests for exact Z07+LI own APERAK cases assert the documented fail-closed hold via __tests__/helpers/p16bHold.ts. Every blocked APERAK must be the diagnosed P16B conflict. Positive-rendering assertions are restored once Ediel gives external normative clarification.",
+   "status": "EXTERNAL_NORMATIVE_CLARIFICATION_REQUIRED"
+  },
+  {
+   "id": "UNIT-OPEN-03-MIXED-REPLY",
+   "status": "UNVERIFIED",
+   "finding": "prodatAckObjectScopes rejects an applicationErrors entry with ERC100 and no prodatOccurrence (aperak_prodat_requested_scope_unqualified). processMixedProdatObjects returns such ERC100 positives for accepted siblings, so a mixed negative+positive Z04 reply may never prepare through prepareSourceAckDraft.",
+   "next": "Run a native or SQL mixed Z04 reply end-to-end before classifying it as a defect."
+  },
+  {
+   "id": "UNIT-NOTE-OWNER-CONFLICTS",
+   "finding": "The base contained contradictory unit tests. Z09E non-death (P-09) is resolved toward death-status-source (bilateral process required, verified bilateral admitted). Service-recovery send is resolved toward the current origin owner (communication.send exactly). Both follow the newest integrated owner. They are recorded here for owner review and production code is unchanged."
+  }
+ ],
+ "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
 }
