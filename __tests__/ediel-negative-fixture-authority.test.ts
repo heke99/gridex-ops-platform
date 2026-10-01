@@ -2,7 +2,7 @@ import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
-import {bindSourceQualifiedNegativeFixtureDraft,readSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureForMessage,sourceQualifiedNegativeFixtureMatchesMessage} from '@/lib/ediel/testing/negativeFixtureAuthority'
+import {bindSourceQualifiedNegativeFixtureDraft,readSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureDraft,resolveSourceQualifiedNegativeFixtureForMessage,sourceQualifiedNegativeFixtureMatchesMessage,sourceQualifiedNegativeFixtureMatchesDraft} from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {encodeEdifactLatin1} from '@/lib/ediel/core/edifactEncoding'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 const raw="UNA:+.? 'UNB+UNOC:3+S:ZZ+TEST:ZZ+260930:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+DOC'UNT+3+M'UNZ+1+I'"
@@ -37,6 +37,9 @@ describe('source-qualified negative fixture capability, synthetic port responses
   bindSourceQualifiedNegativeFixtureDraft(draft,qualification!)
   expect(readSourceQualifiedNegativeFixtureDraft(draft)).toBe(qualification)
   expect(readSourceQualifiedNegativeFixtureDraft({...draft})).toBeNull()
+  expect(sourceQualifiedNegativeFixtureMatchesDraft({draft:{...draft},qualification,diagnosticCodes:['NATIONAL_FIELD_MISSING']})).toBe(true)
+  expect(sourceQualifiedNegativeFixtureMatchesDraft({draft:{...draft,rawPayload:raw+' '},qualification,diagnosticCodes:['NATIONAL_FIELD_MISSING']})).toBe(false)
+  expect(sourceQualifiedNegativeFixtureMatchesDraft({draft:{...draft},qualification,diagnosticCodes:['LOCAL_CONFIG_FAILED']})).toBe(false)
   draft.rawPayload+=' ';expect(readSourceQualifiedNegativeFixtureDraft(draft)).toBeNull()
  })
  it('does not mint a draft exception for mismatched diagnostic expectation',async()=>{

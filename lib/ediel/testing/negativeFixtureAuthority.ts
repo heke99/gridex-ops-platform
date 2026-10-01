@@ -60,6 +60,14 @@ export function sourceQualifiedNegativeFixtureMatchesMessage(input: {message:Edi
     && input.diagnosticCodes.length > 0 && JSON.stringify(codes(input.diagnosticCodes)) === JSON.stringify(codes(binding.registration.expectedDiagnosticCodes)))
 }
 type DraftIdentity = {companyId?:string | null;environment?:string | null;direction?:string | null;rawPayload?:string | null}
+/** Recheck the prospective opaque port against the final creation bytes after
+ * the kernel read the exact bound input and made its internal clone. */
+export function sourceQualifiedNegativeFixtureMatchesDraft(input:{draft:DraftIdentity;diagnosticCodes:readonly string[];qualification?:SourceQualifiedNegativeFixture | null}):boolean {
+  const binding=input.qualification ? returnedAuthority.get(input.qualification) : null
+  return Boolean(binding && binding.messageId === null && input.draft.direction === 'outbound' && input.draft.environment === 'test'
+    && input.draft.companyId && matchesRaw(binding.registration,input.draft.companyId,input.draft.rawPayload ?? '')
+    && input.diagnosticCodes.length > 0 && JSON.stringify(codes(input.diagnosticCodes)) === JSON.stringify(codes(binding.registration.expectedDiagnosticCodes)))
+}
 /** Pass evidence to the exact create input without serializing an authority
  * marker. Any copy or altered bytes lose this prospective qualification. */
 export function bindSourceQualifiedNegativeFixtureDraft(draft:DraftIdentity,qualification:SourceQualifiedNegativeFixture): void {
