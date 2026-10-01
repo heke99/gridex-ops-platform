@@ -56,3 +56,6 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - Ediel branches and the Ediel memory files.
 - Production data.
 - The rollout flags.
+
+## Lesson (2026-10-01)
+- A migration that changes schema needs BOTH generated files from the CI clean-replay artifact: `supabase/database.types.ts` (+ sha in `scripts/supabase-types-manifest.json`) AND `supabase/schema.sql` + `supabase/schema.fingerprint.json` (from `rem002-schema-snapshot/`). Pushed `763aae2`. Never hand-edit either.
