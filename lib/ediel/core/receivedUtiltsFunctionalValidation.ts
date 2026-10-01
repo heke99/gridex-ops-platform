@@ -2,11 +2,13 @@ import {tokenizeEdifact} from './edifactTokenizer'
 import {canonicalUtiltsTransactions} from '@/lib/ediel/utilts/canonicalObservationScope'
 import {evidenceHash,isEvidenceRecord} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {buildReceivedUtiltsTransactionValidation,bindReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionValidation} from './receivedUtiltsTransactionValidation'
+import {buildReceivedUtiltsFunctionalValidationV2,bindReceivedUtiltsFunctionalValidationV2,type ReceivedUtiltsFunctionalValidationV2} from './receivedUtiltsFunctionalValidationV2'
 import type {UtiltsRuntimeResult} from '@/lib/ediel/utiltsEngine.part-1'
 
-export type ReceivedUtiltsFunctionalValidation=Readonly<{version:1;sourcePayloadHash:string;transactions:readonly Readonly<{
+export type ReceivedUtiltsFunctionalValidationV1=Readonly<{version:1;sourcePayloadHash:string;transactions:readonly Readonly<{
   transactionIndex:number;transactionId:string;errors:readonly Readonly<{code:string;referenceQualifier:string;referenceNumber:string}>[]
 }>[]}>
+export type ReceivedUtiltsFunctionalValidation=ReceivedUtiltsFunctionalValidationV1|ReceivedUtiltsFunctionalValidationV2
 
 /** Only the actual runtime's existing national response projection supplies
  * code/ref. Internal diagnostic IDs, a catalog or parsed JSON never infer it. */
@@ -16,6 +18,7 @@ export function buildReceivedUtiltsFunctionalValidation(input:{source:{raw_paylo
   if(!own) return null
   const eligible=own.transactions.filter(transaction=>transaction.disposition==='processability_rejected'&&transaction.responseType==='utilts_err')
   if(!eligible.length) return null
+  if(input.runtime.ackPlan.utiltsErrDetails.some(detail=>detail.referenceNumber==null&&detail.lineItemReference==null))return buildReceivedUtiltsFunctionalValidationV2(input)
   const transactions=eligible.map(transaction=>({transactionIndex:transaction.transactionIndex,transactionId:transaction.transactionId,errors:[] as Array<{code:string;referenceQualifier:string;referenceNumber:string}>}))
   for(const detail of input.runtime.ackPlan.utiltsErrDetails) {
     if(!detail.referenceNumber || detail.lineItemReference!==detail.referenceNumber || !detail.referenceQualifier) return null
@@ -29,6 +32,7 @@ export function buildReceivedUtiltsFunctionalValidation(input:{source:{raw_paylo
 /** Original bytes and complete canonical own-IDE facet bind the exact national
  * response subset. No rule pass or allowed national code table is recreated. */
 export function bindReceivedUtiltsFunctionalValidation(value:unknown,raw:string,own:ReceivedUtiltsTransactionValidation):ReceivedUtiltsFunctionalValidation|null {
+  if(isEvidenceRecord(value)&&value.version===2)return bindReceivedUtiltsFunctionalValidationV2(value,raw,own)
   if(!bindReceivedUtiltsTransactionValidation(own,raw) || !isEvidenceRecord(value) || Object.keys(value).length!==3 || value.version!==1 || value.sourcePayloadHash!==evidenceHash(raw)
     || !Array.isArray(value.transactions) || !value.transactions.length || value.transactions.length>999) return null
   const eligible=own.transactions.filter(transaction=>transaction.disposition==='processability_rejected'&&transaction.responseType==='utilts_err')
@@ -47,5 +51,5 @@ export function bindReceivedUtiltsFunctionalValidation(value:unknown,raw:string,
       codes.add(error.code)
     }
   }
-  return structuredClone(value) as ReceivedUtiltsFunctionalValidation
+  return structuredClone(value) as ReceivedUtiltsFunctionalValidationV1
 }
