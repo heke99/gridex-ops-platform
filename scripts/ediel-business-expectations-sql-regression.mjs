@@ -34,7 +34,8 @@ try{
  const decoder=readFileSync(new URL('../supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql',import.meta.url),'utf8')
  await db.exec(decoder.slice(decoder.indexOf('CREATE FUNCTION gridex_received_sources.wire_tokens_bounded_v1'),decoder.indexOf('-- Keep the existing closure budget')))
  await db.exec(`create function gridex_received_sources.z02_core_wire_v1(raw text) returns jsonb language sql immutable as $wire$select jsonb_build_object('objects',jsonb_agg(jsonb_build_object('objectId',t#>>'{elements,3,0}','identityAgency',t#>>'{elements,3,2}'))) from jsonb_array_elements(gridex_received_sources.wire_tokens_bounded_v1(raw,999999)) t where t->>'tag'='LIN'$wire$;`)
- await db.exec(readFileSync(new URL('../supabase/migrations/20260930154712_ediel_source_bound_business_expectations_v1.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930154712_ediel_source_bound_business_expectations_v1.sql',import.meta.url),'utf8'));
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930170258_ediel_business_expectation_applied_scope_v2.sql',import.meta.url),'utf8'));checks++
  const z13=await seed('Z13')
  let result=await invoke('register',{messageId:z13.mid});assert.equal(result.length,1);assert.equal(result[0].metadata.remoteReceiptKnown,false);assert.equal(new Date(result[0].due_at).toISOString(),'2026-11-14T13:00:00.000Z');checks++ // calendar watch crosses Stockholm DST correctly
  const original=result[0];assert.equal((await invoke('register',{messageId:z13.mid}))[0].id,original.id);checks++
@@ -69,5 +70,12 @@ try{
  const acl=await db.query(`select has_function_privilege('anon','public.gridex_ediel_business_expectations_v1(jsonb)','execute') rpc,has_table_privilege('service_role','gridex_business_expectations.bindings','update') edit`)
  assert.deepEqual(acl.rows,[{rpc:false,edit:false}]);checks++
  await rejects(`set role service_role;update gridex_business_expectations.bindings set observed_at=now();`,/permission denied/)
+ // Observe actual trigger targets independently of its implementation: a new
+ // applied source may reconcile only its own request in the same environment.
+ await db.exec(`create table targeted_reconciliations(id uuid);create or replace function gridex_business_expectations.reconcile_v1(p_expectation uuid) returns void language plpgsql security definer set search_path=pg_catalog as $probe$begin insert into public.targeted_reconciliations values(p_expectation);end$probe$;
+ insert into gridex_received_sources.permission_transitions(source_message_id,company_id,previous_state,resulting_state,payload_hash) values('${ended}','${company}','{}','{}','not-qualified');`)
+ assert.equal((await db.query('select count(*)::int n from targeted_reconciliations')).rows[0].n,0);checks++
+ await db.exec(`insert into gridex_received_sources.permission_transitions(source_message_id,company_id,previous_state,resulting_state,payload_hash,qualified_original_message_id,qualified_expected_message_code) values('${ended}','${company}','{}','{}','scope-probe','${z18.mid}','Z15');`)
+ assert.deepEqual((await db.query('select id from targeted_reconciliations')).rows,[{id:(await invoke('read',{messageId:z18.mid}))[0].id}]);checks++
  console.log(`PASS ${checks} targeted expectation PostgreSQL checks; synthetic source-ledger contract fixture, not native/replay or counterparty receipt evidence`)
 }finally{await db.close()}
