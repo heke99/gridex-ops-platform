@@ -1,7 +1,7 @@
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {publishSourceCustomerLifeEventCommit,type SourceCustomerLifeEventCommitObserver} from './sourceCustomerLifeEventCommit'
-/** Accepted application/functional source evidence precedes every first native
+/** Complete own application and source-specific function/party evidence precede every first native
  * effect; native direct callers recheck it rather than trusting a caller flag. */
 export async function applyInboundCustomerLifeEvent(input:{message:EdielMessageRow;actorUserId:string;onCustomerLifeEventCommitted?:SourceCustomerLifeEventCommitObserver}){
  if(!input.message.company_id)throw new Error('customer_life_event_company_required')

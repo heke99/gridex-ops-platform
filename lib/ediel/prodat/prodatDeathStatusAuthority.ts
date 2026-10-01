@@ -6,14 +6,14 @@ import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
 type Row={id?:string|null;direction?:string|null;company_id?:string|null;environment?:string|null;intent_id?:string|null;communication_route_id?:string|null;message_code?:string|null;message_family?:string|null;raw_payload?:string|null;parsed_payload?:unknown}
 type LifeEventContextBasis={kind:'customer_life_event';companyId:string;environment:'test'|'production';rawPayload:string;sourceEventId:string;sourceRevision:string;sourceDigest:string;businessContext:'death'|'bankruptcy'|'other_masterdata';bilateralCapabilityVerified:boolean;selection:DeathSelection}
 export type DeathStatusValidationContext=Readonly<LifeEventContextBasis&(
- {direction:'outbound';code:'Z09';intentId:string;routeId:string}|{direction:'inbound';code:'Z06';sourceMessageId:string})>
+ {direction:'outbound';code:'Z09';intentId:string;routeId:string}|{direction:'inbound';code:'Z06';sourceMessageId:string;sourceContextReceiptId:string;sourceContextFactsHash:string})>
 const qualified=new WeakSet<object>()
 function freeze<T>(v:T):T{if(v&&typeof v==='object'){Object.freeze(v);for(const child of Object.values(v))freeze(child)}return v}
 /** Trusted server source resolver only. Pure selection/serialized metadata is
  * deliberately not an authority context and cannot survive a copy/reload. */
 export function bindDeathStatusSourceContext(input:DeathStatusValidationContext):DeathStatusValidationContext{
  if(input.kind!=='customer_life_event'||!input.companyId||!input.sourceEventId||!input.sourceRevision||!/^([a-f0-9]{64})$/.test(input.sourceDigest)||!input.rawPayload||!['test','production'].includes(input.environment)||!['death','bankruptcy','other_masterdata'].includes(input.businessContext)||input.businessContext!=='death'&&!input.bilateralCapabilityVerified
-  ||input.direction==='outbound'&&(input.code!=='Z09'||!input.intentId||!input.routeId)||input.direction==='inbound'&&(input.code!=='Z06'||!input.sourceMessageId)||!['inbound','outbound'].includes(input.direction))throw new Error('customer_life_event_source_context_invalid')
+  ||input.direction==='outbound'&&(input.code!=='Z09'||!input.intentId||!input.routeId)||input.direction==='inbound'&&(input.code!=='Z06'||!input.sourceMessageId||!/^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(input.sourceContextReceiptId)||!/^[a-f0-9]{64}$/.test(input.sourceContextFactsHash))||!['inbound','outbound'].includes(input.direction))throw new Error('customer_life_event_source_context_invalid')
  const result=freeze({...input,selection:copyDeathSelection(input.selection)})
  qualified.add(result);return result
 }

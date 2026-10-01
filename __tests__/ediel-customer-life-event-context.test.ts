@@ -28,3 +28,11 @@ it('cannot classify bankruptcy as death without its own bilateral ground', () =>
   const { context } = example()
   expect(() => bindDeathStatusSourceContext({ ...context, businessContext: 'bankruptcy', bilateralCapabilityVerified: false })).toThrow('customer_life_event_source_context_invalid')
 })
+
+it('binds an inbound classification to its prospective native receipt and never a restored copy', () => {
+  const context = bindDeathStatusSourceContext({ kind: 'customer_life_event', direction: 'inbound', code: 'Z06', companyId: 'company-A', environment: 'test', rawPayload: deathRaw('Z06'), sourceEventId: 'source-A', sourceRevision: '2', sourceDigest: 'a'.repeat(64), businessContext: 'death', bilateralCapabilityVerified: false, sourceMessageId: 'source-A', sourceContextReceiptId: '00000000-0000-4000-8000-000000000001', sourceContextFactsHash: 'b'.repeat(64), selection: deathSelection('death', 'Z06') })
+  expect(isQualifiedDeathStatusContext(context)).toBe(true)
+  expect(isQualifiedDeathStatusContext({ ...context })).toBe(false)
+  expect(() => bindDeathStatusSourceContext({ ...context, sourceContextReceiptId: '' })).toThrow('source_context_invalid')
+  expect(() => bindDeathStatusSourceContext({ ...context, sourceContextFactsHash: '' })).toThrow('source_context_invalid')
+})

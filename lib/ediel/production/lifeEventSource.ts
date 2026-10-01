@@ -57,9 +57,9 @@ export async function loadCustomerLifeEventValidationContext(message:EdielMessag
  if(message.company_id&&message.direction==='inbound'&&message.message_family==='PRODAT'&&message.message_code==='Z06'){
   const{data,error}=await supabaseService.rpc('ediel_customer_life_event_inbound_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
   if(error)throw error
-  if(!data)return undefined
+  if(!data||data.status==='held')return undefined
   if(data.status!=='authorized'||data.messageId!==message.id||data.companyId!==message.company_id||data.environment!==message.environment||data.rawPayload!==message.raw_payload)throw new Error('customer_life_event_inbound_basis_invalid')
-  return bindDeathStatusSourceContext({kind:'customer_life_event',direction:'inbound',code:'Z06',sourceMessageId:message.id,companyId:data.companyId,environment:data.environment,rawPayload:data.rawPayload,sourceEventId:message.id,sourceRevision:data.sourcePayloadHash,sourceDigest:data.sourcePayloadHash,businessContext:data.classification,bilateralCapabilityVerified:data.bilateralCapabilityVerified,selection:data.selection})
+  return bindDeathStatusSourceContext({kind:'customer_life_event',direction:'inbound',code:'Z06',sourceMessageId:message.id,sourceContextReceiptId:data.sourceContextReceiptId,sourceContextFactsHash:data.sourceContextFactsHash,companyId:data.companyId,environment:data.environment,rawPayload:data.rawPayload,sourceEventId:message.id,sourceRevision:data.sourcePayloadHash,sourceDigest:data.sourcePayloadHash,businessContext:data.classification,bilateralCapabilityVerified:data.bilateralCapabilityVerified,selection:data.selection})
  }
  if(!message.company_id||message.direction!=='outbound'||message.message_family!=='PRODAT'||message.message_code!=='Z09')return undefined
  const {data,error}=await supabaseService.rpc('ediel_customer_life_event_message_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
