@@ -250,7 +250,7 @@ export async function sendQueuedEdielMessage(params: {
   const reportingContext=recoveryReporting?.status === 'qualified' ? recoveryReporting.context : message.parsed_payload?.sourcePermissionBasis
     ? await loadServiceReportingValidationContext(message,actorUserId)
     : await loadTgtReportingValidationContext(message)
-  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext,sourceContext.ackSourceQualification,sourceContext.deathStatusContext,sourceContext.prodatCommonHeaderRejectionEvidence)
+  const preflight = preflightEdielMessageRow(message, 'send',dateEventContext,reportingContext,sourceContext.ackSourceQualification,sourceContext.deathStatusContext,sourceContext.prodatCommonHeaderRejectionEvidence,sourceContext.customerMasterdataContext)
   const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({message, actorUserId})
   await createEdielMessageEvent({
     actorUserId,

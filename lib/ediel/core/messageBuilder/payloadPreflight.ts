@@ -40,6 +40,8 @@ import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTok
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import type {CustomerMasterdataRenderingSource,CustomerMasterdataSourceRow} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import {
   profileForMessage,
@@ -376,6 +378,10 @@ function validateEdifactPayload(params: {
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
   deathStatusContext?:DeathStatusValidationContext
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  validationPurpose?:'render'|'outbound_original'|'send'
+  customerMasterdataRenderingSource?:CustomerMasterdataRenderingSource
+  customerMasterdataRow?:CustomerMasterdataSourceRow
   deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
@@ -613,9 +619,9 @@ function validateEdifactPayload(params: {
     companyId: params.companyId,
     ackSourceQualification: params.ackSourceQualification,
     prodatCommonHeaderRejectionEvidence:params.prodatCommonHeaderRejectionEvidence,
-    deathStatusContext:params.deathStatusContext,deathStatusRow:params.deathStatusRow,
+    deathStatusContext:params.deathStatusContext,deathStatusRow:params.deathStatusRow,customerMasterdataContext:params.customerMasterdataContext,customerMasterdataRow:params.customerMasterdataRow,validationPurpose:params.validationPurpose,customerMasterdataRenderingSource:params.customerMasterdataRenderingSource,
     dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange,
-    ...(params.mode==='send'?{environment:params.ackSourceQualification?EdifactEnvelopeCodec.decode(rawPayload).environment:params.dateEventRow?.environment,direction:params.ackSourceQualification?'outbound':params.dateEventRow?.direction}:{}),
+    ...(params.mode==='send'?{environment:params.ackSourceQualification||params.customerMasterdataRenderingSource?EdifactEnvelopeCodec.decode(rawPayload).environment:params.dateEventRow?.environment,direction:params.ackSourceQualification||params.customerMasterdataRenderingSource?'outbound':params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
       ? params.parsedPayload as Record<string, unknown> : null,
@@ -788,6 +794,10 @@ export function preflightEdielPayload(params: {
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
   deathStatusContext?:DeathStatusValidationContext
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  validationPurpose?:'render'|'outbound_original'|'send'
+  customerMasterdataRenderingSource?:CustomerMasterdataRenderingSource
+  customerMasterdataRow?:CustomerMasterdataSourceRow
   deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
@@ -831,14 +841,14 @@ export function preflightEdielPayload(params: {
   return validateEdifactPayload({ ...params,rawPayload,mode:params.mode??'parse' })
 }
 
-export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,ackSourceQualification?:SourceQualifiedOutboundAck,deathStatusContext?:DeathStatusValidationContext,prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence): EdielPayloadPreflightResult {
+export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,ackSourceQualification?:SourceQualifiedOutboundAck,deathStatusContext?:DeathStatusValidationContext,prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence,customerMasterdataContext?:CustomerMasterdataValidationContext): EdielPayloadPreflightResult {
   const result = preflightEdielPayload({
     rawPayload: message.raw_payload,
     mimeType: message.mime_type,
     messageStandard: message.message_standard,
     mode,
     parsedPayload:message.parsed_payload,
-    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,deathStatusRow:message,prodatCommonHeaderRejectionEvidence,
+    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,deathStatusRow:message,prodatCommonHeaderRejectionEvidence,customerMasterdataContext,customerMasterdataRow:message,validationPurpose:'send',
   })
   const gasBoundary=mode==='send'?gasApplicabilitySendIssue(message):null
   if(gasBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}));result.ok=false;result.blocking=true}
@@ -866,7 +876,7 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
         result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
       }
     }
-    const sourceFacts = mode === 'send' ? readProdatRegisterEvidence({dateEventRow:message,dateEventContext,reportingContext,code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    const sourceFacts = mode === 'send' ? readProdatRegisterEvidence({dateEventRow:message,dateEventContext,reportingContext,customerMasterdataContext,code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
     if(deathStatusContext)assertDeathStatusContextMatches(message,deathStatusContext)
     const facts=deathStatusContext?{...sourceFacts,deathStatus:deathStatusContext.selection,businessContext:deathStatusContext.businessContext}:sourceFacts
     if(mode==='send')for(const failure of validateProdatReportingPermission({code,rawSegments,una:tokens.una,facts,requireAuthority:true,reportingContext}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))

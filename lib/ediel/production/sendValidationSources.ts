@@ -2,6 +2,7 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {wireFormatIdentityIssue} from '@/lib/ediel/core/messageWireFormat'
 import {loadCustomerLifeEventValidationContext} from './lifeEventSource'
+import {loadCustomerMasterdataValidationContext} from './customerMasterdataSource'
 import {readPersistedOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import {readPersistedProdatCommonHeaderNegativeAckBasis} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 
@@ -16,6 +17,7 @@ export async function readFreshEdielSendValidationSources(message:EdielMessageRo
   if(!syntax.ok)throw new Error(`ediel_send_syntax_rejected:${syntax.issues.filter(i=>i.severity==='error').map(i=>i.code).join(',')}`)
  }
  const deathStatusContext=await loadCustomerLifeEventValidationContext(message,actorUserId)
+ const customerMasterdataContext=await loadCustomerMasterdataValidationContext(message,actorUserId)
  const snapshot=message.execution_context_snapshot
  const commonHeaderHint=message.message_family==='APERAK'&&snapshot&&typeof snapshot==='object'&&!Array.isArray(snapshot)
   ? Reflect.get(snapshot,'prodatCommonHeaderNegativeWitnessId') : null
@@ -23,9 +25,9 @@ export async function readFreshEdielSendValidationSources(message:EdielMessageRo
   if(!message.company_id||!message.raw_payload)throw new Error('ediel_common_header_negative_witness_required')
   const {evidence:prodatCommonHeaderRejectionEvidence}=await readPersistedProdatCommonHeaderNegativeAckBasis({companyId:message.company_id,
    environment:message.environment,ackMessageId:message.id,expectedRawPayload:message.raw_payload})
-  return {deathStatusContext,prodatCommonHeaderRejectionEvidence,ackSourceQualification:undefined}
+  return {deathStatusContext,customerMasterdataContext,prodatCommonHeaderRejectionEvidence,ackSourceQualification:undefined}
  }
  const ackSourceQualification=['APERAK','UTILTS_ERR'].includes(message.message_family)
   ? await readPersistedOutboundAckRulePackEvidence(message) : undefined
- return {deathStatusContext,ackSourceQualification,prodatCommonHeaderRejectionEvidence:undefined}
+ return {deathStatusContext,customerMasterdataContext,ackSourceQualification,prodatCommonHeaderRejectionEvidence:undefined}
 }

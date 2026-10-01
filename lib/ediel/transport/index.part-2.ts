@@ -360,7 +360,7 @@ export async function sendEdielMessageViaSmtp(
   const formatIssue = wireFormatIdentityIssue({ rawPayload: message.raw_payload, messageStandard: message.message_standard, mimeType: message.mime_type })
   if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
   if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
-  const {deathStatusContext,ackSourceQualification,prodatCommonHeaderRejectionEvidence:commonHeaderEvidence}=await readFreshEdielSendValidationSources(message,actorUserId)
+  const {deathStatusContext,customerMasterdataContext,ackSourceQualification,prodatCommonHeaderRejectionEvidence:commonHeaderEvidence}=await readFreshEdielSendValidationSources(message,actorUserId)
   await assertBrpChangeSendSource(message, actorUserId)
   const methodSendBasis = await assertMeteringMethodChangeSendSource(message, actorUserId)
   await assertUtiltsPositiveAckAuthorityForSend(message)
@@ -373,7 +373,7 @@ export async function sendEdielMessageViaSmtp(
     // Add the existing pure protected diagnostics before this new early hold;
     // no route/context loader or provider is invoked for a GAS boundary defect.
     if(sourceHolds.some(i=>i?.code.startsWith('PRODAT_GAS_'))){
-      try{for(const issue of validateEdielMessageRowWithRulebook(message,'send',undefined,undefined,ackSourceQualification,deathStatusContext).issues){
+      try{for(const issue of validateEdielMessageRowWithRulebook(message,'send',undefined,undefined,ackSourceQualification,deathStatusContext,undefined,customerMasterdataContext).issues){
         if((issue.scope==='prodat_dependent'||issue.scope==='prodat_register')&&(issue.blocking||issue.severity==='error'))messages.push(`${issue.code}: ${issue.description}`)
       }}catch(error){messages.push(error instanceof Error?error.message:String(error))}
     }
@@ -390,8 +390,8 @@ export async function sendEdielMessageViaSmtp(
     : undefined
   const dateEventContext = hasProdatDateEventMessage(message) ? await loadProdatDateEventValidationContext(message, actorUserId) : undefined
   const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({ message, actorUserId })
-  const admission = isEdifactMessage(message) ? await assertRegistryRulebookAllowsSend(message, dateEventContext, reportingContext, negativeFixture,deathStatusContext,ackSourceQualification??undefined) : null
-  if (reportingContext || dateEventContext || deathStatusContext || ackSourceQualification || commonHeaderEvidence) assertEdielSendLock(message, dateEventContext, reportingContext,ackSourceQualification,deathStatusContext,commonHeaderEvidence)
+  const admission = isEdifactMessage(message) ? await assertRegistryRulebookAllowsSend(message, dateEventContext, reportingContext, negativeFixture,deathStatusContext,ackSourceQualification??undefined,customerMasterdataContext) : null
+  if (reportingContext || dateEventContext || deathStatusContext || customerMasterdataContext || ackSourceQualification || commonHeaderEvidence) assertEdielSendLock(message, dateEventContext, reportingContext,ackSourceQualification,deathStatusContext,commonHeaderEvidence,customerMasterdataContext)
   const technicalSyntaxAckEvidence = admission?.technicalSyntaxAckEvidence ?? null
   const prodatCommonHeaderRejectionEvidence=admission?.prodatCommonHeaderRejectionEvidence ?? null
   const sourceRulePackEvidence = !prodatCommonHeaderRejectionEvidence && ['PRODAT','UTILTS','APERAK','UTILTS_ERR'].includes(message.message_family)

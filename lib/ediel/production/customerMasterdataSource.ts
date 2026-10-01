@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {supabaseService} from '@/lib/supabase/service'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 export type SourceQualifiedCustomerMasterdataProjection={status:'authorized';companyId:string;customerId:string;environment:'test'|'production'|null;asOf:string;
  sourceKind:'registered_customer_address'|'signed_contract_masterdata'|'confirmed_customer_history';sourceReference:string;sourceDigest:string;sourceContextId:string;
  customerIdentity:{id:string;qualifier:'SE1'|'SE2';agency:'260'};endUserMasterdata:{nameParts:string[];streetParts:string[];postalCode:string;city:string;country:string}}
@@ -16,6 +17,7 @@ export async function prepareCustomerMasterdataSource(input:{companyId:string;cu
 
 export type CustomerMasterdataValidationContext={kind:'customer_masterdata';companyId:string;customerId:string;environment:'test'|'production';rawPayload:string;intentId:string;routeId:string;projection:SourceQualifiedCustomerMasterdataProjection}
 const projections=new WeakSet<object>(),contexts=new WeakSet<object>()
+export function isQualifiedCustomerMasterdataProjection(value:unknown):value is SourceQualifiedCustomerMasterdataProjection{return !!value&&typeof value==='object'&&projections.has(value)}
 function rememberProjection(value:SourceQualifiedCustomerMasterdataProjection):SourceQualifiedCustomerMasterdataProjection{
  Object.freeze(value.customerIdentity);Object.freeze(value.endUserMasterdata.nameParts);Object.freeze(value.endUserMasterdata.streetParts);Object.freeze(value.endUserMasterdata);Object.freeze(value);projections.add(value);return value
 }
@@ -29,15 +31,16 @@ export function isQualifiedCustomerMasterdataValidationContext(value:unknown):va
 function checkedProjection(value:unknown,input:{companyId:string;customerId:string;asOf:string;environment?:'test'|'production'}):SourceQualifiedCustomerMasterdataProjection{
  const asOf=input.asOf
  const data=value as Partial<SourceQualifiedCustomerMasterdataProjection>|null
- const identity=data?.customerIdentity,d=data?.endUserMasterdata,parts=(v:unknown,max:number)=>Array.isArray(v)&&v.length>=1&&v.length<=max&&v.every(item=>typeof item==='string'&&item.length>=1&&item.length<=35&&!/[\x00-\x1f\x7f]/.test(item))
- if(data?.status!=='authorized'||data.companyId!==input.companyId||data.customerId!==input.customerId||data.environment!==(input.environment??null)||typeof data.asOf!=='string'||Date.parse(data.asOf)!==Date.parse(asOf)||typeof data.sourceKind!=='string'||!['registered_customer_address','signed_contract_masterdata','confirmed_customer_history'].includes(data.sourceKind)||!data.sourceReference||typeof data.sourceDigest!=='string'||!/^[a-f0-9]{64}$/.test(data.sourceDigest)||!isEvidenceUuid(data.sourceContextId)||!identity||!['SE1','SE2'].includes(identity.qualifier)||identity.agency!=='260'||typeof identity.id!=='string'||!identity.id||identity.id!==identity.id.trim()||identity.id.length>35||!d||!parts(d.nameParts,2)||!parts(d.streetParts,3)||typeof d.postalCode!=='string'||!d.postalCode||d.postalCode.length>17||typeof d.city!=='string'||!d.city||d.city.length>35||typeof d.country!=='string'||!/^[A-Z]{2}$/.test(d.country)||[identity.id,d.postalCode,d.city].some(value=>/[\x00-\x1f\x7f]/.test(value)))throw Error('customer_masterdata_source_result_invalid')
+ const identity=data?.customerIdentity,d=data?.endUserMasterdata,parts=(v:unknown,max:number,allowEmptyFirst=false)=>Array.isArray(v)&&v.length>=1&&v.length<=max&&v.every(item=>typeof item==='string'&&(item.length>=1||allowEmptyFirst)&&item.length<=35&&!/[\x00-\x1f\x7f]/.test(item))&&(!allowEmptyFirst||v.some(item=>item.trim()&&item!=='.'))
+ if(data?.status!=='authorized'||data.companyId!==input.companyId||data.customerId!==input.customerId||data.environment!==(input.environment??null)||typeof data.asOf!=='string'||Date.parse(data.asOf)!==Date.parse(asOf)||typeof data.sourceKind!=='string'||!['registered_customer_address','signed_contract_masterdata','confirmed_customer_history'].includes(data.sourceKind)||!data.sourceReference||typeof data.sourceDigest!=='string'||!/^[a-f0-9]{64}$/.test(data.sourceDigest)||!isEvidenceUuid(data.sourceContextId)||!identity||!['SE1','SE2'].includes(identity.qualifier)||identity.agency!=='260'||typeof identity.id!=='string'||!identity.id||identity.id!==identity.id.trim()||identity.id.length>35||!d||!parts(d.nameParts,2)||!parts(d.streetParts,3,true)||typeof d.postalCode!=='string'||!d.postalCode||d.postalCode.length>9||typeof d.city!=='string'||!d.city||d.city.length>35||typeof d.country!=='string'||!/^[A-Z]{2}$/.test(d.country)||[identity.id,d.postalCode,d.city].some(value=>/[\x00-\x1f\x7f]/.test(value)))throw Error('customer_masterdata_source_result_invalid')
  return rememberProjection(data as SourceQualifiedCustomerMasterdataProjection)
 }
 
 export async function loadCustomerMasterdataValidationContext(message:EdielMessageRow,actorUserId:string):Promise<CustomerMasterdataValidationContext|undefined>{
- if(message.direction!=='outbound'||message.message_family!=='PRODAT'||!['Z01','Z03'].includes(message.message_code??''))return undefined
- if(!message.company_id||!message.customer_id||!message.raw_payload||!message.intent_id||!message.communication_route_id)throw Error('customer_masterdata_message_scope_required')
+ if(message.direction!=='outbound'||message.message_family!=='PRODAT'||!END_USER_ADDRESS_CODES.includes(message.message_code??''))return undefined
+ if(!message.company_id||!message.raw_payload)throw Error('customer_masterdata_message_scope_required')
  const{data,error}=await supabaseService.rpc('ediel_customer_masterdata_message_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId});if(error)throw error;if(data===null)return undefined
+ if(!message.customer_id||!message.intent_id||!message.communication_route_id)throw Error('customer_masterdata_message_scope_required')
  const binding=data?.messageBinding
  if(binding?.id!==message.id||binding.environment!==message.environment||binding.intentId!==message.intent_id||binding.routeId!==message.communication_route_id||binding.payloadHash!==createHash('sha256').update(message.raw_payload).digest('hex'))throw Error('customer_masterdata_message_basis_invalid')
  const projection=checkedProjection(data,{companyId:message.company_id,customerId:message.customer_id,asOf:data.asOf,...(data.environment===null?{}:{environment:message.environment})})

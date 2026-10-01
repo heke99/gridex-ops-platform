@@ -24,6 +24,7 @@ import { assertUtiltsPositiveAckSourceAuthority } from '@/lib/ediel/utilts/posit
 import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import type { ProdatDateEventRow, ProdatDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
 import { readSourceQualifiedNegativeFixtureDraft, sourceQualifiedNegativeFixtureMatchesDraft, prepareSourceQualifiedNegativeFixtureWitness, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import { readSourceQualifiedPositiveFixtureDraft, sourceQualifiedPositiveFixtureMatchesDraft, prepareSourceQualifiedPositiveFixtureWitness, type SourceQualifiedPositiveFixture } from '@/lib/ediel/testing/positiveFixtureAuthority'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
@@ -157,7 +158,7 @@ async function prepareTechnicalListDraft(draft:CreateEdielMessageInput,actorUser
  * one-use original witness as rendered drafts. A supplied snapshot/token is
  * never sufficient to bypass this public boundary. */
 export async function createCanonicalOutboundMessage(params: Parameters<typeof createLegacyCanonicalOutboundMessage>[0] & {
-  reportingContext?:ExpectedContext;dateEventContext?:ProdatDateEventValidationContext;deathStatusContext?:DeathStatusValidationContext
+  reportingContext?:ExpectedContext;dateEventContext?:ProdatDateEventValidationContext;deathStatusContext?:DeathStatusValidationContext;customerMasterdataContext?:CustomerMasterdataValidationContext
 }) {
   const draft=params.baseInput,actorUserId=ensureActorUserId(params.actorUserId)
   if(!draft.companyId || draft.direction!=='outbound' || !draft.rawPayload || !['test','production'].includes(draft.environment ?? '')) throw new Error('canonical_outbound_owner_scope_required')
@@ -178,7 +179,7 @@ export async function createCanonicalOutboundMessage(params: Parameters<typeof c
         messageCode:String(draft.messageCode),messageVersion:null}:undefined})
   }
   const snapshot=await assertOutboundDraftAllowedByCanonicalPolicy({draft,messageVersion:draft.messageVersion,
-    negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext,deathStatusContext:params.deathStatusContext})
+    negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext,deathStatusContext:params.deathStatusContext,customerMasterdataContext:params.customerMasterdataContext})
   const evidence=originalValidationEvidence(snapshot)
   if(draft.canonicalRulePackId && draft.canonicalRulePackId!==evidence.rulePackId)throw new Error('canonical_outbound_selected_rule_pack_mismatch')
   const fixtureWitnesses=await prepareDraftFixtureWitnesses({actorUserId,rawPayload:draft.rawPayload,negativeFixture,positiveFixture})
@@ -204,6 +205,7 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
   reportingContext?: ExpectedContext
   dateEventContext?: ProdatDateEventValidationContext
   deathStatusContext?: DeathStatusValidationContext
+  customerMasterdataContext?: CustomerMasterdataValidationContext
   negativeFixture?: SourceQualifiedNegativeFixture | null
   positiveFixture?: SourceQualifiedPositiveFixture | null
   ackSourceQualification?: SourceQualifiedOutboundAck
@@ -230,6 +232,9 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     companyId: params.draft.companyId ?? null,
     dateEventRow, reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
     deathStatusContext:params.deathStatusContext,
+    customerMasterdataContext:params.customerMasterdataContext,
+    customerMasterdataRow:{...dateEventRow,message_family:params.draft.messageFamily,raw_payload:params.draft.rawPayload,customer_id:params.draft.customerId??null,
+      intent_id:params.draft.intentId??null,communication_route_id:params.draft.communicationRouteId??null},
     deathStatusRow:{...dateEventRow,message_family:params.draft.messageFamily,raw_payload:params.draft.rawPayload,
       intent_id:params.draft.intentId??null,communication_route_id:params.draft.communicationRouteId??null},
     ackSourceQualification: params.ackSourceQualification,
@@ -299,7 +304,8 @@ export async function createCanonicalAckMessage(params: {
   const references=[...new Set(correlation.acknowledgedReferences)].sort()
   // Missing LI has no string substitute. Its real object/agency/first-LIN
   // tuple provides the operation namespace, independently of the outcome.
-  const objectScopes=correlation.prodatObjectOutcomes?.map(({outcome,...scope})=>scope)
+  const objectScopes=correlation.prodatObjectOutcomes?.map(scope=>({lineItemReference:scope.lineItemReference,
+    meteringPointId:scope.meteringPointId,identityAgency:scope.identityAgency,firstLineIndex:scope.firstLineIndex}))
     .sort((a,b)=>a.firstLineIndex-b.firstLineIndex)
   const sequenceToken=objectScopes?.some(scope=>scope.lineItemReference===null)
     ? `object:${createHash('sha256').update(JSON.stringify(objectScopes),'utf8').digest('hex')}`
@@ -529,6 +535,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
   reportingContext?: ExpectedContext
   dateEventContext?: ProdatDateEventValidationContext
   deathStatusContext?: DeathStatusValidationContext
+  customerMasterdataContext?: CustomerMasterdataValidationContext
   outboundRequestId?: string | null
   duplicateCheck: {
     sourceType?: string | null
@@ -632,7 +639,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
   const rulePackSnapshot = await assertOutboundDraftAllowedByCanonicalPolicy({
     draft: baseInput,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
-    reportingContext: params.reportingContext, dateEventContext: params.dateEventContext, deathStatusContext:params.deathStatusContext,
+    reportingContext: params.reportingContext, dateEventContext: params.dateEventContext, deathStatusContext:params.deathStatusContext,customerMasterdataContext:params.customerMasterdataContext,
     negativeFixture,positiveFixture,
   })
   const routeProfileId = sequenceString(baseInput.routeProfileId)
