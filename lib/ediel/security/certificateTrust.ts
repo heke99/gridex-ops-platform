@@ -9,6 +9,7 @@ const execute = promisify(execFile)
 export type EdielCertificateTrustScope = { companyId: string; environment: 'test' | 'production'; receiverEdielId: string }
 export type EdielCertificateTrustAuthority = EdielCertificateTrustScope & {
   registrationId: string; registerVersion: string; originalReference: string; originalSha256: string; authorizationReference: string;
+  /** Immutable source-owner required recipient set, not an optional allowlist. */
   validFrom: string; validTo: string; recipientFingerprints: string[]; anchors: string[]; intermediates: string[]; crls: string[];
 }
 export type EdielCertificateTrustResult = { verified: false; code: string } | { verified: true; registrationId: string; registerVersion: string; leafFingerprint: string; chainFingerprints: string[]; crlSha256: string[]; verifiedAt: string }

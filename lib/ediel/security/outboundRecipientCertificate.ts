@@ -2,11 +2,11 @@ import { X509Certificate } from 'node:crypto'
 import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
 import { certificateMessageScopeBlocker, certificateSubaddressScopeBlocker } from '@/lib/ediel/certificateScope'
 import { supabaseService } from '@/lib/supabase/service'
-import { resolveEdielCertificateTrustAuthority, verifyEdielCertificateTrust, type EdielCertificateTrustResult } from '@/lib/ediel/security/certificateTrust'
+import { resolveEdielCertificateTrustAuthority, verifyEdielCertificateTrust, type EdielCertificateTrustAuthority, type EdielCertificateTrustResult, type EdielCertificateTrustScope } from '@/lib/ediel/security/certificateTrust'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 import type { EdielRouteProfileRow } from '@/lib/ediel/types'
 
-export type OutboundRecipientCertificate = {
+export type OutboundRecipientCertificateLeaf = {
   id: string
   publicCertificatePem: string
   subject: string | null
@@ -21,6 +21,7 @@ export type OutboundRecipientCertificate = {
   raw: Record<string, unknown>
   trustEvidence: Extract<EdielCertificateTrustResult, { verified: true }>
 }
+export type OutboundRecipientCertificate = OutboundRecipientCertificateLeaf & { recipientCertificates: readonly OutboundRecipientCertificateLeaf[] }
 
 type CertificateRow = Record<string, unknown>
 
@@ -213,6 +214,36 @@ export function recipientCertificateTrustBlocker(): string {
   return 'receiver_certificate_trust_and_revocation_evidence_missing'
 }
 
+/** The protected source owner supplies the complete required recipient set.
+ * This proves each required leaf, not an inferred overlap/exception rule. No
+ * latest-row or explicit-id shortcut may silently discard a required leaf. */
+export async function verifyRequiredRecipientCertificateSet(input: {
+  rows: readonly CertificateRow[]; scope: EdielCertificateTrustScope & {
+    receiverSubaddress?: string | null; messageFamily?: string | null; businessCode?: string | null; certificateEnvironment?: string | null
+  }; authority: EdielCertificateTrustAuthority; now?: Date
+}): Promise<readonly OutboundRecipientCertificateLeaf[]> {
+  const now = input.now ?? new Date(), required = input.authority.recipientFingerprints
+  const held = (reason: string): never => { throw new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_RECIPIENT_CERTIFICATE_SET_HELD'},reason) }
+  if (!Array.isArray(required) || required.length < 1 || required.length > 16 || new Set(required).size !== required.length) return held('Certifikatauktoriteten saknar ett entydigt obligatoriskt mottagarset.')
+  const leaves: OutboundRecipientCertificateLeaf[] = []
+  for (const fingerprint of required) {
+    const matching = input.rows.filter(row => {
+      const pem = textFrom(row, 'public_certificate_pem', 'publicCertificatePem')
+      if (!pem || pem.length > 1_048_576) return false
+      try { return new X509Certificate(pem).fingerprint256.replaceAll(':','').toLowerCase() === fingerprint } catch { return false }
+    })
+    if (matching.length !== 1) return held('Ett obligatoriskt mottagarcertifikat saknas eller är tvetydigt i aktuell källa.')
+    const row = matching[0], pem = textFrom(row,'public_certificate_pem','publicCertificatePem')!
+    const blocker = outboundRecipientCertificateScopeBlocker(row,input.scope) ?? recipientCertificatePemValidityBlocker(pem,now)
+    if (blocker || !evaluateCertificateStatus(row,now).isUsableForSmime || !text(row.id)) return held(blocker ?? 'Obligatoriskt mottagarcertifikat är inte giltigt i aktuell scope.')
+    const trustEvidence = await verifyEdielCertificateTrust({scope:input.scope,leafPem:pem,authority:input.authority,now})
+    if (!trustEvidence.verified) return held(trustEvidence.code)
+    leaves.push({id:text(row.id)!,publicCertificatePem:pem,subject:textFrom(row,'subject','subject'),issuer:textFrom(row,'issuer','issuer'),
+      serialNumber:new X509Certificate(pem).serialNumber,fingerprintSha256:fingerprint,ownerEdielId:inferOwnerEdielId(row),ownerSubaddress:inferOwnerSubaddress(row),usage:inferUsage(row),purpose:inferPurpose(row),environment:inferEnvironment(row),raw:row,trustEvidence})
+  }
+  return Object.freeze(leaves)
+}
+
 export async function resolveOutboundRecipientCertificate(input: {
   companyId?: string | null
   certificateId?: string | null
@@ -262,6 +293,7 @@ export async function resolveOutboundRecipientCertificate(input: {
   const now = new Date()
   const scope = { receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment }
   let data: CertificateRow | null = null
+  let candidateRows: CertificateRow[] = []
   if (certificateId) {
     const byId = await supabaseService
       .from('ediel_certificates')
@@ -286,14 +318,15 @@ export async function resolveOutboundRecipientCertificate(input: {
       .in('purpose', ['encryption', 'both'])
       .in('status', ['active', 'renewal_available'])
       .order('valid_to', { ascending: false, nullsFirst: false })
-      .limit(20)
+      .limit(100)
 
     if (certificateEnvironment) query = query.eq('environment', certificateEnvironment)
 
     const { data: candidates, error: lookupError } = await query
     if (lookupError) throw lookupError
 
-    const usable = ((candidates ?? []) as CertificateRow[]).find((candidate) => {
+    candidateRows = (candidates ?? []) as CertificateRow[]
+    const usable = candidateRows.find((candidate) => {
       if (outboundRecipientCertificateScopeBlocker(candidate, scope)) return false
       const pem = textFrom(candidate, 'public_certificate_pem', 'publicCertificatePem')
       if (!pem || recipientCertificatePemValidityBlocker(pem, now)) return false
@@ -404,10 +437,18 @@ export async function resolveOutboundRecipientCertificate(input: {
   const trustScope = { companyId, environment: environment as 'test' | 'production', receiverEdielId }
   const authority = await resolveEdielCertificateTrustAuthority(trustScope)
   if (!authority) throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_HELD' }, `Sändning stoppad: ${recipientCertificateTrustBlocker()}.`)
-  const trustEvidence = await verifyEdielCertificateTrust({ scope: trustScope, leafPem: publicCertificatePem, authority, now })
-  if (!trustEvidence.verified) throw new EdielExecutionFailure({ kind: 'security_quarantine', code: 'EDIEL_RECIPIENT_CERTIFICATE_TRUST_HELD' }, `Sändning stoppad: ${trustEvidence.code}.`)
-  return { id: certificateId, publicCertificatePem, subject, issuer: textFrom(row, 'issuer', 'issuer'),
-    serialNumber: textFrom(row, 'serial_number', 'serialNumber'), fingerprintSha256: textFrom(row, 'fingerprint_sha256', 'fingerprintSha256', 'certificate_fingerprint'),
-    ownerEdielId, ownerSubaddress, usage, purpose, environment: certEnvironment, raw: row, trustEvidence }
+  if (!candidateRows.length) {
+    let query = supabaseService.from('ediel_certificates').select('*').eq('usage','outbound_recipient').eq('owner_ediel_id',receiverEdielId).in('purpose',['encryption','both']).in('status',['active','renewal_available']).limit(100)
+    if (certificateEnvironment) query = query.eq('environment',certificateEnvironment)
+    const candidates = await query
+    if (candidates.error) throw candidates.error
+    candidateRows = (candidates.data ?? []) as CertificateRow[]
+  }
+  // Include the explicit row only if it was absent from the same scoped read.
+  if (!candidateRows.some(candidate => text(candidate.id) === text(row.id))) candidateRows.push(row)
+  const recipientCertificates = await verifyRequiredRecipientCertificateSet({rows:candidateRows,scope:{...trustScope,...scope},authority,now})
+  const primary = input.certificateId || input.routeProfileId ? recipientCertificates.find(leaf => leaf.id === certificateId) : recipientCertificates[0]
+  if (!primary) throw new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_RECIPIENT_CERTIFICATE_SET_HELD'},'Valt explicit certifikat ingår inte i det obligatoriska mottagarsetet.')
+  return {...primary,recipientCertificates}
 
 }
