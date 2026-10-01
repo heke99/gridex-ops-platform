@@ -1,3 +1,15 @@
+## Current API/UI merge candidate — process completion and main preservation, 2026-10-01
+
+Combined main53 local verification: focused real-process/persisted-ACK/runtime/persistence110/110 PASS; Node22 app, scripts and tests TypeScript4GiB PASS; scoped ESLint0 errors (one inherited unused facilityRecognition warning in main source); source budget and git diff --check PASS. Independent read-only integration review PASS: exact main blobs, all14 nonmemory paths, complete base/API/main markdown histories and zero nonconflicting checkpoint value losses; original main active context preserved. Full new-head genuine CI remains pending.
+
+Published #422 head79bbbe219569eb17b2c20553cf18997e646b0894/treeaffb5450b04d1f871e18d0b565696b4245089b87, OPS36889321218: verify and quality-release-gates, including build and seven contract state/binding controls, are SUCCESS. Clean replay failed earlier in residual tenant queues: 13/14 PASS, concurrent approved_invoice_retry returned exit0 before final stdout was available, causing JSON.parse(undefined). Current source-owner, agreement, later HTTP/browser/schema proof were NOT_REACHED in this run; earlier c019 agreement proof remains historical. Upgrade/restore for79 was still running at the last read. This candidate is not merge-qualified.
+
+The actual shared native subprocess helper resolved on exit before stdio closure. A real Node child/grandchild regression with gated inherited output reproduced RED1FAIL/2PASS; awaiting close gives GREEN3PASS, independently rerun3PASS. Strict psql arguments, real output, nonzero/missing executable rejection, claim SQL and all native assertions remain intact. No native gate is skipped, weakened or replaced.
+
+Current main53bf989b0ad402bb2ce151c186eea31f1ec9cf03 is integrated from the actual common base d7eaa4b0b880b7280d8f164630a6cdb51baabba8 by normal per-file three-way merge. All 14 non-memory main files are byte-identical to main53, including the physical BGM202/204 boundaries, persisted ACK regressions and unresolved field202 policy hold. Both markdown histories are retained; structured checkpoint merging preserves nonconflicting fields and records the competing main active context separately. The remote successor must genuinely have both79 and main53 as parents. Main itself is unchanged. See api-ui-current-main-integration-20261001.json.
+
+Next: complete targeted combined-candidate verification and independent integration review; commit/freeze/non-force publish the two-parent candidate; require genuine current-head native/HTTP/browser/schema/restore and other applicable CI before #422 into #418, then freshly qualify combined #418 before main merge. User authorizes the current package commit and merge. Original75 remain31PARTIAL/44NOT_VERIFIED/0 final acceptances, P0–P8 OPEN; saved WIP and inherited gridex_get_user_roles callers remain separate continuation work. Historical receipts below are preserved.
+
 ## API/UI merge gates — genuine c019 result and next correction, 2026-10-01
 
 The current package is explicitly authorized for commit/save/merge. Published #422 c019c7b68161af63860becfefd87087820f53151/tree27f901ccb3ed373c7ae988cea637335eac31a5d6, OPS36879502677: verify, quality7733/533+build, actual upgrade/backup/restore/pinned-old rollback/fresh-old backfill PASS. Account4/purchase15 PASS. The actual private agreement browser1, post-browser proof1 and cleanup1 now PASS; the guard correction is genuinely exercised. FullE2E smoke/coverage/certificate, tenant/Ediel/public browser PASS; full/staging/nightly/crawler SKIPPED.
@@ -105,6 +117,26 @@ Event-v2 SQL/HTTP/native and exact-head CI are resolved; no open code finding re
 ## Current API #422 — event-v2 publication candidate, 2026-09-30
 
 HTTP/native event-v2 has not yet executed for this new API candidate. Formal GitGuardian scanning is unavailable: ggshield is not installed/configured; no scanner success is claimed. Deployed issuer/customer integration, previous transactional notification concerns and full T/U acceptance remain outside this package. Previous #418 browser/audit blockers are resolved by the verified prerequisite.
+
+## Current — 2026-09-28 PR #420 normative import correction
+
+First outgoing 41/42/202 blocker remains real diagnostic source ownership: PRODAT_UNKNOWN/Z99 cannot bind a code-specific canonical profile. On 470625da Full E2E normative guard failed for direct matrix import; locally corrected through canonical field projection, unpublished. OPS native pending; older 203/IDE505, LOC+175, E035, grammar and market gates remain open.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+First blocker for field202 outbound 41/42: actual mailbox stores `PRODAT_UNKNOWN` or `Z99`; database requires exactly one matching code-specific profile and rejects the inbound source, so no tenant/legal-actor-bound durable owner/snapshot exists. Borrowed Z04 cannot authorize positive CONTRL or APERAK. Native correction and final gates pending. ERC40/100 not inferred. Historical field203/IDE505 uniqueness, positive LOC+175, E035 coverage/retention/deletion, grammar and external gates remain open.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 typed negative P-APERAK 41/42 field202 is locally verified for missing/unlisted physical code; durable native owner/route/retry and exact-head CI pending. ERC40/100 still lacks evidence of an actually documented but unimplemented function. Historical 203/IDE505, positive LOC+175, E035 and external activation remain open. Earlier current below SUPERSEDED.
+
+## Current — 2026-09-28 boundaries
+
+Missing/unlisted PRODAT field202 has a local policy fail-close fix; its native persisted CONTRL/route/retry and exact-head CI are pending. A negative P-APERAK field202 ERC41/42 still needs a typed, physical-source-bound error and original ACW with durable route/actor proof; ERC40/100 applies only to a documented but unimplemented function, which is not established by Z99. Historical field203/IDE505 uniqueness, positive LOC+175 owner/mandate/sink/retry, E035 history/retention/deletion, full grammar and remaining phases remain open. No market activation. Older blocks below are historical; #310 remains paused.
 
 ## Current — header206 verification and wider gates
 206 missing/invalid local ACK/consumer is a code candidate; actual native stored ACK/outbox/retry, clean replay, schema/type parity and PR review remain pending. 203/505 historical issuer uniqueness, positive LOC175 registry/mandate/sink, E035 history/retention, G06 grammar and E66/DDQ live activation gate remain open. PR310 paused.
@@ -724,3 +756,6 @@ The local environment has no `psql` or Supabase CLI; newly added native stored A
 ## 2026-10-01 final ninth private-request qualification
 
 Actual source6bcb8f79 full7613/526units + fresh fulltestTypesPASS, oldidentical app/scripts/RBAC/API/integrity gates retained. Privateactual19 controls/CLI nonzero/no raw cause or capabilities PASS; initial ProcessEnv env{} TS2769 fixed onlycontrolled NODE_ENV=test. Browser/native0; published c4ab unchanged pending9. All75OPEN. See integration-pass9-20261001.md.
+
+## Current — 2026-09-28 #417 remaining gates
+Optional P header204's invalid supplied value is implemented and locally verified on draft #417, but stored native ACK/outbox/retry, clean replay, generated schema/type parity and all exact-head CI are pending. ACK-02/ACK-10 remain partial; historical field203/IDE505 legal-actor uniqueness, positive LOC+175 mandate/object/sink, E035 pre-ledger coverage and retention/deletion, full grammar and external first-capability activation gates remain open. No staging, TGT/AGT, counterparty or live traffic. #310 paused.

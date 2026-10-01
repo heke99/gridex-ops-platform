@@ -1,3 +1,15 @@
+## Current API/UI merge candidate — process completion and main preservation, 2026-10-01
+
+Combined main53 local verification: focused real-process/persisted-ACK/runtime/persistence110/110 PASS; Node22 app, scripts and tests TypeScript4GiB PASS; scoped ESLint0 errors (one inherited unused facilityRecognition warning in main source); source budget and git diff --check PASS. Independent read-only integration review PASS: exact main blobs, all14 nonmemory paths, complete base/API/main markdown histories and zero nonconflicting checkpoint value losses; original main active context preserved. Full new-head genuine CI remains pending.
+
+Published #422 head79bbbe219569eb17b2c20553cf18997e646b0894/treeaffb5450b04d1f871e18d0b565696b4245089b87, OPS36889321218: verify and quality-release-gates, including build and seven contract state/binding controls, are SUCCESS. Clean replay failed earlier in residual tenant queues: 13/14 PASS, concurrent approved_invoice_retry returned exit0 before final stdout was available, causing JSON.parse(undefined). Current source-owner, agreement, later HTTP/browser/schema proof were NOT_REACHED in this run; earlier c019 agreement proof remains historical. Upgrade/restore for79 was still running at the last read. This candidate is not merge-qualified.
+
+The actual shared native subprocess helper resolved on exit before stdio closure. A real Node child/grandchild regression with gated inherited output reproduced RED1FAIL/2PASS; awaiting close gives GREEN3PASS, independently rerun3PASS. Strict psql arguments, real output, nonzero/missing executable rejection, claim SQL and all native assertions remain intact. No native gate is skipped, weakened or replaced.
+
+Current main53bf989b0ad402bb2ce151c186eea31f1ec9cf03 is integrated from the actual common base d7eaa4b0b880b7280d8f164630a6cdb51baabba8 by normal per-file three-way merge. All 14 non-memory main files are byte-identical to main53, including the physical BGM202/204 boundaries, persisted ACK regressions and unresolved field202 policy hold. Both markdown histories are retained; structured checkpoint merging preserves nonconflicting fields and records the competing main active context separately. The remote successor must genuinely have both79 and main53 as parents. Main itself is unchanged. See api-ui-current-main-integration-20261001.json.
+
+Next: complete targeted combined-candidate verification and independent integration review; commit/freeze/non-force publish the two-parent candidate; require genuine current-head native/HTTP/browser/schema/restore and other applicable CI before #422 into #418, then freshly qualify combined #418 before main merge. User authorizes the current package commit and merge. Original75 remain31PARTIAL/44NOT_VERIFIED/0 final acceptances, P0–P8 OPEN; saved WIP and inherited gridex_get_user_roles callers remain separate continuation work. Historical receipts below are preserved.
+
 ## API/UI merge gates — genuine c019 result and next correction, 2026-10-01
 
 The current package is explicitly authorized for commit/save/merge. Published #422 c019c7b68161af63860becfefd87087820f53151/tree27f901ccb3ed373c7ae988cea637335eac31a5d6, OPS36879502677: verify, quality7733/533+build, actual upgrade/backup/restore/pinned-old rollback/fresh-old backfill PASS. Account4/purchase15 PASS. The actual private agreement browser1, post-browser proof1 and cleanup1 now PASS; the guard correction is genuinely exercised. FullE2E smoke/coverage/certificate, tenant/Ediel/public browser PASS; full/staging/nightly/crawler SKIPPED.
@@ -61,6 +73,28 @@ Root35 source mutation controls,8 actual cleanup PostgreSQL controls and full go
 ## Actual0778 bounded correction outcomes, 2026-10-01
 
 Manual-mail native6, current restore, pinned-old rollback ALL_PASS, fresh-old backfill8 and quality7624/527+build PASS; authentic31 generation byte parity PASS. Remaining native/sourcebinding cleanup3 and stale golden gate FAIL; later OPS chains NOT_REACHED, full/staging/nightly E2E SKIPPED. Full original masterplan remains OPEN. Receipt continuation/ci-native-correction-0778-outcome-20261001.md.
+
+## Current — 2026-09-28 PR #420 normative import correction
+
+2026-09-28: PR420 470625da exact-head Ediel/browser PASS. Full E2E smoke+coverage identified one repo normative authority violation from direct field matrix import in ACK gateway. Confirmed locally RED; moved list check to canonical PRODAT document projection and used it from header and kernel, then guard, route regression and 126/126 PASS. Native replay still running. No CI rerun on unchanged SHA.
+
+OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+2026-09-28: Confirmed PR420 `31221ee9` Ediel/browser/Full E2E success; OPS clean replay failed two stale-profile 202 fixtures (378/380). Discovered real mailbox maps physical missing code to `PRODAT_UNKNOWN` and DB profile trigger blocks source insert, while old native case borrowed stored Z04 for BGM++/Z99. TDD RED four unsafe positive ACK expectations then GREEN 125/125 via canonical gateway physical/stored code fence. Native now asserts zero outbound/affärseffekter/stable retry plus two real-profile insertion rejections. Publication and exact-head gates pending. #310 and market traffic untouched.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+2026-09-28 follow-up: first PR420 CI Full E2E failure was six tests expecting guide-resolution exception, not field202. TDD added typed 41/42 from physical missing/unlisted BGM, BGM27/ACW, forged/foreign/positive guards, consumer tenant ACK/no business/retry. Scoped the branch to physical 202; local 125/125 includes all six previously failing cases. Native first-head still running; new head unpublished. No staging/market sends or #310 action.
+
+## 2026-09-28 — field202 policy boundary continuation
+
+Fetched unchanged clean remote main and next2 branch `f030d507`; verified merged #415/#416/#417/#419 PR bodies and no open PR on next2. Read AGENTS, masterplan, frozen P/APERAK source, register, actual policy/consumer/renderer, and stale memory. A complete physical PRODAT with unlisted Z99 and stale stored Z04 policy reached rejected application but threw in ACK policy after bypassing header guard; missing code took another hold. Added actual-consumer RED/GREEN and no-route/retry cases, policy-null fail-close before business, native SQL variants, bounded audit, ledger and refreshed project checkpoint. Focused27/27, three TS projects, scoped lint/diff pass. Native/CI unpublished/pending; no market sends, #310 untouched. Next publish draft and inspect actual first CI.
 
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
@@ -460,3 +494,6 @@ Exact published0cf/treecdb source recovered5990paths/130416041B with individual 
 ## 2026-10-01 API/UI CI unblock
 
 User-requested stalled API/UI recovery. Original other worktree changes preserved; isolated correction only; source62e actual first failure reproduced. No production or other initiative action.
+
+## 2026-09-28 — #417 source-bound header204
+Read main/branch and merged #416 from GitHub, source P26.A/P-APERAK, frozen plan/registers and actual inbound owner. Preserved prior uncommitted RED/GREEN candidate, added positive missing/9/5 cases and a native persisted tenant/legal-actor/ACK/outbox/retry case. Local five files 150/150, source script 64/64, three TS projects and scoped lint passed. Git CLI push lacked credentials; GitHub integration created remote `09fba884` with byte-identical local tree `ac40f187`, then opened draft #417. Four exact-head workflows running; no merge or market sends.

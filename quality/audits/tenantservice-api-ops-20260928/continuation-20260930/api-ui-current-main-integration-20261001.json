@@ -1,0 +1,230 @@
+{
+  "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "common_base_sha": "d7eaa4b0b880b7280d8f164630a6cdb51baabba8",
+  "candidate_before_integration": "79bbbe219569eb17b2c20553cf18997e646b0894",
+  "main_not_modified": true,
+  "required_remote_commit_parents": [
+    "79bbbe219569eb17b2c20553cf18997e646b0894",
+    "53bf989b0ad402bb2ce151c186eea31f1ec9cf03"
+  ],
+  "paths": [
+    {
+      "path": ".agent-memory/checkpoint.json",
+      "conflicts": 3,
+      "main_sha256": "9cfe5126fa772209b17f0fa539c3fddd74c2e86021a7f790aebccc969492506a",
+      "base_sha256": "06e83ffcacc72d1ff275c19354cbc453a6756c163edaba8d69ad6791f714060f",
+      "merged_sha256": "db7380b238ddbe5764f52b26b61b1d443300fb874ded1c8c3d882be5f3f2adbc",
+      "resolved_sha256": "13ab76e81c01742126bf020acb94f4d2620ec30bed80b09b60a938c8aabc95bc",
+      "resolution": "API_CURRENT_CONTEXT_PLUS_PRESERVED_MAIN_HISTORY"
+    },
+    {
+      "path": ".agent-memory/completed-work.md",
+      "conflicts": 2,
+      "main_sha256": "17bc8a38afdec1f9457d1d3a332b0d88776dfe9c87dd1c1e69c17571298877d0",
+      "base_sha256": "c55f9fb926fad4c53510bbf706ba5751e18679c780d7a6dcf46800e3e14b3cc6",
+      "merged_sha256": "3db270c7078782073038882e71139c84ac3afdd4235f641717ee0556cd99c43e",
+      "resolved_sha256": "03fcde33a2fe1d17c078e75597d39b6cd3bba1bcc94eab976e2cee1a48a9e6cd",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": ".agent-memory/current-state.md",
+      "conflicts": 1,
+      "main_sha256": "27b8ded26668aba7873952787e6f9a3acc6c698fbdf58be574add27db32f713e",
+      "base_sha256": "85182e5d1cadb218f27bfff306152ffef4de8674476b9977bdfa310e4caf7223",
+      "merged_sha256": "35435db5d4852620a45e9a8a3f7c8ffc8582419ff667dc94213e38c341c65755",
+      "resolved_sha256": "58f61bd543df81df7cc73226650b3f536a205f6c64a3dc9c0a20d5be31a78719",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": ".agent-memory/current-task.md",
+      "conflicts": 1,
+      "main_sha256": "34b7d418fdfd2cba0b677d919d5a4bc300966cbb0f89ddc3c9da6d713aa9f3cb",
+      "base_sha256": "279b50f78030c0f13c0dec8a96b2573c09614c37190b765c6cd99b7cac20d93a",
+      "merged_sha256": "b6d9916928f78c115fabbaa4af74f1809bb9b831bf1d27f23167c986f1038f77",
+      "resolved_sha256": "d2c82aa029ad8e8dd5a5ec59cc907de2ae3b66b122b5b24ccfa7bd260f38f296",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": ".agent-memory/handover.md",
+      "conflicts": 1,
+      "main_sha256": "39cb4398de36cf87d2de5a5d3db997001c26df89d82e37d8068161ffe2c612f0",
+      "base_sha256": "45aa90389a338e8cbd17a8fcd98aef71b510b9259b0d9d21b9561fc35ddcbc03",
+      "merged_sha256": "c37c6987944242b89e6978b5c21e1f42ce52e03e35fb61187d2e2c60fcc15465",
+      "resolved_sha256": "5254cc2117b4dfc82d35bead202cb7eee1a0e4ca9355a7d8678d1973297d0ff0",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": ".agent-memory/open-blockers.md",
+      "conflicts": 2,
+      "main_sha256": "01ee471beb262754fe8004ddc56cc2c3aca40fa0403001d85cfcac5aade3c479",
+      "base_sha256": "6e41bce905d7cb952fad4e5a56c8df47a5012cbf7ea41072a002d7508f022b38",
+      "merged_sha256": "bf98c632c80ab00ef57d94dbb096994fbad2e188e2e6721e11d81c9abb8d7ec5",
+      "resolved_sha256": "08526004924cc495cceec241fc48117b60f5eeabfba2ff9f63ee86a83f9d5d00",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": ".agent-memory/session-log.md",
+      "conflicts": 2,
+      "main_sha256": "57065a04a90a230ee27d63fe97ce64ebfcf099f4fc3844d37aaa746a115f30b5",
+      "base_sha256": "fd0b16bf2858820b82e616c963d2d1bae31d4b17cd2a7ade832b713b70b76368",
+      "merged_sha256": "e342c549bd979d4cd2424084c0e10c76f96a08b04f6096b1ae35a770e585d44b",
+      "resolved_sha256": "f23db05cc370c92f6a2105829f205869011cf1c1f38d4c11dc11329dc8d2df6a",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": ".agent-memory/verification-matrix.md",
+      "conflicts": 2,
+      "main_sha256": "80c11b118e3719450c94d124beefdcafab6f4ee6bdaf13c23b8c1b1b4c2b8e43",
+      "base_sha256": "0ba7815ffeb38a6cd55983e124d09321b6c1c69baca9c6311256a0c2d6f2f9fa",
+      "merged_sha256": "2fd9547f957f7ef2299fb424822573de3ac9dcefac6ab24c6df1ad34e85f4f75",
+      "resolved_sha256": "6643b6960f529d1a5bfac893207fe79e2d89f5852c66b91dd58130ed391f3327",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": ".agent-memory/work-plan.md",
+      "conflicts": 1,
+      "main_sha256": "58662a98ce3730db1b5aaba4eae1762852f6df4c02e85e5d95b5c67c5626cb86",
+      "base_sha256": "13f0d9149cbebb0b52459aee41400a87f4edade6b73ac33befaaadf463b583f4",
+      "merged_sha256": "eac7370c3fe995cab9475f4f8a44f52fd08191f11c34036e91bdb675a667b393",
+      "resolved_sha256": "b2a729cc50229c2f2f49037724455a8d37d8ae655abcd1cb244bec0ef673e5b1",
+      "resolution": "BOTH_MARKDOWN_HISTORIES"
+    },
+    {
+      "path": "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+      "conflicts": 0,
+      "main_sha256": "8c79699d12eb5a18a7ea113c3b0db85bfdaf00b663a909a878adb1fcc3ecbd44",
+      "base_sha256": "00d782227d4f98a29b1f932688123552503fda9d602f53c5a7223f2ff34b5aac",
+      "merged_sha256": "8c79699d12eb5a18a7ea113c3b0db85bfdaf00b663a909a878adb1fcc3ecbd44",
+      "resolved_sha256": "8c79699d12eb5a18a7ea113c3b0db85bfdaf00b663a909a878adb1fcc3ecbd44",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "lib/ediel/aperakEngine.ts",
+      "conflicts": 0,
+      "main_sha256": "e7cec2134a574a5771994dd0d31de3e6a46aec0bb34b48abf1289054d6132017",
+      "base_sha256": "8bca9ca77cc0ba97b20f8c4a761d180aaf684f49fb09c00c00e30b3f807381c3",
+      "merged_sha256": "e7cec2134a574a5771994dd0d31de3e6a46aec0bb34b48abf1289054d6132017",
+      "resolved_sha256": "e7cec2134a574a5771994dd0d31de3e6a46aec0bb34b48abf1289054d6132017",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "lib/ediel/core/kernel.ts",
+      "conflicts": 0,
+      "main_sha256": "2f4c67c486355ceb2b339652d14955acf41a808ce151b388f7c3f7d45d2f92dd",
+      "base_sha256": "f459406d061eefebc42fc2ba5748052f65ee8a77003db3f93bb42e5ed75fae89",
+      "merged_sha256": "2f4c67c486355ceb2b339652d14955acf41a808ce151b388f7c3f7d45d2f92dd",
+      "resolved_sha256": "2f4c67c486355ceb2b339652d14955acf41a808ce151b388f7c3f7d45d2f92dd",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "conflicts": 0,
+      "main_sha256": "721ac91918ac7abfa2a65818f84f31300ad82bd75b49ee00e54ff2d580929e74",
+      "base_sha256": "84f6deed9f026267c6bf2b8d074e0528f49c8f83cc44798484e8199193de0bef",
+      "merged_sha256": "721ac91918ac7abfa2a65818f84f31300ad82bd75b49ee00e54ff2d580929e74",
+      "resolved_sha256": "721ac91918ac7abfa2a65818f84f31300ad82bd75b49ee00e54ff2d580929e74",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "conflicts": 0,
+      "main_sha256": "1068347aa3c9f194361ec3eedabd2a51b053d3e1c72da479910d2921ef17c615",
+      "base_sha256": "641fc9732d598ffb4f138b1caacbbfe21f74864480b4876d9ab1967f0581ca60",
+      "merged_sha256": "1068347aa3c9f194361ec3eedabd2a51b053d3e1c72da479910d2921ef17c615",
+      "resolved_sha256": "1068347aa3c9f194361ec3eedabd2a51b053d3e1c72da479910d2921ef17c615",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDocumentFields.ts",
+      "conflicts": 0,
+      "main_sha256": "020da2a1c8d6d1350c964d14edea74f8b8371eb6ac13270b1e07969e9784908e",
+      "base_sha256": "84c99084b29075d71501461494ef1013d9f52b559328664eac9479710df128a6",
+      "merged_sha256": "020da2a1c8d6d1350c964d14edea74f8b8371eb6ac13270b1e07969e9784908e",
+      "resolved_sha256": "020da2a1c8d6d1350c964d14edea74f8b8371eb6ac13270b1e07969e9784908e",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatHeaderDateRejection.ts",
+      "conflicts": 0,
+      "main_sha256": "edf91134a8332368058918b5eee80228794d2e95195d113f3a80defa27184f7f",
+      "base_sha256": "132f71ae597b856688d86a21d75d030681aa13790a8d0ab796295a5333400d2e",
+      "merged_sha256": "edf91134a8332368058918b5eee80228794d2e95195d113f3a80defa27184f7f",
+      "resolved_sha256": "edf91134a8332368058918b5eee80228794d2e95195d113f3a80defa27184f7f",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md",
+      "conflicts": 0,
+      "main_sha256": "6f27ff0648c103fc8132e8b2b48b170825d73c7fa808e858251873642635ab41",
+      "base_sha256": null,
+      "merged_sha256": "6f27ff0648c103fc8132e8b2b48b170825d73c7fa808e858251873642635ab41",
+      "resolved_sha256": "6f27ff0648c103fc8132e8b2b48b170825d73c7fa808e858251873642635ab41",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-prodat-header-202-c002-whole-message-20260928.md",
+      "conflicts": 0,
+      "main_sha256": "6065c08186c4b57ae4248b7944f7c0dff0422b63c0354712c7b3c6d6f10a1578",
+      "base_sha256": null,
+      "merged_sha256": "6065c08186c4b57ae4248b7944f7c0dff0422b63c0354712c7b3c6d6f10a1578",
+      "resolved_sha256": "6065c08186c4b57ae4248b7944f7c0dff0422b63c0354712c7b3c6d6f10a1578",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-prodat-header-204-whole-message-20260928.md",
+      "conflicts": 0,
+      "main_sha256": "a937b906c689fd1df72be78466315ce87cb5e3d91350adb08d9f653644841bca",
+      "base_sha256": null,
+      "merged_sha256": "a937b906c689fd1df72be78466315ce87cb5e3d91350adb08d9f653644841bca",
+      "resolved_sha256": "a937b906c689fd1df72be78466315ce87cb5e3d91350adb08d9f653644841bca",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json",
+      "conflicts": 0,
+      "main_sha256": "1ed6558c36f0573fc28da4cdac742cccf426e6c239752402318b146a5bbb4122",
+      "base_sha256": null,
+      "merged_sha256": "1ed6558c36f0573fc28da4cdac742cccf426e6c239752402318b146a5bbb4122",
+      "resolved_sha256": "1ed6558c36f0573fc28da4cdac742cccf426e6c239752402318b146a5bbb4122",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/masterplan-v2-traceability-20260927.json",
+      "conflicts": 0,
+      "main_sha256": "10a7820d975c7bb0e112907552510a50c76f1e2762672ee6f4eac77b4c0ddb6d",
+      "base_sha256": "728421b3ebbd19258bf78e2f6e099a049917853780ca4af95e67071e30a988ea",
+      "merged_sha256": "10a7820d975c7bb0e112907552510a50c76f1e2762672ee6f4eac77b4c0ddb6d",
+      "resolved_sha256": "10a7820d975c7bb0e112907552510a50c76f1e2762672ee6f4eac77b4c0ddb6d",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/masterplan-v2-traceability-20260927.md",
+      "conflicts": 0,
+      "main_sha256": "550bc0120975853e49535e346787e65ed087a154dba566c4a9cf13e24224f4a2",
+      "base_sha256": "cdc4a06b4b671ba812b34acfa26939fb9b5a5bfba4c26df319dd046a5d82c515",
+      "merged_sha256": "550bc0120975853e49535e346787e65ed087a154dba566c4a9cf13e24224f4a2",
+      "resolved_sha256": "550bc0120975853e49535e346787e65ed087a154dba566c4a9cf13e24224f4a2",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    },
+    {
+      "path": "scripts/ediel-z04-ack-native.test.ts",
+      "conflicts": 0,
+      "main_sha256": "8532fbb611933b9dd690b4b0d0f3137158a08f9fac0d84ac12013e7474f7a6ec",
+      "base_sha256": "3fa37c38ae6c0d32ef60c845addab8f1e49f3126bbb0915ce6130a3f9854841f",
+      "merged_sha256": "8532fbb611933b9dd690b4b0d0f3137158a08f9fac0d84ac12013e7474f7a6ec",
+      "resolved_sha256": "8532fbb611933b9dd690b4b0d0f3137158a08f9fac0d84ac12013e7474f7a6ec",
+      "resolution": "NORMAL_GIT_THREE_WAY"
+    }
+  ],
+  "resolved_memory_notes": "Both historical markdown streams retained with current API candidate evidence first; six competing active context fields plus later superseded current candidate fields preserved under preserved_main53_active_context. Other main JSON fields retained.",
+  "combined_local_verification": {
+    "targeted_tests": "110_PASS_4_FILES",
+    "app_types": "PASS",
+    "scripts_types": "PASS",
+    "tests_types": "PASS",
+    "scoped_lint": "0_ERRORS_1_INHERITED_MAIN_WARNING",
+    "source_budget": "PASS",
+    "diff_check": "PASS"
+  },
+  "independent_review": "PASS_23_EXACT_MAIN_BLOBS_14_EXACT_NONMEMORY_BOTH_8_MARKDOWN_HISTORIES_ZERO_NONCONFLICTING_JSON_LOSS"
+}

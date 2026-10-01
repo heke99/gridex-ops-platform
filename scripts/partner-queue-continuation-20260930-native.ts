@@ -17,7 +17,9 @@ export function session(name: string) {
   let stdout = '', stderr = ''
   child.stdout.setEncoding('utf8').on('data', part => { stdout += part })
   child.stderr.setEncoding('utf8').on('data', part => { stderr += part })
-  const exited = new Promise<number>((resolve, reject) => { child.once('error', reject); child.once('exit', code => resolve(code ?? -1)) })
+  // Process exit can precede the last stdout/stderr data event. Consumers parse
+  // output only after this promise, so wait for the pipes to finish too.
+  const exited = new Promise<number>((resolve, reject) => { child.once('error', reject); child.once('close', code => resolve(code ?? -1)) })
   return { child, exited, output: () => ({ stdout, stderr }) }
 }
 export async function until(predicate: () => boolean, reason: string) {

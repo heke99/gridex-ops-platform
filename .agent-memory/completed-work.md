@@ -1,3 +1,15 @@
+## Current API/UI merge candidate — process completion and main preservation, 2026-10-01
+
+Combined main53 local verification: focused real-process/persisted-ACK/runtime/persistence110/110 PASS; Node22 app, scripts and tests TypeScript4GiB PASS; scoped ESLint0 errors (one inherited unused facilityRecognition warning in main source); source budget and git diff --check PASS. Independent read-only integration review PASS: exact main blobs, all14 nonmemory paths, complete base/API/main markdown histories and zero nonconflicting checkpoint value losses; original main active context preserved. Full new-head genuine CI remains pending.
+
+Published #422 head79bbbe219569eb17b2c20553cf18997e646b0894/treeaffb5450b04d1f871e18d0b565696b4245089b87, OPS36889321218: verify and quality-release-gates, including build and seven contract state/binding controls, are SUCCESS. Clean replay failed earlier in residual tenant queues: 13/14 PASS, concurrent approved_invoice_retry returned exit0 before final stdout was available, causing JSON.parse(undefined). Current source-owner, agreement, later HTTP/browser/schema proof were NOT_REACHED in this run; earlier c019 agreement proof remains historical. Upgrade/restore for79 was still running at the last read. This candidate is not merge-qualified.
+
+The actual shared native subprocess helper resolved on exit before stdio closure. A real Node child/grandchild regression with gated inherited output reproduced RED1FAIL/2PASS; awaiting close gives GREEN3PASS, independently rerun3PASS. Strict psql arguments, real output, nonzero/missing executable rejection, claim SQL and all native assertions remain intact. No native gate is skipped, weakened or replaced.
+
+Current main53bf989b0ad402bb2ce151c186eea31f1ec9cf03 is integrated from the actual common base d7eaa4b0b880b7280d8f164630a6cdb51baabba8 by normal per-file three-way merge. All 14 non-memory main files are byte-identical to main53, including the physical BGM202/204 boundaries, persisted ACK regressions and unresolved field202 policy hold. Both markdown histories are retained; structured checkpoint merging preserves nonconflicting fields and records the competing main active context separately. The remote successor must genuinely have both79 and main53 as parents. Main itself is unchanged. See api-ui-current-main-integration-20261001.json.
+
+Next: complete targeted combined-candidate verification and independent integration review; commit/freeze/non-force publish the two-parent candidate; require genuine current-head native/HTTP/browser/schema/restore and other applicable CI before #422 into #418, then freshly qualify combined #418 before main merge. User authorizes the current package commit and merge. Original75 remain31PARTIAL/44NOT_VERIFIED/0 final acceptances, P0–P8 OPEN; saved WIP and inherited gridex_get_user_roles callers remain separate continuation work. Historical receipts below are preserved.
+
 ## API/UI merge gates — genuine c019 result and next correction, 2026-10-01
 
 The current package is explicitly authorized for commit/save/merge. Published #422 c019c7b68161af63860becfefd87087820f53151/tree27f901ccb3ed373c7ae988cea637335eac31a5d6, OPS36879502677: verify, quality7733/533+build, actual upgrade/backup/restore/pinned-old rollback/fresh-old backfill PASS. Account4/purchase15 PASS. The actual private agreement browser1, post-browser proof1 and cleanup1 now PASS; the guard correction is genuinely exercised. FullE2E smoke/coverage/certificate, tenant/Ediel/public browser PASS; full/staging/nightly/crawler SKIPPED.
@@ -59,6 +71,22 @@ Root35 source mutation controls,8 actual cleanup PostgreSQL controls and full go
 ## Actual0778 bounded correction outcomes, 2026-10-01
 
 Manual-mail native6, current restore, pinned-old rollback ALL_PASS, fresh-old backfill8 and quality7624/527+build PASS; authentic31 generation byte parity PASS. Remaining native/sourcebinding cleanup3 and stale golden gate FAIL; later OPS chains NOT_REACHED, full/staging/nightly E2E SKIPPED. Full original masterplan remains OPEN. Receipt continuation/ci-native-correction-0778-outcome-20261001.md.
+
+## Current — 2026-09-28 PR #420 normative import correction
+
+#420 is still draft and not a completed bounded delivery. Its 470625da Ediel/browser succeeded, Full E2E authority guard failed; a local narrow import fix passes 126/126 and route guard, OPS native pending. Prior #415/#416/#417/#419 remain the only accepted header deliveries listed below.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+#420 is **not** in merged completed work. The first published head `a820ff0e` had Full E2E six guide-resolution failures; `31221ee9` fixed those and passed Ediel/browser/Full E2E. Its synthetic native ACK assertion is superseded because a real missing/Z99 code cannot acquire the stored Z04 profile. The current ACK fence is local 125/125 and awaiting native/CI. Earlier #415/#416/#417/#419 accepted bounded deliveries are recorded below and in the ledger; no formal 121/231 completion or market activation.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Verified bounded PRODAT header deliveries — 2026-09-28
+
+#415 field205 head `eee4a3fe` native371/371 merged `bd3e131e`; #416 field206/313 head `7414fd9c` native376/376 merged `d7eaa4b0`; #417 field204 head `32559fb9` native377/377 merged `a5f73de8`; #419 field202/C002 head `4d26c9a1` native378/378 merged `f030d507`. Each exact head passed Ediel/browser/Full E2E/OPS with clean native replay and schema/type parity, and Vercel web code was READY at its merge SHA. The current 202 missing/unlisted policy fail-close is only locally tested and belongs in current task, not completed work. Per-rule lifecycle and PR receipts: `quality/audits/ediel-masterplan-v2/f3-prodat-header-delivery-ledger-20260928.json`. Formal cards/contracts remain partial; no Ediel market activation. Older entries below are historical.
 
 ## 2026-09-27 — bounded #415 delivery
 PRODAT required header205 missing/invalid/duplicate whole-message ACK BGM27, original ACW, persisted tenant ACK/outbox and retry; jsonb evidence order fixed. Exact-head `eee4a3fe` four workflows/native371/371/schema/types; merged main/Vercel READY `bd3e131e`. This is not full F3 or market activation.
@@ -287,3 +315,6 @@ Actual source6bcb8f79 full7613/526units + fresh fulltestTypesPASS, oldidentical 
 ## 2026-10-01 API/UI CI unblock
 
 Bounded purchase native loader correction and authentic33 generation adoption qualified locally; whole75/P0–P8 still open.
+
+## 2026-09-28 — #417 bounded local step
+Invalid supplied PRODAT BGM/1225 field204 is now source-qualified for whole-message BGM27/ERC42, original ACW and pre-business stop. Positive omitted/9/5, forged/foreign error, tenant route, no effects, no route and stable retry have local 150/150 five-file consumer proof. Native persisted result and CI are pending; not an accepted whole contract or market capability. Published draft #417 head `09fba884` matches the locally tested tree.

@@ -1,3 +1,15 @@
+## Current API/UI merge candidate — process completion and main preservation, 2026-10-01
+
+Combined main53 local verification: focused real-process/persisted-ACK/runtime/persistence110/110 PASS; Node22 app, scripts and tests TypeScript4GiB PASS; scoped ESLint0 errors (one inherited unused facilityRecognition warning in main source); source budget and git diff --check PASS. Independent read-only integration review PASS: exact main blobs, all14 nonmemory paths, complete base/API/main markdown histories and zero nonconflicting checkpoint value losses; original main active context preserved. Full new-head genuine CI remains pending.
+
+Published #422 head79bbbe219569eb17b2c20553cf18997e646b0894/treeaffb5450b04d1f871e18d0b565696b4245089b87, OPS36889321218: verify and quality-release-gates, including build and seven contract state/binding controls, are SUCCESS. Clean replay failed earlier in residual tenant queues: 13/14 PASS, concurrent approved_invoice_retry returned exit0 before final stdout was available, causing JSON.parse(undefined). Current source-owner, agreement, later HTTP/browser/schema proof were NOT_REACHED in this run; earlier c019 agreement proof remains historical. Upgrade/restore for79 was still running at the last read. This candidate is not merge-qualified.
+
+The actual shared native subprocess helper resolved on exit before stdio closure. A real Node child/grandchild regression with gated inherited output reproduced RED1FAIL/2PASS; awaiting close gives GREEN3PASS, independently rerun3PASS. Strict psql arguments, real output, nonzero/missing executable rejection, claim SQL and all native assertions remain intact. No native gate is skipped, weakened or replaced.
+
+Current main53bf989b0ad402bb2ce151c186eea31f1ec9cf03 is integrated from the actual common base d7eaa4b0b880b7280d8f164630a6cdb51baabba8 by normal per-file three-way merge. All 14 non-memory main files are byte-identical to main53, including the physical BGM202/204 boundaries, persisted ACK regressions and unresolved field202 policy hold. Both markdown histories are retained; structured checkpoint merging preserves nonconflicting fields and records the competing main active context separately. The remote successor must genuinely have both79 and main53 as parents. Main itself is unchanged. See api-ui-current-main-integration-20261001.json.
+
+Next: complete targeted combined-candidate verification and independent integration review; commit/freeze/non-force publish the two-parent candidate; require genuine current-head native/HTTP/browser/schema/restore and other applicable CI before #422 into #418, then freshly qualify combined #418 before main merge. User authorizes the current package commit and merge. Original75 remain31PARTIAL/44NOT_VERIFIED/0 final acceptances, P0–P8 OPEN; saved WIP and inherited gridex_get_user_roles callers remain separate continuation work. Historical receipts below are preserved.
+
 ## API/UI merge gates — genuine c019 result and next correction, 2026-10-01
 
 The current package is explicitly authorized for commit/save/merge. Published #422 c019c7b68161af63860becfefd87087820f53151/tree27f901ccb3ed373c7ae988cea637335eac31a5d6, OPS36879502677: verify, quality7733/533+build, actual upgrade/backup/restore/pinned-old rollback/fresh-old backfill PASS. Account4/purchase15 PASS. The actual private agreement browser1, post-browser proof1 and cleanup1 now PASS; the guard correction is genuinely exercised. FullE2E smoke/coverage/certificate, tenant/Ediel/public browser PASS; full/staging/nightly/crawler SKIPPED.
@@ -161,6 +173,36 @@ Next coherent API work remains transactional notification completion and separat
 The active item in this isolated API checkout is the bounded `2026-09-30.1` event-v2 package on draft #422. Original API `a826b588` and local `9ed10d8c` are preserved; exact SQL/native prerequisite #418 `7afb3dca` is integrated. Original checkouts are untouched. Root owns one non-force publisher; source, native-fixture and release reviews ran in parallel. All historical notes below refer to their original Ediel task and do not restart that work here.
 
 Next: finish the reviewed 503 contract and test-transport sanitation, freeze the complete candidate, run final local checks, verify both remote heads/ownership, publish the exact tree with API/OPS ancestry, then require actual new HTTP/native markers and fresh applicable CI. Final SHA and CI receipts belong in #422; no production/main merge or full T/U/phase acceptance.
+
+## Current — 2026-09-28 PR #420 normative import correction
+
+1. Publish locally verified canonical projection fix for Full E2E normative import failure on 470625da and update the PR checkpoint.
+2. Check first native/replay result and all new exact-head CI, schema/type parity; correct the first actual failure only.
+3. Review complete PR diff/threads and decide a single coherent safe-hold merge if all gates pass; durable diagnostic owner/ACK remains separate and unproved. Verify main/deployment, then branch from new main. #310/market held.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+1. Publish current gateway mismatch fence, native genuine-ingress trigger rejection and stale-Z04 hold/retry to the same draft #420.
+2. Require exact-head Ediel/browser/Full E2E/OPS, native clean replay and schema/type parity. Correct only first real failure; review complete diff and review threads.
+3. Merge once only if this physical-202 fail-close boundary is coherent and all gates pass; otherwise keep draft. Genuine outbound 41/42 awaits a durable diagnostic source owner, legal actor, route and retry in a separate proven package. Verify main/deploy then branch from new main. Market/#310 held.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+1. Inspect first #420 head OPS native; fix any first real native failure.
+2. Publish scoped physical-202 correction and source-qualified 41/42 whole-message response to same draft PR, then inspect all exact-head gates.
+3. Review full diff/threads, merge one coherent package only if native replay/parity and all CI green; verify main/deployment. Older current plan below SUPERSEDED.
+
+## Current — 2026-09-28 field202 policy boundary
+
+1. Publish locally verified fail-close and native fixtures on the clean branch from #419 main; open one draft PR.
+2. Inspect first actual exact-head CI, especially OPS native/replay/schema/type parity and Ediel/browser/E2E. Fix the first real failure only; review full diff and threads.
+3. Prove source-bound ERC41/42 if a complete physical original, actor/route and durable ACK can be qualified in this coherent package; otherwise retain explicit hold. Merge one larger bounded package only with all applicable gates green, verify main/deployment and branch from new main. Keep #310 and market traffic held.
+
+Earlier `Current` plans below SUPERSEDED.
 
 ## Current — F3 header206
 1. Publish source-qualified 206 renderer/consumer and native missing/invalid cases in one draft PR.
@@ -637,3 +679,7 @@ Publish and qualify bounded UG-122-24 SVK five-digit NAD party ID; require nativ
 1. Publish literal field313 validation after RED/GREEN and the added native lowercase variant to the same draft PR.
 2. Require all applicable CI, clean replay, native stored ACK/no-business/retry and schema/type parity on the corrected exact head; fix first true failure only.
 3. Review final diff and comments, merge the 206+313 package once if gates pass, verify main/deployment and begin next package. No market test/send and no PR310 work.
+## Current — 2026-09-28 PR #417
+1. Inspect exact-head CI for `09fba884`: Ediel, browser, Full E2E and OPS native clean replay/schema/type parity. Fix only the first real failure with a new tested commit.
+2. Review the complete #417 diff and open review threads. Merge the coherent field204 package once only if all gates are green on the final head, then verify remote main/merge SHA and same-SHA deployment.
+3. Branch the next source-backed package from new main. Keep historical 203/IDE505, positive LOC+175, E035 and market activation behind their separate evidence gates; leave #310 untouched.

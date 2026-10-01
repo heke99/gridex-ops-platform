@@ -1,3 +1,15 @@
+## Current API/UI merge candidate — process completion and main preservation, 2026-10-01
+
+Combined main53 local verification: focused real-process/persisted-ACK/runtime/persistence110/110 PASS; Node22 app, scripts and tests TypeScript4GiB PASS; scoped ESLint0 errors (one inherited unused facilityRecognition warning in main source); source budget and git diff --check PASS. Independent read-only integration review PASS: exact main blobs, all14 nonmemory paths, complete base/API/main markdown histories and zero nonconflicting checkpoint value losses; original main active context preserved. Full new-head genuine CI remains pending.
+
+Published #422 head79bbbe219569eb17b2c20553cf18997e646b0894/treeaffb5450b04d1f871e18d0b565696b4245089b87, OPS36889321218: verify and quality-release-gates, including build and seven contract state/binding controls, are SUCCESS. Clean replay failed earlier in residual tenant queues: 13/14 PASS, concurrent approved_invoice_retry returned exit0 before final stdout was available, causing JSON.parse(undefined). Current source-owner, agreement, later HTTP/browser/schema proof were NOT_REACHED in this run; earlier c019 agreement proof remains historical. Upgrade/restore for79 was still running at the last read. This candidate is not merge-qualified.
+
+The actual shared native subprocess helper resolved on exit before stdio closure. A real Node child/grandchild regression with gated inherited output reproduced RED1FAIL/2PASS; awaiting close gives GREEN3PASS, independently rerun3PASS. Strict psql arguments, real output, nonzero/missing executable rejection, claim SQL and all native assertions remain intact. No native gate is skipped, weakened or replaced.
+
+Current main53bf989b0ad402bb2ce151c186eea31f1ec9cf03 is integrated from the actual common base d7eaa4b0b880b7280d8f164630a6cdb51baabba8 by normal per-file three-way merge. All 14 non-memory main files are byte-identical to main53, including the physical BGM202/204 boundaries, persisted ACK regressions and unresolved field202 policy hold. Both markdown histories are retained; structured checkpoint merging preserves nonconflicting fields and records the competing main active context separately. The remote successor must genuinely have both79 and main53 as parents. Main itself is unchanged. See api-ui-current-main-integration-20261001.json.
+
+Next: complete targeted combined-candidate verification and independent integration review; commit/freeze/non-force publish the two-parent candidate; require genuine current-head native/HTTP/browser/schema/restore and other applicable CI before #422 into #418, then freshly qualify combined #418 before main merge. User authorizes the current package commit and merge. Original75 remain31PARTIAL/44NOT_VERIFIED/0 final acceptances, P0–P8 OPEN; saved WIP and inherited gridex_get_user_roles callers remain separate continuation work. Historical receipts below are preserved.
+
 ## API/UI merge gates — genuine c019 result and next correction, 2026-10-01
 
 The current package is explicitly authorized for commit/save/merge. Published #422 c019c7b68161af63860becfefd87087820f53151/tree27f901ccb3ed373c7ae988cea637335eac31a5d6, OPS36879502677: verify, quality7733/533+build, actual upgrade/backup/restore/pinned-old rollback/fresh-old backfill PASS. Account4/purchase15 PASS. The actual private agreement browser1, post-browser proof1 and cleanup1 now PASS; the guard correction is genuinely exercised. FullE2E smoke/coverage/certificate, tenant/Ediel/public browser PASS; full/staging/nightly/crawler SKIPPED.
@@ -65,6 +77,28 @@ Root35 source mutation controls,8 actual cleanup PostgreSQL controls and full go
 ## Actual0778 bounded correction outcomes, 2026-10-01
 
 Manual-mail native6, current restore, pinned-old rollback ALL_PASS, fresh-old backfill8 and quality7624/527+build PASS; authentic31 generation byte parity PASS. Remaining native/sourcebinding cleanup3 and stale golden gate FAIL; later OPS chains NOT_REACHED, full/staging/nightly E2E SKIPPED. Full original masterplan remains OPEN. Receipt continuation/ci-native-correction-0778-outcome-20261001.md.
+
+## Current — 2026-09-28 PR #420 normative import correction
+
+PR420 470625da: Ediel 36408877709 SUCCESS; browser 36408877599 SUCCESS; Full E2E 36408877711 FAILED only normative authority import from kernel (smoke and coverage), reproduced RED locally then GREEN via canonical field projection; affected 126/126 and route regression PASS. OPS 36408877538 native/replay pending. Three TS projects/scoped lint being completed; current fix unpublished. Frozen 121/231 formal partial, no activation.
+
+OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress.
+
+Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-28 PR #420 persisted field202 owner correction
+
+#420 second head `31221ee9`: Ediel `36407534632`, browser `36407534622`, Full E2E `36407534583` SUCCESS; OPS `36407534620` clean replay failed two stale-profile 202 fixtures (378/380). Local current correction 125/125 across three files, app/tests/scripts TypeScript, scoped lint/diff PASS. New native genuine-ingress trigger and stale-profile hold/retry, clean replay, type/schema parity and final exact-head CI are pending; prior Z04 positive ACK assertion is invalidated by the actual mailbox/persistence code. #415/#416/#417/#419 remain bounded accepted, ACK-02/ACK-10 and AT-ACK-02/10 partial, 121/231 unchanged.
+
+Earlier Current entries below are historical and SUPERSEDED for current branch/status/next action.
+
+## Current — 2026-09-28 PR #420 scoped field202 response
+
+PR #420 first head `a820ff0e`: Ediel/browser SUCCESS; Full E2E coverage six invalid-guide regressions on overly broad guard; OPS native pending. Local scoped field202 41/42 correction plus preserved guide behavior passes three files 125/125, three TS projects, scoped lint/diff. New native/CI pending. #415/#416/#417/#419 exact-head accepted receipts and formal 121/231 unchanged. Earlier current below SUPERSEDED.
+
+## Current evidence — 2026-09-28
+
+#415 `eee4a3fe` four CI green, OPS native371/371; #416 `7414fd9c` four green, native376/376; #417 `32559fb9` four green, native377/377; #419 `4d26c9a1` four green, native378/378. Each OPS had clean migration replay and exact type/schema parity; current remote main `f030d507` is same-SHA Vercel READY. Current 202 missing/unlisted: real consumer RED on unlisted code's ACK-policy exception, GREEN 27/27; app/tests/scripts TypeScript, scoped lint zero errors and diff check pass. Native two cases and exact-head CI pending. Formal status and market traffic unchanged; details in F3 ledger. Earlier 'Current' entries below SUPERSEDED.
 
 ## 2026-09-27 — PR #416 first CI finding
 Published `d48532a6`, then review naming head `9da23117`. Ediel `36352375005` failed eight document-consumer cases because their otherwise complete P fixture omitted mandatory 206; no production-rule change. Added actual DTM+ZZZ:1:805 and computed UNT, local affected34/34 plus tests TS/lint. Publish fixture correction, then inspect new exact-head Ediel/native/replay and remaining workflows.
@@ -608,3 +642,6 @@ Exact published0cf/treecdb source recovered5990paths/130416041B with individual 
 ## 2026-10-01 API/UI CI unblock
 
 Node22: original loaderRED1 / corrected15 collected (native0); targeted51PASS; app4096/scripts1536 typesPASS; integrity686/590/types33PASS; lint/diffPASS; artifact/merge/tree/byte checksPASS. Changed-head CI pending.
+
+## 2026-09-28 — #417 local and pending exact-head evidence
+Remote `09fba884` / tree `ac40f187`: five relevant Vitest files 150/150 PASS; `node --experimental-vm-modules scripts/test-ediel-unb-ack-request.cjs` 64/64 PASS; app/tests/scripts TypeScript PASS; five changed TS files ESLint 0 errors, one existing unused-variable warning; `git diff --check` PASS. Native real-DB header204 fixture and Ediel/browser/Full E2E/OPS clean replay/schema/type parity are PENDING on that remote head. No formal market acceptance claimed.

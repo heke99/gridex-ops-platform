@@ -1,0 +1,17 @@
+# F3 PRODAT header 202: forbidden C002 metadata
+
+## Source and bounded rule
+
+The frozen P26.A r3 §2.2 p.16 marks message name field 202 required for all 13 PRODAT functions and enumerates Z01–Z18. Its §2.6 p.42 segment row, transcribed into `docs/ediel/masterplan-v2/registers/prodat_fields.json`, assigns the function to `BGM/C002/1001` and marks C002/1131, 3055 and 1000 `X`. P-APERAK 16.B pp.90, 93, 95 and 103 requires BGM/1225 `27` for exceptional whole-message rejection, ERC42 with the PRODAT field number for invalid content, and original-message ACW correlation. This is a bounded part of ACK-02/ACK-10 and the PRODAT header acceptance boundary. The frozen register is unchanged.
+
+`BGM+Z04:BOGUS+D+9+AB` is a syntactically readable, otherwise complete two-object Z04 with a recognized function and a forbidden supplied C002/1131 value. The canonical field matrix already emitted a source-owned field 202/ERC42 diagnostic, but the actual inbound processor called actor, facility, link, case and business adapters and the response selected processed-message BGM34. The focused real-consumer test observed those effects before the fix (RED). This is not a rule for unrecognized or absent function codes; their policy selection and possible ERC40/100 need separate source/ownership evidence before any outbound ACK is produced.
+
+The shared physical-header qualifier now verifies field 202 against the first source BGM, the typed ERC42/202, its original UNH occurrence and exact failed C002 content. The renderer can choose BGM27 only from that qualified finding, and the inbound consumer stops before any case/switch/supply path. Forged or foreign error evidence and a positive ACK shortcut are rejected. A plain Z04 code remains valid. A tenant without a qualified ACK route queues neither ACK nor outbox. No actor mandate, market dispatch or broader message-code policy is inferred.
+
+## Verification and remaining gates
+
+Local RED: the new real-consumer test failed because `state.effects` contained `actor`, `facility`, `link`, `case`, `z02`, `z14` and `business`. Local GREEN: five affected test files 52/52; app/tests/scripts TypeScript checks; scoped ESLint 0 errors and one pre-existing unused-variable warning. The new native Z04 case uses an isolated tenant, legal actor, persisted ACK route/profile and source; it asserts two stored ACKs, negative BGM27/ERC42/202/original ACW, two tenant-bound outbox rows, no case/switch/supply rows and byte-for-byte stable retry. Native replay, exact-head CI, generated type/schema parity, final diff review and merge remain pending until published.
+
+Skill routing: `using-superpowers` and `spec-to-code-compliance` for source/consumer comparison; `systematic-debugging`, `test-driven-development` for RED/GREEN; `differential-review`, `code-review`, `verification-before-completion` for final gates. Native uses the existing OPS runner because this worktree has no local PostgreSQL/Supabase executable. No independent agents, UI/performance changes, migrations, external sending or staging tests are in this bounded package.
+
+The 121 cards and 231 acceptance contracts are not reclassified by this one path. Historical field203 and IDE505 uniqueness, positive LOC+175 consumption, E035 history/retention/deletion and full G06 grammar remain open. Deployed web code is distinct from approved Ediel market activation; no live Ediel, staging, TGT/AGT or counterparty traffic is permitted here. PR #310 remains paused.
