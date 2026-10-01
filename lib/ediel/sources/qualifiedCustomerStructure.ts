@@ -36,7 +36,7 @@ export async function readQualifiedCustomerStructure(input:DatedCustomerStructur
    objectId:object.objectId,identityAgency:object.identityAgency,legalSender:v.wire.legalSender,legalReceiver:v.wire.legalReceiver,
    periodStart,periodEnd,boundary:periodStart===periodEnd?'current_point':'interval'})
   if(selected.status!=='selected'||selected.coverage.supplyPeriodId!==v.coverage!.supplyPeriodId)continue
-  const {data:basis,error}=await supabaseService.rpc('ediel_read_source_supply_basis_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_period_id:selected.coverage.supplyPeriodId,p_start:periodStart,p_end:periodEnd}).abortSignal(AbortSignal.timeout(2000))
+  const {data:basis,error}=await supabaseService.rpc(periodStart===periodEnd?'ediel_read_source_supply_at_v1':'ediel_read_source_supply_basis_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_period_id:selected.coverage.supplyPeriodId,...(periodStart===periodEnd?{p_at:periodStart}:{p_start:periodStart,p_end:periodEnd})}).abortSignal(AbortSignal.timeout(2000))
   if(error)throw new Error('dated_structure_current_supply_basis_unconfirmed')
   if(!isEvidenceRecord(basis)||basis.qualified!==true||basis.customerId!==input.customerId||basis.siteId!==input.siteId||basis.meteringPointId!==input.meteringPointId||basis.initialSourceMessageId!==selected.coverage.baselineSourceMessageId)continue
   const field=(name:keyof QualifiedCustomerStructureFields):string|null=>{

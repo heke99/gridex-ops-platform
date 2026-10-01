@@ -36,3 +36,11 @@ describe('actual owned dated customer structure consumer',()=>{
   await expect(readQualifiedCustomerStructure(input)).rejects.toThrow('dated_structure_current_supply_basis_unconfirmed')
  })
 })
+
+it('uses the protected point port rather than a zero-length native interval',async()=>{
+ const point={...input,periodEnd:input.periodStart}
+ expect((await readQualifiedCustomerStructure(point)).status).toBe('selected')
+ expect(mocks.rpc).toHaveBeenCalledWith('ediel_read_source_supply_at_v1',expect.objectContaining({p_at:at('20261004')}))
+ const args=mocks.rpc.mock.calls.at(-1)![1]
+ expect(args).not.toHaveProperty('p_start');expect(args).not.toHaveProperty('p_end')
+})
