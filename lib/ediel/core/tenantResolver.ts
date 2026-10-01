@@ -8,7 +8,7 @@ import {
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import { readInboundAckSourceCorrelation, qualifyInboundAckSourceCandidates } from '@/lib/ediel/ack/sourceCorrelation'
-import { resolveCanonicalTenantEdielIdentityWithEvidence } from '@/lib/ediel/tenant/tenantEdielIdentity'
+import { requireEdielInboundLegalContext } from '@/lib/ediel/tenant/sourceLegalContext'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import {
   extractMarketActorEdielIdFromRawPayload,
@@ -144,8 +144,7 @@ async function evidenceFromOriginalReferences(
   const companyId = source.company_id as string
   if (message.environment !== 'production' && message.environment !== 'test') return []
   try {
-    const { identity } = await resolveCanonicalTenantEdielIdentityWithEvidence({ companyId,
-      environment: message.environment, asOf: new Date().toISOString(), requireExactCounts: true })
+    const identity = await requireEdielInboundLegalContext(companyId, source.id)
     const wire = tokenizeEdifact(source.raw_payload ?? '')
     const family = segmentComposite(wire.segments.find(segment => segment.tag === 'UNH'), 2, wire.una)[0]
     const senderQualifier = family === 'PRODAT' ? 'FR' : family === 'UTILTS' ? 'MS' : null

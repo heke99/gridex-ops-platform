@@ -35,12 +35,19 @@ function load(file) {
   return module.exports
 }
 const authority = load(path.join(root, 'lib/ediel/rulebook/canonicalEdielFacade.ts'))
+const inboundContext = argv.includes('--with-inbound-context')
+const utiltsApplications = inboundContext ? load(path.join(root, 'lib/ediel/rulebook/utiltsApplicationReference.ts')) : null
 const rows = authority.canonicalBusinessSemanticsCatalog().filter(row => ['PRODAT', 'UTILTS'].includes(row.family)).map(row => ({
   family: row.family, code: row.code, subtype: row.subtype, transactionReasonCode: row.transactionReasonCode,
   senderRoles: [...row.senderRoles], direction: row.direction,
+  ...(inboundContext ? { receiverRoles: [...row.receiverRoles], applicationReferences: row.family === 'PRODAT'
+    ? [authority.canonicalProdatProfileForMessage(row.code).applicationReference]
+    : [...new Set((utiltsApplications.UTILTS_25_A_3_REQUEST_TARGETS[row.code] ?? [row.code])
+      .flatMap(code => utiltsApplications.UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES[code] ?? []))].sort() } : {}),
 })).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+inputs['scripts/generate-ediel-readiness-source-projection.cjs'] = hash(fs.readFileSync(__filename, 'utf8'))
 const manifest = Object.fromEntries(Object.entries(inputs).sort(([a], [b]) => a.localeCompare(b)))
-const edition = { sourceVersion: hash(JSON.stringify(manifest)), inputManifest: manifest, catalog: rows }
+const edition = { sourceVersion: hash(JSON.stringify({ inputManifest: manifest, catalog: rows })), inputManifest: manifest, catalog: rows }
 const literal = JSON.stringify(edition).replaceAll("'", "''")
 const block = `-- BEGIN CANONICAL SOURCE PROJECTION\nINSERT INTO gridex_ediel_readiness.source_editions(source_version,input_manifest,catalog)\nSELECT value->>'sourceVersion',value->'inputManifest',value->'catalog' FROM (SELECT '${literal}'::jsonb value) edition;\n-- END CANONICAL SOURCE PROJECTION`
 const content = fs.readFileSync(target, 'utf8')
@@ -48,7 +55,8 @@ if (argv.includes('--check')) {
   const publishedLiteral = content.match(/-- BEGIN CANONICAL SOURCE PROJECTION[\s\S]*?FROM \(SELECT '((?:[^']|'')*)'::jsonb value\) edition;/)?.[1]
   if (!publishedLiteral) throw new Error('Published canonical projection unavailable')
   const published = JSON.parse(publishedLiteral.replaceAll("''", "'"))
-  if (hash(JSON.stringify(published.inputManifest)) !== published.sourceVersion) throw new Error('Published source input provenance hash mismatch')
+  if (hash(JSON.stringify(published.inputManifest)) !== published.sourceVersion
+    && hash(JSON.stringify({ inputManifest: published.inputManifest, catalog: published.catalog })) !== published.sourceVersion) throw new Error('Published source input provenance hash mismatch')
   if (JSON.stringify(published.catalog) !== JSON.stringify(rows)) throw new Error('Readiness source projection differs from the current canonical catalog; publish a new forward edition')
   const changedInputs = Object.keys(manifest).filter(file => published.inputManifest[file] !== manifest[file]).length
   console.log(`Canonical readiness projection: ${rows.length} current own scopes match; immutable publication input provenance valid; ${changedInputs} source files changed since publication without changing projected scope values`)

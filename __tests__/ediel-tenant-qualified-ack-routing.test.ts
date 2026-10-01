@@ -4,7 +4,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveInboundTenantForMessage } from '@/lib/ediel/core/tenantResolver'
 const io = vi.hoisted(() => ({ rows: {} as Record<string, Array<Record<string, unknown>>>, identity: vi.fn(), events: vi.fn() }))
 vi.mock('@/lib/ediel/db', () => ({ createEdielMessageEvent: io.events, getEdielMessageById: vi.fn() }))
-vi.mock('@/lib/ediel/tenant/tenantEdielIdentity', () => ({ resolveCanonicalTenantEdielIdentityWithEvidence: io.identity }))
+vi.mock('@/lib/ediel/tenant/sourceLegalContext', () => ({ requireEdielInboundLegalContext: io.identity }))
 vi.mock('@/lib/ediel/tenant/resolveInboundTenant', () => ({
   extractMarketActorEdielIdFromRawPayload: () => null,
   tenantResolutionForStorage: (resolution: unknown) => resolution,
@@ -32,12 +32,12 @@ const source = () => ({ id: 'source', company_id: 'tenant-b', environment: 'test
 const ack = () => ({ id: 'ack', company_id: null, environment: 'test', direction: 'inbound', message_family: 'APERAK', raw_payload: wire(true), parsed_payload: {}, validation_report: {} } as EdielMessageRow)
 beforeEach(() => {
   io.rows = { ediel_business_references: [{ source_message_id: 'source', reference_type: 'BGM_REF', reference_value: 'SOURCE-D' }], ediel_messages: [source(), ack() as unknown as Record<string, unknown>] }
-  io.identity.mockReset(); io.identity.mockResolvedValue({ identity: { legalActorId: 'actor-b', legalEdielId: 'A', transportEdielId: 'A', roleCodes: ['electricity_supplier'] }, evidence: {} }); io.events.mockReset()
+  io.identity.mockReset(); io.identity.mockResolvedValue({ legalActorId: 'actor-b', legalEdielId: 'A', transportEdielId: 'A', actorRole: 'electricity_supplier' }); io.events.mockReset()
 })
 it('qualifies the actual sent original before a stronger mutable transport hint', async () => {
   const result = await resolveInboundTenantForMessage({ actorUserId: 'user', message: ack() })
   expect(result).toMatchObject({ status: 'tenant_resolved', companyId: 'tenant-b' })
-  expect(io.identity).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'tenant-b', requireExactCounts: true }))
+  expect(io.identity).toHaveBeenCalledWith('tenant-b', 'source')
 })
 it('a shared mailbox hint cannot authorize an invalid original scope', async () => {
   const message = ack(); message.raw_payload = message.raw_payload!.replace('ACW:SOURCE-T', 'ACW:OTHER')
@@ -51,7 +51,7 @@ it('detects shared legal actor cross-tenant collisions globally before supplied 
   expect(io.identity).not.toHaveBeenCalled()
 })
 it('holds a valid physical original when local identity disagrees without reassigning sealed company provenance', async () => {
-  io.identity.mockResolvedValue({ identity: { legalActorId: 'wrong', legalEdielId: 'OTHER', transportEdielId: 'A', roleCodes: ['electricity_supplier'] }, evidence: {} })
+  io.identity.mockResolvedValue({ legalActorId: 'wrong', legalEdielId: 'OTHER', transportEdielId: 'A', actorRole: 'electricity_supplier' })
   const message = ack(); message.company_id = 'tenant-b'
   io.rows.ediel_messages.find(row => row.id === 'ack')!.company_id = 'tenant-b'
   const result = await resolveInboundTenantForMessage({ actorUserId: 'user', message })
