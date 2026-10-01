@@ -1,0 +1,34 @@
+import {beforeEach,describe,expect,it,vi} from 'vitest'
+const io=vi.hoisted(()=>({registry:vi.fn()}))
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:io.registry}))
+import {resolveCanonicalRuntimeDecision,resolveCanonicalRuntimeDecisionWithRegistry,finalizeCanonicalUtiltsRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
+import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
+beforeEach(()=>{io.registry.mockReset();io.registry.mockImplementation(async()=>({profileKey:'utilts_e66',databaseProfileKey:'UTILTS:E66:E5SE5A:3',messageProfileId:'p',rulePackId:'r',sourceHash:'a'.repeat(64),originalVersion:'25-A-3:r3',originalSnapshot:{rulePack:{id:'r',guide_version:'25-A-3',guide_revision:'3'},messageProfile:{id:'p',profile_key:'UTILTS:E66:E5SE5A:3'},guideSources:[]}}))})
+describe('final shared UTILTS actual owner retains first guide and witness',()=>{
+ it('consumes one real final runtime and retains exact original guide and registry witness without another read',async()=>{
+  const message=energyHandoffMessage(),initialDecision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  expect(initialDecision.applicationDecision).toBe('accepted')
+  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:initialDecision.policy!})
+  const final=finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision,runtime})
+  expect(final.policy).toBe(initialDecision.policy)
+  expect(final.validationReport.rulePackEvidence).toBe(initialDecision.validationReport.rulePackEvidence)
+  expect(final.utiltsTransactionValidation?.transactions[0]).toMatchObject({transactionId:'GRIDEX2607E66001',disposition:'accepted'})
+  expect(io.registry).toHaveBeenCalledTimes(1)
+  expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
+ })
+ it('rejects an unregistered initial decision, a copied initial owner and altered original source',async()=>{
+  const message=energyHandoffMessage(),initialDecision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:initialDecision.policy!})
+  for(const original of [resolveCanonicalRuntimeDecision(message),{...initialDecision}])expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision:original,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
+  expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message:{...message,company_id:'foreign'},initialDecision,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
+  expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message:{...message,raw_payload:message.raw_payload+' '},initialDecision,runtime})).toThrow('ediel_initial_utilts_owner_unavailable')
+ })
+ it('cannot promote a copied or mutated final runtime into a new own-IDE acceptance',async()=>{
+  for(const mutate of [(r:ReturnType<typeof runUtiltsRuntimeForMessage>)=>({...r}),(r:ReturnType<typeof runUtiltsRuntimeForMessage>)=>{r.transactionDispositions[0].issueCodes.push('FORGED');return r}]){
+   const message=energyHandoffMessage(),initialDecision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+   const runtime=runUtiltsRuntimeForMessage(message,{canonicalPolicy:initialDecision.policy!})
+   expect(()=>finalizeCanonicalUtiltsRuntimeDecision({message,initialDecision,runtime:mutate(runtime)})).toThrow('ediel_final_utilts_owner_unavailable')
+  }
+ })
+})
