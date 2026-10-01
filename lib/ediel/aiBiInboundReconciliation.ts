@@ -1,15 +1,16 @@
 import {parseAiBiTechnicalFile} from '@/lib/ediel/aiListFormat'
-import {requireAiBiProcessingDecision} from '@/lib/ediel/aiBiProcessingDecision'
+import {requireAiBiPersonalDataStorage} from '@/lib/ediel/aiBiPersonalDataStorage'
 import {importAiBiListCsv} from '@/lib/ediel/aiBiImportEngine'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {createHash} from 'node:crypto'
 
 /** Call before persisting any personal AI/BI source, including manual/batch
  * and IMAP paths. No EDIFACT acknowledgement or market effect is produced. */
-export async function prepareAiBiInboundReconciliation(input:{companyId:string;actorUserId:string;rawPayload:string;listType?:'AI'|'BI'}){
+export async function prepareAiBiInboundReconciliation(input:{companyId:string;actorUserId:string;environment:'test'|'production';rawPayload:string;listType?:'AI'|'BI'}){
  const technical=parseAiBiTechnicalFile(input.rawPayload,input.listType)
- const processingDecision=await requireAiBiProcessingDecision({companyId:input.companyId,actorUserId:input.actorUserId,listType:technical.header.listType})
- return {listType:technical.header.listType,processingDecision}
+ const storage=await requireAiBiPersonalDataStorage({companyId:input.companyId,actorUserId:input.actorUserId,environment:input.environment,candidates:[input.rawPayload]})
+ if(!storage||storage.listType!==technical.header.listType||storage.canonicalPayload!==input.rawPayload)throw new Error('ai_bi_personal_storage_scope_invalid')
+ return {listType:technical.header.listType,processingDecision:storage.processingDecision}
 }
 
 /** Consumer of a sealed actually received source, not caller-normalized rows.
