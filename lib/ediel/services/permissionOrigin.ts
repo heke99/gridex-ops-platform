@@ -39,7 +39,7 @@ export async function reserveServicePermissionOrigin(input: ServicePermissionOri
  * recovery link may select the original's current service authority. */
 export async function loadServicePermissionRecoveryOrigin(input: {companyId:string;operationId:string;actorUserId:string}):Promise<{originalMessage:import('@/lib/ediel/types').EdielMessageRow;basis:ServicePermissionOriginBasis;sourceIntentId:string;sourceActorUserId:string}|undefined>{
  const {assertEdielTenantActor}=await import('./authorization')
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['ediel.send','communication.send']})
  const {data:recovery,error}=await supabaseService.rpc('ediel_prodat_recovery_operation_basis_v1',{p_company_id:input.companyId,p_operation_id:input.operationId,p_actor_user_id:input.actorUserId})
  if(error)throw error
  if(recovery===null)return undefined
@@ -64,7 +64,7 @@ export async function loadServicePermissionRecoveryOrigin(input: {companyId:stri
 export async function loadServicePermissionMessageOrigin(message:import('@/lib/ediel/types').EdielMessageRow,actorUserId:string){
  if(!message.company_id||message.direction!=='outbound'||message.message_family!=='PRODAT'||!['Z13','Z18'].includes(message.message_code)||!message.source_operation_id)return undefined
  const {assertEdielTenantActor}=await import('./authorization')
- await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:message.company_id,actorUserId,permissionAnyOf:['ediel.send','communication.send']})
  const {data:recovery,error}=await supabaseService.rpc('ediel_prodat_recovery_original_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
  if(error)throw error
  if(recovery===null)return undefined

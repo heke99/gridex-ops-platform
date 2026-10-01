@@ -40,7 +40,7 @@ async function loadOriginalServiceReportingContext(message: EdielMessageRow, act
   const snapshot=message.parsed_payload?.sourcePermissionBasis as ServicePermissionOriginBasis | undefined
   if (!snapshot) return undefined
   if (!message.company_id || message.direction !== 'outbound' || message.message_code !== 'Z13' || !message.intent_id) throw new Error('ediel_service_reporting_message_scope_invalid')
-  await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'communication.send'})
+  await assertEdielTenantActor({companyId:message.company_id,actorUserId,permissionAnyOf:['ediel.send','communication.send']})
   const {data:bound,error:boundError}=await supabaseService.rpc('ediel_service_permission_message_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
   if(boundError)throw boundError
   const current=bound?.basis as ServicePermissionOriginBasis|undefined
@@ -71,7 +71,7 @@ function assertReportingRecoveryScope(basis:RecoveryReportingBasis,context:Expec
  * then the actual original's current source authority. A new intent/request
  * remains the correction's identity; the source intent is only its evidence. */
 export async function loadServiceReportingRecoveryContext(input:{companyId:string;operationId:string;actorUserId:string}):Promise<{originalMessage:EdielMessageRow;context:ExpectedContext}|undefined>{
- await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['ediel.send','communication.send']})
  const {data:basis,error}=await supabaseService.rpc('ediel_prodat_recovery_operation_basis_v1',{p_company_id:input.companyId,p_operation_id:input.operationId,p_actor_user_id:input.actorUserId})
  if(error)throw error
  if(basis===null)return undefined
@@ -88,7 +88,7 @@ export async function loadServiceReportingRecoveryContext(input:{companyId:strin
 export async function loadServiceReportingValidationContext(message:EdielMessageRow,actorUserId:string):Promise<ExpectedContext|undefined>{
  if(!message.source_operation_id)return loadOriginalServiceReportingContext(message,actorUserId)
  if(!message.company_id||message.direction!=='outbound'||message.message_family!=='PRODAT'||message.message_code!=='Z13')return undefined
- await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'communication.send'})
+ await assertEdielTenantActor({companyId:message.company_id,actorUserId,permissionAnyOf:['ediel.send','communication.send']})
  const {data:basis,error}=await supabaseService.rpc('ediel_prodat_recovery_original_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
  if(error)throw error
  if(basis===null)return loadOriginalServiceReportingContext(message,actorUserId)
