@@ -31,6 +31,7 @@ import { tenantDb } from '@/lib/supabase/tenantDb'
 import { buildServicePermissionDraft } from '@/lib/ediel/intent/renderers/servicePermission'
 import { reserveServicePermissionOrigin, type ServicePermissionOriginBasis, type ServicePermissionOriginInput } from '@/lib/ediel/services/permissionOrigin'
 import { getEdielMessageById } from '@/lib/ediel/db'
+import { buildServiceReportingContext } from '@/lib/ediel/services/reporting'
 
 export type RenderGatewayResult =
   | {
@@ -62,6 +63,7 @@ export async function renderAndQueueServicePermission(params: {
       const draft = await buildServicePermissionDraft({ actorUserId: params.origin.actorUserId, basis: params.basis, intent: gate.intent, routeContext: params.routeContext, outboundRequestId: params.outboundRequestId })
       try {
         message = await finalizeOutboundDraft({ actorUserId: params.origin.actorUserId, requestType: 'metering_access', routeContext: params.routeContext, draft, outboundRequestId: params.outboundRequestId,
+          reportingContext: params.basis.code === 'Z13' ? buildServiceReportingContext(params.basis,gate.intent,params.routeContext,params.origin.actorUserId) : undefined,
           duplicateCheck: { sourceType: 'manual', sourceId: params.intentId, receiverEdielId: params.routeContext.receiverEdielId, messageFamily: 'PRODAT', messageCode: params.origin.code, messageVersion: draft.messageVersion } })
       } catch (error) {
         // A concurrent canonical insert is atomically bound by the database.

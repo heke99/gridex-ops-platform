@@ -20,6 +20,7 @@ import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { supabaseService } from '@/lib/supabase/service'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
+import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionTypes'
 
 type ActiveReleaseFamily =
   | 'PRODAT'
@@ -222,6 +223,7 @@ export async function finalizeOutboundDraft(params: {
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null
+  reportingContext?: ExpectedContext
   duplicateCheck: {
     sourceType?: string | null
     sourceId?: string | null
@@ -237,14 +239,16 @@ export async function finalizeOutboundDraft(params: {
 
   assertActiveFamily(messageFamily, 'finalizeOutboundDraft')
 
-  return finalizeCanonicalOutboundDraft({
+  const canonical = {
     actorUserId: params.actorUserId,
     requestType: params.requestType,
     routeContext: params.routeContext,
     draft: params.draft,
     outboundRequestId: params.outboundRequestId ?? null,
     duplicateCheck: params.duplicateCheck,
-  })
+    reportingContext: params.reportingContext,
+  }
+  return finalizeCanonicalOutboundDraft(canonical)
 }
 
 export async function queuePreparedEdielMessage(params: {
