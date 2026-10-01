@@ -55,6 +55,23 @@ await db.exec(snapshot)
 const sourceRow=readFileSync(new URL('../supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql',import.meta.url),'utf8').match(/CREATE FUNCTION gridex_ai_processing\.source_row_basis_v1[\s\S]*?END \$\$;/)[0]
 await db.exec(sourceRow)
 await db.exec(readFileSync(new URL('../supabase/migrations/20261001001231_ediel_protected_dated_brp_source.sql',import.meta.url),'utf8'))
+// Compose the actual full own-application comparator and receipt reader. The
+// committed admission/source-witness facade below is a declared synthetic port,
+// not a claim to have authenticated an original or replayed native admission.
+const applicationSource=readFileSync(new URL('../supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql',import.meta.url),'utf8')
+await db.exec(`CREATE TABLE gridex_received_sources.prodat_application_facets(assessment_id uuid,company_id uuid,environment text,source_message_id uuid,source_payload_hash text,application_facts_text text);
+CREATE FUNCTION gridex_received_sources.require_prodat_application_objects_v1(c uuid,s uuid) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE a gridex_received_sources.validation_assessments%rowtype;f gridex_received_sources.prodat_application_facets%rowtype;raw text;BEGIN
+ SELECT * INTO a FROM gridex_received_sources.validation_assessments WHERE company_id=c AND source_message_id=s AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=validation_assessments.id);
+ SELECT * INTO f FROM gridex_received_sources.prodat_application_facets WHERE assessment_id=a.id AND company_id=c AND source_message_id=s AND source_payload_hash=a.source_payload_hash;
+ SELECT raw_payload INTO raw FROM gridex_received_sources.sources WHERE source_message_id=s AND company_id=c;
+ IF NOT coalesce(gridex_received_sources.validate_prodat_application_v1(raw,a.facts_text::jsonb,f.application_facts_text::jsonb,NULL),false) THEN RAISE EXCEPTION 'synthetic_application_port_unqualified';END IF;
+ RETURN f.application_facts_text::jsonb||jsonb_build_object('assessmentId',a.id);END$$;
+CREATE TABLE gridex_received_sources.structural_object_apply_receipts(source_message_id uuid,company_id uuid,environment text,payload_hash text,canonical_assessment_id uuid,object_assessment_id uuid,applied_at timestamptz,effect jsonb);`)
+await db.exec(applicationSource.match(/CREATE FUNCTION gridex_received_sources\.validate_prodat_application_v1[\s\S]*?END \$\$;/)[0])
+await db.exec(applicationSource.match(/CREATE FUNCTION gridex_received_sources\.prodat_application_object_accepted_v1[\s\S]*?END \$\$;/)[0])
+const effectSource=readFileSync(new URL('../supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql',import.meta.url),'utf8')
+await db.exec(effectSource.match(/CREATE OR REPLACE FUNCTION gridex_received_sources\.structural_effect_matches_v1[\s\S]*?\$\$;/)[0])
+await db.exec(readFileSync(new URL('../supabase/migrations/20261001013409_ediel_brp_own_application_effect_scope.sql',import.meta.url),'utf8'))
 await db.exec(`INSERT INTO companies VALUES('${id(1)}'),('${id(2)}');INSERT INTO auth.users VALUES('${id(20)}');INSERT INTO user_profiles VALUES('${id(20)}','active');INSERT INTO company_memberships VALUES('${id(1)}','${id(20)}','active',true,now());INSERT INTO customers VALUES('${id(3)}','${id(1)}');INSERT INTO customer_supply_periods VALUES('${id(4)}','${id(1)}');INSERT INTO customer_sites VALUES('${id(31)}','${id(1)}','${id(3)}');INSERT INTO metering_points VALUES('${id(5)}','${id(1)}','${id(3)}','735123456789012345','54321','TES','${id(31)}',NULL,NULL);
 INSERT INTO customer_contracts VALUES('${id(30)}','${id(1)}','${id(3)}','${id(5)}','signed',now(),'SYNTHETIC-REVISION',encode(sha256(convert_to('SYNTHETIC AGREEMENT','UTF8')),'hex'),'${id(31)}',NULL);
 INSERT INTO platform_market_actors VALUES('${id(7)}','active','verified'),('${id(8)}','active','verified');INSERT INTO platform_actor_roles(actor_id,actor_role,is_active) VALUES('${id(7)}','grid_owner',true),('${id(8)}','balance_responsible',true);INSERT INTO platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified,valid_from) VALUES('${id(7)}','EdielId','54321',true,'2000-01-01'),('${id(8)}','EdielId','11111',true,'2000-01-01');
@@ -87,22 +104,46 @@ async function received(n,code,brp,effective,fn='9',replaces=null,{customerOnly=
  const ignored=JSON.stringify(ignored262?[{fieldNumber:'262',occurrence:{messageReference:'SOURCE',objectId:object.objectId,identityAgency:object.identityAgency,lineIndex:0}}]:[])
  await db.query("INSERT INTO gridex_received_sources.prodat_ignored_field_facets VALUES($1,$2,$3,'test',$4,$5,$6)",[canonical,id(1),id(n),payloadHash,await hash(ignored),ignored])
  if(code!=='Z04'&&!customerOnly&&applied)await db.query("INSERT INTO gridex_received_sources.structural_apply_receipts VALUES($1,$2,'test',$3,$4,$5,$6,now(),now())",[id(n),id(1),payloadHash,assessment,canonical,JSON.stringify([{object,meteringPointId:id(5),siteId:id(31),wire:business.wire}])])
- return{sourceMessageId:id(n),assessmentId:assessment,payloadHash}
+ return{sourceMessageId:id(n),assessmentId:assessment,canonicalId:canonical,payloadHash,object,business}
 }
 await received(50,'Z04','11111','202610010000')
 const supply={qualified:true,periodId:id(4),customerId:id(3),siteId:id(31),meteringPointId:id(5),initialSourceMessageId:id(50),sourceMessageId:id(50),legalActorId:id(9),marketStartAt:'2026-09-30T23:00:00Z',marketEndAt:null,dsoEdielId:'54321',sourceObjects:[{point:'735123456789012345',identityAgency:'9',gridArea:'TES'}]}
 await db.query('INSERT INTO gridex_received_sources.supply_fixture VALUES($1)',[supply])
 assert.equal((await read(id(4))).rows[0].result.sourceKind,'accepted_supply_brp')
 assert.equal((await read(id(4))).rows[0].result.sourceMessageId,id(50))
-const next=await received(60,'Z06','22222','202610020000')
+const next=await received(60,'Z06','22222','202610020000','9',null,{applied:false})
+// A bad sibling can reject the message guide layer while this exact object is
+// accepted by the SAME full owner. A register or ACK result never supplies it.
+const ownApplication={version:1,owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',headerDecision:'accepted',sourcePayloadHash:next.payloadHash,
+ objects:[{...next.object,applicationDecision:'accepted',reasonCodes:[]}]}
+const ownFacts={syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'accepted',rulePackEvidence:{syntheticUnqualified:true},registerValidation:{owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',objects:[{...next.object,disposition:'accepted',reasons:[]}]}}
+await db.query('UPDATE gridex_received_sources.validation_assessments SET facts_text=$1 WHERE id=$2',[JSON.stringify(ownFacts),next.canonicalId])
+await db.query("INSERT INTO gridex_received_sources.prodat_application_facets VALUES($1,$2,'test',$3,$4,$5)",[next.canonicalId,id(1),next.sourceMessageId,next.payloadHash,JSON.stringify(ownApplication)])
 assert.equal((await read(id(4))).rows[0].result.status,'held') // does not choose latest native raw
 const snap=(await db.query("SELECT gridex_received_sources.open_object_selection_snapshot($1,'test',clock_timestamp()) s",[id(1)])).rows[0].s
 const qualify=async(n,receipt=snap)=>(await db.query("SELECT public.ediel_qualify_brp_source_candidate_v1($1,$2,$3,'test',$4,$5,$6,'2026-11-01T11:34:00Z',$7,$8,$9,$10) result",[id(1),id(30),id(20),id(3),id(31),id(5),id(4),receipt.snapshotId,receipt.readsetHash,id(n)])).rows[0].result
 assert.equal((await qualify(50)).status,'held')
-assert.equal((await qualify(60)).brpEdielId,'22222')
+assert.equal((await qualify(60)).status,'held') // own application alone cannot become current state
+await db.query("INSERT INTO gridex_received_sources.structural_object_apply_receipts VALUES($1,$2,'test',$3,$4,$5,now(),$6)",[next.sourceMessageId,id(1),next.payloadHash,next.canonicalId,next.assessmentId,{object:next.object,meteringPointId:id(5),siteId:id(31),wire:next.business.wire}])
+const ownSnap=(await db.query("SELECT gridex_received_sources.open_object_selection_snapshot($1,'test',clock_timestamp()) s",[id(1)])).rows[0].s
+assert.equal((await qualify(60,ownSnap)).brpEdielId,'22222')
+await db.query("UPDATE gridex_received_sources.prodat_application_facets SET application_facts_text=$1 WHERE assessment_id=$2",[JSON.stringify({...ownApplication,headerDecision:'held',objects:[{...next.object,applicationDecision:'held',reasonCodes:['header_unqualified']}] }),next.canonicalId])
+assert.equal((await qualify(60,ownSnap)).status,'held')
+await db.query("UPDATE gridex_received_sources.prodat_application_facets SET application_facts_text=$1 WHERE assessment_id=$2",[JSON.stringify(ownApplication),next.canonicalId])
+assert.equal((await qualify(60,ownSnap)).brpEdielId,'22222')
+await db.query("UPDATE gridex_received_sources.prodat_application_facets SET application_facts_text=$1 WHERE assessment_id=$2",[JSON.stringify({...ownApplication,objects:[{...next.object,applicationDecision:'rejected',reasonCodes:['own_field_missing']}] }),next.canonicalId])
+assert.equal((await qualify(60,ownSnap)).status,'held') // accepted register alone is insufficient
+await db.query("DELETE FROM gridex_received_sources.prodat_application_facets WHERE assessment_id=$1",[next.canonicalId])
+assert.equal((await qualify(60,ownSnap)).status,'held') // a real effect does not fabricate a missing own application facet
+await db.query("INSERT INTO gridex_received_sources.prodat_application_facets VALUES($1,$2,'test',$3,$4,$5)",[next.canonicalId,id(1),next.sourceMessageId,next.payloadHash,JSON.stringify(ownApplication)])
+await db.query("INSERT INTO gridex_received_sources.validation_assessments VALUES($1,NULL,$2,'test',$3,$4,$5)",[id(999),id(1),next.sourceMessageId,next.payloadHash,JSON.stringify(ownFacts)])
+assert.equal((await qualify(60,ownSnap)).status,'held') // no choice among competing latest canonical facets
+await db.query('DELETE FROM gridex_received_sources.validation_assessments WHERE id=$1',[id(999)])
+assert.equal((await qualify(60,ownSnap)).brpEdielId,'22222')
 assert.equal((await read(id(4))).rows[0].result.sourceMessageId,id(60))
 const receiptRead=async(snapshot,n)=>(await db.query("SELECT public.ediel_read_structural_effect_scope_v1($1,'test',$2,$3,$4,$5,$6,$7,$8,'2026-11-01T11:34:00Z',$9,$10,'735123456789012345','9') r",[id(1),id(20),snapshot.snapshotId,snapshot.readsetHash,id(3),id(31),id(5),id(4),id(n),id(n+1)])).rows[0].r
-assert.equal((await receiptRead(snap,60)).applied,true)
+assert.equal((await receiptRead(snap,60)).applied,false) // receipt was not available at old snapshot cutoff
+assert.equal((await receiptRead(ownSnap,60)).applied,true)
 await assert.rejects(()=>receiptRead({...snap,readsetHash:'f'.repeat(64)},60),/structural_effect_protected_snapshot_required/)
 await received(70,'Z06','11111','202610030000','9',null,{ignored262:true});assert.equal((await read(id(4))).rows[0].result.brpEdielId,'22222') // same P119 facet retains field lineage
 await received(80,'Z06','11111','202610040000','9',null,{customerOnly:true});assert.equal((await read(id(4))).rows[0].result.sourceMessageId,id(60)) // customer-only does not change structure
