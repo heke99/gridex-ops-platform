@@ -34,15 +34,17 @@ for(const [n,alphabet] of alphabets.entries())describe(`source-owned errors alph
  const msg=source(raw(body,'Z01',alphabet)),decision=await resolveCanonicalRuntimeDecisionWithRegistry(msg)
  const applicationErrors=decision.responsePlan.find(plan=>plan.family==='APERAK')!.applicationErrors!
  expect(applicationErrors,JSON.stringify(applicationErrors)).toMatchObject([{ercCode:'41',fieldCode:'210',lineItemReference:'CASE:A+B?C'}])
- const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors})
- expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C');expect(draft.validationReport?.applicationErrors).toMatchObject([{lineItemReference:'CASE:A+B?C'}])
+ // Own Z07 and LI share one ERC; D.96A SG4 is C1 while the national guide
+ // requires both (P16B_APERAK96A_OWN_Z07_LI_CARDINALITY, external clarification).
+ // The decoded LI is retained in the plan; the wire is held fail-closed.
+ expect(()=>buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
  })
 })
 it('keeps receiver-local readings U as diagnostics with prescribed positive Z10 ACK',async()=>{
  const msg=source(raw(z10(),'Z10'),'Z10'),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg)
  expect(d.syntaxDecision).toBe('accepted');expect(d.applicationDecision).toBe('accepted');expect(d.functionalDecision).toBe('accepted')
  expect(d.issues.map(x=>x.code)).toEqual(Array(3).fill('PRODAT_DEPENDENT_CONDITION_UNDETERMINED'));expect(d.issues.every(x=>x.severity==='warning')).toBe(true)
- const p=d.responsePlan.find(x=>x.family==='APERAK')!;expect(p.outcome).toBe('positive');expect(buildAperakDraft({sourceMessage:msg,outcome:'positive',applicationErrors:p.applicationErrors}).rawPayload).toContain('ERC+100::260')
+ const p=d.responsePlan.find(x=>x.family==='APERAK')!;expect(p.outcome).toBe('positive');expect(()=>buildAperakDraft({sourceMessage:msg,outcome:'positive',applicationErrors:p.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID') // P16B Z07+LI conflict, held
 })
 it('retains the concrete missing LI negative when readings knowledge is unknown',async()=>{
  const msg=source(raw(z10(false),'Z10'),'Z10'),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(x=>x.family==='APERAK')!

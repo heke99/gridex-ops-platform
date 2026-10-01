@@ -76,6 +76,15 @@
       "error": "23502 canonical_ediel_company_required",
       "rootCause": "gridex_validate_ediel_message_contract requires company_id on every canonical-family message, while these fixtures insert an unattributed technical inbound source (company_id NULL). Product code (ackDraftSource/kernel) still models null-company technical sources; the schema and the TS model disagree. Needs an owner decision whether null-company technical sources remain supported. A company-attributed source with the same unlisted wire instead fails canonical_inbound_rule_profile_resolution_failed, so the technical-only path cannot be exercised natively until this is decided. The 142520 gates are therefore verified by unit tests and applied-migration review only.",
       "status": "REMAINING_DECISION"
+    },
+    {
+      "id": "UNIT-OPEN-02",
+      "tests": "PRODAT unit cluster (prior-flow, field-identity, permission-ack, aperak-text, remaining-d, energy-product \u2026)",
+      "rootCauses": [
+        "P16B_APERAK96A_OWN_Z07_LI_CARDINALITY: own APERAK with both RFF+Z07 and RFF+LI in one ERC violates D.96A SG4 C1; product holds the wire fail-closed (lib/ediel/core/unsmSourceConflicts.ts, EXTERNAL_NORMATIVE_CLARIFICATION_REQUIRED). Tests expecting a rendered draft are updated to the held outcome where the conflict is exact.",
+        "Composed inbound syntax applies full UNSM directory grammar; fixtures that inject out-of-place segments or over-length codes (e.g. CAV 'INVALID') now stop as syntax rejections before application, so expected application ERC41/42 never occurs. Fixtures must use grammar-valid placement/lengths to exercise application rules."
+      ],
+      "status": "REMAINING_FIXTURE_WORK_AND_EXTERNAL_CLARIFICATION"
     }
   ],
   "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
