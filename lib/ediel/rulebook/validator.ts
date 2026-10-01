@@ -1,4 +1,5 @@
 import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import {commonHeaderOriginalSource,prodatCommonHeaderRejectionQualification,readPersistedProdatCommonHeaderNegativeAckBasis,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
 import {readSourceBoundAckRulePackEvidence,readPersistedOutboundAckRulePackEvidence,sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
@@ -55,6 +56,8 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   ackSourceQualification?:SourceQualifiedOutboundAck
   /** Protected syntax-only endpoint authority; never a business rule pack. */
   technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence
+  /** Source-only common-header national rejection, never a code profile. */
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
   /** Explicit pure receiver knowledge, never incoming parsed metadata. */
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
@@ -67,7 +70,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   parsedPayload?: Record<string, unknown> | null
 }
 
-export type RulebookValidationResult = Omit<LegacyRulebookValidationResult,'fieldRuleSource'> & { canonicalPolicy?: CanonicalEdielPolicy; fieldRuleSource:'static'|'registry'|'technical_source';technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence }
+export type RulebookValidationResult = Omit<LegacyRulebookValidationResult,'fieldRuleSource'> & { canonicalPolicy?: CanonicalEdielPolicy; fieldRuleSource:'static'|'registry'|'technical_source'|'common_header_source';technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence;prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence }
 
 type ActiveCanonicalFamily = 'PRODAT' | 'UTILTS' | 'UTILTS_ERR' | 'APERAK' | 'CONTRL'
 type BusinessRulePackFamily = 'PRODAT' | 'UTILTS'
@@ -470,6 +473,28 @@ function qualifyTechnicalContrl(input:RulebookValidationInput,result:RulebookVal
   return {...result,ok:!blocking,blocking,issues,fieldRuleSource:'technical_source',rulePackSnapshot:null,technicalSyntaxAckEvidence:evidence}
 }
 
+function qualifyCommonHeaderNegativeAck(input:RulebookValidationInput,result:RulebookValidationResult):RulebookValidationResult {
+  const evidence=input.environment==='test'||input.environment==='production'?prodatCommonHeaderRejectionQualification({evidence:input.prodatCommonHeaderRejectionEvidence,companyId:input.companyId??'',environment:input.environment}):null
+  const unavailable=()=>({...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_COMMON_HEADER_SOURCE_REQUIRED',title:'Skyddat nationellt meddelandehuvud saknas',description:'En fält202-kvittens kräver den prospektivt frysta originalauktoriteten och faktiskt fastställd syntax.'})]})
+  if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='APERAK'||!input.rawPayload||!result.parsed)return unavailable()
+  const source=commonHeaderOriginalSource(evidence)
+  if(!source?.raw_payload)return unavailable()
+  const template=resolveCanonicalEdielPolicy({family:'APERAK',messageCode:'APERAK',direction:'outbound',referenceDate:stockholmBusinessDate(new Date(evidence.sourceReceivedAt)),associationAssignedCode:evidence.guide.associationAssignedCode,applicationReference:evidence.identities.applicationReference,mode:'parse'})
+  const policy=Object.freeze({...template,guide:evidence.guide})
+  const expectedGuide={...template.guide,family:'PRODAT'}
+  if(JSON.stringify(Object.keys(expectedGuide).sort())!==JSON.stringify(Object.keys(evidence.guide).sort())||Object.entries(expectedGuide).some(([key,value])=>JSON.stringify(value)!==JSON.stringify(evidence.guide[key as keyof typeof evidence.guide])))return unavailable()
+  const wire=tokenizeEdifact(input.rawPayload),errors=wire.segments.filter(t=>t.tag==='ERC'),texts=wire.segments.filter(t=>t.tag==='FTX'),bgms=wire.segments.filter(t=>t.tag==='BGM')
+  const exact=errors.length===1&&texts.length===1&&bgms.length===1&&segmentComposite(bgms[0],3,wire.una)[0]==='27'
+    &&JSON.stringify(segmentComposite(errors[0],1,wire.una))===JSON.stringify([evidence.field202.ercCode,'','260'])
+    &&JSON.stringify(segmentComposite(texts[0],3,wire.una))===JSON.stringify(['202','','260'])
+    &&JSON.stringify(segmentComposite(texts[0],4,wire.una))===JSON.stringify([evidence.field202.text])
+  const syntax=validateEdifactEnvelope(input.rawPayload).issues.map(entry=>issue({severity:entry.severity,code:entry.code,title:'EDIFACT-kuvert',description:entry.message}))
+  const guide=validateCanonicalAckGuide({policy,rawSegments:result.parsed.rawSegments,una:result.parsed.una,sourceRawPayload:source.raw_payload})
+  const issues=[...result.issues,...syntax,...guide,...(exact?[]:[issue({severity:'error',code:'CANONICAL_COMMON_HEADER_NEGATIVE_SCOPE_INVALID',title:'Nationellt fält202-utfall avviker',description:'Den enda ERC/FTX-gruppen måste återge originalets fastställda header202-fel i en helt avvisande APERAK.'})])]
+  const blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+  return {...result,ok:!blocking,blocking,issues,canonicalPolicy:policy,fieldRuleSource:'common_header_source',rulePackSnapshot:null,prodatCommonHeaderRejectionEvidence:evidence}
+}
+
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
   input = captureAdmission(input)
   const freeText = input.mode === 'send' && input.direction !== 'inbound' ? prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }) : []
@@ -485,7 +510,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
   const family = normalize(input.family ?? parsed?.family)
   if (!isActiveCanonicalFamily(family)) return protect(validateLegacyRulebookMessage(input))
   const result=canonicalValidation({ ...input, parsed })
-  return protect(input.technicalSyntaxAckEvidence ? qualifyTechnicalContrl(input,result) : result)
+  return protect(input.prodatCommonHeaderRejectionEvidence?qualifyCommonHeaderNegativeAck(input,result):input.technicalSyntaxAckEvidence ? qualifyTechnicalContrl(input,result) : result)
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
@@ -504,6 +529,7 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   if (!isActiveCanonicalFamily(familyValue)) return validateLegacyRulebookMessageWithRegistry(input)
 
   const result = canonicalValidation({ ...input, parsed })
+  if(input.prodatCommonHeaderRejectionEvidence)return qualifyCommonHeaderNegativeAck(input,result)
   if(input.technicalSyntaxAckEvidence)return qualifyTechnicalContrl(input,result)
   if (!parsed || result.blocking) return result
   const dir = direction(input)
@@ -517,6 +543,14 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
     }catch(error){
       return {...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_TECHNICAL_ACK_SOURCE_REQUIRED',title:'Skyddat tekniskt ursprung saknas',description:error instanceof Error?error.message:String(error)})]}
     }
+  }
+
+  if(familyValue==='APERAK'&&input.mode==='send'&&input.messageRow?.execution_context_snapshot?.prodatCommonHeaderNegativeWitnessId){
+    try{
+      if(!input.companyId||(input.environment!=='test'&&input.environment!=='production')||!input.rawPayload)throw Error('ediel_common_header_negative_witness_required')
+      const {evidence}=await readPersistedProdatCommonHeaderNegativeAckBasis({companyId:input.companyId,environment:input.environment,ackMessageId:input.messageRow.id,expectedRawPayload:input.rawPayload})
+      return qualifyCommonHeaderNegativeAck({...input,prodatCommonHeaderRejectionEvidence:evidence},result)
+    }catch(error){return {...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_COMMON_HEADER_SOURCE_REQUIRED',title:'Skyddat nationellt meddelandehuvud saknas',description:error instanceof Error?error.message:String(error)})]}}
   }
 
   if (isSourceBoundAckFamily(familyValue)) {
