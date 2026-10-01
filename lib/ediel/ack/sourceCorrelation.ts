@@ -87,7 +87,9 @@ function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrela
   if (correlation.classification.family === 'CONTRL') {
     if (sourceType === 'CONTRL') return false
     const uci = first(ack, 'UCI')
-    return component(ack, uci, 1) === source.interchangeReference
+    // T §16 projects the first 14 logical characters into UCI. All matching
+    // sealed originals remain candidates: a shared prefix is ambiguous.
+    return component(ack, uci, 1) === source.interchangeReference?.slice(0,14)
       && exact(parts(ack, uci, 2), parts(source, sourceUnb, 2)) && exact(parts(ack, uci, 3), parts(source, sourceUnb, 3))
       && values(ack, 'UCM', 1).every(reference => reference === component(source, first(source, 'UNH'), 1))
   }

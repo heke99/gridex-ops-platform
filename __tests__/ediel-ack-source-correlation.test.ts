@@ -59,4 +59,13 @@ describe('ACK-06 / TEN-13 physical original qualification',()=>{
   it('extracts only physical original lookup values, not own DM or own interchange',()=>{
     expect(readInboundAckSourceCorrelation(ack()).lookupReferences).toEqual([{type:'BGM_REF',value:'SOURCE-D'},{type:'IDE',value:'Own+A:Q'}])
   })
+  it('qualifies source-prescribed first14 UCI and refuses same-prefix originals before company restriction',()=>{
+    const reference='12345678901234LONG-A',original=source();original.raw_payload=original.raw_payload!.replaceAll('SOURCE-I',reference)
+    const message=ack();message.message_family='CONTRL';message.raw_payload=wire('CONTRL:2:2:UN',['UCI+12345678901234+A:ZZ:S+B:ZZ:R+1'],true)
+    expect(qualifyInboundAckSourceCandidates({ackMessage:message,candidates:[original]}).status).toBe('unique')
+    const sibling={...original,id:'collision',company_id:'tenant-b',raw_payload:original.raw_payload!.replaceAll(reference,'12345678901234LONG-B')}
+    expect(qualifyInboundAckSourceCandidates({ackMessage:message,candidates:[original,sibling],expectedCompanyId:'tenant-a'}).status).toBe('ambiguous')
+    message.raw_payload=message.raw_payload!.replace('UCI+12345678901234','UCI+1234567890123X')
+    expect(qualifyInboundAckSourceCandidates({ackMessage:message,candidates:[original]}).status).toBe('unresolved')
+  })
 })

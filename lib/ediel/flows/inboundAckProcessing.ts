@@ -1,6 +1,7 @@
 // lib/ediel/flows/inboundAckProcessing.ts
 
 import { qualifyInboundAckSourceCandidates, readInboundAckSourceCorrelation } from '@/lib/ediel/ack/sourceCorrelation';
+import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
 import { supabaseService } from "@/lib/supabase/service";
 import type {
   EdielMessageFamily,
@@ -43,9 +44,10 @@ type AckProcessResult = {
   ackMessage: EdielMessageRow;
   sourceMessage: EdielMessageRow | null;
   outcome: InboundAckOutcome;
-  finalAckReached: boolean;
-  wholeSourceRejected: boolean;
-  sourceAccepted: boolean;
+  finalAckReached: boolean | null;
+  wholeSourceRejected: boolean | null;
+  sourceAccepted: boolean | null;
+  summaryUnavailable?: true;
   outboundRequestId: string | null;
   switchRequestId: string | null;
   gridOwnerDataRequestId: string | null;
@@ -180,32 +182,14 @@ async function syncActorTestingAckSafely(params: {
   }
 }
 
-async function findSourceMessageForInboundAck(message: EdielMessageRow): Promise<EdielMessageRow | null> {
-  const references = readInboundAckSourceCorrelation(message).lookupReferences;
-  const values = uniqueStrings(references.map(reference => reference.value));
-  const candidates = new Map<string, EdielMessageRow>();
-  const candidateIds = uniqueStrings([message.related_message_id, message.original_message_id]).filter(isUuidLike);
-  const indexed = await supabaseService.from('ediel_business_references')
-    .select('source_message_id').in('reference_value', values).limit(1001);
-  if (indexed.error) throw indexed.error;
-  if ((indexed.data ?? []).length > 1000) throw new Error('ack_reference_candidates_incomplete');
-  for (const row of indexed.data ?? []) if (isUuidLike(row.source_message_id)) candidateIds.push(row.source_message_id);
-  if (candidateIds.length) {
-    const rows = await supabaseService.from('ediel_messages').select('*').in('id', uniqueStrings(candidateIds)).eq('direction', 'outbound').limit(1001);
-    if (rows.error) throw rows.error;
-    if ((rows.data ?? []).length > 1000) throw new Error('ack_reference_candidates_incomplete');
-    for (const row of rows.data ?? []) candidates.set(row.id, row as EdielMessageRow);
-  }
-  // Legacy column matches discover candidates only. Raw qualification and the
-  // atomic RPC independently prove identity/uniqueness across all actual sends.
-  for (const column of ['external_reference', 'transaction_reference', 'correlation_reference', 'interchange_reference', 'bgm_reference'] as const) {
-    const rows = await supabaseService.from('ediel_messages').select('*').eq('direction', 'outbound').in(column, values).limit(1001);
-    if (rows.error) throw rows.error;
-    if ((rows.data ?? []).length > 1000) throw new Error('ack_reference_candidates_incomplete');
-    for (const row of rows.data ?? []) candidates.set(row.id, row as EdielMessageRow);
-  }
-  const qualified = qualifyInboundAckSourceCandidates({ackMessage: message, candidates: [...candidates.values()], expectedCompanyId: message.company_id});
-  return qualified.status === 'unique' ? qualified.sourceMessage : null;
+async function findSourceMessageForInboundAck(message:EdielMessageRow):Promise<EdielMessageRow|null> {
+ const {data,error}=await supabaseService.rpc('gridex_read_inbound_ack_source_v1',{p_company_id:message.company_id,p_environment:message.environment,p_ack_message_id:message.id});
+ if(error) throw error;
+ if(data===null) return null;
+ const source=data?.sourceMessage as EdielMessageRow|undefined;
+ if(data?.version!==1 || !source || !isUuidLike(source.id)) throw new Error('ack_original_source_read_invalid');
+ const qualified=qualifyInboundAckSourceCandidates({ackMessage:message,candidates:[source],expectedCompanyId:message.company_id});
+ return qualified.status==='unique' ? qualified.sourceMessage : null;
 }
 
 async function patchSourceMessageFromAck(params: {actorUserId: string; sourceMessage: EdielMessageRow; ackMessage: EdielMessageRow; outcome: InboundAckOutcome}) {
@@ -569,6 +553,14 @@ export async function processInboundAckMessage(params: {
 
   if (!isInboundAckFamily(ackMessage.message_family)) {
     throw new Error(`Meddelande ${ackMessage.id} är inte inbound ack-family.`);
+  }
+
+  const committed=await readCommittedInboundAck({actorUserId,message:ackMessage});
+  if(committed) {
+    if(committed.kind==='legacy_diagnostic') return {ackMessage,sourceMessage:null,outcome:committed.outcome,finalAckReached:null,wholeSourceRejected:null,sourceAccepted:null,summaryUnavailable:true,outboundRequestId:null,switchRequestId:null,gridOwnerDataRequestId:null};
+    const receipt=committed.result,source=receipt.sourceMessage;
+    return {ackMessage,sourceMessage:source,outcome:receipt.outcome,finalAckReached:receipt.finalAckReached,wholeSourceRejected:receipt.wholeSourceRejected,sourceAccepted:receipt.sourceAccepted,
+      outboundRequestId:source.outbound_request_id,switchRequestId:source.switch_request_id,gridOwnerDataRequestId:source.grid_owner_data_request_id};
   }
 
   const outcome = inferInboundAckOutcome(ackMessage);
