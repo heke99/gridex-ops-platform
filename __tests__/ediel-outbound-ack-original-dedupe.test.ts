@@ -2,13 +2,14 @@ import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {source as sourceRow} from './fixtures/prodat-identity'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
 import {findExistingAckForSource} from '@/lib/ediel/core/ackPolicy'
 const source='11111111-1111-4111-8111-111111111111',company='22222222-2222-4222-8222-222222222222'
 function original(positive=true,reference='OWN',status='failed'){
  const raw=EdifactEnvelopeCodec.encode({sender:'B',receiver:'A',environment:'test',acknowledgementRequest:false,applicationReference:'23-DDQ-E66-T',interchangeReference:'ACK-I',messages:[{messageReference:'ACK-M',messageTypeToken:'APERAK:D:04A:UN:E5SE5A',businessSegments:[`BGM+${positive?'312':'313'}+ACK-D+9`,'DOC+E66:SVK:260+SOURCE-D','NAD+MS+B:SVK:260','NAD+MR+A:SVK:260',`ERC+${positive?'100':'42'}::260`,`RFF+ACW:${reference}`]}]})
- return {status:'qualified',message:{id:'ack',company_id:company,environment:'test',direction:'outbound',message_family:'APERAK',related_message_id:source,status,raw_payload:raw,ack_outcome:positive?'negative':'positive',parsed_payload:{ackOutcome:positive?'negative':'positive'}} as EdielMessageRow,payloadHash:createHash('sha256').update(raw).digest('hex')}
+ return {status:'qualified',message:{...sourceRow(raw),id:'ack',company_id:company,environment:'test',direction:'outbound',message_family:'APERAK',related_message_id:source,status,raw_payload:raw,ack_outcome:positive?'negative':'positive',parsed_payload:{ackOutcome:positive?'negative':'positive'}} as EdielMessageRow,payloadHash:createHash('sha256').update(raw).digest('hex')}
 }
 function response(originals:unknown[]){return {data:{version:1,sourceMessageId:source,sourcePayloadHash:'a'.repeat(64),companyId:company,environment:'test',originals},error:null}}
 beforeEach(()=>vi.clearAllMocks())

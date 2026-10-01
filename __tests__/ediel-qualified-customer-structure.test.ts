@@ -25,7 +25,7 @@ describe('actual owned dated customer structure consumer',()=>{
  it('holds missing original facets and different source resolution across the requested interval',async()=>{
   const baseline=version();delete baseline.measurements;mocks.read.mockResolvedValue(data([baseline]))
   expect(await readQualifiedCustomerStructure(input)).toMatchObject({status:'selected',fields:{measurementMethod:null}})
-  const change=version();change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements!.measurementMethod='Z02'
+  const change=version();change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements={...change.measurements!,measurementMethod:'Z02'}
   mocks.read.mockResolvedValue(data([version(),change]))
   expect(await readQualifiedCustomerStructure({...input,periodStart:'2026-10-03'})).toMatchObject({status:'selected',fields:{measurementMethod:null}})
  })
@@ -36,14 +36,14 @@ describe('actual owned dated customer structure consumer',()=>{
   await expect(readQualifiedCustomerStructure(input)).rejects.toThrow('dated_structure_current_supply_basis_unconfirmed')
  })
  it('requires the actual applied own source receipt, not just an accepted dated proposal',async()=>{
-  const change=version();change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements!.balanceResponsibleId='22222'
+  const change=version();change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements={...change.measurements!,balanceResponsibleId:'22222'}
   mocks.read.mockResolvedValue(data([version(),change]));mocks.rpc.mockImplementation(async name=>({data:name==='ediel_read_structural_effect_scope_v1'?{applied:false}:{qualified:true,...input,initialSourceMessageId:id(6)},error:null}))
   expect(await readQualifiedCustomerStructure(input)).toEqual({status:'unavailable',reason:'dated_structure_applied_source_missing'})
   expect(mocks.rpc).toHaveBeenCalledWith('ediel_read_structural_effect_scope_v1',expect.objectContaining({p_snapshot_id:id(11),p_readset_hash:'c'.repeat(64),p_source_message_id:id(12),p_assessment_id:id(13),p_object_id:change.wire.object.objectId,p_identity_agency:'9',p_company_id:input.companyId,p_customer_id:input.customerId,p_period_id:id(8)}))
  })
  it('preserves the separate field source when a later own structural change leaves BRP unchanged',async()=>{
-  const baseline=version();baseline.measurements!.balanceResponsibleId='11111'
-  const change=structuredClone(baseline);change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements!.balanceResponsibleId=null
+  const baseline=version();baseline.measurements={...baseline.measurements!,balanceResponsibleId:'11111'}
+  const change=structuredClone(baseline);change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements={...change.measurements!,balanceResponsibleId:null}
   mocks.read.mockResolvedValue(data([baseline,change]))
   expect(await readQualifiedCustomerStructure(input)).toMatchObject({status:'selected',fields:{balanceResponsibleId:'11111'},selection:{states:[{sourceMessageId:id(12),measurements:{balanceResponsibleId:{sourceMessageId:id(6),value:'11111'}}}]}})
  })

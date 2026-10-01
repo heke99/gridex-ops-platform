@@ -68,7 +68,7 @@ describe('UTILTS APERAK uses original legal actors through direct and envelope c
   }
   it.each([false,true])('reverses physical technical endpoints and independent exact NAD=%s',alternate=>{
     const message={...source(utiltsRaw(alternate)),message_family:'UTILTS',message_code:'E66',application_reference:'23-DDQ-E66-T'} as EdielMessageRow
-    const draft=buildAckDraftForSource({sourceMessage:message,ackFamily:'APERAK',outcome:'positive',utiltsAcknowledgementReference:'OWN'})
+    const draft=buildAckDraftForSource({sourceMessage:message,ackFamily:'APERAK',outcome:'positive',relatedTransactionReference:'OWN'})
     const wire=tokenizeEdifact(draft.rawPayload),unb=wire.segments.find(segment=>segment.tag==='UNB')
     expect(segmentComposite(unb,2,wire.una)).toEqual(['90002','ZZ','ORIGINAL:R']);expect(segmentComposite(unb,3,wire.una)).toEqual(['90001','ZZ','ORIGINAL:S'])
     const parties=wire.segments.filter(segment=>segment.tag==='NAD' && ['MS','MR'].includes(segmentComposite(segment,1,wire.una)[0]))

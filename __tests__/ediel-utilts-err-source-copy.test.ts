@@ -1,3 +1,4 @@
+import {edielDraftWire} from './helpers/edielDraftWire'
 import {describe,expect,it} from 'vitest'
 import {buildUtiltsErrDraft} from '@/lib/ediel/ack'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
@@ -23,18 +24,18 @@ function source(alternate=false) {
 describe('frozen ERR original field copies stay in the same physical transaction',()=>{
  it.each([false,true])('copies all own-present pp66–67 fields with actual source alphabet=%s',alternate=>{
   const message=source(alternate),expected=utiltsErrOriginalCopySegments(message.raw_payload!,'OWN'),draft=buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:'OWN'})
-  const wire=tokenizeEdifact(draft.rawPayload),copy=wire.segments.slice(wire.segments.findIndex(segment=>segment.tag==='IDE')).filter(segment=>UTILTS_ERR_SOURCE_COPY_FIELDS.some(field=>field.tag===segment.tag&&segmentComposite(segment,1,wire.una)[0]===field.qualifier))
+  const wire=tokenizeEdifact(edielDraftWire(draft)),copy=wire.segments.slice(wire.segments.findIndex(segment=>segment.tag==='IDE')).filter(segment=>UTILTS_ERR_SOURCE_COPY_FIELDS.some(field=>field.tag===segment.tag&&segmentComposite(segment,1,wire.una)[0]===field.qualifier))
   expect(copy.map(segment=>utiltsDefaultAlphabetSegment(segment,wire.una))).toEqual(expected)
-  expect(utiltsErrSourceCopyViolations(message.raw_payload!,draft.rawPayload)).toEqual([])
-  expect(draft.rawPayload).not.toMatch(/SEQ\+|QTY\+|DTM\+597:|DTM\+354:/)
+  expect(utiltsErrSourceCopyViolations(message.raw_payload!,edielDraftWire(draft))).toEqual([])
+  expect(edielDraftWire(draft)).not.toMatch(/SEQ\+|QTY\+|DTM\+597:|DTM\+354:/)
   expect(copy.filter(segment=>segment.tag==='LOC').map(segment=>segmentComposite(segment,1,wire.una)[0])).toEqual(['175','239','232','233'])
   expect(copy.filter(segment=>segment.tag==='NAD').map(segment=>segmentComposite(segment,1,wire.una)[0])).toEqual(['DDK','DDQ','BY','SE','EZ'])
  })
  it('holds omissions, modified fields and sibling substitution in the same shared preflight authority',()=>{
   const message=source(),draft=buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:'OWN'})
-  expect(utiltsErrSourceCopyViolations(message.raw_payload!,draft.rawPayload.replace("LOC+232+BBB:SVK:260'",''))).toEqual(['260b'])
-  expect(utiltsErrSourceCopyViolations(message.raw_payload!,draft.rawPayload.replace('NAD+BY+33333','NAD+BY+99999'))).toEqual(['524'])
-  expect(utiltsErrSourceCopyViolations(message.raw_payload!,draft.rawPayload.replace('RFF+TN:OWN','RFF+TN:SIBLING')).length).toBeGreaterThan(0)
+  expect(utiltsErrSourceCopyViolations(message.raw_payload!,edielDraftWire(draft).replace("LOC+232+BBB:SVK:260'",''))).toEqual(['260b'])
+  expect(utiltsErrSourceCopyViolations(message.raw_payload!,edielDraftWire(draft).replace('NAD+BY+33333','NAD+BY+99999'))).toEqual(['524'])
+  expect(utiltsErrSourceCopyViolations(message.raw_payload!,edielDraftWire(draft).replace('RFF+TN:OWN','RFF+TN:SIBLING')).length).toBeGreaterThan(0)
  })
  it('never borrows nested observation fields, another IDE or no-source fields',()=>{
   const message=source(),wire=tokenizeEdifact(message.raw_payload),sequence=wire.segments.find(segment=>segment.tag==='SEQ')!

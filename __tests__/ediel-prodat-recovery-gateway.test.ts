@@ -15,7 +15,7 @@ beforeEach(()=>{vi.resetAllMocks();io.intent.mockResolvedValue(intent);io.valida
 describe('correction intent/private origin gateway',()=>{
  it('uses the first private chosen request and exact new intent identity in shared finalization',async()=>{
   const routeContext=await resolveCanonicalOutboundContext({companyId:'tenant',environment:'test',requestType:'customer_masterdata'})
-  const result=await finalizeRecoveryDraft({...scope,intent,params:{actorUserId:'actor',requestType:'customer_masterdata',routeContext,outboundRequestId:'racing-request',draft:{companyId:'tenant',direction:'outbound',messageFamily:'PRODAT',messageCode:'Z01',rawPayload:'wire'},duplicateCheck:{messageFamily:'PRODAT',messageCode:'Z01'}}})
+  const result=await finalizeRecoveryDraft({...scope,intent,params:{actorUserId:'actor',requestType:'customer_masterdata',routeContext,outboundRequestId:'racing-request',draft:{actorUserId:'actor',companyId:'tenant',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z01',rawPayload:'wire'},duplicateCheck:{messageFamily:'PRODAT',messageCode:'Z01'}}})
   expect(result.id).toBe('new-message');expect(io.finalize.mock.calls[0][0]).toMatchObject({outboundRequestId:'chosen-request',draft:{intentId:'new-intent',outboundRequestId:'chosen-request'},duplicateCheck:{sourceId:'new-intent'}})
  })
  it('never queues a foreign dedupe/private binding',async()=>{

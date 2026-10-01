@@ -1,3 +1,4 @@
+import {edielDraftWire} from './helpers/edielDraftWire'
 import {describe,expect,it} from 'vitest'
 import {buildUtiltsErrDraft,getUtiltsAckTransactionTargets} from '@/lib/ediel/ack'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
@@ -30,16 +31,16 @@ describe('UTILTS ERR physical original selection and references',()=>{
     expect(getUtiltsAckTransactionTargets(message).map(target=>target.reference)).toEqual(ids)
     for(const id of ids) {
       const draft=buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:id})
-      expect(references(draft.rawPayload)).toEqual([id])
-      expect(tokenizeEdifact(draft.rawPayload).una.dataElementSeparator).toBe('+')
+      expect(references(edielDraftWire(draft))).toEqual([id])
+      expect(tokenizeEdifact(edielDraftWire(draft)).una.dataElementSeparator).toBe('+')
     }
     expect(()=>buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:'ORIGINALA12'})).toThrow(/saknas/)
   })
   it.each([35,70])('does not truncate a physical reference of length %s in a draft',length=>{
     const id='X'.repeat(length),message=source([id])
     const draft=buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:id})
-    expect(references(draft.rawPayload)).toEqual([id])
-    const wire=tokenizeEdifact(draft.rawPayload),ownIde=wire.segments.find(segment=>segment.tag==='IDE')!
+    expect(references(edielDraftWire(draft))).toEqual([id])
+    const wire=tokenizeEdifact(edielDraftWire(draft)),ownIde=wire.segments.find(segment=>segment.tag==='IDE')!
     expect(segmentComposite(ownIde,2,wire.una)[0].length).toBeLessThanOrEqual(35)
     // This observational draft is not original guide acceptance or send proof.
   })
@@ -49,12 +50,12 @@ describe('UTILTS ERR physical original selection and references',()=>{
     message.parsed_payload={documentReference:'CACHED-WRONG',businessReference:'CACHED-WRONG'}
     const sourceWire=tokenizeEdifact(message.raw_payload),original=segmentComposite(sourceWire.segments.find(segment=>segment.tag==='BGM'),2,sourceWire.una)[0]
     expect(original).toContain('SOURCE:DOC+')
-    expect(references(buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:'OWN'}).rawPayload,'E66')).toEqual([original])
+    expect(references(edielDraftWire(buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:'OWN'})),'E66')).toEqual([original])
   })
   it.each([false,true])('preserves trailing original TN data-space with alternate UNA=%s',alternate=>{
     const id='OWN+REF ',message=source([id],alternate)
     expect(getUtiltsAckTransactionTargets(message).map(target=>target.reference)).toEqual([id])
-    expect(references(buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:id}).rawPayload)).toEqual([id])
+    expect(references(edielDraftWire(buildUtiltsErrDraft({sourceMessage:message,messageText:'E51',relatedTransactionReference:id})))).toEqual([id])
   })
   it('does not synthesize targets or choose an unqualified sibling',()=>{
     const message=source(['FIRST','SECOND'])
