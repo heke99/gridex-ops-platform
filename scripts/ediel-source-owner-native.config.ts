@@ -14,7 +14,10 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = status.API_URL
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = status.ANON_KEY
 process.env.SUPABASE_SERVICE_ROLE_KEY = status.SERVICE_ROLE_KEY
 export default defineConfig({
-  resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},
+  // Native owners run server code. Resolve 'server-only' exactly as Next's
+  // server build does (its compiled empty marker); client misuse stays guarded
+  // by the Next build itself.
+  resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')},{find:/^server-only$/,replacement:resolve(__dirname,'../node_modules/next/dist/compiled/server-only/empty.js')}]},
   test:{environment:'node',include:[
     'scripts/ediel-source-owner-native.test.ts',
     'scripts/ediel-closure-wire-native.test.ts',
