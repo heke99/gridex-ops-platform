@@ -1,0 +1,2680 @@
+[
+  {
+    "ids": [
+      "ACK-01"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks.",
+    "blockers": [],
+    "planned_tests": [
+      "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå.",
+      "Lägg inte nationell APERAK-kontroll i CONTRL.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks.",
+    "normative_source": "T §2.1",
+    "exact_requirement": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-02"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.",
+      "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted.",
+    "normative_source": "P §3.3–3.5",
+    "exact_requirement": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": "6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only.",
+    "blockers": [],
+    "planned_tests": [
+      "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id.",
+      "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only.",
+    "normative_source": "U §5.3–5.5",
+    "exact_requirement": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-04"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits.",
+    "blockers": [],
+    "planned_tests": [
+      "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42.",
+      "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits.",
+    "normative_source": "U s.117–119",
+    "exact_requirement": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-05"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": "Actual functional ERR uses wire UTILTS with BGMERR and exact own original BGM/IDE membership; family loops suppressed. Physical-reference fix removes punctuation truncation.",
+    "blockers": [],
+    "planned_tests": [
+      "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak.",
+      "Skapa inte ERR på ERR eller APERAK på APERAK.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual functional ERR uses wire UTILTS with BGMERR and exact own original BGM/IDE membership; family loops suppressed. Physical-reference fix removes punctuation truncation.",
+    "normative_source": "U §3.4,4,5",
+    "exact_requirement": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj.",
+      "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only.",
+    "normative_source": "T §5.5; P §3; U §5",
+    "exact_requirement": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-07"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw.",
+    "blockers": [],
+    "planned_tests": [
+      "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion.",
+      "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw.",
+    "normative_source": "P §3.2; U §5.2; T §2",
+    "exact_requirement": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": "Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception.",
+    "blockers": [],
+    "planned_tests": [
+      "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+      "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception.",
+    "normative_source": "P §3; U §5.2",
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-09"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett.",
+      "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual internal retry reuses stored authority/outcomes while new protocol duplicate may repeat same required ACK; no silent discard used as idempotency shortcut.",
+    "normative_source": "T §2.1; P §3.2; SYS",
+    "exact_requirement": "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-01"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/rulebook/utiltsRulebook.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/canonicalMessageEngine.ts",
+      "lib/ediel/profiles/messageProfileCatalog.ts",
+      "lib/ediel/inboundRequestAutomation.ts"
+    ],
+    "confirmed_code_gap": "Own role/profile selection separates request, object, aggregate and forecast. Fresh actual compatibility consumers incorrectly treat optional E30 area and conditional monetary S01/S05 unit/quantity as universally mandatory; root allocated correction in rulebook/profiles/catalog/request review. Future activation still requires authentic capability evidence.",
+    "blockers": [],
+    "planned_tests": [
+      "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate.",
+      "Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Own role/profile selection separates request, object, aggregate and forecast. Fresh actual compatibility consumers incorrectly treat optional E30 area and conditional monetary S01/S05 unit/quantity as universally mandatory; root allocated correction in rulebook/profiles/catalog/request review. Future activation still requires authentic capability evidence.",
+    "normative_source": "U §3.1; CODE; SYS",
+    "exact_requirement": "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-02"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/canonicalObservationScope.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/rulebook/utiltsRulebook.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": "1fa1ba4f removed first/global IDE fallback. Actual physical canonical transactions preserve every IDE/SEQ/quantity. Remaining confirmed operational profile conditional mismatch is allocated with U01; no missing evidence treated as a code fault.",
+    "blockers": [],
+    "planned_tests": [
+      "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp.",
+      "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "1fa1ba4f removed first/global IDE fallback. Actual physical canonical transactions preserve every IDE/SEQ/quantity. Remaining confirmed operational profile conditional mismatch is allocated with U01; no missing evidence treated as a code fault.",
+    "normative_source": "U §2,3.8–3.9",
+    "exact_requirement": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/core/messagePolicy.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending.",
+    "blockers": [],
+    "planned_tests": [
+      "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion.",
+      "Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending.",
+    "normative_source": "U §5.2 s.107; bilaga1–2",
+    "exact_requirement": "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-04"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+      "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+      "lib/ediel/utilts/consumptionSinks.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Ankomstordning ensam är inte avvisningsskäl. Använd registrerings-/uppdateringstid 512/532 för dataversionen.",
+      "Skapa inte ERR eller retroaktiv fakturaändring enbart för att data anländer sent.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual immutable series persistence uses source registration/update timestamps and correction history; source-order arrival alone is not a national rejection. Late accepted data is stored without replacing newer active version; current broad/native evidence remains pending.",
+    "normative_source": "U §3.6.14,5.2",
+    "exact_requirement": "Ankomstordning ensam är inte avvisningsskäl. Använd registrerings-/uppdateringstid 512/532 för dataversionen.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-05"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts",
+      "lib/ediel/rulebook/utiltsApplicationReference.ts",
+      "lib/ediel/utilts/packagingGuide.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet.",
+      "Påför inte en global E88-fakturaprofil på DGI-trafik.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Shared UTILTS market/application-reference authority carries DGI reason E23; no global E88 substitution introduced. New packaging authority independently prevents E23/E88 mixing. Bilateral exception requires genuine explicit agreement, not synthetic data.",
+    "normative_source": "U ändringslogg25.A.2; OE exempel2g",
+    "exact_requirement": "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/rulebook/utiltsApplicationReference.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Application Reference avser begärd S02/E66 respektive S03/E31. Objekt/områden, parter, produkt och period ska motsvara begäran.",
+      "Bygg inte en generell 23-DGI-E73-referens och begär inte all data utan mandat.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual request selection/application-reference builder names requested message code/role/product/period. E73 is not rewritten to generic DGI-E73 or assumed S02 authority. Mandate and product activation remain authentic source prerequisites.",
+    "normative_source": "U §3.3,3.7.3",
+    "exact_requirement": "Application Reference avser begärd S02/E66 respektive S03/E31. Objekt/områden, parter, produkt och period ska motsvara begäran.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-07"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/utilts25A4.ts",
+      "lib/ediel/core/futureCapabilityPolicy.ts",
+      "lib/ediel/rulebook/utiltsMarketEngine.ts"
+    ],
+    "confirmed_code_gap": "1fa1ba4f removes S06 from active use and explicitly holds outbound not-in-use; historical parser diagnostics remain. S08/future roles remain held; valid syntax does not mint a capability.",
+    "blockers": [],
+    "planned_tests": [
+      "S06 är inte i bruk, S08 är avvecklat och andra profiler kräver andra roller än standard-DDQ/DGI.",
+      "Giltig syntax innebär inte tillåten marknadsriktning.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "1fa1ba4f removes S06 from active use and explicitly holds outbound not-in-use; historical parser diagnostics remain. S08/future roles remain held; valid syntax does not mint a capability.",
+    "normative_source": "U §1.8,3.1",
+    "exact_requirement": "S06 är inte i bruk, S08 är avvecklat och andra profiler kräver andra roller än standard-DDQ/DGI.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Authentic issuer/original/deletion coverage, retention decision and versioned positive object/mandate/sink evidence remain required."
+    ],
+    "planned_tests": [
+      "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen.",
+      "Kräv inte hela leverantörens PRODAT-struktur av varje ESCO-mottagare.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual received-source qualification uses own observation register/meter/period and retained immutable structural history. Missing genuine prescribed source is internal review with no guessed E61/E62, quantity or positive ACK. Authentic issuer/history/deletion coverage and positive LOC175 object/mandate/sink evidence remain external; Z14 is not assumed supplier full structure.",
+    "normative_source": "U bilaga2 s.131; PZ14fält",
+    "exact_requirement": "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-09"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/exactDecimal.ts",
+      "lib/ediel/utilts/quantityUnitScope.ts",
+      "lib/ediel/utilts/consumptionContract.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "lib/ediel/utilts/consumptionSinks.ts",
+      "lib/metering/normalizeMeteringValues.ts",
+      "lib/cis/db-data.ts",
+      "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql"
+    ],
+    "confirmed_code_gap": "c1aff819 implements exact lexical decimals, actual physical source ordinal/unit, V2 immutable binding and exact billing/metering sinks; authentic V1 same-source retry preserved. Fresh authentic original p95 adds confirmed remaining NULL136/own STS8+46 and standard E30 implicitKWH source support; allocated forward follow-up underway. No NULL-to-zero or reading/power-to-energy conversion.",
+    "blockers": [],
+    "planned_tests": [
+      "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer.",
+      "Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "c1aff819 implements exact lexical decimals, actual physical source ordinal/unit, V2 immutable binding and exact billing/metering sinks; authentic V1 same-source retry preserved. Fresh authentic original p95 adds confirmed remaining NULL136/own STS8+46 and standard E30 implicitKWH source support; allocated forward follow-up underway. No NULL-to-zero or reading/power-to-energy conversion.",
+    "normative_source": "U §3.6,3.7; SYS",
+    "exact_requirement": "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-10"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/resolution.ts",
+      "lib/ediel/utilts/timezone.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts"
+    ],
+    "confirmed_code_gap": "Actual resolution/timezone utility derives calendar intervals and fixed source offset; E30 V2 interval preparation precedes legacy numeric extraction. Remaining own profile interval counter must count energy136 rather than readings220/max42 in E30/S07 mixed observations; allocated correction. Native calendar/leap/month/DST own criteria pending.",
+    "blockers": [],
+    "planned_tests": [
+      "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn.",
+      "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual resolution/timezone utility derives calendar intervals and fixed source offset; E30 V2 interval preparation precedes legacy numeric extraction. Remaining own profile interval counter must count energy136 rather than readings220/max42 in E30/S07 mixed observations; allocated correction. Native calendar/leap/month/DST own criteria pending.",
+    "normative_source": "U §3.6.18; bilaga2",
+    "exact_requirement": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-11"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/rulebook/utilts25A4.ts",
+      "lib/ediel/utilts/profiles.ts"
+    ],
+    "confirmed_code_gap": "1fa1ba4f removes retired E19 and individual E66 E97/E98/E90 in A4 only, preserving E30/aggregate checks and applicable older guide. E87 observation completeness remains independent of energy sum.",
+    "blockers": [],
+    "planned_tests": [
+      "E19 och ställnings-/energijämförelsen utgår. Energivärdeskontroller E97/E98/E90 avgränsas enligt guiden till E30/aggregat.",
+      "En ofullständig kvartserie blir inte korrekt bara för att E19 försvinner.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "1fa1ba4f removes retired E19 and individual E66 E97/E98/E90 in A4 only, preserving E30/aggregate checks and applicable older guide. E87 observation completeness remains independent of energy sum.",
+    "normative_source": "U §1.8; bilaga2",
+    "exact_requirement": "E19 och ställnings-/energijämförelsen utgår. Energivärdeskontroller E97/E98/E90 avgränsas enligt guiden till E30/aggregat.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-12"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/packagingGuide.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": "396b23a4 source-scopes each own SG5-before-SEQ STS7 reason and prevents mixed batch reasons. Same single helper governs runtime and payload preflight consumers; observation-quality STS cannot become batch reason.",
+    "blockers": [],
+    "planned_tests": [
+      "Anledning till transaktionen är samma i meddelandet. Mätarbyte och olika skeden kan kräva separata underlag.",
+      "Blanda inte E23/E88 bara för att anläggningen är densamma.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "396b23a4 source-scopes each own SG5-before-SEQ STS7 reason and prevents mixed batch reasons. Same single helper governs runtime and payload preflight consumers; observation-quality STS cannot become batch reason.",
+    "normative_source": "U §2,3.6.11,3.6.19",
+    "exact_requirement": "Anledning till transaktionen är samma i meddelandet. Mätarbyte och olika skeden kan kräva separata underlag.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-13"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/utilts/headerGuide.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Skicka funktionskod9; ta emot5 utan avvisning enbart därför. Skicka AB; NA ensam är inte avvisningsgrund.",
+      "Inför inte egna fel för värden guiden kräver att mottagaren kan hantera.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Current header guide accepts receive BGM5 and NA alone per source while outbound render requires9/AB. Existing syntax/header fix at885137de retained, not rewritten for missing evidence.",
+    "normative_source": "U §3.9 BGM s.72",
+    "exact_requirement": "Skicka funktionskod9; ta emot5 utan avvisning enbart därför. Skicka AB; NA ensam är inte avvisningsgrund.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-14"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/utilts/positiveAckAuthority.ts",
+      "lib/ediel/core/kernel.ts"
+    ],
+    "confirmed_code_gap": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review.",
+    "blockers": [],
+    "planned_tests": [
+      "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK.",
+      "Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review.",
+    "normative_source": "U §5.2; SYS",
+    "exact_requirement": "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-10"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34.",
+      "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "PRODAT owner syntax/header changes retain BGM+++27/34 and no invented BGM1001/1004. This owner checked family separation only; complete PRODAT original-source review belongs PRODAT agent.",
+    "normative_source": "P s.98–100",
+    "exact_requirement": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-15"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/packagingGuide.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": "b4d51952 and396b23a4 use one national packaging helper for exactly one UNH and legalMR plus own reason/quarter-month compatibility. Generic envelope syntax remains separately valid; runtime and preflight send consume national guide. Phase/ApplicationReference share canonical policy.",
+    "blockers": [],
+    "planned_tests": [
+      "En UTILTS-överföring UNB–UNZ innehåller endast ett meddelande UNH–UNT och en juridisk mottagare. Blanda inte skeden, anledning eller kvart-/månadsupplösning enligt Application Reference.",
+      "En generell multi-message-codec får inte kringgå UTILTS specifika paketeringsregel.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "b4d51952 and396b23a4 use one national packaging helper for exactly one UNH and legalMR plus own reason/quarter-month compatibility. Generic envelope syntax remains separately valid; runtime and preflight send consume national guide. Phase/ApplicationReference share canonical policy.",
+    "normative_source": "U §3.6.19 s.48",
+    "exact_requirement": "En UTILTS-överföring UNB–UNZ innehåller endast ett meddelande UNH–UNT och en juridisk mottagare. Blanda inte skeden, anledning eller kvart-/månadsupplösning enligt Application Reference.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-16"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": "Authority owner corrected actual byte-aware Latin1 size projection: recommended10MB incoming warning versus outgoing conservative1MB/999 hold, without invented syntax/national ERC. Own UTILTS packaging helper remains separate.",
+    "blockers": [],
+    "planned_tests": [
+      "T anger rekommenderad maxstorlek10MB; U anger fortfarande1MB och999transaktioner. Skilj rekommendation från syntax/nationell kardinalitet.",
+      "Avvisa inte automatiskt meddelande över en rekommendation med påhittad syntaxfelkod.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Authority owner corrected actual byte-aware Latin1 size projection: recommended10MB incoming warning versus outgoing conservative1MB/999 hold, without invented syntax/national ERC. Own UTILTS packaging helper remains separate.",
+    "normative_source": "T §7.6; U §3.6.20 s.48–49",
+    "exact_requirement": "T anger rekommenderad maxstorlek10MB; U anger fortfarande1MB och999transaktioner. Skilj rekommendation från syntax/nationell kardinalitet.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-17"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/ack/errorCodeMapper.ts"
+    ],
+    "confirmed_code_gap": "6929b6f3 preserves exact source-supported field17 segment/element path up to17 characters without numeric guessing or old12-character truncation. Renderer physical ACW membership and released original references remain exact.",
+    "blockers": [],
+    "planned_tests": [
+      "När bilaga1 säger om möjligt används i första hand fältnummer; annars, om möjligt, angiven segment-/elementreferens med max17tecken.",
+      "Påstå inte att alla fel måste ha ett numeriskt fältnummer eller gissa ett från kvalificeraren.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "6929b6f3 preserves exact source-supported field17 segment/element path up to17 characters without numeric guessing or old12-character truncation. Renderer physical ACW membership and released original references remain exact.",
+    "normative_source": "U bilaga1 s.121",
+    "exact_requirement": "När bilaga1 säger om möjligt används i första hand fältnummer; annars, om möjligt, angiven segment-/elementreferens med max17tecken.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-18"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/observationOrderGuide.ts",
+      "lib/ediel/utilts/canonicalObservationScope.ts",
+      "lib/ediel/utiltsEngine.ts"
+    ],
+    "confirmed_code_gap": "b4d51952 adds physical contiguous energy/read blocks, either block order;2fadf2b3 scopes chronology/duplicate value+time to actual own inherited AES/MG register. Supported203/204 equal timestamps compare coherently; literalNULL is absent, never duplicate numeric0 or invented register.",
+    "blockers": [],
+    "planned_tests": [
+      "Håll energier sammanhängande och tidsordnade; ställningar sammanhängande och tidsordnade. Blockens inbördes ordning är valfri. Samma ställning med tid får inte dupliceras inom transaktionen.",
+      "Kräv inte alltid ställningar först och blanda inte ställningar mellan energivärden.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "b4d51952 adds physical contiguous energy/read blocks, either block order;2fadf2b3 scopes chronology/duplicate value+time to actual own inherited AES/MG register. Supported203/204 equal timestamps compare coherently; literalNULL is absent, never duplicate numeric0 or invented register.",
+    "normative_source": "U §3.6.18 s.47",
+    "exact_requirement": "Håll energier sammanhängande och tidsordnade; ställningar sammanhängande och tidsordnade. Blockens inbördes ordning är valfri. Samma ställning med tid får inte dupliceras inom transaktionen.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "U-19"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Referens till PRODAT-ärende används för korrelation där den går att knyta; bilaga1 anger inga kontroller av värdet och ingen avvisning om kvalificeraren inte är TN.",
+      "Avvisa inte giltig E66 enbart för avsaknad/fel korrelationsreferens där guiden inte föreskriver det.",
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+    ],
+    "assessment": "Actual optional PRODAT case reference contributes correlation when supported, without mandatory TN qualifier/value national rejection; own direct physical identity remains primary. No new check invented.",
+    "normative_source": "U §3.6.12; bilaga1 s.126",
+    "exact_requirement": "Referens till PRODAT-ärende används för korrelation där den går att knyta; bilaga1 anger inga kontroller av värdet och ingen avvisning om kvalificeraren inte är TN.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-013"
+    ],
+    "linked_rules": [
+      "ACK-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
+      "Tenant A:s ärende förblir oförändrat.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
+    "exact_prohibited": "Tenant A:s ärende förblir oförändrat.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-036"
+    ],
+    "linked_rules": [
+      "ACK-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
+      "Avvisa inte Z04 enbart på grund av ankomstordningen.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
+    "exact_prohibited": "Avvisa inte Z04 enbart på grund av ankomstordningen.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-041"
+    ],
+    "linked_rules": [
+      "ACK-01"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN.",
+      "BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN.",
+    "exact_prohibited": "BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-042"
+    ],
+    "linked_rules": [
+      "ACK-02",
+      "ACK-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "P-APERAK använder D96A, BGM/1225 34 eller 27 och originalreferenser enligt P. U-APERAK använder D04A, BGM/1001 312 eller 313 samt DOC och transaktionsreferenser där de ska finnas.",
+      "Blanda inte familjernas BGM-positioner, referenser eller gruppstrukturer.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted. 6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "P-APERAK använder D96A, BGM/1225 34 eller 27 och originalreferenser enligt P. U-APERAK använder D04A, BGM/1001 312 eller 313 samt DOC och transaktionsreferenser där de ska finnas.",
+    "exact_prohibited": "Blanda inte familjernas BGM-positioner, referenser eller gruppstrukturer.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-043"
+    ],
+    "linked_rules": [
+      "ACK-04"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "ERC 41 med fältreferens 327 respektive 512 i familjens rätta FTX-format.",
+      "Gissa inte 273 eller 597 genom att plocka siffror ur ett DTM-segmentnamn.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "ERC 41 med fältreferens 327 respektive 512 i familjens rätta FTX-format.",
+    "exact_prohibited": "Gissa inte 273 eller 597 genom att plocka siffror ur ett DTM-segmentnamn.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-044"
+    ],
+    "linked_rules": [
+      "U-03",
+      "ACK-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/core/messagePolicy.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "IDE 1 lagras och får positiv APERAK. IDE 2 får negativ APERAK. IDE 3 får UTILTS-ERR enligt tillämplig orsak.",
+      "En global klassificering får inte ersätta IDE 2:s anvisningsfel med ett senare funktionsfel.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception. Exact contract expected/prohibited literals below are frozen, not narrowed to code assertions. SC044 historical formalPASSED is separate and must remain unchanged.",
+    "exact_expected": "IDE 1 lagras och får positiv APERAK. IDE 2 får negativ APERAK. IDE 3 får UTILTS-ERR enligt tillämplig orsak.",
+    "exact_prohibited": "En global klassificering får inte ersätta IDE 2:s anvisningsfel med ett senare funktionsfel.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-045"
+    ],
+    "linked_rules": [
+      "U-03",
+      "ACK-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/core/messagePolicy.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Negativ U-APERAK på huvudnivå. Inga efterföljande funktionskontroller och inga påhittade originaltransaktionsreferenser.",
+      "Välj inte exempelvis E10 innan huvudfelet hanterats.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. 6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Negativ U-APERAK på huvudnivå. Inga efterföljande funktionskontroller och inga påhittade originaltransaktionsreferenser.",
+    "exact_prohibited": "Välj inte exempelvis E10 innan huvudfelet hanterats.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-046"
+    ],
+    "linked_rules": [
+      "U-04"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+      "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+      "lib/ediel/utilts/consumptionSinks.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Positiv APERAK enligt regeln. Den nyare aktiva dataversionen skrivs inte över.",
+      "Ingen UTILTS-ERR eller tyst omfakturering enbart på grund av ankomstordningen.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual immutable series persistence uses source registration/update timestamps and correction history; source-order arrival alone is not a national rejection. Late accepted data is stored without replacing newer active version; current broad/native evidence remains pending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Positiv APERAK enligt regeln. Den nyare aktiva dataversionen skrivs inte över.",
+    "exact_prohibited": "Ingen UTILTS-ERR eller tyst omfakturering enbart på grund av ankomstordningen.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-047"
+    ],
+    "linked_rules": [
+      "U-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/core/messagePolicy.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
+      "Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
+    "exact_prohibited": "Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-048"
+    ],
+    "linked_rules": [
+      "U-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/core/messagePolicy.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "UTILTS-ERR E50 när denna kontroll är utlösande.",
+      "Använd inte E10 som generell kod för alla valideringsfel.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "UTILTS-ERR E50 när denna kontroll är utlösande.",
+    "exact_prohibited": "Använd inte E10 som generell kod för alla valideringsfel.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-049"
+    ],
+    "linked_rules": [
+      "U-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Authentic period-qualified received structure/issuer/history absent must remain internal review; no guessed E61/E62 or external acceptance."
+    ],
+    "planned_tests": [
+      "Använd villkoren för kontroll mot erhållen struktur. Lokalt saknade, ej föreskrivna fält får inte bli ett påhittat PRODAT-krav.",
+      "Ett godtyckligt E61 eller E62 på grund av lokal kunskapsbrist är inte ett godkänt testfacit.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual received-source qualification uses own observation register/meter/period and retained immutable structural history. Missing genuine prescribed source is internal review with no guessed E61/E62, quantity or positive ACK. Authentic issuer/history/deletion coverage and positive LOC175 object/mandate/sink evidence remain external; Z14 is not assumed supplier full structure. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Använd villkoren för kontroll mot erhållen struktur. Lokalt saknade, ej föreskrivna fält får inte bli ett påhittat PRODAT-krav.",
+    "exact_prohibited": "Ett godtyckligt E61 eller E62 på grund av lokal kunskapsbrist är inte ett godkänt testfacit.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-050"
+    ],
+    "linked_rules": [
+      "U-10",
+      "U-11"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/resolution.ts",
+      "lib/ediel/utilts/timezone.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/rulebook/utilts25A4.ts"
+    ],
+    "confirmed_code_gap": "Actual resolution/timezone utility derives calendar intervals and fixed source offset; E30 V2 interval preparation precedes legacy numeric extraction. Remaining own profile interval counter must count energy136 rather than readings220/max42 in E30/S07 mixed observations; allocated correction. Native calendar/leap/month/DST own criteria pending. 1fa1ba4f removes retired E19 and individual E66 E97/E98/E90 in A4 only, preserving E30/aggregate checks and applicable older guide. E87 observation completeness remains independent of energy sum.",
+    "blockers": [],
+    "planned_tests": [
+      "UTILTS-ERR E87 där antalskontrollen är tillämplig; luckan synliggörs.",
+      "Korrekt energisumma får inte maskera saknade observationer.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual resolution/timezone utility derives calendar intervals and fixed source offset; E30 V2 interval preparation precedes legacy numeric extraction. Remaining own profile interval counter must count energy136 rather than readings220/max42 in E30/S07 mixed observations; allocated correction. Native calendar/leap/month/DST own criteria pending. 1fa1ba4f removes retired E19 and individual E66 E97/E98/E90 in A4 only, preserving E30/aggregate checks and applicable older guide. E87 observation completeness remains independent of energy sum. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "UTILTS-ERR E87 där antalskontrollen är tillämplig; luckan synliggörs.",
+    "exact_prohibited": "Korrekt energisumma får inte maskera saknade observationer.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-052"
+    ],
+    "linked_rules": [
+      "U-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/rulebook/utiltsApplicationReference.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Application Reference motsvarar den begärda E66-DGI-profilen. Efterfrågad meddelandetyp är uttrycklig.",
+      "Härled inte en generell E73-referens och anta inte rätt till S02 bara för att E73 kan begära S02 i en annan roll.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual request selection/application-reference builder names requested message code/role/product/period. E73 is not rewritten to generic DGI-E73 or assumed S02 authority. Mandate and product activation remain authentic source prerequisites. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Application Reference motsvarar den begärda E66-DGI-profilen. Efterfrågad meddelandetyp är uttrycklig.",
+    "exact_prohibited": "Härled inte en generell E73-referens och anta inte rätt till S02 bara för att E73 kan begära S02 i en annan roll.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-053"
+    ],
+    "linked_rules": [
+      "U-09"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/exactDecimal.ts",
+      "lib/ediel/utilts/quantityUnitScope.ts",
+      "lib/ediel/utilts/consumptionContract.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "lib/ediel/utilts/consumptionSinks.ts",
+      "lib/metering/normalizeMeteringValues.ts",
+      "lib/cis/db-data.ts",
+      "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql"
+    ],
+    "confirmed_code_gap": "c1aff819 implements exact lexical decimals, actual physical source ordinal/unit, V2 immutable binding and exact billing/metering sinks; authentic V1 same-source retry preserved. Fresh authentic original p95 adds confirmed remaining NULL136/own STS8+46 and standard E30 implicitKWH source support; allocated forward follow-up underway. No NULL-to-zero or reading/power-to-energy conversion.",
+    "blockers": [],
+    "planned_tests": [
+      "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
+      "Mätarställning, energi och effekt får inte blandas ihop.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "c1aff819 implements exact lexical decimals, actual physical source ordinal/unit, V2 immutable binding and exact billing/metering sinks; authentic V1 same-source retry preserved. Fresh authentic original p95 adds confirmed remaining NULL136/own STS8+46 and standard E30 implicitKWH source support; allocated forward follow-up underway. No NULL-to-zero or reading/power-to-energy conversion. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
+    "exact_prohibited": "Mätarställning, energi och effekt får inte blandas ihop.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-054"
+    ],
+    "linked_rules": [
+      "U-14"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/utilts/positiveAckAuthority.ts",
+      "lib/ediel/core/kernel.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
+      "Enbart köstatus får inte betraktas som lagring i mottagande applikation.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
+    "exact_prohibited": "Enbart köstatus får inte betraktas som lagring i mottagande applikation.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-055"
+    ],
+    "linked_rules": [
+      "ACK-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Ingen ändring i det felaktigt utpekade ärendet; loggad säker hantering.",
+      "Ingen tillståndsändring över tenantgränsen.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Ingen ändring i det felaktigt utpekade ärendet; loggad säker hantering.",
+    "exact_prohibited": "Ingen tillståndsändring över tenantgränsen.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "SC-056"
+    ],
+    "linked_rules": [
+      "ACK-07"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
+      "Ett återförsök får inte skriva om kvittenshistoriken.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
+    "exact_prohibited": "Ett återförsök får inte skriva om kvittenshistoriken.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-01"
+    ],
+    "linked_rules": [
+      "ACK-01"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå. → Larma vid negativt resultat och undvik kvittensloop.",
+      "Lägg inte nationell APERAK-kontroll i CONTRL.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå. → Larma vid negativt resultat och undvik kvittensloop.",
+    "exact_prohibited": "Lägg inte nationell APERAK-kontroll i CONTRL.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-02"
+    ],
+    "linked_rules": [
+      "ACK-02"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+      "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
+    "exact_prohibited": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-03"
+    ],
+    "linked_rules": [
+      "ACK-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
+      "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
+    "exact_prohibited": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-04"
+    ],
+    "linked_rules": [
+      "ACK-04"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42. → Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
+      "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42. → Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
+    "exact_prohibited": "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-05"
+    ],
+    "linked_rules": [
+      "ACK-05"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
+      "Skapa inte ERR på ERR eller APERAK på APERAK.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual functional ERR uses wire UTILTS with BGMERR and exact own original BGM/IDE membership; family loops suppressed. Physical-reference fix removes punctuation truncation. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
+    "exact_prohibited": "Skapa inte ERR på ERR eller APERAK på APERAK.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-06"
+    ],
+    "linked_rules": [
+      "ACK-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus.",
+      "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus.",
+    "exact_prohibited": "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-07"
+    ],
+    "linked_rules": [
+      "ACK-07"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+      "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
+    "exact_prohibited": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-08"
+    ],
+    "linked_rules": [
+      "ACK-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+      "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-09"
+    ],
+    "linked_rules": [
+      "ACK-09"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett. → Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
+      "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual internal retry reuses stored authority/outcomes while new protocol duplicate may repeat same required ACK; no silent discard used as idempotency shortcut. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett. → Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
+    "exact_prohibited": "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-01"
+    ],
+    "linked_rules": [
+      "U-01"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/rulebook/utiltsRulebook.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/canonicalMessageEngine.ts",
+      "lib/ediel/profiles/messageProfileCatalog.ts",
+      "lib/ediel/inboundRequestAutomation.ts"
+    ],
+    "confirmed_code_gap": "Own role/profile selection separates request, object, aggregate and forecast. Fresh actual compatibility consumers incorrectly treat optional E30 area and conditional monetary S01/S05 unit/quantity as universally mandatory; root allocated correction in rulebook/profiles/catalog/request review. Future activation still requires authentic capability evidence.",
+    "blockers": [],
+    "planned_tests": [
+      "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate. → Tillåt stödd roll, funktion, riktning och produkt med rätt bevis.",
+      "Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Own role/profile selection separates request, object, aggregate and forecast. Fresh actual compatibility consumers incorrectly treat optional E30 area and conditional monetary S01/S05 unit/quantity as universally mandatory; root allocated correction in rulebook/profiles/catalog/request review. Future activation still requires authentic capability evidence. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate. → Tillåt stödd roll, funktion, riktning och produkt med rätt bevis.",
+    "exact_prohibited": "Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-02"
+    ],
+    "linked_rules": [
+      "U-02"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/canonicalObservationScope.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/rulebook/utiltsRulebook.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": "1fa1ba4f removed first/global IDE fallback. Actual physical canonical transactions preserve every IDE/SEQ/quantity. Remaining confirmed operational profile conditional mismatch is allocated with U01; no missing evidence treated as a code fault.",
+    "blockers": [],
+    "planned_tests": [
+      "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
+      "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "1fa1ba4f removed first/global IDE fallback. Actual physical canonical transactions preserve every IDE/SEQ/quantity. Remaining confirmed operational profile conditional mismatch is allocated with U01; no missing evidence treated as a code fault. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
+    "exact_prohibited": "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-03"
+    ],
+    "linked_rules": [
+      "U-03"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/core/messagePolicy.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion. → Lagra godkända transaktioner och kvittera varje utfall på rätt nivå.",
+      "Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion. → Lagra godkända transaktioner och kvittera varje utfall på rätt nivå.",
+    "exact_prohibited": "Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-04"
+    ],
+    "linked_rules": [
+      "U-04"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+      "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+      "lib/ediel/utilts/consumptionSinks.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Ankomstordning ensam är inte avvisningsskäl. Använd registrerings-/uppdateringstid 512/532 för dataversionen. → Sänd positiv APERAK när andra kontroller passerar och bevara äldre historik utan att skriva över nyare data.",
+      "Skapa inte ERR eller retroaktiv fakturaändring enbart för att data anländer sent.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual immutable series persistence uses source registration/update timestamps and correction history; source-order arrival alone is not a national rejection. Late accepted data is stored without replacing newer active version; current broad/native evidence remains pending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Ankomstordning ensam är inte avvisningsskäl. Använd registrerings-/uppdateringstid 512/532 för dataversionen. → Sänd positiv APERAK när andra kontroller passerar och bevara äldre historik utan att skriva över nyare data.",
+    "exact_prohibited": "Skapa inte ERR eller retroaktiv fakturaändring enbart för att data anländer sent.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-05"
+    ],
+    "linked_rules": [
+      "U-05"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/rulebook/utiltsMarketEngine.ts",
+      "lib/ediel/rulebook/utiltsApplicationReference.ts",
+      "lib/ediel/utilts/packagingGuide.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet. → Kontrollera roll, Application Reference, underordnad roll och behörigheter.",
+      "Påför inte en global E88-fakturaprofil på DGI-trafik.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Shared UTILTS market/application-reference authority carries DGI reason E23; no global E88 substitution introduced. New packaging authority independently prevents E23/E88 mixing. Bilateral exception requires genuine explicit agreement, not synthetic data. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet. → Kontrollera roll, Application Reference, underordnad roll och behörigheter.",
+    "exact_prohibited": "Påför inte en global E88-fakturaprofil på DGI-trafik.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-06"
+    ],
+    "linked_rules": [
+      "U-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/rulebook/utiltsApplicationReference.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Application Reference avser begärd S02/E66 respektive S03/E31. Objekt/områden, parter, produkt och period ska motsvara begäran. → Skicka bara behörig request med tillämplig överenskommelse och bevaka resultatet.",
+      "Bygg inte en generell 23-DGI-E73-referens och begär inte all data utan mandat.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual request selection/application-reference builder names requested message code/role/product/period. E73 is not rewritten to generic DGI-E73 or assumed S02 authority. Mandate and product activation remain authentic source prerequisites. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Application Reference avser begärd S02/E66 respektive S03/E31. Objekt/områden, parter, produkt och period ska motsvara begäran. → Skicka bara behörig request med tillämplig överenskommelse och bevaka resultatet.",
+    "exact_prohibited": "Bygg inte en generell 23-DGI-E73-referens och begär inte all data utan mandat.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-07"
+    ],
+    "linked_rules": [
+      "U-07"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/utilts25A4.ts",
+      "lib/ediel/core/futureCapabilityPolicy.ts",
+      "lib/ediel/rulebook/utiltsMarketEngine.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "S06 är inte i bruk, S08 är avvecklat och andra profiler kräver andra roller än standard-DDQ/DGI. → Håll historiska/diagnostiska adaptrar åtskilda från produktionsfunktioner.",
+      "Giltig syntax innebär inte tillåten marknadsriktning.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "1fa1ba4f removes S06 from active use and explicitly holds outbound not-in-use; historical parser diagnostics remain. S08/future roles remain held; valid syntax does not mint a capability. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "S06 är inte i bruk, S08 är avvecklat och andra profiler kräver andra roller än standard-DDQ/DGI. → Håll historiska/diagnostiska adaptrar åtskilda från produktionsfunktioner.",
+    "exact_prohibited": "Giltig syntax innebär inte tillåten marknadsriktning.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-08"
+    ],
+    "linked_rules": [
+      "U-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Authentic period-qualified received structure/issuer/history absent must remain internal review; no guessed E61/E62 or external acceptance."
+    ],
+    "planned_tests": [
+      "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen. → Hantera eget strukturbevisgap internt när kontrollen är villkorad enligt guiden.",
+      "Kräv inte hela leverantörens PRODAT-struktur av varje ESCO-mottagare.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual received-source qualification uses own observation register/meter/period and retained immutable structural history. Missing genuine prescribed source is internal review with no guessed E61/E62, quantity or positive ACK. Authentic issuer/history/deletion coverage and positive LOC175 object/mandate/sink evidence remain external; Z14 is not assumed supplier full structure. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen. → Hantera eget strukturbevisgap internt när kontrollen är villkorad enligt guiden.",
+    "exact_prohibited": "Kräv inte hela leverantörens PRODAT-struktur av varje ESCO-mottagare.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-09"
+    ],
+    "linked_rules": [
+      "U-09"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/exactDecimal.ts",
+      "lib/ediel/utilts/quantityUnitScope.ts",
+      "lib/ediel/utilts/consumptionContract.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "lib/ediel/utilts/consumptionSinks.ts",
+      "lib/metering/normalizeMeteringValues.ts",
+      "lib/cis/db-data.ts",
+      "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql"
+    ],
+    "confirmed_code_gap": "c1aff819 implements exact lexical decimals, actual physical source ordinal/unit, V2 immutable binding and exact billing/metering sinks; authentic V1 same-source retry preserved. Fresh authentic original p95 adds confirmed remaining NULL136/own STS8+46 and standard E30 implicitKWH source support; allocated forward follow-up underway. No NULL-to-zero or reading/power-to-energy conversion.",
+    "blockers": [],
+    "planned_tests": [
+      "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer. → Lagra decimaler och källkvalitet exakt med korrektionsspår.",
+      "Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "c1aff819 implements exact lexical decimals, actual physical source ordinal/unit, V2 immutable binding and exact billing/metering sinks; authentic V1 same-source retry preserved. Fresh authentic original p95 adds confirmed remaining NULL136/own STS8+46 and standard E30 implicitKWH source support; allocated forward follow-up underway. No NULL-to-zero or reading/power-to-energy conversion. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer. → Lagra decimaler och källkvalitet exakt med korrektionsspår.",
+    "exact_prohibited": "Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-10"
+    ],
+    "linked_rules": [
+      "U-10"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/ediel/utilts/resolution.ts",
+      "lib/ediel/utilts/timezone.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts"
+    ],
+    "confirmed_code_gap": "Actual resolution/timezone utility derives calendar intervals and fixed source offset; E30 V2 interval preparation precedes legacy numeric extraction. Remaining own profile interval counter must count energy136 rather than readings220/max42 in E30/S07 mixed observations; allocated correction. Native calendar/leap/month/DST own criteria pending.",
+    "blockers": [],
+    "planned_tests": [
+      "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn. → Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
+      "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual resolution/timezone utility derives calendar intervals and fixed source offset; E30 V2 interval preparation precedes legacy numeric extraction. Remaining own profile interval counter must count energy136 rather than readings220/max42 in E30/S07 mixed observations; allocated correction. Native calendar/leap/month/DST own criteria pending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn. → Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
+    "exact_prohibited": "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-11"
+    ],
+    "linked_rules": [
+      "U-11"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/rulebook/utilts25A4.ts",
+      "lib/ediel/utilts/profiles.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "E19 och ställnings-/energijämförelsen utgår. Energivärdeskontroller E97/E98/E90 avgränsas enligt guiden till E30/aggregat. → Behåll obligatoriska fält, E87 och övriga tillämpliga kontroller oberoende av ändringen.",
+      "En ofullständig kvartserie blir inte korrekt bara för att E19 försvinner.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "1fa1ba4f removes retired E19 and individual E66 E97/E98/E90 in A4 only, preserving E30/aggregate checks and applicable older guide. E87 observation completeness remains independent of energy sum. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "E19 och ställnings-/energijämförelsen utgår. Energivärdeskontroller E97/E98/E90 avgränsas enligt guiden till E30/aggregat. → Behåll obligatoriska fält, E87 och övriga tillämpliga kontroller oberoende av ändringen.",
+    "exact_prohibited": "En ofullständig kvartserie blir inte korrekt bara för att E19 försvinner.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-12"
+    ],
+    "linked_rules": [
+      "U-12"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/packagingGuide.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Anledning till transaktionen är samma i meddelandet. Mätarbyte och olika skeden kan kräva separata underlag. → Dela endast kompatibla grupper och bevara referenser och periodtäckning.",
+      "Blanda inte E23/E88 bara för att anläggningen är densamma.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "396b23a4 source-scopes each own SG5-before-SEQ STS7 reason and prevents mixed batch reasons. Same single helper governs runtime and payload preflight consumers; observation-quality STS cannot become batch reason. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Anledning till transaktionen är samma i meddelandet. Mätarbyte och olika skeden kan kräva separata underlag. → Dela endast kompatibla grupper och bevara referenser och periodtäckning.",
+    "exact_prohibited": "Blanda inte E23/E88 bara för att anläggningen är densamma.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-13"
+    ],
+    "linked_rules": [
+      "U-13"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/utilts/headerGuide.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Skicka funktionskod9; ta emot5 utan avvisning enbart därför. Skicka AB; NA ensam är inte avvisningsgrund. → Håll mottagningstolerans skild från utgående profil.",
+      "Inför inte egna fel för värden guiden kräver att mottagaren kan hantera.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Current header guide accepts receive BGM5 and NA alone per source while outbound render requires9/AB. Existing syntax/header fix at885137de retained, not rewritten for missing evidence. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Skicka funktionskod9; ta emot5 utan avvisning enbart därför. Skicka AB; NA ensam är inte avvisningsgrund. → Håll mottagningstolerans skild från utgående profil.",
+    "exact_prohibited": "Inför inte egna fel för värden guiden kräver att mottagaren kan hantera.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-14"
+    ],
+    "linked_rules": [
+      "U-14"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/utilts/positiveAckAuthority.ts",
+      "lib/ediel/core/kernel.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK. → Gör atomär lagring av accepterad data, disposition och ACK-avsikt.",
+      "Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK. → Gör atomär lagring av accepterad data, disposition och ACK-avsikt.",
+    "exact_prohibited": "Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ACK-10"
+    ],
+    "linked_rules": [
+      "ACK-10"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/ack/canonicalAckEngine.ts",
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/ack.ts",
+      "lib/ediel/ack/ackCorrelation.ts",
+      "lib/ediel/flows/inboundAckProcessing.ts",
+      "lib/ediel/utilts/transactionPersistence.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34. → Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+      "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "PRODAT owner syntax/header changes retain BGM+++27/34 and no invented BGM1001/1004. This owner checked family separation only; complete PRODAT original-source review belongs PRODAT agent. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "BGM/1225 bär27/34; BGM/1001 och1004 används inte. Exempel på struktur är BGM+++34. → Använd RFF+ACW till originaletsBGM och eget teknisktUNH/arkiv-id.",
+    "exact_prohibited": "Placera inte27/34 i1001 eller kräv eget P-APERAKBGM-id.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-15"
+    ],
+    "linked_rules": [
+      "U-15"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/packagingGuide.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "En UTILTS-överföring UNB–UNZ innehåller endast ett meddelande UNH–UNT och en juridisk mottagare. Blanda inte skeden, anledning eller kvart-/månadsupplösning enligt Application Reference. → Paketera kompatibla transaktioner till rätt mottagare inom tillåtna gränser.",
+      "En generell multi-message-codec får inte kringgå UTILTS specifika paketeringsregel.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "b4d51952 and396b23a4 use one national packaging helper for exactly one UNH and legalMR plus own reason/quarter-month compatibility. Generic envelope syntax remains separately valid; runtime and preflight send consume national guide. Phase/ApplicationReference share canonical policy. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "En UTILTS-överföring UNB–UNZ innehåller endast ett meddelande UNH–UNT och en juridisk mottagare. Blanda inte skeden, anledning eller kvart-/månadsupplösning enligt Application Reference. → Paketera kompatibla transaktioner till rätt mottagare inom tillåtna gränser.",
+    "exact_prohibited": "En generell multi-message-codec får inte kringgå UTILTS specifika paketeringsregel.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-16"
+    ],
+    "linked_rules": [
+      "U-16"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "T anger rekommenderad maxstorlek10MB; U anger fortfarande1MB och999transaktioner. Skilj rekommendation från syntax/nationell kardinalitet. → Utgående U kan hållas inom1MB och999 för att uppfylla båda; dokumentera mottagarkapacitet och fulla grammatikgränser.",
+      "Avvisa inte automatiskt meddelande över en rekommendation med påhittad syntaxfelkod.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Authority owner corrected actual byte-aware Latin1 size projection: recommended10MB incoming warning versus outgoing conservative1MB/999 hold, without invented syntax/national ERC. Own UTILTS packaging helper remains separate. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "T anger rekommenderad maxstorlek10MB; U anger fortfarande1MB och999transaktioner. Skilj rekommendation från syntax/nationell kardinalitet. → Utgående U kan hållas inom1MB och999 för att uppfylla båda; dokumentera mottagarkapacitet och fulla grammatikgränser.",
+    "exact_prohibited": "Avvisa inte automatiskt meddelande över en rekommendation med påhittad syntaxfelkod.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-17"
+    ],
+    "linked_rules": [
+      "U-17"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/aperakEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/ack/errorCodeMapper.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "När bilaga1 säger om möjligt används i första hand fältnummer; annars, om möjligt, angiven segment-/elementreferens med max17tecken. → Behåll källstyrd hänvisning såsom DTM/2005 i tillämpligt fall.",
+      "Påstå inte att alla fel måste ha ett numeriskt fältnummer eller gissa ett från kvalificeraren.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "6929b6f3 preserves exact source-supported field17 segment/element path up to17 characters without numeric guessing or old12-character truncation. Renderer physical ACW membership and released original references remain exact. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "När bilaga1 säger om möjligt används i första hand fältnummer; annars, om möjligt, angiven segment-/elementreferens med max17tecken. → Behåll källstyrd hänvisning såsom DTM/2005 i tillämpligt fall.",
+    "exact_prohibited": "Påstå inte att alla fel måste ha ett numeriskt fältnummer eller gissa ett från kvalificeraren.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-18"
+    ],
+    "linked_rules": [
+      "U-18"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/observationOrderGuide.ts",
+      "lib/ediel/utilts/canonicalObservationScope.ts",
+      "lib/ediel/utiltsEngine.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Håll energier sammanhängande och tidsordnade; ställningar sammanhängande och tidsordnade. Blockens inbördes ordning är valfri. Samma ställning med tid får inte dupliceras inom transaktionen. → Bevara observationernas typ och ordning enligt gruppen.",
+      "Kräv inte alltid ställningar först och blanda inte ställningar mellan energivärden.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "b4d51952 adds physical contiguous energy/read blocks, either block order;2fadf2b3 scopes chronology/duplicate value+time to actual own inherited AES/MG register. Supported203/204 equal timestamps compare coherently; literalNULL is absent, never duplicate numeric0 or invented register. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Håll energier sammanhängande och tidsordnade; ställningar sammanhängande och tidsordnade. Blockens inbördes ordning är valfri. Samma ställning med tid får inte dupliceras inom transaktionen. → Bevara observationernas typ och ordning enligt gruppen.",
+    "exact_prohibited": "Kräv inte alltid ställningar först och blanda inte ställningar mellan energivärden.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-19"
+    ],
+    "linked_rules": [
+      "U-19"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_paths": [
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Referens till PRODAT-ärende används för korrelation där den går att knyta; bilaga1 anger inga kontroller av värdet och ingen avvisning om kvalificeraren inte är TN. → Använd referensen för möjlig korrelation utan att göra den till obligatorisk auktoriseringsnyckel för alla serier.",
+      "Avvisa inte giltig E66 enbart för avsaknad/fel korrelationsreferens där guiden inte föreskriver det.",
+      "This code phase has not run broad/native/browser/manual proof of this complete own criterion."
+    ],
+    "assessment": "Actual optional PRODAT case reference contributes correlation when supported, without mandatory TN qualifier/value national rejection; own direct physical identity remains primary. No new check invented. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "exact_expected": "Referens till PRODAT-ärende används för korrelation där den går att knyta; bilaga1 anger inga kontroller av värdet och ingen avvisning om kvalificeraren inte är TN. → Använd referensen för möjlig korrelation utan att göra den till obligatorisk auktoriseringsnyckel för alla serier.",
+    "exact_prohibited": "Avvisa inte giltig E66 enbart för avsaknad/fel korrelationsreferens där guiden inte föreskriver det.",
+    "commits": [
+      "1fa1ba4f",
+      "6929b6f3",
+      "b4d51952",
+      "df184c1a",
+      "396b23a4",
+      "08616e0d",
+      "2fadf2b3",
+      "c1aff819"
+    ]
+  }
+]

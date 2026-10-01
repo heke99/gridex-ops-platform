@@ -1,0 +1,259 @@
+[
+  {
+    "owner": "actors_history (integrationowner /root)",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/types.ts",
+      "lib/ediel/services/authorization.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql"
+    ],
+    "blockers": [
+      "G04: authentic end-user/DSO/service/downstream-use/privacy-role approvals for exact assignmentVersion; representation requires exact current transport-relation/actor mandate. No approval seeded.",
+      "Full native replay/schema/type generation and concurrency tests deferred by user."
+    ],
+    "planned_tests": [
+      "NativeRLS/privilege directRPC crosscompany/beneficiary wrongscope and forgedglobaladmin requiretenantmembership; rawarchive neverpublic.",
+      "V/VH separate source-Z14 own approved object/product/time; denial hasno grant access; Z15C neverrevives revokedinternalgrant.",
+      "Concurrent twoassignment requestCAS reusesonlysemantically/legalcompatible permission; owner revoke serializeswithpage and grantversion.",
+      "Quantity JSON strings retain exactoriginal NUMERIC; pagecursor stablewithidenticaltimestamp IDs."
+    ],
+    "assessment": "Fresh SQL/appchain reviewed; new independent supportheld until authentic ownerbasis, actual source projections recheckcurrentversions and scope. Root/processowners integrate command/source/API routes.",
+    "commits": [
+      "6b4a8e00",
+      "a396fa3b",
+      "b078d2bc"
+    ],
+    "ids": [
+      "TEN-03",
+      "TEN-07",
+      "TEN-08",
+      "TEN-09",
+      "TEN-10",
+      "TEN-12",
+      "SC-003",
+      "SC-004",
+      "SC-005",
+      "SC-006",
+      "SC-007",
+      "SC-008",
+      "SC-010",
+      "SC-011",
+      "SC-015",
+      "SC-071",
+      "AT-TEN-03",
+      "AT-TEN-07",
+      "AT-TEN-08",
+      "AT-TEN-09",
+      "AT-TEN-10",
+      "AT-TEN-12"
+    ],
+    "confirmed_code_gap": "No assignment/grant/link/serviceprojection previously existed. Added provider-owned scoped assignments/evidence/grants and per-read exact beneficiary authorization, compatible permission coordination, currentbasis/version locks, prospectiveimmutable audit. Actual command+API integrations owned process/root."
+  },
+  {
+    "owner": "actors_history (integrationowner /root)",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/types.ts",
+      "lib/ediel/services/authorization.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql"
+    ],
+    "blockers": [
+      "G04: authentic end-user/DSO/service/downstream-use/privacy-role approvals for exact assignmentVersion; representation requires exact current transport-relation/actor mandate. No approval seeded.",
+      "Full native replay/schema/type generation and concurrency tests deferred by user."
+    ],
+    "planned_tests": [
+      "NativeRLS/privilege directRPC crosscompany/beneficiary wrongscope and forgedglobaladmin requiretenantmembership; rawarchive neverpublic.",
+      "V/VH separate source-Z14 own approved object/product/time; denial hasno grant access; Z15C neverrevives revokedinternalgrant.",
+      "Concurrent twoassignment requestCAS reusesonlysemantically/legalcompatible permission; owner revoke serializeswithpage and grantversion.",
+      "Quantity JSON strings retain exactoriginal NUMERIC; pagecursor stablewithidenticaltimestamp IDs."
+    ],
+    "assessment": "Fresh SQL/appchain reviewed; new independent supportheld until authentic ownerbasis, actual source projections recheckcurrentversions and scope. Root/processowners integrate command/source/API routes.",
+    "commits": [
+      "6b4a8e00",
+      "a396fa3b",
+      "b078d2bc"
+    ],
+    "ids": [
+      "DB-01",
+      "DB-02",
+      "DB-03",
+      "AT-DB-01",
+      "AT-DB-02",
+      "AT-DB-03"
+    ],
+    "confirmed_code_gap": "Existing companies/actors/customers/permissions/metervalue authority reused; newprospective absent serviceentities expanded withoutinferred historicalbackfill. Added own tenant+id FKs, identityimmutable/CAS/history and queryindexes. Otherdataversion consumers reviewed by root/UTILTS."
+  },
+  {
+    "owner": "actors_history (integrationowner /root)",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/types.ts",
+      "lib/ediel/services/authorization.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql"
+    ],
+    "blockers": [
+      "G04: authentic end-user/DSO/service/downstream-use/privacy-role approvals for exact assignmentVersion; representation requires exact current transport-relation/actor mandate. No approval seeded.",
+      "Full native replay/schema/type generation and concurrency tests deferred by user."
+    ],
+    "planned_tests": [
+      "NativeRLS/privilege directRPC crosscompany/beneficiary wrongscope and forgedglobaladmin requiretenantmembership; rawarchive neverpublic.",
+      "V/VH separate source-Z14 own approved object/product/time; denial hasno grant access; Z15C neverrevives revokedinternalgrant.",
+      "Concurrent twoassignment requestCAS reusesonlysemantically/legalcompatible permission; owner revoke serializeswithpage and grantversion.",
+      "Quantity JSON strings retain exactoriginal NUMERIC; pagecursor stablewithidenticaltimestamp IDs."
+    ],
+    "assessment": "Fresh SQL/appchain reviewed; new independent supportheld until authentic ownerbasis, actual source projections recheckcurrentversions and scope. Root/processowners integrate command/source/API routes.",
+    "commits": [
+      "6b4a8e00",
+      "a396fa3b",
+      "b078d2bc"
+    ],
+    "ids": [
+      "DB-04",
+      "AT-DB-04"
+    ],
+    "confirmed_code_gap": "Service/transport owner query andFK indices added basedactual RPC filters; broad representative EXPLAIN/load remains unrun verification."
+  },
+  {
+    "owner": "actors_history (integrationowner /root)",
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/services/types.ts",
+      "lib/ediel/services/authorization.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql"
+    ],
+    "blockers": [
+      "G04 ownerlegaldecision: ESCO/legalbeneficiary/contract parties/privacyroles and permissible downstreamuse exact source/version/validity.",
+      "Authoritative retentionclasses/deletion/pseudonymization decision and historicaldeletion evidence missing. No deletion implemented or capability activated."
+    ],
+    "planned_tests": [
+      "NativeRLS/privilege directRPC crosscompany/beneficiary wrongscope and forgedglobaladmin requiretenantmembership; rawarchive neverpublic.",
+      "V/VH separate source-Z14 own approved object/product/time; denial hasno grant access; Z15C neverrevives revokedinternalgrant.",
+      "Concurrent twoassignment requestCAS reusesonlysemantically/legalcompatible permission; owner revoke serializeswithpage and grantversion.",
+      "Quantity JSON strings retain exactoriginal NUMERIC; pagecursor stablewithidenticaltimestamp IDs."
+    ],
+    "assessment": "Prospective assignment end/revoke/history code implemented. No legal retentionclass/deletionhistory/raworiginal backfill or cross-tenant legal activation inferred.",
+    "commits": [
+      "6b4a8e00",
+      "a396fa3b",
+      "b078d2bc"
+    ],
+    "ids": [
+      "TEN-14",
+      "DB-05",
+      "SC-003",
+      "SC-070",
+      "AT-TEN-14",
+      "AT-DB-05"
+    ],
+    "confirmed_code_gap": null
+  },
+  {
+    "ids": [
+      "TEN-04",
+      "IMP-02",
+      "IMP-04",
+      "SC-009",
+      "SC-057",
+      "SC-058",
+      "SC-059",
+      "AT-TEN-04",
+      "AT-IMP-02",
+      "AT-IMP-04"
+    ],
+    "owner": "actors_history (integrationowner /root)",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "supabase/migrations/20260930153118_ediel_actor_legal_identity_name_search_v1.sql"
+    ],
+    "confirmed_code_gap": "Official parentMarket context/KeyType/EDIFACTDetails identity distinction missing; admin separateparser mergedtechnicallegalIDs. Fixed both actual XMLimport consumers throughsharedparser; exactsourcefragments/roles/qualifiers/charset/country preserved. GAS/missingmarket held; different transport/legal heldmandate. New knownEdielId cannotfallbackorg/name orsteal identifierowner. Name uniqueness forwardsearchindex only.",
+    "blockers": [
+      "Authentic versioned registry owner/snapshot sources and delegationmandate needed for operationalreadiness.",
+      "Native officialsnapshot diff/idempotence and sourceencoding tests deferred."
+    ],
+    "planned_tests": [
+      "Official authentic XML Market.Code/CountryCode and Company.KeyType/EDIFACTDetails exact route identities, blanksubaddress valid; noGAS ELroles/routing.",
+      "Two distinctEdielIDs same org/name stay separate; noidentifierowner move; importduplicate ambiguity held.",
+      "Actual register snapshots/readiness identity differences preserveapprovalandautosend fences."
+    ],
+    "assessment": "Freshactual parser/import/admin consumers mapped andcorrected; 4 targeted normativegrammar fixture tests PASS; authentic registry replay notrun.",
+    "commits": [
+      "7516b0cc",
+      "06633a43",
+      "0ab4968c",
+      "e2e9d672"
+    ]
+  },
+  {
+    "ids": [
+      "IMP-01",
+      "SC-057",
+      "AT-IMP-01"
+    ],
+    "owner": "actors_history (integrationowner /root)",
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "app/admin/ediel/actors/actions.ts"
+    ],
+    "confirmed_code_gap": "XMLsource-defined adapter coded (wellformed XML validation dependency currently rootcoordinating); separate trueTXT adapter cannot be specified from repository summary alone. TXTexplicitlyheld; neverrouted genericCSV.",
+    "blockers": [
+      "Provide authentic official companies.txt bytes, encoding, repeatedfamilycolumns and embeddednewline grammar with sourcehash/sourceTime/owner; source register contains onlycompanies.xml summary, noTXToriginal."
+    ],
+    "planned_tests": [
+      "After authenticTXT grammar: independent exactfield expectations+multiline/repeatedfamily adapter and idempotent sourcehash tests.",
+      "MalformedXML/DTD/entities/commentinjection rejected beforewrites."
+    ],
+    "assessment": "Fresh actualsource/package register re-read identifies TXTonlywarned aboutformat, neveravailableactualbytes. XML parentcontext corrected; safewellformedvalidator pendingrootdepcoordination.",
+    "commits": [
+      "e2e9d672"
+    ]
+  },
+  {
+    "ids": [
+      "TR-02",
+      "TR-03",
+      "TR-10",
+      "SC-062",
+      "SC-063",
+      "AT-TR-02",
+      "AT-TR-03",
+      "AT-TR-10"
+    ],
+    "owner": "actors_history (integrationowner /root)",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/transport/outboundAttempt.ts",
+      "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql",
+      "lib/email/sendEdielEmail.ts",
+      "lib/ediel/transport/rawMimeArchive.ts"
+    ],
+    "confirmed_code_gap": "Only oldZ08 H had durableproviderentry/result fence. Ordinaryfamilies and canonicalLK now samegeneric prospective immutableMIME+attempt journal; prepare+enter currenttyped authority, exactreadbackarchive/rfc/hash/route/workerCAS; enteredunknown noautoresend; acceptedonlyprojects oldreceipt; rootarchives actualallmodebytes.",
+    "blockers": [
+      "DSNcandidate unverified until authentic provider/mailbox corpus/contract; no SMTPfinaldelivery status invented.",
+      "Native fullactualsourceauthority/migrations/SMTPcrash+concurrentworker testphase pending."
+    ],
+    "planned_tests": [
+      "All family send/direct/manual/batch/retry entry reachesjournal archivebeforeprovider exactbytes; callback/readback/scopefail providerzeroIO.",
+      "Workerlease/CAS races and lostenter/observereply crash suppresssend; acceptedoldreceipt immutableprojectiononly.",
+      "DSNsame RFCidwrongtenant/env/mailbox/recipient hasnocandidate; exactcandidate remainsunverified andbusinesspermission unchanged.",
+      "Z08 H sealedsource/witness retained andgenericdirectRPC cannotbypass; LKexemptstillgenericjournal."
+    ],
+    "assessment": "Actual sendEdielEmail consumers rg: onlysharedordinaryjournal andexisting Hclosureowner (plusnative testscript). SQL15 embeddedPg checks with declaredsourceowner/gatestubs, wrapper5PASS, lint+tscPASS; noauthenticSMTP/nativeproof. Root archive reviewed Important privateBuffercopy fix requested.",
+    "commits": [
+      "321864d8",
+      "20cda47c"
+    ]
+  }
+]

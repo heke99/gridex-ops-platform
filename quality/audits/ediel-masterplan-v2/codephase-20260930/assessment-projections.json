@@ -1,0 +1,3029 @@
+[
+  {
+    "ids": [
+      "U-14"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/positiveAckAuthority.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930143048_utilts_positive_ack_storage_authority.sql",
+      "supabase/migrations/20260930150622_utilts_positive_ack_own_dm_scope.sql",
+      "__tests__/ediel-utilts-positive-ack-authority.test.ts",
+      "scripts/ediel-utilts-err-gateway-native.test.ts"
+    ],
+    "confirmed_code_gap": "Baseline manual/canonical positive APERAK relied on runtime acceptance and had no durable accepted-series/contract reservation source authority. CREATE now verifies committed accepted storage; SEND requires exact immutable final ACK/own-IDE reservation binding. Malformed physical BGM312 profiles are held; every positive ACW is checked. Own ACK DM is distinct; DOC is source BGM. Genuine old/late accepted V1/V2 storage remains permitted without replacing current newer source.",
+    "blockers": [
+      "Native actual storage/ACK/concurrency regression written but NOT RUN in this code phase. No production sending approval."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Svar planeras",
+      "Own exact expected criterion: Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK.",
+      "Own exact prohibited criterion: Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
+      "Run native real positive consumer, actual stored ownDM≠DOC wire pair and direct source authority RPC.",
+      "Native forged caller source/ACK bytes/tenant/ACW/uncommitted/final-failed reservation refusal before SMTP/archive/attempt.",
+      "Native V1 authentic existing retry and V2 exact decimal source storage both retain immutable accepted positive ACKs; old/late acceptance never changes newer series."
+    ],
+    "assessment": "Fresh frozen U-14 and actual create/send source consumer paths checked against private receipts/contracts/public own reservations, including syntax before guide/function and per IDE scope. Focused TS26 tests passed; native proof pending.",
+    "commits": [
+      "5aa5c85e",
+      "40cb8adc",
+      "4b72225b"
+    ],
+    "covered_rule_ids": [
+      "U-14"
+    ]
+  },
+  {
+    "ids": [
+      "AT-U-14"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/utilts/positiveAckAuthority.ts",
+      "lib/ediel/core/kernel.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930143048_utilts_positive_ack_storage_authority.sql",
+      "supabase/migrations/20260930150622_utilts_positive_ack_own_dm_scope.sql",
+      "__tests__/ediel-utilts-positive-ack-authority.test.ts",
+      "scripts/ediel-utilts-err-gateway-native.test.ts"
+    ],
+    "confirmed_code_gap": "Baseline manual/canonical positive APERAK relied on runtime acceptance and had no durable accepted-series/contract reservation source authority. CREATE now verifies committed accepted storage; SEND requires exact immutable final ACK/own-IDE reservation binding. Malformed physical BGM312 profiles are held; every positive ACW is checked. Own ACK DM is distinct; DOC is source BGM. Genuine old/late accepted V1/V2 storage remains permitted without replacing current newer source.",
+    "blockers": [
+      "Native actual storage/ACK/concurrency regression written but NOT RUN in this code phase. No production sending approval."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Svar planeras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "Own exact expected criterion: Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK. → Gör atomär lagring av accepterad data, disposition och ACK-avsikt.",
+      "Own exact prohibited criterion: Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
+      "Run native real positive consumer, actual stored ownDM≠DOC wire pair and direct source authority RPC.",
+      "Native forged caller source/ACK bytes/tenant/ACW/uncommitted/final-failed reservation refusal before SMTP/archive/attempt.",
+      "Native V1 authentic existing retry and V2 exact decimal source storage both retain immutable accepted positive ACKs; old/late acceptance never changes newer series."
+    ],
+    "assessment": "Fresh frozen U-14 and actual create/send source consumer paths checked against private receipts/contracts/public own reservations, including syntax before guide/function and per IDE scope. Focused TS26 tests passed; native proof pending.",
+    "commits": [
+      "5aa5c85e",
+      "40cb8adc",
+      "4b72225b"
+    ],
+    "covered_rule_ids": [
+      "U-14"
+    ]
+  },
+  {
+    "ids": [
+      "OPS-01"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/productionReadiness.part-2.ts",
+      "lib/ediel/productionReadiness.part-3.ts",
+      "lib/ediel/orchestrator.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql",
+      "supabase/migrations/20260930154424_ediel_readiness_current_rule_dependencies.sql",
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql",
+      "__tests__/ediel-scoped-capability-readiness.test.ts",
+      "scripts/ediel-scoped-readiness-sql-regression.mjs",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+      "scripts/generate-ediel-readiness-source-projection.cjs",
+      "app/admin/platform/actor-testing/actions.ts",
+      "components/admin/ediel/ProductionReadinessViews.tsx",
+      "app/admin/platform/go-live/approval-actions.ts",
+      "app/admin/platform/go-live/[companyId]/page.tsx"
+    ],
+    "confirmed_code_gap": "Baseline whole-company/all-family snapshot was business sending authority; any DGI configuration change blocked the company and unrelated DDQ. New immutable proofs bind real tenant/legal actor/role/market/environment/capability to release receipt+actual release SHA, relevant live schema, archived/current normative projections, selected route/certificate and assignment/permission/grant versions. CREATE/actual provider entry reconstruct scoped dependencies; global snapshot is aggregate dashboard only and no longer automatically disables all roles. Business/AI requires genuine scoped tests/evidence; prescribed ACK/ERR stays separate. Generic dry-run now explicitly blocked without actual own scoped message evidence.",
+    "blockers": [
+      "Authentic scope-bound certification/deployment/test evidence absent: NO capabilities activated or passed records seeded.",
+      "G04 legal service assignments/grants require authentic versioned approvals; actual Z13/Z18 command consumer integration is process/root-owned.",
+      "Broad native/migration/schema-type/security/browser/manual proof NOT RUN."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Publicering/konfigurationsändring",
+      "Own exact expected criterion: Skapa nytt bevis per berörd tenant, aktörsroll och kapabilitet med versionslåst dependencyhash.",
+      "Own exact prohibited criterion: Ett gammalt globalt is_ready godkänner inte nya funktioner eller tenants.",
+      "SC-064 exact queue change case: alter only applicable rule/grant dependency; old proof cannot send, preserve old finalized ACK; actual new scoped decision/evidence trace.",
+      "SC-069 exact scope: DGI-only actor/capability or route change preserves unaffected DDQ dependency hash/readiness; affected capability blocks until newly versioned evidence.",
+      "Native direct RPC and SDK/provider entry held for missing/stale/cross-tenant/forged/global-ready evidence; required incoming ACK/ERR remains able to proceed through independent source/security authority.",
+      "Native immutable evidence/revoked certification/grant/expired certificate/release/schema/rule changes; route version not unrelated global latest route.",
+      "Actual manual/UI dry-run/status must show correct message scope, immutable evidence id/dependency hash, and no real send."
+    ],
+    "assessment": "Fresh own OPS-01/SC-064/069 expected/prohibited scope reviewed against actual facade/orchestrator/directSMTP/SQL-journal and aggregate snapshot side effects. Exact frozen criteria preserved; 16 focused TS and13 embeddedPG tests passed; broad full-contract/native proof pending. Final narrow Important review found direct RPC could reuse proof-selected actor/subtype and global current profile projection. Forward161907 now derives canonical own scope from actual saved UNB/CCI/CAV, current unique legal identity/explicit transport representation,51 genuinely source-generated projection scopes and exact saved current profile/source hash; new edition changes only own projected canonical clause hash.22 focused embedded PostgreSQL tests and16 scoped TS tests passed. Actual manual dry-run action/form server-load own production message; fake generic synthetic preview removed. No activation executed.",
+    "commits": [
+      "47203262",
+      "6efc6855",
+      "68a643b3"
+    ],
+    "covered_rule_ids": [
+      "OPS-01"
+    ]
+  },
+  {
+    "ids": [
+      "AT-OPS-01"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/productionReadiness.part-2.ts",
+      "lib/ediel/productionReadiness.part-3.ts",
+      "lib/ediel/orchestrator.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql",
+      "supabase/migrations/20260930154424_ediel_readiness_current_rule_dependencies.sql",
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql",
+      "__tests__/ediel-scoped-capability-readiness.test.ts",
+      "scripts/ediel-scoped-readiness-sql-regression.mjs",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+      "scripts/generate-ediel-readiness-source-projection.cjs",
+      "app/admin/platform/actor-testing/actions.ts",
+      "components/admin/ediel/ProductionReadinessViews.tsx",
+      "app/admin/platform/go-live/approval-actions.ts",
+      "app/admin/platform/go-live/[companyId]/page.tsx"
+    ],
+    "confirmed_code_gap": "Baseline whole-company/all-family snapshot was business sending authority; any DGI configuration change blocked the company and unrelated DDQ. New immutable proofs bind real tenant/legal actor/role/market/environment/capability to release receipt+actual release SHA, relevant live schema, archived/current normative projections, selected route/certificate and assignment/permission/grant versions. CREATE/actual provider entry reconstruct scoped dependencies; global snapshot is aggregate dashboard only and no longer automatically disables all roles. Business/AI requires genuine scoped tests/evidence; prescribed ACK/ERR stays separate. Generic dry-run now explicitly blocked without actual own scoped message evidence.",
+    "blockers": [
+      "Authentic scope-bound certification/deployment/test evidence absent: NO capabilities activated or passed records seeded.",
+      "G04 legal service assignments/grants require authentic versioned approvals; actual Z13/Z18 command consumer integration is process/root-owned.",
+      "Broad native/migration/schema-type/security/browser/manual proof NOT RUN."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Publicering/konfigurationsändring – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "Own exact expected criterion: Skapa nytt bevis per berörd tenant, aktörsroll och kapabilitet med versionslåst dependencyhash. → Ogiltigförklara berörda bevis och gör ny prövning; skydda samtidigt fortsatt mottagnings-/kvittenshantering.",
+      "Own exact prohibited criterion: Ett gammalt globalt is_ready godkänner inte nya funktioner eller tenants.",
+      "SC-064 exact queue change case: alter only applicable rule/grant dependency; old proof cannot send, preserve old finalized ACK; actual new scoped decision/evidence trace.",
+      "SC-069 exact scope: DGI-only actor/capability or route change preserves unaffected DDQ dependency hash/readiness; affected capability blocks until newly versioned evidence.",
+      "Native direct RPC and SDK/provider entry held for missing/stale/cross-tenant/forged/global-ready evidence; required incoming ACK/ERR remains able to proceed through independent source/security authority.",
+      "Native immutable evidence/revoked certification/grant/expired certificate/release/schema/rule changes; route version not unrelated global latest route.",
+      "Actual manual/UI dry-run/status must show correct message scope, immutable evidence id/dependency hash, and no real send."
+    ],
+    "assessment": "Fresh own OPS-01/SC-064/069 expected/prohibited scope reviewed against actual facade/orchestrator/directSMTP/SQL-journal and aggregate snapshot side effects. Exact frozen criteria preserved; 16 focused TS and13 embeddedPG tests passed; broad full-contract/native proof pending. Final narrow Important review found direct RPC could reuse proof-selected actor/subtype and global current profile projection. Forward161907 now derives canonical own scope from actual saved UNB/CCI/CAV, current unique legal identity/explicit transport representation,51 genuinely source-generated projection scopes and exact saved current profile/source hash; new edition changes only own projected canonical clause hash.22 focused embedded PostgreSQL tests and16 scoped TS tests passed. Actual manual dry-run action/form server-load own production message; fake generic synthetic preview removed. No activation executed.",
+    "commits": [
+      "47203262",
+      "6efc6855",
+      "68a643b3"
+    ],
+    "covered_rule_ids": [
+      "OPS-01"
+    ]
+  },
+  {
+    "ids": [
+      "SC-064"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/productionReadiness.part-2.ts",
+      "lib/ediel/productionReadiness.part-3.ts",
+      "lib/ediel/orchestrator.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql",
+      "supabase/migrations/20260930154424_ediel_readiness_current_rule_dependencies.sql",
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql",
+      "__tests__/ediel-scoped-capability-readiness.test.ts",
+      "scripts/ediel-scoped-readiness-sql-regression.mjs",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+      "scripts/generate-ediel-readiness-source-projection.cjs",
+      "app/admin/platform/actor-testing/actions.ts",
+      "components/admin/ediel/ProductionReadinessViews.tsx",
+      "app/admin/platform/go-live/approval-actions.ts",
+      "app/admin/platform/go-live/[companyId]/page.tsx"
+    ],
+    "confirmed_code_gap": "Baseline whole-company/all-family snapshot was business sending authority; any DGI configuration change blocked the company and unrelated DDQ. New immutable proofs bind real tenant/legal actor/role/market/environment/capability to release receipt+actual release SHA, relevant live schema, archived/current normative projections, selected route/certificate and assignment/permission/grant versions. CREATE/actual provider entry reconstruct scoped dependencies; global snapshot is aggregate dashboard only and no longer automatically disables all roles. Business/AI requires genuine scoped tests/evidence; prescribed ACK/ERR stays separate. Generic dry-run now explicitly blocked without actual own scoped message evidence.",
+    "blockers": [
+      "Authentic scope-bound certification/deployment/test evidence absent: NO capabilities activated or passed records seeded.",
+      "G04 legal service assignments/grants require authentic versioned approvals; actual Z13/Z18 command consumer integration is process/root-owned.",
+      "Broad native/migration/schema-type/security/browser/manual proof NOT RUN."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Kör kontrollen före sändning.",
+      "Own exact expected criterion: Ompröva och lagra ett nytt spårbart beslut, eller blockera den berörda åtgärden.",
+      "Own exact prohibited criterion: Skicka inte ett inaktuellt innehåll med ett gammalt behörighetsbeslut.",
+      "SC-064 exact queue change case: alter only applicable rule/grant dependency; old proof cannot send, preserve old finalized ACK; actual new scoped decision/evidence trace.",
+      "SC-069 exact scope: DGI-only actor/capability or route change preserves unaffected DDQ dependency hash/readiness; affected capability blocks until newly versioned evidence.",
+      "Native direct RPC and SDK/provider entry held for missing/stale/cross-tenant/forged/global-ready evidence; required incoming ACK/ERR remains able to proceed through independent source/security authority.",
+      "Native immutable evidence/revoked certification/grant/expired certificate/release/schema/rule changes; route version not unrelated global latest route.",
+      "Actual manual/UI dry-run/status must show correct message scope, immutable evidence id/dependency hash, and no real send."
+    ],
+    "assessment": "Fresh own OPS-01/SC-064/069 expected/prohibited scope reviewed against actual facade/orchestrator/directSMTP/SQL-journal and aggregate snapshot side effects. Exact frozen criteria preserved; 16 focused TS and13 embeddedPG tests passed; broad full-contract/native proof pending. Final narrow Important review found direct RPC could reuse proof-selected actor/subtype and global current profile projection. Forward161907 now derives canonical own scope from actual saved UNB/CCI/CAV, current unique legal identity/explicit transport representation,51 genuinely source-generated projection scopes and exact saved current profile/source hash; new edition changes only own projected canonical clause hash.22 focused embedded PostgreSQL tests and16 scoped TS tests passed. Actual manual dry-run action/form server-load own production message; fake generic synthetic preview removed. No activation executed.",
+    "commits": [
+      "47203262",
+      "6efc6855",
+      "68a643b3"
+    ],
+    "covered_rule_ids": [
+      "OPS-01"
+    ]
+  },
+  {
+    "ids": [
+      "SC-069"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/productionReadiness.part-2.ts",
+      "lib/ediel/productionReadiness.part-3.ts",
+      "lib/ediel/orchestrator.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql",
+      "supabase/migrations/20260930154424_ediel_readiness_current_rule_dependencies.sql",
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql",
+      "__tests__/ediel-scoped-capability-readiness.test.ts",
+      "scripts/ediel-scoped-readiness-sql-regression.mjs",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+      "scripts/generate-ediel-readiness-source-projection.cjs",
+      "app/admin/platform/actor-testing/actions.ts",
+      "components/admin/ediel/ProductionReadinessViews.tsx",
+      "app/admin/platform/go-live/approval-actions.ts",
+      "app/admin/platform/go-live/[companyId]/page.tsx"
+    ],
+    "confirmed_code_gap": "Baseline whole-company/all-family snapshot was business sending authority; any DGI configuration change blocked the company and unrelated DDQ. New immutable proofs bind real tenant/legal actor/role/market/environment/capability to release receipt+actual release SHA, relevant live schema, archived/current normative projections, selected route/certificate and assignment/permission/grant versions. CREATE/actual provider entry reconstruct scoped dependencies; global snapshot is aggregate dashboard only and no longer automatically disables all roles. Business/AI requires genuine scoped tests/evidence; prescribed ACK/ERR stays separate. Generic dry-run now explicitly blocked without actual own scoped message evidence.",
+    "blockers": [
+      "Authentic scope-bound certification/deployment/test evidence absent: NO capabilities activated or passed records seeded.",
+      "G04 legal service assignments/grants require authentic versioned approvals; actual Z13/Z18 command consumer integration is process/root-owned.",
+      "Broad native/migration/schema-type/security/browser/manual proof NOT RUN."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Skapa releasebevis.",
+      "Own exact expected criterion: Nytt bevis för berörd tenant, aktör, roll och kapabilitet. Fortsatt säker mottagning och föreskriven kvittensdrift hålls tillgänglig.",
+      "Own exact prohibited criterion: Ett gammalt globalt is_ready får inte godkänna alla roller och profiler.",
+      "SC-064 exact queue change case: alter only applicable rule/grant dependency; old proof cannot send, preserve old finalized ACK; actual new scoped decision/evidence trace.",
+      "SC-069 exact scope: DGI-only actor/capability or route change preserves unaffected DDQ dependency hash/readiness; affected capability blocks until newly versioned evidence.",
+      "Native direct RPC and SDK/provider entry held for missing/stale/cross-tenant/forged/global-ready evidence; required incoming ACK/ERR remains able to proceed through independent source/security authority.",
+      "Native immutable evidence/revoked certification/grant/expired certificate/release/schema/rule changes; route version not unrelated global latest route.",
+      "Actual manual/UI dry-run/status must show correct message scope, immutable evidence id/dependency hash, and no real send."
+    ],
+    "assessment": "Fresh own OPS-01/SC-064/069 expected/prohibited scope reviewed against actual facade/orchestrator/directSMTP/SQL-journal and aggregate snapshot side effects. Exact frozen criteria preserved; 16 focused TS and13 embeddedPG tests passed; broad full-contract/native proof pending. Final narrow Important review found direct RPC could reuse proof-selected actor/subtype and global current profile projection. Forward161907 now derives canonical own scope from actual saved UNB/CCI/CAV, current unique legal identity/explicit transport representation,51 genuinely source-generated projection scopes and exact saved current profile/source hash; new edition changes only own projected canonical clause hash.22 focused embedded PostgreSQL tests and16 scoped TS tests passed. Actual manual dry-run action/form server-load own production message; fake generic synthetic preview removed. No activation executed.",
+    "commits": [
+      "47203262",
+      "6efc6855",
+      "68a643b3"
+    ],
+    "covered_rule_ids": [
+      "OPS-01"
+    ]
+  },
+  {
+    "ids": [
+      "AI-05"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "app/admin/ediel/ai-list/page.tsx",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/aiList.ts",
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/transport/index.part-2.ts"
+    ],
+    "confirmed_code_gap": "Actual admin UI exposed BI export in supplier DDQ/DGI flow. BI option removed and generation labels now AI; inbound BI history remains. Shared source parser/outbound authority implemented by PRODAT owner rejects BI and wrong legal supplier role across SDK/direct stored sends; new AI readiness uses same source profile, original manifest SHA and format Ver20140401.",
+    "blockers": [
+      "Actual shared exporter API/SDK/browser regression broad phase not run; no role/market activation."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Export begärs",
+      "Own exact expected criterion: BI används enbart av nätföretag för angivna strukturändringar.",
+      "Own exact prohibited criterion: Känd CSV-struktur ger ingen marknadsbehörighet.",
+      "SC-067 exact DDQ and DGI manual/API/batch direct stored BI attempts rejected before archive/provider entry, even though inbound BI remains parseable.",
+      "Browser actual AI-only export control and source supplier header/CSV compatibility; root/prodat shared send hook."
+    ],
+    "assessment": "Fresh actual UI consumer assessed against exact AI-05/SC-067; no client flag authorizes role. UI removal lint/type checks passed; source parser13 etc owned PRODAT evidence.",
+    "commits": [
+      "fbea0cf3",
+      "45c688b0"
+    ],
+    "covered_rule_ids": [
+      "AI-05"
+    ]
+  },
+  {
+    "ids": [
+      "AT-AI-05"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "app/admin/ediel/ai-list/page.tsx",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/aiList.ts",
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/transport/index.part-2.ts"
+    ],
+    "confirmed_code_gap": "Actual admin UI exposed BI export in supplier DDQ/DGI flow. BI option removed and generation labels now AI; inbound BI history remains. Shared source parser/outbound authority implemented by PRODAT owner rejects BI and wrong legal supplier role across SDK/direct stored sends; new AI readiness uses same source profile, original manifest SHA and format Ver20140401.",
+    "blockers": [
+      "Actual shared exporter API/SDK/browser regression broad phase not run; no role/market activation."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Export begärs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+      "Own exact expected criterion: BI används enbart av nätföretag för angivna strukturändringar. → Stöd behörig mottagning/utredning; spärra utgående BI i DDQ/DGI.",
+      "Own exact prohibited criterion: Känd CSV-struktur ger ingen marknadsbehörighet.",
+      "SC-067 exact DDQ and DGI manual/API/batch direct stored BI attempts rejected before archive/provider entry, even though inbound BI remains parseable.",
+      "Browser actual AI-only export control and source supplier header/CSV compatibility; root/prodat shared send hook."
+    ],
+    "assessment": "Fresh actual UI consumer assessed against exact AI-05/SC-067; no client flag authorizes role. UI removal lint/type checks passed; source parser13 etc owned PRODAT evidence.",
+    "commits": [
+      "fbea0cf3",
+      "45c688b0"
+    ],
+    "covered_rule_ids": [
+      "AI-05"
+    ]
+  },
+  {
+    "ids": [
+      "SC-067"
+    ],
+    "owner": "matrix_projections",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "app/admin/ediel/ai-list/page.tsx",
+      "lib/ediel/aiListFormat.ts",
+      "lib/ediel/aiList.ts",
+      "lib/ediel/flows/aiListFlow.ts",
+      "lib/ediel/transport/index.part-2.ts"
+    ],
+    "confirmed_code_gap": "Actual admin UI exposed BI export in supplier DDQ/DGI flow. BI option removed and generation labels now AI; inbound BI history remains. Shared source parser/outbound authority implemented by PRODAT owner rejects BI and wrong legal supplier role across SDK/direct stored sends; new AI readiness uses same source profile, original manifest SHA and format Ver20140401.",
+    "blockers": [
+      "Actual shared exporter API/SDK/browser regression broad phase not run; no role/market activation."
+    ],
+    "planned_tests": [
+      "Own literal trigger: Begär export.",
+      "Own exact expected criterion: Blockera rollen även om systemet kan läsa filformatet.",
+      "Own exact prohibited criterion: Plattformen får inte uppträda som nätägare utan rätt roll och underlag.",
+      "SC-067 exact DDQ and DGI manual/API/batch direct stored BI attempts rejected before archive/provider entry, even though inbound BI remains parseable.",
+      "Browser actual AI-only export control and source supplier header/CSV compatibility; root/prodat shared send hook."
+    ],
+    "assessment": "Fresh actual UI consumer assessed against exact AI-05/SC-067; no client flag authorizes role. UI removal lint/type checks passed; source parser13 etc owned PRODAT evidence.",
+    "commits": [
+      "fbea0cf3",
+      "45c688b0"
+    ],
+    "covered_rule_ids": [
+      "AI-05"
+    ]
+  },
+  {
+    "ids": [
+      "TEN-01"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-01"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Baseline typed context existed but could be unused authority. Prospective actual DB clock source persistence now captures own legal actor/profile/role and explicit transport representation immutably; no present-day historical identity reconstruction. Actual first-effect native supply/permission/UTILTS guards and generic provider entry are root/process/UTILTS coordinated integration pending. Authenticated prior immutable outcomes must return before fresh guards. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Tenant, juridisk aktör, operativ roll och teknisk identitet är olika typer.",
+      "Literal prohibited result: Tenantens namn/domän/mejl får inte ersätta marknadsidentitet.",
+      "Source trigger/given: Command skapas eller meddelande attribueras / Alla affärsoperationer",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Independent definition/type existence is not whole consumer completion; missing native first-effect guard integration remains concrete coordination work. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-01"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-01"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Baseline typed context existed but could be unused authority. Prospective actual DB clock source persistence now captures own legal actor/profile/role and explicit transport representation immutably; no present-day historical identity reconstruction. Actual first-effect native supply/permission/UTILTS guards and generic provider entry are root/process/UTILTS coordinated integration pending. Authenticated prior immutable outcomes must return before fresh guards. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Tenant, juridisk aktör, operativ roll och teknisk identitet är olika typer. → Skapa verifierat execution context före kundmutation.",
+      "Literal prohibited result: Tenantens namn/domän/mejl får inte ersätta marknadsidentitet.",
+      "Source trigger/given: Command skapas eller meddelande attribueras – prova både uppfyllt villkor och relevant fel-/gränsfall. / Alla affärsoperationer",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Independent definition/type existence is not whole consumer completion; missing native first-effect guard integration remains concrete coordination work. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "TEN-02"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-02"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Tenantens verifierade juridiska Ediel-id används; gemensam brevlåda är en transportegenskap.",
+      "Literal prohibited result: Byt inte alla till Gridex-id eller registrera tekniskt ombud automatiskt.",
+      "Source trigger/given: Utgående/inkommande trafik / Tenant med egen leverantör/ESCO",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-02"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-02"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Tenantens verifierade juridiska Ediel-id används; gemensam brevlåda är en transportegenskap. → Bevara befintligt beslut om egna Ediel-id; separata aktörsprofiler för DDQ/DGI.",
+      "Literal prohibited result: Byt inte alla till Gridex-id eller registrera tekniskt ombud automatiskt.",
+      "Source trigger/given: Utgående/inkommande trafik – prova både uppfyllt villkor och relevant fel-/gränsfall. / Tenant med egen leverantör/ESCO",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "SC-001"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-02"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+    ],
+    "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22.",
+      "Literal prohibited result: Gridex-id ersätter inte A:s aktör; ingen data från B.",
+      "Source trigger/given: A beställer Z03L. / Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "SC-002"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-02"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Real outbound actor resolver uses own legal EdielId and separate transport identity with explicit representation relation, requires legacy setting identity match; fresh inward attribution uses physical ownlegal NAD and canonical recipient role. Persisted-source guards retain original identity. New ACK renderers must also preserve separate legal NAD and technical UNB identities across actual represented actors; root/UTILTS integration review pending. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: B:s juridisk aktör och 23-DGI-PRODAT; separat tillståndsärende.",
+      "Literal prohibited result: Ingen Z03 och inget Gridex-ombud antas.",
+      "Source trigger/given: B beställer Z13V. / Tenant B har egen legal ESCO-identitet och DSO-/kundavtal.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Independent inbound/core and actual buildProdat role wire paths reviewed; final ACK/provider legal-context hooks not asserted complete. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "TEN-05"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+    ],
+    "confirmed_code_gap": "Common canonical source resolves DDQ supplier versus DGI ESCO business roles per physical BGM/reason and exact source APP; ordinary global actor default is not business authority. Supply versus permission source mutators admit distinct canonical codes and legal roles. Z14 cannot apply supply effects; Z04 cannot grant generic ESCO access. New immutable role basis guards strengthen direct SQL integration.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Roll bestäms av affärsprocess, inte globalt standardfält.",
+      "Literal prohibited result: Z14 får inte aktivera leverans; Z04 ger inte generellt ESCO-tillstånd.",
+      "Source trigger/given: Varje affärshändelse / Aktör både DDQ och DGI",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh exact role/App criterion reviewed; process transitions and actual dedicated service grant origination remain separately assessed by process/actors owners.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-05"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+    ],
+    "confirmed_code_gap": "Common canonical source resolves DDQ supplier versus DGI ESCO business roles per physical BGM/reason and exact source APP; ordinary global actor default is not business authority. Supply versus permission source mutators admit distinct canonical codes and legal roles. Z14 cannot apply supply effects; Z04 cannot grant generic ESCO access. New immutable role basis guards strengthen direct SQL integration.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Roll bestäms av affärsprocess, inte globalt standardfält. → 23-DDQ-PRODAT för leverantörsprocess;23-DGI-PRODAT för tillståndsprocess.",
+      "Literal prohibited result: Z14 får inte aktivera leverans; Z04 ger inte generellt ESCO-tillstånd.",
+      "Source trigger/given: Varje affärshändelse – prova både uppfyllt villkor och relevant fel-/gränsfall. / Aktör både DDQ och DGI",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh exact role/App criterion reviewed; process transitions and actual dedicated service grant origination remain separately assessed by process/actors owners.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "SC-001"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+    ],
+    "confirmed_code_gap": "Common canonical source resolves DDQ supplier versus DGI ESCO business roles per physical BGM/reason and exact source APP; ordinary global actor default is not business authority. Supply versus permission source mutators admit distinct canonical codes and legal roles. Z14 cannot apply supply effects; Z04 cannot grant generic ESCO access. New immutable role basis guards strengthen direct SQL integration.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22.",
+      "Literal prohibited result: Gridex-id ersätter inte A:s aktör; ingen data från B.",
+      "Source trigger/given: A beställer Z03L. / Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh exact role/App criterion reviewed; process transitions and actual dedicated service grant origination remain separately assessed by process/actors owners.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "SC-012"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+    ],
+    "confirmed_code_gap": "Common canonical source resolves DDQ supplier versus DGI ESCO business roles per physical BGM/reason and exact source APP; ordinary global actor default is not business authority. Supply versus permission source mutators admit distinct canonical codes and legal roles. Z14 cannot apply supply effects; Z04 cannot grant generic ESCO access. New immutable role basis guards strengthen direct SQL integration.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Z14 påverkar rättighet, Z04 leverans; separata state machines.",
+      "Literal prohibited result: Inga korsvisa aktiveringar.",
+      "Source trigger/given: Behandla positiv Z14 och senare positiv Z04. / Samma tenant/juridisk aktör har DDQ och DGI.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh exact role/App criterion reviewed; process transitions and actual dedicated service grant origination remain separately assessed by process/actors owners.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "SC-018"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql"
+    ],
+    "confirmed_code_gap": "Common canonical source resolves DDQ supplier versus DGI ESCO business roles per physical BGM/reason and exact source APP; ordinary global actor default is not business authority. Supply versus permission source mutators admit distinct canonical codes and legal roles. Z14 cannot apply supply effects; Z04 cannot grant generic ESCO access. New immutable role basis guards strengthen direct SQL integration.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Begär rätt underlag och följ tillståndsprocessen.",
+      "Literal prohibited result: Aktiv elleverans blir inte automatiskt DGI-tillstånd.",
+      "Source trigger/given: Skapa DGI-rättighet från kundkort. / Elleverans finns men separat begärd ESCO-tjänst saknar tillstånd.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh exact role/App criterion reviewed; process transitions and actual dedicated service grant origination remain separately assessed by process/actors owners.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "TEN-06"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/inbound-mail/inboundTenantResolver.ts",
+      "lib/ediel/transport/tenantResolver.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts"
+    ],
+    "confirmed_code_gap": "Baseline existing company hint and generic business ref scoring could pick tenant without actual legal/transport/current role. Current own physical NAD+UNB decoded lookup verifies unique own legal/transport/current role; ACK original scope globally qualified before suppliedcompany check. Unknown/ambiguous source remains protected staging with no customer lookup guess; sealed existing company never rewritten.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns.",
+      "Literal prohibited result: Oklar attribution hålls i skyddad karantän; ingen gissad tenant från kund-id.",
+      "Source trigger/given: Efter säker MIME-/syntaxklassificering / Inkommande EDIFACT",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh actual source paths include mail ingest tenant resolver, direct Ediel core, raw UNA parser and protected unresolved queue; positive own current legal context/transport and wrong hint/shared legal ambiguity regressions passed.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-06"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/inbound-mail/inboundTenantResolver.ts",
+      "lib/ediel/transport/tenantResolver.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts"
+    ],
+    "confirmed_code_gap": "Baseline existing company hint and generic business ref scoring could pick tenant without actual legal/transport/current role. Current own physical NAD+UNB decoded lookup verifies unique own legal/transport/current role; ACK original scope globally qualified before suppliedcompany check. Unknown/ambiguous source remains protected staging with no customer lookup guess; sealed existing company never rewritten.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns. → Identifiera en juridiskt ansvarig aktör; därifrån korrekt tenant-/servicekontext.",
+      "Literal prohibited result: Oklar attribution hålls i skyddad karantän; ingen gissad tenant från kund-id.",
+      "Source trigger/given: Efter säker MIME-/syntaxklassificering – prova både uppfyllt villkor och relevant fel-/gränsfall. / Inkommande EDIFACT",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh actual source paths include mail ingest tenant resolver, direct Ediel core, raw UNA parser and protected unresolved queue; positive own current legal context/transport and wrong hint/shared legal ambiguity regressions passed.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "SC-014"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-06"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/inbound-mail/inboundTenantResolver.ts",
+      "lib/ediel/transport/tenantResolver.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts"
+    ],
+    "confirmed_code_gap": "Baseline existing company hint and generic business ref scoring could pick tenant without actual legal/transport/current role. Current own physical NAD+UNB decoded lookup verifies unique own legal/transport/current role; ACK original scope globally qualified before suppliedcompany check. Unknown/ambiguous source remains protected staging with no customer lookup guess; sealed existing company never rewritten.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Skyddad staging och källstödd teknisk fel-/kvittenshantering där säkert möjlig.",
+      "Literal prohibited result: Gissa inte tenant från första kundträffen; fabricera inte objektsfel på egen konfigbrist.",
+      "Source trigger/given: MIME/EDI behandlas. / Teknisk mottagning lyckas men legal/tenantkontext är oklar.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh actual source paths include mail ingest tenant resolver, direct Ediel core, raw UNA parser and protected unresolved queue; positive own current legal context/transport and wrong hint/shared legal ambiguity regressions passed.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "TEN-11"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-11"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/rulebook/mapEdielError.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel.",
+      "Literal prohibited result: Skicka inte E10 eller42/209 enbart för att fel tenant valts lokalt.",
+      "Source trigger/given: Inkommande giltig marknadstrafik / Okänd lokal entitlement",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-11"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-11"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/rulebook/mapEdielError.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel. → Behåll föreskriven teknisk kvittens där säkert möjlig; utred egen behörighetskonfiguration utan dataexponering.",
+      "Literal prohibited result: Skicka inte E10 eller42/209 enbart för att fel tenant valts lokalt.",
+      "Source trigger/given: Inkommande giltig marknadstrafik – prova både uppfyllt villkor och relevant fel-/gränsfall. / Okänd lokal entitlement",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "SC-014"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-11"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/rulebook/mapEdielError.ts"
+    ],
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Skyddad staging och källstödd teknisk fel-/kvittenshantering där säkert möjlig.",
+      "Literal prohibited result: Gissa inte tenant från första kundträffen; fabricera inte objektsfel på egen konfigbrist.",
+      "Source trigger/given: MIME/EDI behandlas. / Teknisk mottagning lyckas men legal/tenantkontext är oklar.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "SC-047"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-11"
+    ],
+    "code_status": "COORDINATION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/rulebook/mapEdielError.ts",
+      "lib/ediel/ack/technicalSyntaxAuthority.ts",
+      "supabase/migrations/20260930184410_ediel_protected_technical_contrl_source_basis.sql",
+      "lib/ediel/core/outboundOwnerWitness.ts",
+      "supabase/migrations/20260930193722_ediel_outbound_canonical_owner_witness.sql"
+    ],
+    "confirmed_code_gap": "Local unresolved tenant/role/entitlement returns internal protected hold and no E10/42/209. Actual source-defined unknown object E10 remains separate only after syntax/national guide and genuine own role/context. Prescribed technical ACK safely possible before businessprofile/local entitlement is an outstanding source-specific integration concern assigned authority/root; do not claim preserved ACK for all national negative cases from a blocked company path. New d6c97782/184410 protects separate syntax-only CONTRL prospective technical endpoint and immutable committed common-owner syntax facet, including nullable business company, full reversed parties and globally unique source-prescribed first14 UCI. Actual root canonical syntax-before-legal-hold and typed kernel/provider hooks remain explicitly integration-pending; no fabricated business actor/pack.",
+    "blockers": [
+      "Actual first-effect/provider or source-specific technical ACK integration is coordinated with root; see precise gap.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
+      "Literal prohibited result: Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
+      "Source trigger/given: Pröva objektkontrollen. / Syntax och nationell anvisningskontroll har passerat. Rätt juridisk mottagare och roll är fastställda men objektet är okänt enligt den tillämpliga funktionskontrollen.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable.",
+      "Focused technical native SQL boundary25PG and14TS adapter PASS; whole actual syntax-owner/kernel/provider path final proof NOT RUN."
+    ],
+    "assessment": "Fresh internal/local classifier and own-object error distinction reviewed. Safe technical-ACK source basis without manufacturing businessprofile requires authority/root closure. Prospective original outbound native seal support now3c39d2fe; root actualcanonicalfinalizer insertion mapping and authority namedwitness consumer integration still pending, not inferredcomplete from helper.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202",
+      "d6c97782",
+      "3c39d2fe"
+    ]
+  },
+  {
+    "ids": [
+      "TEN-13"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-13"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/referenceRegistry.ts",
+      "lib/ediel/core/referenceGenerator.ts",
+      "lib/ediel/prodat/buildProdat.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql",
+      "supabase/migrations/20260930162005_ediel_service_permission_origination_v1.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO.",
+      "Literal prohibited result: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "Source trigger/given: Allokering och korrelation / BGM/UNB/IDE/tillstånd",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-13"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-13"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/referenceRegistry.ts",
+      "lib/ediel/core/referenceGenerator.ts",
+      "lib/ediel/prodat/buildProdat.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql",
+      "supabase/migrations/20260930162005_ediel_service_permission_origination_v1.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Unikhet i protokollets avsändar-/applikationsutrymme även när flera tenants nyttjar samma juridiska ESCO. → Lagra interna UUID och wire-id separat; entydigt ursprung för kvittenser.",
+      "Literal prohibited result: Tenantlokala räknare får inte krocka externt; LI ensam är inte tenantnyckel.",
+      "Source trigger/given: Allokering och korrelation – prova både uppfyllt villkor och relevant fel-/gränsfall. / BGM/UNB/IDE/tillstånd",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "SC-013"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-13"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/referenceRegistry.ts",
+      "lib/ediel/core/referenceGenerator.ts",
+      "lib/ediel/prodat/buildProdat.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930171116_ediel_wire_reference_namespace.sql",
+      "supabase/migrations/20260930162005_ediel_service_permission_origination_v1.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": "Baseline tenant-local/truncated generated refs risked collision; allocator now CSPR fullentropy and own bounded UNB versus transaction reference formats. Immutable physical namespace reservations enforce sender/app own UNB/UNH/BGM/IDE/ACK ownDM globally across tenants; LI never reserved as globaltenant key. Prospective trigger and actual provider prepare/send consume same authority; shared legal outbound allowed ownauthorizedcompany while inward unqualified remains globallyuniqueheld.",
+    "blockers": [
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
+      "Literal prohibited result: Tenant A:s ärende förblir oförändrat.",
+      "Source trigger/given: En kvittens för aktör B anländer till delad brevlåda. / Två aktörer har liknande LI/BGM-referenser i olika namnrymder.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Actual global ACK candidate qualification/fullparty/scope plus namespace trigger/service entry reviewed. Legacy unqualified universe holds rather than invented namespace history; actual concurrency/native proof deferred.",
+    "commits": [
+      "caed7dd9",
+      "ec262944",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "IMP-03"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "IMP-03"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "supabase/migrations/20260930170047_ediel_readiness_current_source_provenance.sql",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
+      "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql",
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql"
+    ],
+    "confirmed_code_gap": "Resolved baseline missing atomic registry/source import and prior contradictory-target safety: genuine source-byte/hash/normalized immutable run now applies in one authorized transaction. Forward182758 explicitly holds affected prior actor/family/environment/subaddress/application targets when new source address conflicts; own monotonic route history/current selected security/readiness dependencies invalidate. Exact unchanged scope and separate application scope preserve prior flags. Independent bounded SQL/source review of5329afb9 found no remaining Critical/Important in this component. Authentic external trust/original source completeness remains separate.",
+    "blockers": [
+      "Actor182758 contradictory-address prior route hold correction pending targeted proof.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Diff mot giltig snapshot; separation av registeruppgift, granskning och autosändningsberedskap.",
+      "Literal prohibited result: Importerad adress betyder inte giltigt certifikat eller klar produktion.",
+      "Source trigger/given: Preview/apply / Ruttändring",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Independent actual SQL/apply producers reviewed; addresses are source registry facts, not certificate or auto-send approval. Exact unchanged technicalscope preserves flags, conflicts must holdaffectedprior scope without inferred deletion.",
+    "commits": [
+      "00cc059e",
+      "8f3861e2",
+      "5329afb9"
+    ]
+  },
+  {
+    "ids": [
+      "AT-IMP-03"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "IMP-03"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "supabase/migrations/20260930170047_ediel_readiness_current_source_provenance.sql",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
+      "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql",
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql"
+    ],
+    "confirmed_code_gap": "Resolved baseline missing atomic registry/source import and prior contradictory-target safety: genuine source-byte/hash/normalized immutable run now applies in one authorized transaction. Forward182758 explicitly holds affected prior actor/family/environment/subaddress/application targets when new source address conflicts; own monotonic route history/current selected security/readiness dependencies invalidate. Exact unchanged scope and separate application scope preserve prior flags. Independent bounded SQL/source review of5329afb9 found no remaining Critical/Important in this component. Authentic external trust/original source completeness remains separate.",
+    "blockers": [
+      "Actor182758 contradictory-address prior route hold correction pending targeted proof.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Diff mot giltig snapshot; separation av registeruppgift, granskning och autosändningsberedskap. → Atomär/idempotent import med kvarstående konflikter och ny ruttversion.",
+      "Literal prohibited result: Importerad adress betyder inte giltigt certifikat eller klar produktion.",
+      "Source trigger/given: Preview/apply – prova både uppfyllt villkor och relevant fel-/gränsfall. / Ruttändring",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Independent actual SQL/apply producers reviewed; addresses are source registry facts, not certificate or auto-send approval. Exact unchanged technicalscope preserves flags, conflicts must holdaffectedprior scope without inferred deletion.",
+    "commits": [
+      "00cc059e",
+      "8f3861e2",
+      "5329afb9"
+    ]
+  },
+  {
+    "ids": [
+      "SC-057"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "IMP-03"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "supabase/migrations/20260930170047_ediel_readiness_current_source_provenance.sql",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
+      "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql",
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql"
+    ],
+    "confirmed_code_gap": "Resolved baseline missing atomic registry/source import and prior contradictory-target safety: genuine source-byte/hash/normalized immutable run now applies in one authorized transaction. Forward182758 explicitly holds affected prior actor/family/environment/subaddress/application targets when new source address conflicts; own monotonic route history/current selected security/readiness dependencies invalidate. Exact unchanged scope and separate application scope preserve prior flags. Independent bounded SQL/source review of5329afb9 found no remaining Critical/Important in this component. Authentic external trust/original source completeness remains separate.",
+    "blockers": [
+      "Actor182758 contradictory-address prior route hold correction pending targeted proof.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Identiska data skapar inte dubbletter. Marknader, roller och rutter bevaras. Motstridiga ändringar får tydlig behandling och körningen får slutstatus.",
+      "Literal prohibited result: En import med noll inlästa rutter får inte beskrivas som fullt sändningsklar. En avbruten körning får inte ligga obevakad som running.",
+      "Source trigger/given: Förhandsgranska och applicera kontrollerat. / Samma fil importeras två gånger. En senare registerversion innehåller tre motstridiga adressändringar.",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Independent actual SQL/apply producers reviewed; addresses are source registry facts, not certificate or auto-send approval. Exact unchanged technicalscope preserves flags, conflicts must holdaffectedprior scope without inferred deletion.",
+    "commits": [
+      "00cc059e",
+      "8f3861e2",
+      "5329afb9"
+    ]
+  },
+  {
+    "ids": [
+      "IMP-05"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "IMP-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "supabase/migrations/20260930170047_ediel_readiness_current_source_provenance.sql",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
+      "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql",
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql"
+    ],
+    "confirmed_code_gap": "Resolved baseline missing atomic registry/source import and prior contradictory-target safety: genuine source-byte/hash/normalized immutable run now applies in one authorized transaction. Forward182758 explicitly holds affected prior actor/family/environment/subaddress/application targets when new source address conflicts; own monotonic route history/current selected security/readiness dependencies invalidate. Exact unchanged scope and separate application scope preserve prior flags. Independent bounded SQL/source review of5329afb9 found no remaining Critical/Important in this component. Authentic external trust/original source completeness remains separate.",
+    "blockers": [
+      "Actor182758 contradictory-address prior route hold correction pending targeted proof.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Säkerhetsidentitet och registrerad adress verifieras tillsammans; bevara gammal version för historik.",
+      "Literal prohibited result: Skicka inte med nytt mejlmål och gammalt obestämt certifikatscope.",
+      "Source trigger/given: Ny ruttversion / Certifikat-/SMTP-byte",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Old before-update snapshots are genuine observed history rather than fabricated prior versions; no historical applied migration rewritten. Code completion depends on actual contradictoryroute source fix and integration review. Claims no new trust/activation evidence.",
+    "commits": [
+      "00cc059e",
+      "8f3861e2",
+      "5329afb9"
+    ]
+  },
+  {
+    "ids": [
+      "AT-IMP-05"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "IMP-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "lib/ediel/scopedCapabilityReadiness.ts",
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "supabase/migrations/20260930170047_ediel_readiness_current_source_provenance.sql",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
+      "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql",
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql"
+    ],
+    "confirmed_code_gap": "Resolved baseline missing atomic registry/source import and prior contradictory-target safety: genuine source-byte/hash/normalized immutable run now applies in one authorized transaction. Forward182758 explicitly holds affected prior actor/family/environment/subaddress/application targets when new source address conflicts; own monotonic route history/current selected security/readiness dependencies invalidate. Exact unchanged scope and separate application scope preserve prior flags. Independent bounded SQL/source review of5329afb9 found no remaining Critical/Important in this component. Authentic external trust/original source completeness remains separate.",
+    "blockers": [
+      "Actor182758 contradictory-address prior route hold correction pending targeted proof.",
+      "Broad native/replay/schema-types/security/browser/E2E/manual proof not run at final candidate."
+    ],
+    "planned_tests": [
+      "Literal own criterion: Säkerhetsidentitet och registrerad adress verifieras tillsammans; bevara gammal version för historik. → Invalidate berörda aktörers/tenants readiness och verifiera returväg.",
+      "Literal prohibited result: Skicka inte med nytt mejlmål och gammalt obestämt certifikatscope.",
+      "Source trigger/given: Ny ruttversion – prova både uppfyllt villkor och relevant fel-/gränsfall. / Certifikat-/SMTP-byte",
+      "On fixed candidate test actual manual/API/batch/inbound/retry/replay/direct native RPC consumer; tenant role/transport/source hash ambiguity held before any data effect, authenticated established prior outcome remains immutable."
+    ],
+    "assessment": "Old before-update snapshots are genuine observed history rather than fabricated prior versions; no historical applied migration rewritten. Code completion depends on actual contradictoryroute source fix and integration review. Claims no new trust/activation evidence.",
+    "commits": [
+      "00cc059e",
+      "8f3861e2",
+      "5329afb9"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z01L-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z01L-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z02L-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z02; fält223=Z22; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z02L-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z03L-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z03; fält223=Z22; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z03L-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z04L-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z04L-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z05L-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z05; fält223=Z22; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z05L-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z01LK-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z01LK-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z02LK-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z02; fält223=Z23; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z02LK-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z03LK-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z03; fält223=Z23; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z03LK-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z04LK-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z04LK-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z05LK-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z05; fält223=Z23; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z05LK-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z03C-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z03C-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z04C-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z04; fält223=Z24; CONTRL och tillämplig APERAK.; Upphäv endast rätt bekräftade/framtida period; vid redan verkställd effekt starta kontrollerad kompensation.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z04C-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z05C-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z05; fält223=Z24; CONTRL och tillämplig APERAK.; Återställ rätt avslutsbeslut efter kontroll; skapa inte duplicerad leveransperiod.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z05C-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z04A-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z04; fält223=Z26; CONTRL och tillämplig APERAK.; Registrera anvisningsprocess och korrekt start.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z04A-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z04D-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z04; fält223=Z70; CONTRL och tillämplig APERAK.; Skapa separat produktions-/mottagningsrelation, knyt till förbrukningsobjekt via319.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z04D-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z03H-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z03; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z03H-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z04H-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z04; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z04H-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z05H-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z05; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z05H-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z08H-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z08; fält223=Z25; CONTRL, APERAK och relevant Z05L enligt förlopp.; Bevakad avslutsbegäran och kontrollerat leveransslut.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z08H-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z08LK-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z08; fält223=Z23; Svar enligt uttryckligt avtal.; Bara den överenskomna avsluts-/flyttprocessen.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z08LK-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06E-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E34; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Uppdatera tillåtna kunduppgifter i rätt livshändelse; dödsfalls- och konkursärenden separata.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z06E-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z09E-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z09; fält223=E34; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z09E-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06F-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z06F-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z09F-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z09; fält223=E64; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z09F-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z06G-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z06G-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z09G-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z09; fält223=E32; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z09G-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z09B-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z09B-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z09D-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z09; fält223=Z70; CONTRL och APERAK; eventuella efterföljande mottagningspliktsförlopp separat.; Starta/avsluta rätt produktionsavtal.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z09D-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z10M-SUPPLIER"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal supplier identity remains distinct from internaltenant/transport; actual 23-DDQ-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z10M-SUPPLIER role/component reviewed: own 23-DDQ-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z13V-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z13; fält223=S17; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z13V-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z14V-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z14; fält223=S17; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z14V-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z15V-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z15; fält223=S17; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z15V-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z13VH-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z13; fält223=S18; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z13VH-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z14VH-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z14; fält223=S18; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z14VH-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z15VH-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z15; fält223=S18; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z15VH-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z14N-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z14; fält223=Z96; CONTRL och APERAK på själva Z14N om korrekt; ingen datarapportering.; Neka berörd begäran; lägg ingen market_permission för åtkomst.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z14N-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z15C-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z15; fält223=Z24; CONTRL och APERAK.; Återställ berört market_permission efter rätt korrelation. Återuppliva inte ett separat återkallat tenantåtkomstgrant.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z15C-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z18V-ESCO"
+    ],
+    "owner": "/root/matrix_projections",
+    "covered_rule_ids": [
+      "TEN-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/canonicalEdielFacade.ts",
+      "lib/ediel/rulebook/prodatApplicationReference.ts",
+      "lib/ediel/rulebook/businessSemantics.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/flows/supplyMarketTransition.ts",
+      "lib/ediel/permissions/permissionMarketTransition.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "lib/ediel/core/actorRegistry.ts",
+      "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "lib/ediel/tenant/resolveInboundTenant.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/tenant/sourceLegalContext.ts",
+      "supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql",
+      "supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Whole actual case business/ACK/grant clauses remain separately owned and must have their own fresh literal assessment; this role component cannot promote the whole case."
+    ],
+    "planned_tests": [
+      "Own literal expected: 23-DGI-PRODAT; BGM=Z18; fält223=S17; CONTRL, APERAK, tillämplig Z15.; Begär avslut av rätt marknadstillstånd; kontrollera andra giltiga serviceuppdrag innan gemensamt tillstånd sägs upp.",
+      "Own literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own role/app component: legal ESCO identity remains distinct from internaltenant/transport; actual 23-DGI-PRODAT; wrongrole/opposite process never authorizes own source mutation.",
+      "Test own raw BGM/CCI/CAV/APP semantic scope through manual render, native first-effect, queuedsend/retry/replay; positive Z14 permission and Z04 supply cannot cross-activate."
+    ],
+    "assessment": "Fresh literal AT-Z18V-ESCO role/component reviewed: own 23-DGI-PRODAT selected by canonical physical code/reason source semantics, not global actor default. Full given/when/expected/prohibited read; field numbers/ACK expectations and business state effects are independent PRODAT/process/ACK/actor components. No claims these other clauses passed or are codecomplete from this row.",
+    "commits": [
+      "68a643b3",
+      "5efd8124",
+      "c012e202"
+    ]
+  }
+]

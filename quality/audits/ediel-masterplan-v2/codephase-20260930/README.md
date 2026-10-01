@@ -1,0 +1,9 @@
+# Additive Ediel v2 code phase matrix
+
+`work-matrix.json` contains every frozen rule (121) and literal acceptance contract (231), exact original requirement/expected/prohibited records, normative source pointers and hashes, actual callsite contracts and file hashes, fresh owner assessments, dated inherited leads, separate current code and proof gaps, blockers and each ID's final proof criteria. It never changes the original registers or formal acceptance ledger.
+
+This is a refreshable code-phase checkpoint, not completion or acceptance. Original linked rules alone do not establish a contract's whole consumer chain: all 38 AT-Z contracts additionally require explicit fresh process/business review, and the nine ESCO cases require actor/grant/origination review. Resolved baseline implementation findings are separate from remaining code gaps. Every remaining/pending component is retained, including work proceeding in other owners' isolated branches.
+
+Run `python3 quality/audits/ediel-masterplan-v2/codephase-20260930/generate_matrix.py --repo-root <integrated-repository>` at a meaningful integration point. The generator reads the real supplied repository HEAD and hashes actual current files; it does not invent integration provenance or derive PASSED from tests, source-file existence or a rule link. Owner assessment files must be refreshed after implementation integration and independent review.
+
+Full unit/native/clean migration replay/authentic generated schema and types/security/browser/E2E/manual proofs remain NOT RUN in this checkpoint. The final test phase must bind its own exact criteria and results to one fixed candidate SHA. No activation or production sends are authorized by this matrix.

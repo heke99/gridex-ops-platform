@@ -1,0 +1,484 @@
+[
+  {
+    "ids": [
+      "TR-01"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-01"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/email/sendEdielEmail.ts",
+      "lib/ediel/transport/index.part-1.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "lib/ediel/core/productionGuards.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Native/API SMTP Ediel lane requires configured actual recipient, strict MIME/S-MIME and TLS; Resend application email lane cannot silently replace it; production portal/test_flag/APP are held even with editable systemTestAckSend metadata."
+    ],
+    "assessment": "Actual SMTP provider lane is separate from application mail; shared production/route/security gates run before new provider entry. Existing own immutable transport replay precedes current admission. c517e458 removes production metadata exemption; authentic full transport approval is not claimed.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-TR-01"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-01"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/email/sendEdielEmail.ts",
+      "lib/ediel/transport/index.part-1.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "lib/ediel/core/productionGuards.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Native/API SMTP Ediel lane requires configured actual recipient, strict MIME/S-MIME and TLS; Resend application email lane cannot silently replace it; production portal/test_flag/APP are held even with editable systemTestAckSend metadata."
+    ],
+    "assessment": "Actual SMTP provider lane is separate from application mail; shared production/route/security gates run before new provider entry. Existing own immutable transport replay precedes current admission. c517e458 removes production metadata exemption; authentic full transport approval is not claimed.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "TR-04"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-04"
+    ],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/ediel/transport/outboundAttempt.ts"
+    ],
+    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "blockers": [
+      "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
+    ],
+    "planned_tests": [
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+    ],
+    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-TR-04"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-04"
+    ],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/ediel/transport/outboundAttempt.ts"
+    ],
+    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "blockers": [
+      "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
+    ],
+    "planned_tests": [
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+    ],
+    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "SC-062"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-04"
+    ],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/ediel/transport/outboundAttempt.ts"
+    ],
+    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "blockers": [
+      "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
+    ],
+    "planned_tests": [
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+    ],
+    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "CALL-08"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-04"
+    ],
+    "code_status": "REMAINING_CODE_WORK",
+    "code_paths": [
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/ediel/transport/outboundAttempt.ts"
+    ],
+    "confirmed_code_gap": "Candidate lookup and quarantine exist; immutable source-correlated per-attempt DSN observation/API projection is being implemented.",
+    "blockers": [
+      "An unverified delivery report cannot prove authenticated final delivery or authorize a business effect/retry."
+    ],
+    "planned_tests": [
+      "multipart/report or delivery-status is classified before embedded original extraction; exact Final-Recipient/Action/Status/Diagnostic-Code + archived RFC ID identify only own entered attempt; an ambiguous/forged report stays quarantined; existing provider/ACK/business outcomes remain immutable."
+    ],
+    "assessment": "Own DSN classification/candidate component assessed directly; no tenant authority from returned original. Whole MIME attachment overflow is held and no prefix becomes processed. Final correlated observation packet remains code work; other CALL08 owners separately cover TEN06/AI01.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "TR-08"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-08"
+    ],
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/email/sendEdielEmail.ts",
+      "lib/ediel/mailReadiness.ts",
+      "lib/ediel/transport/index.part-1.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Authentic provider relay-TLS/SPF policy and actual downstream delivery trace are absent; first-hop TLS/port465 alone is not whole-transport proof."
+    ],
+    "planned_tests": [
+      "Actual relay requireTLS and certificate verification fail closed; SPF policy assessed separately; no next-hop verification/activation inferred from reachable first server; authentic provider/trace test later."
+    ],
+    "assessment": "Existing strict TLS/SPF/readiness code is preserved; absent actual provider/next-hop evidence remains an explicit external verification/activation blocker, not a guessed implementation defect.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-TR-08"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-08"
+    ],
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/email/sendEdielEmail.ts",
+      "lib/ediel/mailReadiness.ts",
+      "lib/ediel/transport/index.part-1.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Authentic provider relay-TLS/SPF policy and actual downstream delivery trace are absent; first-hop TLS/port465 alone is not whole-transport proof."
+    ],
+    "planned_tests": [
+      "Actual relay requireTLS and certificate verification fail closed; SPF policy assessed separately; no next-hop verification/activation inferred from reachable first server; authentic provider/trace test later."
+    ],
+    "assessment": "Existing strict TLS/SPF/readiness code is preserved; absent actual provider/next-hop evidence remains an explicit external verification/activation blocker, not a guessed implementation defect.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "TR-09"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-09"
+    ],
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/config.ts",
+      "lib/ediel/transport/index.part-1.ts",
+      "__tests__/ediel-transport-security-resolution.test.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Authentic T exception cases/conditions and authorized bounded deviation decision are absent. No exception capability is activated."
+    ],
+    "planned_tests": [
+      "Legacy plaintext bool plus reason and expiry cannot grant production cleartext; mandatory TLS persists; source-qualified bounded exception and independent incident/alarm proof require actual external ground."
+    ],
+    "assessment": "Actual hasActiveUnencryptedProductionOverride always false; the common runtime gate rejects the unsupported plaintext request. The operator request may remain visible but cannot mint source authority; missing authentic T conditions are held.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-TR-09"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-09"
+    ],
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "lib/ediel/config.ts",
+      "lib/ediel/transport/index.part-1.ts",
+      "__tests__/ediel-transport-security-resolution.test.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Authentic T exception cases/conditions and authorized bounded deviation decision are absent. No exception capability is activated."
+    ],
+    "planned_tests": [
+      "Legacy plaintext bool plus reason and expiry cannot grant production cleartext; mandatory TLS persists; source-qualified bounded exception and independent incident/alarm proof require actual external ground."
+    ],
+    "assessment": "Actual hasActiveUnencryptedProductionOverride always false; the common runtime gate rejects the unsupported plaintext request. The operator request may remain visible but cannot mint source authority; missing authentic T conditions are held.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "TR-11"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-11"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/transport/copy.ts",
+      "lib/ediel/transport/verifiedCopy.ts",
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Own current-actor API/UI reads only verified immutable MIME hash/size/RFC path with archive authorization; copy is separate from private transport truth; empty/missing sent folder/copy cannot grant resend or prove loss."
+    ],
+    "assessment": "Independent actual copy/provider/archive review found no scoped Critical/Important; own permission/raw scope checked. Read-only operations do not rewrite ACK/retry/provider truth. Broad native/browser/retention proof remains separate.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-TR-11"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "TR-11"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/transport/copy.ts",
+      "lib/ediel/transport/verifiedCopy.ts",
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Own current-actor API/UI reads only verified immutable MIME hash/size/RFC path with archive authorization; copy is separate from private transport truth; empty/missing sent folder/copy cannot grant resend or prove loss."
+    ],
+    "assessment": "Independent actual copy/provider/archive review found no scoped Critical/Important; own permission/raw scope checked. Read-only operations do not rewrite ACK/retry/provider truth. Broad native/browser/retention proof remains separate.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "OPS-03"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-03"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      ".github/workflows/ediel-masterplan-v2.yml",
+      ".github/workflows/full-e2e.yml",
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Final candidate SHA is still being integrated; authentic independent facit and real transport/TGT evidence remain separate."
+    ],
+    "planned_tests": [
+      "Exact candidate SHA/tree per own result; 121/231 literal requirements and forbidden outcomes individually asserted; unit/native/tenant-E2E/transport/TGT/spec evidence separate; wrong shared builder/validator mapping detected by independent versioned facit; only actually affected scopes get new evidence."
+    ],
+    "assessment": "CI criteria remain enabled; real GitHub run SHA is distinct from code status. Frozen original ledger untouched. Own OPS03 scope has explicit separate fixed-candidate test plan; GOV08/OPS01 companion components are assessed by their independent owners.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-OPS-03"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-03"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      ".github/workflows/ediel-masterplan-v2.yml",
+      ".github/workflows/full-e2e.yml",
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Final candidate SHA is still being integrated; authentic independent facit and real transport/TGT evidence remain separate."
+    ],
+    "planned_tests": [
+      "Exact candidate SHA/tree per own result; 121/231 literal requirements and forbidden outcomes individually asserted; unit/native/tenant-E2E/transport/TGT/spec evidence separate; wrong shared builder/validator mapping detected by independent versioned facit; only actually affected scopes get new evidence."
+    ],
+    "assessment": "CI criteria remain enabled; real GitHub run SHA is distinct from code status. Frozen original ledger untouched. Own OPS03 scope has explicit separate fixed-candidate test plan; GOV08/OPS01 companion components are assessed by their independent owners.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "SC-072"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-03"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      ".github/workflows/ediel-masterplan-v2.yml",
+      ".github/workflows/full-e2e.yml",
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Final candidate SHA is still being integrated; authentic independent facit and real transport/TGT evidence remain separate."
+    ],
+    "planned_tests": [
+      "Exact candidate SHA/tree per own result; 121/231 literal requirements and forbidden outcomes individually asserted; unit/native/tenant-E2E/transport/TGT/spec evidence separate; wrong shared builder/validator mapping detected by independent versioned facit; only actually affected scopes get new evidence."
+    ],
+    "assessment": "CI criteria remain enabled; real GitHub run SHA is distinct from code status. Frozen original ledger untouched. Own OPS03 scope has explicit separate fixed-candidate test plan; GOV08/OPS01 companion components are assessed by their independent owners.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "CALL-16"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-03"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      ".github/workflows/ediel-masterplan-v2.yml",
+      ".github/workflows/full-e2e.yml",
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Final candidate SHA is still being integrated; authentic independent facit and real transport/TGT evidence remain separate."
+    ],
+    "planned_tests": [
+      "Exact candidate SHA/tree per own result; 121/231 literal requirements and forbidden outcomes individually asserted; unit/native/tenant-E2E/transport/TGT/spec evidence separate; wrong shared builder/validator mapping detected by independent versioned facit; only actually affected scopes get new evidence."
+    ],
+    "assessment": "CI criteria remain enabled; real GitHub run SHA is distinct from code status. Frozen original ledger untouched. Own OPS03 scope has explicit separate fixed-candidate test plan; GOV08/OPS01 companion components are assessed by their independent owners.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "OPS-04"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-04"
+    ],
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md",
+      "lib/ediel/operations/exchangeLog.ts",
+      "lib/ediel/transport/acceptedProjection.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Actual agreed counterparty exercise/production mandate is outside this code task and has not been granted; authentic route/certificate/profile/tenant ground must be reviewed before that later phase."
+    ],
+    "planned_tests": [
+      "Later scoped incident/route/cert/profile/tenant trace on exact approved candidate/environment; agreed controlled real flow, no massreference import or blind retry."
+    ],
+    "assessment": "Runbook and source/transport journals support bounded later verification. No production bytes, counterparty test, activation or formal acceptance performed or claimed.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-OPS-04"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-04"
+    ],
+    "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
+    "code_paths": [
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md",
+      "lib/ediel/operations/exchangeLog.ts",
+      "lib/ediel/transport/acceptedProjection.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [
+      "Actual agreed counterparty exercise/production mandate is outside this code task and has not been granted; authentic route/certificate/profile/tenant ground must be reviewed before that later phase."
+    ],
+    "planned_tests": [
+      "Later scoped incident/route/cert/profile/tenant trace on exact approved candidate/environment; agreed controlled real flow, no massreference import or blind retry."
+    ],
+    "assessment": "Runbook and source/transport journals support bounded later verification. No production bytes, counterparty test, activation or formal acceptance performed or claimed.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "OPS-05"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/failureDisposition.ts",
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/ediel/rulebook/validator.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Unknown local/registry crash retains original and established ACK/outcomes, records typed internal failure; independent qualified national field defect remains protocol rejection; security/unsupported held; no invented AP42/xxx/ERR."
+    ],
+    "assessment": "Typed four-kind algebra and actual registry failure projections preserve independent national diagnostics while retaining internal incident. Actual consumer regression probes cover registry-unavailable case; broad observability/native proof later.",
+    "commits": []
+  },
+  {
+    "ids": [
+      "AT-OPS-05"
+    ],
+    "owner": "/root",
+    "covered_rule_ids": [
+      "OPS-05"
+    ],
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/core/failureDisposition.ts",
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/ediel/rulebook/validator.ts"
+    ],
+    "confirmed_code_gap": null,
+    "blockers": [],
+    "planned_tests": [
+      "Unknown local/registry crash retains original and established ACK/outcomes, records typed internal failure; independent qualified national field defect remains protocol rejection; security/unsupported held; no invented AP42/xxx/ERR."
+    ],
+    "assessment": "Typed four-kind algebra and actual registry failure projections preserve independent national diagnostics while retaining internal incident. Actual consumer regression probes cover registry-unavailable case; broad observability/native proof later.",
+    "commits": []
+  }
+]
