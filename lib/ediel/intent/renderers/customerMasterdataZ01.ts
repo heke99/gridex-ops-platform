@@ -71,6 +71,7 @@ export async function buildCustomerMasterdataZ01Draft(input: {
   }
 
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.dataRequest.customer_id,
     siteId: input.dataRequest.site_id,
     meteringPointId: input.dataRequest.metering_point_id,

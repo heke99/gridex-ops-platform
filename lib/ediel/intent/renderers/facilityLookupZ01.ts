@@ -82,6 +82,7 @@ export async function buildFacilityLookupZ01Draft(input: {
   }
 
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.request.customer_id,
     siteId: input.request.customer_site_id,
     meteringPointId: null,

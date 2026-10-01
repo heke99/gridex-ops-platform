@@ -44,7 +44,7 @@ export function evaluateProdatDeathStatus(input:DeathPolicyInput){
    let fact=objects.find(o=>o.installation.id===group.itemId&&o.installation.agency===group.identityAgency)
    if(fact){const actor=(role:string,p:DeathEventObject['legalSupplier'])=>same(one(header,'NAD',role),[p.id,p.qualifier,p.agency])
     const customer=fact.customer
-    if(fact.process.code!==code||fact.process.reason!==reason||li!==fact.lineItemReference||!same(one(group.segments,'NAD','UD'),[customer.id,customer.qualifier,customer.agency])||!actor('FR',fact.legalGridOwner)||!actor('DO',fact.legalSupplier)){
+    if(fact.process.code!==code||fact.process.reason!==reason||li!==fact.lineItemReference||!same(one(group.segments,'NAD','UD'),[customer.id,customer.qualifier,customer.agency])||!actor('FR',code==='Z09'?fact.legalSupplier:fact.legalGridOwner)||!actor('DO',code==='Z09'?fact.legalGridOwner:fact.legalSupplier)){
      fail('CONTEXT_MISMATCH','bedömningen tillhör inte eget objekt/kund/aktörer/LI/process',occurrence);fact=undefined
     }
    }

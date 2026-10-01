@@ -6,10 +6,12 @@ import {isSourceSwitchCommit, type SourceSwitchCommitObserver, type SourceSwitch
 import {resolveCanonicalTenantEdielIdentityWithEvidence, assertInboundTransportMatchesTenantIdentity} from '@/lib/ediel/tenant/tenantEdielIdentity'
 import {readSelectedFacilityEvidence, readSourceOwnerRow} from './sourceOwnerReads'
 import {readCommittedZ04Wire, type SourceObjectScope} from './sourceOwnerWire'
+import {isSourceCustomerLifeEventCommit,type SourceCustomerLifeEventCommitObserver} from '@/lib/ediel/flows/sourceCustomerLifeEventCommit'
+import {committedCustomerLifeEventOwners} from './customerLifeEventSourceOwner'
 
 import {persistReceivedSourceOwnerDecisions as persist, type SourceOwnerReceipt, type SourceOwnerSeed as Seed, type SourceObjectDecision as ObjectDecision} from './sourceOwnerPersistence'
 export type {SourceOwnerReceipt} from './sourceOwnerPersistence'
-export type SourceOwnerSession = {onSwitchCommitted:SourceSwitchCommitObserver;finish:()=>Promise<SourceOwnerReceipt>}
+export type SourceOwnerSession = {onSwitchCommitted:SourceSwitchCommitObserver;onCustomerLifeEventCommitted:SourceCustomerLifeEventCommitObserver;finish:()=>Promise<SourceOwnerReceipt>}
 
 /** A source-specific successful write handoff is required before reading owner
  * rows. Neither accepted rows found later nor cached status JSON authorizes it. */
@@ -70,6 +72,17 @@ export function createReceivedSourceOwnerSession(receipt:ReceivedSourceValidatio
   let pending:Promise<void> = Promise.resolve()
   const committedScopes = new Set<string>()
   return {
+    async onCustomerLifeEventCommitted(commit){
+      if(operation||!ready||!isSourceCustomerLifeEventCommit(commit))return
+      pending=pending.then(async()=>{
+        for(let index=0;index<entries.length;index++){
+          const entry=entries[index]
+          if(register.objects[index].disposition!=='accepted')continue
+          try{const owners=await committedCustomerLifeEventOwners(seed,commit,entry.object);if(owners)entries[index]={...entry,...owners,disposition:'accepted',reasons:[]}}catch{/* Preserve explicit unavailable scopes. */}
+        }
+      })
+      await pending
+    },
     async onSwitchCommitted(commit) {
       if (operation || !isSourceSwitchCommit(commit)) return
       const key = JSON.stringify([commit.switchRequestId,commit.supplyPeriodId])

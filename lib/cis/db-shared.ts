@@ -9,6 +9,7 @@ import { getContractLifecycleSummary } from '@/lib/customer-contracts/lifecycle'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { CustomerContactRow, CustomerRow } from '@/types/customers'
+import { readCustomerLifeEventExportProjection, type CustomerLifeEventExportProjection } from '@/lib/ediel/production/customerLifeEventExport'
 
 export function normalizeQuery(value?: string | null): string {
   return (value ?? '').trim().toLowerCase()
@@ -88,6 +89,7 @@ export type CustomerExportContext = {
   meteringPoint: MeteringPointRow | null
   contract: CustomerContractRow | null
   qualifiedStructure?:QualifiedCustomerStructure
+  customerLifeEvent?: CustomerLifeEventExportProjection | null
 }
 
 function preferPrimaryContact(contacts: CustomerContactRow[]): CustomerContactRow | null {
@@ -208,6 +210,7 @@ export async function getCustomerExportContext(params: {
   customerId: string
   siteId?: string | null
   meteringPointId?: string | null
+  actorUserId?: string | null
 }): Promise<CustomerExportContext> {
   if(params.edielStructure){
     const {assertEdielTenantActor}=await import('@/lib/ediel/services/authorization')
@@ -238,15 +241,20 @@ export async function getCustomerExportContext(params: {
     const {readQualifiedCustomerStructure}=await import('@/lib/ediel/sources/qualifiedCustomerStructure')
     qualifiedStructure=await readQualifiedCustomerStructure({...params.edielStructure,customerId:params.customerId,siteId:site.id,meteringPointId:meteringPoint.id})
   }
+  const customerLifeEvent = tenant.companyId && customer && tenant.tenantIssues.length === 0
+    ? await readCustomerLifeEventExportProjection({ companyId: tenant.companyId, customerId: customer.id, actorUserId: params.actorUserId ?? params.edielStructure?.actorUserId })
+    : null
+
   return {
     ...(qualifiedStructure?{qualifiedStructure}:{}),
     companyId: tenant.companyId,
     tenantIssues: tenant.tenantIssues,
-    customer,
+    customer: customer && customerLifeEvent ? { ...customer, ...customerLifeEvent.customerFields } : customer,
     contacts,
     site,
     meteringPoint,
     contract,
+    customerLifeEvent,
   }
 }
 

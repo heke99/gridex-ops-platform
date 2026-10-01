@@ -1,12 +1,37 @@
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {parseUna} from '@/lib/ediel/core/una'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
+import {copyDeathSelection,type DeathSelection} from './prodatDeathStatus'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
-type Row={message_code?:string|null;message_family?:string|null;raw_payload?:string|null;parsed_payload?:unknown}
+type Row={id?:string|null;direction?:string|null;company_id?:string|null;environment?:string|null;intent_id?:string|null;communication_route_id?:string|null;message_code?:string|null;message_family?:string|null;raw_payload?:string|null;parsed_payload?:unknown}
+type LifeEventContextBasis={kind:'customer_life_event';companyId:string;environment:'test'|'production';rawPayload:string;sourceEventId:string;sourceRevision:string;sourceDigest:string;businessContext:'death'|'bankruptcy'|'other_masterdata';bilateralCapabilityVerified:boolean;selection:DeathSelection}
+export type DeathStatusValidationContext=Readonly<LifeEventContextBasis&(
+ {direction:'outbound';code:'Z09';intentId:string;routeId:string}|{direction:'inbound';code:'Z06';sourceMessageId:string})>
+const qualified=new WeakSet<object>()
+function freeze<T>(v:T):T{if(v&&typeof v==='object'){Object.freeze(v);for(const child of Object.values(v))freeze(child)}return v}
+/** Trusted server source resolver only. Pure selection/serialized metadata is
+ * deliberately not an authority context and cannot survive a copy/reload. */
+export function bindDeathStatusSourceContext(input:DeathStatusValidationContext):DeathStatusValidationContext{
+ if(input.kind!=='customer_life_event'||!input.companyId||!input.sourceEventId||!input.sourceRevision||!/^([a-f0-9]{64})$/.test(input.sourceDigest)||!input.rawPayload||!['test','production'].includes(input.environment)||!['death','bankruptcy','other_masterdata'].includes(input.businessContext)||input.businessContext!=='death'&&!input.bilateralCapabilityVerified
+  ||input.direction==='outbound'&&(input.code!=='Z09'||!input.intentId||!input.routeId)||input.direction==='inbound'&&(input.code!=='Z06'||!input.sourceMessageId)||!['inbound','outbound'].includes(input.direction))throw new Error('customer_life_event_source_context_invalid')
+ const result=freeze({...input,selection:copyDeathSelection(input.selection)})
+ qualified.add(result);return result
+}
+export function isQualifiedDeathStatusContext(value:unknown):value is DeathStatusValidationContext{return Boolean(value&&typeof value==='object'&&qualified.has(value))}
+export function assertDeathStatusContextMatches(row:Row,context:DeathStatusValidationContext){
+ if(!isQualifiedDeathStatusContext(context)||row.raw_payload!==context.rawPayload||row.message_code!==context.code||row.company_id!==context.companyId||row.environment!==context.environment||row.direction!==context.direction
+  ||context.direction==='outbound'&&(row.intent_id!==context.intentId||row.communication_route_id!==context.routeId)||context.direction==='inbound'&&row.id!==context.sourceMessageId)throw new Error('customer_life_event_source_context_mismatch')
+}
 const record=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{}
 /** Separate producer policy: eligible persisted sources are not qualified.
  * Never use this guard for inbound or pure protocol validation. */
-export function deathStatusSendIssue(row:Row):EdielRulebookIssue|null{
+export function deathStatusSendIssue(row:Row,context?:DeathStatusValidationContext):EdielRulebookIssue|null{
+ if(context){
+  if(context.direction!=='outbound')return {scope:'prodat_dependent',severity:'error',blocking:true,code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',title:'Fel riktning för kundstatuskälla',description:'Mottagen source authority får inte auktorisera en utgående producent.',fieldPath:'CCI++Z17/CAV'}
+  try{assertDeathStatusContextMatches(row,context)}catch{return {scope:'prodat_dependent',severity:'error',blocking:true,code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED',title:'Kundstatus saknar kvalificerad utgående producent',description:'Aktuell fristående livshändelsekälla matchar inte egna frysta meddelandebytes och scope.',fieldPath:'CCI++Z17/CAV'}}
+  const own=tokenizeEdifact(row.raw_payload??'')
+  return validateProdatDeathStatus({code:context.code,rawSegments:own.segments.map(s=>s.raw),una:own.una,direction:'outbound',facts:{deathStatus:context.selection}}).find(i=>i.blocking||i.severity==='error')??null
+ }
  const raw=(row.raw_payload??'').trimStart(),advice=parseUna(raw),literal=(s:string)=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
  const r=literal(advice.releaseCharacter),t=literal(advice.segmentTerminator),e=literal(advice.dataElementSeparator)
  const header=new RegExp(`(?:^|(?<!${r})(?:${r}${r})*${t})\\s*(?:UNB|UNH|BGM)${e}`,'i')
@@ -30,4 +55,4 @@ export function deathStatusSendIssue(row:Row):EdielRulebookIssue|null{
  // Invalid own scope and forbidden310 remain protected, without holding all F/G/D.
  return validateProdatDeathStatus({code,rawSegments:wire.segments.map(s=>s.raw),una:wire.una}).find(i=>i.blocking||i.severity==='error')??null
 }
-export function assertDeathStatusSendBoundary(row:Row){const issue=deathStatusSendIssue(row);if(issue)throw new Error(`${issue.code}: ${issue.description}`)}
+export function assertDeathStatusSendBoundary(row:Row,context?:DeathStatusValidationContext){const issue=deathStatusSendIssue(row,context);if(issue)throw new Error(`${issue.code}: ${issue.description}`)}

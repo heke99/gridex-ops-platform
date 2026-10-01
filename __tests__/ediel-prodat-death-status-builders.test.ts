@@ -4,22 +4,23 @@ import {buildProfiledProdatSegments} from '@/lib/ediel/prodat/builders/profileRe
 import {validateEdielTgtDraft} from '@/lib/ediel/testing/tgtEdifact'
 import {deathRaw,deathBody} from './fixtures/prodat-death-status'
 import type {EdielTgtExpectedStep} from '@/lib/ediel/testing/tgtRegistry'
-it('profile renderer projects source-required Z09E without redundant event facts',()=>{
+it('profile renderer holds Z09E without independent death facts',()=>{
  const result=buildProfiledProdatSegments({context:{code:'Z09',senderEdielId:'12345',receiverEdielId:'54321',bgmReference:'DOC',transactionReference:'LI-A',customerName:'Synthetic',customerId:'CUSTOMER-A',meterPointId:'A',meterPointIdAgency:'89'},mode:'test',variant:'E',generatedAt:new Date('2026-09-19T12:00:00Z')})
- expect(result.segments).toEqual(expect.arrayContaining(['CCI++Z17','CAV+Z41']))
- expect(result.issues.filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_'))).toEqual([])
- expect(result.diagnostics.dependentConditionStatuses?.find(i=>i.fieldNumber==='310')).toMatchObject({status:'required',decisionPhase:'rendered_wire_death_status'})
+ expect(result.segments).not.toContain('CAV+Z41')
+ expect(result.issues.some(i=>i.code==='PRODAT_DEATH_STATUS_UNDETERMINED')).toBe(true)
+ expect(result.diagnostics.dependentConditionStatuses?.find(i=>i.fieldNumber==='310')).toMatchObject({status:'undetermined',decisionPhase:'rendered_wire_death_status'})
 })
-it('TGT actual validator enforces source Z09E and tolerates eligible U absence',()=>{
+it('TGT code alone does not establish an independent life event',()=>{
  const step={stepNo:1,family:'PRODAT',code:'Z09',actor:'portal',direction:'inbound'} as EdielTgtExpectedStep
- expect(validateEdielTgtDraft(deathRaw('Z09'),step).map(i=>i.code)).toContain('PRODAT_DEATH_STATUS_REQUIRED')
+ expect(validateEdielTgtDraft(deathRaw('Z09'),step).filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_'))).toEqual([])
  expect(validateEdielTgtDraft(deathRaw('Z06',deathBody()),{...step,code:'Z06'}).filter(i=>i.code.startsWith('PRODAT_DEATH_STATUS_'))).toEqual([])
 })
 import {buildProdatMessage,type BuildProdatMessageInput} from '@/lib/ediel/prodat/buildProdat'
 import {deathSelection} from './fixtures/prodat-death-status'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 it('generic pure builder projects own source Z09E status and retains explicit invalid caller status',()=>{
- const request:BuildProdatMessageInput={companyId:'tenant',role:'supplier',businessCode:'Z09',transactionSubtype:'E',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A',identityAgency:'89'},customer:{id:'CUSTOMER-A',idAgency:'89',name:'Synthetic',address:'Street',city:'Town',postalCode:'12345',country:'SE'},dates:{validityStartDate:'202610010000'},references:{LI:'LI-A'},codedAttributes:{Z13:'E34'},environment:'test',dependentConditionFacts:{endUserAddressObjects:[selectedAddressFact('A','tenant','89','CUSTOMER-A',['Street'])],invoiceeObjects:[selectedInvoiceeFact('A','tenant','89','CUSTOMER-A',['Street'],'','12345','Town','SE')]}}
+ const selection=deathSelection('death','Z09');selection.objects[0].legalSupplier.id='12345';selection.objects[0].legalGridOwner.id='54321'
+ const request:BuildProdatMessageInput={companyId:'tenant',role:'supplier',businessCode:'Z09',transactionSubtype:'E',sender:{edielId:'12345'},receiver:{edielId:'54321'},meteringPoint:{id:'A',identityAgency:'89'},customer:{id:'CUSTOMER-A',idAgency:'89',name:'Synthetic',address:'Street',city:'Town',postalCode:'12345',country:'SE'},dates:{validityStartDate:'202610010000'},references:{LI:'LI-A'},codedAttributes:{Z13:'E34'},environment:'test',businessContext:'death',dependentConditionFacts:{deathStatus:selection,endUserAddressObjects:[selectedAddressFact('A','tenant','89','CUSTOMER-A',['Street'])],invoiceeObjects:[selectedInvoiceeFact('A','tenant','89','CUSTOMER-A',['Street'],'','12345','Town','SE')]}}
  expect(buildProdatMessage(request).rawEdifact).toContain("CCI++Z17'CAV+Z41'")
  expect(()=>buildProdatMessage({...request,codedAttributes:{Z13:'E34',Z17:'BAD'}})).toThrow('endast Z41 är giltigt')
 })
