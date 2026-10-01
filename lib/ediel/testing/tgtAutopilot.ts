@@ -1,3 +1,4 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
 import {buildEdielTgtRegisteredCustomerEventDraft} from './tgtEdifact.part-4';
 import {prepareTgtCustomerLifeEventSource,prepareTgtCustomerEventOriginal} from './tgtCustomerLifeEventSource';
 import {resolveTgtReportingBuildContext} from './tgtReportingPermissionContext'
@@ -391,6 +392,8 @@ async function createDraftForStep(params: {
 
   const dateBuild=params.step.family==='PRODAT'?await resolveTgtDateEventBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,code:params.step.code,runtime:systemTestContext,testData:importedTestData??getEdielTgtTestDataForCase(params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}):undefined;
   const reportingBuild=params.step.family==='PRODAT'&&params.step.code==='Z13'?await resolveTgtReportingBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,runtime:systemTestContext}):undefined;
+  // Current tenant actor authority precedes any classified source read.
+  if(params.step.family==='PRODAT'&&params.step.code==='Z09')await assertEdielTenantActor({companyId:String(params.evaluation.testRun.company_id??''),actorUserId:params.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']});
   const classifiedOriginal=await prepareTgtCustomerEventOriginal({companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId,family:params.step.family,code:params.step.code});
   const buildParams = {
     actorUserId: params.actorUserId,
@@ -434,7 +437,9 @@ async function createDraftForStep(params: {
     }
   }
 
-  await prepareTgtCustomerLifeEventSource({draft,companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId});
+  // Same contract as the manual consumer: only an independently classified
+  // test original carries the customer life-event source context.
+  if(classifiedOriginal)await prepareTgtCustomerLifeEventSource({draft,companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId});
   const blockingIssues = draft.validationIssues.filter(
     (issue) => issue.severity === "error",
   );

@@ -33,6 +33,7 @@ import { getEdielTgtTestCaseByCode } from "@/lib/ediel/testing/tgtRegistry"
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact"
 import {buildEdielTgtRegisteredCustomerEventDraft} from '@/lib/ediel/testing/tgtEdifact.part-4'
 import {prepareTgtCustomerEventOriginal,prepareTgtCustomerLifeEventSource} from '@/lib/ediel/testing/tgtCustomerLifeEventSource'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority'
 import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
@@ -866,6 +867,8 @@ export async function createEdielTgtDraftAction(formData: FormData) {
     testData:importedTestData ?? getEdielTgtTestDataForCase(testSuite,roleCode,testCaseCode)}) : undefined;
   const reportingBuild=run&&step.family==='PRODAT'&&step.code==='Z13'?await resolveTgtReportingBuildContext({run,stepNo,runtime:systemTestContext}):undefined;
   const registerFacts=reportingBuild?.facts??dateBuild?.facts;
+  // Current tenant actor authority precedes any classified source read.
+  if(run&&step.family==='PRODAT'&&step.code==='Z09')await assertEdielTenantActor({companyId,actorUserId:context.userId,permissionAnyOf:['communication.write','ediel_testing.write']});
   const classifiedOriginal=run?await prepareTgtCustomerEventOriginal({companyId,runId:run.id,stepNo,actorUserId:context.userId,family:step.family,code:step.code}):undefined;
   const buildParams = {
     actorUserId: context.userId,
