@@ -19,6 +19,15 @@ describe('source permission gateway command identity',()=>{
   expect(old.status).toBe('sent')
   expect(mocks.finalize.mock.calls[0][0].duplicateCheck.sourceId).toBe(input.intentId)
  })
+ it('resumes only the private-bound first draft and preserves its established result on replay',async()=>{
+  const current={id:'own-first-draft',company_id:'tenant',intent_id:input.intentId,outbound_request_id:input.outboundRequestId,status:'draft',external_reference:'OWN-FIRST-LI'}
+  mocks.reserve.mockResolvedValue({status:'reserved',messageId:current.id});mocks.message.mockResolvedValue(current)
+  mocks.queue.mockImplementation(async()=>{current.status='queued'})
+  expect((await renderAndQueueServicePermission({...input,origin:{...input.origin,code:'Z13'}})).status).toBe('queued')
+  expect(mocks.build).not.toHaveBeenCalled();expect(mocks.finalize).not.toHaveBeenCalled();expect(mocks.queue).toHaveBeenCalledOnce()
+  expect((await renderAndQueueServicePermission({...input,origin:{...input.origin,code:'Z13'}})).status).toBe('existing')
+  expect(mocks.queue).toHaveBeenCalledOnce();expect(current.status).toBe('queued')
+ })
  it('queues only the current command message after a separate source cancelled termination cycle',async()=>{
   const current={id:'new-cycle-message',company_id:'tenant',intent_id:input.intentId,outbound_request_id:input.outboundRequestId,status:'draft',external_reference:'NEW-LI'}
   mocks.reserve.mockResolvedValueOnce({status:'reserved',messageId:null}).mockResolvedValueOnce({status:'reserved',messageId:current.id});mocks.finalize.mockResolvedValue(current)

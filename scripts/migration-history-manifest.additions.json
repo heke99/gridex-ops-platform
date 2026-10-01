@@ -245,6 +245,7 @@
     "20260930233357_ediel_atomic_accepted_message_and_source_repair.sql": "cddb82b411005d3a5cb7a94245ad519127fe94d073f4cd42fd4eb71eba539196",
     "20260930233558_ediel_method_expectation_actor_scope_v1.sql": "ed7aaf6d32b36a5a204e44da5260ea2aeba3ddc0bdc1347d4f0b39dc1c30bef7",
     "20260930235816_ediel_service_permission_source_requested_method.sql": "a1bd74ef686f14861093b688939f6199d46539a1c9853db75d74a1ba844524ae",
-    "20261001000459_ediel_immutable_inbound_reception_response_requests.sql": "ac9d54e65564c53124a8c1a4d4ed6a947ec41c0d3cc0585cf5194311aff11eb7"
+    "20261001000459_ediel_immutable_inbound_reception_response_requests.sql": "ac9d54e65564c53124a8c1a4d4ed6a947ec41c0d3cc0585cf5194311aff11eb7",
+    "20261001020640_ediel_service_permission_manual_source_commands.sql": "a29947c7e39e2cec87c59074ced5edcaccd7bd2ca0a44617066b9f766dcce7e9"
   }
 }

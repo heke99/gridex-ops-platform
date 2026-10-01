@@ -1,9 +1,9 @@
 import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition';
+import { prepareManualServicePermission } from '@/lib/ediel/services/manualPermission';
 import type { EdielMessageRow } from '@/lib/ediel/types';
 import { supabaseService } from "@/lib/supabase/service";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { createGridOwnerDataRequest } from "@/lib/cis/db-data";
-import { createOutboundRequest } from "@/lib/cis/db-outbound";
 import { prepareAndQueueProdatZ01FromDataRequest } from "@/lib/ediel/flows/prodatCustomerMasterdata";
 import { resolveCustomerInfoOperationEnvironment } from "@/lib/ediel/customerInfoEnvironmentResolver";
 import { evaluateSiteFacilityIdentity } from "@/lib/customer-operations/customerIntakeOrchestrator";
@@ -1568,6 +1568,8 @@ export async function queueMeteringPermissionForZ13(input: {
   companyId: string;
   actorUserId: string;
   permissionId: string;
+  assignmentId?: string;
+  expectedVersion?: number;
 }): Promise<{
   permission: MeteringPermissionRow;
   gridOwnerDataRequestId: string | null;
@@ -1584,114 +1586,24 @@ export async function queueMeteringPermissionForZ13(input: {
     throw new Error("Mätvärdestillstånd hittades inte för valt bolag.");
   await assertCustomerBelongsToCompany(permission.customer_id, input.companyId);
 
-  const scopes = await listActiveAuthorizationScopesForCustomer({
+  const result = await prepareManualServicePermission({
     companyId: input.companyId,
-    customerId: permission.customer_id,
-  });
-
-  if (!scopes.some((scopeRow) => scopeRow.covers_metering_data)) {
-    const { data, error } = await supabaseService
-      .from("metering_permissions")
-      .update({
-        status: "missing_authorization",
-        last_blocker:
-          "Fullmakt/avtal måste täcka mätvärden innan PRODAT Z13 kan skickas.",
-        updated_by: input.actorUserId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("company_id", input.companyId)
-      .eq("id", permission.id)
-      .select("*")
-      .single();
-
-    if (error) throw error;
-    return {
-      permission: data as MeteringPermissionRow,
-      gridOwnerDataRequestId: null,
-      outboundRequestId: null,
-    };
-  }
-
-  const automationKey = `metering-permission:${permission.id}:z13`;
-  const gridOwnerDataRequest = await createGridOwnerDataRequest({
     actorUserId: input.actorUserId,
     customerId: permission.customer_id,
-    siteId: permission.site_id,
-    meteringPointId: permission.metering_point_id,
-    gridOwnerId: permission.grid_owner_id,
-    requestScope: "meter_values",
-    requestedPeriodStart: permission.requested_start_date,
-    requestedPeriodEnd: permission.requested_end_date,
-    externalReference:
-      permission.case_reference ??
-      `Z13-${permission.id.slice(0, 8).toUpperCase()}`,
-    notes: "Skapad från mätvärdestillstånd/Z13-flöde.",
-    automationOrigin: "metering_permission",
-    automationKey,
-    authorizationDocumentId: permission.authorization_document_id,
-    requestPayload: {
-      authorization_document_id: permission.authorization_document_id,
-      metering_permission_id: permission.id,
-    },
+    selection: { permissionId: permission.id, assignmentId: input.assignmentId, expectedVersion: input.expectedVersion, code: 'Z13' },
   });
-
-  const outbound = await createOutboundRequest({
-    actorUserId: input.actorUserId,
-    customerId: permission.customer_id,
-    siteId: permission.site_id,
-    meteringPointId: permission.metering_point_id,
-    gridOwnerId: permission.grid_owner_id,
-    requestType: "meter_values",
-    sourceType: "grid_owner_data_request",
-    sourceId: gridOwnerDataRequest.id,
-    periodStart: permission.requested_start_date,
-    periodEnd: permission.requested_end_date,
-    externalReference:
-      permission.case_reference ?? gridOwnerDataRequest.external_reference,
-    automationOrigin: "metering_permission_z13",
-    automationKey: `outbound:${automationKey}`,
-    authorizationDocumentId: permission.authorization_document_id,
-    payload: {
-      authorization_document_id: permission.authorization_document_id,
-      prodatCode: "Z13",
-      expectedResponse: "PRODAT Z14 V/VH eller Z14N",
-      meteringPermissionId: permission.id,
-      gridOwnerDataRequestId: gridOwnerDataRequest.id,
-    },
+  // The source owner and ordinary intent/outbox service own all market state.
+  // Missing legal/source basis is a durable review task, never a status reset.
+  const current = await getMeteringPermissionById({
+    companyId: input.companyId,
+    permissionId: permission.id,
   });
-
-  const metadata = {
-    ...((permission as unknown as { metadata?: Record<string, unknown> })
-      .metadata ?? {}),
-    z13: {
-      gridOwnerDataRequestId: gridOwnerDataRequest.id,
-      outboundRequestId: outbound.id,
-      queuedAt: new Date().toISOString(),
-    },
-  };
-
-  const { data, error } = await supabaseService
-    .from("metering_permissions")
-    .update({
-      status: "z13_ready",
-      case_reference:
-        permission.case_reference ?? gridOwnerDataRequest.external_reference,
-      last_blocker: null,
-      metadata,
-      updated_by: input.actorUserId,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("company_id", input.companyId)
-    .eq("id", permission.id)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-
+  if (!current) throw new Error('ediel_service_manual_permission_not_owned');
   return {
-    permission: data as MeteringPermissionRow,
-    gridOwnerDataRequestId: gridOwnerDataRequest.id,
-    outboundRequestId: outbound.id,
+    permission: current,
+    gridOwnerDataRequestId: null,
+    outboundRequestId: 'outboundRequestId' in result && typeof result.outboundRequestId === 'string' ? result.outboundRequestId
+      : 'message' in result && result.message && typeof result.message.outbound_request_id === 'string' ? result.message.outbound_request_id : null,
   };
 }
 

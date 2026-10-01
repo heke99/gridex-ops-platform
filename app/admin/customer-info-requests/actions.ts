@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminActionAccess } from "@/lib/admin/guards";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
+import { parseManualServiceAssignmentSelection } from '@/lib/ediel/services/manualPermission';
 import {
   createAuthorizationScope,
   createCustomerInfoRequest,
@@ -149,7 +150,7 @@ export async function queueCustomerInfoRequestAction(formData: FormData) {
 }
 
 export async function queueMeteringPermissionZ13Action(formData: FormData) {
-  await requireAdminActionAccess(["metering.write", "communication.send"]);
+  await requireAdminActionAccess(["metering.write", "communication.write"]);
   const actor = await currentActor();
   const permissionId = text(formData, "permission_id");
 
@@ -159,6 +160,7 @@ export async function queueMeteringPermissionZ13Action(formData: FormData) {
     companyId: actor.companyId,
     actorUserId: actor.userId,
     permissionId,
+    ...parseManualServiceAssignmentSelection(nullableText(formData, 'service_assignment_selection')),
   });
 
   revalidatePath("/admin/customer-info-requests");

@@ -2,7 +2,7 @@ import { generateEdielInterchangeReference, generateEdielTransactionReference } 
 import { supabaseService } from '@/lib/supabase/service'
 import { createOutboundRequest } from '@/lib/cis/db'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
-import { coordinateEdielServicePermission } from '@/lib/ediel/services/commands'
+import { coordinateEdielServicePermission,resolveEdielServicePermissionCommand } from '@/lib/ediel/services/commands'
 import { readServicePermissionOrigin } from '@/lib/ediel/services/permissionOrigin'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import { resolveApplicationReferenceForProcess } from '@/lib/ediel/intent/applicationReferencePolicy'
@@ -23,6 +23,12 @@ async function prepare(input: PrepareServicePermissionParams, code: 'Z13' | 'Z18
     permissionId = coordinated.permissionId
   }
   if (!permissionId) return { status: 'held' as const, missing: ['source_bound_permission_required'] }
+  let draftResume: {intentId?:string;outboundRequestId?:string}|undefined
+  if(code==='Z13'){
+    const resolution=await resolveEdielServicePermissionCommand({...input,permissionId})
+    if(resolution.status==='held'||resolution.status==='reuse_permission')return resolution
+    draftResume=resolution
+  }
   const origin = { ...input, permissionId, code }
   const basis = await readServicePermissionOrigin(origin)
   if (basis.status === 'held') return basis
@@ -46,6 +52,7 @@ async function prepare(input: PrepareServicePermissionParams, code: 'Z13' | 'Z18
     idempotencyKey: `service-permission:${basis.permissionId}:${code}${code === 'Z18' ? `:${basis.evidenceId}:${basis.permissionStateVersion}` : ''}`,
     payload: { sourcePermissionBasis: basis, actorRole: 'esco', externalReference: reference, authorizationReference: basis.agreementReference ?? null }, actorUserId: input.actorUserId,
     routeProfile: { actorRole: 'esco', applicationReference: route.applicationReference } })
+  if(draftResume?.intentId&&intent.id!==draftResume.intentId)throw new Error('ediel_permission_resume_intent_mismatch')
   // Use an actual tenant-owned outbound request so canonical duplicate lookup
   // cannot fall through to an unrelated message of the same family/code.
   const { data: requests, error } = await supabaseService.from('outbound_requests').select('id,company_id')
@@ -57,6 +64,7 @@ async function prepare(input: PrepareServicePermissionParams, code: 'Z13' | 'Z18
     customerId: basis.customerId, requestType: 'metering_access', sourceType: 'manual', sourceId: intent.id,
     communicationRouteId: route.route.id, operationId: basis.permissionId, environment: basis.environment, failOnMissingEnvironment: true,
     payload: { serviceAssignmentId: basis.assignmentId, permissionId: basis.permissionId, servicePermissionCommandKey:intent.id, messageCode: code, sourceEvidenceId: basis.evidenceId } })).id
+  if(draftResume?.outboundRequestId&&outboundRequestId!==draftResume.outboundRequestId)throw new Error('ediel_permission_resume_request_mismatch')
   return renderAndQueueServicePermission({ intentId: intent.id, origin, basis, routeContext: route, outboundRequestId })
 }
 
