@@ -20,6 +20,7 @@ export default defineConfig({
     'scripts/ediel-closure-wire-native.test.ts',
     'scripts/ediel-utilts-consumption-native.test.ts',
     'scripts/ediel-correction-context-native.test.ts',
+    'scripts/ediel-correction-process-native.test.ts',
     'scripts/ediel-document-reference-native.test.ts',
     'scripts/ediel-z04-ack-native.test.ts',
     'scripts/ediel-utilts-err-gateway-native.test.ts',
