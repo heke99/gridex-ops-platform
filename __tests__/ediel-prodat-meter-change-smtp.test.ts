@@ -2,6 +2,8 @@ import {beforeEach,it,expect,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {changeRaw} from './fixtures/prodat-meter-change'
 const io=vi.hoisted(()=>({rpc:vi.fn(async(name:string,args:unknown)=>{
+ // Declared native customer-masterdata basis read: no projection for this row.
+ if(name==='ediel_customer_masterdata_message_basis_v1'){expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_message_id:'00000000-0000-4000-8000-000000000001',p_actor_user_id:'00000000-0000-4000-8000-000000000003'});return {data:null,error:null}}
  if(name!=='gridex_ediel_accepted_transport_projection_v1')throw new Error('UNEXPECTED_RPC_BOUNDARY')
  expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000003',p_message_id:'00000000-0000-4000-8000-000000000001'})
  return {data:null,error:null}
@@ -15,6 +17,9 @@ for(const [wire,label] of [['Z10','Z10'],['Z10','Z04'],['Z04','Z10']])it(`actual
  const row={id:'00000000-0000-4000-8000-000000000001',company_id:'00000000-0000-4000-8000-000000000002',direction:'outbound',environment:'test',message_family:'PRODAT',message_code:label,raw_payload:changeRaw().replace('BGM+Z10+','BGM+'+wire+'+'),parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence:{facts:{meterChange:{source:{kind:'tgt'}}}}}}} as unknown as EdielMessageRow
  const before=structuredClone(row)
  await expect(sendEdielMessageViaSmtp(row,{actorUserId:'00000000-0000-4000-8000-000000000003'})).rejects.toThrow('PRODAT_METER_CHANGE_SOURCE_UNQUALIFIED')
- expect(io.rpc).toHaveBeenCalledExactlyOnceWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:row.company_id,p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000003',p_message_id:row.id})
+ const names=io.rpc.mock.calls.map(([name])=>name)
+ expect(names.filter(name=>name==='gridex_ediel_accepted_transport_projection_v1')).toHaveLength(1)
+ expect(names.every(name=>['gridex_ediel_accepted_transport_projection_v1','ediel_customer_masterdata_message_basis_v1'].includes(name))).toBe(true)
+ expect(io.rpc).toHaveBeenCalledWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:row.company_id,p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000003',p_message_id:row.id})
  expect(io.from).not.toHaveBeenCalled();expect(io.provider).not.toHaveBeenCalled();expect(io.event).not.toHaveBeenCalled();expect(io.update).not.toHaveBeenCalled();expect(row).toEqual(before)
 })
