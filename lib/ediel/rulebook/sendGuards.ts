@@ -5,8 +5,9 @@ import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermission
 import type {TgtDateEventValidationContext} from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { type RulebookValidationResult, validateEdielMessageRowWithRulebook } from '@/lib/ediel/rulebook/validator'
+import { sourceQualifiedNegativeFixtureMatchesMessage, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 
-export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext): RulebookValidationResult | null {
+export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventContext?:TgtDateEventValidationContext,reportingContext?:ExpectedContext,negativeFixture?:SourceQualifiedNegativeFixture | null): RulebookValidationResult | null {
   if (message.direction !== 'outbound') return null
   assertProdatFreeTextSendBoundary(message)
   if(!gasApplicabilitySendIssue(message))assertMeterChangeSendBoundary(message)
@@ -22,6 +23,10 @@ export function assertRulebookAllowsSend(message: EdielMessageRow,dateEventConte
   // Caller metadata never grants permission to send a failed national check.
   // Any intentional negative certification run requires its separate source owner.
   if (errors.length === 0) return validation
+  // A failed local authority/configuration decision is not a deliberately bad
+  // national fixture. Protected D/register facts were guarded above as well.
+  if (validation.canonicalPolicy && !errors.some(issue=>issue.code.startsWith('CANONICAL_'))
+    && sourceQualifiedNegativeFixtureMatchesMessage({message,diagnosticCodes:errors.map(issue=>issue.code),qualification:negativeFixture})) return validation
 
   throw new Error(
     `Rulebook blockerar skick: ${errors.map((issue) => `${issue.code}: ${issue.description}`).join(' | ')}`
